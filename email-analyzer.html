@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Phishing Analyzer | CyberNet</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="navbar">
+    <div class="logo">CyberNet</div>
+
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="sms-analyzer.html">SMS Analyzer</a>
+      <a href="email-analyzer.html">Email Analyzer</a>
+      <a href="url-checker.html">URL Checker</a>
+      <a href="#">Screenshot Detector</a>
+      <a href="#">Scam Examples</a>
+      <a href="#">Learn</a>
+    </nav>
+  </header>
+
+  <section class="tool-page">
+    <div class="tool-container">
+      <p class="tagline">CyberNet Protection Tool</p>
+
+      <h1>Email Phishing Analyzer</h1>
+
+      <p class="description">
+        Paste a suspicious email below. CyberNet will scan it for phishing indicators
+        such as fake login requests, urgent threats, suspicious links, attachments,
+        payment requests, and personal information requests.
+      </p>
+
+      <div class="privacy-box tool-warning">
+        <h2>Privacy Notice</h2>
+        <p>
+          Do not paste real passwords, OTP codes, bank details, personal documents,
+          Emirates ID numbers, or private company information.
+        </p>
+      </div>
+
+      <textarea id="emailInput" placeholder="Paste the suspicious email here..."></textarea>
+
+      <button class="analyze-btn" onclick="analyzeEmail()">Analyze Email</button>
+
+      <div id="emailResultBox" class="result-box hidden">
+
+        <div class="report-header">
+          <div>
+            <p class="report-label">Possible Threat Type</p>
+            <h2 id="emailThreatType">Unknown</h2>
+          </div>
+
+          <div>
+            <p class="report-label">Risk Level</p>
+            <h2 id="emailRiskTitle">Risk Level</h2>
+          </div>
+
+          <div>
+            <p class="report-label">Confidence</p>
+            <h2 id="emailConfidenceLevel">0%</h2>
+          </div>
+        </div>
+
+        <p id="emailRiskScore"></p>
+
+        <h3>Detected Warning Signs</h3>
+        <ul id="emailWarningList"></ul>
+
+        <h3>Recommendation</h3>
+        <p id="emailRecommendation"></p>
+
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>© 2026 CyberNet. Built for cybersecurity awareness and protection.</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

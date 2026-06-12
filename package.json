@@ -1,0 +1,16 @@
+{
+  "name": "cybernet-ai",
+  "version": "1.0.0",
+  "description": "CyberNet AI cybersecurity platform backend",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "openai": "^6.42.0"
+  }
+}

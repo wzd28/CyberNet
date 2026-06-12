@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SMS Scam Analyzer | CyberNet</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="navbar">
+    <div class="logo">CyberNet</div>
+
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="sms-analyzer.html">SMS Analyzer</a>
+      <a href="email-analyzer.html">Email Analyzer</a>
+      <a href="url-checker.html">URL Checker</a>
+      <a href="#">Screenshot Detector</a>
+      <a href="#">Scam Examples</a>
+      <a href="#">Learn</a>
+    </nav>
+  </header>
+
+  <section class="tool-page">
+    <div class="tool-container">
+      <p class="tagline">CyberNet Protection Tool</p>
+
+      <h1>SMS Scam Analyzer</h1>
+
+      <p class="description">
+        Paste a suspicious SMS or WhatsApp message below. CyberNet will check it
+        for scam warning signs such as urgency, fake payment requests, suspicious links,
+        threats, prize scams, and requests for personal information.
+      </p>
+
+      <div class="privacy-box tool-warning">
+        <h2>Privacy Notice</h2>
+        <p>
+          Do not paste passwords, bank details, Emirates ID numbers, OTP codes,
+          PIN codes, or private personal information.
+        </p>
+      </div>
+
+      <textarea id="messageInput" placeholder="Paste the suspicious message here..."></textarea>
+
+      <button class="analyze-btn" onclick="analyzeSMS()">Analyze Message</button>
+
+      <div id="resultBox" class="result-box hidden">
+
+        <div class="report-header">
+          <div>
+            <p class="report-label">Possible Scam Type</p>
+            <h2 id="scamType">Unknown</h2>
+          </div>
+
+          <div>
+            <p class="report-label">Risk Level</p>
+            <h2 id="riskTitle">Risk Level</h2>
+          </div>
+
+          <div>
+            <p class="report-label">Confidence</p>
+            <h2 id="confidenceLevel">0%</h2>
+          </div>
+        </div>
+
+        <p id="riskScore"></p>
+
+        <h3>Detected Warning Signs</h3>
+        <ul id="warningList"></ul>
+
+        <h3>Recommendation</h3>
+        <p id="recommendation"></p>
+
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>© 2026 CyberNet. Built for cybersecurity awareness and protection.</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

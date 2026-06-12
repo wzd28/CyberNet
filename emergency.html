@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Emergency Cyber Help - CyberNet</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header>
+    <h1>CyberNet</h1>
+    <p>Emergency Cyber Help</p>
+  </header>
+
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="email.html">Email Tester</a>
+    <a href="sms.html">SMS Checker</a>
+    <a href="password.html">Password</a>
+    <a href="link.html">Links</a>
+    <a href="breach.html">Breach</a>
+    <a href="device.html">Device</a>
+    <a href="privacy.html">Privacy</a>
+    <a href="attack.html">Attack ID</a>
+    <a href="action.html">Action Plan</a>
+    <a href="screenshot.html">Screenshot</a>
+    <a href="website.html">Website Check</a>
+    <a href="report.html">Report</a>
+    <a href="emergency.html">Emergency</a>
+    <a href="contact.html">Contact</a>
+  </nav>
+
+  <section class="tool-section">
+    <h2>Cyber Emergency Help</h2>
+
+    <p class="tool-description">
+      Choose your emergency and CyberNet will show quick first steps.
+    </p>
+
+    <select id="emergencyType" class="input-box">
+      <option value="">Select emergency type</option>
+      <option value="bank">Money or card scam</option>
+      <option value="account">Hacked account</option>
+      <option value="device">Infected device</option>
+      <option value="ransomware">Locked files or ransomware</option>
+      <option value="lost">Lost phone or laptop</option>
+      <option value="blackmail">Online blackmail or threats</option>
+    </select>
+
+    <button onclick="showEmergencyHelp()">Show Emergency Steps</button>
+
+    <div id="resultBox" class="result-box"></div>
+
+    <div class="tips-box">
+      <h3>Important Reminder</h3>
+      <ul>
+        <li>If money is involved, contact your bank immediately.</li>
+        <li>If threats or blackmail are involved, save proof and report it.</li>
+        <li>Change passwords from a safe device, not the infected one.</li>
+        <li>Do not pay scammers without getting trusted advice.</li>
+      </ul>
+    </div>
+  </section>
+
+  <script src="script.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Cyber Safety Action Plan - CyberNet</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header>
+    <h1>CyberNet</h1>
+    <p>Cyber Safety Action Plan Generator</p>
+  </header>
+
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="email.html">Phishing Email Tester</a>
+    <a href="sms.html">SMS Scam Checker</a>
+    <a href="password.html">Password Checker</a>
+    <a href="link.html">Link Checker</a>
+    <a href="breach.html">Breach Checker</a>
+    <a href="device.html">Device Security</a>
+    <a href="privacy.html">Privacy Checkup</a>
+    <a href="attack.html">Attack Identifier</a>
+    <a href="action.html">Action Plan</a>
+  </nav>
+
+  <section class="tool-section">
+    <h2>Generate Your Cyber Safety Action Plan</h2>
+
+    <p class="tool-description">
+      Choose what happened, and CyberNet will give you clear steps to follow.
+    </p>
+
+    <div class="tips-box">
+      <h3>What Happened?</h3>
+
+      <select id="incidentType" class="input-box">
+        <option value="">Select an incident</option>
+        <option value="clickedLink">I clicked a suspicious link</option>
+        <option value="enteredPassword">I entered my password on a suspicious website</option>
+        <option value="downloadedFile">I downloaded an unknown file or app</option>
+        <option value="hackedAccount">My account was hacked</option>
+        <option value="infectedDevice">My device is acting strange or may be infected</option>
+        <option value="moneyScam">I sent money or card details to a scammer</option>
+        <option value="lostDevice">I lost my phone or laptop</option>
+      </select>
+    </div>
+
+    <button onclick="generateActionPlan()">Generate Action Plan</button>
+
+    <div id="resultBox" class="result-box"></div>
+
+    <div class="tips-box">
+      <h3>General Emergency Cyber Tips</h3>
+      <ul>
+        <li>Do not panic or keep clicking more links.</li>
+        <li>Change passwords from a safe device.</li>
+        <li>Turn on two-factor authentication.</li>
+        <li>Contact your bank quickly if money or card details are involved.</li>
+        <li>Disconnect from Wi-Fi if your device seems infected.</li>
+        <li>Tell your contacts if your account sent fake messages.</li>
+        <li>Take screenshots as proof before deleting scam messages.</li>
+      </ul>
+    </div>
+  </section>
+
+  <script src="script.js"></script>
+
+</body>
+</html>
