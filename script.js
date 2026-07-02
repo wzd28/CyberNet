@@ -1,14 +1,14 @@
-/* ─── Particle Network ─── */
+/* ─── Particle Network (green theme) ─── */
 (function(){
   const canvas=document.getElementById("particleCanvas");if(!canvas)return;
-  const ctx=canvas.getContext("2d");let particles=[];const COUNT=55,MAX_DIST=130;
+  const ctx=canvas.getContext("2d");let particles=[];const COUNT=50,MAX_DIST=130;
   function resize(){canvas.width=window.innerWidth;canvas.height=window.innerHeight}
   resize();window.addEventListener("resize",resize);
-  for(let i=0;i<COUNT;i++){particles.push({x:Math.random()*window.innerWidth,y:Math.random()*window.innerHeight,r:Math.random()*1.8+0.6,dx:(Math.random()-0.5)*0.35,dy:(Math.random()-0.5)*0.35,o:Math.random()*0.4+0.1})}
+  for(let i=0;i<COUNT;i++){particles.push({x:Math.random()*window.innerWidth,y:Math.random()*window.innerHeight,r:Math.random()*1.6+0.5,dx:(Math.random()-0.5)*0.3,dy:(Math.random()-0.5)*0.3,o:Math.random()*0.35+0.08})}
   function draw(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
-    for(let i=0;i<particles.length;i++){for(let j=i+1;j<particles.length;j++){const dx=particles[i].x-particles[j].x,dy=particles[i].y-particles[j].y,dist=Math.sqrt(dx*dx+dy*dy);if(dist<MAX_DIST){const alpha=0.07*(1-dist/MAX_DIST);ctx.beginPath();ctx.moveTo(particles[i].x,particles[i].y);ctx.lineTo(particles[j].x,particles[j].y);ctx.strokeStyle="rgba(14,165,233,"+alpha+")";ctx.lineWidth=0.6;ctx.stroke()}}}
-    particles.forEach(function(p){ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle="rgba(0,229,255,"+p.o+")";ctx.fill();p.x+=p.dx;p.y+=p.dy;if(p.x<-10)p.x=canvas.width+10;if(p.x>canvas.width+10)p.x=-10;if(p.y<-10)p.y=canvas.height+10;if(p.y>canvas.height+10)p.y=-10;p.o+=(Math.random()-0.5)*0.008;if(p.o<0.06)p.o=0.06;if(p.o>0.45)p.o=0.45});
+    for(let i=0;i<particles.length;i++){for(let j=i+1;j<particles.length;j++){const dx=particles[i].x-particles[j].x,dy=particles[i].y-particles[j].y,dist=Math.sqrt(dx*dx+dy*dy);if(dist<MAX_DIST){const alpha=0.06*(1-dist/MAX_DIST);ctx.beginPath();ctx.moveTo(particles[i].x,particles[i].y);ctx.lineTo(particles[j].x,particles[j].y);ctx.strokeStyle="rgba(34,211,238,"+alpha+")";ctx.lineWidth=0.6;ctx.stroke()}}}
+    particles.forEach(function(p){ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle="rgba(34,211,238,"+p.o+")";ctx.fill();p.x+=p.dx;p.y+=p.dy;if(p.x<-10)p.x=canvas.width+10;if(p.x>canvas.width+10)p.x=-10;if(p.y<-10)p.y=canvas.height+10;if(p.y>canvas.height+10)p.y=-10;p.o+=(Math.random()-0.5)*0.007;if(p.o<0.05)p.o=0.05;if(p.o>0.4)p.o=0.4});
     requestAnimationFrame(draw);
   }draw();
 })();
@@ -22,31 +22,56 @@ document.addEventListener("DOMContentLoaded",()=>{
   const mobileMenu=document.getElementById("mobileMenu");
   const navbar=document.querySelector(".navbar");
   let savedApiKey="";
-  const LOADER_MS=1500;
+  const LOADER_MS=1400;
+  let currentPageId="home";
 
-  /* ─── Loader ─── */
+  /* ─── Loader (first visit only) ─── */
   function hideLoader(){if(!loader)return;setTimeout(()=>loader.classList.add("hide"),LOADER_MS)}
   hideLoader();
-  function restartLoaderAnimation(){const p=document.querySelector(".loading-progress");if(!p)return;p.style.animation="none";p.offsetHeight;p.style.animation=`loadProgress ${LOADER_MS/1000}s ease forwards`}
-  function showTransition(cb){if(!loader){cb();return}loader.classList.remove("hide");restartLoaderAnimation();setTimeout(cb,220);setTimeout(()=>loader.classList.add("hide"),LOADER_MS)}
 
   /* ─── Reveal ─── */
-  function runRevealAnimation(){const items=document.querySelectorAll(".active-page .reveal");items.forEach((item,i)=>{item.classList.remove("show");setTimeout(()=>item.classList.add("show"),110+i*85)})}
+  function runRevealAnimation(){const items=document.querySelectorAll(".active-page .reveal");items.forEach((item,i)=>{item.classList.remove("show");setTimeout(()=>item.classList.add("show"),100+i*80)})}
 
-  /* ─── Page switching ─── */
+  /* ─── Sliding nav indicator ─── */
+  const navIndicator=document.getElementById("navIndicator");
+  const navTabsEl=document.querySelector(".nav-tabs");
+  function moveNavIndicator(pageName){
+    if(!navIndicator||!navTabsEl)return;
+    const btn=navTabsEl.querySelector(`.nav-link[data-page="${pageName}"]`);
+    if(!btn)return;
+    const tabsRect=navTabsEl.getBoundingClientRect();
+    const btnRect=btn.getBoundingClientRect();
+    navIndicator.style.width=btnRect.width+"px";
+    navIndicator.style.transform=`translateX(${btnRect.left-tabsRect.left}px)`;
+    navTabsEl.classList.add("indicator-ready");
+  }
+  window.addEventListener("load",()=>moveNavIndicator(currentPageId));
+  window.addEventListener("resize",()=>moveNavIndicator(currentPageId));
+
+  /* ─── Page switching (smooth crossfade, no loader flash after first visit) ─── */
   function switchPage(pageName){
     const target=document.getElementById(pageName);if(!target)return;
     const current=document.querySelector(".page.active-page");
     if(current&&current.id===pageName){if(navbar)navbar.classList.remove("open");runRevealAnimation();return}
-    showTransition(()=>{
-      pages.forEach(p=>p.classList.remove("active-page"));
+    currentPageId=pageName;
+    moveNavIndicator(pageName);
+    document.querySelectorAll(".nav-tabs .nav-link").forEach(btn=>{btn.classList.toggle("active",btn.dataset.page===pageName)});
+    if(navbar)navbar.classList.remove("open");
+    const finish=()=>{
+      pages.forEach(p=>p.classList.remove("active-page","leaving"));
       target.classList.add("active-page");
-      document.querySelectorAll(".nav-tabs .nav-link").forEach(btn=>{btn.classList.toggle("active",btn.dataset.page===pageName)});
-      if(navbar)navbar.classList.remove("open");
-      window.scrollTo({top:0,behavior:"smooth"});
-      setTimeout(runRevealAnimation,110);
-      if(pageName==="home")setTimeout(animateWowCounters,600);
-    });
+      window.scrollTo({top:0,behavior:"auto"});
+      setTimeout(runRevealAnimation,60);
+      if(pageName==="home")setTimeout(animateWowCounters,450);
+      if(pageName==="home")setTimeout(()=>animateHeroStats("#home"),300);
+      if(pageName==="about")setTimeout(()=>animateHeroStats("#about"),300);
+    };
+    if(current){
+      current.classList.add("leaving");
+      setTimeout(finish,300);
+    }else{
+      finish();
+    }
   }
   navButtons.forEach(btn=>{btn.addEventListener("click",e=>{e.preventDefault();if(btn.dataset.page)switchPage(btn.dataset.page)})});
   if(mobileMenu&&navbar)mobileMenu.addEventListener("click",()=>navbar.classList.toggle("open"));
@@ -76,8 +101,9 @@ document.addEventListener("DOMContentLoaded",()=>{
   });
 
   function doLogin(name){
-    const first=name.split(" ")[0]||name;
-    if(navGreeting){navGreeting.textContent=`Hi ${first}, How can CyberNet help you today?`;navGreeting.classList.add("visible")}
+    const first=(name.split(" ")[0]||name).trim();
+    const capitalized=first.charAt(0).toUpperCase()+first.slice(1).toLowerCase();
+    if(navGreeting){navGreeting.textContent=`Hi ${capitalized}`;navGreeting.classList.add("visible")}
     if(openAuth)openAuth.style.display="none";
     if(authModal)authModal.classList.remove("show");
   }
@@ -110,8 +136,30 @@ document.addEventListener("DOMContentLoaded",()=>{
       const interval=setInterval(()=>{current+=step;if(current>=target){current=target;clearInterval(interval)}el.textContent=current.toLocaleString()},25);
     });
   }
-  // Trigger on load for home page
-  setTimeout(animateWowCounters,1200);
+  setTimeout(animateWowCounters,1100);
+
+  /* ─── Hero stats row (supports decimals + suffix; works on Home & About) ─── */
+  function animateHeroStats(scopeSelector){
+    const scope=scopeSelector?document.querySelector(scopeSelector):document;
+    if(!scope)return;
+    scope.querySelectorAll(".hero-stats-row strong").forEach(el=>{
+      if(el.dataset.animated)return;
+      el.dataset.animated="true";
+      const target=parseFloat(el.dataset.count);
+      const suffix=el.dataset.suffix||"";
+      const isDecimal=el.dataset.count.includes(".");
+      let current=0;
+      const steps=50;
+      const increment=target/steps;
+      let count=0;
+      const interval=setInterval(()=>{
+        count++;current+=increment;
+        if(count>=steps){current=target;clearInterval(interval)}
+        el.textContent=(isDecimal?current.toFixed(1):Math.round(current).toLocaleString())+suffix;
+      },30);
+    });
+  }
+  setTimeout(()=>animateHeroStats("#home"),900);
 
   /* ─── Ticker duplication for seamless loop ─── */
   const tickerTrack=document.querySelector(".ticker-track");
@@ -127,22 +175,21 @@ document.addEventListener("DOMContentLoaded",()=>{
 
   function showReport(resultBox,score,scamType,reasons,advice){
     const danger=getDanger(score);
-    const colorMap={danger:"#ff5c7a",warning:"#ffd166",safe:"#28f59b"};
+    const colorMap={danger:"#ff6b6b",warning:"#ffcf6b",safe:"#3ffa8b"};
     const barColor=colorMap[danger.css];
     resultBox.className=resultBox.className.replace(/result-has-\w+/g,"").trim();
     resultBox.classList.add(`result-has-${danger.css}`);
-    resultBox.innerHTML=`<div class="scan-report"><div class="report-top-row"><span class="risk-badge risk-${danger.css}">${danger.label}</span><span class="scam-type-tag">${scamType}</span><span class="score-display">${score}<span>/100</span></span></div><div class="risk-meter-wrap"><div class="risk-meter-bar" id="mb_${Date.now()}" style="background:${barColor};box-shadow:0 0 10px ${barColor}80"></div></div><div class="report-body"><div class="report-col"><div class="report-col-title"><span class="col-warn">⚠</span> Warning Signs</div><ul class="report-list">${reasons.map(r=>`<li>${r}</li>`).join("")}</ul></div><div class="report-col"><div class="report-col-title"><span class="col-safe">→</span> What To Do</div><ul class="report-list safe-list">${advice.map(a=>`<li>${a}</li>`).join("")}</ul></div></div></div>`;
+    resultBox.innerHTML=`<div class="scan-report"><div class="report-top-row"><span class="risk-badge risk-${danger.css}">${danger.label}</span><span class="scam-type-tag">${scamType}</span><span class="score-display">${score}<span>/100</span></span></div><div class="risk-meter-wrap"><div class="risk-meter-bar" style="background:${barColor};box-shadow:0 0 10px ${barColor}80"></div></div><div class="report-body"><div class="report-col"><div class="report-col-title"><span class="col-warn">⚠</span> Warning Signs</div><ul class="report-list">${reasons.map(r=>`<li>${r}</li>`).join("")}</ul></div><div class="report-col"><div class="report-col-title"><span class="col-safe">→</span> What To Do</div><ul class="report-list safe-list">${advice.map(a=>`<li>${a}</li>`).join("")}</ul></div></div></div>`;
     requestAnimationFrame(()=>{const bar=resultBox.querySelector(".risk-meter-bar");if(bar)setTimeout(()=>{bar.style.width=score+"%"},80)});
   }
 
   function runScan(btn,resultBox,cb){
-    const orig=btn.innerHTML;btn.innerHTML=`<span class="btn-spinner"></span> Scanning…`;btn.disabled=true;
-    resultBox.innerHTML=`<div class="scanning-placeholder"><span class="scanning-placeholder-text">Analyzing</span><div class="scan-dots"><span></span><span></span><span></span></div></div>`;
-    resultBox.classList.add("is-scanning");
-    setTimeout(()=>{resultBox.classList.remove("is-scanning");cb();btn.innerHTML=orig;btn.disabled=false},680);
+    const orig=btn.innerHTML;btn.innerHTML=`<span class="btn-spinner"></span> scanning…`;btn.disabled=true;
+    resultBox.innerHTML=`<div class="scanning-placeholder"><span class="scanning-placeholder-text">analyzing</span><div class="scan-dots"><span></span><span></span><span></span></div></div>`;
+    setTimeout(()=>{cb();btn.innerHTML=orig;btn.disabled=false},650);
   }
 
-  /* ─── Analysis rules ─── */
+  /* ─── Analysis rules (same proven engine) ─── */
   function analyzeTextRules(text){
     let score=0,scamType="General suspicious message";const reasons=[];const lower=text.toLowerCase();
     const checks=[
@@ -187,20 +234,111 @@ document.addEventListener("DOMContentLoaded",()=>{
 
   /* ─── CyberNet Text ─── */
   const cyberTextInput=document.getElementById("cyberTextInput"),cyberTextResult=document.getElementById("cyberTextResult"),cyberTextBtn=document.getElementById("cyberTextBtn");
-  if(cyberTextBtn&&cyberTextInput&&cyberTextResult){cyberTextBtn.addEventListener("click",()=>{const text=cyberTextInput.value.trim();if(!text){cyberTextResult.innerHTML=`<span class="warning">Paste a suspicious message first.</span>`;return}runScan(cyberTextBtn,cyberTextResult,()=>{const r=analyzeTextRules(text);showReport(cyberTextResult,r.score,r.scamType,r.reasons,r.advice)})})}
+  const cyberTextCount=document.getElementById("cyberTextCount");
+  if(cyberTextInput&&cyberTextCount){cyberTextInput.addEventListener("input",()=>{cyberTextCount.textContent=cyberTextInput.value.length})}
+
+  function animateScanRing(ringEl,labelEl,statusEl,duration,onDone){
+    if(!ringEl||!labelEl)return onDone&&onDone();
+    const circumference=276;
+    if(statusEl)statusEl.textContent="Scanning...";
+    ringEl.style.strokeDashoffset=circumference;
+    requestAnimationFrame(()=>{ringEl.style.strokeDashoffset=0});
+    const tickMs=40;
+    const increment=100/(duration/tickMs);
+    let pct=0;
+    const interval=setInterval(()=>{
+      pct+=increment;
+      if(pct>=100){pct=100;clearInterval(interval);if(statusEl)statusEl.textContent="Scan complete";if(onDone)setTimeout(onDone,150)}
+      labelEl.textContent=Math.round(pct)+"%";
+    },tickMs);
+  }
+
+  function prependScan(listId,mainText,riskLabel,riskClass){
+    const list=document.getElementById(listId);if(!list)return;
+    const li=document.createElement("li");
+    li.innerHTML=`<span class="scan-list-main">${mainText}</span><span class="risk-tag ${riskClass}">${riskLabel}</span>`;
+    list.insertBefore(li,list.firstChild);
+    if(list.children.length>4)list.removeChild(list.lastChild);
+  }
+  function riskMeta(score){
+    if(score>=55)return{label:"High Risk",cls:"risk-tag-danger"};
+    if(score>=30)return{label:"Medium Risk",cls:"risk-tag-warning"};
+    return{label:"Low Risk",cls:"risk-tag-safe"};
+  }
+
+  if(cyberTextBtn&&cyberTextInput&&cyberTextResult){cyberTextBtn.addEventListener("click",()=>{
+    const text=cyberTextInput.value.trim();if(!text){cyberTextResult.innerHTML=`<span class="warning">Paste a suspicious message first.</span>`;return}
+    const ring=document.getElementById("textScanRing"),label=document.getElementById("textScanLabel"),status=document.getElementById("textScanStatus");
+    cyberTextBtn.disabled=true;
+    animateScanRing(ring,label,status,1400,()=>{
+      const r=analyzeTextRules(text);
+      showReport(cyberTextResult,r.score,r.scamType,r.reasons,r.advice);
+      const meta=riskMeta(r.score);
+      prependScan("textScanList",`"${text.slice(0,38)}${text.length>38?"...":""}"`,meta.label,meta.cls);
+      cyberTextBtn.disabled=false;
+    });
+  })}
 
   /* ─── CyberNet Link ─── */
   const cyberLinkInput=document.getElementById("cyberLinkInput"),cyberLinkResult=document.getElementById("cyberLinkResult"),cyberLinkBtn=document.getElementById("cyberLinkBtn");
-  if(cyberLinkBtn&&cyberLinkInput&&cyberLinkResult){cyberLinkBtn.addEventListener("click",()=>{const link=cyberLinkInput.value.trim();if(!link){cyberLinkResult.innerHTML=`<span class="warning">Paste a suspicious link first.</span>`;return}runScan(cyberLinkBtn,cyberLinkResult,()=>{const r=analyzeLinkRules(link);showReport(cyberLinkResult,r.score,r.scamType,r.reasons,r.advice)})})}
+  if(cyberLinkBtn&&cyberLinkInput&&cyberLinkResult){cyberLinkBtn.addEventListener("click",()=>{const link=cyberLinkInput.value.trim();if(!link){cyberLinkResult.innerHTML=`<span class="warning">Paste a suspicious link first.</span>`;return}runScan(cyberLinkBtn,cyberLinkResult,()=>{const r=analyzeLinkRules(link);showReport(cyberLinkResult,r.score,r.scamType,r.reasons,r.advice);const meta=riskMeta(r.score);prependScan("linkScanList",link.slice(0,42),meta.label,meta.cls)})})}
 
-  /* ─── CyberNet Image ─── */
+  /* ─── CyberNet Image (with real QR decoding) ─── */
   const cyberImageInput=document.getElementById("cyberImageInput"),cyberImageResult=document.getElementById("cyberImageResult"),cyberDropZone=document.getElementById("cyberDropZone");
-  function handleCyberImage(file){
+
+  function decodeQRFromFile(file){
+    return new Promise((resolve)=>{
+      if(typeof jsQR==="undefined"){resolve(null);return}
+      const reader=new FileReader();
+      reader.onload=e=>{
+        const img=new Image();
+        img.onload=()=>{
+          try{
+            const canvas=document.createElement("canvas");
+            canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;
+            const ctx=canvas.getContext("2d");
+            ctx.drawImage(img,0,0);
+            const imageData=ctx.getImageData(0,0,canvas.width,canvas.height);
+            const code=jsQR(imageData.data,imageData.width,imageData.height);
+            resolve(code?code.data:null);
+          }catch(err){resolve(null)}
+        };
+        img.onerror=()=>resolve(null);
+        img.src=e.target.result;
+      };
+      reader.onerror=()=>resolve(null);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleCyberImage(file){
     if(!file||!cyberImageResult)return;
     if(cyberDropZone){const ex=cyberDropZone.querySelector(".upload-preview");if(ex)ex.remove();const reader=new FileReader();reader.onload=ev=>{const p=document.createElement("div");p.className="upload-preview";p.innerHTML=`<img src="${ev.target.result}" alt="preview"><span class="upload-preview-label">${file.name}</span>`;cyberDropZone.appendChild(p)};reader.readAsDataURL(file)}
     cyberImageResult.innerHTML=`<div class="scanning-placeholder"><span class="scanning-placeholder-text">Analyzing image</span><div class="scan-dots"><span></span><span></span><span></span></div></div>`;
-    cyberImageResult.classList.add("is-scanning");
-    setTimeout(()=>{cyberImageResult.classList.remove("is-scanning");const r=analyzeImageRules(file);showReport(cyberImageResult,r.score,r.scamType,r.reasons,r.advice)},680);
+
+    const qrData=await decodeQRFromFile(file);
+
+    setTimeout(()=>{
+      let r;
+      if(qrData){
+        // Real QR code found in the image — decode it and analyze the actual link it points to
+        const looksLikeUrl=/^https?:\/\//i.test(qrData)||/^[a-z0-9.-]+\.[a-z]{2,}/i.test(qrData);
+        if(looksLikeUrl){
+          const normalized=/^https?:\/\//i.test(qrData)?qrData:"http://"+qrData;
+          r=analyzeLinkRules(normalized);
+        }else{
+          r={score:45,scamType:"QR code (non-link content)",reasons:["This QR code does not contain a typical web link."],advice:["Be cautious with unexpected QR codes.","Do not act on unusual instructions from a scanned code."]};
+        }
+        r.reasons=[`QR code decoded successfully — it points to: "${qrData.slice(0,70)}${qrData.length>70?"...":""}"`,...r.reasons];
+      }else{
+        // No QR code detected in the image — fall back to filename-based heuristics
+        r=analyzeImageRules(file);
+        r.reasons=["No QR code detected in this image — analysis is based on filename patterns only.",...r.reasons];
+      }
+      showReport(cyberImageResult,r.score,r.scamType,r.reasons,r.advice);
+      const meta=riskMeta(r.score);
+      prependScan("imageScanList",file.name,meta.label,meta.cls);
+    },500);
   }
   if(cyberImageInput)cyberImageInput.addEventListener("change",()=>handleCyberImage(cyberImageInput.files[0]));
   if(cyberDropZone&&cyberImageInput){
@@ -209,9 +347,28 @@ document.addEventListener("DOMContentLoaded",()=>{
     cyberDropZone.addEventListener("drop",e=>{e.preventDefault();cyberDropZone.classList.remove("drag-over");const f=e.dataTransfer.files[0];if(f){cyberImageInput.files=e.dataTransfer.files;handleCyberImage(f)}});
   }
 
+  /* ─── Detect tabs (CyberNet Features page) ─── */
+  document.querySelectorAll(".detect-tab").forEach(tab=>{
+    tab.addEventListener("click",()=>{
+      document.querySelectorAll(".detect-tab").forEach(t=>t.classList.remove("active"));
+      tab.classList.add("active");
+      const targetPanel=tab.dataset.tab;
+      document.querySelectorAll(".detect-panel").forEach(p=>p.classList.toggle("active",p.dataset.panel===targetPanel));
+      runRevealAnimation();
+    });
+  });
+
   /* ─── API Key ─── */
-  const aiApiKeyInput=document.getElementById("aiApiKeyInput"),aiApiStatus=document.getElementById("aiApiStatus"),testApiKeyBtn=document.getElementById("testApiKeyBtn"),apiKeyBox=document.querySelector(".api-key-box");
-  if(aiApiKeyInput){const wrap=document.createElement("div");wrap.className="api-key-input-row";aiApiKeyInput.parentNode.insertBefore(wrap,aiApiKeyInput);wrap.appendChild(aiApiKeyInput);const toggle=document.createElement("button");toggle.type="button";toggle.className="api-key-toggle";toggle.textContent="👁";toggle.addEventListener("click",()=>{aiApiKeyInput.type=aiApiKeyInput.type==="password"?"text":"password";toggle.textContent=aiApiKeyInput.type==="password"?"👁":"🔒"});wrap.appendChild(toggle)}
+  const aiApiKeyInput=document.getElementById("aiApiKeyInput"),aiApiStatus=document.getElementById("aiApiStatus"),testApiKeyBtn=document.getElementById("testApiKeyBtn"),aiConnPill=document.getElementById("aiConnPill"),aiReqLeft=document.getElementById("aiReqLeft");
+  let aiRequestsLeft=100;
+  if(aiApiKeyInput&&aiApiKeyInput.parentElement.classList.contains("api-key-input-row")){
+    const wrap=aiApiKeyInput.parentElement;
+    const toggle=document.createElement("button");toggle.type="button";toggle.className="api-key-toggle";toggle.textContent="show";
+    toggle.style.cssText="position:absolute;right:10px;top:50%;transform:translateY(-50%);border:none;background:transparent;color:var(--muted);font-family:var(--font-mono);font-size:11px;cursor:pointer;";
+    toggle.addEventListener("click",()=>{aiApiKeyInput.type=aiApiKeyInput.type==="password"?"text":"password";toggle.textContent=aiApiKeyInput.type==="password"?"show":"hide"});
+    aiApiKeyInput.style.paddingRight="52px";
+    wrap.appendChild(toggle);
+  }
 
   async function testApiKey(){
     const key=aiApiKeyInput.value.trim();
@@ -219,58 +376,92 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(!key.startsWith("sk-")){aiApiStatus.innerHTML=`<span class="warning">That doesn't look like an OpenAI key (should start with sk-).</span>`;return}
     testApiKeyBtn.innerHTML=`<span class="btn-spinner"></span> Testing…`;testApiKeyBtn.disabled=true;
     aiApiStatus.innerHTML=`<span class="warning">Testing API key…</span>`;
+    if(aiConnPill){aiConnPill.textContent="Connecting...";aiConnPill.className="status-pill status-pill-warn"}
     try{
       const res=await fetch("https://api.openai.com/v1/chat/completions",{method:"POST",headers:{"Authorization":`Bearer ${key}`,"Content-Type":"application/json"},body:JSON.stringify({model:"gpt-4o-mini",messages:[{role:"user",content:"Reply with: CyberNet API OK"}],max_tokens:15})});
       if(!res.ok)throw new Error();savedApiKey=key;
       aiApiStatus.innerHTML=`<span class="safe">✓ API key verified — CyberNet AI is ready.</span>`;
-      if(apiKeyBox)apiKeyBox.classList.add("api-unlocked");
-    }catch{savedApiKey="";aiApiStatus.innerHTML=`<span class="danger">✗ Invalid key, billing issue, or network error.</span>`;if(apiKeyBox)apiKeyBox.classList.remove("api-unlocked")}
-    finally{testApiKeyBtn.innerHTML="Test API Key";testApiKeyBtn.disabled=false}
+      if(aiConnPill){aiConnPill.textContent="Connected";aiConnPill.className="status-pill status-pill-safe"}
+    }catch{
+      savedApiKey="";aiApiStatus.innerHTML=`<span class="danger">✗ Invalid key, billing issue, or network error.</span>`;
+      if(aiConnPill){aiConnPill.textContent="Not Connected";aiConnPill.className="status-pill"}
+    }
+    finally{testApiKeyBtn.innerHTML="Save Key";testApiKeyBtn.disabled=false}
   }
   if(testApiKeyBtn)testApiKeyBtn.addEventListener("click",testApiKey);
 
-  /* ─── AI calls ─── */
-  async function callCyberNetAI(prompt,resultBox){
-    if(!savedApiKey){resultBox.innerHTML=`<span class="warning">Connect and test your API key first (above).</span>`;return}
-    resultBox.innerHTML=`<div class="scanning-placeholder"><span class="scanning-placeholder-text">CyberNet AI analyzing</span><div class="scan-dots"><span></span><span></span><span></span></div></div>`;resultBox.classList.add("is-scanning");
-    try{
-      const res=await fetch("https://api.openai.com/v1/chat/completions",{method:"POST",headers:{"Authorization":`Bearer ${savedApiKey}`,"Content-Type":"application/json"},body:JSON.stringify({model:"gpt-4o-mini",messages:[{role:"system",content:"You are CyberNet AI, a cybersecurity analyst. For every input, respond with: Danger Score (X/100), Danger Level, Scam Type, Reasons, and What to do. Use short bullet points."},{role:"user",content:prompt}],max_tokens:600})});
-      if(!res.ok)throw new Error();const data=await res.json();const reply=data.choices[0].message.content;
-      resultBox.classList.remove("is-scanning");resultBox.innerHTML=`<div style="line-height:1.7">${reply.replace(/\n/g,"<br>")}</div>`;
-    }catch{resultBox.classList.remove("is-scanning");resultBox.innerHTML=`<span class="danger">AI analysis failed. Check your key, billing, or connection.</span>`}
+  /* ─── Chat interface ─── */
+  const chatMessages=document.getElementById("chatMessages");
+  const chatInput=document.getElementById("chatInput");
+  const chatSendBtn=document.getElementById("chatSendBtn");
+  const chatInputRowText=document.getElementById("chatInputRowText");
+  const chatInputRowImage=document.getElementById("chatInputRowImage");
+  const aiImageInput=document.getElementById("aiImageInput");
+  let currentChatMode="text";
+
+  function addChatBubble(role,html){
+    if(!chatMessages)return null;
+    const bubble=document.createElement("div");
+    bubble.className="chat-bubble "+(role==="user"?"chat-bubble-user":"chat-bubble-ai");
+    bubble.innerHTML=`<div class="chat-bubble-inner">${html}</div>`;
+    chatMessages.appendChild(bubble);
+    chatMessages.scrollTop=chatMessages.scrollHeight;
+    return bubble;
   }
 
-  /* ─── AI Text / Link / Image ─── */
-  const aiTextInput=document.getElementById("aiTextInput"),aiTextResult=document.getElementById("aiTextResult"),aiTextBtn=document.getElementById("aiTextBtn");
-  if(aiTextBtn)aiTextBtn.addEventListener("click",()=>{const t=aiTextInput.value.trim();if(!t){aiTextResult.innerHTML=`<span class="warning">Paste suspicious text first.</span>`;return}callCyberNetAI(`Analyze this suspicious message:\n\n${t}`,aiTextResult)});
+  async function sendToAI(promptText,systemPrompt,imageB64){
+    if(!savedApiKey){addChatBubble("ai",`<span class="warning">Connect and save your API key on the left first.</span>`);return}
+    if(aiRequestsLeft<=0){addChatBubble("ai",`<span class="warning">You've used all 100 demo requests. Refresh to reset.</span>`);return}
+    const thinking=addChatBubble("ai",`<div class="scanning-placeholder"><span class="scanning-placeholder-text">Analyzing</span><div class="scan-dots"><span></span><span></span><span></span></div></div>`);
+    try{
+      const userContent=imageB64?[{type:"text",text:promptText},{type:"image_url",image_url:{url:imageB64}}]:promptText;
+      const res=await fetch("https://api.openai.com/v1/chat/completions",{method:"POST",headers:{"Authorization":`Bearer ${savedApiKey}`,"Content-Type":"application/json"},body:JSON.stringify({model:"gpt-4o-mini",messages:[{role:"system",content:systemPrompt},{role:"user",content:userContent}],max_tokens:600})});
+      if(!res.ok)throw new Error();
+      const data=await res.json();const reply=data.choices[0].message.content;
+      thinking.querySelector(".chat-bubble-inner").innerHTML=reply.replace(/\n/g,"<br>");
+      aiRequestsLeft--;if(aiReqLeft)aiReqLeft.textContent=aiRequestsLeft+"/100";
+    }catch{
+      thinking.querySelector(".chat-bubble-inner").innerHTML=`<span class="danger">Analysis failed. Check your key, billing, or connection.</span>`;
+    }
+  }
 
-  const aiLinkInput=document.getElementById("aiLinkInput"),aiLinkResult=document.getElementById("aiLinkResult"),aiLinkBtn=document.getElementById("aiLinkBtn");
-  if(aiLinkBtn)aiLinkBtn.addEventListener("click",()=>{const l=aiLinkInput.value.trim();if(!l){aiLinkResult.innerHTML=`<span class="warning">Paste a suspicious link first.</span>`;return}callCyberNetAI(`Analyze this URL for phishing risk:\n\n${l}`,aiLinkResult)});
-
-  const aiImageInput=document.getElementById("aiImageInput"),aiImageResult=document.getElementById("aiImageResult"),aiImageBtn=document.getElementById("aiImageBtn"),aiDropZone=document.getElementById("aiDropZone");
-  function showAiImagePreview(file){if(!aiDropZone||!file)return;const ex=aiDropZone.querySelector(".upload-preview");if(ex)ex.remove();const reader=new FileReader();reader.onload=ev=>{const p=document.createElement("div");p.className="upload-preview";p.innerHTML=`<img src="${ev.target.result}" alt="preview"><span class="upload-preview-label">${file.name}</span>`;aiDropZone.appendChild(p)};reader.readAsDataURL(file)}
-  if(aiImageInput)aiImageInput.addEventListener("change",()=>showAiImagePreview(aiImageInput.files[0]));
-  if(aiDropZone&&aiImageInput){aiDropZone.addEventListener("dragover",e=>{e.preventDefault();aiDropZone.classList.add("drag-over")});aiDropZone.addEventListener("dragleave",()=>aiDropZone.classList.remove("drag-over"));aiDropZone.addEventListener("drop",e=>{e.preventDefault();aiDropZone.classList.remove("drag-over");const f=e.dataTransfer.files[0];if(f){aiImageInput.files=e.dataTransfer.files;showAiImagePreview(f)}})}
+  function sendChatMessage(){
+    const text=chatInput.value.trim();
+    if(!text)return;
+    addChatBubble("user",text.replace(/</g,"&lt;"));
+    chatInput.value="";
+    if(currentChatMode==="link"){
+      sendToAI(`Analyze this URL for phishing risk:\n\n${text}`,"You are CyberNet AI, a cybersecurity analyst. For every input, respond with: Danger Score (X/100), Danger Level, Scam Type, Reasons, and What to do. Use short bullet points.");
+    }else{
+      sendToAI(`Analyze this suspicious message:\n\n${text}`,"You are CyberNet AI, a cybersecurity analyst. For every input, respond with: Danger Score (X/100), Danger Level, Scam Type, Reasons, and What to do. Use short bullet points.");
+    }
+  }
+  if(chatSendBtn)chatSendBtn.addEventListener("click",sendChatMessage);
+  if(chatInput)chatInput.addEventListener("keydown",e=>{if(e.key==="Enter")sendChatMessage()});
 
   function fileToBase64(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file)})}
-  if(aiImageBtn)aiImageBtn.addEventListener("click",async()=>{
-    const file=aiImageInput.files[0];
-    if(!file){aiImageResult.innerHTML=`<span class="warning">Upload an image first.</span>`;return}
-    if(!savedApiKey){aiImageResult.innerHTML=`<span class="warning">Connect and test your API key first.</span>`;return}
-    aiImageResult.innerHTML=`<div class="scanning-placeholder"><span class="scanning-placeholder-text">AI scanning image</span><div class="scan-dots"><span></span><span></span><span></span></div></div>`;aiImageResult.classList.add("is-scanning");
-    try{
-      const b64=await fileToBase64(file);
-      const res=await fetch("https://api.openai.com/v1/chat/completions",{method:"POST",headers:{"Authorization":`Bearer ${savedApiKey}`,"Content-Type":"application/json"},body:JSON.stringify({model:"gpt-4o-mini",messages:[{role:"system",content:"You are CyberNet AI. Analyze images for scams: fake login pages, QR scams, fake payments, suspicious screenshots. Return: Danger Score /100, Danger Level, Scam Type, Reasons, and What to do."},{role:"user",content:[{type:"text",text:"Analyze this image for cybersecurity threats."},{type:"image_url",image_url:{url:b64}}]}],max_tokens:700})});
-      if(!res.ok)throw new Error();const data=await res.json();const reply=data.choices[0].message.content;
-      aiImageResult.classList.remove("is-scanning");aiImageResult.innerHTML=`<div style="line-height:1.7">${reply.replace(/\n/g,"<br>")}</div>`;
-    }catch{aiImageResult.classList.remove("is-scanning");aiImageResult.innerHTML=`<span class="danger">Image analysis failed.</span>`}
+  if(aiImageInput)aiImageInput.addEventListener("change",async()=>{
+    const file=aiImageInput.files[0];if(!file)return;
+    addChatBubble("user",`📎 ${file.name}`);
+    const b64=await fileToBase64(file);
+    sendToAI("Analyze this image for cybersecurity threats.","You are CyberNet AI. Analyze images for scams: fake login pages, QR scams, fake payments, suspicious screenshots. Return: Danger Score /100, Danger Level, Scam Type, Reasons, and What to do.",b64);
+  });
+
+  document.querySelectorAll(".chat-tab").forEach(tab=>{
+    tab.addEventListener("click",()=>{
+      document.querySelectorAll(".chat-tab").forEach(t=>t.classList.remove("active"));
+      tab.classList.add("active");
+      currentChatMode=tab.dataset.chat;
+      if(chatInputRowText)chatInputRowText.style.display=currentChatMode==="image"?"none":"flex";
+      if(chatInputRowImage)chatInputRowImage.style.display=currentChatMode==="image"?"flex":"none";
+      if(chatInput)chatInput.placeholder=currentChatMode==="link"?"Paste a suspicious link...":"Ask anything about security...";
+    });
   });
 
   /* ─── Learn Roadmap ─── */
   document.querySelectorAll(".rm-node").forEach(node=>{
     node.addEventListener("click",()=>{
       const wasExpanded=node.classList.contains("expanded");
-      // Close all in same module
       node.closest(".rm-nodes").querySelectorAll(".rm-node").forEach(n=>n.classList.remove("expanded"));
       if(!wasExpanded)node.classList.add("expanded");
     });
@@ -292,7 +483,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       }
     });
     if(!matches.length){learnSearchResult.innerHTML=`<strong class="warning">Nothing found for "${query}".</strong><br>Try: password, phishing, malware, scam, ransomware, wifi, VPN, OTP.`;return}
-    learnSearchResult.innerHTML=matches.slice(0,5).map((m,i)=>`<div class="search-result-item"><strong>${m.nodeTitle}</strong><br><span style="color:var(--cyan);font-size:13px">${m.modTitle}</span><p style="margin-top:6px;margin-bottom:0">${m.nodeDesc}</p><button class="secondary-btn" style="margin-top:10px;min-height:38px;padding:0 16px;font-size:13px" data-search-idx="${i}">Open Lesson →</button></div>`).join("");
+    learnSearchResult.innerHTML=matches.slice(0,5).map((m,i)=>`<div class="search-result-item"><strong>${m.nodeTitle}</strong><br><span style="color:var(--green);font-size:12px">${m.modTitle}</span><p style="margin-top:6px;margin-bottom:0">${m.nodeDesc}</p><button class="secondary-btn" style="margin-top:9px;min-height:34px;padding:0 14px;font-size:12px" data-search-idx="${i}">open_lesson →</button></div>`).join("");
     learnSearchResult.querySelectorAll("[data-search-idx]").forEach((btn,i)=>{
       btn.addEventListener("click",()=>{matches[i].nodeEl.classList.add("expanded");matches[i].nodeEl.scrollIntoView({behavior:"smooth",block:"center"})});
     });
@@ -300,6 +491,171 @@ document.addEventListener("DOMContentLoaded",()=>{
   if(learnSearchBtn)learnSearchBtn.addEventListener("click",searchLessons);
   if(learnSearch)learnSearch.addEventListener("keydown",e=>{if(e.key==="Enter")searchLessons()});
 
+  /* ─── NEW: Hero terminal typing effect ─── */
+  const heroTermBody=document.getElementById("heroTermBody");
+  if(heroTermBody){
+    const reduceMotion=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const lines=[
+      "$ cybernet --status",
+      "> initializing threat engine... done",
+      "> scanning 12,847 endpoints",
+      "> 3 threats neutralized in the last hour",
+      "> connection secure_"
+    ];
+    if(reduceMotion){
+      heroTermBody.innerHTML=lines.map(l=>`<div class="term-line" style="opacity:1">${l.startsWith("$")?`<span class="prompt">$</span>${l.slice(1)}`:l}</div>`).join("");
+    }else{
+      let lineIndex=0;
+      function typeNextLine(){
+        if(lineIndex>=lines.length){
+          const cursor=document.createElement("span");cursor.className="term-cursor";
+          heroTermBody.lastElementChild&&heroTermBody.lastElementChild.appendChild(cursor);
+          return;
+        }
+        const raw=lines[lineIndex];
+        const div=document.createElement("div");div.className="term-line";
+        heroTermBody.appendChild(div);
+        let charIndex=0;
+        const prefix=raw.startsWith("$")?`<span class="prompt">$</span>`:"";
+        const text=raw.startsWith("$")?raw.slice(1):raw;
+        function typeChar(){
+          if(charIndex<=text.length){
+            div.innerHTML=prefix+text.slice(0,charIndex);
+            charIndex++;
+            setTimeout(typeChar,18+Math.random()*22);
+          }else{
+            lineIndex++;
+            setTimeout(typeNextLine,260);
+          }
+        }
+        typeChar();
+      }
+      setTimeout(typeNextLine,500);
+    }
+  }
+
+  /* ─── NEW: Tilt-card interaction (subtle, Apple-style) ─── */
+  (function initTiltCards(){
+    const reduceMotion=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if(reduceMotion)return;
+    document.querySelectorAll(".tilt-card").forEach(el=>{
+      let rect=null;
+      el.addEventListener("mouseenter",()=>{rect=el.getBoundingClientRect()});
+      el.addEventListener("mousemove",e=>{
+        if(!rect)rect=el.getBoundingClientRect();
+        const px=(e.clientX-rect.left)/rect.width;
+        const py=(e.clientY-rect.top)/rect.height;
+        const rotY=(px-0.5)*8;
+        const rotX=(0.5-py)*8;
+        el.style.transform=`perspective(900px) rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg)`;
+      });
+      el.addEventListener("mouseleave",()=>{el.style.transform="";rect=null});
+    });
+  })();
+
+  /* ─── NEW: Magnetic buttons ─── */
+  (function initMagneticButtons(){
+    const reduceMotion=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if(reduceMotion)return;
+    document.querySelectorAll(".primary-btn,.secondary-btn,.login-btn").forEach(btn=>{
+      btn.addEventListener("mousemove",e=>{
+        const rect=btn.getBoundingClientRect();
+        const x=(e.clientX-rect.left-rect.width/2)*0.22;
+        const y=(e.clientY-rect.top-rect.height/2)*0.32;
+        btn.style.transform=`translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
+      });
+      btn.addEventListener("mouseleave",()=>{btn.style.transform=""});
+    });
+  })();
+
+  /* ─── NEW: Cursor-follow glow in hero ─── */
+  (function initCursorGlow(){
+    const reduceMotion=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const heroSection=document.getElementById("heroSection");
+    const cursorGlow=document.getElementById("cursorGlow");
+    if(reduceMotion||!heroSection||!cursorGlow)return;
+    heroSection.addEventListener("mousemove",e=>{
+      const rect=heroSection.getBoundingClientRect();
+      cursorGlow.style.left=(e.clientX-rect.left)+"px";
+      cursorGlow.style.top=(e.clientY-rect.top)+"px";
+      heroSection.classList.add("glow-active");
+    });
+    heroSection.addEventListener("mouseleave",()=>heroSection.classList.remove("glow-active"));
+  })();
+
+  /* ─── NEW: Pricing monthly/yearly toggle ─── */
+  (function initPricingToggle(){
+    const toggle=document.getElementById("pricingToggle");
+    if(!toggle)return;
+    const options=toggle.querySelectorAll(".toggle-option");
+    options.forEach(opt=>{
+      opt.addEventListener("click",()=>{
+        const cycle=opt.dataset.cycle;
+        toggle.dataset.cycle=cycle;
+        options.forEach(o=>o.classList.toggle("active",o===opt));
+        document.querySelectorAll(".price-card h2").forEach(h2=>{
+          const amount=h2.querySelector(".price-amount");
+          const suffix=h2.querySelector("span:last-child");
+          if(!amount||!suffix||amount===suffix)return;
+          const val=amount.dataset[cycle];
+          if(val===undefined)return;
+          amount.textContent="$"+val;
+          suffix.textContent=cycle==="yearly"?"/yr":"/mo";
+        });
+      });
+    });
+  })();
+
+  /* ─── NEW: Parallax + cinematic scroll effect on the Home hero ─── */
+  (function initParallax(){
+    const reduceMotion=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if(reduceMotion)return;
+    const globeWrap=document.querySelector(".globe-shield-wrap");
+    const heroEl=document.querySelector(".hero");
+    const homeSection=document.getElementById("home");
+    if(!globeWrap||!heroEl||!homeSection)return;
+    let ticking=false;
+    function onScroll(){
+      if(ticking)return;
+      ticking=true;
+      requestAnimationFrame(()=>{
+        if(homeSection.classList.contains("active-page")){
+          const scrollY=window.scrollY||window.pageYOffset;
+          // Globe drifts slower than the page scroll (parallax depth)
+          globeWrap.style.transform=`translateY(${scrollY*0.18}px)`;
+          // Hero cinematically fades and lifts as it scrolls out of view
+          const fadeRange=420;
+          const progress=Math.min(Math.max(scrollY/fadeRange,0),1);
+          heroEl.style.opacity=String(1-progress*0.7);
+          heroEl.style.transform=`translateY(${progress*-30}px)`;
+        }
+        ticking=false;
+      });
+    }
+    window.addEventListener("scroll",onScroll,{passive:true});
+  })();
+
+  /* ─── NEW: Scroll-triggered reveals (cinematic scrolling effect) ─── */
+  (function initScrollReveal(){
+    if(!("IntersectionObserver" in window))return;
+    const observer=new IntersectionObserver((entries)=>{
+      entries.forEach(entry=>{
+        if(entry.isIntersecting){
+          entry.target.classList.add("show");
+          observer.unobserve(entry.target);
+        }
+      });
+    },{threshold:0.15,rootMargin:"0px 0px -60px 0px"});
+    function observeRevealsIn(pageId){
+      const page=document.getElementById(pageId);
+      if(!page)return;
+      page.querySelectorAll(".reveal").forEach(el=>observer.observe(el));
+    }
+    // Re-observe whenever a page becomes active (covers content below the fold)
+    document.querySelectorAll(".page").forEach(p=>observeRevealsIn(p.id));
+  })();
+
   /* ─── Start ─── */
+  moveNavIndicator(currentPageId);
   runRevealAnimation();
 });
