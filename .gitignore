@@ -1,1 +1,7 @@
+node_modules/
+.netlify/
 .env
+.env.local
+.env.production
+*.log
+.DS_Store

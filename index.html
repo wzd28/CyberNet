@@ -3,7 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CyberNet | Cyber Protection Made Simple</title>
+  <title>CyberNet AI | AI-Powered Cybersecurity</title>
+  <meta name="description" content="CyberNet AI analyzes suspicious messages, links, QR codes, and screenshots with layered local and AI-assisted security checks." />
+  <meta name="theme-color" content="#050a16" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -11,7 +16,7 @@
   <!-- ═══ LOADER ═══ -->
   <div id="loader" class="loader-screen">
     <div class="loader-term glass">
-      <div class="term-chrome"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="term-path">cybernet@boot</span></div>
+      <div class="term-chrome"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="term-path">cybernetai@boot</span></div>
       <div class="term-body">
         <p><span class="prompt">$</span> initializing<span class="loader-dots"></span></p>
       </div>
@@ -31,27 +36,24 @@
         <button class="auth-tab" data-auth="signup">Create Account</button>
       </div>
       <div id="authLoginForm" class="auth-form active-auth-form">
-        <label>Email</label>
-        <input type="email" id="loginEmail" placeholder="you@example.com" />
-        <label>Password</label>
-        <input type="password" id="loginPassword" placeholder="••••••••" />
+        <label for="loginEmail">Email</label>
+        <input type="email" id="loginEmail" autocomplete="email" placeholder="you@example.com" />
+        <label for="loginPassword">Password</label>
+        <input type="password" id="loginPassword" autocomplete="current-password" placeholder="••••••••" />
         <button type="button" class="primary-btn full" id="loginBtn">Sign In</button>
+        <button type="button" class="auth-text-btn" id="forgotPasswordBtn">Forgot your password?</button>
       </div>
       <div id="authSignupForm" class="auth-form">
-        <label>Full Name</label>
-        <input type="text" id="signupName" placeholder="Your full name" />
-        <label>Email</label>
-        <input type="email" id="signupEmail" placeholder="you@example.com" />
-        <label>Password</label>
-        <input type="password" id="signupPassword" placeholder="Create a password" />
-        <button type="button" class="primary-btn full" id="signupBtn">Create Account</button>
+        <label for="signupName">Full Name</label>
+        <input type="text" id="signupName" autocomplete="name" placeholder="Your full name" />
+        <label for="signupEmail">Email</label>
+        <input type="email" id="signupEmail" autocomplete="email" placeholder="you@example.com" />
+        <label for="signupPassword">Password</label>
+        <input type="password" id="signupPassword" autocomplete="new-password" minlength="8" placeholder="At least 8 characters" />
+        <button type="button" class="primary-btn full" id="signupBtn">Create Free Account</button>
       </div>
-      <div class="social-divider"><span>or continue with</span></div>
-      <div class="social-buttons">
-        <button class="social-btn glass" type="button">G Google</button>
-        <button class="social-btn glass" type="button">⊞ Microsoft</button>
-      </div>
-      <small>demo mode — no real data is stored</small>
+      <div id="authMessage" class="auth-message" aria-live="polite"></div>
+      <small>Secure account access powered by Supabase. New accounts start on CyberNet AI Free.</small>
     </div>
   </div>
 
@@ -68,21 +70,27 @@
   <header class="navbar glass">
     <a href="#" class="brand" data-page="home">
       <span class="brand-mark">&gt;_</span>
-      <span class="brand-text">Cyber<span>Net</span></span>
+      <span class="brand-text">Cyber<span>Net</span><small>AI</small></span>
     </a>
 
     <nav class="nav-tabs">
       <span class="nav-indicator" id="navIndicator"></span>
       <button class="nav-link active" data-page="home">Home</button>
-      <button class="nav-link" data-page="cybernet">CyberNet</button>
+      <button class="nav-link" data-page="cybernet">Protect</button>
       <button class="nav-link" data-page="cybernetai">CyberNet AI</button>
+      <button class="nav-link ghost-nav-link" data-page="ghostscan">GhostScan <span>NEW</span></button>
       <button class="nav-link" data-page="learn">Learn</button>
       <button class="nav-link" data-page="pricing">Pricing</button>
       <button class="nav-link" data-page="about">About</button>
     </nav>
 
     <div class="nav-actions">
-      <span class="nav-greeting" id="navGreeting"></span>
+      <div class="account-summary" id="accountSummary" hidden>
+        <span class="nav-greeting" id="navGreeting"></span>
+        <span class="plan-badge plan-badge-free" id="navPlanBadge">FREE</span>
+        <span class="usage-chip" id="navUsageChip" title="Daily AI analyses used">0 / 5</span>
+        <button class="account-action-btn" id="logoutBtn" type="button">Sign Out</button>
+      </div>
       <button class="login-btn magnetic-btn" id="openAuth">Sign In</button>
     </div>
     <button class="mobile-menu" id="mobileMenu" aria-label="Menu">☰</button>
@@ -146,14 +154,13 @@
               <span class="badge-icon-box"><span class="badge-icon">◐</span></span>
               <div><h4>Scan In Progress</h4><p>80%</p></div>
             </div>
-
           </div>
         </div>
       </div>
 
       <!-- WHY CHOOSE -->
       <div class="why-choose reveal">
-        <h2>Why Choose CyberNet?</h2>
+        <h2>Why Choose CyberNet AI?</h2>
         <div class="why-choose-grid">
           <div class="why-choose-item">
             <span class="wc-icon-box"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4.5" stroke="currentColor" stroke-width="1.6"/><path d="M8 11.5V14a4 4 0 0 0 8 0v-2.5" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="8" r="1.4" fill="currentColor"/><path d="M12 3.5V2M12 19v2M4 8H2M22 8h-2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span>
@@ -182,7 +189,7 @@
       <!-- WOW SECTION -->
       <div class="wow-section glass reveal">
         <div class="wow-header">
-          <h2>CyberNet <span>Live Dashboard</span></h2>
+          <h2>CyberNet AI <span>Live Dashboard</span></h2>
           <p>Real-time protection running across the network.</p>
         </div>
         <div class="wow-stats">
@@ -215,12 +222,10 @@
           </div>
         </div>
       </div>
-    </section>
-
-    <!-- ═══════════ CYBERNET ═══════════ -->
+    </section>    <!-- ═══════════ CYBERNET ═══════════ -->
     <section id="cybernet" class="page">
       <div class="feature-page-header reveal">
-        <h1>CyberNet Features</h1>
+        <h1>CyberNet AI</h1>
         <p>Powerful tools to detect, analyze, and prevent digital threats.</p>
       </div>
 
@@ -241,31 +246,65 @@
             <button class="primary-btn full" id="cyberTextBtn">Analyze Text</button>
             <div id="cyberTextResult" class="result-box">Your text scam result will appear here.</div>
           </div>
+
           <div class="detect-side glass">
             <div class="scan-ring-wrap">
               <svg viewBox="0 0 100 100" class="scan-ring-svg">
                 <circle cx="50" cy="50" r="44" stroke="rgba(255,255,255,0.06)" stroke-width="6" fill="none"/>
                 <circle cx="50" cy="50" r="44" stroke="url(#scanGradText)" stroke-width="6" fill="none" stroke-linecap="round" class="scan-ring-fill" id="textScanRing" stroke-dasharray="276" stroke-dashoffset="276"/>
-                <defs><linearGradient id="scanGradText" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#22d3ee"/><stop offset="100%" stop-color="#3b82f6"/></linearGradient></defs>
+                <defs>
+                  <linearGradient id="scanGradText" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#22d3ee"/>
+                    <stop offset="100%" stop-color="#3b82f6"/>
+                  </linearGradient>
+                </defs>
               </svg>
+
               <div class="scan-ring-label" id="textScanLabel">0%</div>
             </div>
+
             <p class="scan-status-text" id="textScanStatus">Ready to scan</p>
           </div>
         </div>
 
         <div class="how-it-works reveal">
-          <div class="hiw-step glass"><span>1</span><h4>Paste Text</h4><p>Insert the text you want to analyze.</p></div>
-          <div class="hiw-step glass"><span>2</span><h4>Run Analysis</h4><p>Our rules engine scans for threat patterns.</p></div>
-          <div class="hiw-step glass"><span>3</span><h4>Get Report</h4><p>Receive a detailed risk assessment.</p></div>
+          <div class="hiw-step glass">
+            <span>1</span>
+            <h4>Paste Text</h4>
+            <p>Insert the text you want to analyze.</p>
+          </div>
+
+          <div class="hiw-step glass">
+            <span>2</span>
+            <h4>Run Analysis</h4>
+            <p>Our rules engine scans for threat patterns.</p>
+          </div>
+
+          <div class="hiw-step glass">
+            <span>3</span>
+            <h4>Get Report</h4>
+            <p>Receive a detailed risk assessment.</p>
+          </div>
         </div>
 
         <div class="recent-scans glass reveal">
-          <h4>Recent Scans</h4>
+          <h4>Example Results</h4>
+
           <ul class="scan-list" id="textScanList">
-            <li><span class="scan-list-main">"Your account will be suspended..."</span><span class="risk-tag risk-tag-danger">High Risk</span></li>
-            <li><span class="scan-list-main">"You've won a $500 gift card!"</span><span class="risk-tag risk-tag-warning">Medium Risk</span></li>
-            <li><span class="scan-list-main">"Your order has shipped"</span><span class="risk-tag risk-tag-safe">Low Risk</span></li>
+            <li>
+              <span class="scan-list-main">"Your account will be suspended..."</span>
+              <span class="risk-tag risk-tag-danger">High Risk</span>
+            </li>
+
+            <li>
+              <span class="scan-list-main">"You've won a $500 gift card!"</span>
+              <span class="risk-tag risk-tag-warning">Medium Risk</span>
+            </li>
+
+            <li>
+              <span class="scan-list-main">"Your order has shipped"</span>
+              <span class="risk-tag risk-tag-safe">Low Risk</span>
+            </li>
           </ul>
         </div>
       </div>
@@ -280,6 +319,7 @@
             <button class="primary-btn full" id="cyberLinkBtn">Analyze Link</button>
             <div id="cyberLinkResult" class="result-box">Your link scam result will appear here.</div>
           </div>
+
           <div class="detect-side glass">
             <div class="mini-globe-wrap">
               <div class="mini-globe-3d">
@@ -287,24 +327,64 @@
                 <div class="globe-ring" style="transform:rotateY(45deg)"></div>
                 <div class="globe-ring" style="transform:rotateX(80deg)"></div>
               </div>
+
               <span class="mini-globe-icon">🔗</span>
             </div>
           </div>
         </div>
 
         <div class="what-we-check reveal">
-          <div class="wwc-item glass"><span class="wwc-icon">🌐</span><div><h4>Domain Reputation</h4><p>Check domain trust and history.</p></div></div>
-          <div class="wwc-item glass"><span class="wwc-icon">🎣</span><div><h4>Phishing Detection</h4><p>Identify phishing and scam pages.</p></div></div>
-          <div class="wwc-item glass"><span class="wwc-icon">🦠</span><div><h4>Malware Scan</h4><p>Scan for malware and dangerous files.</p></div></div>
-          <div class="wwc-item glass"><span class="wwc-icon">🔒</span><div><h4>SSL &amp; Security</h4><p>Check HTTPS and security headers.</p></div></div>
+          <div class="wwc-item glass">
+            <span class="wwc-icon">🌐</span>
+            <div>
+              <h4>Domain Reputation</h4>
+              <p>Check known-threat reputation when configured.</p>
+            </div>
+          </div>
+
+          <div class="wwc-item glass">
+            <span class="wwc-icon">🎣</span>
+            <div>
+              <h4>Phishing Detection</h4>
+              <p>Identify phishing and scam pages.</p>
+            </div>
+          </div>
+
+          <div class="wwc-item glass">
+            <span class="wwc-icon">🦠</span>
+            <div>
+              <h4>Malware Scan</h4>
+              <p>Detect malicious-download and unsafe-link indicators.</p>
+            </div>
+          </div>
+
+          <div class="wwc-item glass">
+            <span class="wwc-icon">🔒</span>
+            <div>
+              <h4>SSL &amp; Security</h4>
+              <p>Inspect HTTPS, domain structure, and redirect clues.</p>
+            </div>
+          </div>
         </div>
 
         <div class="recent-scans glass reveal">
-          <h4>Recent Scans</h4>
+          <h4>Example Results</h4>
+
           <ul class="scan-list" id="linkScanList">
-            <li><span class="scan-list-main">https://bit.ly/free-gift-card</span><span class="risk-tag risk-tag-danger">High Risk</span></li>
-            <li><span class="scan-list-main">https://freerewards.com</span><span class="risk-tag risk-tag-danger">High Risk</span></li>
-            <li><span class="scan-list-main">https://microsoft.com</span><span class="risk-tag risk-tag-safe">Safe</span></li>
+            <li>
+              <span class="scan-list-main">https://bit.ly/free-gift-card</span>
+              <span class="risk-tag risk-tag-danger">High Risk</span>
+            </li>
+
+            <li>
+              <span class="scan-list-main">https://freerewards.com</span>
+              <span class="risk-tag risk-tag-danger">High Risk</span>
+            </li>
+
+            <li>
+              <span class="scan-list-main">https://microsoft.com</span>
+              <span class="risk-tag risk-tag-safe">Safe</span>
+            </li>
           </ul>
         </div>
       </div>
@@ -315,28 +395,66 @@
           <div class="detect-main glass">
             <h3>Image Detection</h3>
             <p>Upload an image or screenshot to detect scams, fake alerts, and malicious content.</p>
+
             <label class="real-upload-box glass" id="cyberDropZone">
               <input type="file" id="cyberImageInput" accept="image/*"/>
+
               <div class="upload-icon">⇧</div>
-              <h3>Drag &amp; Drop Your Image Here</h3><p>or click to browse<br/>Supports JPG, PNG, WEBP up to 10MB</p>
+
+              <h3>Drag &amp; Drop Your Image Here</h3>
+
+              <p>
+                or click to browse<br/>
+                Supports JPG, PNG, WEBP up to 10MB
+              </p>
             </label>
+
             <div id="cyberImageResult" class="result-box">Your image scam result will appear here.</div>
           </div>
+
           <div class="detect-side glass">
             <h4>We Analyze For</h4>
-            <div class="wwc-item-sm"><span class="wwc-icon">🚨</span><span>Fake Alerts</span></div>
-            <div class="wwc-item-sm"><span class="wwc-icon">▦</span><span>QR Codes</span></div>
-            <div class="wwc-item-sm"><span class="wwc-icon">™</span><span>Brand Impersonation</span></div>
-            <div class="wwc-item-sm"><span class="wwc-icon">🔤</span><span>Text Extraction</span></div>
+
+            <div class="wwc-item-sm">
+              <span class="wwc-icon">🚨</span>
+              <span>Fake Alerts</span>
+            </div>
+
+            <div class="wwc-item-sm">
+              <span class="wwc-icon">▦</span>
+              <span>QR Codes</span>
+            </div>
+
+            <div class="wwc-item-sm">
+              <span class="wwc-icon">™</span>
+              <span>Brand Impersonation</span>
+            </div>
+
+            <div class="wwc-item-sm">
+              <span class="wwc-icon">🔤</span>
+              <span>Text Extraction</span>
+            </div>
           </div>
         </div>
 
         <div class="recent-scans glass reveal">
-          <h4>Recent Scans</h4>
+          <h4>Example Results</h4>
+
           <ul class="scan-list" id="imageScanList">
-            <li><span class="scan-list-main">screenshot_01.png</span><span class="risk-tag risk-tag-danger">High Risk</span></li>
-            <li><span class="scan-list-main">invoice_fake.png</span><span class="risk-tag risk-tag-warning">Medium Risk</span></li>
-            <li><span class="scan-list-main">alert_popup.jpg</span><span class="risk-tag risk-tag-danger">High Risk</span></li>
+            <li>
+              <span class="scan-list-main">screenshot_01.png</span>
+              <span class="risk-tag risk-tag-danger">High Risk</span>
+            </li>
+
+            <li>
+              <span class="scan-list-main">invoice_fake.png</span>
+              <span class="risk-tag risk-tag-warning">Medium Risk</span>
+            </li>
+
+            <li>
+              <span class="scan-list-main">alert_popup.jpg</span>
+              <span class="risk-tag risk-tag-danger">High Risk</span>
+            </li>
           </ul>
         </div>
       </div>
@@ -350,21 +468,67 @@
       </div>
 
       <div class="ai-layout reveal">
-        <div class="ai-config glass">
-          <h4>API Configuration</h4>
-          <p>Enter your OpenAI API key to activate AI features.</p>
-          <div class="api-key-input-row">
-            <input id="aiApiKeyInput" type="password" placeholder="sk-..."/>
+        <div class="ai-config glass account-access-panel">
+          <div class="account-access-head">
+            <div>
+              <span class="account-eyebrow">YOUR ACCESS</span>
+              <h4 id="aiPlanTitle">CyberNet AI Free</h4>
+            </div>
+            <span class="plan-badge plan-badge-free" id="aiPlanBadge">FREE</span>
           </div>
-          <button class="primary-btn full" id="testApiKeyBtn">Save Key</button>
-          <div id="aiApiStatus" class="result-box">API key status will appear here.</div>
-          <small class="api-warning">For a real public website, API keys should be handled through a backend server.</small>
+
+          <p id="aiPlanDescription">Sign in to activate 5 accurate AI analyses per day across text, links, and images.</p>
+
+          <div class="usage-meter-card">
+            <div class="usage-meter-labels">
+              <span>Daily AI analyses</span>
+              <strong id="aiUsageText">0 / 5</strong>
+            </div>
+            <div class="usage-meter-track"><span id="aiUsageBar"></span></div>
+            <small id="aiUsageReset">Resets daily</small>
+          </div>
+
+          <div class="plan-benefit-list" id="aiBenefitList">
+            <div><span>✓</span> Accurate Text, Link &amp; Image analysis</div>
+            <div><span>✓</span> Basic threat explanations</div>
+            <div class="benefit-locked"><span>×</span> Saved scan history</div>
+            <div class="benefit-locked"><span>×</span> Downloadable reports</div>
+            <div class="benefit-locked"><span>×</span> GhostScan access</div>
+          </div>
+
+          <button class="primary-btn full" id="aiUpgradeBtn" type="button">Upgrade to Pro</button>
+          <button class="secondary-btn full api-service-check" id="manageBillingBtn" type="button" hidden>Manage Billing</button>
+          <button class="secondary-btn full api-service-check" id="testApiKeyBtn" type="button">Refresh Account Status</button>
+
+          <div id="aiApiStatus" class="result-box">Sign in to use CyberNet AI.</div>
 
           <div class="ai-status-block">
-            <h5>AI Status</h5>
-            <div class="ai-status-row"><span>Model</span><span>GPT-4o-mini</span></div>
-            <div class="ai-status-row"><span>Status</span><span class="status-pill" id="aiConnPill">Not Connected</span></div>
-            <div class="ai-status-row"><span>Requests Left</span><span id="aiReqLeft">100/100</span></div>
+            <h5>Service Status</h5>
+
+            <div class="ai-status-row">
+              <span>Model</span>
+              <span id="aiModelName">Server-selected</span>
+            </div>
+
+            <div class="ai-status-row">
+              <span>Account</span>
+              <span class="status-pill" id="aiConnPill">Signed out</span>
+            </div>
+
+            <div class="ai-status-row">
+              <span>Remaining today</span>
+              <span id="aiReqLeft">—</span>
+            </div>
+          </div>
+
+          <div class="pro-history-card" id="proHistoryCard">
+            <div class="pro-history-head">
+              <h5>Scan History</h5>
+              <span id="historyPlanLabel">Pro feature</span>
+            </div>
+            <div id="proHistoryList" class="pro-history-list">
+              <p>Upgrade to Pro to save and revisit your AI scan history.</p>
+            </div>
           </div>
         </div>
 
@@ -374,22 +538,451 @@
             <button class="chat-tab" data-chat="link">AI Link Analysis</button>
             <button class="chat-tab" data-chat="image">AI Image Analysis</button>
           </div>
+
           <div class="chat-messages" id="chatMessages">
-            <div class="chat-bubble chat-bubble-ai"><div class="chat-bubble-inner">Hi! Paste a suspicious message, link, or image and I'll analyze it for scam risk. Connect your API key on the left to get started.</div></div>
+            <div class="chat-bubble chat-bubble-ai">
+              <div class="chat-bubble-inner">
+                Sign in, then paste a suspicious message, link, or image. Free accounts receive 5 accurate AI analyses per day; Pro accounts receive 50 advanced analyses, saved history, reports, and GhostScan access.
+              </div>
+            </div>
           </div>
+
           <div class="chat-input-row" id="chatInputRowText">
             <input id="chatInput" type="text" placeholder="Ask anything about security..."/>
             <button id="chatSendBtn" class="send-btn" aria-label="Send">➤</button>
           </div>
+
           <label class="chat-input-row chat-upload-row" id="chatInputRowImage" style="display:none">
             <input type="file" id="aiImageInput" accept="image/*"/>
-            <span class="upload-icon-sm">⇧</span><span>Click to upload an image for AI analysis</span>
+            <span class="upload-icon-sm">⇧</span>
+            <span>Click to upload an image for AI analysis</span>
           </label>
         </div>
       </div>
-    </section>
+    </section>    <!-- ═══════════ GHOSTSCAN ═══════════ -->
+    <section id="ghostscan" class="page ghost-page is-locked">
+      <div class="feature-paywall glass reveal" id="ghostPaywall">
+        <div class="feature-paywall-icon">◈</div>
+        <span class="account-eyebrow">CYBERNET AI PRO</span>
+        <h1>GhostScan is a Pro feature.</h1>
+        <p>Unlock isolated-browser investigations, redirect tracking, phishing behavior analysis, screenshots, and advanced security reports with CyberNet AI Pro.</p>
+        <div class="feature-paywall-points">
+          <span>50 AI analyses per day</span>
+          <span>Saved scan history</span>
+          <span>Downloadable reports</span>
+          <span>Full GhostScan access</span>
+        </div>
+        <button class="primary-btn big" id="ghostUpgradeBtn" type="button">Upgrade to Pro</button>
+      </div>
+      <div class="ghost-app">
+        <div class="ghost-landing" id="ghostLanding">
+          <div class="ghost-hero-copy reveal">
+            <div class="ghost-kicker"><span>NEW</span> GhostScan</div>
+            <h1>Let CyberNet<br><strong>click it, not you.</strong></h1>
+            <p>GhostScan safely visits suspicious links inside an isolated cloud browser and shows what the page actually does—without exposing your device, cookies, accounts, or personal data.</p>
 
-    <!-- ═══════════ LEARN ═══════════ -->
+            <div class="ghost-input-shell">
+              <div class="ghost-input-row">
+                <input id="ghostUrlInput" type="text" inputmode="url" autocomplete="off" spellcheck="false" placeholder="Paste a suspicious link..." aria-label="Suspicious link" />
+                <button id="ghostScanBtn" class="ghost-primary-btn">GhostScan <span>↗</span></button>
+              </div>
+
+              <div class="ghost-upload-row">
+                <span>or</span>
+                <button type="button" id="ghostUploadBtn" class="ghost-upload-btn">▦ Upload QR or screenshot</button>
+                <input type="file" id="ghostFileInput" accept="image/png,image/jpeg,image/webp" hidden />
+                <small id="ghostFileName">JPG, PNG or WEBP · max 8 MB</small>
+              </div>
+            </div>
+
+            <p class="ghost-helper">We inspect redirects, impersonation, forms, downloads, permission requests, mobile behavior, and other risk signals.</p>
+
+            <div class="ghost-feature-strip">
+              <div>
+                <span>⬡</span>
+                <strong>Safe &amp; Isolated</strong>
+                <small>We visit, not you</small>
+              </div>
+
+              <div>
+                <span>⌁</span>
+                <strong>Behavior Analysis</strong>
+                <small>Redirects + forms</small>
+              </div>
+
+              <div>
+                <span>◉</span>
+                <strong>Visual Replay</strong>
+                <small>See what happened</small>
+              </div>
+
+              <div>
+                <span>▣</span>
+                <strong>Actionable Report</strong>
+                <small>Clear next steps</small>
+              </div>
+            </div>
+
+            <div class="ghost-service-line" id="ghostServiceLine">
+              <span class="ghost-service-dot"></span>
+              <span id="ghostServiceText">Checking isolated browser service…</span>
+            </div>
+          </div>
+
+          <div class="ghost-hero-art reveal" aria-hidden="true">
+            <div class="ghost-window-stack stack-back"></div>
+            <div class="ghost-window-stack stack-mid"></div>
+
+            <div class="ghost-window-main">
+              <div class="ghost-window-bar">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+
+              <div class="ghost-orb-ring ring-one"></div>
+              <div class="ghost-orb-ring ring-two"></div>
+
+              <svg class="ghost-mascot" viewBox="0 0 180 220" role="img" aria-label="GhostScan mascot">
+                <defs>
+                  <filter id="ghostGlow">
+                    <feGaussianBlur stdDeviation="8" result="blur"/>
+                    <feMerge>
+                      <feMergeNode in="blur"/>
+                      <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                  </filter>
+
+                  <linearGradient id="ghostBody" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#b9ffcf"/>
+                    <stop offset=".45" stop-color="#45f579"/>
+                    <stop offset="1" stop-color="#13be62"/>
+                  </linearGradient>
+                </defs>
+
+                <path filter="url(#ghostGlow)" fill="url(#ghostBody)" d="M32 190V92C32 45 56 20 90 20s58 25 58 72v98l-18-17-18 17-22-17-22 17-18-17-18 17Z"/>
+                <ellipse cx="72" cy="97" rx="9" ry="20" fill="#05291a"/>
+                <ellipse cx="108" cy="97" rx="9" ry="20" fill="#05291a"/>
+              </svg>
+
+              <div class="ghost-scan-beam"></div>
+              <div class="ghost-art-label">ISOLATED SESSION</div>
+            </div>
+
+            <div class="ghost-art-warning">!</div>
+          </div>
+        </div>
+
+        <section class="ghost-coming-soon reveal" id="ghostComingSoon" aria-labelledby="ghostComingSoonTitle">
+          <div class="ghost-coming-grid"></div>
+          <div class="ghost-coming-content">
+            <span class="ghost-coming-badge">IN THE WORKS</span>
+            <div class="ghost-coming-icon" aria-hidden="true">⚙</div>
+            <h2 id="ghostComingSoonTitle">GhostScan is being built.</h2>
+            <p>We are developing the isolated cloud-browser engine that will safely investigate suspicious websites without exposing your device, cookies, accounts, or personal information.</p>
+
+            <div class="ghost-build-list">
+              <div><span>01</span><strong>Isolated link visits</strong><small>Open suspicious destinations inside a restricted remote browser.</small></div>
+              <div><span>02</span><strong>Redirect tracking</strong><small>Follow every destination change and reveal the final domain.</small></div>
+              <div><span>03</span><strong>Behavior analysis</strong><small>Inspect forms, downloads, popups, permissions, and phishing signals.</small></div>
+              <div><span>04</span><strong>Visual security reports</strong><small>Generate screenshots, replay steps, risk scores, and clear actions.</small></div>
+            </div>
+
+            <div class="ghost-development-progress" aria-label="GhostScan development progress">
+              <div class="ghost-progress-copy"><span>Development status</span><strong>Coming Soon</strong></div>
+              <div class="ghost-development-track"><span></span></div>
+            </div>
+
+            <p class="ghost-coming-note">Until GhostScan launches, use CyberNet AI Link Analysis to inspect suspicious URLs without opening them.</p>
+            <button type="button" class="ghost-primary-btn ghost-use-link-check" data-page="cybernetai">Use CyberNet AI Link Analysis <span>↗</span></button>
+          </div>
+        </section>
+
+        <div class="ghost-workspace ghost-hidden" id="ghostWorkspace">
+          <aside class="ghost-side-panel">
+            <button class="ghost-back-home" id="ghostBackHome">‹ Back to GhostScan</button>
+
+            <div class="ghost-side-brand">
+              <span class="brand-mark">&gt;_</span>
+
+              <div>
+                CyberNet
+                <small>AI</small>
+              </div>
+            </div>
+
+            <nav class="ghost-side-menu">
+              <button data-page="home">
+                ⌂
+                <span>Dashboard</span>
+              </button>
+
+              <button data-page="cybernet">
+                ▤
+                <span>Text Scan</span>
+              </button>
+
+              <button data-page="cybernet">
+                ⌁
+                <span>Link Scan</span>
+              </button>
+
+              <button data-page="cybernet">
+                ▧
+                <span>Image Scan</span>
+              </button>
+
+              <button class="active">
+                ♙
+                <span>GhostScan</span>
+                <em>NEW</em>
+              </button>
+
+              <button id="ghostHistoryBtn">
+                ◷
+                <span>History</span>
+              </button>
+            </nav>
+
+            <div class="ghost-private-note">
+              <span>⬡</span>
+
+              <p>
+                <strong>Private by design</strong>
+                Scan sessions are destroyed after the report is generated.
+              </p>
+            </div>
+          </aside>
+
+          <div class="ghost-main-panel">
+            <div class="ghost-progress-view" id="ghostProgressView">
+              <div class="ghost-topbar">
+                <div>
+                  <span class="ghost-eyebrow">ISOLATED BROWSER</span>
+                  <h2>GhostScan in progress…</h2>
+                  <p>Investigating this link in a temporary, restricted browser session.</p>
+                </div>
+
+                <button class="ghost-cancel-btn" id="ghostCancelBtn">Cancel</button>
+              </div>
+
+              <div class="ghost-target-bar">
+                <span id="ghostTargetUrl">https://example.com</span>
+                <button id="ghostCopyTarget" aria-label="Copy URL">⧉</button>
+              </div>
+
+              <div class="ghost-stepper" id="ghostStepper">
+                <div class="ghost-step active" data-step="0">
+                  <span>1</span>
+                  <small>Initializing</small>
+                </div>
+
+                <div class="ghost-step" data-step="1">
+                  <span>2</span>
+                  <small>Following redirects</small>
+                </div>
+
+                <div class="ghost-step" data-step="2">
+                  <span>3</span>
+                  <small>Inspecting pages</small>
+                </div>
+
+                <div class="ghost-step" data-step="3">
+                  <span>4</span>
+                  <small>Analyzing behavior</small>
+                </div>
+
+                <div class="ghost-step" data-step="4">
+                  <span>5</span>
+                  <small>Generating report</small>
+                </div>
+              </div>
+
+              <div class="ghost-live-grid">
+                <div class="ghost-browser-preview">
+                  <div class="ghost-preview-chrome">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <div id="ghostPreviewAddress">isolated://starting</div>
+                  </div>
+
+                  <div class="ghost-preview-stage" id="ghostPreviewStage">
+                    <div class="ghost-preview-loader">
+                      <div class="ghost-radar"></div>
+                      <strong>Launching isolated browser</strong>
+                      <small>No customer cookies or credentials are shared.</small>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="ghost-live-log">
+                  <div class="ghost-log-head">
+                    <h3>Live Log</h3>
+                    <span id="ghostElapsed">00:00</span>
+                  </div>
+
+                  <div id="ghostLogList" class="ghost-log-list"></div>
+                </div>
+              </div>
+
+              <div class="ghost-progress-foot">
+                <span>⬡</span>
+                This scan runs remotely. Never enter real passwords, OTPs, or payment details into a suspicious page.
+              </div>
+            </div>
+
+            <div class="ghost-results-view ghost-hidden" id="ghostResultsView">
+              <div class="ghost-results-head">
+                <div>
+                  <button class="ghost-back-results" id="ghostNewScanBtn">‹ New scan</button>
+                  <h2>GhostScan Results</h2>
+                  <p id="ghostResultMeta">Scan complete</p>
+                </div>
+
+                <div class="ghost-result-actions">
+                  <button id="ghostCopyReportBtn">Copy summary</button>
+                  <button id="ghostPrintBtn">Save report</button>
+                </div>
+              </div>
+
+              <div class="ghost-result-alert" id="ghostResultAlert">
+                <div class="ghost-alert-icon">!</div>
+
+                <div>
+                  <h3 id="ghostVerdictTitle">Needs Review</h3>
+                  <p id="ghostVerdictSummary">GhostScan found incomplete evidence.</p>
+                </div>
+
+                <span id="ghostConfidenceBadge">Confidence: Limited</span>
+              </div>
+
+              <div class="ghost-result-tabs">
+                <button class="active" data-ghost-tab="overview">Overview</button>
+                <button data-ghost-tab="replay">Attack Replay</button>
+                <button data-ghost-tab="technical">Technical Details</button>
+              </div>
+
+              <div class="ghost-result-tab active" data-ghost-panel="overview">
+                <div class="ghost-overview-grid">
+                  <div class="ghost-score-card">
+                    <h3>Risk Score</h3>
+
+                    <div class="ghost-score-ring">
+                      <span id="ghostScoreValue">0</span>
+                      <small>/100</small>
+                    </div>
+
+                    <p id="ghostRiskLabel">Waiting for result</p>
+                  </div>
+
+                  <div class="ghost-findings-card">
+                    <h3>What we found</h3>
+                    <div id="ghostFindingsList" class="ghost-findings-list"></div>
+                  </div>
+                </div>
+
+                <div class="ghost-actions-card">
+                  <h3>What should you do?</h3>
+                  <div id="ghostActionsList" class="ghost-actions-list"></div>
+                </div>
+
+                <div class="ghost-limitations-card ghost-hidden" id="ghostLimitationsCard">
+                  <h3>What GhostScan could not verify</h3>
+                  <ul id="ghostLimitationsList"></ul>
+                </div>
+              </div>
+
+              <div class="ghost-result-tab" data-ghost-panel="replay">
+                <div class="ghost-replay-card">
+                  <div class="ghost-section-title">
+                    <div>
+                      <h3>Attack Replay</h3>
+                      <p>See how the destination changed step by step.</p>
+                    </div>
+
+                    <span id="ghostReplayCount">0 steps</span>
+                  </div>
+
+                  <div id="ghostReplayTrack" class="ghost-replay-track"></div>
+                </div>
+
+                <div class="ghost-screenshot-card">
+                  <div class="ghost-section-title">
+                    <div>
+                      <h3>Isolated Screenshots</h3>
+                      <p>Captured without exposing your device or accounts.</p>
+                    </div>
+                  </div>
+
+                  <div class="ghost-screen-tabs">
+                    <button class="active" data-screen="desktop">Desktop</button>
+                    <button data-screen="mobile">Mobile</button>
+                  </div>
+
+                  <div class="ghost-screen-frame">
+                    <img id="ghostDesktopShot" alt="Desktop GhostScan screenshot"/>
+                    <img id="ghostMobileShot" class="ghost-hidden" alt="Mobile GhostScan screenshot"/>
+
+                    <div id="ghostNoScreenshot" class="ghost-no-shot">
+                      No screenshot was available.
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="ghost-result-tab" data-ghost-panel="technical">
+                <div class="ghost-tech-grid">
+                  <div class="ghost-tech-card">
+                    <h3>Redirect Chain</h3>
+                    <ol id="ghostRedirectList"></ol>
+                  </div>
+
+                  <div class="ghost-tech-card">
+                    <h3>Domains Contacted</h3>
+                    <ul id="ghostDomainsList"></ul>
+                  </div>
+
+                  <div class="ghost-tech-card">
+                    <h3>Form Information</h3>
+                    <div id="ghostFormsList"></div>
+                  </div>
+
+                  <div class="ghost-tech-card">
+                    <h3>Page Information</h3>
+                    <dl id="ghostPageInfo"></dl>
+                  </div>
+
+                  <div class="ghost-tech-card">
+                    <h3>Behavior Signals</h3>
+                    <ul id="ghostBehaviorList"></ul>
+                  </div>
+
+                  <div class="ghost-tech-card">
+                    <h3>Reputation</h3>
+                    <div id="ghostReputationInfo"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="ghost-history-view ghost-hidden" id="ghostHistoryView">
+              <div class="ghost-results-head">
+                <div>
+                  <button class="ghost-back-results" id="ghostHistoryBack">‹ Back</button>
+                  <h2>GhostScan History</h2>
+                  <p>Stored only in this browser.</p>
+                </div>
+
+                <button class="ghost-clear-history" id="ghostClearHistory">Clear history</button>
+              </div>
+
+              <div id="ghostHistoryList" class="ghost-history-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>    <!-- ═══════════ LEARN ═══════════ -->
     <section id="learn" class="page">
       <div class="learn-hero glass reveal">
         <div>
@@ -397,373 +990,907 @@
           <h1>Master cyber safety<br/><span>step by step.</span></h1>
           <p>Follow the roadmap below. Click any topic to expand its full lesson with examples and tips.</p>
         </div>
+
         <div class="learn-search-card glass">
           <label>Find Something Specific</label>
+
           <div class="learn-search-row">
             <input id="learnSearch" type="text" placeholder="Password, HTTPS, phishing, Wi-Fi..."/>
             <button class="primary-btn" id="learnSearchBtn">Search</button>
           </div>
+
           <div id="learnSearchResult" class="learn-search-result"></div>
         </div>
       </div>
 
       <div class="roadmap reveal">
+
+        <!-- MODULE 01 -->
         <div class="rm-module">
-          <div class="rm-module-head"><span>// Module 01</span><h2>Cybersecurity Fundamentals</h2></div>
+          <div class="rm-module-head">
+            <span>// Module 01</span>
+            <h2>Cybersecurity Fundamentals</h2>
+          </div>
+
           <div class="rm-nodes">
             <div class="rm-node glass" data-keywords="cybersecurity basics protection what is">
-              <div class="rm-node-info"><h3>What is Cybersecurity?</h3><p>Protecting devices, accounts, networks, and data from digital attacks.</p></div>
+              <div class="rm-node-info">
+                <h3>What is Cybersecurity?</h3>
+                <p>Protecting devices, accounts, networks, and data from digital attacks.</p>
+              </div>
+
               <div class="rm-node-expand">
-                <div class="rm-lesson"><strong>In simple terms:</strong> Cybersecurity is the practice of protecting your computers, phones, online accounts, and personal information from hackers, scammers, and malicious software. It covers everything from the password on your phone to the firewall on a company server.</div>
-                <div class="rm-example"><strong>Example:</strong> Using a strong password and two-factor authentication on your email stops attackers from reading your messages or resetting your other accounts.</div>
-                <div class="rm-tip"><strong>Remember:</strong> Cybersecurity isn't just for tech experts — everyone who uses the internet needs it.</div>
+                <div class="rm-lesson">
+                  <strong>In simple terms:</strong>
+                  Cybersecurity is the practice of protecting your computers, phones, online accounts, and personal information from hackers, scammers, and malicious software. It covers everything from the password on your phone to the firewall on a company server.
+                </div>
+
+                <div class="rm-example">
+                  <strong>Example:</strong>
+                  Using a strong password and two-factor authentication on your email stops attackers from reading your messages or resetting your other accounts.
+                </div>
+
+                <div class="rm-tip">
+                  <strong>Remember:</strong>
+                  Cybersecurity isn't just for tech experts — everyone who uses the internet needs it.
+                </div>
               </div>
             </div>
+
             <div class="rm-node glass" data-keywords="threats types attacks cyber threat">
-              <div class="rm-node-info"><h3>Types of Cyber Threats</h3><p>Malware, phishing, ransomware, social engineering, and more.</p></div>
+              <div class="rm-node-info">
+                <h3>Types of Cyber Threats</h3>
+                <p>Malware, phishing, ransomware, social engineering, and more.</p>
+              </div>
+
               <div class="rm-node-expand">
-                <div class="rm-lesson"><strong>Main threat categories:</strong> Phishing (fake messages), Malware (harmful software), Ransomware (locks your files for money), Social Engineering (psychological tricks), Man-in-the-Middle (intercepting communications), DDoS (overloading a system), and Zero-Day Exploits (attacking unknown vulnerabilities).</div>
-                <div class="rm-example"><strong>Example:</strong> A fake email pretending to be from your bank is phishing. A program that secretly records your keystrokes is spyware (a type of malware).</div>
+                <div class="rm-lesson">
+                  <strong>Main threat categories:</strong>
+                  Phishing (fake messages), Malware (harmful software), Ransomware (locks your files for money), Social Engineering (psychological tricks), Man-in-the-Middle (intercepting communications), DDoS (overloading a system), and Zero-Day Exploits (attacking unknown vulnerabilities).
+                </div>
+
+                <div class="rm-example">
+                  <strong>Example:</strong>
+                  A fake email pretending to be from your bank is phishing. A program that secretly records your keystrokes is spyware, a type of malware.
+                </div>
               </div>
             </div>
+
             <div class="rm-node glass" data-keywords="hacked why people get hacked mistakes human error">
-              <div class="rm-node-info"><h3>Why People Get Hacked</h3><p>Weak passwords, clicking bad links, reusing credentials, trusting strangers.</p></div>
+              <div class="rm-node-info">
+                <h3>Why People Get Hacked</h3>
+                <p>Weak passwords, clicking bad links, reusing credentials, trusting strangers.</p>
+              </div>
+
               <div class="rm-node-expand">
-                <div class="rm-lesson"><strong>The main reasons:</strong> Reusing passwords across sites, clicking links without checking them, downloading files from untrusted sources, sharing personal information on social media, ignoring software updates, and falling for urgency-based scam messages.</div>
-                <div class="rm-tip"><strong>Golden rule:</strong> Pause before you click. Scammers rely on speed — they want you to act before you think.</div>
+                <div class="rm-lesson">
+                  <strong>The main reasons:</strong>
+                  Reusing passwords across sites, clicking links without checking them, downloading files from untrusted sources, sharing personal information on social media, ignoring software updates, and falling for urgency-based scam messages.
+                </div>
+
+                <div class="rm-tip">
+                  <strong>Golden rule:</strong>
+                  Pause before you click. Scammers rely on speed — they want you to act before you think.
+                </div>
               </div>
             </div>
+
             <div class="rm-node glass" data-keywords="CIA triad confidentiality integrity availability">
-              <div class="rm-node-info"><h3>The CIA Triad</h3><p>Confidentiality, Integrity, and Availability — the foundation of security.</p></div>
+              <div class="rm-node-info">
+                <h3>The CIA Triad</h3>
+                <p>Confidentiality, Integrity, and Availability — the foundation of security.</p>
+              </div>
+
               <div class="rm-node-expand">
-                <div class="rm-lesson"><strong>Confidentiality:</strong> Only authorized people can access data. <strong>Integrity:</strong> Data hasn't been tampered with. <strong>Availability:</strong> Systems and data are accessible when needed. Every security decision maps back to protecting one or more of these three pillars.</div>
-                <div class="rm-example"><strong>Example:</strong> Encrypting your messages protects confidentiality. A checksum on a download protects integrity. A backup protects availability.</div>
+                <div class="rm-lesson">
+                  <strong>Confidentiality:</strong> Only authorized people can access data.
+                  <strong>Integrity:</strong> Data hasn't been tampered with.
+                  <strong>Availability:</strong> Systems and data are accessible when needed.
+                  Every security decision maps back to protecting one or more of these three pillars.
+                </div>
+
+                <div class="rm-example">
+                  <strong>Example:</strong>
+                  Encrypting your messages protects confidentiality. A checksum on a download protects integrity. A backup protects availability.
+                </div>
               </div>
             </div>
           </div>
         </div>
 
+        <!-- MODULE 02 -->
         <div class="rm-module">
-          <div class="rm-module-head"><span>// Module 02</span><h2>Scams &amp; Social Engineering</h2></div>
+          <div class="rm-module-head">
+            <span>// Module 02</span>
+            <h2>Scams &amp; Social Engineering</h2>
+          </div>
+
           <div class="rm-nodes">
             <div class="rm-node glass" data-keywords="social engineering manipulation psychology trick">
-              <div class="rm-node-info"><h3>What is Social Engineering?</h3><p>Manipulating people using psychology instead of hacking technology.</p></div>
+              <div class="rm-node-info">
+                <h3>What is Social Engineering?</h3>
+                <p>Manipulating people using psychology instead of hacking technology.</p>
+              </div>
+
               <div class="rm-node-expand">
-                <div class="rm-lesson">Social engineering attacks exploit human trust, fear, curiosity, and urgency. Attackers impersonate trusted figures (banks, tech support, friends) to trick you into sharing information, clicking links, or sending money. No software vulnerability needed — you are the target.</div>
-                <div class="rm-example"><strong>Example:</strong> "Your account will be closed in 24 hours unless you verify your identity now." This uses fear and urgency together.</div>
+                <div class="rm-lesson">
+                  Social engineering attacks exploit human trust, fear, curiosity, and urgency. Attackers impersonate trusted figures such as banks, tech support, or friends to trick you into sharing information, clicking links, or sending money. No software vulnerability is needed — you are the target.
+                </div>
+
+                <div class="rm-example">
+                  <strong>Example:</strong>
+                  "Your account will be closed in 24 hours unless you verify your identity now." This uses fear and urgency together.
+                </div>
               </div>
             </div>
+
             <div class="rm-node glass" data-keywords="phishing email fake message login credential">
-              <div class="rm-node-info"><h3>Phishing Attacks</h3><p>Fake emails and messages that steal your login credentials.</p></div>
+              <div class="rm-node-info">
+                <h3>Phishing Attacks</h3>
+                <p>Fake emails and messages that steal your login credentials.</p>
+              </div>
+
               <div class="rm-node-expand">
-                <div class="rm-lesson">Phishing messages pretend to be from real companies (Netflix, Amazon, your bank). They contain links to fake websites that look identical to real ones. When you enter your password, the attacker captures it. Always check the sender email and the URL carefully.</div>
-                <div class="rm-tip"><strong>How to spot it:</strong> Hover over links before clicking. Check for misspelled domains (amaz0n.com, paypaI.com). Real companies never ask for your password by email.</div>
+                <div class="rm-lesson">
+                  Phishing messages pretend to be from real companies such as Netflix, Amazon, or your bank. They contain links to fake websites that look identical to real ones. When you enter your password, the attacker captures it. Always check the sender email and URL carefully.
+                </div>
+
+                <div class="rm-tip">
+                  <strong>How to spot it:</strong>
+                  Hover over links before clicking. Check for misspelled domains such as amaz0n.com or paypaI.com. Real companies never ask for your password by email.
+                </div>
               </div>
             </div>
+
             <div class="rm-node glass" data-keywords="vishing smishing phone sms text call">
-              <div class="rm-node-info"><h3>Vishing &amp; Smishing</h3><p>Phone call scams and SMS text message scams.</p></div>
+              <div class="rm-node-info">
+                <h3>Vishing &amp; Smishing</h3>
+                <p>Phone call scams and SMS text message scams.</p>
+              </div>
+
               <div class="rm-node-expand">
-                <div class="rm-lesson"><strong>Vishing</strong> (voice phishing) uses phone calls — attackers pose as bank reps, government officials, or tech support. <strong>Smishing</strong> uses text messages with malicious links. Both create panic: "Your account has been compromised" or "You owe money to the government."</div>
-                <div class="rm-tip"><strong>Defense:</strong> Never give personal information over a call you didn't initiate. Hang up and call the official number directly.</div>
+                <div class="rm-lesson">
+                  <strong>Vishing</strong> uses phone calls. Attackers pose as bank representatives, government officials, or tech support.
+                  <strong>Smishing</strong> uses text messages with malicious links.
+                  Both create panic with messages such as "Your account has been compromised" or "You owe money to the government."
+                </div>
+
+                <div class="rm-tip">
+                  <strong>Defense:</strong>
+                  Never give personal information over a call you did not initiate. Hang up and call the official number directly.
+                </div>
               </div>
             </div>
+
             <div class="rm-node glass" data-keywords="romance scam dating love fake relationship">
-              <div class="rm-node-info"><h3>Romance &amp; Dating Scams</h3><p>Fake relationships built online to steal money.</p></div>
+              <div class="rm-node-info">
+                <h3>Romance &amp; Dating Scams</h3>
+                <p>Fake relationships built online to steal money.</p>
+              </div>
+
               <div class="rm-node-expand">
-                <div class="rm-lesson">Scammers create attractive fake profiles on dating sites and social media. They build emotional connections over weeks or months, then ask for money citing emergencies — medical bills, travel costs, business problems. They refuse video calls and always have excuses.</div>
-                <div class="rm-tip"><strong>Red flags:</strong> They profess love very quickly, can never meet in person, always have financial emergencies, and resist video calls.</div>
+                <div class="rm-lesson">
+                  Scammers create attractive fake profiles on dating sites and social media. They build emotional connections over weeks or months, then ask for money while citing emergencies such as medical bills, travel costs, or business problems. They often refuse video calls and always have excuses.
+                </div>
+
+                <div class="rm-tip">
+                  <strong>Red flags:</strong>
+                  They profess love very quickly, can never meet in person, repeatedly experience financial emergencies, and resist video calls.
+                </div>
               </div>
             </div>
+
             <div class="rm-node glass" data-keywords="tech support scam fake warning popup">
-              <div class="rm-node-info"><h3>Tech Support Scams</h3><p>Fake virus warnings that trick you into paying for "fixes."</p></div>
+              <div class="rm-node-info">
+                <h3>Tech Support Scams</h3>
+                <p>Fake virus warnings that trick you into paying for "fixes."</p>
+              </div>
+
               <div class="rm-node-expand">
-                <div class="rm-lesson">Popup messages claim your computer is infected and tell you to call a number. The "technician" asks for remote access and then installs malware, steals data, or charges hundreds of dollars for fake repairs. Real companies like Microsoft never show popups asking you to call them.</div>
-                <div class="rm-example"><strong>What to do:</strong> Close the browser tab. Never call the number. Run your own antivirus scan.</div>
+                <div class="rm-lesson">
+                  Popup messages claim your computer is infected and tell you to call a number. The "technician" asks for remote access and then installs malware, steals data, or charges hundreds of dollars for fake repairs. Real companies such as Microsoft do not show browser popups asking you to call them.
+                </div>
+
+                <div class="rm-example">
+                  <strong>What to do:</strong>
+                  Close the browser tab. Never call the displayed number. Run your own trusted antivirus scan.
+                </div>
               </div>
             </div>
+
             <div class="rm-node glass" data-keywords="investment crypto scam money pyramid ponzi">
-              <div class="rm-node-info"><h3>Investment &amp; Crypto Scams</h3><p>Fake investment platforms that promise guaranteed high returns.</p></div>
+              <div class="rm-node-info">
+                <h3>Investment &amp; Crypto Scams</h3>
+                <p>Fake investment platforms that promise guaranteed high returns.</p>
+              </div>
+
               <div class="rm-node-expand">
-                <div class="rm-lesson">Scammers create professional-looking websites offering crypto trading, forex, or investment opportunities with "guaranteed" 300%+ returns. They show fake dashboards with growing balances. When you try to withdraw, they ask for more "fees" — and the money is gone.</div>
-                <div class="rm-tip"><strong>Rule:</strong> If it sounds too good to be true, it is. No legitimate investment guarantees returns. Check if the platform is registered with financial regulators.</div>
+                <div class="rm-lesson">
+                  Scammers create professional-looking websites offering crypto trading, forex, or investment opportunities with guaranteed returns. They display fake dashboards showing growing balances. When you try to withdraw, they ask for additional fees, and your money is gone.
+                </div>
+
+                <div class="rm-tip">
+                  <strong>Rule:</strong>
+                  If it sounds too good to be true, it probably is. No legitimate investment can guarantee returns. Check whether the platform is registered with a financial regulator.
+                </div>
               </div>
             </div>
+
             <div class="rm-node glass" data-keywords="otp bank code never share personal">
-              <div class="rm-node-info"><h3>What You Should Never Share</h3><p>OTPs, passwords, PINs, banking details, and ID numbers.</p></div>
+              <div class="rm-node-info">
+                <h3>What You Should Never Share</h3>
+                <p>OTPs, passwords, PINs, banking details, and ID numbers.</p>
+              </div>
+
               <div class="rm-node-expand">
-                <div class="rm-lesson">Never share: OTP codes, passwords, PINs, bank card numbers, CVV codes, ID/passport numbers, recovery codes, or private keys. No legitimate company will ever ask for these via email, phone, or text. If someone asks, it's a scam — no exceptions.</div>
+                <div class="rm-lesson">
+                  Never share OTP codes, passwords, PINs, bank card numbers, CVV codes, ID or passport numbers, recovery codes, or private keys. No legitimate company will ask for these through email, phone, or text.
+                </div>
               </div>
             </div>
           </div>
         </div>
 
+        <!-- MODULE 03 -->
         <div class="rm-module">
-          <div class="rm-module-head"><span>// Module 03</span><h2>Malware Deep Dive</h2></div>
+          <div class="rm-module-head">
+            <span>// Module 03</span>
+            <h2>Malware Deep Dive</h2>
+          </div>
+
           <div class="rm-nodes">
             <div class="rm-node glass" data-keywords="malware what is harmful software">
-              <div class="rm-node-info"><h3>What is Malware?</h3><p>Malicious software designed to damage, spy, or steal.</p></div>
+              <div class="rm-node-info">
+                <h3>What is Malware?</h3>
+                <p>Malicious software designed to damage, spy, or steal.</p>
+              </div>
+
               <div class="rm-node-expand">
-                <div class="rm-lesson">Malware is any software intentionally designed to cause harm. It can steal your passwords, encrypt your files for ransom, spy on your activity, display unwanted ads, or give attackers remote control of your device. It spreads through downloads, email attachments, infected websites, and USB drives.</div>
+                <div class="rm-lesson">
+                  Malware is any software intentionally designed to cause harm. It can steal passwords, encrypt files for ransom, spy on activity, display unwanted ads, or give attackers remote control of a device. It spreads through downloads, email attachments, infected websites, and USB drives.
+                </div>
               </div>
             </div>
+
             <div class="rm-node glass" data-keywords="virus worm spread replicate infect">
-              <div class="rm-node-info"><h3>Viruses &amp; Worms</h3><p>Self-replicating programs that spread across devices.</p></div>
+              <div class="rm-node-info">
+                <h3>Viruses &amp; Worms</h3>
+                <p>Self-replicating programs that spread across devices.</p>
+              </div>
+
               <div class="rm-node-expand">
-                <div class="rm-lesson"><strong>Viruses</strong> attach to legitimate files and activate when you open them. They need human action to spread. <strong>Worms</strong> spread automatically across networks without any user interaction. Both can corrupt files, slow down systems, and open backdoors for other attacks.</div>
-                <div class="rm-example"><strong>Example:</strong> The ILOVEYOU worm (2000) spread via email and caused $10 billion in damage worldwide.</div>
+                <div class="rm-lesson">
+                  <strong>Viruses</strong> attach to legitimate files and activate when opened. They need human action to spread.
+                  <strong>Worms</strong> spread automatically across networks without user interaction.
+                  Both can corrupt files, slow systems, and open backdoors for additional attacks.
+                </div>
+
+                <div class="rm-example">
+                  <strong>Example:</strong>
+                  The ILOVEYOU worm spread through email and caused billions of dollars in damage worldwide.
+                </div>
               </div>
             </div>
+
             <div class="rm-node glass" data-keywords="trojan RAT remote access backdoor">
-              <div class="rm-node-info"><h3>Trojans &amp; RATs</h3><p>Malware disguised as legitimate software that opens backdoors.</p></div>
+              <div class="rm-node-info">
+                <h3>Trojans &amp; RATs</h3>
+                <p>Malware disguised as legitimate software that opens backdoors.</p>
+              </div>
+
               <div class="rm-node-expand">
-                <div class="rm-lesson"><strong>Trojans</strong> pretend to be useful programs (free games, cracked software, fake updates) but secretly install malware. <strong>RATs</strong> (Remote Access Trojans) give attackers full control of your device — they can watch your screen, access your camera, steal files, and log keystrokes.</div>
-                <div class="rm-tip"><strong>Prevention:</strong> Only download software from official sources. If a paid app is offered free somewhere, it's probably a trojan.</div>
+                <div class="rm-lesson">
+                  <strong>Trojans</strong> pretend to be useful programs such as free games, cracked software, or fake updates, but secretly install malware.
+                  <strong>RATs</strong> are Remote Access Trojans that give attackers control of a device. They may watch the screen, access the camera, steal files, and record keystrokes.
+                </div>
+
+                <div class="rm-tip">
+                  <strong>Prevention:</strong>
+                  Download software only from official sources. If an expensive application is offered free by an unknown website, it may contain malware.
+                </div>
               </div>
             </div>
+
             <div class="rm-node glass" data-keywords="ransomware encrypt files pay locked bitcoin">
-              <div class="rm-node-info"><h3>Ransomware</h3><p>Encrypts your files and demands payment to unlock them.</p></div>
+              <div class="rm-node-info">
+                <h3>Ransomware</h3>
+                <p>Encrypts your files and demands payment to unlock them.</p>
+              </div>
+
               <div class="rm-node-expand">
-                <div class="rm-lesson">Ransomware encrypts all your files (documents, photos, databases) and displays a message demanding payment (usually in Bitcoin). Even paying doesn't guarantee you'll get your files back. It spreads through phishing emails, infected downloads, and unpatched software vulnerabilities.</div>
-                <div class="rm-tip"><strong>Best defense:</strong> Regular backups stored offline. If hit, disconnect immediately, don't pay, report to authorities, and restore from backup.</div>
+                <div class="rm-lesson">
+                  Ransomware encrypts documents, photos, and databases, then demands payment, often in cryptocurrency. Paying does not guarantee file recovery. It commonly spreads through phishing emails, infected downloads, and unpatched vulnerabilities.
+                </div>
+
+                <div class="rm-tip">
+                  <strong>Best defense:</strong>
+                  Keep regular offline backups. If infected, disconnect the device, avoid paying, report the attack, and restore from a clean backup.
+                </div>
               </div>
             </div>
+
             <div class="rm-node glass" data-keywords="spyware keylogger monitor track steal">
-              <div class="rm-node-info"><h3>Spyware &amp; Keyloggers</h3><p>Silently monitors everything you do and type.</p></div>
+              <div class="rm-node-info">
+                <h3>Spyware &amp; Keyloggers</h3>
+                <p>Silently monitors everything you do and type.</p>
+              </div>
+
               <div class="rm-node-expand">
-                <div class="rm-lesson"><strong>Spyware</strong> monitors your browsing, captures screenshots, and tracks your location. <strong>Keyloggers</strong> record every keystroke — passwords, messages, credit card numbers. They often come bundled with free software or are installed through phishing attacks.</div>
-                <div class="rm-example"><strong>Signs of infection:</strong> Device running slower than usual, battery draining fast, unfamiliar apps installed, increased data usage.</div>
+                <div class="rm-lesson">
+                  <strong>Spyware</strong> monitors browsing, captures screenshots, and may track location.
+                  <strong>Keyloggers</strong> record keystrokes including passwords, private messages, and payment information.
+                  They are often bundled with untrusted software or installed through phishing attacks.
+                </div>
+
+                <div class="rm-example">
+                  <strong>Possible signs:</strong>
+                  A device becomes unusually slow, its battery drains quickly, unknown applications appear, or data usage increases without explanation.
+                </div>
               </div>
             </div>
+
             <div class="rm-node glass" data-keywords="remove malware antivirus clean infected disconnect">
-              <div class="rm-node-info"><h3>How to Remove Malware</h3><p>Step-by-step: disconnect, scan, remove, recover.</p></div>
+              <div class="rm-node-info">
+                <h3>How to Remove Malware</h3>
+                <p>Step-by-step: disconnect, scan, remove, recover.</p>
+              </div>
+
               <div class="rm-node-expand">
-                <div class="rm-lesson"><strong>Step 1:</strong> Disconnect from the internet immediately. <strong>Step 2:</strong> Boot into Safe Mode. <strong>Step 3:</strong> Run a full antivirus scan. <strong>Step 4:</strong> Delete suspicious programs and files. <strong>Step 5:</strong> Change all passwords from a clean device. <strong>Step 6:</strong> Update all software. <strong>Step 7:</strong> Monitor accounts for unusual activity.</div>
+                <div class="rm-lesson">
+                  <strong>Step 1:</strong> Disconnect from the internet.
+                  <strong>Step 2:</strong> Boot into Safe Mode when appropriate.
+                  <strong>Step 3:</strong> Run a trusted full antivirus scan.
+                  <strong>Step 4:</strong> Remove suspicious programs and files.
+                  <strong>Step 5:</strong> Change passwords from a clean device.
+                  <strong>Step 6:</strong> Update all software.
+                  <strong>Step 7:</strong> Monitor accounts for unusual activity.
+                </div>
               </div>
             </div>
           </div>
         </div>
 
+        <!-- MODULE 04 -->
         <div class="rm-module">
-          <div class="rm-module-head"><span>// Module 04</span><h2>Passwords &amp; Authentication</h2></div>
+          <div class="rm-module-head">
+            <span>// Module 04</span>
+            <h2>Passwords &amp; Authentication</h2>
+          </div>
+
           <div class="rm-nodes">
             <div class="rm-node glass" data-keywords="strong password length symbols uppercase">
-              <div class="rm-node-info"><h3>Creating Strong Passwords</h3><p>Long, random, unique for every account.</p></div>
+              <div class="rm-node-info">
+                <h3>Creating Strong Passwords</h3>
+                <p>Long, random, unique for every account.</p>
+              </div>
+
               <div class="rm-node-expand">
-                <div class="rm-lesson">A strong password is at least 12 characters with a mix of uppercase, lowercase, numbers, and symbols. Never use personal info (names, birthdays, pet names). Use passphrases: random words combined like "Falcon!River92#Sky" are strong and memorable.</div>
-                <div class="rm-tip"><strong>Test:</strong> If someone who knows you could guess it, it's not strong enough.</div>
+                <div class="rm-lesson">
+                  A strong password should be long and unique. Avoid personal information such as names, birthdays, or pet names. Passphrases made from several unrelated words can be strong and easier to remember.
+                </div>
+
+                <div class="rm-tip">
+                  <strong>Test:</strong>
+                  If someone who knows you could easily guess it, it is not strong enough.
+                </div>
               </div>
             </div>
+
             <div class="rm-node glass" data-keywords="password manager vault store generate">
-              <div class="rm-node-info"><h3>Password Managers</h3><p>Securely store and generate unique passwords for every account.</p></div>
+              <div class="rm-node-info">
+                <h3>Password Managers</h3>
+                <p>Securely store and generate unique passwords for every account.</p>
+              </div>
+
               <div class="rm-node-expand">
-                <div class="rm-lesson">Password managers (Bitwarden, 1Password, KeePass) store all your passwords in an encrypted vault. You only need to remember one master password. They auto-generate strong unique passwords for each site, auto-fill login forms, and alert you about breached passwords.</div>
+                <div class="rm-lesson">
+                  Password managers store passwords inside an encrypted vault. You remember one strong master password while the manager creates and saves unique passwords for every account. Many also warn about breached or reused passwords.
+                </div>
               </div>
             </div>
+
             <div class="rm-node glass" data-keywords="2fa mfa authentication authenticator app sms">
-              <div class="rm-node-info"><h3>Two-Factor Authentication</h3><p>A second verification step that blocks unauthorized access.</p></div>
+              <div class="rm-node-info">
+                <h3>Two-Factor Authentication</h3>
+                <p>A second verification step that blocks unauthorized access.</p>
+              </div>
+
               <div class="rm-node-expand">
-                <div class="rm-lesson">2FA adds a second layer after your password — a code from an authenticator app (Google Authenticator, Authy), a hardware key, or an SMS code. Even if your password is stolen, the attacker can't get in without the second factor.</div>
-                <div class="rm-tip"><strong>Best practice:</strong> Use an authenticator app over SMS. SIM-swap attacks can intercept text messages.</div>
+                <div class="rm-lesson">
+                  Two-factor authentication adds a second layer after the password, such as a code from an authenticator application, hardware security key, or SMS message. Even if a password is stolen, the attacker still needs the second factor.
+                </div>
+
+                <div class="rm-tip">
+                  <strong>Best practice:</strong>
+                  Prefer an authenticator application or hardware security key over SMS when available.
+                </div>
               </div>
             </div>
+
             <div class="rm-node glass" data-keywords="password attack brute force dictionary credential stuffing">
-              <div class="rm-node-info"><h3>Common Password Attacks</h3><p>How attackers crack and steal passwords.</p></div>
+              <div class="rm-node-info">
+                <h3>Common Password Attacks</h3>
+                <p>How attackers crack and steal passwords.</p>
+              </div>
+
               <div class="rm-node-expand">
-                <div class="rm-lesson"><strong>Brute force:</strong> Trying every possible combination. <strong>Dictionary:</strong> Trying common words and phrases. <strong>Credential stuffing:</strong> Using leaked passwords from other sites. <strong>Phishing:</strong> Tricking you into typing your password on a fake site. <strong>Keylogging:</strong> Recording your keystrokes.</div>
-                <div class="rm-tip"><strong>Defense:</strong> Unique passwords per site + 2FA defeats almost all of these attacks.</div>
+                <div class="rm-lesson">
+                  <strong>Brute force:</strong> Trying many possible combinations.
+                  <strong>Dictionary attack:</strong> Trying common words and phrases.
+                  <strong>Credential stuffing:</strong> Reusing leaked passwords from other sites.
+                  <strong>Phishing:</strong> Tricking users into entering passwords on fake pages.
+                  <strong>Keylogging:</strong> Recording keystrokes.
+                </div>
+
+                <div class="rm-tip">
+                  <strong>Defense:</strong>
+                  Use a unique password for every account and enable two-factor authentication.
+                </div>
               </div>
             </div>
           </div>
         </div>
 
+        <!-- MODULE 05 -->
         <div class="rm-module">
-          <div class="rm-module-head"><span>// Module 05</span><h2>Safe Browsing &amp; Networks</h2></div>
+          <div class="rm-module-head">
+            <span>// Module 05</span>
+            <h2>Safe Browsing &amp; Networks</h2>
+          </div>
+
           <div class="rm-nodes">
             <div class="rm-node glass" data-keywords="https ssl tls encryption secure website padlock">
-              <div class="rm-node-info"><h3>HTTPS &amp; Encryption</h3><p>The padlock icon and what it actually means.</p></div>
+              <div class="rm-node-info">
+                <h3>HTTPS &amp; Encryption</h3>
+                <p>The padlock icon and what it actually means.</p>
+              </div>
+
               <div class="rm-node-expand">
-                <div class="rm-lesson">HTTPS encrypts data between your browser and the website. The "S" stands for Secure. Look for the padlock icon in the address bar. However, HTTPS alone doesn't mean the site is legitimate — scam sites can also use HTTPS. Always verify the domain name too.</div>
+                <div class="rm-lesson">
+                  HTTPS encrypts information between your browser and a website. However, HTTPS alone does not mean the website is legitimate because scam websites can also obtain certificates. Always inspect the domain name as well.
+                </div>
               </div>
             </div>
+
             <div class="rm-node glass" data-keywords="public wifi danger airport cafe hotel network">
-              <div class="rm-node-info"><h3>Public Wi-Fi Dangers</h3><p>Why coffee shop Wi-Fi can be a trap.</p></div>
+              <div class="rm-node-info">
+                <h3>Public Wi-Fi Dangers</h3>
+                <p>Why coffee shop Wi-Fi can be a trap.</p>
+              </div>
+
               <div class="rm-node-expand">
-                <div class="rm-lesson">On public Wi-Fi, attackers can intercept unencrypted traffic, capture login credentials, inject malware into downloads, or redirect you to fake websites. Never do banking, enter passwords, or access sensitive accounts on public networks.</div>
-                <div class="rm-tip"><strong>Stay safe:</strong> Use mobile data for sensitive tasks. If you must use public Wi-Fi, connect through a trusted VPN.</div>
+                <div class="rm-lesson">
+                  On public Wi-Fi, attackers may attempt to intercept unencrypted traffic, capture credentials, inject malicious content, or redirect users to fake websites. Avoid banking or sensitive account activity on untrusted networks.
+                </div>
+
+                <div class="rm-tip">
+                  <strong>Stay safe:</strong>
+                  Use mobile data for sensitive activity. When public Wi-Fi is necessary, use encrypted websites and a trusted VPN.
+                </div>
               </div>
             </div>
+
             <div class="rm-node glass" data-keywords="vpn virtual private network tunnel encrypted">
-              <div class="rm-node-info"><h3>VPNs Explained</h3><p>An encrypted tunnel that protects your internet traffic.</p></div>
+              <div class="rm-node-info">
+                <h3>VPNs Explained</h3>
+                <p>An encrypted tunnel that protects your internet traffic.</p>
+              </div>
+
               <div class="rm-node-expand">
-                <div class="rm-lesson">A VPN (Virtual Private Network) encrypts all your internet traffic and routes it through a secure server. This hides your activity from your ISP, protects you on public Wi-Fi, and can help bypass geographic restrictions. Choose reputable paid VPNs — free VPNs often sell your data.</div>
+                <div class="rm-lesson">
+                  A VPN encrypts internet traffic between your device and the VPN provider's server. It can protect traffic on public Wi-Fi and reduce local network visibility, but it does not make unsafe websites safe or replace antivirus protection.
+                </div>
               </div>
             </div>
+
             <div class="rm-node glass" data-keywords="evil twin fake wifi hotspot network">
-              <div class="rm-node-info"><h3>Evil Twin Attacks</h3><p>Fake Wi-Fi networks that look like the real thing.</p></div>
+              <div class="rm-node-info">
+                <h3>Evil Twin Attacks</h3>
+                <p>Fake Wi-Fi networks that look like the real thing.</p>
+              </div>
+
               <div class="rm-node-expand">
-                <div class="rm-lesson">Attackers create Wi-Fi networks with names identical to legitimate ones: "Airport_Free_WiFi" or "Starbucks_Guest." When you connect, all your traffic passes through the attacker's device. They can see everything you do — passwords, emails, banking details.</div>
-                <div class="rm-tip"><strong>Defense:</strong> Ask staff for the exact network name. Turn off auto-join for Wi-Fi networks. Use a VPN.</div>
+                <div class="rm-lesson">
+                  Attackers create Wi-Fi networks with names similar or identical to legitimate networks. When users connect, the attacker may monitor or manipulate traffic.
+                </div>
+
+                <div class="rm-tip">
+                  <strong>Defense:</strong>
+                  Ask staff for the exact network name, disable automatic connection to open networks, and use a trusted VPN when appropriate.
+                </div>
               </div>
             </div>
           </div>
         </div>
 
+        <!-- MODULE 06 -->
         <div class="rm-module">
-          <div class="rm-module-head"><span>// Module 06</span><h2>Privacy &amp; Data Protection</h2></div>
+          <div class="rm-module-head">
+            <span>// Module 06</span>
+            <h2>Privacy &amp; Data Protection</h2>
+          </div>
+
           <div class="rm-nodes">
             <div class="rm-node glass" data-keywords="personal data information name phone location photos">
-              <div class="rm-node-info"><h3>What is Personal Data?</h3><p>Name, phone, email, location, photos, passwords, and more.</p></div>
+              <div class="rm-node-info">
+                <h3>What is Personal Data?</h3>
+                <p>Name, phone, email, location, photos, passwords, and more.</p>
+              </div>
+
               <div class="rm-node-expand">
-                <div class="rm-lesson">Personal data includes anything that can identify you: full name, phone number, email, home address, location data, photos, date of birth, ID numbers, financial information, biometric data, and even your browsing history. Every piece makes you more vulnerable to targeted attacks.</div>
+                <div class="rm-lesson">
+                  Personal data includes information that can identify or describe you, such as your name, phone number, email address, home address, location, photos, birth date, government ID numbers, financial information, biometric data, and browsing history.
+                </div>
               </div>
             </div>
+
             <div class="rm-node glass" data-keywords="app permissions camera microphone contacts location">
-              <div class="rm-node-info"><h3>App Permissions</h3><p>Why a calculator shouldn't need your microphone.</p></div>
+              <div class="rm-node-info">
+                <h3>App Permissions</h3>
+                <p>Why a calculator shouldn't need your microphone.</p>
+              </div>
+
               <div class="rm-node-expand">
-                <div class="rm-lesson">Every app permission is a door to your data. Review what each app can access: camera, microphone, contacts, location, storage, phone. Only grant what the app genuinely needs. A flashlight app needing your contacts is a red flag. Regularly audit permissions in your phone settings.</div>
+                <div class="rm-lesson">
+                  Every permission grants an application access to part of your device or data. Review access to the camera, microphone, contacts, location, storage, and phone features. Grant only permissions required for the application's real purpose.
+                </div>
               </div>
             </div>
+
             <div class="rm-node glass" data-keywords="data breach leaked exposed password email haveibeenpwned">
-              <div class="rm-node-info"><h3>Data Breaches</h3><p>When companies lose your data to hackers.</p></div>
+              <div class="rm-node-info">
+                <h3>Data Breaches</h3>
+                <p>When companies lose your data to hackers.</p>
+              </div>
+
               <div class="rm-node-expand">
-                <div class="rm-lesson">Data breaches happen when hackers steal databases from companies — exposing millions of emails, passwords, and personal details. Check if your email has been compromised at haveibeenpwned.com. If breached, change that password everywhere you used it (another reason to never reuse passwords).</div>
+                <div class="rm-lesson">
+                  A data breach occurs when unauthorized people obtain information stored by an organization. Exposed data may include email addresses, passwords, names, and financial details. Change affected passwords and never reuse the same password across websites.
+                </div>
               </div>
             </div>
+
             <div class="rm-node glass" data-keywords="digital footprint social media posting online trace">
-              <div class="rm-node-info"><h3>Your Digital Footprint</h3><p>Everything you do online leaves a trace.</p></div>
+              <div class="rm-node-info">
+                <h3>Your Digital Footprint</h3>
+                <p>Everything you do online leaves a trace.</p>
+              </div>
+
               <div class="rm-node-expand">
-                <div class="rm-lesson">Every post, search, like, purchase, and login contributes to your digital footprint. Employers check it. Scammers mine it. Advertisers profile it. Be intentional: review privacy settings, think before posting, use private browsing for sensitive searches, and periodically Google yourself.</div>
+                <div class="rm-lesson">
+                  Posts, searches, likes, purchases, and account activity contribute to your digital footprint. Review privacy settings, avoid publishing sensitive personal details, and periodically inspect what information about you is publicly available.
+                </div>
               </div>
             </div>
           </div>
         </div>
 
+        <!-- MODULE 07 -->
         <div class="rm-module">
-          <div class="rm-module-head"><span>// Module 07</span><h2>Prevention &amp; Response</h2></div>
+          <div class="rm-module-head">
+            <span>// Module 07</span>
+            <h2>Prevention &amp; Response</h2>
+          </div>
+
           <div class="rm-nodes">
             <div class="rm-node glass" data-keywords="checklist daily safe habits routine security">
-              <div class="rm-node-info"><h3>Daily Security Checklist</h3><p>Simple habits that prevent most attacks.</p></div>
+              <div class="rm-node-info">
+                <h3>Daily Security Checklist</h3>
+                <p>Simple habits that prevent most attacks.</p>
+              </div>
+
               <div class="rm-node-expand">
-                <div class="rm-lesson"><strong>Daily:</strong> Don't click suspicious links. Lock your devices. <strong>Weekly:</strong> Review app permissions. Check for software updates. <strong>Monthly:</strong> Review account activity. Check for data breaches. Change critical passwords. <strong>Always:</strong> Use unique passwords + 2FA. Back up important files. Think before you share.</div>
+                <div class="rm-lesson">
+                  <strong>Daily:</strong> Avoid suspicious links and lock devices.
+                  <strong>Weekly:</strong> Review permissions and install updates.
+                  <strong>Monthly:</strong> Review account activity and breach alerts.
+                  <strong>Always:</strong> Use unique passwords, enable two-factor authentication, keep backups, and think before sharing information.
+                </div>
               </div>
             </div>
+
             <div class="rm-node glass" data-keywords="hacked what to do account compromised stolen">
-              <div class="rm-node-info"><h3>What To Do If Hacked</h3><p>Immediate steps to contain the damage.</p></div>
+              <div class="rm-node-info">
+                <h3>What To Do If Hacked</h3>
+                <p>Immediate steps to contain the damage.</p>
+              </div>
+
               <div class="rm-node-expand">
-                <div class="rm-lesson"><strong>1.</strong> Change passwords immediately (start with email). <strong>2.</strong> Enable 2FA on everything. <strong>3.</strong> Log out of all devices. <strong>4.</strong> Check for unauthorized transactions. <strong>5.</strong> Scan devices for malware. <strong>6.</strong> Notify your bank if financial data was exposed. <strong>7.</strong> Alert contacts if your social accounts were compromised. <strong>8.</strong> Report to the platform and authorities.</div>
+                <div class="rm-lesson">
+                  <strong>1.</strong> Change passwords, beginning with your main email account.
+                  <strong>2.</strong> Enable two-factor authentication.
+                  <strong>3.</strong> Sign out of unknown devices and sessions.
+                  <strong>4.</strong> Check for unauthorized transactions.
+                  <strong>5.</strong> Scan devices for malware.
+                  <strong>6.</strong> Notify your bank if financial information was exposed.
+                  <strong>7.</strong> Warn contacts if your accounts were used to send scams.
+                  <strong>8.</strong> Report the incident.
+                </div>
               </div>
             </div>
+
             <div class="rm-node glass" data-keywords="report cyber crime police authorities FBI IC3">
-              <div class="rm-node-info"><h3>Reporting Cyber Crime</h3><p>Where and how to report attacks and fraud.</p></div>
+              <div class="rm-node-info">
+                <h3>Reporting Cyber Crime</h3>
+                <p>Where and how to report attacks and fraud.</p>
+              </div>
+
               <div class="rm-node-expand">
-                <div class="rm-lesson">Report phishing emails to the company being impersonated. Report scams to your local police cybercrime unit. In the US, report to IC3.gov (FBI). In the UAE, contact the Cybercrime Unit. Save evidence: screenshots, emails, transaction records. The sooner you report, the better the chance of recovery.</div>
+                <div class="rm-lesson">
+                  Report phishing to the organization being impersonated and scams to the relevant local cybercrime authority. Save screenshots, emails, phone numbers, web addresses, and transaction records as evidence.
+                </div>
               </div>
             </div>
+
             <div class="rm-node glass" data-keywords="updates software patch vulnerability safe">
-              <div class="rm-node-info"><h3>Staying Updated &amp; Safe</h3><p>Software updates close the doors that hackers use.</p></div>
+              <div class="rm-node-info">
+                <h3>Staying Updated &amp; Safe</h3>
+                <p>Software updates close the doors that hackers use.</p>
+              </div>
+
               <div class="rm-node-expand">
-                <div class="rm-lesson">Software updates patch security vulnerabilities that attackers exploit. Enable automatic updates on your phone, computer, and apps. Use reputable antivirus software. Stay informed about new scam techniques. Follow cybersecurity news. The threat landscape evolves — your defenses should too.</div>
+                <div class="rm-lesson">
+                  Software updates repair known vulnerabilities. Enable automatic updates for operating systems, browsers, applications, and security tools. Use reputable security software and remain aware of changing scam techniques.
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </section>
 
-    <!-- ═══════════ PRICING ═══════════ -->
+      </div>
+    </section>    <!-- ═══════════ PRICING ═══════════ -->
     <section id="pricing" class="page">
-      <div class="section-head reveal">
-        <div class="pill glass center"><span class="prompt">$</span> Simple Plans</div>
-        <h1>Choose your <span>protection level</span></h1>
-        <p>Clean pricing layout for your final public website.</p>
+      <div class="section-head reveal pricing-head">
+        <div class="pill glass center"><span class="prompt">$</span> Simple, Transparent Pricing</div>
+        <h1>Choose the protection that <span>fits you</span></h1>
+        <p>Start free with accurate protection. Upgrade when you need deeper analysis, saved history, reports, and GhostScan.</p>
+
         <div class="pricing-toggle-wrap">
           <div class="pricing-toggle glass" id="pricingToggle" data-cycle="monthly">
             <button class="toggle-option active" data-cycle="monthly">Monthly</button>
             <button class="toggle-option" data-cycle="yearly">Yearly</button>
             <span class="toggle-thumb"></span>
           </div>
-          <span class="save-tag">Save 20%</span>
-        </div>
-      </div>
-      <div class="pricing-grid">
-        <div class="price-card glass reveal tilt-card">
-          <h3>Starter</h3><h2><span class="price-amount" data-monthly="0" data-yearly="0">$0</span><span>/mo</span></h2>
-          <p>Basic scans for students and personal use.</p>
-          <ul><li>Text-based scam detection</li><li>Image upload area</li><li>CyberNet AI demo</li></ul>
-          <button class="secondary-btn full">Start Free</button>
-        </div>
-        <div class="price-card featured-price glass reveal tilt-card">
-          <span class="popular-ribbon">Most Popular</span>
-          <h3>CyberNet Plus</h3><h2><span class="price-amount" data-monthly="9" data-yearly="86">$9</span><span>/mo</span></h2>
-          <p>Advanced reports and stronger monitoring.</p>
-          <ul><li>All Starter tools</li><li>Detailed threat reports</li><li>Image-based AI detection</li><li>CyberNet AI Assistant</li></ul>
-          <button class="primary-btn full">Get Plus</button>
-        </div>
-        <div class="price-card glass reveal tilt-card">
-          <h3>Team</h3><h2>Custom</h2>
-          <p>For schools, teams, and businesses.</p>
-          <ul><li>Team dashboard</li><li>Security reports</li><li>Priority support</li><li>AI cyber help desk</li></ul>
-          <button class="secondary-btn full">Contact Us</button>
+          <span class="save-tag">Save 20% yearly</span>
         </div>
       </div>
 
+      <div class="pricing-grid pricing-grid-two">
+        <article class="price-card glass reveal tilt-card free-price-card">
+          <div class="price-card-topline">
+            <span class="price-plan-label">FREE FOREVER</span>
+            <span class="plan-badge plan-badge-free">FREE</span>
+          </div>
+          <h3>CyberNet AI Free</h3>
+          <h2><span class="price-amount" data-monthly="0" data-yearly="0">$0</span><span class="price-period">/month</span></h2>
+          <p>Accurate everyday protection for people who want to inspect suspicious content before taking action.</p>
+          <ul>
+            <li><strong>5 AI analyses per day</strong>, shared across Text, Link, and Image</li>
+            <li>Accurate AI-powered threat detection</li>
+            <li>Basic threat explanations</li>
+            <li>Cybersecurity learning center</li>
+            <li class="feature-unavailable">No saved scan history</li>
+            <li class="feature-unavailable">No downloadable reports</li>
+            <li class="feature-unavailable">No GhostScan access</li>
+          </ul>
+          <button class="secondary-btn full plan-select-btn" id="freePlanBtn" data-plan="free">Start Free</button>
+        </article>
+
+        <article class="price-card featured-price glass reveal tilt-card pro-price-card">
+          <span class="popular-ribbon">Most Popular</span>
+          <div class="price-card-topline">
+            <span class="price-plan-label">TOP-LEVEL PROTECTION</span>
+            <span class="plan-badge plan-badge-pro">PRO</span>
+          </div>
+          <h3>CyberNet AI Pro</h3>
+          <h2>
+            <span class="price-amount" data-monthly="9.99" data-yearly="95.90">$9.99</span>
+            <span class="price-period">/month</span>
+          </h2>
+          <p class="billing-equivalent" id="billingEquivalent">Billed monthly. Cancel anytime.</p>
+          <ul>
+            <li>Everything in CyberNet AI Free</li>
+            <li><strong>50 AI analyses per day</strong></li>
+            <li>Advanced Text, Image, and Link analysis</li>
+            <li>Detailed risk scoring and threat intelligence</li>
+            <li>Downloadable security reports</li>
+            <li>Saved scan history</li>
+            <li>Faster AI responses</li>
+            <li>Full GhostScan access</li>
+          </ul>
+          <button class="primary-btn full plan-select-btn" id="proPlanBtn" data-plan="pro" data-cycle="monthly">Upgrade to Pro</button>
+        </article>
+      </div>
+
+      <div id="pricingNotice" class="pricing-notice glass" aria-live="polite"></div>
+
+      <div class="comparison-wrap reveal">
+        <div class="comparison-heading">
+          <span class="account-eyebrow">SIDE-BY-SIDE</span>
+          <h2>Compare CyberNet AI plans</h2>
+          <p>Both plans are built around accurate analysis. Pro adds depth, productivity, and premium tools.</p>
+        </div>
+        <div class="comparison-table-shell glass">
+          <table class="comparison-table">
+            <thead>
+              <tr><th>Feature</th><th>CyberNet AI Free</th><th>CyberNet AI Pro</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Daily AI analyses</td><td>5 total</td><td><strong>50 total</strong></td></tr>
+              <tr><td>Text analysis</td><td>Accurate standard analysis</td><td>Advanced deep analysis</td></tr>
+              <tr><td>Link analysis</td><td>Accurate standard analysis</td><td>Advanced deep analysis</td></tr>
+              <tr><td>Image analysis</td><td>Accurate standard analysis</td><td>Advanced deep analysis</td></tr>
+              <tr><td>Threat explanations</td><td>Basic</td><td>Detailed threat intelligence</td></tr>
+              <tr><td>Risk scoring</td><td>Standard</td><td>Advanced and detailed</td></tr>
+              <tr><td>Scan history</td><td><span class="table-no">—</span></td><td><span class="table-yes">✓</span></td></tr>
+              <tr><td>Downloadable reports</td><td><span class="table-no">—</span></td><td><span class="table-yes">✓</span></td></tr>
+              <tr><td>Faster AI responses</td><td><span class="table-no">—</span></td><td><span class="table-yes">✓</span></td></tr>
+              <tr><td>GhostScan</td><td><span class="table-no">—</span></td><td><strong>Full access</strong></td></tr>
+              <tr><td>Price</td><td>$0</td><td>$9.99/month or $95.90/year</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="pricing-footnote reveal">
+        <span>Yearly Pro is billed once at <strong>$95.90</strong>, equal to about <strong>$7.99/month</strong>.</span>
+        <span>All usage limits reset daily.</span>
+      </div>
     </section>
 
     <!-- ═══════════ ABOUT ═══════════ -->
     <section id="about" class="page">
       <div class="about-top reveal">
-        <div class="pill glass"><span class="prompt">$</span> About CyberNet</div>
+        <div class="pill glass">
+          <span class="prompt">$</span>
+          About CyberNet AI
+        </div>
+
         <h1>Built to make cybersecurity <span>simple</span>.</h1>
       </div>
 
       <div class="hero-stats-row about-stats-row reveal">
-        <div><strong data-count="5600" data-suffix="+">0</strong><span>Users Protected</span></div>
-        <div><strong data-count="10" data-suffix="+">0</strong><span>Countries</span></div>
-        <div><strong data-count="99.9" data-suffix="%">0</strong><span>Uptime</span></div>
+        <div>
+          <strong data-count="5600" data-suffix="+">0</strong>
+          <span>Users Protected</span>
+        </div>
+
+        <div>
+          <strong data-count="10" data-suffix="+">0</strong>
+          <span>Countries</span>
+        </div>
+
+        <div>
+          <strong data-count="99.9" data-suffix="%">0</strong>
+          <span>Uptime</span>
+        </div>
       </div>
 
       <div class="fetch-panel glass reveal">
-        <div class="term-chrome"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="term-path">whoami</span></div>
+        <div class="term-chrome">
+          <span class="dot r"></span>
+          <span class="dot y"></span>
+          <span class="dot g"></span>
+          <span class="term-path">whoami</span>
+        </div>
+
         <div class="fetch-body">
-          <div class="fetch-line"><span class="fetch-key">product</span><span>CyberNet</span></div>
-          <div class="fetch-line"><span class="fetch-key">mission</span><span>Protect people before threats become real damage</span></div>
-          <div class="fetch-line"><span class="fetch-key">approach</span><span>rule-based + AI-assisted detection</span></div>
-          <div class="fetch-line"><span class="fetch-key">data policy</span><span>on-device, never stored or sold</span></div>
-          <div class="fetch-line"><span class="fetch-key">status</span><span class="safe-text">● online</span></div>
+          <div class="fetch-line">
+            <span class="fetch-key">product</span>
+            <span>CyberNet AI</span>
+          </div>
+
+          <div class="fetch-line">
+            <span class="fetch-key">mission</span>
+            <span>Protect people before threats become real damage</span>
+          </div>
+
+          <div class="fetch-line">
+            <span class="fetch-key">approach</span>
+            <span>rule-based + AI-assisted detection</span>
+          </div>
+
+          <div class="fetch-line">
+            <span class="fetch-key">data policy</span>
+            <span>on-device, never stored or sold</span>
+          </div>
+
+          <div class="fetch-line">
+            <span class="fetch-key">status</span>
+            <span class="safe-text">● online</span>
+          </div>
         </div>
       </div>
 
       <div class="about-grid reveal">
         <div class="about-block glass tilt-card">
-          <h2>What Is CyberNet</h2>
-          <p>CyberNet is a modern cybersecurity platform that helps everyday users, students, and organizations detect scams, phishing attempts, suspicious links, weak passwords, and online threats. It combines rule-based detection tools with AI-powered analysis to give you clear, actionable security insights — no technical expertise required.</p>
+          <h2>What Is CyberNet AI</h2>
+
+          <p>
+            CyberNet AI is a modern cybersecurity platform that helps
+            everyday users, students, and organizations detect scams, phishing
+            attempts, suspicious links, weak passwords, and online threats. It
+            combines rule-based detection tools with AI-powered analysis to give
+            you clear, actionable security insights — no technical expertise
+            required.
+          </p>
         </div>
+
         <div class="about-block glass tilt-card">
           <h2>Our Mission</h2>
-          <p>Protect people before threats become real damage. We believe cybersecurity shouldn't be complicated or expensive. CyberNet puts professional-grade protection in everyone's hands through simple tools, clear explanations, and real-time threat intelligence.</p>
+
+          <p>
+            Protect people before threats become real damage. We believe
+            cybersecurity shouldn't be complicated or expensive. CyberNet
+            Protect puts professional-grade protection in everyone's hands
+            through simple tools, clear explanations, and real-time threat
+            intelligence.
+          </p>
         </div>
+
         <div class="about-block glass tilt-card">
           <h2>What It Does</h2>
-          <p>Analyzes suspicious text messages, emails, and social media content for scam indicators. Scans images and screenshots for fake login pages, QR code phishing, and fraudulent payment screens. Checks links for phishing patterns, fake domains, and hidden redirects. Provides AI-powered deep analysis when you need a second opinion.</p>
+
+          <p>
+            Analyzes suspicious text messages, emails, and social media content
+            for scam indicators. Scans images and screenshots for fake login
+            pages, QR code phishing, and fraudulent payment screens. Checks
+            links for phishing patterns, fake domains, and hidden redirects.
+            Provides AI-powered deep analysis when you need a second opinion.
+          </p>
         </div>
+
         <div class="about-block glass tilt-card">
           <h2>Who It Helps</h2>
-          <p>Students learning about online safety. Parents protecting their families from scams. Professionals who handle sensitive communications daily. Small businesses that can't afford dedicated security teams. Anyone who's ever wondered "is this message real or fake?"</p>
+
+          <p>
+            Students learning about online safety. Parents protecting their
+            families from scams. Professionals who handle sensitive
+            communications daily. Small businesses that can't afford dedicated
+            security teams. Anyone who's ever wondered “is this message real or
+            fake?”
+          </p>
         </div>
       </div>
 
       <div class="about-values reveal">
-        <div class="about-value glass tilt-card"><div class="av-icon">◆</div><h3>Accuracy</h3><p>Precise detection powered by constantly updated rules and AI models.</p></div>
-        <div class="about-value glass tilt-card"><div class="av-icon">◆</div><h3>Privacy</h3><p>Your data stays on your device. We don't store, share, or sell anything.</p></div>
-        <div class="about-value glass tilt-card"><div class="av-icon">◆</div><h3>Speed</h3><p>Instant scan results so you can make safe decisions in real time.</p></div>
-        <div class="about-value glass tilt-card"><div class="av-icon">◆</div><h3>Education</h3><p>Not just detection — we teach you why something is dangerous and how to stay safe.</p></div>
+        <div class="about-value glass tilt-card">
+          <div class="av-icon">◆</div>
+          <h3>Accuracy</h3>
+          <p>Precise detection powered by constantly updated rules and AI models.</p>
+        </div>
+
+        <div class="about-value glass tilt-card">
+          <div class="av-icon">◆</div>
+          <h3>Privacy</h3>
+          <p>Free accounts do not keep scan history. Pro history and account data are stored securely and are visible only to the signed-in user.</p>
+        </div>
+
+        <div class="about-value glass tilt-card">
+          <div class="av-icon">◆</div>
+          <h3>Speed</h3>
+          <p>Instant scan results so you can make safe decisions in real time.</p>
+        </div>
+
+        <div class="about-value glass tilt-card">
+          <div class="av-icon">◆</div>
+          <h3>Education</h3>
+          <p>
+            Not just detection — we teach you why something is dangerous and
+            how to stay safe.
+          </p>
+        </div>
       </div>
     </section>
 
   </main>
 
-  <footer><p>&copy; 2026 CyberNet. Secure today. Safer tomorrow.</p></footer>
-  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
-  <script src="script.js"></script>
+  <footer>
+    <p>&copy; 2026 CyberNet AI. Secure today. Safer tomorrow.</p>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script src="config.js" defer></script>
+  <script src="script.js" defer></script>
 </body>
 </html>
