@@ -1,10 +1,6 @@
 /*
-  These are your public Supabase browser credentials.
-
-  Never put these private keys here:
-  - SUPABASE_SERVICE_ROLE_KEY
-  - STRIPE_SECRET_KEY
-  - OPENAI_API_KEY
+  Public Supabase browser configuration for CyberNet AI.
+  Never place service-role, OpenAI, Stripe, Browserless, or other secret keys here.
 */
 
 window.CYBERNET_CONFIG = {

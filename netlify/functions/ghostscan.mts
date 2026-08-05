@@ -3,6 +3,8 @@ import { randomUUID } from "node:crypto";
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 
+declare const Netlify: { env: { get(name: string): string | undefined } };
+
 
 const DEFAULT_BROWSERLESS_ORIGIN = "https://production-sfo.browserless.io";
 const MAX_BROWSERLESS_WAIT_MS = 45_000;
@@ -549,7 +551,7 @@ export default async ({ page, context }) => {
 `;
 
 async function runBrowserless(target: URL, token: string): Promise<BrowserScan> {
-  const configuredOrigin =process.env.BROWSERLESS_ORIGIN || DEFAULT_BROWSERLESS_ORIGIN;
+  const configuredOrigin =Netlify.env.get("BROWSERLESS_ORIGIN") || DEFAULT_BROWSERLESS_ORIGIN;
   const origin = configuredOrigin.replace(/\/$/, '');
   const endpoint = `${origin}/function?token=${encodeURIComponent(token)}`;
 
@@ -597,7 +599,7 @@ async function runBrowserless(target: URL, token: string): Promise<BrowserScan> 
 }
 
 export default async (request: Request, _context: Context): Promise<Response> => {
-const token = (process.env.BROWSERLESS_TOKEN || "").trim();
+const token = (Netlify.env.get("BROWSERLESS_TOKEN") || "").trim();
   if (request.method === 'GET') {
     return json({
       online: true,
@@ -613,7 +615,7 @@ const token = (process.env.BROWSERLESS_TOKEN || "").trim();
   }
 
   if (!token) {
-    return json({ error: 'BROWSERLESS_TOKEN is missing from the local .env file.' }, 503);
+    return json({ error: 'BROWSERLESS_TOKEN is missing from the Netlify environment variables.' }, 503);
   }
 
   let body: { url?: unknown; imageData?: unknown; imageName?: unknown };

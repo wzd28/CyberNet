@@ -1,0 +1,22 @@
+CYBERNET AI — LEGAL REVIEW CHECKLIST
+====================================
+
+Complete these before accepting live payments:
+
+[ ] Confirm the legal operator name.
+[ ] Add the registered address and business/trade licence number.
+[ ] Confirm the support/legal email is cybernetai.26@gmail.com.
+[ ] Confirm CyberNet AI Pro is exactly USD $9.99 monthly and $95.90 yearly.
+[ ] Confirm Stripe Checkout displays automatic-renewal terms.
+[ ] Configure Stripe Customer Portal cancellation at the end of the paid period.
+[ ] Confirm customers receive Stripe receipts and subscription confirmation.
+[ ] Confirm the refund policy matches how refunds will actually be handled.
+[ ] Confirm Stripe, Supabase, Netlify, OpenAI, Browserless, and reputation
+    providers used by the live site are accurately listed.
+[ ] Confirm Free, Pro, Protect, AI history, localStorage, sessionStorage, and
+    GhostScan data practices match the Privacy Policy.
+[ ] Confirm account deletion and subscription cancellation are separate actions.
+[ ] Confirm the minimum age and parental-consent rules for target markets.
+[ ] Confirm UAE governing law and court wording with a qualified lawyer.
+[ ] Add country-specific rights if marketing outside the UAE.
+[ ] Keep dated copies of each legal version after every change.

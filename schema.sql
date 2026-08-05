@@ -1,4 +1,4 @@
--- CyberNet AI: accounts, plans, daily limits, and Pro scan history
+-- CyberNet AI: accounts, plans, secure daily limits, and Pro scan history
 -- Run this entire file once in Supabase Dashboard -> SQL Editor.
 
 create table if not exists public.profiles (
@@ -47,19 +47,19 @@ grant select on public.profiles to authenticated;
 grant select on public.daily_usage to authenticated;
 grant select on public.scan_history to authenticated;
 
+drop policy if exists "Users can read their own profile" on public.profiles;
 create policy "Users can read their own profile"
-  on public.profiles for select
-  to authenticated
+  on public.profiles for select to authenticated
   using ((select auth.uid()) = id);
 
+drop policy if exists "Users can read their own daily usage" on public.daily_usage;
 create policy "Users can read their own daily usage"
-  on public.daily_usage for select
-  to authenticated
+  on public.daily_usage for select to authenticated
   using ((select auth.uid()) = user_id);
 
+drop policy if exists "Users can read their own scan history" on public.scan_history;
 create policy "Users can read their own scan history"
-  on public.scan_history for select
-  to authenticated
+  on public.scan_history for select to authenticated
   using ((select auth.uid()) = user_id);
 
 create or replace function public.handle_new_user()
@@ -71,11 +71,16 @@ begin
   insert into public.profiles (id, full_name, plan, subscription_status)
   values (
     new.id,
-    coalesce(new.raw_user_meta_data ->> 'full_name', split_part(coalesce(new.email, 'User'), '@', 1)),
+    coalesce(
+      nullif(trim(concat_ws(' ', new.raw_user_meta_data ->> 'first_name', new.raw_user_meta_data ->> 'last_name')), ''),
+      nullif(new.raw_user_meta_data ->> 'full_name', ''),
+      split_part(coalesce(new.email, 'User'), '@', 1)
+    ),
     'free',
     'inactive'
   )
-  on conflict (id) do nothing;
+  on conflict (id) do update
+  set full_name = excluded.full_name, updated_at = now();
   return new;
 end;
 $$;
@@ -85,8 +90,6 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
--- Atomically reserves one AI analysis. This prevents users from bypassing
--- limits by sending several requests at the same time.
 create or replace function public.consume_analysis(p_user_id uuid)
 returns table (allowed boolean, used integer, daily_limit integer, plan text)
 language plpgsql
@@ -98,10 +101,8 @@ declare
   v_limit integer := 5;
   v_used integer := 0;
 begin
-  select p.plan, p.subscription_status
-    into v_plan, v_status
-  from public.profiles p
-  where p.id = p_user_id;
+  select p.plan, p.subscription_status into v_plan, v_status
+  from public.profiles p where p.id = p_user_id;
 
   if v_plan = 'pro' and v_status in ('active', 'trialing') then
     v_limit := 50;
@@ -115,22 +116,17 @@ begin
   on conflict (user_id, usage_date) do nothing;
 
   update public.daily_usage
-  set analysis_count = analysis_count + 1,
-      updated_at = now()
-  where user_id = p_user_id
-    and usage_date = current_date
-    and analysis_count < v_limit
+  set analysis_count = analysis_count + 1, updated_at = now()
+  where user_id = p_user_id and usage_date = current_date and analysis_count < v_limit
   returning analysis_count into v_used;
 
   if v_used is null then
-    select analysis_count into v_used
-    from public.daily_usage
+    select analysis_count into v_used from public.daily_usage
     where user_id = p_user_id and usage_date = current_date;
-
     return query select false, coalesce(v_used, 0), v_limit, v_plan;
-  else
-    return query select true, v_used, v_limit, v_plan;
   end if;
+
+  return query select true, v_used, v_limit, v_plan;
 end;
 $$;
 
@@ -141,10 +137,8 @@ security definer set search_path = public
 as $$
 begin
   update public.daily_usage
-  set analysis_count = greatest(analysis_count - 1, 0),
-      updated_at = now()
-  where user_id = p_user_id
-    and usage_date = current_date;
+  set analysis_count = greatest(analysis_count - 1, 0), updated_at = now()
+  where user_id = p_user_id and usage_date = current_date;
 end;
 $$;
 
