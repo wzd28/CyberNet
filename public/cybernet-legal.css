@@ -454,3 +454,11 @@
   .cn-legal-page-top{top:6px}
   .cn-legal-page-home{font-size:8px}
 }
+
+
+/* Final release additions */
+.cn-legal-data-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:12px;line-height:1.55}
+.cn-legal-data-table th,.cn-legal-data-table td{padding:12px 14px;border:1px solid rgba(56,189,248,.16);vertical-align:top;text-align:left}
+.cn-legal-data-table th{background:rgba(34,211,238,.08);color:#dff9ff;font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.06em}
+.cn-legal-data-table td:first-child{width:30%;color:#d9e7f5;font-weight:700}
+@media(max-width:700px){.cn-legal-data-table{display:block;overflow-x:auto;white-space:normal}.cn-legal-data-table th,.cn-legal-data-table td{min-width:180px}}
