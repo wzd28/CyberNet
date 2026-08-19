@@ -35,10 +35,8 @@
   /*
     Optional BYOK routing:
     - Normal CyberNet analysis continues to use /api/analyze.
-    - When a validated visitor key exists, quick Text, Link, and Image requests
-      use /api/byok-analyze.
-    - Deep Investigation stays on the existing CyberNet server service so the
-      full investigation format remains unchanged.
+    - When a validated visitor key exists, Text, Link, and Image requests
+      use /api/byok-analyze instead.
   */
   window.fetch = async function cyberNetFetch(input, init = {}) {
     try {
@@ -61,38 +59,21 @@
         url.pathname === "/api/analyze" &&
         requestMethod === "POST"
       ) {
-        let parsedBody = null;
+        const headers = new Headers(
+          input instanceof Request ? input.headers : undefined
+        );
 
-        if (typeof init.body === "string") {
-          try {
-            parsedBody = JSON.parse(init.body);
-          } catch {
-            parsedBody = null;
-          }
-        }
+        new Headers(init.headers || {}).forEach((value, name) => {
+          headers.set(name, value);
+        });
 
-        const isInvestigation =
-          parsedBody?.mode === "investigation" ||
-          Array.isArray(parsedBody?.artifacts) ||
-          Array.isArray(parsedBody?.caseData?.artifacts);
+        headers.set("X-CyberNet-OpenAI-Key", visitorKey);
+        headers.set("X-CyberNet-OpenAI-Model", getSessionModel());
 
-        if (!isInvestigation) {
-          const headers = new Headers(
-            input instanceof Request ? input.headers : undefined
-          );
-
-          new Headers(init.headers || {}).forEach((value, name) => {
-            headers.set(name, value);
-          });
-
-          headers.set("X-CyberNet-OpenAI-Key", visitorKey);
-          headers.set("X-CyberNet-OpenAI-Model", getSessionModel());
-
-          return ORIGINAL_FETCH("/api/byok-analyze", {
-            ...init,
-            headers
-          });
-        }
+        return ORIGINAL_FETCH("/api/byok-analyze", {
+          ...init,
+          headers
+        });
       }
     } catch {
       // Keep the original request if routing checks fail.

@@ -111,11 +111,46 @@ document.addEventListener("DOMContentLoaded",()=>{
   window.addEventListener("resize",()=>moveNavIndicator(currentPageId));
 
   /* ─── Page switching (smooth crossfade, no loader flash after first visit) ─── */
+  const DEFAULT_TITLE=document.title;
+  const DEFAULT_DESCRIPTION=document.querySelector('meta[name="description"]')?.content||"";
+  const PAGE_META={
+    home:{
+      title:"CyberNet AI | AI-Powered Cybersecurity",
+      description:"CyberNet AI provides on-demand threat analysis, account-based AI access, and clear defensive next actions for suspicious messages, links, and screenshots."
+    },
+    cybernet:{
+      title:"Protect | CyberNet AI",
+      description:"Scan suspicious text messages, links, and screenshots for phishing, scams, and impersonation with instant risk explanations."
+    },
+    cybernetai:{
+      title:"CyberNet AI Assistant | CyberNet AI",
+      description:"Paste a message, link, or screenshot and get an automatic, expert-level cybersecurity analysis powered by CyberNet's managed AI or your own API key."
+    },
+    learn:{
+      title:"Learn Cybersecurity | CyberNet AI",
+      description:"Free, interactive cybersecurity lessons covering phishing, malware, passwords, authentication, safe browsing, and privacy — with real examples, warning signs, and quizzes."
+    },
+    pricing:{
+      title:"Pricing | CyberNet AI",
+      description:"Compare CyberNet AI Free and Pro plans: daily AI analysis limits, saved history, downloadable reports, and Recovery features."
+    },
+    about:{
+      title:"About | CyberNet AI",
+      description:"CyberNet AI's mission is to protect people before threats become real damage, by making cybersecurity understandable and accessible."
+    }
+  };
+  function updatePageMeta(pageName){
+    const meta=PAGE_META[pageName];
+    document.title=meta?meta.title:DEFAULT_TITLE;
+    const descTag=document.querySelector('meta[name="description"]');
+    if(descTag)descTag.setAttribute("content",meta?meta.description:DEFAULT_DESCRIPTION);
+  }
   function switchPage(pageName){
     const target=document.getElementById(pageName);if(!target)return;
     const current=document.querySelector(".page.active-page");
     if(current&&current.id===pageName){if(navbar)navbar.classList.remove("open");runRevealAnimation();return}
     currentPageId=pageName;
+    updatePageMeta(pageName);
     moveNavIndicator(pageName);
     document.querySelectorAll(".nav-tabs .nav-link").forEach(btn=>{btn.classList.toggle("active",btn.dataset.page===pageName)});
     if(navbar)navbar.classList.remove("open");
@@ -161,9 +196,6 @@ document.addEventListener("DOMContentLoaded",()=>{
   const pricingNotice=document.getElementById("pricingNotice");
   const aiUpgradeBtn=document.getElementById("aiUpgradeBtn");
   const manageBillingBtn=document.getElementById("manageBillingBtn");
-  const ghostUpgradeBtn=document.getElementById("ghostUpgradeBtn");
-  const ghostPage=document.getElementById("ghostscan");
-  const ghostPaywall=document.getElementById("ghostPaywall");
 
   const appState={
     supabase:null,
@@ -282,15 +314,13 @@ document.addEventListener("DOMContentLoaded",()=>{
         <div><span>✓</span> 50 advanced AI analyses per day</div>
         <div><span>✓</span> Detailed risk scoring and threat intelligence</div>
         <div><span>✓</span> Saved scan history</div>
-        <div><span>✓</span> Downloadable security reports</div>
-        <div><span>✓</span> Full GhostScan access</div>`;
+        <div><span>✓</span> Downloadable security reports</div>`;
     }else{
       list.innerHTML=`
         <div><span>✓</span> Accurate Text, Link &amp; Image analysis</div>
         <div><span>✓</span> Basic threat explanations</div>
         <div class="benefit-locked"><span>×</span> Saved scan history</div>
-        <div class="benefit-locked"><span>×</span> Downloadable reports</div>
-        <div class="benefit-locked"><span>×</span> GhostScan access</div>`;
+        <div class="benefit-locked"><span>×</span> Downloadable reports</div>`;
     }
   }
 
@@ -326,7 +356,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     const aiApiStatus=document.getElementById("aiApiStatus");
 
     if(aiPlanTitle)aiPlanTitle.textContent=pro?"CyberNet AI Pro":"CyberNet AI Free";
-    if(aiPlanDescription)aiPlanDescription.textContent=!signedIn?"Sign in to activate 5 accurate AI analyses per day across text, links, and images.":pro?"Top-level CyberNet AI protection with advanced analysis, history, reports, and GhostScan.":"Accurate everyday AI protection with 5 shared analyses per day.";
+    if(aiPlanDescription)aiPlanDescription.textContent=!signedIn?"Sign in to activate 5 accurate AI analyses per day across text, links, and images.":pro?"Top-level CyberNet AI protection with advanced analysis, history, and reports.":"Accurate everyday AI protection with 5 shared analyses per day.";
     if(aiUsageText)aiUsageText.textContent=signedIn?`${used} / ${limit}`:`0 / 5`;
     if(aiUsageBar)aiUsageBar.style.width=`${signedIn?Math.min(100,(used/Math.max(1,limit))*100):0}%`;
     if(aiUsageReset)aiUsageReset.textContent=appState.usage.resetDate?`Resets ${new Date(appState.usage.resetDate).toLocaleDateString()}`:"Resets daily";
@@ -346,13 +376,6 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(manageBillingBtn)manageBillingBtn.hidden=!pro;
     if(freePlanBtn){freePlanBtn.textContent=!signedIn?"Start Free":pro?"Included with Pro":"Current Plan";freePlanBtn.disabled=signedIn}
     if(proPlanBtn){proPlanBtn.textContent=pro?"Current Plan":"Upgrade to Pro";proPlanBtn.disabled=pro}
-
-    if(ghostPage)ghostPage.classList.toggle("is-locked",!pro);
-    if(ghostUpgradeBtn)ghostUpgradeBtn.textContent=!signedIn?"Sign In to Continue":"Upgrade to Pro";
-    if(ghostPaywall){
-      const heading=ghostPaywall.querySelector("h1");
-      if(heading)heading.textContent=!signedIn?"Sign in to unlock your plan.":"GhostScan is a Pro feature.";
-    }
 
     updatePlanBenefits();
     renderProHistory();
@@ -526,7 +549,6 @@ document.addEventListener("DOMContentLoaded",()=>{
   if(freePlanBtn)freePlanBtn.addEventListener("click",()=>{if(!isSignedIn())openAuthModal("signup")});
   if(proPlanBtn)proPlanBtn.addEventListener("click",()=>startCheckout(proPlanBtn.dataset.cycle||"monthly"));
   if(aiUpgradeBtn)aiUpgradeBtn.addEventListener("click",()=>switchPage("pricing"));
-  if(ghostUpgradeBtn)ghostUpgradeBtn.addEventListener("click",()=>{if(!isSignedIn())openAuthModal("login");else switchPage("pricing")});
   if(manageBillingBtn)manageBillingBtn.addEventListener("click",openBillingPortal);
 
   const checkoutState=new URLSearchParams(window.location.search).get("checkout");
@@ -586,6 +608,58 @@ document.addEventListener("DOMContentLoaded",()=>{
   openFeedback?.addEventListener("click",openFeedbackModal);
   closeFeedback?.addEventListener("click",closeFeedbackModal);
   feedbackModal?.addEventListener("click",event=>{if(event.target===feedbackModal)closeFeedbackModal()});
+
+  /* ─── Home page how-to videos ─── */
+  const howtoVideoModal=document.getElementById("howtoVideoModal");
+  const closeHowtoVideo=document.getElementById("closeHowtoVideo");
+  const howtoVideoTitle=document.getElementById("howtoVideoTitle");
+  const howtoVideoPlayer=document.getElementById("howtoVideoPlayer");
+  const howtoVideoCards=document.querySelectorAll("[data-video]");
+
+  const HOWTO_VIDEOS={
+    protect:{
+      title:"How To Use Protect",
+      src:""
+    },
+    cybernetai:{
+      title:"How To Use CyberNet AI",
+      src:""
+    },
+    recovery:{
+      title:"How To Use Recovery",
+      src:""
+    }
+  };
+
+  function openHowtoVideo(key){
+    const data=HOWTO_VIDEOS[key]||HOWTO_VIDEOS.protect;
+    if(howtoVideoTitle)howtoVideoTitle.textContent=data.title;
+    if(howtoVideoPlayer){
+      if(data.src){
+        howtoVideoPlayer.innerHTML=`<video src="${data.src}" controls autoplay playsinline></video>`;
+      }else{
+        howtoVideoPlayer.innerHTML=`
+          <div class="video-modal-placeholder">
+            <svg viewBox="0 0 24 24" fill="none" width="46" height="46" aria-hidden="true"><circle cx="12" cy="12" r="11" stroke="currentColor" stroke-width="1.3"/><path d="M10 8.5l6 3.5-6 3.5v-7Z" fill="currentColor"/></svg>
+            <p>Video coming soon.</p>
+          </div>`;
+      }
+    }
+    howtoVideoModal?.classList.add("show");
+    howtoVideoModal?.setAttribute("aria-hidden","false");
+  }
+
+  function closeHowtoVideoModal(){
+    howtoVideoModal?.classList.remove("show");
+    howtoVideoModal?.setAttribute("aria-hidden","true");
+    if(howtoVideoPlayer)howtoVideoPlayer.innerHTML="";
+  }
+
+  howtoVideoCards.forEach(card=>{
+    card.addEventListener("click",()=>openHowtoVideo(card.dataset.video));
+  });
+  closeHowtoVideo?.addEventListener("click",closeHowtoVideoModal);
+  howtoVideoModal?.addEventListener("click",event=>{if(event.target===howtoVideoModal)closeHowtoVideoModal()});
 
   feedbackForm?.addEventListener("submit",async event=>{
     event.preventDefault();
@@ -1133,8 +1207,16 @@ document.addEventListener("DOMContentLoaded",()=>{
   setTimeout(()=>checkAnalysisService(),650);
 
   /* ─── Chat interface ─── */
-  const chatMessages=document.getElementById("chatMessages"),chatInput=document.getElementById("chatInput"),chatSendBtn=document.getElementById("chatSendBtn"),chatInputRowText=document.getElementById("chatInputRowText"),chatInputRowImage=document.getElementById("chatInputRowImage"),aiImageInput=document.getElementById("aiImageInput");
-  let currentChatMode="text";
+  const chatMessages=document.getElementById("chatMessages"),chatInput=document.getElementById("chatInput"),chatSendBtn=document.getElementById("chatSendBtn"),chatInputRowUnified=document.getElementById("chatInputRowUnified"),aiImageInput=document.getElementById("aiImageInput"),chatAttachBtn=document.getElementById("chatAttachBtn"),chatAttachPreview=document.getElementById("chatAttachPreview"),chatAttachThumb=document.getElementById("chatAttachThumb"),chatAttachName=document.getElementById("chatAttachName"),chatAttachRemove=document.getElementById("chatAttachRemove");
+  let pendingAttachment=null;
+  function detectChatContentType(raw){
+    const trimmed=String(raw||"").trim();
+    if(!trimmed)return "text";
+    const soleUrl=/^(https?:\/\/|www\.)\S+$/i;
+    const bareDomain=/^[a-z0-9-]+(\.[a-z0-9-]+)+(\/\S*)?$/i;
+    if(!/\s/.test(trimmed)&&(soleUrl.test(trimmed)||bareDomain.test(trimmed)))return "link";
+    return "text";
+  }
   function addChatBubble(role,html){
     if(!chatMessages)return null;const bubble=document.createElement("div");bubble.className="chat-bubble "+(role==="user"?"chat-bubble-user":"chat-bubble-ai");bubble.innerHTML=`<div class="chat-bubble-inner">${html}</div>`;chatMessages.appendChild(bubble);chatMessages.scrollTop=chatMessages.scrollHeight;return bubble;
   }
@@ -1192,26 +1274,73 @@ document.addEventListener("DOMContentLoaded",()=>{
     }
     if(chatMessages)chatMessages.scrollTop=chatMessages.scrollHeight;
   }
-  function sendChatMessage(){
-    const text=chatInput?.value.trim();if(!text)return;
+
+  function clearAttachment(){
+    pendingAttachment=null;
+    if(aiImageInput)aiImageInput.value="";
+    if(chatAttachPreview)chatAttachPreview.hidden=true;
+    if(chatAttachThumb)chatAttachThumb.style.backgroundImage="";
+    if(chatAttachName)chatAttachName.textContent="";
+  }
+
+  async function handleAttachedFile(file){
+    if(!file)return;
     if(!canStartAiAnalysis())return;
-    addChatBubble("user",escapeHTML(text));chatInput.value="";analyzeChat(currentChatMode==="link"?"link":"text",text);
+    if(file.size>10*1024*1024){addChatBubble("ai",`<span class="warning">Please attach an image smaller than 10 MB.</span>`);return}
+    let b64="";
+    try{b64=await compressImage(file)}catch{}
+    pendingAttachment={name:file.name,data:b64};
+    if(chatAttachPreview)chatAttachPreview.hidden=false;
+    if(chatAttachName)chatAttachName.textContent=file.name;
+    if(chatAttachThumb&&b64)chatAttachThumb.style.backgroundImage=`url(${b64})`;
+    if(chatInput)chatInput.focus();
+  }
+
+  function sendChatMessage(){
+    const text=chatInput?.value.trim()||"";
+    if(pendingAttachment){
+      addChatBubble("user",`📎 ${escapeHTML(pendingAttachment.name)}${text?`<br>${escapeHTML(text)}`:""}`);
+      const imageData=pendingAttachment.data;
+      const label=text||pendingAttachment.name;
+      if(chatInput)chatInput.value="";
+      clearAttachment();
+      analyzeChat("image",label,imageData);
+      return;
+    }
+    if(!text)return;
+    if(!canStartAiAnalysis())return;
+    addChatBubble("user",escapeHTML(text));
+    if(chatInput)chatInput.value="";
+    analyzeChat(detectChatContentType(text),text);
   }
   if(chatSendBtn)chatSendBtn.addEventListener("click",sendChatMessage);
   if(chatInput)chatInput.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();sendChatMessage()}});
   if(chatMessages)chatMessages.addEventListener("click",event=>{if(event.target.closest("[data-upgrade-now]"))switchPage("pricing")});
-  if(aiImageInput)aiImageInput.addEventListener("change",async()=>{
-    const file=aiImageInput.files[0];if(!file)return;
+  if(aiImageInput)aiImageInput.addEventListener("change",()=>{
+    const file=aiImageInput.files[0];
+    if(!file){return}
     if(!canStartAiAnalysis()){aiImageInput.value="";return}
-    if(file.size>10*1024*1024){addChatBubble("ai",`<span class="warning">Please upload an image smaller than 10 MB.</span>`);return}
-    addChatBubble("user",`📎 ${escapeHTML(file.name)}`);let b64="";try{b64=await compressImage(file)}catch{};analyzeChat("image",file.name,b64);
+    handleAttachedFile(file);
   });
-  document.querySelectorAll(".chat-tab").forEach(tab=>tab.addEventListener("click",()=>{
-    document.querySelectorAll(".chat-tab").forEach(t=>t.classList.remove("active"));tab.classList.add("active");currentChatMode=tab.dataset.chat;
-    if(chatInputRowText)chatInputRowText.style.display=currentChatMode==="image"?"none":"flex";
-    if(chatInputRowImage)chatInputRowImage.style.display=currentChatMode==="image"?"flex":"none";
-    if(chatInput)chatInput.placeholder=currentChatMode==="link"?"Paste a suspicious link…":"Paste a suspicious message…";
-  }));
+  if(chatAttachRemove)chatAttachRemove.addEventListener("click",clearAttachment);
+  if(chatInputRowUnified){
+    ["dragover","dragenter"].forEach(evtName=>chatInputRowUnified.addEventListener(evtName,event=>{
+      event.preventDefault();
+      chatInputRowUnified.classList.add("drag-active");
+    }));
+    ["dragleave","dragend"].forEach(evtName=>chatInputRowUnified.addEventListener(evtName,()=>{
+      chatInputRowUnified.classList.remove("drag-active");
+    }));
+    chatInputRowUnified.addEventListener("drop",event=>{
+      event.preventDefault();
+      chatInputRowUnified.classList.remove("drag-active");
+      const file=event.dataTransfer?.files?.[0];
+      if(file&&file.type.startsWith("image/")){
+        if(!canStartAiAnalysis())return;
+        handleAttachedFile(file);
+      }
+    });
+  }
 
   /* ─── Learn Roadmap ─── */
   document.querySelectorAll(".rm-node").forEach(node=>{
@@ -1392,1180 +1521,8 @@ document.addEventListener("DOMContentLoaded",()=>{
   })();
 
 
-
-  /* ─── GhostScan coming-soon experience ─── */
-  (function initGhostComingSoon(){
-    const coming=document.getElementById("ghostComingSoon");
-    const scanBtn=document.getElementById("ghostScanBtn");
-    const uploadBtn=document.getElementById("ghostUploadBtn");
-    const urlInput=document.getElementById("ghostUrlInput");
-    const serviceText=document.getElementById("ghostServiceText");
-    const serviceLine=document.getElementById("ghostServiceLine");
-    if(!coming)return;
-    if(serviceText)serviceText.textContent="Preview available · Full isolated browser is in development";
-    if(serviceLine)serviceLine.classList.add("ghost-service-development");
-    const revealComing=event=>{
-      event?.preventDefault?.();
-      event?.stopImmediatePropagation?.();
-      coming.scrollIntoView({behavior:"smooth",block:"start"});
-    };
-    scanBtn?.addEventListener("click",revealComing,true);
-    uploadBtn?.addEventListener("click",revealComing,true);
-    urlInput?.addEventListener("keydown",event=>{if(event.key==="Enter")revealComing(event)},true);
-  })();
-
-  /* ═══════════════════════════════════════════════════════
-     GHOSTSCAN — ISOLATED BROWSER INVESTIGATION
-     ═══════════════════════════════════════════════════════ */
-  (function initGhostScan(){
-    const ENDPOINT="/api/ghostscan";
-    const landing=document.getElementById("ghostLanding");
-    const workspace=document.getElementById("ghostWorkspace");
-    const progressView=document.getElementById("ghostProgressView");
-    const resultsView=document.getElementById("ghostResultsView");
-    const historyView=document.getElementById("ghostHistoryView");
-    const urlInput=document.getElementById("ghostUrlInput");
-    const scanBtn=document.getElementById("ghostScanBtn");
-    const uploadBtn=document.getElementById("ghostUploadBtn");
-    const fileInput=document.getElementById("ghostFileInput");
-    const fileName=document.getElementById("ghostFileName");
-    const serviceLine=document.getElementById("ghostServiceLine");
-    const serviceText=document.getElementById("ghostServiceText");
-    if(!landing||!workspace||!scanBtn||!urlInput)return;
-    if(document.getElementById("ghostComingSoon"))return;
-
-    let service={online:false,browserEnabled:false,aiEnabled:false,reputationEnabled:false};
-    let activeController=null;
-    let elapsedTimer=null;
-    let progressTimer=null;
-    let logClockStart=0;
-    let selectedImageData="";
-    let selectedImageName="";
-    let lastResult=null;
-
-    const els={
-      target:document.getElementById("ghostTargetUrl"),
-      previewAddress:document.getElementById("ghostPreviewAddress"),
-      previewStage:document.getElementById("ghostPreviewStage"),
-      logList:document.getElementById("ghostLogList"),
-      elapsed:document.getElementById("ghostElapsed"),
-      alert:document.getElementById("ghostResultAlert"),
-      verdictTitle:document.getElementById("ghostVerdictTitle"),
-      verdictSummary:document.getElementById("ghostVerdictSummary"),
-      confidence:document.getElementById("ghostConfidenceBadge"),
-      meta:document.getElementById("ghostResultMeta"),
-      score:document.getElementById("ghostScoreValue"),
-      scoreRing:document.querySelector(".ghost-score-ring"),
-      riskLabel:document.getElementById("ghostRiskLabel"),
-      findings:document.getElementById("ghostFindingsList"),
-      actions:document.getElementById("ghostActionsList"),
-      limitationsCard:document.getElementById("ghostLimitationsCard"),
-      limitations:document.getElementById("ghostLimitationsList"),
-      replay:document.getElementById("ghostReplayTrack"),
-      replayCount:document.getElementById("ghostReplayCount"),
-      desktopShot:document.getElementById("ghostDesktopShot"),
-      mobileShot:document.getElementById("ghostMobileShot"),
-      noShot:document.getElementById("ghostNoScreenshot"),
-      redirects:document.getElementById("ghostRedirectList"),
-      domains:document.getElementById("ghostDomainsList"),
-      forms:document.getElementById("ghostFormsList"),
-      pageInfo:document.getElementById("ghostPageInfo"),
-      behavior:document.getElementById("ghostBehaviorList"),
-      reputation:document.getElementById("ghostReputationInfo"),
-      historyList:document.getElementById("ghostHistoryList")
-    };
-
-    function setServiceState(kind,text){
-      serviceLine.classList.remove("online","offline");
-      if(kind)serviceLine.classList.add(kind);
-      serviceText.textContent=text;
-    }
-
-    async function checkService(){
-      setServiceState("","Checking isolated browser service…");
-      try{
-        const response=await fetch(ENDPOINT,{headers:{Accept:"application/json"},cache:"no-store"});
-        if(!response.ok)throw new Error("Unavailable");
-        service=await response.json();
-        if(service.browserEnabled){
-          setServiceState("online",`Isolated browser online · ${service.provider||"Browserless"}${service.reputationEnabled?" · reputation enabled":""}`);
-          scanBtn.disabled=false;
-        }else{
-          setServiceState("offline","GhostScan needs a Browserless token before real scans can run.");
-          scanBtn.disabled=true;
-        }
-      }catch{
-        setServiceState("offline","GhostScan backend is not deployed yet. Local results will never be faked.");
-        scanBtn.disabled=true;
-      }
-    }
-
-    function showLanding(){
-      activeController?.abort();
-      stopProgress();
-      landing.classList.remove("ghost-hidden");
-      workspace.classList.add("ghost-hidden");
-      progressView.classList.remove("ghost-hidden");
-      resultsView.classList.add("ghost-hidden");
-      historyView.classList.add("ghost-hidden");
-    }
-
-    function showWorkspace(view="progress"){
-      landing.classList.add("ghost-hidden");
-      workspace.classList.remove("ghost-hidden");
-      progressView.classList.toggle("ghost-hidden",view!=="progress");
-      resultsView.classList.toggle("ghost-hidden",view!=="results");
-      historyView.classList.toggle("ghost-hidden",view!=="history");
-      window.scrollTo({top:0,behavior:"auto"});
-    }
-
-    function formatTime(ms){
-      const total=Math.floor(ms/1000);
-      return `${String(Math.floor(total/60)).padStart(2,"0")}:${String(total%60).padStart(2,"0")}`;
-    }
-
-    function log(message,tone=""){
-      const now=Date.now();
-      const item=document.createElement("div");
-      item.className=`ghost-log-item ${tone}`.trim();
-      item.innerHTML=`<time>${formatTime(now-logClockStart)}</time><p>${escapeHTML(message)}</p>`;
-      els.logList.appendChild(item);
-      els.logList.scrollTop=els.logList.scrollHeight;
-    }
-
-    function setStep(index){
-      document.querySelectorAll("#ghostStepper .ghost-step").forEach((step,i)=>{
-        step.classList.toggle("done",i<index);
-        step.classList.toggle("active",i===index);
-        const badge=step.querySelector("span");
-        if(badge)badge.textContent=i<index?"✓":String(i+1);
-      });
-    }
-
-    function resetProgress(targetLabel){
-      logClockStart=Date.now();
-      els.logList.innerHTML="";
-      els.elapsed.textContent="00:00";
-      els.target.textContent=targetLabel||"Image awaiting URL extraction";
-      els.previewAddress.textContent="isolated://starting";
-      els.previewStage.innerHTML=`<div class="ghost-preview-loader"><div class="ghost-radar"></div><strong>Launching isolated browser</strong><small>No customer cookies or credentials are shared.</small></div>`;
-      setStep(0);
-      log("Creating a fresh, temporary browser session","safe");
-      elapsedTimer=setInterval(()=>{els.elapsed.textContent=formatTime(Date.now()-logClockStart)},1000);
-      const scheduled=[
-        [900,1,"Validating destination and following redirects"],
-        [2400,2,"Rendering desktop and mobile page versions"],
-        [4800,3,"Inspecting forms, downloads, permissions, and network activity"],
-        [8500,4,"Combining behavior, reputation, and visual evidence"]
-      ];
-      let pointer=0;
-      progressTimer=setInterval(()=>{
-        const elapsed=Date.now()-logClockStart;
-        while(pointer<scheduled.length&&elapsed>=scheduled[pointer][0]){
-          const [,step,message]=scheduled[pointer++];
-          setStep(step);
-          log(message,step===3?"warn":"");
-        }
-      },180);
-    }
-
-    function stopProgress(){
-      clearInterval(elapsedTimer);clearInterval(progressTimer);
-      elapsedTimer=null;progressTimer=null;
-    }
-
-    function dataUrlFromCanvas(canvas,quality=.78){
-      return canvas.toDataURL("image/jpeg",quality);
-    }
-
-    async function prepareImage(file){
-      if(!file)return;
-      if(!file.type.startsWith("image/")||file.size>8*1024*1024){
-        fileName.textContent="Please choose a JPG, PNG, or WEBP under 8 MB.";
-        selectedImageData="";selectedImageName="";return;
-      }
-      fileName.textContent=`Preparing ${file.name}…`;
-      try{
-        const image=await imageToCanvas(file,1200);
-        selectedImageData=dataUrlFromCanvas(image.canvas,.76);
-        selectedImageName=file.name;
-        fileName.textContent=`${file.name} ready · GhostScan will decode its QR or extract the visible URL securely.`;
-        urlInput.value="";
-      }catch{
-        selectedImageData="";selectedImageName="";
-        fileName.textContent="This image could not be read.";
-      }
-    }
-
-    function resultClass(score,uncertain){
-      if(uncertain)return "review";
-      if(score>=85)return "critical";
-      if(score>=60)return "high";
-      if(score>=32)return "medium";
-      return "low";
-    }
-
-    function confidenceWord(value){
-      return value>=82?"High":value>=58?"Moderate":"Limited";
-    }
-
-    function findingTone(severity){
-      return severity==="critical"||severity==="high"?"danger":severity==="medium"?"warn":"";
-    }
-
-    function renderFailure(message,details=[]){
-      renderResult({
-        verdict:"inconclusive",score:0,confidence:95,riskLevel:"Scan Incomplete",threatType:"GhostScan could not complete",
-        summary:message,
-        findings:[{severity:"medium",title:"No behavioral verdict was generated",detail:"CyberNet AI does not create simulated scan results when the isolated browser is unavailable."}],
-        actions:["Do not open the link while the scan is incomplete.","Check that BROWSERLESS_TOKEN is configured in Netlify.","Try again after the isolated browser service is available."],
-        limitations:details.length?details:["The remote browser session did not return enough evidence."],
-        redirects:[],domains:[],forms:[],behavior:[],page:{},screenshots:{},reputation:{checked:false},durationMs:Date.now()-logClockStart
-      },false);
-    }
-
-    function renderResult(result,save=true){
-      lastResult=result;
-      stopProgress();
-      setStep(4);
-      showWorkspace("results");
-      const uncertain=result.verdict==="inconclusive"||result.uncertain;
-      const score=clamp(result.score);
-      const cls=resultClass(score,uncertain);
-      els.alert.className=`ghost-result-alert ${cls}`;
-      els.verdictTitle.textContent=result.riskLevel||result.threatType||(uncertain?"Needs Review":"GhostScan Complete");
-      els.verdictSummary.textContent=result.summary||"GhostScan completed the isolated investigation.";
-      els.confidence.textContent=`Confidence: ${confidenceWord(clamp(result.confidence))} (${clamp(result.confidence)}%)`;
-      els.meta.textContent=`Scanned ${new Date(result.completedAt||Date.now()).toLocaleString()} · ${Math.max(1,Math.round((result.durationMs||0)/1000))}s · ${result.provider||"isolated browser"}`;
-      els.score.textContent=Math.round(score);
-      els.scoreRing?.style.setProperty("--score",`${score}%`);
-      els.riskLabel.textContent=uncertain?"Needs Review — not confirmed safe":score>=85?"Critical Risk":score>=60?"High Risk":score>=32?"Medium Risk":"No threat observed";
-
-      const findings=(result.findings||[]).slice(0,10);
-      els.findings.innerHTML=findings.length?findings.map(item=>`<div class="ghost-finding ${findingTone(item.severity)}"><span>${item.severity==="high"||item.severity==="critical"?"!":item.severity==="medium"?"◆":"✓"}</span><div><strong>${escapeHTML(item.title||"Finding")}</strong>${escapeHTML(item.detail||"")}</div></div>`).join(""):`<div class="ghost-finding"><span>◈</span><div><strong>No decisive finding</strong>The scan did not collect enough evidence for a confident classification.</div></div>`;
-      els.actions.innerHTML=(result.actions||[]).map((item,i)=>`<div class="ghost-action"><span>${i+1}</span><div>${escapeHTML(item)}</div></div>`).join("");
-      const limitations=result.limitations||[];
-      els.limitationsCard.classList.toggle("ghost-hidden",!limitations.length);
-      els.limitations.innerHTML=limitations.map(item=>`<li>${escapeHTML(item)}</li>`).join("");
-
-      const redirects=result.redirects||[];
-      const replay=redirects.length?redirects:[{url:result.inputUrl||result.page?.url||"Submitted destination",status:result.page?.status||0,stage:"Original link"}];
-      if(result.forms?.some(form=>form.sensitiveFields?.length))replay.push({url:result.forms.find(form=>form.sensitiveFields?.length)?.action||result.page?.url,stage:"Sensitive form detected",detail:"The page requests credentials or financial information."});
-      els.replayCount.textContent=`${replay.length} step${replay.length===1?"":"s"}`;
-      els.replay.innerHTML=replay.slice(0,10).map((item,i)=>`<div class="ghost-replay-node"><small>${escapeHTML(item.stage||`STEP ${i+1}`)}</small><strong>${escapeHTML(shortHost(item.url)||"Unknown destination")}</strong><p>${escapeHTML(item.detail||`${item.status?`HTTP ${item.status} · `:""}${displayUrl(item.url)}`)}</p>${i===replay.length-1&&result.screenshots?.desktop?`<img src="${result.screenshots.desktop}" alt="Final isolated page">`:""}</div>`).join("");
-
-      const desktop=result.screenshots?.desktop||"";
-      const mobile=result.screenshots?.mobile||"";
-      els.desktopShot.src=desktop;els.mobileShot.src=mobile;
-      els.desktopShot.classList.toggle("ghost-hidden",!desktop);
-      els.mobileShot.classList.add("ghost-hidden");
-      els.noShot.classList.toggle("ghost-hidden",Boolean(desktop||mobile));
-
-      els.redirects.innerHTML=redirects.length?redirects.map(item=>`<li><strong>${item.status||"—"}</strong> ${escapeHTML(displayUrl(item.url))}</li>`).join(""):`<li>No redirect chain was available.</li>`;
-      els.domains.innerHTML=(result.domains||[]).length?(result.domains||[]).slice(0,30).map(domain=>`<li>${escapeHTML(domain)}</li>`).join(""):`<li>No contacted domains were recorded.</li>`;
-      els.forms.innerHTML=(result.forms||[]).length?(result.forms||[]).slice(0,12).map((form,i)=>`<div class="ghost-form-item"><strong>Form #${i+1}${form.sensitiveFields?.length?" · Sensitive fields":""}</strong>Method: ${escapeHTML(form.method||"GET")}<br>Action: ${escapeHTML(displayUrl(form.action||"same page"))}<br>Fields: ${escapeHTML((form.fields||[]).join(", ")||"none detected")}</div>`).join(""):`<p>No forms were detected in the rendered page.</p>`;
-      const page=result.page||{};
-      els.pageInfo.innerHTML=[["Title",page.title],["Final URL",displayUrl(page.url||result.finalUrl)],["Status",page.status],["HTTPS",page.https===true?"Yes":page.https===false?"No":"Unknown"],["Desktop/Mobile",result.mobileDifference?"Different behavior observed":"No major difference observed"],["Provider",result.provider]].filter(([,v])=>v!==undefined&&v!=="").map(([k,v])=>`<dt>${escapeHTML(k)}</dt><dd>${escapeHTML(String(v))}</dd>`).join("");
-      els.behavior.innerHTML=(result.behavior||[]).length?(result.behavior||[]).map(item=>`<li>${escapeHTML(typeof item==="string"?item:item.detail||item.type)}</li>`).join(""):`<li>No special browser behavior was observed.</li>`;
-      const rep=result.reputation||{};
-      els.reputation.innerHTML=`<span class="ghost-reputation-badge ${rep.listed?"listed":""}">${rep.listed?"KNOWN THREAT":rep.checked?"NO LIST MATCH":"NOT CONFIGURED"}</span><p>${escapeHTML(rep.listed?`Matched: ${(rep.threatTypes||[]).join(", ")||"unsafe resource"}.`:rep.checked?"No threat-list match was returned. This does not prove the page is safe.":"Live Web Risk was not available for this scan.")}</p>`;
-      if(save)saveHistory(result);
-    }
-
-    function shortHost(value){try{return new URL(value).hostname}catch{return ""}}
-    function displayUrl(value){
-      if(!value)return "";
-      try{
-        const parsed=new URL(value);const names=[...parsed.searchParams.keys()];parsed.search="";parsed.hash="";
-        return parsed.href+(names.length?`?[${names.join(", ")}]`:"");
-      }catch{return String(value).slice(0,180)}
-    }
-
-    async function startScan(){
-      if(!service.browserEnabled){await checkService();if(!service.browserEnabled)return}
-      const url=urlInput.value.trim();
-      if(!url&&!selectedImageData){
-        setServiceState("offline","Paste a link or upload a QR/screenshot first.");
-        return;
-      }
-      showWorkspace("progress");
-      resetProgress(url||selectedImageName||"Uploaded screenshot");
-      activeController=new AbortController();
-      scanBtn.disabled=true;
-      try{
-        const response=await fetch(ENDPOINT,{
-          method:"POST",headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({url,imageData:selectedImageData,imageName:selectedImageName}),
-          signal:activeController.signal
-        });
-        const data=await response.json().catch(()=>({}));
-        if(!response.ok)throw new Error(data.error||`GhostScan returned ${response.status}`);
-        log(`Final destination: ${shortHost(data.finalUrl||data.page?.url)||"unknown"}`,data.score>=60?"danger":"safe");
-        log(`${data.redirects?.length||0} navigation step(s), ${data.domains?.length||0} contacted domain(s)`);
-        renderResult(data,true);
-      }catch(error){
-        if(error.name==="AbortError"){showLanding();return}
-        log(error.message||"The isolated scan failed","danger");
-        renderFailure(error.message||"The isolated browser did not complete the scan.",["No page behavior was classified because the scan did not complete."]);
-      }finally{
-        scanBtn.disabled=!service.browserEnabled;
-        activeController=null;
-      }
-    }
-
-    function saveHistory(result){
-      try{
-        const history=JSON.parse(localStorage.getItem("cybernetGhostHistory")||"[]");
-        history.unshift({id:result.scanId||crypto.randomUUID?.()||String(Date.now()),date:result.completedAt||Date.now(),url:displayUrl(result.inputUrl||result.finalUrl||result.page?.url),score:clamp(result.score),verdict:result.verdict,summary:result.summary,confidence:clamp(result.confidence)});
-        localStorage.setItem("cybernetGhostHistory",JSON.stringify(history.slice(0,12)));
-      }catch{}
-    }
-
-    function renderHistory(){
-      let history=[];try{history=JSON.parse(localStorage.getItem("cybernetGhostHistory")||"[]")}catch{}
-      els.historyList.innerHTML=history.length?history.map(item=>`<div class="ghost-history-item"><div><strong>${escapeHTML(item.url||"Unknown destination")}</strong><small>${new Date(item.date).toLocaleString()} · ${escapeHTML(item.summary||item.verdict||"")}</small></div><div class="ghost-history-score">${Math.round(item.score)}/100</div></div>`).join(""):`<div class="ghost-history-empty">No GhostScan reports are stored in this browser yet.</div>`;
-    }
-
-    function reportText(){
-      if(!lastResult)return "";
-      return [`CyberNet AI GhostScan`,`${lastResult.riskLevel||lastResult.threatType} · ${Math.round(lastResult.score)}/100 · ${clamp(lastResult.confidence)}% confidence`,lastResult.summary,"",...(lastResult.findings||[]).map(x=>`• ${x.title}: ${x.detail}`),"","Recommended actions:",...(lastResult.actions||[]).map((x,i)=>`${i+1}. ${x}`)].join("\n");
-    }
-
-    scanBtn.addEventListener("click",startScan);
-    urlInput.addEventListener("keydown",event=>{if(event.key==="Enter")startScan()});
-    urlInput.addEventListener("input",()=>{if(urlInput.value.trim()){selectedImageData="";selectedImageName="";fileName.textContent="JPG, PNG or WEBP · max 8 MB"}});
-    uploadBtn?.addEventListener("click",()=>fileInput?.click());
-    fileInput?.addEventListener("change",()=>prepareImage(fileInput.files?.[0]));
-    document.getElementById("ghostBackHome")?.addEventListener("click",showLanding);
-    document.getElementById("ghostNewScanBtn")?.addEventListener("click",showLanding);
-    document.getElementById("ghostCancelBtn")?.addEventListener("click",()=>{activeController?.abort();showLanding()});
-    document.getElementById("ghostCopyTarget")?.addEventListener("click",()=>navigator.clipboard?.writeText(els.target.textContent||""));
-    document.getElementById("ghostCopyReportBtn")?.addEventListener("click",async()=>{try{await navigator.clipboard.writeText(reportText());document.getElementById("ghostCopyReportBtn").textContent="Copied";setTimeout(()=>document.getElementById("ghostCopyReportBtn").textContent="Copy summary",1400)}catch{}});
-    document.getElementById("ghostPrintBtn")?.addEventListener("click",()=>window.print());
-    document.getElementById("ghostHistoryBtn")?.addEventListener("click",()=>{renderHistory();showWorkspace("history")});
-    document.getElementById("ghostHistoryBack")?.addEventListener("click",()=>showWorkspace(lastResult?"results":"progress"));
-    document.getElementById("ghostClearHistory")?.addEventListener("click",()=>{localStorage.removeItem("cybernetGhostHistory");renderHistory()});
-
-    document.querySelectorAll("[data-ghost-tab]").forEach(button=>button.addEventListener("click",()=>{
-      document.querySelectorAll("[data-ghost-tab]").forEach(x=>x.classList.toggle("active",x===button));
-      document.querySelectorAll("[data-ghost-panel]").forEach(panel=>panel.classList.toggle("active",panel.dataset.ghostPanel===button.dataset.ghostTab));
-    }));
-    document.querySelectorAll("[data-screen]").forEach(button=>button.addEventListener("click",()=>{
-      document.querySelectorAll("[data-screen]").forEach(x=>x.classList.toggle("active",x===button));
-      const mobile=button.dataset.screen==="mobile";
-      els.desktopShot.classList.toggle("ghost-hidden",mobile||!els.desktopShot.src);
-      els.mobileShot.classList.toggle("ghost-hidden",!mobile||!els.mobileShot.src);
-      els.noShot.classList.toggle("ghost-hidden",Boolean(mobile?els.mobileShot.src:els.desktopShot.src));
-    }));
-
-    checkService();
-  })();
-
-
   /* ─── Start ─── */
   moveNavIndicator(currentPageId);
   runRevealAnimation();
 });
 
-/* ═══ CyberNet Protect Deep Investigation Workspace ═══ */
-(() => {
-  "use strict";
-
-  const STORAGE_KEY = "cybernetProtectInvestigationsV2";
-  const DRAFT_KEY = "cybernetProtectInvestigationDraftV2";
-  const ENDPOINT = "/api/analyze";
-  const MAX_ARTIFACTS = 25;
-  const MAX_TEXT = 10000;
-  const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
-
-  const css = `
-  #cybernet .protect-upgrade-shell{width:min(1320px,calc(100% - 40px));margin:24px auto 0;position:relative;z-index:2}
-  #cybernet .protect-mode-tabs{display:flex;gap:8px;flex-wrap:wrap;padding:8px;border:1px solid var(--glass-border,rgba(56,189,248,.16));border-radius:16px;background:rgba(5,12,24,.52);backdrop-filter:blur(18px);margin-bottom:22px}
-  #cybernet .protect-mode-tab{border:1px solid transparent;background:transparent;color:var(--muted,#7d93ad);font-family:var(--font-mono,monospace);font-size:12px;font-weight:700;padding:11px 16px;border-radius:11px;transition:.2s ease}
-  #cybernet .protect-mode-tab:hover{color:var(--text,#eaf3fb);border-color:var(--glass-border,rgba(56,189,248,.16))}
-  #cybernet .protect-mode-tab.active{color:var(--green-bright,#a5f0ff);background:linear-gradient(135deg,rgba(34,211,238,.14),rgba(59,130,246,.09));border-color:rgba(34,211,238,.32);box-shadow:0 0 24px rgba(34,211,238,.08)}
-  #cybernet .protect-mode-pane{display:none}
-  #cybernet .protect-mode-pane.active{display:block}
-  #cybernet .protect-mode-kicker{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono,monospace);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--green,#22d3ee);margin-bottom:10px}
-  #cybernet .protect-mode-kicker::before{content:'◆';font-size:8px}
-  #cybernet .protect-investigation-intro{display:flex;justify-content:space-between;gap:24px;align-items:flex-end;margin:0 0 20px}
-  #cybernet .protect-investigation-intro h2{font-size:clamp(26px,4vw,42px);line-height:1.08;margin:0;color:var(--text,#eaf3fb)}
-  #cybernet .protect-investigation-intro h2 span{color:var(--green,#22d3ee)}
-  #cybernet .protect-investigation-intro p{max-width:740px;color:var(--muted,#7d93ad);line-height:1.7;margin-top:10px}
-  #cybernet .protect-honesty-badge{flex:0 0 auto;border:1px solid rgba(167,139,250,.28);background:rgba(167,139,250,.08);color:#d5c9ff;border-radius:12px;padding:10px 12px;font-family:var(--font-mono,monospace);font-size:10px;line-height:1.5;max-width:250px}
-  #cybernet .protect-case-layout{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.35fr);gap:18px;align-items:start}
-  #cybernet .protect-case-card{border-radius:18px;padding:18px;background:rgba(8,18,33,.64);border:1px solid var(--glass-border,rgba(56,189,248,.16));box-shadow:0 16px 55px rgba(0,0,0,.25)}
-  #cybernet .protect-card-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:15px}
-  #cybernet .protect-card-head h3{font-size:16px;margin:0;color:var(--text,#eaf3fb)}
-  #cybernet .protect-card-head span{font-family:var(--font-mono,monospace);font-size:10px;color:var(--muted,#7d93ad)}
-  #cybernet .protect-field{display:grid;gap:7px;margin-bottom:12px}
-  #cybernet .protect-field label{font-family:var(--font-mono,monospace);font-size:11px;color:var(--muted,#7d93ad)}
-  #cybernet .protect-field input,#cybernet .protect-field textarea,#cybernet .protect-field select{width:100%;border:1px solid var(--glass-border,rgba(56,189,248,.16));background:rgba(2,9,18,.76);color:var(--text,#eaf3fb);border-radius:11px;padding:12px 13px;outline:none;transition:.2s ease;font-family:var(--font-body,Arial,sans-serif);font-size:13px}
-  #cybernet .protect-field textarea{min-height:132px;resize:vertical;line-height:1.6}
-  #cybernet .protect-field input:focus,#cybernet .protect-field textarea:focus,#cybernet .protect-field select:focus{border-color:rgba(34,211,238,.55);box-shadow:0 0 0 3px rgba(34,211,238,.08)}
-  #cybernet .protect-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  #cybernet .protect-file-box{display:none;border:1px dashed rgba(34,211,238,.32);border-radius:12px;padding:14px;background:rgba(34,211,238,.04);margin-bottom:12px}
-  #cybernet .protect-file-box.visible{display:block}
-  #cybernet .protect-file-box input{display:block;width:100%;color:var(--muted,#7d93ad);font-size:12px}
-  #cybernet .protect-file-note{font-size:11px;color:var(--muted,#7d93ad);line-height:1.5;margin-top:7px}
-  #cybernet .protect-button-row{display:flex;gap:9px;flex-wrap:wrap}
-  #cybernet .protect-primary,#cybernet .protect-secondary,#cybernet .protect-danger-btn{border-radius:11px;min-height:42px;padding:0 15px;font-family:var(--font-mono,monospace);font-size:11px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:.2s ease}
-  #cybernet .protect-primary{border:0;background:linear-gradient(135deg,#22d3ee,#3b82f6);color:#03111d;box-shadow:0 9px 24px rgba(34,211,238,.16)}
-  #cybernet .protect-primary:hover{transform:translateY(-1px);box-shadow:0 13px 30px rgba(34,211,238,.22)}
-  #cybernet .protect-primary:disabled{opacity:.55;cursor:not-allowed;transform:none}
-  #cybernet .protect-secondary{border:1px solid var(--glass-border,rgba(56,189,248,.16));background:rgba(255,255,255,.025);color:var(--text,#eaf3fb)}
-  #cybernet .protect-secondary:hover{border-color:rgba(34,211,238,.42);color:var(--green-bright,#a5f0ff)}
-  #cybernet .protect-danger-btn{border:1px solid rgba(255,107,107,.26);background:rgba(255,107,107,.06);color:#ff9b9b}
-  #cybernet .protect-artifact-list{display:grid;gap:9px;margin-top:15px;max-height:380px;overflow:auto;padding-right:4px}
-  #cybernet .protect-artifact-empty{border:1px dashed var(--glass-border,rgba(56,189,248,.16));border-radius:12px;padding:18px;color:var(--muted,#7d93ad);text-align:center;font-size:12px;line-height:1.6}
-  #cybernet .protect-artifact{border:1px solid var(--glass-border,rgba(56,189,248,.16));border-radius:12px;padding:12px;background:rgba(255,255,255,.018);display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:10px;align-items:start}
-  #cybernet .protect-artifact-icon{width:36px;height:36px;border-radius:10px;background:rgba(34,211,238,.08);border:1px solid rgba(34,211,238,.18);display:grid;place-items:center;color:var(--green,#22d3ee);font-family:var(--font-mono,monospace);font-weight:800;font-size:11px}
-  #cybernet .protect-artifact h4{font-size:12px;margin:0 0 4px;color:var(--text,#eaf3fb);overflow-wrap:anywhere}
-  #cybernet .protect-artifact p{font-size:11px;color:var(--muted,#7d93ad);line-height:1.5;margin:0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
-  #cybernet .protect-artifact small{display:block;color:var(--soft,#425873);font-family:var(--font-mono,monospace);font-size:9px;margin-top:5px}
-  #cybernet .protect-remove-artifact{border:0;background:transparent;color:#ff8d8d;font-size:18px;line-height:1;padding:4px}
-  #cybernet .protect-analyze-row{display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:15px}
-  #cybernet .protect-analyze-row .protect-primary{min-height:48px}
-  #cybernet .protect-status{min-height:20px;margin-top:10px;color:var(--muted,#7d93ad);font-family:var(--font-mono,monospace);font-size:10px;line-height:1.5}
-  #cybernet .protect-status.error{color:#ff9b9b}
-  #cybernet .protect-status.success{color:#72efb6}
-  #cybernet .protect-report-placeholder{min-height:520px;display:grid;place-items:center;text-align:center;border:1px dashed var(--glass-border,rgba(56,189,248,.16));border-radius:15px;padding:30px;color:var(--muted,#7d93ad)}
-  #cybernet .protect-report-placeholder strong{display:block;color:var(--text,#eaf3fb);font-size:17px;margin-bottom:7px}
-  #cybernet .protect-report-placeholder span{font-size:12px;line-height:1.7;max-width:480px}
-  #cybernet .protect-loading{min-height:520px;display:grid;place-items:center;text-align:center}
-  #cybernet .protect-loading-ring{width:60px;height:60px;border-radius:50%;border:2px solid rgba(34,211,238,.15);border-top-color:var(--green,#22d3ee);animation:protectSpin .9s linear infinite;margin:0 auto 15px}
-  @keyframes protectSpin{to{transform:rotate(360deg)}}
-  #cybernet .protect-loading h3{font-size:17px;margin-bottom:7px}
-  #cybernet .protect-loading p{color:var(--muted,#7d93ad);font-size:12px;line-height:1.6}
-  #cybernet .protect-report{display:grid;gap:12px}
-  #cybernet .protect-report-hero{border:1px solid var(--glass-border,rgba(56,189,248,.16));border-radius:16px;padding:17px;background:linear-gradient(135deg,rgba(34,211,238,.06),rgba(59,130,246,.035));position:relative;overflow:hidden}
-  #cybernet .protect-report-hero::after{content:'';position:absolute;right:-70px;top:-90px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(34,211,238,.12),transparent 65%);pointer-events:none}
-  #cybernet .protect-report-top{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;position:relative;z-index:1}
-  #cybernet .protect-verdict-block{display:flex;gap:13px;align-items:center}
-  #cybernet .protect-score{width:70px;height:70px;border-radius:18px;display:grid;place-items:center;border:1px solid rgba(34,211,238,.25);background:rgba(2,9,18,.78);font-family:var(--font-mono,monospace);font-size:22px;font-weight:800;color:var(--text,#eaf3fb)}
-  #cybernet .protect-score small{font-size:9px;color:var(--muted,#7d93ad);display:block;text-align:center;margin-top:-6px}
-  #cybernet .protect-report-title h3{font-size:19px;margin:0 0 5px;color:var(--text,#eaf3fb)}
-  #cybernet .protect-report-title p{font-size:11px;color:var(--muted,#7d93ad);font-family:var(--font-mono,monospace);margin:0}
-  #cybernet .protect-badges{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
-  #cybernet .protect-badge{border:1px solid var(--glass-border,rgba(56,189,248,.16));border-radius:999px;padding:6px 9px;font-family:var(--font-mono,monospace);font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
-  #cybernet .protect-badge.malicious,#cybernet .protect-badge.critical,#cybernet .protect-badge.high{color:#ff9b9b;border-color:rgba(255,107,107,.28);background:rgba(255,107,107,.07)}
-  #cybernet .protect-badge.suspicious,#cybernet .protect-badge.medium,#cybernet .protect-badge.soon{color:#ffd98a;border-color:rgba(255,207,107,.28);background:rgba(255,207,107,.07)}
-  #cybernet .protect-badge.low_risk,#cybernet .protect-badge.low,#cybernet .protect-badge.informational,#cybernet .protect-badge.monitor{color:#72efb6;border-color:rgba(52,211,153,.25);background:rgba(52,211,153,.06)}
-  #cybernet .protect-badge.inconclusive{color:#d5c9ff;border-color:rgba(167,139,250,.28);background:rgba(167,139,250,.08)}
-  #cybernet .protect-badge.immediate{color:#ff9b9b;border-color:rgba(255,107,107,.28);background:rgba(255,107,107,.07)}
-  #cybernet .protect-summary{position:relative;z-index:1;color:var(--muted,#7d93ad);font-size:12.5px;line-height:1.7;margin-top:14px}
-  #cybernet .protect-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:13px;position:relative;z-index:1}
-  #cybernet .protect-metric{border:1px solid var(--glass-border,rgba(56,189,248,.16));border-radius:10px;padding:10px;background:rgba(2,9,18,.45)}
-  #cybernet .protect-metric span{display:block;color:var(--soft,#425873);font-family:var(--font-mono,monospace);font-size:8px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
-  #cybernet .protect-metric strong{font-size:11px;color:var(--text,#eaf3fb);overflow-wrap:anywhere}
-  #cybernet .protect-report-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  #cybernet .protect-report-card{border:1px solid var(--glass-border,rgba(56,189,248,.16));border-radius:14px;padding:14px;background:rgba(255,255,255,.016);min-width:0}
-  #cybernet .protect-report-card.wide{grid-column:1/-1}
-  #cybernet .protect-report-card h4{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--green-bright,#a5f0ff);font-family:var(--font-mono,monospace);margin:0 0 10px}
-  #cybernet .protect-list{list-style:none;display:grid;gap:7px;margin:0;padding:0}
-  #cybernet .protect-list li{position:relative;padding-left:14px;color:var(--muted,#7d93ad);font-size:11.5px;line-height:1.55;overflow-wrap:anywhere}
-  #cybernet .protect-list li::before{content:'›';position:absolute;left:0;color:var(--green,#22d3ee);font-weight:800}
-  #cybernet .protect-list.warn li::before{color:#ffcf6b}
-  #cybernet .protect-list.danger li::before{color:#ff7f7f}
-  #cybernet .protect-list.safe li::before{color:#34d399}
-  #cybernet .protect-empty-line{color:var(--soft,#425873);font-size:11px;font-style:italic}
-  #cybernet .protect-entity-table{display:grid;gap:7px}
-  #cybernet .protect-entity{display:grid;grid-template-columns:90px minmax(0,1fr);gap:8px;border-bottom:1px solid rgba(255,255,255,.04);padding-bottom:7px}
-  #cybernet .protect-entity:last-child{border-bottom:0;padding-bottom:0}
-  #cybernet .protect-entity b{font-family:var(--font-mono,monospace);font-size:9px;color:var(--green,#22d3ee);text-transform:uppercase}
-  #cybernet .protect-entity span{font-size:11px;color:var(--muted,#7d93ad);overflow-wrap:anywhere}
-  #cybernet .protect-hypothesis{border:1px solid var(--glass-border,rgba(56,189,248,.16));border-radius:11px;padding:11px;margin-bottom:8px;background:rgba(2,9,18,.38)}
-  #cybernet .protect-hypothesis:last-child{margin-bottom:0}
-  #cybernet .protect-hypothesis-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:7px}
-  #cybernet .protect-hypothesis-head strong{font-size:11.5px;line-height:1.5;color:var(--text,#eaf3fb)}
-  #cybernet .protect-hypothesis-head span{font-family:var(--font-mono,monospace);font-size:9px;color:var(--green-bright,#a5f0ff);white-space:nowrap}
-  #cybernet .protect-hypothesis small{display:block;color:var(--muted,#7d93ad);font-size:10px;line-height:1.5;margin-top:5px}
-  #cybernet .protect-timeline{display:grid;gap:9px}
-  #cybernet .protect-timeline-item{display:grid;grid-template-columns:105px minmax(0,1fr);gap:10px;position:relative}
-  #cybernet .protect-timeline-item time{font-family:var(--font-mono,monospace);font-size:9px;color:var(--green,#22d3ee)}
-  #cybernet .protect-timeline-item div{border-left:1px solid rgba(34,211,238,.2);padding-left:11px;color:var(--muted,#7d93ad);font-size:11px;line-height:1.55}
-  #cybernet .protect-timeline-item small{display:block;color:var(--soft,#425873);font-size:9px;margin-top:3px}
-  #cybernet .protect-report-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:2px}
-  #cybernet .protect-saved-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-  #cybernet .protect-saved-case{border:1px solid var(--glass-border,rgba(56,189,248,.16));border-radius:15px;padding:15px;background:rgba(8,18,33,.58);display:grid;gap:9px}
-  #cybernet .protect-saved-case h3{font-size:14px;margin:0;color:var(--text,#eaf3fb);overflow-wrap:anywhere}
-  #cybernet .protect-saved-case p{color:var(--muted,#7d93ad);font-size:11px;line-height:1.55;margin:0}
-  #cybernet .protect-saved-meta{display:flex;gap:6px;flex-wrap:wrap}
-  #cybernet .protect-saved-case small{color:var(--soft,#425873);font-family:var(--font-mono,monospace);font-size:9px}
-  #cybernet .protect-saved-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:3px}
-  #cybernet .protect-no-cases{grid-column:1/-1;border:1px dashed var(--glass-border,rgba(56,189,248,.16));border-radius:15px;padding:35px;text-align:center;color:var(--muted,#7d93ad);font-size:12px;line-height:1.7}
-  @media(max-width:1050px){#cybernet .protect-case-layout{grid-template-columns:1fr}#cybernet .protect-report-placeholder,#cybernet .protect-loading{min-height:320px}#cybernet .protect-saved-grid{grid-template-columns:1fr 1fr}}
-  @media(max-width:720px){#cybernet .protect-upgrade-shell{width:min(100% - 22px,1320px)}#cybernet .protect-investigation-intro{display:block}#cybernet .protect-honesty-badge{margin-top:12px;max-width:none}#cybernet .protect-form-grid,#cybernet .protect-report-grid{grid-template-columns:1fr}#cybernet .protect-report-card.wide{grid-column:auto}#cybernet .protect-report-top{display:block}#cybernet .protect-badges{justify-content:flex-start;margin-top:12px}#cybernet .protect-metrics{grid-template-columns:1fr 1fr}#cybernet .protect-analyze-row{grid-template-columns:1fr}#cybernet .protect-saved-grid{grid-template-columns:1fr}#cybernet .protect-entity{grid-template-columns:72px minmax(0,1fr)}#cybernet .protect-timeline-item{grid-template-columns:82px minmax(0,1fr)}}
-  `;
-
-  function injectStyle() {
-    if (document.getElementById("protectInvestigationStyles")) return;
-    const style = document.createElement("style");
-    style.id = "protectInvestigationStyles";
-    style.textContent = css;
-    document.head.appendChild(style);
-  }
-
-  function escapeHTML(value) {
-    return String(value ?? "").replace(/[&<>'"]/g, (char) => ({
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      "'": "&#39;",
-      '"': "&quot;",
-    })[char]);
-  }
-
-  function safeArray(value) {
-    return Array.isArray(value) ? value.filter(Boolean) : [];
-  }
-
-  function id() {
-    return globalThis.crypto?.randomUUID?.() || `case-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  }
-
-  function formatDate(value) {
-    try {
-      return new Date(value).toLocaleString();
-    } catch {
-      return String(value || "Unknown");
-    }
-  }
-
-  function artifactIcon(type) {
-    return ({
-      text: "TXT",
-      link: "URL",
-      email_headers: "HDR",
-      image: "IMG",
-      note: "NOTE",
-    })[type] || "IOC";
-  }
-
-  function artifactTypeLabel(type) {
-    return ({
-      text: "Message or text",
-      link: "Suspicious link",
-      email_headers: "Raw email headers",
-      image: "Screenshot or image",
-      note: "Investigator note",
-    })[type] || type;
-  }
-
-  function newCase() {
-    return {
-      id: id(),
-      title: "",
-      context: "",
-      artifacts: [],
-      report: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-  }
-
-  function readJSON(key, fallback) {
-    try {
-      return JSON.parse(localStorage.getItem(key) || "") || fallback;
-    } catch {
-      return fallback;
-    }
-  }
-
-  function loadCases() {
-    const cases = readJSON(STORAGE_KEY, []);
-    return Array.isArray(cases) ? cases : [];
-  }
-
-  function saveCases(cases) {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(cases.slice(0, 30)));
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  function storageSafeCase(caseItem) {
-    return {
-      ...caseItem,
-      artifacts: safeArray(caseItem.artifacts).map((artifact) => ({
-        ...artifact,
-        imageData: "",
-        imageRemovedAfterSession: artifact.type === "image" && Boolean(artifact.imageData),
-      })),
-    };
-  }
-
-  function saveDraft(caseItem) {
-    try {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(storageSafeCase(caseItem)));
-    } catch {
-      // Storage is optional.
-    }
-  }
-
-  function loadDraft() {
-    const draft = readJSON(DRAFT_KEY, null);
-    return draft && typeof draft === "object" ? draft : newCase();
-  }
-
-  function getAccessToken() {
-    const accountToken = window.CyberNetAccount?.appState?.session?.access_token;
-    if (accountToken) return accountToken;
-    try {
-      for (let index = 0; index < localStorage.length; index += 1) {
-        const key = localStorage.key(index) || "";
-        if (!/^sb-.+-auth-token$/.test(key)) continue;
-        const parsed = JSON.parse(localStorage.getItem(key) || "null");
-        const token = parsed?.access_token || parsed?.currentSession?.access_token || parsed?.session?.access_token;
-        if (token) return token;
-      }
-    } catch {
-      // Continue without a user token. The backend still rate-limits by IP.
-    }
-    return "";
-  }
-
-  async function compressImage(file) {
-    if (!file || !file.type.startsWith("image/")) throw new Error("Choose a JPG, PNG, or WEBP image.");
-    if (file.size > MAX_IMAGE_BYTES) throw new Error("The image must be smaller than 8 MB.");
-
-    const source = await new Promise((resolve, reject) => {
-      if ("createImageBitmap" in window) {
-        createImageBitmap(file).then(resolve, reject);
-        return;
-      }
-      const image = new Image();
-      const url = URL.createObjectURL(file);
-      image.onload = () => {
-        URL.revokeObjectURL(url);
-        resolve(image);
-      };
-      image.onerror = () => {
-        URL.revokeObjectURL(url);
-        reject(new Error("The image could not be decoded."));
-      };
-      image.src = url;
-    });
-
-    const width = source.width || source.naturalWidth;
-    const height = source.height || source.naturalHeight;
-    const scale = Math.min(1, 1200 / Math.max(width, height));
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.max(1, Math.round(width * scale));
-    canvas.height = Math.max(1, Math.round(height * scale));
-    const context = canvas.getContext("2d", { alpha: false });
-    context.drawImage(source, 0, 0, canvas.width, canvas.height);
-    source.close?.();
-    return canvas.toDataURL("image/jpeg", window.matchMedia?.("(max-width: 700px)").matches ? 0.68 : 0.78);
-  }
-
-  function reportText(report, caseItem) {
-    const lines = [
-      "CYBERNET PROTECT — INCIDENT INVESTIGATION REPORT",
-      "================================================",
-      `Case: ${report.caseTitle || caseItem.title || "Untitled case"}`,
-      `Generated: ${new Date().toLocaleString()}`,
-      `Verdict: ${String(report.verdict || "inconclusive").replace(/_/g, " ")}`,
-      `Risk score: ${Number(report.score) || 0}/100`,
-      `Confidence: ${Number(report.confidence) || 0}%`,
-      `Severity: ${report.severity || "unknown"}`,
-      `Urgency: ${report.urgency || "unknown"}`,
-      `Incident category: ${report.incidentCategory || report.threatType || "Unclassified"}`,
-      `Likely objective: ${report.likelyAttackerObjective || "Unknown"}`,
-      `Attack stage: ${report.attackStage || "Unknown"}`,
-      "",
-      "EXECUTIVE SUMMARY",
-      report.summary || "No summary available.",
-    ];
-
-    const section = (title, values, formatter = (item) => String(item)) => {
-      const items = safeArray(values);
-      lines.push("", title);
-      lines.push(...(items.length ? items.map((item, index) => `${index + 1}. ${formatter(item)}`) : ["None recorded."]));
-    };
-
-    section("OBSERVED FACTS", report.observedFacts);
-    section("REASONABLE INFERENCES", report.reasonableInferences);
-    section("UNVERIFIED CLAIMS", report.unverifiedClaims);
-    section("EVIDENCE SUPPORTING RISK", report.evidence);
-    section("COUNTER-EVIDENCE", report.counterEvidence);
-    section("LIMITATIONS", report.limitations);
-    section("MISSING EVIDENCE", report.missingEvidence);
-    section("RECOMMENDED EVIDENCE TO COLLECT", report.recommendedEvidenceToCollect);
-    section("ENTITIES", report.entities, (item) => `${item.type}: ${item.value}${item.context ? ` — ${item.context}` : ""}`);
-    section("INDICATORS", report.indicators, (item) => `${item.type}: ${item.value}${item.riskReason ? ` — ${item.riskReason}` : ""}`);
-    section("TIMELINE", report.timelineEvents, (item) => `${item.time}: ${item.event}${item.source ? ` [${item.source}]` : ""}`);
-    section("CONTAINMENT ACTIONS", report.containmentActions);
-    section("RECOVERY ACTIONS", report.recoveryActions);
-    section("REPORTING ACTIONS", report.reportingActions);
-    section("PRIORITIZED ACTIONS", report.actions);
-
-    lines.push("", "IMPORTANT", "This report is decision support based on the submitted evidence. It is not proof of identity, legal attribution, malware execution, or a completed forensic investigation.");
-    return lines.join("\n");
-  }
-
-  function listHTML(items, className = "") {
-    const values = safeArray(items);
-    if (!values.length) return '<div class="protect-empty-line">Nothing reliable was established from the available evidence.</div>';
-    return `<ul class="protect-list ${className}">${values.map((item) => `<li>${escapeHTML(item)}</li>`).join("")}</ul>`;
-  }
-
-  function entitiesHTML(items) {
-    const values = safeArray(items);
-    if (!values.length) return '<div class="protect-empty-line">No structured entities were extracted.</div>';
-    return `<div class="protect-entity-table">${values.map((item) => `<div class="protect-entity"><b>${escapeHTML(item.type)}</b><span><strong>${escapeHTML(item.value)}</strong>${item.context ? `<br>${escapeHTML(item.context)}` : ""}</span></div>`).join("")}</div>`;
-  }
-
-  function indicatorsHTML(items) {
-    const values = safeArray(items);
-    if (!values.length) return '<div class="protect-empty-line">No structured indicators were extracted.</div>';
-    return `<div class="protect-entity-table">${values.map((item) => `<div class="protect-entity"><b>${escapeHTML(item.type)}</b><span><strong>${escapeHTML(item.value)}</strong>${item.riskReason ? `<br>${escapeHTML(item.riskReason)}` : ""}</span></div>`).join("")}</div>`;
-  }
-
-  function hypothesesHTML(items) {
-    const values = safeArray(items);
-    if (!values.length) return '<div class="protect-empty-line">No defensible hypothesis was generated.</div>';
-    return values.map((item) => `
-      <div class="protect-hypothesis">
-        <div class="protect-hypothesis-head"><strong>${escapeHTML(item.hypothesis)}</strong><span>${Number(item.confidence) || 0}%</span></div>
-        ${safeArray(item.support).length ? `<small><b>Support:</b> ${escapeHTML(item.support.join(" · "))}</small>` : ""}
-        ${safeArray(item.contradictions).length ? `<small><b>Contradictions:</b> ${escapeHTML(item.contradictions.join(" · "))}</small>` : ""}
-      </div>`).join("");
-  }
-
-  function timelineHTML(items) {
-    const values = safeArray(items);
-    if (!values.length) return '<div class="protect-empty-line">No explicit timestamped events were available. CyberNet did not invent a timeline.</div>';
-    return `<div class="protect-timeline">${values.map((item) => `<div class="protect-timeline-item"><time>${escapeHTML(item.time || "Unknown")}</time><div>${escapeHTML(item.event)}${item.source ? `<small>${escapeHTML(item.source)}</small>` : ""}</div></div>`).join("")}</div>`;
-  }
-
-  function renderReport(report, caseItem, container) {
-    const verdict = String(report.verdict || "inconclusive");
-    const severity = String(report.severity || "medium");
-    const urgency = String(report.urgency || "soon");
-    container.innerHTML = `
-      <div class="protect-report">
-        <div class="protect-report-hero">
-          <div class="protect-report-top">
-            <div class="protect-verdict-block">
-              <div class="protect-score"><div>${Number(report.score) || 0}<small>/100</small></div></div>
-              <div class="protect-report-title">
-                <h3>${escapeHTML(report.caseTitle || caseItem.title || "CyberNet investigation")}</h3>
-                <p>${escapeHTML(report.threatType || report.incidentCategory || "Investigation report")} · ${Number(report.confidence) || 0}% confidence</p>
-              </div>
-            </div>
-            <div class="protect-badges">
-              <span class="protect-badge ${escapeHTML(verdict)}">${escapeHTML(verdict.replace(/_/g, " "))}</span>
-              <span class="protect-badge ${escapeHTML(severity)}">${escapeHTML(severity)} severity</span>
-              <span class="protect-badge ${escapeHTML(urgency)}">${escapeHTML(urgency)}</span>
-            </div>
-          </div>
-          <p class="protect-summary">${escapeHTML(report.summary || "No summary available.")}</p>
-          <div class="protect-metrics">
-            <div class="protect-metric"><span>Category</span><strong>${escapeHTML(report.incidentCategory || "Unclassified")}</strong></div>
-            <div class="protect-metric"><span>Likely objective</span><strong>${escapeHTML(report.likelyAttackerObjective || "Unknown")}</strong></div>
-            <div class="protect-metric"><span>Attack stage</span><strong>${escapeHTML(report.attackStage || "Unknown")}</strong></div>
-            <div class="protect-metric"><span>Artifacts</span><strong>${Number(report.artifactsAnalyzed) || caseItem.artifacts.length}</strong></div>
-          </div>
-        </div>
-
-        <div class="protect-report-grid">
-          <div class="protect-report-card"><h4>Observed facts</h4>${listHTML(report.observedFacts)}</div>
-          <div class="protect-report-card"><h4>Reasonable inferences</h4>${listHTML(report.reasonableInferences, "warn")}</div>
-          <div class="protect-report-card"><h4>Unverified claims</h4>${listHTML(report.unverifiedClaims, "warn")}</div>
-          <div class="protect-report-card"><h4>Evidence supporting risk</h4>${listHTML(report.evidence, "danger")}</div>
-          <div class="protect-report-card"><h4>Counter-evidence</h4>${listHTML(report.counterEvidence, "safe")}</div>
-          <div class="protect-report-card"><h4>Limitations</h4>${listHTML(report.limitations, "warn")}</div>
-          <div class="protect-report-card wide"><h4>Competing hypotheses</h4>${hypothesesHTML(report.hypotheses)}</div>
-          <div class="protect-report-card wide"><h4>Incident timeline</h4>${timelineHTML(report.timelineEvents)}</div>
-          <div class="protect-report-card"><h4>Entities</h4>${entitiesHTML(report.entities)}</div>
-          <div class="protect-report-card"><h4>Indicators of compromise or fraud</h4>${indicatorsHTML(report.indicators)}</div>
-          <div class="protect-report-card"><h4>Missing evidence</h4>${listHTML(report.missingEvidence, "warn")}</div>
-          <div class="protect-report-card"><h4>Collect next</h4>${listHTML(report.recommendedEvidenceToCollect)}</div>
-          <div class="protect-report-card"><h4>Containment</h4>${listHTML(report.containmentActions, "danger")}</div>
-          <div class="protect-report-card"><h4>Recovery</h4>${listHTML(report.recoveryActions, "safe")}</div>
-          <div class="protect-report-card wide"><h4>Reporting and escalation</h4>${listHTML(report.reportingActions)}</div>
-          <div class="protect-report-card wide"><h4>Prioritized next actions</h4>${listHTML(report.actions, "safe")}</div>
-        </div>
-
-        <div class="protect-report-actions">
-          <button type="button" class="protect-primary" data-protect-download>Download report</button>
-          <button type="button" class="protect-secondary" data-protect-copy>Copy report</button>
-          <button type="button" class="protect-secondary" data-protect-print>Print</button>
-        </div>
-      </div>`;
-
-    container.querySelector("[data-protect-download]")?.addEventListener("click", () => {
-      const blob = new Blob([reportText(report, caseItem)], { type: "text/plain;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = `cybernet-protect-${String(caseItem.title || "investigation").replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").toLowerCase() || "report"}-${Date.now()}.txt`;
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    });
-
-    container.querySelector("[data-protect-copy]")?.addEventListener("click", async (event) => {
-      const button = event.currentTarget;
-      try {
-        await navigator.clipboard.writeText(reportText(report, caseItem));
-        button.textContent = "Copied";
-        setTimeout(() => { button.textContent = "Copy report"; }, 1400);
-      } catch {
-        button.textContent = "Copy failed";
-      }
-    });
-
-    container.querySelector("[data-protect-print]")?.addEventListener("click", () => window.print());
-  }
-
-  function init() {
-    const section = document.getElementById("cybernet");
-    if (!section || document.getElementById("protectInvestigationUpgrade")) return;
-    injectStyle();
-
-    const header = section.querySelector(":scope > .section-head") || section.firstElementChild;
-    const originalChildren = [...section.children].filter((child) => child !== header);
-    const shell = document.createElement("div");
-    shell.id = "protectInvestigationUpgrade";
-    shell.className = "protect-upgrade-shell";
-    shell.innerHTML = `
-      <div class="protect-mode-tabs" role="tablist" aria-label="Protect modes">
-        <button type="button" class="protect-mode-tab active" data-protect-mode="quick">Quick Scan</button>
-        <button type="button" class="protect-mode-tab" data-protect-mode="investigation">Deep Investigation</button>
-        <button type="button" class="protect-mode-tab" data-protect-mode="saved">Saved Reports</button>
-      </div>
-      <div class="protect-mode-pane active" data-protect-pane="quick"></div>
-      <div class="protect-mode-pane" data-protect-pane="investigation">
-        <div class="protect-investigation-intro">
-          <div>
-            <span class="protect-mode-kicker">Cybersecurity investigation workspace</span>
-            <h2>Correlate evidence. <span>Explain uncertainty.</span></h2>
-            <p>Add suspicious messages, links, raw email headers, screenshots, and investigator notes to one case. CyberNet separates facts from inferences, builds competing hypotheses, extracts indicators, and creates a defensive incident-response report.</p>
-          </div>
-          <div class="protect-honesty-badge">Decision support, not automatic attribution. CyberNet never claims an investigation is solved when evidence is incomplete.</div>
-        </div>
-        <div class="protect-case-layout">
-          <div class="protect-case-card">
-            <div class="protect-card-head"><h3>Case Builder</h3><span id="protectArtifactCount">0 / ${MAX_ARTIFACTS} artifacts</span></div>
-            <div class="protect-field"><label for="protectCaseTitle">Case title</label><input id="protectCaseTitle" maxlength="140" placeholder="Example: Suspicious bank verification campaign"></div>
-            <div class="protect-field"><label for="protectCaseContext">Known context and impact</label><textarea id="protectCaseContext" maxlength="8000" placeholder="What happened? Who received it? Was anything clicked, downloaded, paid, or shared? Include explicit dates and times only when known."></textarea></div>
-            <div class="protect-form-grid">
-              <div class="protect-field"><label for="protectArtifactType">Evidence type</label><select id="protectArtifactType"><option value="text">Message or text</option><option value="link">Suspicious link</option><option value="email_headers">Raw email headers</option><option value="image">Screenshot or image</option><option value="note">Investigator note</option></select></div>
-              <div class="protect-field"><label for="protectArtifactLabel">Evidence label</label><input id="protectArtifactLabel" maxlength="160" placeholder="Example: SMS received at 9:14 PM"></div>
-            </div>
-            <div class="protect-field" id="protectArtifactTextField"><label for="protectArtifactContent">Evidence content</label><textarea id="protectArtifactContent" maxlength="${MAX_TEXT}" placeholder="Paste the complete message, URL, raw headers, or factual note. Do not remove suspicious wording that may matter."></textarea></div>
-            <div class="protect-file-box" id="protectFileBox"><input id="protectArtifactFile" type="file" accept="image/jpeg,image/png,image/webp"><div class="protect-file-note" id="protectFileNote">Upload one screenshot. Add visible context in the text box when helpful. Images are compressed before secure analysis and are not saved in browser history.</div></div>
-            <div class="protect-button-row"><button type="button" class="protect-secondary" id="protectAddArtifact">Add evidence</button><button type="button" class="protect-danger-btn" id="protectClearCase">Clear case</button></div>
-            <div class="protect-artifact-list" id="protectArtifactList"></div>
-            <div class="protect-analyze-row"><button type="button" class="protect-primary" id="protectAnalyzeCase">Run Deep Investigation</button><button type="button" class="protect-secondary" id="protectSaveCase">Save draft</button></div>
-            <div class="protect-status" id="protectCaseStatus" aria-live="polite"></div>
-          </div>
-          <div class="protect-case-card" id="protectCaseReport">
-            <div class="protect-report-placeholder"><div><strong>No investigation report yet</strong><span>Add at least one artifact, describe known context, and run the deep investigation. CyberNet will not invent missing facts.</span></div></div>
-          </div>
-        </div>
-      </div>
-      <div class="protect-mode-pane" data-protect-pane="saved">
-        <div class="protect-investigation-intro">
-          <div><span class="protect-mode-kicker">Local case archive</span><h2>Saved <span>investigation reports.</span></h2><p>Cases are stored only in this browser unless your main CyberNet account system separately saves them. Images are never stored in local browser history by this module.</p></div>
-          <button type="button" class="protect-danger-btn" id="protectClearSaved">Delete all saved cases</button>
-        </div>
-        <div class="protect-saved-grid" id="protectSavedGrid"></div>
-      </div>`;
-
-    const quickPane = shell.querySelector('[data-protect-pane="quick"]');
-    for (const child of originalChildren) quickPane.appendChild(child);
-    if (header?.parentNode === section) header.insertAdjacentElement("afterend", shell);
-    else section.appendChild(shell);
-
-    const modeTabs = [...shell.querySelectorAll("[data-protect-mode]")];
-    const panes = [...shell.querySelectorAll("[data-protect-pane]")];
-    const titleInput = shell.querySelector("#protectCaseTitle");
-    const contextInput = shell.querySelector("#protectCaseContext");
-    const typeSelect = shell.querySelector("#protectArtifactType");
-    const labelInput = shell.querySelector("#protectArtifactLabel");
-    const contentInput = shell.querySelector("#protectArtifactContent");
-    const fileInput = shell.querySelector("#protectArtifactFile");
-    const fileBox = shell.querySelector("#protectFileBox");
-    const fileNote = shell.querySelector("#protectFileNote");
-    const artifactList = shell.querySelector("#protectArtifactList");
-    const artifactCount = shell.querySelector("#protectArtifactCount");
-    const caseReport = shell.querySelector("#protectCaseReport");
-    const status = shell.querySelector("#protectCaseStatus");
-    const savedGrid = shell.querySelector("#protectSavedGrid");
-    let currentCase = loadDraft();
-    let selectedImageData = "";
-    let selectedImageName = "";
-
-    function setStatus(message, kind = "") {
-      status.textContent = message || "";
-      status.className = `protect-status ${kind}`.trim();
-    }
-
-    function switchMode(mode) {
-      modeTabs.forEach((button) => button.classList.toggle("active", button.dataset.protectMode === mode));
-      panes.forEach((pane) => pane.classList.toggle("active", pane.dataset.protectPane === mode));
-      if (mode === "saved") renderSavedCases();
-      requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
-    }
-
-    modeTabs.forEach((button) => button.addEventListener("click", () => switchMode(button.dataset.protectMode)));
-
-    function syncInputs() {
-      titleInput.value = currentCase.title || "";
-      contextInput.value = currentCase.context || "";
-    }
-
-    function persistCurrentDraft() {
-      currentCase.title = titleInput.value.trim();
-      currentCase.context = contextInput.value.trim();
-      currentCase.updatedAt = new Date().toISOString();
-      saveDraft(currentCase);
-    }
-
-    function renderArtifacts() {
-      artifactCount.textContent = `${currentCase.artifacts.length} / ${MAX_ARTIFACTS} artifacts`;
-      if (!currentCase.artifacts.length) {
-        artifactList.innerHTML = '<div class="protect-artifact-empty">No evidence added yet. Start with the original suspicious message, URL, raw email headers, or screenshot.</div>';
-        return;
-      }
-      artifactList.innerHTML = currentCase.artifacts.map((artifact) => `
-        <div class="protect-artifact" data-artifact-id="${escapeHTML(artifact.id)}">
-          <div class="protect-artifact-icon">${escapeHTML(artifactIcon(artifact.type))}</div>
-          <div><h4>${escapeHTML(artifact.label || artifactTypeLabel(artifact.type))}</h4><p>${escapeHTML(artifact.content || (artifact.type === "image" ? "Screenshot attached for this session." : "No text content"))}</p><small>${escapeHTML(artifactTypeLabel(artifact.type))} · ${escapeHTML(formatDate(artifact.createdAt))}${artifact.type === "image" && !artifact.imageData ? " · image must be reattached" : ""}</small></div>
-          <button type="button" class="protect-remove-artifact" aria-label="Remove evidence">×</button>
-        </div>`).join("");
-      artifactList.querySelectorAll(".protect-remove-artifact").forEach((button) => button.addEventListener("click", () => {
-        const item = button.closest("[data-artifact-id]");
-        currentCase.artifacts = currentCase.artifacts.filter((artifact) => artifact.id !== item.dataset.artifactId);
-        persistCurrentDraft();
-        renderArtifacts();
-      }));
-    }
-
-    function updateEvidenceForm() {
-      const isImage = typeSelect.value === "image";
-      fileBox.classList.toggle("visible", isImage);
-      contentInput.placeholder = isImage
-        ? "Optional: describe where the screenshot came from, what was clicked, or what the sender claimed."
-        : typeSelect.value === "email_headers"
-          ? "Paste the complete raw headers, including Authentication-Results, Received, From, Reply-To, Return-Path, Message-ID, SPF, DKIM, and DMARC when available."
-          : typeSelect.value === "link"
-            ? "Paste the complete suspicious URL. CyberNet will not open it from the investigation workspace."
-            : "Paste the complete evidence exactly as received.";
-    }
-
-    typeSelect.addEventListener("change", updateEvidenceForm);
-    titleInput.addEventListener("input", persistCurrentDraft);
-    contextInput.addEventListener("input", persistCurrentDraft);
-
-    fileInput.addEventListener("change", async () => {
-      const file = fileInput.files?.[0];
-      selectedImageData = "";
-      selectedImageName = "";
-      if (!file) return;
-      fileNote.textContent = "Compressing screenshot…";
-      try {
-        selectedImageData = await compressImage(file);
-        selectedImageName = file.name;
-        fileNote.textContent = `${file.name} is ready for secure visual analysis. The image will not be stored in local case history.`;
-      } catch (error) {
-        fileInput.value = "";
-        fileNote.textContent = error.message || "The image could not be prepared.";
-      }
-    });
-
-    shell.querySelector("#protectAddArtifact").addEventListener("click", () => {
-      if (currentCase.artifacts.length >= MAX_ARTIFACTS) {
-        setStatus(`This case already contains the maximum of ${MAX_ARTIFACTS} artifacts.`, "error");
-        return;
-      }
-      const type = typeSelect.value;
-      const content = contentInput.value.trim().slice(0, MAX_TEXT);
-      const label = labelInput.value.trim() || `${artifactTypeLabel(type)} ${currentCase.artifacts.length + 1}`;
-      if (type === "image" && !selectedImageData && !content) {
-        setStatus("Attach an image or add a factual image description first.", "error");
-        return;
-      }
-      if (type !== "image" && !content) {
-        setStatus("Paste the evidence content first.", "error");
-        return;
-      }
-      currentCase.artifacts.push({
-        id: id(),
-        type,
-        label,
-        content: type === "image" ? (content || selectedImageName || "Screenshot supplied") : content,
-        imageData: type === "image" ? selectedImageData : "",
-        imageName: type === "image" ? selectedImageName : "",
-        createdAt: new Date().toISOString(),
-      });
-      contentInput.value = "";
-      labelInput.value = "";
-      fileInput.value = "";
-      selectedImageData = "";
-      selectedImageName = "";
-      fileNote.textContent = "Upload one screenshot. Add visible context in the text box when helpful. Images are compressed before secure analysis and are not saved in browser history.";
-      persistCurrentDraft();
-      renderArtifacts();
-      setStatus("Evidence added to the case.", "success");
-    });
-
-    shell.querySelector("#protectClearCase").addEventListener("click", () => {
-      if (!confirm("Clear the current CyberNet investigation case?")) return;
-      currentCase = newCase();
-      selectedImageData = "";
-      selectedImageName = "";
-      localStorage.removeItem(DRAFT_KEY);
-      syncInputs();
-      renderArtifacts();
-      caseReport.innerHTML = '<div class="protect-report-placeholder"><div><strong>No investigation report yet</strong><span>Add at least one artifact, describe known context, and run the deep investigation. CyberNet will not invent missing facts.</span></div></div>';
-      setStatus("Case cleared.");
-    });
-
-    shell.querySelector("#protectSaveCase").addEventListener("click", () => {
-      persistCurrentDraft();
-      if (!currentCase.title) currentCase.title = `CyberNet case ${new Date().toLocaleDateString()}`;
-      const cases = loadCases();
-      const index = cases.findIndex((item) => item.id === currentCase.id);
-      const stored = storageSafeCase(currentCase);
-      if (index >= 0) cases[index] = stored;
-      else cases.unshift(stored);
-      if (saveCases(cases)) setStatus("Case draft saved in this browser.", "success");
-      else setStatus("The browser could not save this case. Export the report instead.", "error");
-    });
-
-    shell.querySelector("#protectAnalyzeCase").addEventListener("click", async (event) => {
-      persistCurrentDraft();
-      const accessToken = getAccessToken();
-      if (!accessToken) {
-        window.CyberNetAccount?.openAuthModal?.("login");
-        setStatus("Sign in or create a free account before running a deep investigation.", "error");
-        return;
-      }
-      if (!currentCase.artifacts.length) {
-        setStatus("Add at least one evidence artifact before running the investigation.", "error");
-        return;
-      }
-      if (!currentCase.title) {
-        currentCase.title = `CyberNet investigation ${new Date().toLocaleDateString()}`;
-        titleInput.value = currentCase.title;
-      }
-
-      const button = event.currentTarget;
-      button.disabled = true;
-      setStatus("Correlating artifacts with server-side deterministic checks and secure AI synthesis…");
-      caseReport.innerHTML = '<div class="protect-loading"><div><div class="protect-loading-ring"></div><h3>Building the investigation report</h3><p>Separating facts from inferences, extracting entities and indicators, testing competing hypotheses, and identifying missing evidence.</p></div></div>';
-
-      const firstImage = currentCase.artifacts.find((artifact) => artifact.type === "image" && artifact.imageData);
-      const payloadCase = {
-        title: currentCase.title,
-        context: currentCase.context,
-        artifacts: currentCase.artifacts.map((artifact) => ({
-          id: artifact.id,
-          type: artifact.type,
-          label: artifact.label,
-          content: artifact.content,
-          createdAt: artifact.createdAt,
-        })),
-      };
-      const headers = { "Content-Type": "application/json" };
-      headers.Authorization = `Bearer ${accessToken}`;
-
-      try {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 60000);
-        const response = await fetch(ENDPOINT, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({
-            mode: "investigation",
-            type: "investigation",
-            content: currentCase.context,
-            caseData: payloadCase,
-            imageData: firstImage?.imageData || "",
-            localResult: { verdict: "inconclusive", score: 0, confidence: 0, reasons: [], limitations: ["Deep case mode relies on server-side recalculation."] },
-          }),
-          signal: controller.signal,
-        });
-        clearTimeout(timer);
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data.error || `Investigation service returned ${response.status}.`);
-        const report = data.analysis || data;
-        currentCase.report = report;
-        currentCase.updatedAt = new Date().toISOString();
-        renderReport(report, currentCase, caseReport);
-        const cases = loadCases();
-        const index = cases.findIndex((item) => item.id === currentCase.id);
-        const stored = storageSafeCase(currentCase);
-        if (index >= 0) cases[index] = stored;
-        else cases.unshift(stored);
-        saveCases(cases);
-        saveDraft(currentCase);
-        setStatus(`${data.aiUsed ? "Secure AI and server evidence" : "Server evidence"} completed the report. Rate limit: ${data.rateLimitMode || "active"}.`, "success");
-      } catch (error) {
-        caseReport.innerHTML = `<div class="protect-report-placeholder"><div><strong>Investigation could not complete</strong><span>${escapeHTML(error.name === "AbortError" ? "The request timed out. Try again with fewer or shorter artifacts." : error.message || "The analysis service failed.")}</span></div></div>`;
-        setStatus(error.name === "AbortError" ? "The investigation timed out." : error.message || "Investigation failed.", "error");
-      } finally {
-        button.disabled = false;
-      }
-    });
-
-    function renderSavedCases() {
-      const cases = loadCases();
-      if (!cases.length) {
-        savedGrid.innerHTML = '<div class="protect-no-cases">No saved investigation reports are stored in this browser yet. Build a case in Deep Investigation, then save the draft or run the analysis.</div>';
-        return;
-      }
-      savedGrid.innerHTML = cases.map((item) => {
-        const report = item.report || {};
-        return `<article class="protect-saved-case" data-case-id="${escapeHTML(item.id)}"><h3>${escapeHTML(item.title || "Untitled CyberNet case")}</h3><p>${escapeHTML(report.summary || item.context || "Saved case draft without a completed report.")}</p><div class="protect-saved-meta"><span class="protect-badge ${escapeHTML(report.verdict || "inconclusive")}">${escapeHTML(String(report.verdict || "draft").replace(/_/g, " "))}</span>${report.severity ? `<span class="protect-badge ${escapeHTML(report.severity)}">${escapeHTML(report.severity)}</span>` : ""}</div><small>${escapeHTML(formatDate(item.updatedAt || item.createdAt))} · ${safeArray(item.artifacts).length} artifacts</small><div class="protect-saved-actions"><button type="button" class="protect-secondary" data-open-case>Open</button><button type="button" class="protect-danger-btn" data-delete-case>Delete</button></div></article>`;
-      }).join("");
-
-      savedGrid.querySelectorAll("[data-open-case]").forEach((button) => button.addEventListener("click", () => {
-        const card = button.closest("[data-case-id]");
-        const found = loadCases().find((item) => item.id === card.dataset.caseId);
-        if (!found) return;
-        currentCase = found;
-        syncInputs();
-        renderArtifacts();
-        if (currentCase.report) renderReport(currentCase.report, currentCase, caseReport);
-        else caseReport.innerHTML = '<div class="protect-report-placeholder"><div><strong>Saved draft loaded</strong><span>Review or reattach any screenshot evidence, then run the deep investigation.</span></div></div>';
-        saveDraft(currentCase);
-        switchMode("investigation");
-        setStatus("Saved case loaded. Screenshot files are not stored and may need to be reattached.", "success");
-      }));
-
-      savedGrid.querySelectorAll("[data-delete-case]").forEach((button) => button.addEventListener("click", () => {
-        const card = button.closest("[data-case-id]");
-        if (!confirm("Delete this saved CyberNet investigation case?")) return;
-        saveCases(loadCases().filter((item) => item.id !== card.dataset.caseId));
-        renderSavedCases();
-      }));
-    }
-
-    shell.querySelector("#protectClearSaved").addEventListener("click", () => {
-      if (!confirm("Delete every saved CyberNet investigation case from this browser?")) return;
-      localStorage.removeItem(STORAGE_KEY);
-      renderSavedCases();
-    });
-
-    syncInputs();
-    renderArtifacts();
-    updateEvidenceForm();
-    if (currentCase.report) renderReport(currentCase.report, currentCase, caseReport);
-    window.CyberNetProtectInvestigation = {
-      open: () => switchMode("investigation"),
-      saved: () => switchMode("saved"),
-      getCurrentCase: () => JSON.parse(JSON.stringify(storageSafeCase(currentCase))),
-    };
-  }
-
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init, { once: true });
-  else init();
-})();

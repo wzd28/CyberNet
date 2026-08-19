@@ -2,7 +2,7 @@
   "name": "cybernet-ai",
   "version": "3.0.0",
   "private": true,
-  "description": "CyberNet AI with Supabase accounts, Stripe subscriptions, defensive AI analysis, GhostScan, BYOK validation, and Netlify Functions.",
+  "description": "CyberNet AI with Supabase accounts, Stripe subscriptions, defensive AI analysis, BYOK validation, and Netlify Functions.",
   "type": "module",
   "scripts": {
     "dev": "netlify dev",

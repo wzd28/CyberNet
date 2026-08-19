@@ -44,6 +44,32 @@
       "name": "CyberNet AI",
       "url": "https://cybernetai.app/",
       "email": "cybernetai.26@gmail.com"
+    },
+    {
+      "@type": "Course",
+      "@id": "https://cybernetai.app/#learn",
+      "name": "CyberNet AI Learn Center",
+      "description": "Free, interactive cybersecurity education covering fundamentals, scams and social engineering, malware, passwords and authentication, safe browsing, privacy, and incident prevention and response.",
+      "provider": {
+        "@id": "https://cybernetai.app/#organization"
+      },
+      "url": "https://cybernetai.app/#learn",
+      "isAccessibleForFree": true,
+      "inLanguage": "en",
+      "hasCourseInstance": {
+        "@type": "CourseInstance",
+        "courseMode": "online",
+        "courseWorkload": "PT30M"
+      },
+      "hasPart": [
+        { "@type": "LearningResource", "name": "Cybersecurity Fundamentals" },
+        { "@type": "LearningResource", "name": "Scams & Social Engineering" },
+        { "@type": "LearningResource", "name": "Malware Deep Dive" },
+        { "@type": "LearningResource", "name": "Passwords & Authentication" },
+        { "@type": "LearningResource", "name": "Safe Browsing & Networks" },
+        { "@type": "LearningResource", "name": "Privacy & Data Protection" },
+        { "@type": "LearningResource", "name": "Prevention & Response" }
+      ]
     }
   ]
 }
@@ -112,6 +138,20 @@
       <small>Secure account access powered by Supabase. New accounts start on CyberNet AI Free.</small>
     </div>
   </div>
+  <!-- HOW-TO VIDEO MODAL -->
+  <div id="howtoVideoModal" class="modal video-modal" aria-hidden="true">
+    <div class="modal-card video-modal-card glass reveal" role="dialog" aria-modal="true" aria-labelledby="howtoVideoTitle">
+      <button class="close-modal" id="closeHowtoVideo" type="button" aria-label="Close">&times;</button>
+      <h3 id="howtoVideoTitle">How To Use Protect</h3>
+      <div class="video-modal-player" id="howtoVideoPlayer">
+        <div class="video-modal-placeholder">
+          <svg viewBox="0 0 24 24" fill="none" width="46" height="46" aria-hidden="true"><circle cx="12" cy="12" r="11" stroke="currentColor" stroke-width="1.3"/><path d="M10 8.5l6 3.5-6 3.5v-7Z" fill="currentColor"/></svg>
+          <p>Video coming soon.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
 
 
   <!-- â•â•â• FEEDBACK / WEBSITE PROBLEM SURVEY â•â•â• -->
@@ -150,7 +190,6 @@
           <option value="Website problem">Website problem</option>
           <option value="Account or sign-in problem">Account or sign-in problem</option>
           <option value="CyberNet Protect result">CyberNet Protect result</option>
-          <option value="GhostScan problem">GhostScan problem</option>
           <option value="Billing or plan question">Billing or plan question</option>
           <option value="Feature request">Feature request</option>
           <option value="General feedback">General feedback</option>
@@ -191,13 +230,23 @@
       <button class="nav-link active" data-page="home">Home</button>
       <button class="nav-link" data-page="cybernet">Protect</button>
       <button class="nav-link" data-page="cybernetai">CyberNet AI</button>
-      <button class="nav-link ghost-nav-link" data-page="ghostscan">GhostScan <span>NEW</span></button>
       <button class="nav-link" data-page="learn">Learn</button>
       <button class="nav-link" data-page="pricing">Pricing</button>
       <button class="nav-link" data-page="about">About</button>
     </nav>
 
     <div class="nav-actions">
+      <div class="nav-social-links" aria-label="CyberNet AI on social media">
+        <a class="nav-social-btn" href="#" target="_blank" rel="noopener" aria-label="CyberNet AI on LinkedIn" title="LinkedIn">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M20.45 20.45h-3.55v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.36V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.45v6.29zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.11 20.45H3.56V9h3.55v11.45z"/></svg>
+        </a>
+        <a class="nav-social-btn" href="#" target="_blank" rel="noopener" aria-label="CyberNet AI on TikTok" title="TikTok">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M16.6 5.82a4.28 4.28 0 0 1-2.63-2.02V3h-3.28v13.4a2.6 2.6 0 1 1-1.85-2.49v-3.3a5.92 5.92 0 0 0-.87-.06 5.86 5.86 0 1 0 5.86 5.86V9.35a7.55 7.55 0 0 0 4.4 1.41V7.5a4.28 4.28 0 0 1-1.63-1.68z"/></svg>
+        </a>
+        <a class="nav-social-btn" href="#" target="_blank" rel="noopener" aria-label="CyberNet AI on Instagram" title="Instagram">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.05.41 2.23.06 1.27.07 1.64.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.05.36-2.23.41-1.27.06-1.64.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.72 3.72 0 0 1-1.38-.9 3.72 3.72 0 0 1-.9-1.38c-.16-.42-.36-1.05-.41-2.23-.06-1.27-.07-1.64-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.05-.36 2.23-.41 1.27-.06 1.64-.07 4.85-.07M12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.8.31-1.47.72-2.14 1.39A5.9 5.9 0 0 0 .61 4.16c-.3.76-.5 1.64-.56 2.91C.01 8.35 0 8.76 0 12s.01 3.65.07 4.93c.06 1.27.26 2.15.56 2.91.31.8.72 1.47 1.39 2.14a5.9 5.9 0 0 0 2.14 1.39c.76.3 1.64.5 2.91.56C8.35 23.99 8.76 24 12 24s3.65-.01 4.93-.07c1.27-.06 2.15-.26 2.91-.56.8-.31 1.47-.72 2.14-1.39a5.9 5.9 0 0 0 1.39-2.14c.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.93s-.01-3.65-.07-4.93c-.06-1.27-.26-2.15-.56-2.91a5.9 5.9 0 0 0-1.39-2.14A5.9 5.9 0 0 0 19.84.63c-.76-.3-1.64-.5-2.91-.56C15.65.01 15.24 0 12 0zm0 5.84a6.16 6.16 0 1 0 0 12.32 6.16 6.16 0 0 0 0-12.32zm0 10.16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.41-10.4a1.44 1.44 0 1 1-2.88 0 1.44 1.44 0 0 1 2.88 0z"/></svg>
+        </a>
+      </div>
       <div class="account-summary" id="accountSummary" hidden>
         <span class="nav-greeting" id="navGreeting"></span>
         <span class="plan-badge plan-badge-free" id="navPlanBadge">FREE</span>
@@ -224,7 +273,6 @@
           </div>
           <div class="hero-stats-row">
             <div><strong data-count="3" data-suffix="">0</strong><span>Quick Scan Types</span></div>
-            <div><strong data-count="25" data-suffix="">0</strong><span>Case Artifacts</span></div>
             <div><strong data-count="5" data-suffix="">0</strong><span>Evidence Types</span></div>
             <div><strong data-count="1" data-suffix="">0</strong><span>Unified Report</span></div>
           </div>
@@ -271,6 +319,49 @@
         </div>
       </div>
 
+      <!-- HOW-TO VIDEOS -->
+      <div class="howto-videos reveal">
+        <h2>See CyberNet AI In Action</h2>
+        <p class="howto-videos-sub">Short walkthroughs so you know exactly how to use each feature.</p>
+        <div class="howto-videos-grid">
+          <button class="howto-video-card" type="button" data-video="protect" aria-haspopup="dialog">
+            <span class="howto-video-thumb">
+              <span class="howto-play-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" stroke="currentColor" stroke-width="1.4"/><path d="M10 8.5l6 3.5-6 3.5v-7Z" fill="currentColor"/></svg>
+              </span>
+            </span>
+            <span class="howto-video-label">
+              <h4>How To Use Protect</h4>
+              <p>Scan suspicious text, links, and screenshots in seconds.</p>
+            </span>
+          </button>
+
+          <button class="howto-video-card" type="button" data-video="cybernetai" aria-haspopup="dialog">
+            <span class="howto-video-thumb">
+              <span class="howto-play-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" stroke="currentColor" stroke-width="1.4"/><path d="M10 8.5l6 3.5-6 3.5v-7Z" fill="currentColor"/></svg>
+              </span>
+            </span>
+            <span class="howto-video-label">
+              <h4>How To Use CyberNet AI</h4>
+              <p>Get expert-level analysis with your own AI or ours.</p>
+            </span>
+          </button>
+
+          <button class="howto-video-card" type="button" data-video="recovery" aria-haspopup="dialog">
+            <span class="howto-video-thumb">
+              <span class="howto-play-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" stroke="currentColor" stroke-width="1.4"/><path d="M10 8.5l6 3.5-6 3.5v-7Z" fill="currentColor"/></svg>
+              </span>
+            </span>
+            <span class="howto-video-label">
+              <h4>How To Use Recovery</h4>
+              <p>Turn advice into a guided, step-by-step recovery case.</p>
+            </span>
+          </button>
+        </div>
+      </div>
+
       <!-- WHY CHOOSE -->
       <div class="why-choose reveal">
         <h2>Why Choose CyberNet AI?</h2>
@@ -281,7 +372,7 @@
           </div>
           <div class="why-choose-item">
             <span class="wc-icon-box"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2.5L20 6v6c0 5-3.5 8-8 9.5C7.5 20 4 17 4 12V6l8-3.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 12l2 2 4-4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            <div><h4>On-Demand Analysis</h4><p>Submit content when you need a careful second opinion or a deeper investigation.</p></div>
+            <div><h4>On-Demand Analysis</h4><p>Submit content whenever you need a careful, detailed second opinion.</p></div>
           </div>
           <div class="why-choose-item">
             <span class="wc-icon-box"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="15" r="1.4" fill="currentColor"/></svg></span>
@@ -313,8 +404,8 @@
           </div>
           <div class="wow-stat glass tilt-card">
             <div class="wow-ring"><svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="36" stroke="rgba(255,255,255,0.06)" stroke-width="4" fill="none"/><circle cx="40" cy="40" r="36" stroke="#22d3ee" stroke-width="4" fill="none" stroke-dasharray="200 226" stroke-linecap="round" class="wow-ring-fill"/></svg></div>
-            <div class="wow-stat-number" data-target="25">0</div>
-            <div class="wow-stat-label">Artifacts per Case</div>
+            <div class="wow-stat-number" data-target="15">0</div>
+            <div class="wow-stat-label">Threat Categories</div>
           </div>
           <div class="wow-stat glass tilt-card">
             <div class="wow-ring"><svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="36" stroke="rgba(255,255,255,0.06)" stroke-width="4" fill="none"/><circle cx="40" cy="40" r="36" stroke="#22d3ee" stroke-width="4" fill="none" stroke-dasharray="216 226" stroke-linecap="round" class="wow-ring-fill"/></svg></div>
@@ -606,7 +697,6 @@
             <div><span>âœ“</span> Basic threat explanations</div>
             <div class="benefit-locked"><span>Ã—</span> Saved scan history</div>
             <div class="benefit-locked"><span>Ã—</span> Downloadable reports</div>
-            <div class="benefit-locked"><span>Ã—</span> GhostScan access</div>
           </div>
 
           <button class="primary-btn full" id="aiUpgradeBtn" type="button">Upgrade to Pro</button>
@@ -646,456 +736,36 @@
         </div>
 
         <div class="ai-chat glass">
-          <div class="ai-chat-tabs">
-            <button class="chat-tab active" data-chat="text">AI Text Analysis</button>
-            <button class="chat-tab" data-chat="link">AI Link Analysis</button>
-            <button class="chat-tab" data-chat="image">AI Image Analysis</button>
+          <div class="ai-chat-lead">
+            <h4>Ask CyberNet AI</h4>
+            <p>Paste a message, drop a link, or attach a screenshot — CyberNet AI automatically detects what it is looking at and runs the right analysis. No prompting needed.</p>
           </div>
 
           <div class="chat-messages" id="chatMessages">
             <div class="chat-bubble chat-bubble-ai">
               <div class="chat-bubble-inner">
-                Sign in, then paste a suspicious message, link, or image. Free accounts receive 5 accurate AI analyses per day; Pro accounts receive 50 advanced analyses, saved history, reports, and GhostScan access.
+                Sign in, then paste or drop anything suspicious below — a message, a link, or a screenshot. CyberNet AI automatically figures out what it is looking at and runs the right analysis. Free accounts receive 5 accurate AI analyses per day; Pro accounts receive 50 advanced analyses, saved history, and reports.
               </div>
             </div>
           </div>
 
-          <div class="chat-input-row" id="chatInputRowText">
-            <input id="chatInput" type="text" placeholder="Ask anything about security..."/>
-            <button id="chatSendBtn" class="send-btn" aria-label="Send">âž¤</button>
+          <div id="chatAttachPreview" class="chat-attach-preview" hidden>
+            <span class="chat-attach-thumb" id="chatAttachThumb"></span>
+            <span class="chat-attach-name" id="chatAttachName"></span>
+            <button type="button" class="chat-attach-remove" id="chatAttachRemove" aria-label="Remove attached image">&times;</button>
           </div>
 
-          <label class="chat-input-row chat-upload-row" id="chatInputRowImage" style="display:none">
-            <input type="file" id="aiImageInput" accept="image/*"/>
-            <span class="upload-icon-sm">â‡§</span>
-            <span>Click to upload an image for AI analysis</span>
-          </label>
-        </div>
-      </div>
-    </section>    <!-- â•â•â•â•â•â•â•â•â•â•â• GHOSTSCAN â•â•â•â•â•â•â•â•â•â•â• -->
-    <section id="ghostscan" class="page ghost-page is-locked">
-      <div class="feature-paywall glass reveal" id="ghostPaywall">
-        <div class="feature-paywall-icon">â—ˆ</div>
-        <span class="account-eyebrow">CYBERNET AI PRO</span>
-        <h1>GhostScan is a Pro feature.</h1>
-        <p>Unlock isolated-browser investigations, redirect tracking, phishing behavior analysis, screenshots, and advanced security reports with CyberNet AI Pro.</p>
-        <div class="feature-paywall-points">
-          <span>50 AI analyses per day</span>
-          <span>Saved scan history</span>
-          <span>Downloadable reports</span>
-          <span>Full GhostScan access</span>
-        </div>
-        <button class="primary-btn big" id="ghostUpgradeBtn" type="button">Upgrade to Pro</button>
-      </div>
-      <div class="ghost-app">
-        <div class="ghost-landing" id="ghostLanding">
-          <div class="ghost-hero-copy reveal">
-            <div class="ghost-kicker"><span>NEW</span> GhostScan</div>
-            <h1>Let CyberNet<br><strong>click it, not you.</strong></h1>
-            <p>GhostScan safely visits suspicious links inside an isolated cloud browser and shows what the page actually doesâ€”without exposing your device, cookies, accounts, or personal data.</p>
-
-            <div class="ghost-input-shell">
-              <div class="ghost-input-row">
-                <input id="ghostUrlInput" type="text" inputmode="url" autocomplete="off" spellcheck="false" placeholder="Paste a suspicious link..." aria-label="Suspicious link" />
-                <button id="ghostScanBtn" class="ghost-primary-btn">GhostScan <span>â†—</span></button>
-              </div>
-
-              <div class="ghost-upload-row">
-                <span>or</span>
-                <button type="button" id="ghostUploadBtn" class="ghost-upload-btn">â–¦ Upload QR or screenshot</button>
-                <input type="file" id="ghostFileInput" accept="image/png,image/jpeg,image/webp" hidden />
-                <small id="ghostFileName">JPG, PNG or WEBP Â· max 8 MB</small>
-              </div>
-            </div>
-
-            <p class="ghost-helper">We inspect redirects, impersonation, forms, downloads, permission requests, mobile behavior, and other risk signals.</p>
-
-            <div class="ghost-feature-strip">
-              <div>
-                <span>â¬¡</span>
-                <strong>Safe &amp; Isolated</strong>
-                <small>We visit, not you</small>
-              </div>
-
-              <div>
-                <span>âŒ</span>
-                <strong>Behavior Analysis</strong>
-                <small>Redirects + forms</small>
-              </div>
-
-              <div>
-                <span>â—‰</span>
-                <strong>Visual Replay</strong>
-                <small>See what happened</small>
-              </div>
-
-              <div>
-                <span>â–£</span>
-                <strong>Actionable Report</strong>
-                <small>Clear next steps</small>
-              </div>
-            </div>
-
-            <div class="ghost-service-line" id="ghostServiceLine">
-              <span class="ghost-service-dot"></span>
-              <span id="ghostServiceText">Checking isolated browser serviceâ€¦</span>
-            </div>
-          </div>
-
-          <div class="ghost-hero-art reveal" aria-hidden="true">
-            <div class="ghost-window-stack stack-back"></div>
-            <div class="ghost-window-stack stack-mid"></div>
-
-            <div class="ghost-window-main">
-              <div class="ghost-window-bar">
-                <span></span>
-                <span></span>
-                <span></span>
-              </div>
-
-              <div class="ghost-orb-ring ring-one"></div>
-              <div class="ghost-orb-ring ring-two"></div>
-
-              <svg class="ghost-mascot" viewBox="0 0 180 220" role="img" aria-label="GhostScan mascot">
-                <defs>
-                  <filter id="ghostGlow">
-                    <feGaussianBlur stdDeviation="8" result="blur"/>
-                    <feMerge>
-                      <feMergeNode in="blur"/>
-                      <feMergeNode in="SourceGraphic"/>
-                    </feMerge>
-                  </filter>
-
-                  <linearGradient id="ghostBody" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stop-color="#b9ffcf"/>
-                    <stop offset=".45" stop-color="#45f579"/>
-                    <stop offset="1" stop-color="#13be62"/>
-                  </linearGradient>
-                </defs>
-
-                <path filter="url(#ghostGlow)" fill="url(#ghostBody)" d="M32 190V92C32 45 56 20 90 20s58 25 58 72v98l-18-17-18 17-22-17-22 17-18-17-18 17Z"/>
-                <ellipse cx="72" cy="97" rx="9" ry="20" fill="#05291a"/>
-                <ellipse cx="108" cy="97" rx="9" ry="20" fill="#05291a"/>
-              </svg>
-
-              <div class="ghost-scan-beam"></div>
-              <div class="ghost-art-label">ISOLATED SESSION</div>
-            </div>
-
-            <div class="ghost-art-warning">!</div>
-          </div>
-        </div>
-
-        <section class="ghost-coming-soon reveal" id="ghostComingSoon" aria-labelledby="ghostComingSoonTitle">
-          <div class="ghost-coming-grid"></div>
-          <div class="ghost-coming-content">
-            <span class="ghost-coming-badge">IN THE WORKS</span>
-            <div class="ghost-coming-icon" aria-hidden="true">âš™</div>
-            <h2 id="ghostComingSoonTitle">GhostScan is being built.</h2>
-            <p>We are developing the isolated cloud-browser engine that will safely investigate suspicious websites without exposing your device, cookies, accounts, or personal information.</p>
-
-            <div class="ghost-build-list">
-              <div><span>01</span><strong>Isolated link visits</strong><small>Open suspicious destinations inside a restricted remote browser.</small></div>
-              <div><span>02</span><strong>Redirect tracking</strong><small>Follow every destination change and reveal the final domain.</small></div>
-              <div><span>03</span><strong>Behavior analysis</strong><small>Inspect forms, downloads, popups, permissions, and phishing signals.</small></div>
-              <div><span>04</span><strong>Visual security reports</strong><small>Generate screenshots, replay steps, risk scores, and clear actions.</small></div>
-            </div>
-
-            <div class="ghost-development-progress" aria-label="GhostScan development progress">
-              <div class="ghost-progress-copy"><span>Development status</span><strong>Coming Soon</strong></div>
-              <div class="ghost-development-track"><span></span></div>
-            </div>
-
-            <p class="ghost-coming-note">Until GhostScan launches, use CyberNet AI Link Analysis to inspect suspicious URLs without opening them.</p>
-            <button type="button" class="ghost-primary-btn ghost-use-link-check" data-page="cybernetai">Use CyberNet AI Link Analysis <span>â†—</span></button>
-          </div>
-        </section>
-
-        <div class="ghost-workspace ghost-hidden" id="ghostWorkspace">
-          <aside class="ghost-side-panel">
-            <button class="ghost-back-home" id="ghostBackHome">â€¹ Back to GhostScan</button>
-
-            <div class="ghost-side-brand">
-              <span class="brand-mark">&gt;_</span>
-
-              <div>
-                CyberNet
-                <small>AI</small>
-              </div>
-            </div>
-
-            <nav class="ghost-side-menu">
-              <button data-page="home">
-                âŒ‚
-                <span>Dashboard</span>
-              </button>
-
-              <button data-page="cybernet">
-                â–¤
-                <span>Text Scan</span>
-              </button>
-
-              <button data-page="cybernet">
-                âŒ
-                <span>Link Scan</span>
-              </button>
-
-              <button data-page="cybernet">
-                â–§
-                <span>Image Scan</span>
-              </button>
-
-              <button class="active">
-                â™™
-                <span>GhostScan</span>
-                <em>NEW</em>
-              </button>
-
-              <button id="ghostHistoryBtn">
-                â—·
-                <span>History</span>
-              </button>
-            </nav>
-
-            <div class="ghost-private-note">
-              <span>â¬¡</span>
-
-              <p>
-                <strong>Private by design</strong>
-                Scan sessions are destroyed after the report is generated.
-              </p>
-            </div>
-          </aside>
-
-          <div class="ghost-main-panel">
-            <div class="ghost-progress-view" id="ghostProgressView">
-              <div class="ghost-topbar">
-                <div>
-                  <span class="ghost-eyebrow">ISOLATED BROWSER</span>
-                  <h2>GhostScan in progressâ€¦</h2>
-                  <p>Investigating this link in a temporary, restricted browser session.</p>
-                </div>
-
-                <button class="ghost-cancel-btn" id="ghostCancelBtn">Cancel</button>
-              </div>
-
-              <div class="ghost-target-bar">
-                <span id="ghostTargetUrl">https://example.com</span>
-                <button id="ghostCopyTarget" aria-label="Copy URL">â§‰</button>
-              </div>
-
-              <div class="ghost-stepper" id="ghostStepper">
-                <div class="ghost-step active" data-step="0">
-                  <span>1</span>
-                  <small>Initializing</small>
-                </div>
-
-                <div class="ghost-step" data-step="1">
-                  <span>2</span>
-                  <small>Following redirects</small>
-                </div>
-
-                <div class="ghost-step" data-step="2">
-                  <span>3</span>
-                  <small>Inspecting pages</small>
-                </div>
-
-                <div class="ghost-step" data-step="3">
-                  <span>4</span>
-                  <small>Analyzing behavior</small>
-                </div>
-
-                <div class="ghost-step" data-step="4">
-                  <span>5</span>
-                  <small>Generating report</small>
-                </div>
-              </div>
-
-              <div class="ghost-live-grid">
-                <div class="ghost-browser-preview">
-                  <div class="ghost-preview-chrome">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <div id="ghostPreviewAddress">isolated://starting</div>
-                  </div>
-
-                  <div class="ghost-preview-stage" id="ghostPreviewStage">
-                    <div class="ghost-preview-loader">
-                      <div class="ghost-radar"></div>
-                      <strong>Launching isolated browser</strong>
-                      <small>No customer cookies or credentials are shared.</small>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="ghost-live-log">
-                  <div class="ghost-log-head">
-                    <h3>Live Log</h3>
-                    <span id="ghostElapsed">00:00</span>
-                  </div>
-
-                  <div id="ghostLogList" class="ghost-log-list"></div>
-                </div>
-              </div>
-
-              <div class="ghost-progress-foot">
-                <span>â¬¡</span>
-                This scan runs remotely. Never enter real passwords, OTPs, or payment details into a suspicious page.
-              </div>
-            </div>
-
-            <div class="ghost-results-view ghost-hidden" id="ghostResultsView">
-              <div class="ghost-results-head">
-                <div>
-                  <button class="ghost-back-results" id="ghostNewScanBtn">â€¹ New scan</button>
-                  <h2>GhostScan Results</h2>
-                  <p id="ghostResultMeta">Scan complete</p>
-                </div>
-
-                <div class="ghost-result-actions">
-                  <button id="ghostCopyReportBtn">Copy summary</button>
-                  <button id="ghostPrintBtn">Save report</button>
-                </div>
-              </div>
-
-              <div class="ghost-result-alert" id="ghostResultAlert">
-                <div class="ghost-alert-icon">!</div>
-
-                <div>
-                  <h3 id="ghostVerdictTitle">Needs Review</h3>
-                  <p id="ghostVerdictSummary">GhostScan found incomplete evidence.</p>
-                </div>
-
-                <span id="ghostConfidenceBadge">Confidence: Limited</span>
-              </div>
-
-              <div class="ghost-result-tabs">
-                <button class="active" data-ghost-tab="overview">Overview</button>
-                <button data-ghost-tab="replay">Attack Replay</button>
-                <button data-ghost-tab="technical">Technical Details</button>
-              </div>
-
-              <div class="ghost-result-tab active" data-ghost-panel="overview">
-                <div class="ghost-overview-grid">
-                  <div class="ghost-score-card">
-                    <h3>Risk Score</h3>
-
-                    <div class="ghost-score-ring">
-                      <span id="ghostScoreValue">0</span>
-                      <small>/100</small>
-                    </div>
-
-                    <p id="ghostRiskLabel">Waiting for result</p>
-                  </div>
-
-                  <div class="ghost-findings-card">
-                    <h3>What we found</h3>
-                    <div id="ghostFindingsList" class="ghost-findings-list"></div>
-                  </div>
-                </div>
-
-                <div class="ghost-actions-card">
-                  <h3>What should you do?</h3>
-                  <div id="ghostActionsList" class="ghost-actions-list"></div>
-                </div>
-
-                <div class="ghost-limitations-card ghost-hidden" id="ghostLimitationsCard">
-                  <h3>What GhostScan could not verify</h3>
-                  <ul id="ghostLimitationsList"></ul>
-                </div>
-              </div>
-
-              <div class="ghost-result-tab" data-ghost-panel="replay">
-                <div class="ghost-replay-card">
-                  <div class="ghost-section-title">
-                    <div>
-                      <h3>Attack Replay</h3>
-                      <p>See how the destination changed step by step.</p>
-                    </div>
-
-                    <span id="ghostReplayCount">0 steps</span>
-                  </div>
-
-                  <div id="ghostReplayTrack" class="ghost-replay-track"></div>
-                </div>
-
-                <div class="ghost-screenshot-card">
-                  <div class="ghost-section-title">
-                    <div>
-                      <h3>Isolated Screenshots</h3>
-                      <p>Captured without exposing your device or accounts.</p>
-                    </div>
-                  </div>
-
-                  <div class="ghost-screen-tabs">
-                    <button class="active" data-screen="desktop">Desktop</button>
-                    <button data-screen="mobile">Mobile</button>
-                  </div>
-
-                  <div class="ghost-screen-frame">
-                    <img id="ghostDesktopShot" alt="Desktop GhostScan screenshot"/>
-                    <img id="ghostMobileShot" class="ghost-hidden" alt="Mobile GhostScan screenshot"/>
-
-                    <div id="ghostNoScreenshot" class="ghost-no-shot">
-                      No screenshot was available.
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="ghost-result-tab" data-ghost-panel="technical">
-                <div class="ghost-tech-grid">
-                  <div class="ghost-tech-card">
-                    <h3>Redirect Chain</h3>
-                    <ol id="ghostRedirectList"></ol>
-                  </div>
-
-                  <div class="ghost-tech-card">
-                    <h3>Domains Contacted</h3>
-                    <ul id="ghostDomainsList"></ul>
-                  </div>
-
-                  <div class="ghost-tech-card">
-                    <h3>Form Information</h3>
-                    <div id="ghostFormsList"></div>
-                  </div>
-
-                  <div class="ghost-tech-card">
-                    <h3>Page Information</h3>
-                    <dl id="ghostPageInfo"></dl>
-                  </div>
-
-                  <div class="ghost-tech-card">
-                    <h3>Behavior Signals</h3>
-                    <ul id="ghostBehaviorList"></ul>
-                  </div>
-
-                  <div class="ghost-tech-card">
-                    <h3>Reputation</h3>
-                    <div id="ghostReputationInfo"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="ghost-history-view ghost-hidden" id="ghostHistoryView">
-              <div class="ghost-results-head">
-                <div>
-                  <button class="ghost-back-results" id="ghostHistoryBack">â€¹ Back</button>
-                  <h2>GhostScan History</h2>
-                  <p>Stored only in this browser.</p>
-                </div>
-
-                <button class="ghost-clear-history" id="ghostClearHistory">Clear history</button>
-              </div>
-
-              <div id="ghostHistoryList" class="ghost-history-list"></div>
-            </div>
+          <div class="chat-input-row chat-input-row-unified" id="chatInputRowUnified">
+            <label class="chat-attach-btn" id="chatAttachBtn" aria-label="Attach an image">
+              <input type="file" id="aiImageInput" accept="image/*" hidden />
+              <span aria-hidden="true">📎</span>
+            </label>
+            <input id="chatInput" type="text" placeholder="Paste a message, link, or describe what happened..."/>
+            <button id="chatSendBtn" class="send-btn" aria-label="Send">➤</button>
           </div>
         </div>
       </div>
-    </section>    <!-- â•â•â•â•â•â•â•â•â•â•â• LEARN â•â•â•â•â•â•â•â•â•â•â• -->
+    </section>    <!-- ═══════════ LEARN ═══════════ -->
     <section id="learn" class="page">
       <div class="learn-hero glass reveal">
         <div>
@@ -1756,7 +1426,7 @@
       <div class="section-head reveal pricing-head">
         <div class="pill glass center"><span class="prompt">$</span> Simple, Transparent Pricing</div>
         <h1>Choose the protection that <span>fits you</span></h1>
-        <p>Start free with accurate protection. Upgrade when you need deeper analysis, saved history, reports, and GhostScan.</p>
+        <p>Start free with accurate protection. Upgrade when you need deeper analysis, saved history, and reports.</p>
 
         <div class="pricing-toggle-wrap">
           <div class="pricing-toggle glass" id="pricingToggle" data-cycle="monthly">
@@ -1784,7 +1454,6 @@
             <li>Cybersecurity learning center</li>
             <li class="feature-unavailable">No saved scan history</li>
             <li class="feature-unavailable">No downloadable reports</li>
-            <li class="feature-unavailable">No GhostScan access</li>
           </ul>
           <button class="secondary-btn full plan-select-btn" id="freePlanBtn" data-plan="free">Start Free</button>
         </article>
@@ -1809,7 +1478,6 @@
             <li>Downloadable security reports</li>
             <li>Saved scan history</li>
             <li>Faster AI responses</li>
-            <li>Full GhostScan access</li>
           </ul>
           <button class="primary-btn full plan-select-btn" id="proPlanBtn" data-plan="pro" data-cycle="monthly">Upgrade to Pro</button>
         </article>
@@ -1838,7 +1506,6 @@
               <tr><td>Scan history</td><td><span class="table-no">â€”</span></td><td><span class="table-yes">âœ“</span></td></tr>
               <tr><td>Downloadable reports</td><td><span class="table-no">â€”</span></td><td><span class="table-yes">âœ“</span></td></tr>
               <tr><td>Faster AI responses</td><td><span class="table-no">â€”</span></td><td><span class="table-yes">âœ“</span></td></tr>
-              <tr><td>GhostScan</td><td><span class="table-no">â€”</span></td><td><strong>Full access</strong></td></tr>
               <tr><td>Price</td><td>$0</td><td>$9.99/month or $95.90/year</td></tr>
             </tbody>
           </table>
@@ -1874,8 +1541,8 @@
         </div>
 
         <div>
-          <strong data-count="25" data-suffix="">0</strong>
-          <span>Artifacts per Case</span>
+          <strong data-count="15" data-suffix="">0</strong>
+          <span>Threat Categories</span>
         </div>
       </div>
 
