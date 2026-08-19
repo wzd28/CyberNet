@@ -79,17 +79,11 @@
 document.addEventListener("DOMContentLoaded",()=>{
 
   /* ─── Core ─── */
-  const loader=document.getElementById("loader");
   const navButtons=document.querySelectorAll("[data-page]");
   const pages=document.querySelectorAll(".page");
   const mobileMenu=document.getElementById("mobileMenu");
   const navbar=document.querySelector(".navbar");
-  const LOADER_MS=1400;
   let currentPageId="home";
-
-  /* ─── Loader (first visit only) ─── */
-  function hideLoader(){if(!loader)return;setTimeout(()=>loader.classList.add("hide"),LOADER_MS)}
-  hideLoader();
 
   /* ─── Reveal ─── */
   function runRevealAnimation(){const items=document.querySelectorAll(".active-page .reveal");items.forEach((item,i)=>{item.classList.remove("show");setTimeout(()=>item.classList.add("show"),100+i*80)})}
@@ -1521,7 +1515,366 @@ document.addEventListener("DOMContentLoaded",()=>{
   })();
 
 
-  /* ─── Start ─── */
+  /* ─── Recovery Mode ─── */
+  (function initRecoveryMode(){
+    const RECOVERY_ENDPOINT="/api/recovery-mode";
+    const RECOVERY_UPDATE_ENDPOINT="/api/recovery-update";
+    const RECOVERY_CASE_ENDPOINT="/api/recovery-case";
+
+    const intakeEl=document.getElementById("recoveryIntake");
+    const dashboardEl=document.getElementById("recoveryDashboard");
+    const descriptionEl=document.getElementById("recoveryDescription");
+    const incidentTypeEl=document.getElementById("recoveryIncidentType");
+    const incidentTimeEl=document.getElementById("recoveryIncidentTime");
+    const regionEl=document.getElementById("recoveryRegion");
+    const accountsEl=document.getElementById("recoveryAccounts");
+    const imageInput=document.getElementById("recoveryImageInput");
+    const uploadLabel=document.getElementById("recoveryUploadLabel");
+    const startBtn=document.getElementById("recoveryStartBtn");
+    const intakeMessage=document.getElementById("recoveryIntakeMessage");
+    const usageNote=document.getElementById("recoveryUsageNote");
+    const caseListEl=document.getElementById("recoveryCaseList");
+    const backBtn=document.getElementById("recoveryBackBtn");
+
+    const incidentTypeOut=document.getElementById("recoveryIncidentTypeOut");
+    const riskOut=document.getElementById("recoveryRiskOut");
+    const urgencyOut=document.getElementById("recoveryUrgencyOut");
+    const progressOut=document.getElementById("recoveryProgressOut");
+    const summaryOut=document.getElementById("recoverySummaryOut");
+    const confidenceOut=document.getElementById("recoveryConfidenceOut");
+    const confidenceReasonOut=document.getElementById("recoveryConfidenceReasonOut");
+    const knowList=document.getElementById("recoveryKnowList");
+    const inferList=document.getElementById("recoveryInferList");
+    const unknownList=document.getElementById("recoveryUnknownList");
+    const immediateActionsEl=document.getElementById("recoveryImmediateActions");
+    const timelineActionsEl=document.getElementById("recoveryTimelineActions");
+    const timelineLockedEl=document.getElementById("recoveryTimelineLocked");
+    const remainingListEl=document.getElementById("recoveryRemainingList");
+    const resourcesListEl=document.getElementById("recoveryResourcesList");
+    const updateQuestionEl=document.getElementById("recoveryUpdateQuestion");
+    const updateTextEl=document.getElementById("recoveryUpdateText");
+    const updateMessageEl=document.getElementById("recoveryUpdateMessage");
+    const updateBtn=document.getElementById("recoveryUpdateBtn");
+    const updateUsageNote=document.getElementById("recoveryUpdateUsageNote");
+    const historyListEl=document.getElementById("recoveryHistoryList");
+
+    if(!intakeEl||!dashboardEl)return;
+
+    let pendingRecoveryImage=null;
+    let currentCaseId=null;
+    let currentPlan=null;
+    let currentTasks=[];
+    let activeTimelineTab="first10Minutes";
+
+    function setIntakeMessage(message="",tone=""){
+      if(!intakeMessage)return;
+      intakeMessage.textContent=message;
+      intakeMessage.className=`auth-message ${tone}`.trim();
+    }
+    function setUpdateMessage(message="",tone=""){
+      if(!updateMessageEl)return;
+      updateMessageEl.textContent=message;
+      updateMessageEl.className=`auth-message ${tone}`.trim();
+    }
+
+    if(imageInput)imageInput.addEventListener("change",async()=>{
+      const file=imageInput.files[0];
+      if(!file)return;
+      if(file.size>10*1024*1024){setIntakeMessage("Please attach an image smaller than 10 MB.","");imageInput.value="";return}
+      let b64="";
+      try{b64=await compressImage(file)}catch{}
+      pendingRecoveryImage={name:file.name,data:b64};
+      if(uploadLabel)uploadLabel.textContent=`Attached: ${file.name}`;
+    });
+
+    function collectQuickAnswers(){
+      const answers={};
+      document.querySelectorAll("#recoveryIntake [data-quick]").forEach(input=>{
+        answers[input.dataset.quick]=input.checked;
+      });
+      return answers;
+    }
+
+    async function startRecoveryCase(){
+      if(!isSignedIn()){openAuthModal("signup");setIntakeMessage("Create a free account or sign in to start Recovery Mode.","");return}
+      const description=descriptionEl?.value.trim()||"";
+      if(!description){setIntakeMessage("Please describe what happened before starting.","");return}
+
+      setIntakeMessage("");
+      startBtn.disabled=true;
+      const originalLabel=startBtn.textContent;
+      startBtn.innerHTML=`<span class="btn-spinner"></span> Analyzing…`;
+
+      try{
+        const accountsInvolved=(accountsEl?.value||"").split(",").map(v=>v.trim()).filter(Boolean);
+        const res=await fetch(RECOVERY_ENDPOINT,{
+          method:"POST",
+          headers:authHeaders({"Content-Type":"application/json"}),
+          body:JSON.stringify({
+            description,
+            quickAnswers:collectQuickAnswers(),
+            incidentType:incidentTypeEl?.value||"",
+            incidentTime:incidentTimeEl?.value||"",
+            region:regionEl?.value||"",
+            accountsInvolved,
+            imageData:pendingRecoveryImage?.data||""
+          })
+        });
+        const data=await res.json().catch(()=>({}));
+        if(!res.ok){
+          const error=new Error(data.error||`Recovery service returned ${res.status}`);
+          error.code=data.code;
+          throw error;
+        }
+        currentCaseId=data.caseId;
+        currentPlan={...data.plan,progressPercent:0};
+        currentTasks=[];
+        renderDashboard();
+        showDashboard();
+      }catch(error){
+        if(error.code==="daily_limit_reached"){
+          setIntakeMessage(`${error.message} Upgrade to Pro for more Recovery cases per day.`,"warning");
+        }else{
+          setIntakeMessage(error.message||"Recovery Mode couldn't start right now. Please try again.","warning");
+        }
+      }finally{
+        startBtn.disabled=false;
+        startBtn.textContent=originalLabel;
+      }
+    }
+    if(startBtn)startBtn.addEventListener("click",startRecoveryCase);
+
+    function riskClass(risk){return `recovery-risk-${risk||"medium"}`}
+    function priorityClass(priority){return `recovery-priority-${priority||"normal"}`}
+
+    function renderActionItem(action,options={}){
+      const completed=currentTasks.find(t=>t.task_key===action.id)?.status==="completed";
+      const wrap=document.createElement("div");
+      wrap.className=`recovery-action-item${completed?" completed":""}`;
+      wrap.innerHTML=`
+        <label class="recovery-action-check">
+          <input type="checkbox" data-task-key="${escapeHTML(action.id)}" ${completed?"checked":""}/>
+        </label>
+        <div class="recovery-action-body">
+          <div class="recovery-action-title-row">
+            <strong>${escapeHTML(action.title)}</strong>
+            <span class="recovery-priority-pill ${priorityClass(action.priority)}">${escapeHTML(action.priority||"normal")}</span>
+            <span class="recovery-priority-pill recovery-priority-normal">${Number(action.estimatedMinutes)||10} min</span>
+          </div>
+          <p class="recovery-action-instruction">${escapeHTML(action.instruction)}</p>
+          ${action.why?`<p class="recovery-action-why"><strong>Why:</strong> ${escapeHTML(action.why)}</p>`:""}
+          ${action.verification?`<p class="recovery-action-verify"><strong>Verify:</strong> ${escapeHTML(action.verification)}</p>`:""}
+        </div>
+      `;
+      return wrap;
+    }
+
+    function renderActionList(container,actions){
+      if(!container)return;
+      container.innerHTML="";
+      if(!actions||!actions.length){
+        container.innerHTML=`<p class="recovery-empty-note">No actions in this stage.</p>`;
+        return;
+      }
+      actions.forEach(action=>container.appendChild(renderActionItem(action)));
+    }
+
+    function renderDashboard(){
+      if(!currentPlan)return;
+      const plan=currentPlan;
+      const pro=isPro();
+
+      if(incidentTypeOut)incidentTypeOut.textContent=plan.incidentType||"—";
+      if(riskOut){riskOut.textContent=(plan.riskLevel||"medium").toUpperCase();riskOut.className=`recovery-risk-badge ${riskClass(plan.riskLevel)}`}
+      if(urgencyOut)urgencyOut.textContent=(plan.urgency||"soon").replace(/^\w/,c=>c.toUpperCase());
+      if(progressOut)progressOut.textContent=`${plan.progressPercent||0}%`;
+      if(summaryOut)summaryOut.textContent=plan.summary||"";
+      if(confidenceOut)confidenceOut.textContent=`Confidence: ${plan.confidence||0}%`;
+      if(confidenceReasonOut)confidenceReasonOut.textContent=`${plan.confidenceReason||""} ${plan.confidenceMeaning||""}`.trim();
+
+      const fillList=(el,items)=>{
+        if(!el)return;
+        el.innerHTML=(items&&items.length)?items.map(i=>`<li>${escapeHTML(i)}</li>`).join(""):`<li>None recorded.</li>`;
+      };
+      fillList(knowList,plan.whatWeKnow);
+      fillList(inferList,plan.inferences);
+      fillList(unknownList,plan.unknowns);
+
+      renderActionList(immediateActionsEl,plan.immediateActions);
+
+      const timeline=plan.timeline||{};
+      const timelineAvailable=pro||activeTimelineTab==="first10Minutes";
+      if(timelineLockedEl)timelineLockedEl.hidden=timelineAvailable;
+      if(timelineActionsEl)timelineActionsEl.style.display=timelineAvailable?"":"none";
+      if(timelineAvailable)renderActionList(timelineActionsEl,timeline[activeTimelineTab]);
+
+      if(remainingListEl){
+        remainingListEl.innerHTML=(plan.remainingRisk&&plan.remainingRisk.length)
+          ?plan.remainingRisk.map(i=>`<li>${escapeHTML(i)}</li>`).join("")
+          :`<li>No specific remaining risks flagged yet.</li>`;
+      }
+
+      if(resourcesListEl){
+        const resources=plan.reportingResources||[];
+        resourcesListEl.innerHTML=resources.length?resources.map(r=>`
+          <div class="recovery-resource-item">
+            <div class="recovery-resource-info">
+              <strong>${escapeHTML(r.organization)}</strong>
+              <span>${escapeHTML(r.purpose)}${r.phone?` · ${escapeHTML(r.phone)}`:""}</span>
+            </div>
+            <a href="${escapeHTML(r.officialUrl)}" target="_blank" rel="noopener">Visit official site →</a>
+          </div>
+        `).join(""):`<p class="recovery-empty-note">No region-specific resources matched. Contact your local police or consumer protection authority.</p>`;
+      }
+
+      if(updateQuestionEl)updateQuestionEl.textContent=plan.updateQuestion||"Tell CyberNet AI what you've done or what changed.";
+
+      if(usageNote)usageNote.textContent="";
+    }
+
+    document.querySelectorAll(".recovery-timeline-tab").forEach(tab=>{
+      tab.addEventListener("click",()=>{
+        document.querySelectorAll(".recovery-timeline-tab").forEach(t=>t.classList.remove("active"));
+        tab.classList.add("active");
+        activeTimelineTab=tab.dataset.timeline;
+        if(!isPro()&&activeTimelineTab!=="first10Minutes"){
+          switchPage("pricing");
+          return;
+        }
+        renderDashboard();
+      });
+    });
+
+    if(immediateActionsEl)immediateActionsEl.addEventListener("change",event=>{
+      const checkbox=event.target.closest("[data-task-key]");
+      if(checkbox)markTaskLocally(checkbox.dataset.taskKey,checkbox.checked);
+    });
+    if(timelineActionsEl)timelineActionsEl.addEventListener("change",event=>{
+      const checkbox=event.target.closest("[data-task-key]");
+      if(checkbox)markTaskLocally(checkbox.dataset.taskKey,checkbox.checked);
+    });
+
+    function markTaskLocally(taskKey,checked){
+      const existing=currentTasks.find(t=>t.task_key===taskKey);
+      if(existing)existing.status=checked?"completed":"pending";
+      else currentTasks.push({task_key:taskKey,status:checked?"completed":"pending"});
+    }
+
+    async function submitRecoveryUpdate(){
+      if(!currentCaseId)return;
+      const updateText=updateTextEl?.value.trim()||"";
+      const completedTaskKeys=currentTasks.filter(t=>t.status==="completed").map(t=>t.task_key);
+      if(!updateText&&!completedTaskKeys.length){setUpdateMessage("Tell CyberNet AI what changed before updating.","");return}
+
+      setUpdateMessage("");
+      updateBtn.disabled=true;
+      const originalLabel=updateBtn.textContent;
+      updateBtn.innerHTML=`<span class="btn-spinner"></span> Updating…`;
+
+      try{
+        const res=await fetch(RECOVERY_UPDATE_ENDPOINT,{
+          method:"POST",
+          headers:authHeaders({"Content-Type":"application/json"}),
+          body:JSON.stringify({caseId:currentCaseId,updateText,completedTaskKeys})
+        });
+        const data=await res.json().catch(()=>({}));
+        if(!res.ok){
+          const error=new Error(data.error||`Recovery update returned ${res.status}`);
+          error.code=data.code;
+          error.usage=data.usage;
+          throw error;
+        }
+        currentPlan=data.plan;
+        if(updateTextEl)updateTextEl.value="";
+        renderDashboard();
+        setUpdateMessage("Recovery case updated.","success");
+      }catch(error){
+        if(error.code==="cooldown_active"){
+          setUpdateMessage(error.message||"Please wait before submitting another update.","warning");
+        }else if(error.code==="daily_limit_reached"){
+          setUpdateMessage(`${error.message} Upgrade to Pro for more updates per day.`,"warning");
+        }else{
+          setUpdateMessage(error.message||"Couldn't update this case right now.","warning");
+        }
+      }finally{
+        updateBtn.disabled=false;
+        updateBtn.textContent=originalLabel;
+      }
+    }
+    if(updateBtn)updateBtn.addEventListener("click",submitRecoveryUpdate);
+
+    function showDashboard(){
+      intakeEl.hidden=true;
+      dashboardEl.hidden=false;
+    }
+    function showIntake(){
+      dashboardEl.hidden=true;
+      intakeEl.hidden=false;
+      currentCaseId=null;
+      currentPlan=null;
+      currentTasks=[];
+      loadCaseList();
+    }
+    if(backBtn)backBtn.addEventListener("click",showIntake);
+
+    async function loadCaseList(){
+      if(!caseListEl)return;
+      if(!isSignedIn()){
+        caseListEl.innerHTML=`<p class="recovery-empty-note">Sign in to see your saved Recovery cases.</p>`;
+        return;
+      }
+      try{
+        const res=await fetch(RECOVERY_CASE_ENDPOINT,{headers:authHeaders()});
+        const data=await res.json().catch(()=>({}));
+        if(!res.ok||!Array.isArray(data.cases)){
+          caseListEl.innerHTML=`<p class="recovery-empty-note">Couldn't load your Recovery cases right now.</p>`;
+          return;
+        }
+        if(!data.cases.length){
+          caseListEl.innerHTML=`<p class="recovery-empty-note">No Recovery cases yet. Start one above.</p>`;
+          return;
+        }
+        caseListEl.innerHTML="";
+        data.cases.forEach(item=>{
+          const btn=document.createElement("button");
+          btn.type="button";
+          btn.className="recovery-case-item";
+          btn.innerHTML=`
+            <strong>${escapeHTML(item.case_title||item.incident_type||"Recovery case")}</strong>
+            <small>${escapeHTML((item.risk_level||"").toUpperCase())} risk · ${escapeHTML(item.status||"active")} · ${new Date(item.updated_at).toLocaleDateString()}</small>
+            <div class="recovery-case-progress"><span style="width:${Number(item.progress_percent)||0}%"></span></div>
+          `;
+          btn.addEventListener("click",()=>openExistingCase(item.id));
+          caseListEl.appendChild(btn);
+        });
+      }catch{
+        caseListEl.innerHTML=`<p class="recovery-empty-note">Couldn't load your Recovery cases right now.</p>`;
+      }
+    }
+
+    async function openExistingCase(caseId){
+      try{
+        const res=await fetch(`${RECOVERY_CASE_ENDPOINT}?caseId=${encodeURIComponent(caseId)}`,{headers:authHeaders()});
+        const data=await res.json().catch(()=>({}));
+        if(!res.ok||!data.plan){setIntakeMessage("Couldn't load that Recovery case.","warning");return}
+        currentCaseId=caseId;
+        currentPlan={...data.plan,progressPercent:data.case?.progress_percent||0};
+        currentTasks=Array.isArray(data.tasks)?data.tasks:[];
+        if(historyListEl)historyListEl.innerHTML="";
+        renderDashboard();
+        showDashboard();
+      }catch{
+        setIntakeMessage("Couldn't load that Recovery case.","warning");
+      }
+    }
+
+    document.querySelectorAll('[data-page="recovery"]').forEach(btn=>{
+      btn.addEventListener("click",()=>{if(intakeEl&&!intakeEl.hidden)loadCaseList()});
+    });
+
+    loadCaseList();
+  })();
+
   moveNavIndicator(currentPageId);
   runRevealAnimation();
 });

@@ -79,19 +79,7 @@
       <link rel="stylesheet" href="cybernet-legal.css?v=20260804-3" />
 </head>
 <body>
-
-  <!-- â•â•â• LOADER â•â•â• -->
-  <div id="loader" class="loader-screen">
-    <div class="loader-term glass">
-      <div class="term-chrome"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="term-path">cybernetai@boot</span></div>
-      <div class="term-body">
-        <p><span class="prompt">$</span> initializing<span class="loader-dots"></span></p>
-      </div>
-    </div>
-    <div class="loading-bar"><div class="loading-progress"></div></div>
-  </div>
-
-  <!-- â•â•â• LOGIN / SIGNUP MODAL â•â•â• -->
+  <!-- ═══ LOGIN / SIGNUP MODAL ═══ -->
   <div id="authModal" class="modal">
     <div class="modal-card glass reveal">
       <button class="close-modal" id="closeAuth" aria-label="Close">&times;</button>
@@ -110,7 +98,7 @@
         <label for="loginEmail">Email</label>
         <input type="email" id="loginEmail" autocomplete="email" placeholder="you@example.com" />
         <label for="loginPassword">Password</label>
-        <input type="password" id="loginPassword" autocomplete="current-password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" />
+        <input type="password" id="loginPassword" autocomplete="current-password" placeholder="••••••••" />
         <button type="button" class="primary-btn full" id="loginBtn">Sign In</button>
         <div class="auth-helper-row">
           <button type="button" class="auth-text-btn" id="forgotPasswordBtn">Forgot your password?</button>
@@ -155,7 +143,7 @@
 
 
 
-  <!-- â•â•â• FEEDBACK / WEBSITE PROBLEM SURVEY â•â•â• -->
+  <!-- ═══ FEEDBACK / WEBSITE PROBLEM SURVEY ═══ -->
   <div id="feedbackModal" class="modal feedback-modal" aria-hidden="true">
     <div class="modal-card feedback-card glass reveal" role="dialog" aria-modal="true" aria-labelledby="feedbackTitle">
       <button class="close-modal" id="closeFeedback" type="button" aria-label="Close">&times;</button>
@@ -219,7 +207,7 @@
     <div class="grid-glow"></div>
   </div>
 
-  <!-- â•â•â• NAVBAR â•â•â• -->
+  <!-- ═══ NAVBAR ═══ -->
   <header class="navbar glass">
     <a href="#" class="brand" data-page="home">
       <span class="brand-mark">&gt;_</span>
@@ -231,6 +219,7 @@
       <button class="nav-link active" data-page="home">Home</button>
       <button class="nav-link" data-page="cybernet">Protect</button>
       <button class="nav-link" data-page="cybernetai">CyberNet AI</button>
+      <button class="nav-link" data-page="recovery">Recovery</button>
       <button class="nav-link" data-page="learn">Learn</button>
       <button class="nav-link" data-page="pricing">Pricing</button>
       <button class="nav-link" data-page="about">About</button>
@@ -238,13 +227,13 @@
 
     <div class="nav-actions">
       <div class="nav-social-links" aria-label="CyberNet AI on social media">
-        <a class="nav-social-btn" href="#" target="_blank" rel="noopener" aria-label="CyberNet AI on LinkedIn" title="LinkedIn">
+        <a class="nav-social-btn" href="https://www.linkedin.com/in/cybernet-ai-23746042b/" target="_blank" rel="noopener" aria-label="CyberNet AI on LinkedIn" title="LinkedIn">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M20.45 20.45h-3.55v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.36V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.45v6.29zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.11 20.45H3.56V9h3.55v11.45z"/></svg>
         </a>
-        <a class="nav-social-btn" href="#" target="_blank" rel="noopener" aria-label="CyberNet AI on TikTok" title="TikTok">
+        <a class="nav-social-btn" href="https://www.tiktok.com/@cybernetai26" target="_blank" rel="noopener" aria-label="CyberNet AI on TikTok" title="TikTok">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M16.6 5.82a4.28 4.28 0 0 1-2.63-2.02V3h-3.28v13.4a2.6 2.6 0 1 1-1.85-2.49v-3.3a5.92 5.92 0 0 0-.87-.06 5.86 5.86 0 1 0 5.86 5.86V9.35a7.55 7.55 0 0 0 4.4 1.41V7.5a4.28 4.28 0 0 1-1.63-1.68z"/></svg>
         </a>
-        <a class="nav-social-btn" href="#" target="_blank" rel="noopener" aria-label="CyberNet AI on Instagram" title="Instagram">
+        <a class="nav-social-btn" href="https://www.instagram.com/cybernetai.app/" target="_blank" rel="noopener" aria-label="CyberNet AI on Instagram" title="Instagram">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.05.41 2.23.06 1.27.07 1.64.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.05.36-2.23.41-1.27.06-1.64.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.72 3.72 0 0 1-1.38-.9 3.72 3.72 0 0 1-.9-1.38c-.16-.42-.36-1.05-.41-2.23-.06-1.27-.07-1.64-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.05-.36 2.23-.41 1.27-.06 1.64-.07 4.85-.07M12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.8.31-1.47.72-2.14 1.39A5.9 5.9 0 0 0 .61 4.16c-.3.76-.5 1.64-.56 2.91C.01 8.35 0 8.76 0 12s.01 3.65.07 4.93c.06 1.27.26 2.15.56 2.91.31.8.72 1.47 1.39 2.14a5.9 5.9 0 0 0 2.14 1.39c.76.3 1.64.5 2.91.56C8.35 23.99 8.76 24 12 24s3.65-.01 4.93-.07c1.27-.06 2.15-.26 2.91-.56.8-.31 1.47-.72 2.14-1.39a5.9 5.9 0 0 0 1.39-2.14c.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.93s-.01-3.65-.07-4.93c-.06-1.27-.26-2.15-.56-2.91a5.9 5.9 0 0 0-1.39-2.14A5.9 5.9 0 0 0 19.84.63c-.76-.3-1.64-.5-2.91-.56C15.65.01 15.24 0 12 0zm0 5.84a6.16 6.16 0 1 0 0 12.32 6.16 6.16 0 0 0 0-12.32zm0 10.16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.41-10.4a1.44 1.44 0 1 1-2.88 0 1.44 1.44 0 0 1 2.88 0z"/></svg>
         </a>
       </div>
@@ -256,12 +245,12 @@
       </div>
       <button class="login-btn magnetic-btn" id="openAuth">Sign In or Create Account</button>
     </div>
-    <button class="mobile-menu" id="mobileMenu" aria-label="Menu">â˜°</button>
+    <button class="mobile-menu" id="mobileMenu" aria-label="Menu">☰</button>
   </header>
 
   <main>
 
-    <!-- â•â•â•â•â•â•â•â•â•â•â• HOME â•â•â•â•â•â•â•â•â•â•â• -->
+    <!-- ═══════════ HOME ═══════════ -->
     <section id="home" class="page active-page">
       <div class="hero" id="heroSection">
         <span class="cursor-glow" id="cursorGlow"></span>
@@ -277,6 +266,27 @@
             <div><strong data-count="5" data-suffix="">0</strong><span>Evidence Types</span></div>
             <div><strong data-count="1" data-suffix="">0</strong><span>Unified Report</span></div>
           </div>
+        </div>
+
+        <div class="hero-video-buttons" role="group" aria-label="Watch how-to videos">
+          <button class="hero-video-btn" type="button" data-video="protect" aria-haspopup="dialog">
+            <span class="hero-video-btn-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" stroke="currentColor" stroke-width="1.5"/><path d="M10 8.5l6 3.5-6 3.5v-7Z" fill="currentColor"/></svg>
+            </span>
+            <span class="hero-video-btn-label">Protect</span>
+          </button>
+          <button class="hero-video-btn" type="button" data-video="cybernetai" aria-haspopup="dialog">
+            <span class="hero-video-btn-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" stroke="currentColor" stroke-width="1.5"/><path d="M10 8.5l6 3.5-6 3.5v-7Z" fill="currentColor"/></svg>
+            </span>
+            <span class="hero-video-btn-label">CyberNet AI</span>
+          </button>
+          <button class="hero-video-btn" type="button" data-video="recovery" aria-haspopup="dialog">
+            <span class="hero-video-btn-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" stroke="currentColor" stroke-width="1.5"/><path d="M10 8.5l6 3.5-6 3.5v-7Z" fill="currentColor"/></svg>
+            </span>
+            <span class="hero-video-btn-label">Recovery</span>
+          </button>
         </div>
 
         <div class="hero-visual reveal">
@@ -305,61 +315,18 @@
               </svg>
             </div>
             <div class="hero-status-badge glass badge-threat">
-              <span class="badge-icon-box"><span class="badge-icon">âš </span></span>
+              <span class="badge-icon-box"><span class="badge-icon">⚠</span></span>
               <div><h4>Threat Detected</h4><p>Trojan.Win32</p></div>
             </div>
             <div class="hero-status-badge glass badge-secure">
-              <span class="badge-icon-box"><span class="badge-icon">âœ“</span></span>
+              <span class="badge-icon-box"><span class="badge-icon">✓</span></span>
               <div><h4>System Secure</h4><p>No threats found</p></div>
             </div>
             <div class="hero-status-badge glass badge-scan">
-              <span class="badge-icon-box"><span class="badge-icon">â—</span></span>
+              <span class="badge-icon-box"><span class="badge-icon">◐</span></span>
               <div><h4>Scan In Progress</h4><p>80%</p></div>
             </div>
           </div>
-        </div>
-      </div>
-
-      <!-- HOW-TO VIDEOS -->
-      <div class="howto-videos reveal">
-        <h2>See CyberNet AI In Action</h2>
-        <p class="howto-videos-sub">Short walkthroughs so you know exactly how to use each feature.</p>
-        <div class="howto-videos-grid">
-          <button class="howto-video-card" type="button" data-video="protect" aria-haspopup="dialog">
-            <span class="howto-video-thumb">
-              <span class="howto-play-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" stroke="currentColor" stroke-width="1.4"/><path d="M10 8.5l6 3.5-6 3.5v-7Z" fill="currentColor"/></svg>
-              </span>
-            </span>
-            <span class="howto-video-label">
-              <h4>How To Use Protect</h4>
-              <p>Scan suspicious text, links, and screenshots in seconds.</p>
-            </span>
-          </button>
-
-          <button class="howto-video-card" type="button" data-video="cybernetai" aria-haspopup="dialog">
-            <span class="howto-video-thumb">
-              <span class="howto-play-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" stroke="currentColor" stroke-width="1.4"/><path d="M10 8.5l6 3.5-6 3.5v-7Z" fill="currentColor"/></svg>
-              </span>
-            </span>
-            <span class="howto-video-label">
-              <h4>How To Use CyberNet AI</h4>
-              <p>Get expert-level analysis with your own AI or ours.</p>
-            </span>
-          </button>
-
-          <button class="howto-video-card" type="button" data-video="recovery" aria-haspopup="dialog">
-            <span class="howto-video-thumb">
-              <span class="howto-play-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" stroke="currentColor" stroke-width="1.4"/><path d="M10 8.5l6 3.5-6 3.5v-7Z" fill="currentColor"/></svg>
-              </span>
-            </span>
-            <span class="howto-video-label">
-              <h4>How To Use Recovery</h4>
-              <p>Turn advice into a guided, step-by-step recovery case.</p>
-            </span>
-          </button>
         </div>
       </div>
 
@@ -427,7 +394,7 @@
           </div>
         </div>
       </div>
-    </section>    <!-- â•â•â•â•â•â•â•â•â•â•â• CYBERNET â•â•â•â•â•â•â•â•â•â•â• -->
+    </section>    <!-- ═══════════ CYBERNET ═══════════ -->
     <section id="cybernet" class="page">
       <div class="feature-page-header reveal">
         <h1>CyberNet Protect</h1>
@@ -533,14 +500,14 @@
                 <div class="globe-ring" style="transform:rotateX(80deg)"></div>
               </div>
 
-              <span class="mini-globe-icon">ðŸ”—</span>
+              <span class="mini-globe-icon">🔗</span>
             </div>
           </div>
         </div>
 
         <div class="what-we-check reveal">
           <div class="wwc-item glass">
-            <span class="wwc-icon">ðŸŒ</span>
+            <span class="wwc-icon">🌐</span>
             <div>
               <h4>Domain Reputation</h4>
               <p>Check known-threat reputation when configured.</p>
@@ -548,7 +515,7 @@
           </div>
 
           <div class="wwc-item glass">
-            <span class="wwc-icon">ðŸŽ£</span>
+            <span class="wwc-icon">🎣</span>
             <div>
               <h4>Phishing Detection</h4>
               <p>Identify phishing and scam pages.</p>
@@ -556,7 +523,7 @@
           </div>
 
           <div class="wwc-item glass">
-            <span class="wwc-icon">ðŸ¦ </span>
+            <span class="wwc-icon">🦠</span>
             <div>
               <h4>Malware Scan</h4>
               <p>Detect malicious-download and unsafe-link indicators.</p>
@@ -564,7 +531,7 @@
           </div>
 
           <div class="wwc-item glass">
-            <span class="wwc-icon">ðŸ”’</span>
+            <span class="wwc-icon">🔒</span>
             <div>
               <h4>SSL &amp; Security</h4>
               <p>Inspect HTTPS, domain structure, and redirect clues.</p>
@@ -604,7 +571,7 @@
             <label class="real-upload-box glass" id="cyberDropZone">
               <input type="file" id="cyberImageInput" accept="image/*"/>
 
-              <div class="upload-icon">â‡§</div>
+              <div class="upload-icon">⇧</div>
 
               <h3>Drag &amp; Drop Your Image Here</h3>
 
@@ -621,22 +588,22 @@
             <h4>We Analyze For</h4>
 
             <div class="wwc-item-sm">
-              <span class="wwc-icon">ðŸš¨</span>
+              <span class="wwc-icon">🚨</span>
               <span>Fake Alerts</span>
             </div>
 
             <div class="wwc-item-sm">
-              <span class="wwc-icon">â–¦</span>
+              <span class="wwc-icon">▦</span>
               <span>QR Codes</span>
             </div>
 
             <div class="wwc-item-sm">
-              <span class="wwc-icon">â„¢</span>
+              <span class="wwc-icon">™</span>
               <span>Brand Impersonation</span>
             </div>
 
             <div class="wwc-item-sm">
-              <span class="wwc-icon">ðŸ”¤</span>
+              <span class="wwc-icon">🔤</span>
               <span>Text Extraction</span>
             </div>
           </div>
@@ -665,7 +632,7 @@
       </div>
     </section>
 
-    <!-- â•â•â•â•â•â•â•â•â•â•â• CYBERNET AI â•â•â•â•â•â•â•â•â•â•â• -->
+    <!-- ═══════════ CYBERNET AI ═══════════ -->
     <section id="cybernetai" class="page">
       <div class="feature-page-header reveal">
         <h1>CyberNet AI</h1>
@@ -694,10 +661,10 @@
           </div>
 
           <div class="plan-benefit-list" id="aiBenefitList">
-            <div><span>âœ“</span> Accurate Text, Link &amp; Image analysis</div>
-            <div><span>âœ“</span> Basic threat explanations</div>
-            <div class="benefit-locked"><span>Ã—</span> Saved scan history</div>
-            <div class="benefit-locked"><span>Ã—</span> Downloadable reports</div>
+            <div><span>✓</span> Accurate Text, Link &amp; Image analysis</div>
+            <div><span>✓</span> Basic threat explanations</div>
+            <div class="benefit-locked"><span>×</span> Saved scan history</div>
+            <div class="benefit-locked"><span>×</span> Downloadable reports</div>
           </div>
 
           <button class="primary-btn full" id="aiUpgradeBtn" type="button">Upgrade to Pro</button>
@@ -721,7 +688,7 @@
 
             <div class="ai-status-row">
               <span>Remaining today</span>
-              <span id="aiReqLeft">â€”</span>
+              <span id="aiReqLeft">—</span>
             </div>
           </div>
 
@@ -765,6 +732,196 @@
             <button id="chatSendBtn" class="send-btn" aria-label="Send">➤</button>
           </div>
         </div>
+      </div>
+    </section>    <!-- ═══════════ RECOVERY ═══════════ -->
+    <section id="recovery" class="page recovery-page">
+      <div class="feature-page-header reveal recovery-header">
+        <h1>Recover. Secure. Move Forward.</h1>
+        <p>CyberNet AI turns a cybersecurity incident into a clear recovery plan — showing what to do now, what to secure next, and what risks remain.</p>
+      </div>
+
+      <!-- INTAKE FORM -->
+      <div id="recoveryIntake" class="recovery-intake reveal">
+        <div class="recovery-intake-card glass">
+          <label for="recoveryDescription" class="recovery-label-lg">What happened?</label>
+          <textarea id="recoveryDescription" rows="4" maxlength="6000" placeholder='Tell CyberNet AI what happened. For example: "I clicked a link from what looked like my bank and entered my password."'></textarea>
+
+          <div class="recovery-privacy-warning">
+            <strong>Never send CyberNet AI your password, OTP, MFA code, recovery code, full card number, crypto seed phrase, or private key.</strong>
+            <p>If you upload a screenshot, cover any sensitive information before uploading — CyberNet AI cannot guarantee automatic redaction of images.</p>
+          </div>
+
+          <div class="recovery-field-grid">
+            <div>
+              <label for="recoveryIncidentType">Incident type</label>
+              <select id="recoveryIncidentType">
+                <option value="">Let CyberNet AI identify it</option>
+                <option value="Account hacked">Account hacked</option>
+                <option value="Email compromised">Email compromised</option>
+                <option value="Social media compromised">Social media compromised</option>
+                <option value="Phishing / scam">Phishing / scam</option>
+                <option value="Payment / card fraud">Payment / card fraud</option>
+                <option value="Malware / device problem">Malware / device problem</option>
+                <option value="Identity theft">Identity theft</option>
+                <option value="Cryptocurrency / wallet incident">Cryptocurrency / wallet incident</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label for="recoveryIncidentTime">Approximate incident time</label>
+              <select id="recoveryIncidentTime">
+                <option value="Just happened">Just happened</option>
+                <option value="Today">Today</option>
+                <option value="Yesterday">Yesterday</option>
+                <option value="Within the last week">Within the last week</option>
+                <option value="More than a week ago">More than a week ago</option>
+                <option value="Unknown">Unknown</option>
+              </select>
+            </div>
+            <div>
+              <label for="recoveryRegion">Country / region</label>
+              <select id="recoveryRegion">
+                <option value="">Select region</option>
+                <option value="United States">United States</option>
+                <option value="United Kingdom">United Kingdom</option>
+                <option value="Canada">Canada</option>
+                <option value="Australia">Australia</option>
+                <option value="United Arab Emirates">United Arab Emirates</option>
+                <option value="Other">Other / Global</option>
+              </select>
+            </div>
+            <div>
+              <label for="recoveryAccounts">Accounts / services involved</label>
+              <input id="recoveryAccounts" type="text" placeholder="e.g. Gmail, Instagram, Bank (comma separated)"/>
+            </div>
+          </div>
+
+          <div class="recovery-quick-toggles">
+            <label class="recovery-toggle"><input type="checkbox" data-quick="clickedLink"/> I clicked a suspicious link</label>
+            <label class="recovery-toggle"><input type="checkbox" data-quick="sharedPassword"/> I entered my password</label>
+            <label class="recovery-toggle"><input type="checkbox" data-quick="sharedOtp"/> I shared an OTP/MFA code</label>
+            <label class="recovery-toggle"><input type="checkbox" data-quick="sharedPayment"/> I shared card/payment info</label>
+            <label class="recovery-toggle"><input type="checkbox" data-quick="sentMoney"/> I sent money</label>
+            <label class="recovery-toggle"><input type="checkbox" data-quick="unknownLogin"/> I see an unknown login</label>
+            <label class="recovery-toggle"><input type="checkbox" data-quick="lostAccess"/> I lost access to an account</label>
+            <label class="recovery-toggle"><input type="checkbox" data-quick="downloadedFile"/> I downloaded a suspicious file</label>
+            <label class="recovery-toggle"><input type="checkbox" data-quick="deviceStrange"/> My device is behaving strangely</label>
+            <label class="recovery-toggle"><input type="checkbox" data-quick="cryptoInvolved"/> Cryptocurrency is involved</label>
+            <label class="recovery-toggle"><input type="checkbox" data-quick="identityExposed"/> Personal identity info was exposed</label>
+            <label class="recovery-toggle"><input type="checkbox" data-quick="notSure"/> I am not sure</label>
+          </div>
+
+          <label class="recovery-upload-row glass" id="recoveryUploadRow">
+            <input type="file" id="recoveryImageInput" accept="image/*" hidden/>
+            <span class="upload-icon-sm">⇧</span>
+            <span id="recoveryUploadLabel">Optional: attach a screenshot (cover sensitive info first)</span>
+          </label>
+
+          <div id="recoveryIntakeMessage" class="auth-message" aria-live="polite"></div>
+
+          <button id="recoveryStartBtn" class="primary-btn full recovery-primary-btn" type="button">Start Recovery</button>
+          <p class="recovery-usage-note" id="recoveryUsageNote"></p>
+        </div>
+
+        <div class="recovery-cases-card glass">
+          <h4>Your Recovery Cases</h4>
+          <div id="recoveryCaseList" class="recovery-case-list">
+            <p class="recovery-empty-note">Sign in to see your saved Recovery cases.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- RESULT DASHBOARD -->
+      <div id="recoveryDashboard" class="recovery-dashboard reveal" hidden>
+        <button class="recovery-back-btn" id="recoveryBackBtn" type="button">&larr; Back to Recovery Cases</button>
+
+        <div class="recovery-status-row">
+          <div class="recovery-status-card glass">
+            <span class="recovery-status-label">Incident Type</span>
+            <strong id="recoveryIncidentTypeOut">—</strong>
+          </div>
+          <div class="recovery-status-card glass">
+            <span class="recovery-status-label">Risk Level</span>
+            <strong id="recoveryRiskOut" class="recovery-risk-badge">—</strong>
+          </div>
+          <div class="recovery-status-card glass">
+            <span class="recovery-status-label">Urgency</span>
+            <strong id="recoveryUrgencyOut">—</strong>
+          </div>
+          <div class="recovery-status-card glass">
+            <span class="recovery-status-label">Progress</span>
+            <strong id="recoveryProgressOut">0%</strong>
+          </div>
+        </div>
+
+        <div class="recovery-summary-card glass">
+          <p id="recoverySummaryOut"></p>
+          <div class="recovery-confidence-row">
+            <strong id="recoveryConfidenceOut">Confidence: —</strong>
+            <p id="recoveryConfidenceReasonOut"></p>
+          </div>
+        </div>
+
+        <div class="recovery-facts-grid">
+          <div class="recovery-fact-card glass">
+            <h5>What We Know</h5>
+            <ul id="recoveryKnowList"></ul>
+          </div>
+          <div class="recovery-fact-card glass">
+            <h5>Reasonable Inferences</h5>
+            <ul id="recoveryInferList"></ul>
+          </div>
+          <div class="recovery-fact-card glass">
+            <h5>Unknowns</h5>
+            <ul id="recoveryUnknownList"></ul>
+          </div>
+        </div>
+
+        <div class="recovery-immediate-card glass">
+          <h3>Do This Now</h3>
+          <div id="recoveryImmediateActions" class="recovery-action-list"></div>
+        </div>
+
+        <div class="recovery-timeline-card glass">
+          <h3>Recovery Timeline</h3>
+          <div class="recovery-timeline-tabs">
+            <button class="recovery-timeline-tab active" data-timeline="first10Minutes">First 10 Minutes</button>
+            <button class="recovery-timeline-tab" data-timeline="firstHour">First Hour</button>
+            <button class="recovery-timeline-tab" data-timeline="first24Hours">First 24 Hours</button>
+            <button class="recovery-timeline-tab" data-timeline="next7Days">Next 7 Days</button>
+          </div>
+          <div id="recoveryTimelineActions" class="recovery-action-list"></div>
+          <div id="recoveryTimelineLocked" class="recovery-locked-note" hidden>
+            <p>Free unlocks your immediate actions. <strong>Pro unlocks the full recovery timeline</strong>, progress tracking, verification steps, and remaining-risk analysis.</p>
+            <button class="secondary-btn" data-page="pricing" type="button">See Pro Recovery</button>
+          </div>
+        </div>
+
+        <div class="recovery-remaining-card glass">
+          <h3>What's Still At Risk?</h3>
+          <ul id="recoveryRemainingList"></ul>
+        </div>
+
+        <div class="recovery-resources-card glass">
+          <h3>Official Reporting Resources</h3>
+          <div id="recoveryResourcesList" class="recovery-resources-list"></div>
+        </div>
+
+        <div class="recovery-update-card glass">
+          <h3>Update CyberNet AI</h3>
+          <p id="recoveryUpdateQuestion">Tell CyberNet AI what you've done or what changed.</p>
+          <textarea id="recoveryUpdateText" rows="3" maxlength="4000" placeholder="e.g. I changed my password, enabled MFA, and removed the unknown device."></textarea>
+          <div id="recoveryUpdateMessage" class="auth-message" aria-live="polite"></div>
+          <button id="recoveryUpdateBtn" class="primary-btn full recovery-primary-btn" type="button">Update Recovery Case</button>
+          <p class="recovery-usage-note" id="recoveryUpdateUsageNote"></p>
+        </div>
+
+        <div class="recovery-history-card glass">
+          <h3>Case History</h3>
+          <div id="recoveryHistoryList" class="recovery-history-list"></div>
+        </div>
+
+        <button class="secondary-btn full" id="recoveryDownloadBtn" type="button" hidden>Download Recovery Report</button>
       </div>
     </section>    <!-- ═══════════ LEARN ═══════════ -->
     <section id="learn" class="page">
@@ -816,7 +973,7 @@
 
                 <div class="rm-tip">
                   <strong>Remember:</strong>
-                  Cybersecurity isn't just for tech experts â€” everyone who uses the internet needs it.
+                  Cybersecurity isn't just for tech experts — everyone who uses the internet needs it.
                 </div>
               </div>
             </div>
@@ -854,7 +1011,7 @@
 
                 <div class="rm-tip">
                   <strong>Golden rule:</strong>
-                  Pause before you click. Scammers rely on speed â€” they want you to act before you think.
+                  Pause before you click. Scammers rely on speed — they want you to act before you think.
                 </div>
               </div>
             </div>
@@ -862,7 +1019,7 @@
             <div class="rm-node glass" data-keywords="CIA triad confidentiality integrity availability">
               <div class="rm-node-info">
                 <h3>The CIA Triad</h3>
-                <p>Confidentiality, Integrity, and Availability â€” the foundation of security.</p>
+                <p>Confidentiality, Integrity, and Availability — the foundation of security.</p>
               </div>
 
               <div class="rm-node-expand">
@@ -898,7 +1055,7 @@
 
               <div class="rm-node-expand">
                 <div class="rm-lesson">
-                  Social engineering attacks exploit human trust, fear, curiosity, and urgency. Attackers impersonate trusted figures such as banks, tech support, or friends to trick you into sharing information, clicking links, or sending money. No software vulnerability is needed â€” you are the target.
+                  Social engineering attacks exploit human trust, fear, curiosity, and urgency. Attackers impersonate trusted figures such as banks, tech support, or friends to trick you into sharing information, clicking links, or sending money. No software vulnerability is needed — you are the target.
                 </div>
 
                 <div class="rm-example">
@@ -1422,7 +1579,7 @@
         </div>
 
       </div>
-    </section>    <!-- â•â•â•â•â•â•â•â•â•â•â• PRICING â•â•â•â•â•â•â•â•â•â•â• -->
+    </section>    <!-- ═══════════ PRICING ═══════════ -->
     <section id="pricing" class="page">
       <div class="section-head reveal pricing-head">
         <div class="pill glass center"><span class="prompt">$</span> Simple, Transparent Pricing</div>
@@ -1504,9 +1661,9 @@
               <tr><td>Image analysis</td><td>Accurate standard analysis</td><td>Advanced deep analysis</td></tr>
               <tr><td>Threat explanations</td><td>Basic</td><td>Detailed threat intelligence</td></tr>
               <tr><td>Risk scoring</td><td>Standard</td><td>Advanced and detailed</td></tr>
-              <tr><td>Scan history</td><td><span class="table-no">â€”</span></td><td><span class="table-yes">âœ“</span></td></tr>
-              <tr><td>Downloadable reports</td><td><span class="table-no">â€”</span></td><td><span class="table-yes">âœ“</span></td></tr>
-              <tr><td>Faster AI responses</td><td><span class="table-no">â€”</span></td><td><span class="table-yes">âœ“</span></td></tr>
+              <tr><td>Scan history</td><td><span class="table-no">—</span></td><td><span class="table-yes">✓</span></td></tr>
+              <tr><td>Downloadable reports</td><td><span class="table-no">—</span></td><td><span class="table-yes">✓</span></td></tr>
+              <tr><td>Faster AI responses</td><td><span class="table-no">—</span></td><td><span class="table-yes">✓</span></td></tr>
               <tr><td>Price</td><td>$0</td><td>$9.99/month or $95.90/year</td></tr>
             </tbody>
           </table>
@@ -1519,7 +1676,7 @@
       </div>
     </section>
 
-    <!-- â•â•â•â•â•â•â•â•â•â•â• ABOUT â•â•â•â•â•â•â•â•â•â•â• -->
+    <!-- ═══════════ ABOUT ═══════════ -->
     <section id="about" class="page">
       <div class="about-top reveal">
         <div class="pill glass">
@@ -1578,7 +1735,7 @@
 
           <div class="fetch-line">
             <span class="fetch-key">status</span>
-            <span class="safe-text">â— online</span>
+            <span class="safe-text">● online</span>
           </div>
         </div>
       </div>
@@ -1592,7 +1749,7 @@
             everyday users, students, and organizations detect scams, phishing
             attempts, suspicious links, weak passwords, and online threats. It
             combines rule-based detection tools with AI-powered analysis to give
-            you clear, actionable security insights â€” no technical expertise
+            you clear, actionable security insights — no technical expertise
             required.
           </p>
         </div>
@@ -1627,36 +1784,36 @@
             Students learning about online safety. Parents protecting their
             families from scams. Professionals who handle sensitive
             communications daily. Small businesses that can't afford dedicated
-            security teams. Anyone who's ever wondered â€œis this message real or
-            fake?â€
+            security teams. Anyone who's ever wondered “is this message real or
+            fake?”
           </p>
         </div>
       </div>
 
       <div class="about-values reveal">
         <div class="about-value glass tilt-card">
-          <div class="av-icon">â—†</div>
+          <div class="av-icon">◆</div>
           <h3>Accuracy</h3>
           <p>Precise detection powered by constantly updated rules and AI models.</p>
         </div>
 
         <div class="about-value glass tilt-card">
-          <div class="av-icon">â—†</div>
+          <div class="av-icon">◆</div>
           <h3>Privacy</h3>
           <p>Free accounts do not keep scan history. Pro history and account data are stored securely and are visible only to the signed-in user.</p>
         </div>
 
         <div class="about-value glass tilt-card">
-          <div class="av-icon">â—†</div>
+          <div class="av-icon">◆</div>
           <h3>Speed</h3>
           <p>Instant scan results so you can make safe decisions in real time.</p>
         </div>
 
         <div class="about-value glass tilt-card">
-          <div class="av-icon">â—†</div>
+          <div class="av-icon">◆</div>
           <h3>Education</h3>
           <p>
-            Not just detection â€” we teach you why something is dangerous and
+            Not just detection — we teach you why something is dangerous and
             how to stay safe.
           </p>
         </div>
@@ -1678,7 +1835,7 @@
   </main>
 
   <footer>
-    <p>&copy; 2026 CyberNet AI. Secure today. Safer tomorrow. &nbsp;Â·&nbsp; <a href="mailto:cybernetai.26@gmail.com">cybernetai.26@gmail.com</a></p>
+    <p>&copy; 2026 CyberNet AI. Secure today. Safer tomorrow. &nbsp;·&nbsp; <a href="mailto:cybernetai.26@gmail.com">cybernetai.26@gmail.com</a></p>
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
