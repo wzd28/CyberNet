@@ -131,7 +131,12 @@
   <div id="howtoVideoModal" class="modal video-modal" aria-hidden="true">
     <div class="modal-card video-modal-card glass reveal" role="dialog" aria-modal="true" aria-labelledby="howtoVideoTitle">
       <button class="close-modal" id="closeHowtoVideo" type="button" aria-label="Close">&times;</button>
-      <h3 id="howtoVideoTitle">How To Use Protect</h3>
+      <h3 id="howtoVideoTitle">How To Use Quick Scan</h3>
+      <div class="video-modal-tabs" id="howtoVideoTabs">
+        <button class="video-modal-tab active" type="button" data-video="protect">Quick Scan</button>
+        <button class="video-modal-tab" type="button" data-video="cybernetai">Analysis AI</button>
+        <button class="video-modal-tab" type="button" data-video="recovery">Recovery Mode</button>
+      </div>
       <div class="video-modal-player" id="howtoVideoPlayer">
         <div class="video-modal-placeholder">
           <svg viewBox="0 0 24 24" fill="none" width="46" height="46" aria-hidden="true"><circle cx="12" cy="12" r="11" stroke="currentColor" stroke-width="1.3"/><path d="M10 8.5l6 3.5-6 3.5v-7Z" fill="currentColor"/></svg>
@@ -178,7 +183,7 @@
           <option value="">Choose one</option>
           <option value="Website problem">Website problem</option>
           <option value="Account or sign-in problem">Account or sign-in problem</option>
-          <option value="CyberNet Protect result">CyberNet Protect result</option>
+          <option value="Quick Scan result">Quick Scan result</option>
           <option value="Billing or plan question">Billing or plan question</option>
           <option value="Feature request">Feature request</option>
           <option value="General feedback">General feedback</option>
@@ -205,6 +210,20 @@
     <div class="blur-orb orb-c"></div>
     <div class="aurora-sweep"></div>
     <div class="grid-glow"></div>
+    <svg class="bg-shield-watermark" viewBox="0 0 300 340" fill="none" aria-hidden="true">
+      <path d="M150 8 L280 55 L262 190 L150 332 L38 190 L20 55 Z" stroke="#22d3ee" stroke-width="2"/>
+      <path d="M150 40 L252 76 L238 178 L150 292 L62 178 L48 76 Z" stroke="#22d3ee" stroke-width="1" opacity=".5"/>
+      <circle cx="150" cy="170" r="3" fill="#22d3ee"/>
+      <circle cx="90" cy="120" r="2" fill="#22d3ee" opacity=".7"/>
+      <circle cx="210" cy="130" r="2" fill="#22d3ee" opacity=".7"/>
+      <circle cx="120" cy="230" r="2" fill="#22d3ee" opacity=".6"/>
+      <circle cx="190" cy="220" r="2" fill="#22d3ee" opacity=".6"/>
+    </svg>
+    <svg class="bg-wave-flow" viewBox="0 0 800 400" fill="none" aria-hidden="true">
+      <path class="wf1" d="M-20 320 C 150 260, 280 340, 420 250 S 700 180, 830 210"/>
+      <path class="wf2" d="M-20 360 C 180 300, 300 380, 460 300 S 720 230, 830 260"/>
+      <path class="wf3" d="M-20 280 C 130 230, 260 300, 400 210 S 680 150, 830 170"/>
+    </svg>
   </div>
 
   <!-- ═══ NAVBAR ═══ -->
@@ -217,8 +236,8 @@
     <nav class="nav-tabs">
       <span class="nav-indicator" id="navIndicator"></span>
       <button class="nav-link active" data-page="home">Home</button>
-      <button class="nav-link" data-page="cybernet">Protect</button>
-      <button class="nav-link" data-page="cybernetai">CyberNet AI</button>
+      <button class="nav-link" data-page="cybernet">Quick Scan</button>
+      <button class="nav-link" data-page="cybernetai">Analysis AI</button>
       <button class="nav-link" data-page="recovery">Recovery</button>
       <button class="nav-link" data-page="learn">Learn</button>
       <button class="nav-link" data-page="pricing">Pricing</button>
@@ -255,16 +274,15 @@
       <div class="hero" id="heroSection">
         <span class="cursor-glow" id="cursorGlow"></span>
         <div class="hero-content reveal">
+          <button class="pill glass hero-learn-pill" id="heroLearnFeaturesBtn" type="button">
+            <span class="prompt">$</span> Learn how to use the Features?
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
           <h1 class="hero-title">Stay <span>Secure</span><br/>Stay <span>Ahead</span></h1>
           <p>On-demand cybersecurity analysis for suspicious messages, links, screenshots, email evidence, and incident cases.</p>
           <div class="hero-buttons">
-            <button class="primary-btn big" data-page="cybernet">Open CyberNet Protect</button>
+            <button class="primary-btn big" data-page="cybernet">Start Scanning</button>
             <button class="secondary-btn big glass" data-page="about">Learn More</button>
-          </div>
-          <div class="hero-stats-row">
-            <div><strong data-count="3" data-suffix="">0</strong><span>Quick Scan Types</span></div>
-            <div><strong data-count="5" data-suffix="">0</strong><span>Evidence Types</span></div>
-            <div><strong data-count="1" data-suffix="">0</strong><span>Unified Report</span></div>
           </div>
         </div>
 
@@ -273,13 +291,13 @@
             <span class="hero-video-btn-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" stroke="currentColor" stroke-width="1.5"/><path d="M10 8.5l6 3.5-6 3.5v-7Z" fill="currentColor"/></svg>
             </span>
-            <span class="hero-video-btn-label">Protect</span>
+            <span class="hero-video-btn-label">Quick Scan</span>
           </button>
           <button class="hero-video-btn" type="button" data-video="cybernetai" aria-haspopup="dialog">
             <span class="hero-video-btn-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" stroke="currentColor" stroke-width="1.5"/><path d="M10 8.5l6 3.5-6 3.5v-7Z" fill="currentColor"/></svg>
             </span>
-            <span class="hero-video-btn-label">CyberNet AI</span>
+            <span class="hero-video-btn-label">Analysis AI</span>
           </button>
           <button class="hero-video-btn" type="button" data-video="recovery" aria-haspopup="dialog">
             <span class="hero-video-btn-icon" aria-hidden="true">
@@ -330,6 +348,42 @@
         </div>
       </div>
 
+
+      <!-- LIVE STATS + WHY CHOOSE -->
+      <div class="hero-info-row reveal">
+        <div class="hero-stats-panel glass">
+          <div class="hero-stats-panel-head">
+            <span class="live-dot"></span>
+            <h4>Live Activity</h4>
+          </div>
+          <div class="hero-live-stats">
+            <div class="hero-live-stat">
+              <strong id="liveScansCount" data-target="184320">0</strong>
+              <span>Scans Completed</span>
+            </div>
+            <div class="hero-live-stat">
+              <strong id="liveThreatsCount" data-target="41708">0</strong>
+              <span>Threats Blocked</span>
+            </div>
+            <div class="hero-live-stat">
+              <strong id="liveRecoveriesCount" data-target="6152">0</strong>
+              <span>Recoveries Guided</span>
+            </div>
+          </div>
+          <p class="hero-stats-note">Illustrative activity counter — grows continuously to reflect ongoing platform usage.</p>
+        </div>
+
+        <div class="hero-why-panel glass">
+          <h4>Why Choose CyberNet AI?</h4>
+          <ul>
+            <li><span class="why-icon">⚡</span> Instant, expert-level threat analysis — no prompting required</li>
+            <li><span class="why-icon">🧠</span> Layered detection: deterministic rules + advanced AI</li>
+            <li><span class="why-icon">🔓</span> Use our managed AI or connect your own key</li>
+            <li><span class="why-icon">🛟</span> Guided step-by-step recovery if you have already been hit</li>
+          </ul>
+          <button class="secondary-btn glass" data-page="about">See what makes us different</button>
+        </div>
+      </div>
       <!-- WHY CHOOSE -->
       <div class="why-choose reveal">
         <h2>Why Choose CyberNet AI?</h2>
@@ -397,8 +451,8 @@
     </section>    <!-- ═══════════ CYBERNET ═══════════ -->
     <section id="cybernet" class="page">
       <div class="feature-page-header reveal">
-        <h1>CyberNet Protect</h1>
-        <p>Quick threat triage and deep evidence correlation for submitted messages, links, screenshots, email headers, and incident cases.</p>
+        <h1>Quick Scan</h1>
+        <p>Fast, accurate threat triage for suspicious messages, links, screenshots, and email headers — get a clear verdict in seconds.</p>
       </div>
 
       <div class="detect-tabs glass reveal">
@@ -635,7 +689,7 @@
     <!-- ═══════════ CYBERNET AI ═══════════ -->
     <section id="cybernetai" class="page">
       <div class="feature-page-header reveal">
-        <h1>CyberNet AI</h1>
+        <h1>Analysis AI</h1>
         <p>AI-Powered Security Assistant</p>
       </div>
 
@@ -671,7 +725,7 @@
           <button class="secondary-btn full api-service-check" id="manageBillingBtn" type="button" hidden>Manage Billing</button>
           <button class="secondary-btn full api-service-check" id="testApiKeyBtn" type="button">Refresh Account Status</button>
 
-          <div id="aiApiStatus" class="result-box">Sign in to use CyberNet AI.</div>
+          <div id="aiApiStatus" class="result-box">Sign in to use Analysis AI.</div>
 
           <div class="ai-status-block">
             <h5>Service Status</h5>
@@ -705,14 +759,14 @@
 
         <div class="ai-chat glass">
           <div class="ai-chat-lead">
-            <h4>Ask CyberNet AI</h4>
-            <p>Paste a message, drop a link, or attach a screenshot — CyberNet AI automatically detects what it is looking at and runs the right analysis. No prompting needed.</p>
+            <h4>Ask Analysis AI</h4>
+            <p>Paste a message, drop a link, or attach a screenshot — Analysis AI automatically detects what it is looking at and runs the right analysis. No prompting needed.</p>
           </div>
 
           <div class="chat-messages" id="chatMessages">
             <div class="chat-bubble chat-bubble-ai">
               <div class="chat-bubble-inner">
-                Sign in, then paste or drop anything suspicious below — a message, a link, or a screenshot. CyberNet AI automatically figures out what it is looking at and runs the right analysis. Free accounts receive 5 accurate AI analyses per day; Pro accounts receive 50 advanced analyses, saved history, and reports.
+                Sign in, then paste or drop anything suspicious below — a message, a link, or a screenshot. Analysis AI automatically figures out what it is looking at and runs the right analysis. Free accounts receive 5 accurate AI analyses per day; Pro accounts receive 50 advanced analyses, saved history, and reports.
               </div>
             </div>
           </div>

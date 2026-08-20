@@ -94,6 +94,11 @@ const CATEGORY_KEYWORDS: Array<{ id: string; label: string; terms: string[] }> =
   { id: "identity_theft", label: "Identity theft", terms: ["identity theft", "identity was stolen", "someone opened an account in my name", "id documents", "passport photo", "national id"] },
   { id: "crypto_compromise", label: "Cryptocurrency / wallet incident", terms: ["seed phrase", "private key", "wallet compromised", "crypto wallet", "metamask", "recovery phrase"] },
   { id: "otp_shared", label: "OTP / credential exposure", terms: ["gave them the otp", "shared my otp", "gave my code", "shared the code", "gave them my password", "entered my password on"] },
+  { id: "romance_investment_scam", label: "Romance / investment (\"pig butchering\") scam", terms: ["met online", "dating app", "online relationship", "investment platform", "trading app", "guaranteed returns", "crypto trading", "convinced me to invest", "trading mentor"] },
+  { id: "family_emergency_scam", label: "Family-emergency / voice-cloning scam", terms: ["sounded just like", "voice sounded like", "claimed to be my grandson", "claimed to be my son", "claimed to be my daughter", "called pretending to be", "ai voice", "deepfake", "bail money", "in an accident and needs money"] },
+  { id: "government_impersonation_scam", label: "Government / law-enforcement impersonation scam", terms: ["said they were the police", "said they were from the irs", "said they were from the government", "arrest warrant", "digital arrest", "claimed i owed taxes", "said i was under investigation"] },
+  { id: "toll_delivery_smishing", label: "Toll / package-delivery smishing", terms: ["unpaid toll", "toll text", "e-zpass text", "package could not be delivered", "delivery text", "customs fee text", "redelivery fee"] },
+  { id: "job_task_scam", label: "Job / task scam", terms: ["work from home job", "task job", "product boosting job", "hired me online", "job offer online", "advance payment for job", "training fee for job"] },
 ];
 
 const HIGH_RISK_SIGNALS: Array<{ terms: string[]; note: string }> = [
@@ -105,6 +110,10 @@ const HIGH_RISK_SIGNALS: Array<{ terms: string[]; note: string }> = [
   { terms: ["passport", "national id", "drivers license", "identity document"], note: "Identity document exposure reported." },
   { terms: ["multiple accounts", "several accounts", "other accounts too"], note: "Multiple accounts may be affected." },
   { terms: ["remote access", "teamviewer", "anydesk", "let them control my"], note: "Remote-access software may have been installed by an attacker." },
+  { terms: ["investment platform", "trading app", "guaranteed returns", "convinced me to invest", "trading mentor"], note: "Possible romance/investment (\"pig butchering\") scam involving ongoing financial exposure." },
+  { terms: ["sounded just like", "voice sounded like", "ai voice", "deepfake", "bail money"], note: "Possible AI voice-cloning or deepfake-assisted family-emergency scam." },
+  { terms: ["arrest warrant", "digital arrest", "under investigation"], note: "Government/law-enforcement impersonation scam pattern reported." },
+  { terms: ["training fee for job", "advance payment for job"], note: "Job scam requesting an upfront payment — a common red flag." },
 ];
 
 function classifyIncident(description: string, quickAnswers: Record<string, boolean>): ClassifierResult {
@@ -237,6 +246,8 @@ Rules:
 9. Each action needs a title, a specific instruction, why it matters, and how the user can verify they completed it correctly.
 10. updateQuestion should be a short, natural prompt inviting the user to report back what they've done (e.g. "What have you secured so far?").
 11. Never promise complete safety. remainingRisk should reflect realistic residual risk even after immediate actions.
+12. When recommending authentication security, prefer authenticator apps or passkeys/FIDO2 over SMS one-time codes, which remain vulnerable to real-time phishing relay. Recommend scanning the device for malware BEFORE resetting passwords when device compromise is plausible — resetting first can let an attacker with device access regain control immediately.
+13. Recognize current 2025-2026 scam patterns in the incident description and tailor the plan accordingly: AI voice-cloning or deepfake family-emergency scams (advise verifying via a separate known channel, not the number/video that contacted them); romance-investment ("pig butchering") scams (advise stopping all further transfers immediately, since attackers often request "just one more" payment to "unlock" withdrawals); government/law-enforcement impersonation ("digital arrest") scams (reassure the user that real agencies do not demand secrecy or immediate payment by gift card, wire, or crypto); toll and package-delivery smishing; and job/task scams requesting upfront payment.
 
 Return only the required structured result.`;
 

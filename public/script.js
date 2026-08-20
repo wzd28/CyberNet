@@ -113,11 +113,11 @@ document.addEventListener("DOMContentLoaded",()=>{
       description:"CyberNet AI provides on-demand threat analysis, account-based AI access, and clear defensive next actions for suspicious messages, links, and screenshots."
     },
     cybernet:{
-      title:"Protect | CyberNet AI",
+      title:"Quick Scan | CyberNet AI",
       description:"Scan suspicious text messages, links, and screenshots for phishing, scams, and impersonation with instant risk explanations."
     },
     cybernetai:{
-      title:"CyberNet AI Assistant | CyberNet AI",
+      title:"Analysis AI | CyberNet AI",
       description:"Paste a message, link, or screenshot and get an automatic, expert-level cybersecurity analysis powered by CyberNet's managed AI or your own API key."
     },
     learn:{
@@ -349,8 +349,8 @@ document.addEventListener("DOMContentLoaded",()=>{
     const aiReqLeft=document.getElementById("aiReqLeft");
     const aiApiStatus=document.getElementById("aiApiStatus");
 
-    if(aiPlanTitle)aiPlanTitle.textContent=pro?"CyberNet AI Pro":"CyberNet AI Free";
-    if(aiPlanDescription)aiPlanDescription.textContent=!signedIn?"Sign in to activate 5 accurate AI analyses per day across text, links, and images.":pro?"Top-level CyberNet AI protection with advanced analysis, history, and reports.":"Accurate everyday AI protection with 5 shared analyses per day.";
+    if(aiPlanTitle)aiPlanTitle.textContent=pro?"Analysis AI Pro":"Analysis AI Free";
+    if(aiPlanDescription)aiPlanDescription.textContent=!signedIn?"Sign in to activate 5 accurate AI analyses per day across text, links, and images.":pro?"Top-level Analysis AI protection with advanced analysis, history, and reports.":"Accurate everyday AI protection with 5 shared analyses per day.";
     if(aiUsageText)aiUsageText.textContent=signedIn?`${used} / ${limit}`:`0 / 5`;
     if(aiUsageBar)aiUsageBar.style.width=`${signedIn?Math.min(100,(used/Math.max(1,limit))*100):0}%`;
     if(aiUsageReset)aiUsageReset.textContent=appState.usage.resetDate?`Resets ${new Date(appState.usage.resetDate).toLocaleDateString()}`:"Resets daily";
@@ -608,25 +608,28 @@ document.addEventListener("DOMContentLoaded",()=>{
   const closeHowtoVideo=document.getElementById("closeHowtoVideo");
   const howtoVideoTitle=document.getElementById("howtoVideoTitle");
   const howtoVideoPlayer=document.getElementById("howtoVideoPlayer");
-  const howtoVideoCards=document.querySelectorAll("[data-video]");
+  const howtoVideoCards=document.querySelectorAll(".hero-video-btn[data-video]");
+  const howtoVideoTabs=document.querySelectorAll(".video-modal-tab[data-video]");
+  const heroLearnFeaturesBtn=document.getElementById("heroLearnFeaturesBtn");
 
   const HOWTO_VIDEOS={
     protect:{
-      title:"How To Use Protect",
+      title:"How To Use Quick Scan",
       src:""
     },
     cybernetai:{
-      title:"How To Use CyberNet AI",
+      title:"How To Use Analysis AI",
       src:""
     },
     recovery:{
-      title:"How To Use Recovery",
+      title:"How To Use Recovery Mode",
       src:""
     }
   };
 
   function openHowtoVideo(key){
-    const data=HOWTO_VIDEOS[key]||HOWTO_VIDEOS.protect;
+    const activeKey=HOWTO_VIDEOS[key]?key:"protect";
+    const data=HOWTO_VIDEOS[activeKey];
     if(howtoVideoTitle)howtoVideoTitle.textContent=data.title;
     if(howtoVideoPlayer){
       if(data.src){
@@ -639,6 +642,7 @@ document.addEventListener("DOMContentLoaded",()=>{
           </div>`;
       }
     }
+    howtoVideoTabs.forEach(tab=>tab.classList.toggle("active",tab.dataset.video===activeKey));
     howtoVideoModal?.classList.add("show");
     howtoVideoModal?.setAttribute("aria-hidden","false");
   }
@@ -652,6 +656,10 @@ document.addEventListener("DOMContentLoaded",()=>{
   howtoVideoCards.forEach(card=>{
     card.addEventListener("click",()=>openHowtoVideo(card.dataset.video));
   });
+  howtoVideoTabs.forEach(tab=>{
+    tab.addEventListener("click",()=>openHowtoVideo(tab.dataset.video));
+  });
+  heroLearnFeaturesBtn?.addEventListener("click",()=>openHowtoVideo("protect"));
   closeHowtoVideo?.addEventListener("click",closeHowtoVideoModal);
   howtoVideoModal?.addEventListener("click",event=>{if(event.target===howtoVideoModal)closeHowtoVideoModal()});
 
@@ -718,6 +726,39 @@ document.addEventListener("DOMContentLoaded",()=>{
     document.querySelectorAll(".wow-stat-number").forEach(el=>animateNumberElement(el,parseInt(el.dataset.target||"0",10),{duration:900}));
   }
 
+  /* ─── Home hero live activity counters (illustrative demo counter) ─── */
+  function initLiveHeroCounters(){
+    const els=document.querySelectorAll(".hero-live-stat strong[data-target]");
+    if(!els.length)return;
+    els.forEach(el=>{
+      const target=parseInt(el.dataset.target||"0",10);
+      if(reduceCounterMotion){
+        el.textContent=target.toLocaleString();
+        return;
+      }
+      const startTime=performance.now();
+      const duration=1600;
+      function frame(now){
+        const raw=Math.min(1,(now-startTime)/duration);
+        const eased=1-Math.pow(1-raw,3);
+        el.textContent=Math.round(target*eased).toLocaleString();
+        if(raw<1)requestAnimationFrame(frame);
+        else{
+          el.textContent=target.toLocaleString();
+          startLiveTick(el,target);
+        }
+      }
+      requestAnimationFrame(frame);
+    });
+  }
+  function startLiveTick(el,baseValue){
+    let current=baseValue;
+    setInterval(()=>{
+      current+=Math.floor(Math.random()*3)+1;
+      el.textContent=current.toLocaleString();
+    },Math.floor(Math.random()*2500)+2500);
+  }
+
   function animateHeroStats(scopeSelector){
     const scope=scopeSelector?document.querySelector(scopeSelector):document;
     if(!scope)return;
@@ -730,6 +771,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   setTimeout(()=>{
     animateWowCounters();
     animateHeroStats("#home");
+    initLiveHeroCounters();
   },650);
 
   /* ─── Ticker duplication for seamless loop ─── */
@@ -850,6 +892,12 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(emails.some(e=>/@(gmail|yahoo|outlook|hotmail|protonmail)\./i.test(e))&&hasTerm(variants,["bank","support","security team","government","microsoft","apple","paypal","البنك","الدعم"]))addSignal(state,"public-email",25,"Claims to represent an organization while using a public email provider.","Brand impersonation","impersonation",true);
     if(/\b(paypal|microsoft|apple|google|amazon|netflix|instagram|facebook|whatsapp|dhl|fedex|bank)\b/i.test(clean)&&hasTerm(variants,["verify","locked","suspended","refund","security alert","تحقق","موقوف","استرداد"]))addSignal(state,"brand-pressure",18,"Combines a well-known brand with account or payment pressure.","Brand impersonation phishing","impersonation");
     if(hiddenChars)addSignal(state,"hidden-chars",16,"Contains hidden bidirectional or zero-width Unicode characters that can disguise content.","Obfuscated phishing","style",true);
+    if(containsAny(clean,["unpaid toll","outstanding toll","toll balance","e-zpass","ezpass","toll invoice"])&&containsAny(clean,["pay","suspend","fine","fee","link","click"]))addSignal(state,"toll-smishing",30,"Claims an unpaid road toll and pressures payment or a link click — a widely-reported smishing pattern.","Toll-fee smishing scam","impersonation",true);
+    if(containsAny(clean,["package could not be delivered","delivery failed","parcel is on hold","redelivery fee","customs fee","shipment is on hold","update your delivery"]))addSignal(state,"delivery-smishing",26,"Claims a package or delivery problem requiring a fee or link click.","Package-delivery smishing scam","impersonation",true);
+    if(containsAny(clean,["work from home","earn $","earn up to","no experience needed","flexible hours easy money","daily payout","task completion bonus","product boosting","earn per task"]))addSignal(state,"job-scam",24,"Uses work-from-home or easy-money task language typical of job and task scams.","Job / task scam","money",true);
+    if(containsAny(clean,["arrest warrant","failure to appear","legal action will be taken","this call is being recorded for legal purposes","stay on the line","do not hang up","identity was used in a crime","federal investigation"]))addSignal(state,"authority-impersonation",34,"Impersonates law enforcement or a government agency with legal threats — a common impersonation/\"digital arrest\" scam pattern.","Government / law-enforcement impersonation scam","impersonation",true);
+    if(containsAny(clean,["grandma its me","grandpa its me","ive been in an accident","i need bail money","dont tell mom","dont tell my parents","im in trouble and need money"]))addSignal(state,"family-emergency",30,"Uses a family-emergency plea combined with urgency and secrecy — a pattern seen in impersonation and AI voice-cloning scams.","Family-emergency impersonation scam","impersonation",true);
+    if(containsAny(clean,["investment opportunity","guaranteed returns","double your money","crypto trading platform","my broker","trading mentor","withdraw your profits"])&&containsAny(clean,["love","miss you","my dear","sweetheart","darling","relationship"]))addSignal(state,"romance-investment",36,"Combines romantic language with an investment or crypto-trading pitch — the classic \"pig butchering\" scam pattern.","Romance / investment (\"pig butchering\") scam","money",true);
 
     let highestEmbedded=null;
     for(const value of urls.slice(0,4)){
@@ -931,9 +979,9 @@ document.addEventListener("DOMContentLoaded",()=>{
     const full=url.href.toLowerCase();
     const pathQuery=(url.pathname+url.search+url.hash).toLowerCase();
     const domainCore=registered.split(".")[0]||"";
-    const shorteners=new Set(["bit.ly","tinyurl.com","t.co","goo.gl","ow.ly","is.gd","buff.ly","cutt.ly","rebrand.ly","shorturl.at","tiny.one","rb.gy"]);
-    const riskyTlds=new Set(["xyz","top","click","zip","mov","review","country","work","support","live","cam","gq","tk","ml","cf","buzz","rest","fit","quest","monster","download"]);
-    const brands={paypal:"paypal.com",microsoft:"microsoft.com",apple:"apple.com",google:"google.com",amazon:"amazon.com",netflix:"netflix.com",instagram:"instagram.com",facebook:"facebook.com",whatsapp:"whatsapp.com",dropbox:"dropbox.com",dhl:"dhl.com",fedex:"fedex.com",adobe:"adobe.com",coinbase:"coinbase.com",binance:"binance.com",icloud:"icloud.com"};
+    const shorteners=new Set(["bit.ly","tinyurl.com","t.co","goo.gl","ow.ly","is.gd","buff.ly","cutt.ly","rebrand.ly","shorturl.at","tiny.one","rb.gy","v.gd","s.id","lnkd.in","tr.im","clickmeter.com"]);
+    const riskyTlds=new Set(["xyz","top","click","zip","mov","review","country","work","support","live","cam","gq","tk","ml","cf","buzz","rest","fit","quest","monster","download","xin","bond","shop","online","cfd","lol","vip","cc","win","loan","men","party","science","stream","racing","accountant","date","faith","icu","bar","rip","surf","cyou","sbs"]);
+    const brands={paypal:"paypal.com",microsoft:"microsoft.com",apple:"apple.com",google:"google.com",amazon:"amazon.com",netflix:"netflix.com",instagram:"instagram.com",facebook:"facebook.com",whatsapp:"whatsapp.com",dropbox:"dropbox.com",dhl:"dhl.com",fedex:"fedex.com",ups:"ups.com",usps:"usps.com",adobe:"adobe.com",coinbase:"coinbase.com",binance:"binance.com",icloud:"icloud.com",walmart:"walmart.com",chase:"chase.com",wellsfargo:"wellsfargo.com",bankofamerica:"bankofamerica.com",venmo:"venmo.com",zelle:"zelle.com",cashapp:"cash.app",steam:"steampowered.com",linkedin:"linkedin.com",tiktok:"tiktok.com",snapchat:"snapchat.com",discord:"discord.com",spotify:"spotify.com",ezpass:"e-zpass.com",xfinity:"xfinity.com",verizon:"verizon.com"};
     const officialBrand=Object.entries(brands).find(([,domain])=>registered===domain);
 
     if(!hadScheme)addSignal(state,"missing-scheme",4,"The protocol was omitted; CyberNet AI assumed HTTPS for parsing.","Unverified URL","structure");
@@ -947,6 +995,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(/[\u0080-\uffff]/.test(host))addSignal(state,"unicode",25,"Contains internationalized characters that may visually imitate another domain.","Lookalike-domain phishing","deception",true);
     if(labels.length>=5)addSignal(state,"subdomains",13,"Uses an unusually deep subdomain chain.","Subdomain deception","structure");
     if((registered.match(/-/g)||[]).length>=3)addSignal(state,"hyphens",11,"The registered domain contains many hyphens.","Suspicious domain structure","structure");
+    if(/^[a-z0-9]+-com[a-z0-9.-]*\./i.test(host)||/-com-[a-z]/i.test(host))addSignal(state,"com-prefix-trick",29,"Uses \"-com\" combined with other text in the domain, a common trick to visually mimic a real \".com\" address.","Domain lookalike deception","deception",true);
     if(hostnameEntropy(domainCore)>3.65&&domainCore.length>=14)addSignal(state,"entropy",13,"The main domain label looks randomly generated or unusually complex.","Algorithmic-looking domain","structure");
     if(/^(?:0x[0-9a-f]+|\d{8,})$/i.test(host))addSignal(state,"encoded-ip",35,"The hostname resembles an encoded numeric IP address.","Obfuscated IP destination","deception",true);
     if(full.length>135)addSignal(state,"long",12,"The URL is unusually long and difficult to inspect.","Obfuscated URL","structure");
@@ -955,6 +1004,8 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(countMatches(full,/%[0-9a-f]{2}/gi)>=4)addSignal(state,"encoding",13,"Uses heavy URL encoding that makes the destination harder to read.","Encoded URL","deception");
     if(containsAny(pathQuery,["login","signin","verify","verification","account","password","secure-update","wallet-connect","unlock-account"]))addSignal(state,"credential-path",18,"The path asks for login, verification, account, password, or wallet action.","Credential phishing link","credentials");
     if(containsAny(pathQuery,["free","gift","claim","prize","winner","airdrop","bonus","reward"]))addSignal(state,"reward-path",15,"The path promotes a prize, gift, bonus, reward, or airdrop.","Prize / crypto scam link","reward");
+    if(containsAny(pathQuery,["toll","unpaid","e-zpass","ezpass","turnpike","tollway"]))addSignal(state,"toll-path",26,"The path references an unpaid toll or turnpike fee, a widely-reported smishing pattern.","Toll / package-delivery smishing link","impersonation",true);
+    if(containsAny(pathQuery,["package","delivery","redeliver","shipment","parcel","customs-fee"])&&containsAny(pathQuery,["fee","pay","confirm","reschedule"]))addSignal(state,"delivery-path",22,"The path references a delivery combined with a fee, confirmation, or rescheduling request.","Package-delivery smishing link","impersonation",true);
     if(/\.(exe|scr|msi|apk|bat|cmd|ps1|js|jar|iso|img|zip|rar|7z)(?:$|[?#])/i.test(url.pathname))addSignal(state,"download",48,"Points directly to an executable, script, disk image, or archive download.","Malware delivery link","malware",true);
     if(containsAny(full,["redirect=","url=","target=","continue=","next=","dest=","returnurl=","return_to="])&&/https?%3a|https?:\/\//i.test(full))addSignal(state,"redirect",23,"Contains a nested redirect destination that may send visitors elsewhere.","Redirect-based phishing","deception",true);
     try{const decoded=decodeURIComponent(full);if(decoded!==full&&/https?:\/\/[^\s]+https?:\/\//i.test(decoded))addSignal(state,"double-url",24,"Decoding reveals more than one web destination inside the URL.","Nested destination deception","deception",true)}catch{}
