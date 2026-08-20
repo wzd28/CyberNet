@@ -65,10 +65,12 @@
     </section>
 <section class="cn-legal-section" id="feature-storage">
       <h2>3. How specific features handle information</h2>
-      <h3>CyberNet Protect and CyberNet AI</h3>
+      <h3>Quick Scan and Analysis AI</h3>
 <p>Submitted evidence is processed in the browser and may be sent over HTTPS to Netlify Functions. When AI is enabled, relevant content may be sent to OpenAI to generate the requested analysis. CyberNet does not promise that all processing stays on the device.</p>
+<h3>Recovery Mode</h3>
+<p>Incident descriptions, quick-answer signals, and optional screenshots you submit to Recovery Mode are processed to generate a recovery case, plan, and task checklist stored in Supabase under your account. CyberNet attempts to detect and redact common secrets (such as passwords, OTPs, and card numbers) before they are stored or sent for AI processing, but automatic redaction is not guaranteed — never submit passwords, one-time codes, recovery codes, full card numbers, seed phrases, or private keys.</p>
 <h3>Saved reports and history</h3>
-<p>Some Protect reports may be stored in browser local storage. Pro AI history and account information may be stored in Supabase. Screenshot bytes may be excluded from browser-saved history or kept only for the active session, depending on the feature. Browser data can be removed by the user or browser and is not guaranteed to be recoverable.</p>
+<p>Some Quick Scan reports may be stored in browser local storage. Pro AI history, Recovery Mode cases, and account information may be stored in Supabase. Screenshot bytes may be excluded from browser-saved history or kept only for the active session, depending on the feature. Browser data can be removed by the user or browser and is not guaranteed to be recoverable.</p>
 <h3>User-provided OpenAI API keys</h3>
 <p>A validated key is stored only in the current browser tab’s session storage. It is temporarily transmitted over HTTPS to a Netlify Function for validation and to send the requested analysis to OpenAI. CyberNet does not intentionally store the key in Supabase, the user profile, logs, or saved reports. Closing the tab or selecting “Forget Key” removes the browser copy. OpenAI may process or temporarily retain API data under its own terms and controls.</p>
 <h3>Payments</h3>

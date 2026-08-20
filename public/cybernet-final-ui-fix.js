@@ -556,7 +556,7 @@
     if (protectSaved && !protectSaved.closest("#cybernetAccountReportsPane")) {
       const section = createReportSection(
         "Investigation Reports",
-        "Open, review, or delete the cases saved by CyberNet Protect on this browser.",
+        "Open, review, or delete the cases saved by Quick Scan on this browser.",
         "Saved reports"
       );
       section.appendChild(protectSaved);
