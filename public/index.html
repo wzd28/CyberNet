@@ -990,6 +990,15 @@
           <ul id="recoveryRemainingList"></ul>
         </div>
 
+        <div class="recovery-pro-upsell glass" id="recoveryProUpsell" hidden>
+          <div class="recovery-pro-upsell-icon">🛡️</div>
+          <div class="recovery-pro-upsell-body">
+            <h4>You've addressed the immediate danger. Let's finish the job.</h4>
+            <p>Pro unlocks the complete recovery timeline (first hour, first 24 hours, next 7 days), verification steps for every action, remaining-risk analysis, more daily updates with a shorter wait between them, and a downloadable case report you can keep for your records.</p>
+            <button class="primary-btn recovery-primary-btn" data-page="pricing" type="button">See Pro Recovery</button>
+          </div>
+        </div>
+
         <div class="recovery-resources-card glass">
           <h3>Official Reporting Resources</h3>
           <div id="recoveryResourcesList" class="recovery-resources-list"></div>
@@ -1698,8 +1707,10 @@
             <li>Accurate AI-powered threat detection</li>
             <li>Basic threat explanations</li>
             <li>Cybersecurity learning center</li>
+            <li><strong>1 Recovery Mode case per day</strong>, 3 updates/day</li>
             <li class="feature-unavailable">No saved scan history</li>
             <li class="feature-unavailable">No downloadable reports</li>
+            <li class="feature-unavailable">Recovery timeline limited to immediate actions</li>
           </ul>
           <button class="secondary-btn full plan-select-btn" id="freePlanBtn" data-plan="free">Start Free</button>
         </article>
@@ -1724,6 +1735,10 @@
             <li>Downloadable security reports</li>
             <li>Saved scan history</li>
             <li>Faster AI responses</li>
+            <li><strong>5 Recovery Mode cases per day</strong>, 12 updates/day</li>
+            <li>Full recovery timeline: first hour, 24 hours, and 7 days</li>
+            <li>Verification steps and remaining-risk analysis</li>
+            <li>Downloadable Recovery case report</li>
           </ul>
           <button class="primary-btn full plan-select-btn" id="proPlanBtn" data-plan="pro" data-cycle="monthly">Upgrade to Pro</button>
         </article>
@@ -1752,6 +1767,15 @@
               <tr><td>Scan history</td><td><span class="table-no">—</span></td><td><span class="table-yes">✓</span></td></tr>
               <tr><td>Downloadable reports</td><td><span class="table-no">—</span></td><td><span class="table-yes">✓</span></td></tr>
               <tr><td>Faster AI responses</td><td><span class="table-no">—</span></td><td><span class="table-yes">✓</span></td></tr>
+              <tr class="comparison-section-row"><td colspan="3">Recovery Mode</td></tr>
+              <tr><td>New Recovery cases</td><td>1 per day</td><td><strong>5 per day</strong></td></tr>
+              <tr><td>Recovery updates</td><td>3 per day</td><td><strong>12 per day</strong></td></tr>
+              <tr><td>Update cooldown</td><td>6 hours</td><td><strong>2 hours</strong></td></tr>
+              <tr><td>Immediate emergency actions</td><td><span class="table-yes">✓</span></td><td><span class="table-yes">✓</span></td></tr>
+              <tr><td>Full recovery timeline (1 hr / 24 hr / 7 day)</td><td><span class="table-no">—</span></td><td><span class="table-yes">✓</span></td></tr>
+              <tr><td>Verification steps</td><td><span class="table-no">—</span></td><td><span class="table-yes">✓</span></td></tr>
+              <tr><td>Remaining-risk analysis</td><td><span class="table-no">—</span></td><td><span class="table-yes">✓</span></td></tr>
+              <tr><td>Downloadable Recovery report</td><td><span class="table-no">—</span></td><td><span class="table-yes">✓</span></td></tr>
               <tr><td>Price</td><td>$0</td><td>$9.99/month or $95.90/year</td></tr>
             </tbody>
           </table>
@@ -1761,6 +1785,10 @@
       <div class="pricing-footnote reveal">
         <span>Yearly Pro is billed once at <strong>$95.90</strong>, equal to about <strong>$7.99/month</strong>.</span>
         <span>All usage limits reset daily.</span>
+      </div>
+
+      <div class="pricing-renewal-note reveal">
+        <strong>Pro subscriptions renew automatically</strong> at the end of each billing period until cancelled. To cancel or change your plan at any time, go to <strong>Account → Manage Billing</strong>.
       </div>
     </section>
 

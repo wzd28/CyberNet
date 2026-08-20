@@ -2970,6 +2970,44 @@ input::placeholder{
   color:var(--recovery-green-bright);
 }
 
+/* ═══ RECOVERY PRO UPSELL ═══ */
+.recovery-pro-upsell{
+  display:flex;
+  gap:18px;
+  align-items:flex-start;
+  padding:24px;
+  border-radius:18px;
+  border:1px solid rgba(87,245,154,.3);
+  background:
+    radial-gradient(circle at 15% 20%,rgba(87,245,154,.08),transparent 55%),
+    rgba(87,245,154,.03);
+}
+
+.recovery-pro-upsell-icon{
+  font-size:30px;
+  flex-shrink:0;
+  line-height:1;
+}
+
+.recovery-pro-upsell-body h4{
+  font-size:15px;
+  color:var(--recovery-green-bright);
+  margin-bottom:8px;
+}
+
+.recovery-pro-upsell-body p{
+  color:var(--text);
+  font-size:12.5px;
+  line-height:1.7;
+  margin-bottom:14px;
+}
+
+@media(max-width:600px){
+  .recovery-pro-upsell{
+    flex-direction:column;
+  }
+}
+
 .recovery-action-list{
   display:flex;
   flex-direction:column;
@@ -4982,6 +5020,33 @@ img{
 }
 
 .pricing-footnote strong{color:var(--green-bright)}
+
+.pricing-renewal-note{
+  max-width:640px;
+  margin:16px auto 0;
+  text-align:center;
+  padding:14px 20px;
+  border-radius:14px;
+  background:rgba(255,255,255,.02);
+  border:1px solid var(--glass-border);
+  color:var(--muted);
+  font-size:11.5px;
+  line-height:1.7;
+}
+
+.pricing-renewal-note strong{
+  color:var(--text);
+}
+
+.comparison-section-row td{
+  padding-top:22px!important;
+  font-family:var(--font-mono);
+  font-size:11px;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:var(--recovery-green-bright,var(--green-bright));
+  border-bottom:1px solid rgba(87,245,154,.16)!important;
+}
 
 /* Better visual stability on the first home render. */
 #home .hero,

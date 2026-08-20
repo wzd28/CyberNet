@@ -1608,6 +1608,8 @@ document.addEventListener("DOMContentLoaded",()=>{
     const updateBtn=document.getElementById("recoveryUpdateBtn");
     const updateUsageNote=document.getElementById("recoveryUpdateUsageNote");
     const historyListEl=document.getElementById("recoveryHistoryList");
+    const downloadBtn=document.getElementById("recoveryDownloadBtn");
+    const proUpsellEl=document.getElementById("recoveryProUpsell");
 
     if(!intakeEl||!dashboardEl)return;
 
@@ -1780,8 +1782,52 @@ document.addEventListener("DOMContentLoaded",()=>{
 
       if(updateQuestionEl)updateQuestionEl.textContent=plan.updateQuestion||"Tell CyberNet AI what you've done or what changed.";
 
+      if(proUpsellEl)proUpsellEl.hidden=pro;
+      if(downloadBtn)downloadBtn.hidden=!pro;
+
       if(usageNote)usageNote.textContent="";
     }
+
+    function downloadRecoveryReport(){
+      if(!currentPlan)return;
+      const plan=currentPlan;
+      const timestamp=new Date().toLocaleString();
+      const listHtml=(items)=>(items&&items.length)?items.map(i=>`<li>${escapeHTML(i)}</li>`).join(""):"<li>None recorded.</li>";
+      const actionsHtml=(items)=>(items&&items.length)?items.map(a=>`<li><strong>${escapeHTML(a.title)}</strong> — ${escapeHTML(a.instruction)}${a.verification?` <em>(Verify: ${escapeHTML(a.verification)})</em>`:""}</li>`).join(""):"<li>None recorded.</li>";
+      const resourcesHtml=(plan.reportingResources||[]).map(r=>`<li>${escapeHTML(r.organization)} — ${escapeHTML(r.purpose)}${r.phone?` · ${escapeHTML(r.phone)}`:""} — ${escapeHTML(r.officialUrl)}</li>`).join("")||"<li>No region-specific resources matched.</li>";
+      const timeline=plan.timeline||{};
+      const html=`<!doctype html><html><head><meta charset="utf-8"><title>CyberNet AI Recovery Report</title><style>body{font-family:Arial,sans-serif;max-width:820px;margin:40px auto;padding:0 24px;color:#0d1f16}h1{color:#0f8a53}h2{color:#0d1f16;font-size:17px;margin-top:0}section{margin:26px 0;padding:18px;border:1px solid #d7f0e2;border-radius:12px}small{color:#5a7568}li{margin:8px 0;line-height:1.55}.badge{display:inline-block;padding:4px 10px;border-radius:999px;background:#e5f8ee;color:#0f8a53;font-weight:700;font-size:13px}</style></head><body>
+        <h1>CyberNet AI Recovery Report</h1>
+        <small>${escapeHTML(timestamp)} · Case ID: ${escapeHTML(currentCaseId||"—")}</small>
+        <section>
+          <span class="badge">${escapeHTML((plan.riskLevel||"").toUpperCase())} RISK</span>
+          <h2>${escapeHTML(plan.incidentType||"Recovery case")}</h2>
+          <p>${escapeHTML(plan.summary||"")}</p>
+          <p><strong>Urgency:</strong> ${escapeHTML(plan.urgency||"")} &nbsp; <strong>Confidence:</strong> ${plan.confidence||0}% &nbsp; <strong>Progress:</strong> ${plan.progressPercent||0}%</p>
+        </section>
+        <section><h2>What We Know</h2><ul>${listHtml(plan.whatWeKnow)}</ul></section>
+        <section><h2>Reasonable Inferences</h2><ul>${listHtml(plan.inferences)}</ul></section>
+        <section><h2>Unknowns</h2><ul>${listHtml(plan.unknowns)}</ul></section>
+        <section><h2>Immediate Actions</h2><ul>${actionsHtml(plan.immediateActions)}</ul></section>
+        <section><h2>First 10 Minutes</h2><ul>${actionsHtml(timeline.first10Minutes)}</ul></section>
+        <section><h2>First Hour</h2><ul>${actionsHtml(timeline.firstHour)}</ul></section>
+        <section><h2>First 24 Hours</h2><ul>${actionsHtml(timeline.first24Hours)}</ul></section>
+        <section><h2>Next 7 Days</h2><ul>${actionsHtml(timeline.next7Days)}</ul></section>
+        <section><h2>What's Still At Risk</h2><ul>${listHtml(plan.remainingRisk)}</ul></section>
+        <section><h2>Official Reporting Resources</h2><ul>${resourcesHtml}</ul></section>
+        <small>CyberNet AI provides recovery guidance, not a guarantee of safety. This report reflects the case state at the time of download.</small>
+      </body></html>`;
+      const blob=new Blob([html],{type:"text/html;charset=utf-8"});
+      const url=URL.createObjectURL(blob);
+      const anchor=document.createElement("a");
+      anchor.href=url;
+      anchor.download=`cybernet-ai-recovery-report-${Date.now()}.html`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),1000);
+    }
+    if(downloadBtn)downloadBtn.addEventListener("click",downloadRecoveryReport);
 
     document.querySelectorAll(".recovery-timeline-tab").forEach(tab=>{
       tab.addEventListener("click",()=>{
