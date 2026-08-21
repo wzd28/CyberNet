@@ -1,19 +1,57 @@
-CYBERNET FINAL RELEASE — LAUNCH CHECKLIST
-=========================================
+CYBERNET AI — PRE-LAUNCH CHECKLIST
+===================================
+Last updated: 2026-08-20
 
+LEGAL (do this first — currently blocking real commercial launch)
+-------------------------------------------------------------------
 [ ] Add the final legal operator name, address, licence/registration details,
-    jurisdiction, and formal legal/privacy contact before commercial launch.
+    jurisdiction, and formal legal/privacy contact to terms.html, privacy.html,
+    acceptable-use.html, refunds.html, and cybernet-legal-upgrade.js (they must
+    all say the same thing — currently all four contain a placeholder).
 [ ] Have a qualified lawyer review Terms, Privacy, Refunds, and Acceptable Use.
-[ ] Run supabase/legal_privacy_upgrade.sql once.
-[ ] Confirm SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_SERVICE_ROLE_KEY exist
-    in Netlify environment variables.
-[ ] Confirm /api/legal-acceptance returns an authenticated response after signup.
+[ ] Decide the Pro billing model on purpose (one-time purchase vs. the
+    recurring subscription currently live) and make sure the Terms, Refund
+    Policy, pricing page, and Stripe configuration all agree with each other.
+[ ] Get liability / errors-and-omissions insurance appropriate for a product
+    that gives cybersecurity risk assessments.
+
+DATABASE / INFRASTRUCTURE
+-------------------------------------------------------------------
+[ ] Run supabase/schema.sql once in Supabase Dashboard -> SQL Editor. This is
+    now the single authoritative migration file (legal_privacy_upgrade.sql
+    was merged into it and no longer exists as a separate file).
+[ ] Confirm SUPABASE_URL, SUPABASE_ANON_KEY (or SUPABASE_PUBLISHABLE_KEY), and
+    SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SECRET_KEY) exist in Netlify
+    environment variables.
+[ ] Confirm OPENAI_API_KEY is set for managed AI analysis.
+[ ] Set up error monitoring (Sentry or at minimum regular review of Netlify
+    function logs) — none currently exists.
+[ ] Set up a staging/preview deploy step before promoting changes to
+    production — every deploy currently goes straight to the live site.
+
+FUNCTIONAL VERIFICATION
+-------------------------------------------------------------------
+[ ] Confirm /api/legal-acceptance returns an authenticated response after
+    signup.
 [ ] Confirm Account -> Privacy & Data exports JSON.
 [ ] Confirm Clear saved history removes database and browser history.
 [ ] Confirm active Pro subscription blocks account deletion until cancelled.
-[ ] Confirm GhostScan image is labelled Concept Preview / Coming Soon.
-[ ] Confirm the pricing heading reads “One platform. Complete protection.”
 [ ] Test signup Terms acceptance on desktop and phone.
 [ ] Test checkout recurring-payment acceptance in Stripe test mode.
 [ ] Test a temporary restricted BYOK project key, then revoke it.
-[ ] Verify privacy statements match actual provider configuration before launch.
+[ ] Run Recovery Mode end-to-end at least once against real Supabase
+    infrastructure (create a case, mark tasks complete, submit an update) —
+    this has been built and validated statically but never run live.
+[ ] Verify privacy statements match actual provider configuration before
+    launch.
+
+QUALITY
+-------------------------------------------------------------------
+[ ] Run a Lighthouse / accessibility audit and fix what it finds — has never
+    been run.
+[ ] Build a small benchmark set of known-scam and known-legitimate messages
+    and measure actual false-positive/false-negative rates — currently
+    unmeasured.
+[ ] Delete or relocate the old index.html backup files if they reappear —
+    they were previously sitting in public/ and publicly reachable at
+    guessable URLs (removed 2026-08-20).
