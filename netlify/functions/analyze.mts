@@ -537,13 +537,13 @@ function analyzeLinkServer(raw: string): LocalEvidence {
   }
 
   const score = clamp(state.score);
-  const confidence = clamp(55 + Math.min(40, state.evidence.length * 6));
+  const confidence = clamp(55 + Math.min(40, state.evidence.length * 6) + (state.evidence.length === 0 ? 15 : 0));
   const threatType = state.types.at(-1)?.replace(/_/g, " ") || "No decisive structural URL threat identified";
 
   return {
     score,
     confidence,
-    verdict: verdictFromScore(score, score < 25),
+    verdict: verdictFromScore(score, state.evidence.length > 0 && score < 25),
     threatType,
     evidence: uniqueStrings(state.evidence, 14),
     counterEvidence: uniqueStrings(counterEvidence, 8),
@@ -861,6 +861,21 @@ function fallbackMemoryRateLimit(key: string, maxRequests: number): boolean {
 function emptyRichFields(local: LocalEvidence, artifactsAnalyzed: number, caseTitle: string) {
   const severity: Severity = local.score >= 80 ? "high" : local.score >= 55 ? "medium" : local.score >= 25 ? "low" : "informational";
   const urgency: Urgency = local.score >= 70 ? "immediate" : local.score >= 35 ? "soon" : "monitor";
+
+  const containmentActions = severity === "informational"
+    ? ["No immediate containment action is needed based on the available evidence."]
+    : ["Do not interact further with suspicious links, files, QR codes, payment requests, or remote-access instructions."];
+
+  const recoveryActions = (severity === "high" || severity === "medium")
+    ? ["If credentials or codes were shared, change them from a clean device and review active sessions."]
+    : ["No recovery action is needed for this result unless something changes about this specific message or link."];
+
+  const reportingActions = severity === "high"
+    ? ["Report the content to the affected platform or organization and preserve the evidence."]
+    : severity === "medium"
+    ? ["Consider reporting the content to the affected platform if you remain unsure."]
+    : ["No reporting action is necessary based on the available evidence."];
+
   return {
     caseTitle,
     incidentCategory: local.threatType,
@@ -883,9 +898,9 @@ function emptyRichFields(local: LocalEvidence, artifactsAnalyzed: number, caseTi
     unverifiedClaims: [],
     missingEvidence: ["Independent sender or account verification", "Full surrounding conversation or incident timeline", "Destination behavior or attachment analysis when relevant"],
     recommendedEvidenceToCollect: ["Preserve the original message, headers, URL, screenshot, timestamps, and transaction records.", "Record what actions were taken, on which device, and at what time.", "Verify the sender through a separately obtained official contact channel."],
-    containmentActions: ["Do not interact further with suspicious links, files, QR codes, payment requests, or remote-access instructions."],
-    recoveryActions: ["If credentials or codes were shared, change them from a clean device and review active sessions."],
-    reportingActions: ["Report the content to the affected platform or organization and preserve the evidence."],
+    containmentActions,
+    recoveryActions,
+    reportingActions,
   };
 }
 
@@ -903,6 +918,9 @@ function fallbackAnalysis(local: LocalEvidence, reputation: ReputationResult, mo
   }
 
   const rich = emptyRichFields(local, artifactsAnalyzed, caseTitle);
+  const finalNote = rich.severity === "informational"
+    ? "No significant threat indicators were found. Continue using normal judgment — this does not guarantee the content is completely safe."
+    : "Treat the content as unverified until the sender and destination are independently confirmed.";
   return {
     verdict: local.verdict,
     score: local.score,
@@ -919,7 +937,7 @@ function fallbackAnalysis(local: LocalEvidence, reputation: ReputationResult, mo
       ...rich.containmentActions,
       ...rich.recoveryActions,
       ...rich.reportingActions,
-      "Treat the content as unverified until the sender and destination are independently confirmed.",
+      finalNote,
     ], 12),
   };
 }

@@ -628,3 +628,30 @@ create policy "Users can read their own legal acceptances"
   on public.legal_acceptances for select
   to authenticated
   using ((select auth.uid()) = user_id);
+
+-- ═══════════════════════════════════════════════════════════════════
+-- CyberNet AI: Public platform stats (for the Home page "Live Activity"
+-- panel). Returns real aggregate counts only — no per-user data, no PII.
+-- Called by netlify/functions/public-stats.mts using the service-role
+-- key; never exposed to anon/authenticated roles directly.
+-- ═══════════════════════════════════════════════════════════════════
+
+create or replace function public.get_platform_stats()
+returns table (
+  total_scans bigint,
+  threats_found bigint,
+  recovery_cases bigint
+)
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select
+    (select coalesce(sum(analysis_count), 0) from public.daily_usage) as total_scans,
+    (select count(*) from public.scan_history where verdict in ('malicious', 'suspicious')) as threats_found,
+    (select count(*) from public.recovery_cases) as recovery_cases;
+$$;
+
+revoke all on function public.get_platform_stats() from public, anon, authenticated;
+grant execute on function public.get_platform_stats() to service_role;

@@ -726,37 +726,38 @@ document.addEventListener("DOMContentLoaded",()=>{
     document.querySelectorAll(".wow-stat-number").forEach(el=>animateNumberElement(el,parseInt(el.dataset.target||"0",10),{duration:900}));
   }
 
-  /* ─── Home hero live activity counters (illustrative demo counter) ─── */
-  function initLiveHeroCounters(){
-    const els=document.querySelectorAll(".hero-live-stat strong[data-target]");
-    if(!els.length)return;
-    els.forEach(el=>{
-      const target=parseInt(el.dataset.target||"0",10);
-      if(reduceCounterMotion){
-        el.textContent=target.toLocaleString();
-        return;
-      }
-      const startTime=performance.now();
-      const duration=1600;
-      function frame(now){
-        const raw=Math.min(1,(now-startTime)/duration);
-        const eased=1-Math.pow(1-raw,3);
-        el.textContent=Math.round(target*eased).toLocaleString();
-        if(raw<1)requestAnimationFrame(frame);
-        else{
-          el.textContent=target.toLocaleString();
-          startLiveTick(el,target);
-        }
-      }
-      requestAnimationFrame(frame);
-    });
+  /* ─── Home hero live activity counters (real usage data) ─── */
+  function animateToValue(el,target){
+    if(reduceCounterMotion){el.textContent=target.toLocaleString();return}
+    const startTime=performance.now();
+    const duration=1600;
+    function frame(now){
+      const raw=Math.min(1,(now-startTime)/duration);
+      const eased=1-Math.pow(1-raw,3);
+      el.textContent=Math.round(target*eased).toLocaleString();
+      if(raw<1)requestAnimationFrame(frame);
+      else el.textContent=target.toLocaleString();
+    }
+    requestAnimationFrame(frame);
   }
-  function startLiveTick(el,baseValue){
-    let current=baseValue;
-    setInterval(()=>{
-      current+=Math.floor(Math.random()*3)+1;
-      el.textContent=current.toLocaleString();
-    },Math.floor(Math.random()*2500)+2500);
+  async function initLiveHeroCounters(){
+    const els=document.querySelectorAll(".hero-live-stat strong[id]");
+    const noteEl=document.getElementById("heroStatsNote");
+    if(!els.length)return;
+    try{
+      const res=await fetch("/api/public-stats");
+      const data=await res.json().catch(()=>({}));
+      if(!res.ok||!data.live)throw new Error("unavailable");
+      const values={liveScansCount:data.totalScans,liveThreatsCount:data.threatsFound,liveRecoveriesCount:data.recoveryCases};
+      els.forEach(el=>{
+        const target=Number(values[el.id])||0;
+        animateToValue(el,target);
+      });
+      if(noteEl)noteEl.innerHTML=`<strong>Live</strong> — real usage counts from CyberNet AI's own database, updated continuously.`;
+    }catch{
+      els.forEach(el=>{el.textContent="—"});
+      if(noteEl)noteEl.innerHTML=`<strong>Live stats unavailable</strong> — could not reach CyberNet AI's usage data right now.`;
+    }
   }
 
   function animateHeroStats(scopeSelector){
@@ -1023,10 +1024,10 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(state.strong>=2)score=Math.max(score,83);else if(state.strong===1)score=Math.max(score,58);
     if(officialBrand&&state.signals.size===0)score=2;
     if(!state.signals.size&&!officialBrand)score=7;
-    const confidence=clamp(48+state.categories.size*8+state.strong*10+(hadScheme?4:0),35,97);
-    const uncertain=!state.strong&&score<32&&!officialBrand;
+    const confidence=clamp(48+state.categories.size*8+state.strong*10+(hadScheme?4:0)+(!state.signals.size?20:0),35,97);
+    const uncertain=!state.strong&&state.signals.size>0&&score<32&&!officialBrand;
     const counterEvidence=[];
-    if(url.protocol==="https:")counterEvidence.push("The link uses HTTPS, which protects transport but does not prove the site is legitimate.");
+    if(url.protocol==="https:")counterEvidence.push("The URL uses HTTPS, which protects transport but does not prove the site is legitimate.");
     if(officialBrand)counterEvidence.push(`The visible registered domain exactly matches ${officialBrand[1]}.`);
     if(labels.length<=3&&!host.includes("xn--")&&!state.signals.has("entropy")&&!state.signals.has("hyphens"))counterEvidence.push("The visible hostname is relatively simple and does not use Punycode.");
     if(!state.reasons.length)state.reasons.push(officialBrand?`The visible registered domain matches ${officialBrand[1]}.`:"No strong suspicious pattern was found in the visible URL structure.");
@@ -1138,9 +1139,13 @@ document.addEventListener("DOMContentLoaded",()=>{
     const ring=document.getElementById("textScanRing"),label=document.getElementById("textScanLabel"),status=document.getElementById("textScanStatus");
     cyberTextBtn.disabled=true;
     const duration=window.matchMedia?.("(pointer: coarse)").matches?650:900;
+    const isBareLink=detectChatContentType(text)==="link";
     animateScanRing(ring,label,status,duration,async()=>{
-      const result=analyzeTextRules(text);
-      showReport(cyberTextResult,result.score,result.scamType,result.reasons,result.advice,{...result,note:"Local protection scan complete. Use the CyberNet AI page for account-based AI analysis."});
+      const result=isBareLink?analyzeLinkRules(text):analyzeTextRules(text);
+      const note=isBareLink
+        ?"This looked like a link rather than a message, so CyberNet AI analyzed it with the link engine for a more accurate result. Use Link Detection directly next time for the same result."
+        :"Local protection scan complete. Use the CyberNet AI page for account-based AI analysis.";
+      showReport(cyberTextResult,result.score,result.scamType,result.reasons,result.advice,{...result,note});
       prependScan("textScanList",`“${text.slice(0,42)}${text.length>42?"…":""}”`,result);
       if(status)status.textContent="Local scan complete";
       cyberTextBtn.disabled=false;

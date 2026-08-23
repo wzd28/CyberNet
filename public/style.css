@@ -2737,6 +2737,11 @@ input::placeholder{
   font-size:13px;
 }
 
+.recovery-field-grid select option{
+  background:#0a1420;
+  color:#eaf3fb;
+}
+
 .recovery-quick-toggles{
   display:grid;
   grid-template-columns:1fr 1fr;
