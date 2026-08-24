@@ -1561,6 +1561,23 @@ main{
   cursor:pointer;
 }
 
+.feature-diff-box{
+  max-width:640px;
+  margin:16px auto 0;
+  text-align:left;
+  padding:14px 18px;
+  border-radius:14px;
+  background:rgba(167,139,250,.06);
+  border:1px solid rgba(167,139,250,.25);
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.7;
+}
+
+.feature-diff-box strong{
+  color:#d8ccff;
+}
+
 /* ═══ ANIMATED THREAT ICON STRIP ═══ */
 .threat-icon-strip{
   display:flex;
@@ -2137,6 +2154,29 @@ input::placeholder{
   box-shadow:0 0 28px rgba(167,139,250,.07);
 }
 
+/* ═══ QUICK SCAN — clear blue (safe) vs red (scam) signal ═══ */
+#cybernet .result-box.result-has-safe{
+  border-color:rgba(56,189,248,.55);
+  background:
+    radial-gradient(circle at 0% 0%,rgba(56,189,248,.09),transparent 55%),
+    rgba(255,255,255,.02);
+  box-shadow:0 0 30px rgba(56,189,248,.1);
+}
+
+#cybernet .result-box.result-has-danger{
+  border-color:rgba(255,107,107,.6);
+  background:
+    radial-gradient(circle at 0% 0%,rgba(255,107,107,.1),transparent 55%),
+    rgba(255,255,255,.02);
+  box-shadow:0 0 30px rgba(255,107,107,.12);
+}
+
+#cybernet .risk-safe{
+  background:rgba(56,189,248,.12);
+  border-color:rgba(56,189,248,.5);
+  color:#38bdf8;
+}
+
 .scan-report{
   animation:reportReveal .4s ease both;
   font-family:var(--font-mono);
@@ -2539,6 +2579,312 @@ input::placeholder{
   color:var(--bg);
   font-weight:600;
   border-bottom-right-radius:4px;
+}
+
+/* ═══ ANALYSIS AI DIAGNOSTIC UI (distinct violet identity vs Quick Scan) ═══ */
+.diagnostic-progress{
+  padding:4px 2px;
+}
+
+.diagnostic-progress-head{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:14px;
+}
+
+.diagnostic-spinner{
+  width:16px;
+  height:16px;
+  border-radius:999px;
+  border:2px solid rgba(167,139,250,.25);
+  border-top-color:#a78bfa;
+  animation:diagnosticSpin .8s linear infinite;
+  flex-shrink:0;
+}
+
+@keyframes diagnosticSpin{
+  to{transform:rotate(360deg)}
+}
+
+.diagnostic-progress-text{
+  font-size:13px;
+  font-weight:600;
+  color:#d8ccff;
+}
+
+.diagnostic-progress-steps{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.diagnostic-step{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  font-size:11.5px;
+  color:var(--muted);
+  transition:color .3s ease;
+}
+
+.diagnostic-step-dot{
+  width:16px;
+  height:16px;
+  border-radius:999px;
+  border:1px solid var(--glass-border);
+  display:grid;
+  place-items:center;
+  font-size:10px;
+  color:#a78bfa;
+  flex-shrink:0;
+}
+
+.diagnostic-step.active{
+  color:#d8ccff;
+}
+
+.diagnostic-step.active .diagnostic-step-dot{
+  border-color:#a78bfa;
+  box-shadow:0 0 8px rgba(167,139,250,.4);
+}
+
+.diagnostic-step.done{
+  color:var(--text);
+}
+
+.diagnostic-step.done .diagnostic-step-dot{
+  background:rgba(167,139,250,.18);
+  border-color:#a78bfa;
+}
+
+.diagnostic-report{
+  font-family:var(--font-mono);
+  animation:reportReveal .4s ease both;
+}
+
+.diagnostic-report-head{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:14px;
+}
+
+.diagnostic-badge{
+  padding:5px 12px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.5px;
+  text-transform:uppercase;
+  border:1px solid rgba(167,139,250,.4);
+  background:rgba(167,139,250,.12);
+  color:#d8ccff;
+}
+
+.diagnostic-badge-danger{
+  border-color:rgba(255,107,107,.5);
+  background:rgba(255,107,107,.14);
+  color:var(--danger);
+}
+
+.diagnostic-badge-safe{
+  border-color:rgba(56,189,248,.5);
+  background:rgba(56,189,248,.12);
+  color:#38bdf8;
+}
+
+.diagnostic-scam-type{
+  color:var(--muted);
+  font-size:12px;
+}
+
+.diagnostic-score{
+  margin-left:auto;
+  font-size:22px;
+  font-weight:800;
+  color:var(--text);
+}
+
+.diagnostic-score span{
+  font-size:12px;
+  color:var(--muted);
+  font-weight:400;
+}
+
+.diagnostic-confidence-row{
+  display:flex;
+  justify-content:space-between;
+  padding:10px 14px;
+  border-radius:10px;
+  background:rgba(167,139,250,.06);
+  border:1px solid rgba(167,139,250,.18);
+  font-size:12px;
+  color:var(--muted);
+  margin-bottom:14px;
+}
+
+.diagnostic-confidence-row strong{
+  color:#d8ccff;
+}
+
+.diagnostic-intel-card{
+  padding:14px 16px;
+  border-radius:12px;
+  background:rgba(255,255,255,.02);
+  border:1px solid var(--glass-border);
+  margin-bottom:14px;
+}
+
+.diagnostic-intel-card h5{
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  color:#a78bfa;
+  margin-bottom:10px;
+}
+
+.intel-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  padding:6px 0;
+  font-size:12px;
+}
+
+.intel-name{
+  color:var(--text);
+  font-weight:600;
+}
+
+.intel-status{
+  font-size:11px;
+  padding:3px 9px;
+  border-radius:999px;
+}
+
+.intel-status-good{background:rgba(56,189,248,.12);color:#38bdf8}
+.intel-status-warn{background:rgba(255,207,107,.12);color:var(--warning)}
+.intel-status-bad{background:rgba(255,107,107,.14);color:var(--danger)}
+.intel-status-neutral{background:rgba(255,255,255,.05);color:var(--muted)}
+.intel-status-off{background:rgba(255,255,255,.03);color:var(--muted)}
+
+.intel-vendors{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin:6px 0 4px;
+}
+
+.intel-vendors span{
+  font-size:10px;
+  padding:3px 8px;
+  border-radius:999px;
+  background:rgba(255,107,107,.1);
+  color:#ff8f8f;
+}
+
+.intel-link{
+  display:inline-block;
+  margin-top:6px;
+  font-size:11px;
+  color:#a78bfa;
+}
+
+.diagnostic-note{
+  padding:10px 14px;
+  border-radius:10px;
+  background:rgba(255,255,255,.02);
+  border:1px solid var(--glass-border);
+  margin-bottom:14px;
+}
+
+.diagnostic-note p{
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.6;
+}
+
+.diagnostic-counter{
+  padding:12px 14px;
+  border-radius:10px;
+  background:rgba(56,189,248,.05);
+  border:1px solid rgba(56,189,248,.18);
+  margin-bottom:14px;
+}
+
+.diagnostic-counter strong{
+  display:block;
+  color:#38bdf8;
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+  margin-bottom:8px;
+}
+
+.diagnostic-counter ul{
+  list-style:none;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.diagnostic-counter li{
+  font-size:12px;
+  color:var(--text);
+  line-height:1.6;
+}
+
+.diagnostic-body{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+}
+
+.diagnostic-col h5{
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+  color:var(--muted);
+  margin-bottom:9px;
+}
+
+.diagnostic-col ul{
+  list-style:none;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.diagnostic-col li{
+  font-size:12px;
+  line-height:1.6;
+  color:var(--text);
+  padding-left:14px;
+  position:relative;
+}
+
+.diagnostic-col li::before{
+  content:'';
+  position:absolute;
+  left:0;
+  top:7px;
+  width:5px;
+  height:5px;
+  border-radius:999px;
+  background:#a78bfa;
+}
+
+.diagnostic-actions li::before{
+  background:#38bdf8;
+}
+
+@media(max-width:640px){
+  .diagnostic-body{
+    grid-template-columns:1fr;
+  }
 }
 
 .chat-input-row{

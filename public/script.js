@@ -811,7 +811,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     const uncertain=Boolean(meta.uncertain||meta.verdict==="inconclusive");
     const confidence=clamp(meta.confidence??(uncertain?45:75));
     const danger=getDanger(score,uncertain);
-    const colorMap={danger:"#ff6b6b",warning:"#ffcf6b",safe:"#3ffa8b",uncertain:"#a78bfa"};
+    const colorMap={danger:"#ff6b6b",warning:"#ffcf6b",safe:"#38bdf8",uncertain:"#a78bfa"};
     const barColor=colorMap[danger.css];
     const confidenceText=confidence>=82?"High confidence":confidence>=58?"Moderate confidence":"Limited confidence";
     const verdictNote=meta.note||(uncertain
@@ -1062,7 +1062,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     const r=data?.analysis||data;
     if(!r||typeof r!=="object")return null;
     const verdict=String(r.verdict||"inconclusive").toLowerCase();
-    return{score:clamp(r.score),confidence:clamp(r.confidence),scamType:r.threatType||r.scamType||"Deep security analysis",reasons:unique([...(r.evidence||r.reasons||[]),...(r.limitations||[])]),counterEvidence:unique(r.counterEvidence||[]),advice:unique(r.actions||r.advice||[]),uncertain:verdict==="inconclusive",verdict,sources:unique([...(data?.aiUsed?["Secure AI analysis"]:[]),...(data?.reputation?.checked?["Live URL reputation"]:[])]),note:r.summary||r.note||"Secure deep analysis completed.",reputation:data?.reputation||null};
+    return{score:clamp(r.score),confidence:clamp(r.confidence),scamType:r.threatType||r.scamType||"Deep security analysis",reasons:unique([...(r.evidence||r.reasons||[]),...(r.limitations||[])]),counterEvidence:unique(r.counterEvidence||[]),advice:unique(r.actions||r.advice||[]),uncertain:verdict==="inconclusive",verdict,sources:unique([...(data?.aiUsed?["Secure AI analysis"]:[]),...(data?.reputation?.checked?["Live URL reputation"]:[])]),note:r.summary||r.note||"Secure deep analysis completed.",reputation:data?.reputation||null,virusTotal:data?.virusTotal||null,aiUsed:Boolean(data?.aiUsed)};
   }
   function mergeAnalysis(local,deep){
     if(!deep)return local;
@@ -1076,7 +1076,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     const agreement=local.verdict===deep.verdict&&!local.uncertain&&!deep.uncertain;
     const confidence=clamp(Math.max(deep.confidence,Math.round((local.confidence+deep.confidence)/2))+(agreement?5:0)+(reputationHit?6:0)-(disagreement?18:0));
     const uncertain=reputationHit?false:(disagreement||deep.verdict==="inconclusive"||(deep.uncertain&&local.uncertain));
-    return{score,confidence,scamType:reputationHit?"Known unsafe URL":(deep.scamType||local.scamType),reasons:unique([...(deep.reasons||[]),...(local.reasons||[])]),counterEvidence:unique([...(deep.counterEvidence||[]),...(local.counterEvidence||[])]),advice:unique([...(deep.advice||[]),...(local.advice||[])]),uncertain,verdict:reputationHit?"malicious":uncertain?"inconclusive":deep.verdict,sources:unique([...(local.sources||[]),...(deep.sources||[])]),note:reputationHit?"The live reputation service matched this URL to a known unsafe resource.":disagreement?"The local and deep-analysis layers disagree, so CyberNet AI is intentionally marking this result for review.":deep.note||local.note,reputation:deep.reputation};
+    return{score,confidence,scamType:reputationHit?"Known unsafe URL":(deep.scamType||local.scamType),reasons:unique([...(deep.reasons||[]),...(local.reasons||[])]),counterEvidence:unique([...(deep.counterEvidence||[]),...(local.counterEvidence||[])]),advice:unique([...(deep.advice||[]),...(local.advice||[])]),uncertain,verdict:reputationHit?"malicious":uncertain?"inconclusive":deep.verdict,sources:unique([...(local.sources||[]),...(deep.sources||[])]),note:reputationHit?"The live reputation service matched this URL to a known unsafe resource.":disagreement?"The local and deep-analysis layers disagree, so CyberNet AI is intentionally marking this result for review.":deep.note||local.note,reputation:deep.reputation,virusTotal:deep.virusTotal||null,aiUsed:Boolean(deep.aiUsed)};
   }
   async function requestDeepAnalysis(type,content,localResult,imageData=""){
     if(!isSignedIn()){
@@ -1183,6 +1183,23 @@ document.addEventListener("DOMContentLoaded",()=>{
   }
   async function decodeQRFromFile(file){
     try{const qr=await ensureJsQR();const image=await imageToCanvas(file,1300);const data=image.ctx.getImageData(0,0,image.width,image.height);const code=qr(data.data,data.width,data.height,{inversionAttempts:"attemptBoth"});return{qrData:code?.data||"",width:image.width,height:image.height,canvas:image.canvas}}catch{return{qrData:"",width:0,height:0,canvas:null}}
+  }
+  async function decodeQRFromDataUrl(dataUrl){
+    if(!dataUrl)return{qrData:"",width:0,height:0,canvas:null};
+    try{
+      const qr=await ensureJsQR();
+      const img=await new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=reject;image.src=dataUrl});
+      const maxSide=1300;
+      const scale=Math.min(1,maxSide/Math.max(img.naturalWidth,img.naturalHeight));
+      const canvas=document.createElement("canvas");
+      canvas.width=Math.max(1,Math.round(img.naturalWidth*scale));
+      canvas.height=Math.max(1,Math.round(img.naturalHeight*scale));
+      const ctx=canvas.getContext("2d",{willReadFrequently:true,alpha:false});
+      ctx.drawImage(img,0,0,canvas.width,canvas.height);
+      const data=ctx.getImageData(0,0,canvas.width,canvas.height);
+      const code=qr(data.data,data.width,data.height,{inversionAttempts:"attemptBoth"});
+      return{qrData:code?.data||"",width:canvas.width,height:canvas.height,canvas};
+    }catch{return{qrData:"",width:0,height:0,canvas:null}}
   }
   async function compressImage(file,maxSide=1280,quality=.8){
     const mobile=window.matchMedia?.("(max-width: 700px)").matches;
@@ -1299,16 +1316,120 @@ document.addEventListener("DOMContentLoaded",()=>{
     setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
 
+  const DIAGNOSTIC_STAGES={
+    link:["Checking Google Safe Browsing…","Checking VirusTotal (70+ security engines)…","Running CyberNet AI deep analysis…","Correlating threat intelligence…"],
+    image:["Decoding QR and visual signals…","Checking Google Safe Browsing…","Checking VirusTotal (70+ security engines)…","Running CyberNet AI vision analysis…","Correlating threat intelligence…"],
+    text:["Parsing language and structural signals…","Running CyberNet AI deep analysis…","Correlating threat intelligence…"]
+  };
+  function runDiagnosticAnimation(container,type){
+    const stages=DIAGNOSTIC_STAGES[type]||DIAGNOSTIC_STAGES.text;
+    let index=0;
+    function render(){
+      container.innerHTML=`
+        <div class="diagnostic-progress">
+          <div class="diagnostic-progress-head">
+            <span class="diagnostic-spinner"></span>
+            <span class="diagnostic-progress-text">${escapeHTML(stages[index])}</span>
+          </div>
+          <div class="diagnostic-progress-steps">
+            ${stages.map((s,i)=>`<div class="diagnostic-step ${i<index?"done":i===index?"active":""}"><span class="diagnostic-step-dot">${i<index?"✓":""}</span>${escapeHTML(s.replace("…",""))}</div>`).join("")}
+          </div>
+        </div>`;
+    }
+    render();
+    const interval=setInterval(()=>{if(index<stages.length-1){index++;render()}},1300);
+    return ()=>clearInterval(interval);
+  }
+
+  function virusTotalSummaryHTML(vt){
+    if(!vt||!vt.configured){
+      return `<div class="intel-row"><span class="intel-name">VirusTotal</span><span class="intel-status intel-status-off">Not configured</span></div>`;
+    }
+    if(!vt.checked){
+      return `<div class="intel-row"><span class="intel-name">VirusTotal</span><span class="intel-status intel-status-off">Unavailable right now</span></div>`;
+    }
+    if(!vt.totalEngines){
+      return `<div class="intel-row"><span class="intel-name">VirusTotal</span><span class="intel-status intel-status-neutral">Not previously scanned by VirusTotal</span></div>`;
+    }
+    const flagged=vt.malicious+vt.suspicious;
+    const statusClass=flagged>=3?"intel-status-bad":flagged>0?"intel-status-warn":"intel-status-good";
+    return `
+      <div class="intel-row">
+        <span class="intel-name">VirusTotal</span>
+        <span class="intel-status ${statusClass}">${flagged} / ${vt.totalEngines} engines flagged</span>
+      </div>
+      ${vt.flaggedBy?.length?`<div class="intel-vendors">${vt.flaggedBy.map(v=>`<span>${escapeHTML(v)}</span>`).join("")}</div>`:""}
+      ${vt.permalink?`<a class="intel-link" href="${escapeHTML(vt.permalink)}" target="_blank" rel="noopener">View full VirusTotal report →</a>`:""}
+    `;
+  }
+
+  function safeBrowsingSummaryHTML(rep){
+    if(!rep||!rep.checked){
+      return `<div class="intel-row"><span class="intel-name">Google Safe Browsing</span><span class="intel-status intel-status-off">Not available for this check</span></div>`;
+    }
+    return `<div class="intel-row"><span class="intel-name">Google Safe Browsing</span><span class="intel-status ${rep.listed?"intel-status-bad":"intel-status-good"}">${rep.listed?`Listed: ${escapeHTML((rep.threatTypes||[]).join(", ")||"known threat")}`:"No known-threat match"}</span></div>`;
+  }
+
+  function showDiagnosticReport(resultBox,result,type){
+    const uncertain=Boolean(result.uncertain||result.verdict==="inconclusive");
+    const danger=getDanger(result.score,uncertain);
+    const verdictLabel=danger.label;
+    const showIntel=type==="link"||type==="image";
+    resultBox.className=resultBox.className.replace(/result-has-\w+/g,"").trim();
+    resultBox.classList.add(`result-has-${danger.css}`);
+    resultBox.innerHTML=`
+      <div class="diagnostic-report">
+        <div class="diagnostic-report-head">
+          <span class="diagnostic-badge diagnostic-badge-${danger.css}">${verdictLabel}</span>
+          <span class="diagnostic-scam-type">${escapeHTML(result.scamType)}</span>
+          <span class="diagnostic-score">${clamp(Math.round(result.score))}<span>/100</span></span>
+        </div>
+        <div class="diagnostic-confidence-row">
+          <span>Analysis confidence</span>
+          <strong>${clamp(result.confidence)}%</strong>
+        </div>
+        ${showIntel?`
+        <div class="diagnostic-intel-card">
+          <h5>External Threat Intelligence</h5>
+          ${safeBrowsingSummaryHTML(result.reputation)}
+          ${virusTotalSummaryHTML(result.virusTotal)}
+        </div>`:""}
+        <div class="diagnostic-note"><p>${escapeHTML(result.note||"")}</p></div>
+        ${unique(result.counterEvidence||[]).length?`<div class="diagnostic-counter"><strong>Evidence that lowers risk</strong><ul>${unique(result.counterEvidence).slice(0,5).map(item=>`<li>${escapeHTML(item)}</li>`).join("")}</ul></div>`:""}
+        <div class="diagnostic-body">
+          <div class="diagnostic-col"><h5>Evidence it is a scam</h5><ul>${unique(result.reasons).slice(0,10).map(r=>`<li>${escapeHTML(r)}</li>`).join("")||"<li>No decisive evidence recorded.</li>"}</ul></div>
+          <div class="diagnostic-col"><h5>What To Do</h5><ul class="diagnostic-actions">${unique(result.advice).slice(0,8).map(a=>`<li>${escapeHTML(a)}</li>`).join("")}</ul></div>
+        </div>
+      </div>`;
+  }
+
+
   async function analyzeChat(type,content,imageData=""){
     if(!canStartAiAnalysis())return;
-    const local=type==="link"?analyzeLinkRules(content):type==="image"?analyzeImageRules({name:"uploaded-image",size:0},{qrData:""}):analyzeTextRules(content);
-    const thinking=addChatBubble("ai",`<div class="scanning-placeholder"><span class="scanning-placeholder-text">Running secure ${isPro()?"advanced ":""}analysis</span><div class="scan-dots"><span></span><span></span><span></span></div></div>`);
+    let local;
+    let serverContent=content;
+    if(type==="image"){
+      const decoded=await decodeQRFromDataUrl(imageData);
+      let qrResult=null;
+      if(decoded.qrData){
+        const looksLikeUrl=/^https?:\/\//i.test(decoded.qrData)||/^[a-z0-9.-]+\.[a-z]{2,}/i.test(decoded.qrData);
+        if(looksLikeUrl)qrResult=analyzeLinkRules(/^https?:\/\//i.test(decoded.qrData)?decoded.qrData:`https://${decoded.qrData}`);
+        serverContent=`${content}\n\n[Decoded QR code content: ${decoded.qrData.slice(0,500)}]`;
+      }
+      local=analyzeImageRules({name:"uploaded-image",size:0},{...decoded,qrResult});
+    }else{
+      local=type==="link"?analyzeLinkRules(content):analyzeTextRules(content);
+    }
+    const thinking=addChatBubble("ai",`<div class="diagnostic-progress"></div>`);
     const inner=thinking?.querySelector(".chat-bubble-inner");
+    const stopDiagnostic=inner?runDiagnosticAnimation(inner,type):null;
+    const minWait=new Promise(resolve=>setTimeout(resolve,3400));
     try{
-      const deep=await requestDeepAnalysis(type,content,local,imageData);
+      const [deep]=await Promise.all([requestDeepAnalysis(type,serverContent,local,imageData),minWait]);
+      if(stopDiagnostic)stopDiagnostic();
       const result=mergeAnalysis(local,deep);
       if(inner){
-        showReport(inner,result.score,result.scamType,result.reasons,result.advice,result);
+        showDiagnosticReport(inner,result,type);
         if(isPro()){
           const button=document.createElement("button");
           button.className="report-download-btn";
@@ -1320,6 +1441,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       }
       if(isPro())await refreshAccountStatus();
     }catch(error){
+      if(stopDiagnostic)stopDiagnostic();
       if(inner)inner.innerHTML=`<span class="warning">${escapeHTML(error.message||"Analysis failed.")}</span>${error.code==="daily_limit_reached"?'<button class="report-download-btn" data-upgrade-now>Upgrade to Pro</button>':""}`;
     }
     if(chatMessages)chatMessages.scrollTop=chatMessages.scrollHeight;
