@@ -1692,6 +1692,31 @@ document.addEventListener("DOMContentLoaded",()=>{
     document.querySelectorAll(".page").forEach(p=>observeRevealsIn(p.id));
   })();
 
+  /* ─── Typewriter effect for info panels (plays once, on scroll into view) ─── */
+  (function initTypewriters(){
+    if(!("IntersectionObserver" in window))return;
+    const reduceMotion=window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const observer=new IntersectionObserver((entries)=>{
+      entries.forEach(entry=>{
+        if(!entry.isIntersecting)return;
+        const el=entry.target;
+        observer.unobserve(el);
+        const text=el.dataset.typewriter||"";
+        if(reduceMotion||!text){el.textContent=text;return}
+        el.textContent="";
+        let i=0;
+        const speed=Math.max(7,Math.min(16,900/Math.max(1,text.length)));
+        function step(){
+          el.textContent=text.slice(0,i);
+          i++;
+          if(i<=text.length)setTimeout(step,speed);
+        }
+        step();
+      });
+    },{threshold:0.3});
+    document.querySelectorAll("[data-typewriter]").forEach(el=>observer.observe(el));
+  })();
+
 
   /* ─── Recovery Mode ─── */
   (function initRecoveryMode(){
