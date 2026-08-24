@@ -1618,6 +1618,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     const saveData=Boolean(navigator.connection?.saveData);
     if(reduceMotion||coarse||saveData)return;
     document.querySelectorAll(".primary-btn,.secondary-btn,.login-btn").forEach(btn=>{
+      if(btn.classList.contains("full"))return;
       btn.addEventListener("mousemove",e=>{
         const rect=btn.getBoundingClientRect();
         const x=(e.clientX-rect.left-rect.width/2)*0.22;
