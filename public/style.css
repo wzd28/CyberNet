@@ -792,7 +792,7 @@ main{
 /* ═══ HERO LEARN-FEATURES PILL ═══ */
 .hero-learn-pill{
   cursor:pointer;
-  transition:border-color .2s ease,transform .2s ease,background .2s ease;
+  transition:border-color .2s ease,transform .2s ease,background .2s ease,box-shadow .2s ease;
 }
 
 .hero-learn-pill:hover,
@@ -805,6 +805,26 @@ main{
 .hero-learn-pill svg{
   color:var(--green-bright);
   flex-shrink:0;
+}
+
+.hero-learn-pill-filled{
+  background:var(--green);
+  border:none;
+  color:#ffffff;
+  font-weight:700;
+  box-shadow:0 0 24px rgba(34,211,238,.3);
+}
+
+.hero-learn-pill-filled:hover,
+.hero-learn-pill-filled:focus-visible{
+  background:var(--green-bright);
+  color:#ffffff;
+  transform:translateY(-1px);
+  box-shadow:0 0 30px rgba(34,211,238,.45);
+}
+
+.hero-learn-pill-filled svg{
+  color:#ffffff;
 }
 
 /* ═══ HERO INFO ROW: LIVE STATS + WHY CHOOSE ═══ */
@@ -2154,12 +2174,6 @@ input::placeholder{
   box-shadow:0 0 30px rgba(255,107,107,.12);
 }
 
-#cybernet .risk-safe{
-  background:rgba(56,189,248,.12);
-  border-color:rgba(56,189,248,.5);
-  color:#38bdf8;
-}
-
 .scan-report{
   animation:reportReveal .4s ease both;
   font-family:var(--font-mono);
@@ -2173,37 +2187,74 @@ input::placeholder{
   margin-bottom:14px;
 }
 
-.risk-badge{
-  padding:5px 12px;
-  border-radius:999px;
-  font-size:11px;
-  font-weight:700;
-  letter-spacing:.5px;
-  text-transform:uppercase;
+.verdict-headline{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  padding:18px;
+  border-radius:14px;
+  margin-bottom:16px;
 }
 
-.risk-danger{
-  background:rgba(255,107,107,0.14);
-  border:1px solid rgba(255,107,107,0.5);
+.verdict-headline-icon{
+  width:32px;
+  height:32px;
+  border-radius:999px;
+  display:grid;
+  place-items:center;
+  font-size:17px;
+  font-weight:900;
+  flex-shrink:0;
+}
+
+.verdict-headline-text{
+  font-family:var(--font-mono);
+  font-size:26px;
+  font-weight:800;
+  letter-spacing:1px;
+}
+
+.verdict-headline-danger{
+  background:rgba(255,107,107,.12);
+  border:1px solid rgba(255,107,107,.45);
+}
+
+.verdict-headline-danger .verdict-headline-icon{
+  background:rgba(255,107,107,.22);
   color:var(--danger);
 }
 
-.risk-warning{
-  background:rgba(255,207,107,0.1);
-  border:1px solid rgba(255,207,107,0.4);
-  color:var(--warning);
+.verdict-headline-danger .verdict-headline-text{
+  color:var(--danger);
 }
 
-.risk-safe{
-  background:rgba(34,211,238,0.1);
-  border:1px solid rgba(34,211,238,0.45);
-  color:var(--safe);
+.verdict-headline-safe{
+  background:rgba(56,189,248,.1);
+  border:1px solid rgba(56,189,248,.4);
 }
 
-.risk-uncertain{
+.verdict-headline-safe .verdict-headline-icon{
+  background:rgba(56,189,248,.2);
+  color:#38bdf8;
+}
+
+.verdict-headline-safe .verdict-headline-text{
+  color:#38bdf8;
+}
+
+.verdict-headline-uncertain{
+  background:rgba(167,139,250,.1);
+  border:1px solid rgba(167,139,250,.4);
+}
+
+.verdict-headline-uncertain .verdict-headline-icon{
+  background:rgba(167,139,250,.2);
   color:#d8ccff;
-  background:rgba(167,139,250,.13);
-  border:1px solid rgba(167,139,250,.38);
+}
+
+.verdict-headline-uncertain .verdict-headline-text{
+  color:#d8ccff;
 }
 
 .scam-type-tag{
@@ -2226,21 +2277,6 @@ input::placeholder{
   font-size:11px;
   color:var(--muted);
   font-weight:400;
-}
-
-.risk-meter-wrap{
-  height:4px;
-  border-radius:999px;
-  background:rgba(255,255,255,0.06);
-  overflow:hidden;
-  margin-bottom:16px;
-}
-
-.risk-meter-bar{
-  height:100%;
-  border-radius:999px;
-  width:0;
-  transition:width .9s cubic-bezier(.34,1.56,.64,1);
 }
 
 .report-body{
@@ -2654,28 +2690,27 @@ input::placeholder{
   margin-bottom:14px;
 }
 
-.diagnostic-badge{
-  padding:5px 12px;
-  border-radius:999px;
-  font-size:11px;
-  font-weight:700;
-  letter-spacing:.5px;
-  text-transform:uppercase;
-  border:1px solid rgba(167,139,250,.4);
-  background:rgba(167,139,250,.12);
-  color:#d8ccff;
+.diagnostic-qr-preview{
+  padding:12px 14px;
+  border-radius:10px;
+  background:rgba(56,189,248,.06);
+  border:1px solid rgba(56,189,248,.25);
+  margin-bottom:14px;
+  font-size:12px;
 }
 
-.diagnostic-badge-danger{
-  border-color:rgba(255,107,107,.5);
-  background:rgba(255,107,107,.14);
-  color:var(--danger);
-}
-
-.diagnostic-badge-safe{
-  border-color:rgba(56,189,248,.5);
-  background:rgba(56,189,248,.12);
+.diagnostic-qr-preview strong{
+  display:block;
   color:#38bdf8;
+  margin-bottom:6px;
+}
+
+.diagnostic-qr-preview code{
+  display:block;
+  word-break:break-all;
+  color:var(--text);
+  font-size:11.5px;
+  line-height:1.6;
 }
 
 .diagnostic-scam-type{
@@ -2977,48 +3012,6 @@ input::placeholder{
 /* ═══ RECOVERY MODE ═══ */
 .recovery-header h1{
   color:var(--recovery-green-bright);
-}
-
-.recovery-title-row{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:14px;
-  flex-wrap:wrap;
-}
-
-.recovery-mini-anim{
-  display:inline-flex;
-  width:40px;
-  height:42px;
-  flex-shrink:0;
-}
-
-.recovery-mini-anim svg{
-  width:100%;
-  height:100%;
-}
-
-.recovery-mini-arrow{
-  transform-origin:center;
-  animation:recoveryMiniSpin 2.6s linear infinite;
-}
-
-@keyframes recoveryMiniSpin{
-  to{transform:rotate(360deg)}
-}
-
-@media(prefers-reduced-motion:reduce){
-  .recovery-mini-arrow{
-    animation:none;
-  }
-}
-
-@media(max-width:600px){
-  .recovery-mini-anim{
-    width:32px;
-    height:34px;
-  }
 }
 
 .recovery-intake{
@@ -4790,7 +4783,10 @@ img{
     gap:8px;
   }
 
-  .risk-badge,
+  .verdict-headline-text{
+    font-size:20px;
+  }
+
   .scam-type-tag{
     font-size:10px;
   }

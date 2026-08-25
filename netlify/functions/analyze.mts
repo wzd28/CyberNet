@@ -464,7 +464,7 @@ function analyzeTextServer(text: string, label = "Submitted text"): LocalEvidenc
   limitations.push("Sender identity and account ownership were not independently verified.");
 
   const score = clamp(state.score);
-  const uncertain = score < 45 && (value.length < 80 || educationContext);
+  const uncertain = state.evidence.length > 0 && score < 45 && (value.length < 80 || educationContext);
   const confidence = clamp(35 + Math.min(45, state.evidence.length * 8) + Math.min(12, Math.floor(value.length / 250)) - (uncertain ? 12 : 0));
   const threatType = state.types.at(-1)?.replace(/_/g, " ") || "No decisive text threat identified";
 

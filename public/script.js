@@ -800,43 +800,43 @@ document.addEventListener("DOMContentLoaded",()=>{
   function nonlinearScore(raw){return clamp(Math.round(100*(1-Math.exp(-Math.max(0,raw)/78))))}
 
   function getDanger(score,uncertain=false){
-    if(uncertain)return{label:"Needs Review",css:"uncertain"};
-    if(score>=85)return{label:"Critical Risk",css:"danger"};
-    if(score>=60)return{label:"High Risk",css:"danger"};
-    if(score>=32)return{label:"Medium Risk",css:"warning"};
-    return{label:"Low Visible Risk",css:"safe"};
+    if(uncertain)return{label:"Not Sure — Be Careful",headline:"NOT SURE",css:"uncertain"};
+    if(score>=32)return{label:"Scam",headline:"SCAM",css:"danger"};
+    return{label:"Not A Scam",headline:"NOT A SCAM",css:"safe"};
   }
 
   function showReport(resultBox,score,scamType,reasons,advice,meta={}){
     const uncertain=Boolean(meta.uncertain||meta.verdict==="inconclusive");
     const confidence=clamp(meta.confidence??(uncertain?45:75));
     const danger=getDanger(score,uncertain);
-    const colorMap={danger:"#ff6b6b",warning:"#ffcf6b",safe:"#38bdf8",uncertain:"#a78bfa"};
-    const barColor=colorMap[danger.css];
+    const isSafe=danger.css==="safe";
     const confidenceText=confidence>=82?"High confidence":confidence>=58?"Moderate confidence":"Limited confidence";
     const verdictNote=meta.note||(uncertain
-      ?"CyberNet AI found mixed or incomplete evidence. Treat this as unverified until you confirm it through an official source."
-      :"This assessment combines visible evidence and available analysis services. No scanner can guarantee that unknown content is safe.");
+      ?"CyberNet AI could not find enough clear evidence to be sure. When in doubt, treat it as risky and double-check before doing anything."
+      :isSafe
+      ?"CyberNet AI didn't find any warning signs, but no scanner can promise something is 100% safe. Stay alert."
+      :"CyberNet AI found signs that this could be a scam. Read the details below before you do anything.");
     const sourceLabels=unique(meta.sources||[]);
     resultBox.className=resultBox.className.replace(/result-has-\w+/g,"").trim();
     resultBox.classList.add(`result-has-${danger.css}`);
     resultBox.innerHTML=`<div class="scan-report">
+      <div class="verdict-headline verdict-headline-${danger.css}">
+        <span class="verdict-headline-icon">${isSafe?"✓":uncertain?"?":"✕"}</span>
+        <span class="verdict-headline-text">${danger.headline}</span>
+      </div>
       <div class="report-top-row">
-        <span class="risk-badge risk-${danger.css}">${danger.label}</span>
         <span class="scam-type-tag">${escapeHTML(scamType)}</span>
         <span class="score-display">${clamp(Math.round(score))}<span>/100</span></span>
       </div>
-      <div class="risk-meter-wrap"><div class="risk-meter-bar" style="background:${barColor};box-shadow:0 0 10px ${barColor}80"></div></div>
-      <div class="analysis-confidence"><span>Analysis confidence</span><strong>${confidence}% · ${confidenceText}</strong></div>
+      <div class="analysis-confidence"><span>How sure are we?</span><strong>${confidence}% · ${confidenceText}</strong></div>
       ${sourceLabels.length?`<div class="analysis-sources">${sourceLabels.map(x=>`<span>${escapeHTML(x)}</span>`).join("")}</div>`:""}
       <div class="verdict-note ${uncertain?"verdict-uncertain":""}"><span>${uncertain?"◈":"ⓘ"}</span><p>${escapeHTML(verdictNote)}</p></div>
-      ${unique(meta.counterEvidence||[]).length?`<div class="counter-evidence"><strong>Evidence that lowers risk</strong><ul>${unique(meta.counterEvidence||[]).slice(0,5).map(item=>`<li>${escapeHTML(item)}</li>`).join("")}</ul></div>`:""}
+      ${unique(meta.counterEvidence||[]).length?`<div class="counter-evidence"><strong>Reasons this might be okay</strong><ul>${unique(meta.counterEvidence||[]).slice(0,5).map(item=>`<li>${escapeHTML(item)}</li>`).join("")}</ul></div>`:""}
       <div class="report-body">
-        <div class="report-col"><div class="report-col-title"><span class="col-warn">⚠</span> Evidence &amp; Warning Signs</div><ul class="report-list">${unique(reasons).slice(0,10).map(r=>`<li>${escapeHTML(r)}</li>`).join("")}</ul></div>
-        <div class="report-col"><div class="report-col-title"><span class="col-safe">→</span> Recommended Actions</div><ul class="report-list safe-list">${unique(advice).slice(0,8).map(a=>`<li>${escapeHTML(a)}</li>`).join("")}</ul></div>
+        <div class="report-col"><div class="report-col-title"><span class="col-warn">⚠</span> ${isSafe?"Why This Looks Safe":"Why We Think This Is A Scam"}</div><ul class="report-list">${unique(reasons).slice(0,10).map(r=>`<li>${escapeHTML(r)}</li>`).join("")||"<li>Nothing unusual was found.</li>"}</ul></div>
+        <div class="report-col"><div class="report-col-title"><span class="col-safe">→</span> What You Should Do</div><ul class="report-list safe-list">${unique(advice).slice(0,8).map(a=>`<li>${escapeHTML(a)}</li>`).join("")}</ul></div>
       </div>
     </div>`;
-    requestAnimationFrame(()=>{const bar=resultBox.querySelector(".risk-meter-bar");if(bar)setTimeout(()=>{bar.style.width=clamp(score)+"%"},60)});
   }
 
   function runScan(btn,resultBox,cb,delay=420){
@@ -929,7 +929,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     }
     const veryShort=clean.length<18;
     const lowEvidence=state.strong===0&&state.categories.size<2;
-    const uncertain=veryShort||(lowEvidence&&!protective)||(score>=22&&score<=50&&confidence<65);
+    const uncertain=state.signals.size>0&&!protective&&(veryShort||lowEvidence||(score>=22&&score<=50&&confidence<65));
     if(!state.reasons.length)state.reasons.push("No strong pre-coded scam pattern was detected in the supplied text.");
     if(clean.length<35)state.limitations.push("The message is short, so sender identity and surrounding conversation are missing.");
     if(!emails.length&&!phones.length&&!urls.length)state.limitations.push("No sender address, phone number, or destination link was available for cross-checking.");
@@ -1370,35 +1370,39 @@ document.addEventListener("DOMContentLoaded",()=>{
     return `<div class="intel-row"><span class="intel-name">Google Safe Browsing</span><span class="intel-status ${rep.listed?"intel-status-bad":"intel-status-good"}">${rep.listed?`Listed: ${escapeHTML((rep.threatTypes||[]).join(", ")||"known threat")}`:"No known-threat match"}</span></div>`;
   }
 
-  function showDiagnosticReport(resultBox,result,type){
+  function showDiagnosticReport(resultBox,result,type,decodedQr){
     const uncertain=Boolean(result.uncertain||result.verdict==="inconclusive");
     const danger=getDanger(result.score,uncertain);
-    const verdictLabel=danger.label;
+    const isSafe=danger.css==="safe";
     const showIntel=type==="link"||type==="image";
     resultBox.className=resultBox.className.replace(/result-has-\w+/g,"").trim();
     resultBox.classList.add(`result-has-${danger.css}`);
     resultBox.innerHTML=`
       <div class="diagnostic-report">
+        <div class="verdict-headline verdict-headline-${danger.css}">
+          <span class="verdict-headline-icon">${isSafe?"✓":uncertain?"?":"✕"}</span>
+          <span class="verdict-headline-text">${danger.headline}</span>
+        </div>
+        ${decodedQr?`<div class="diagnostic-qr-preview"><strong>📷 This QR code leads to:</strong><code>${escapeHTML(decodedQr)}</code></div>`:""}
         <div class="diagnostic-report-head">
-          <span class="diagnostic-badge diagnostic-badge-${danger.css}">${verdictLabel}</span>
           <span class="diagnostic-scam-type">${escapeHTML(result.scamType)}</span>
           <span class="diagnostic-score">${clamp(Math.round(result.score))}<span>/100</span></span>
         </div>
         <div class="diagnostic-confidence-row">
-          <span>Analysis confidence</span>
+          <span>How sure are we?</span>
           <strong>${clamp(result.confidence)}%</strong>
         </div>
         ${showIntel?`
         <div class="diagnostic-intel-card">
-          <h5>External Threat Intelligence</h5>
+          <h5>Double-Checked With Outside Security Companies</h5>
           ${safeBrowsingSummaryHTML(result.reputation)}
           ${virusTotalSummaryHTML(result.virusTotal)}
         </div>`:""}
         <div class="diagnostic-note"><p>${escapeHTML(result.note||"")}</p></div>
-        ${unique(result.counterEvidence||[]).length?`<div class="diagnostic-counter"><strong>Evidence that lowers risk</strong><ul>${unique(result.counterEvidence).slice(0,5).map(item=>`<li>${escapeHTML(item)}</li>`).join("")}</ul></div>`:""}
+        ${unique(result.counterEvidence||[]).length?`<div class="diagnostic-counter"><strong>Reasons this might be okay</strong><ul>${unique(result.counterEvidence).slice(0,5).map(item=>`<li>${escapeHTML(item)}</li>`).join("")}</ul></div>`:""}
         <div class="diagnostic-body">
-          <div class="diagnostic-col"><h5>Evidence it is a scam</h5><ul>${unique(result.reasons).slice(0,10).map(r=>`<li>${escapeHTML(r)}</li>`).join("")||"<li>No decisive evidence recorded.</li>"}</ul></div>
-          <div class="diagnostic-col"><h5>What To Do</h5><ul class="diagnostic-actions">${unique(result.advice).slice(0,8).map(a=>`<li>${escapeHTML(a)}</li>`).join("")}</ul></div>
+          <div class="diagnostic-col"><h5>${isSafe?"Why This Looks Safe":"Why We Think This Is A Scam"}</h5><ul>${unique(result.reasons).slice(0,10).map(r=>`<li>${escapeHTML(r)}</li>`).join("")||"<li>Nothing unusual was found.</li>"}</ul></div>
+          <div class="diagnostic-col"><h5>What You Should Do</h5><ul class="diagnostic-actions">${unique(result.advice).slice(0,8).map(a=>`<li>${escapeHTML(a)}</li>`).join("")}</ul></div>
         </div>
       </div>`;
   }
@@ -1408,10 +1412,12 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(!canStartAiAnalysis())return;
     let local;
     let serverContent=content;
+    let decodedQrForDisplay="";
     if(type==="image"){
       const decoded=await decodeQRFromDataUrl(imageData);
       let qrResult=null;
       if(decoded.qrData){
+        decodedQrForDisplay=decoded.qrData;
         const looksLikeUrl=/^https?:\/\//i.test(decoded.qrData)||/^[a-z0-9.-]+\.[a-z]{2,}/i.test(decoded.qrData);
         if(looksLikeUrl)qrResult=analyzeLinkRules(/^https?:\/\//i.test(decoded.qrData)?decoded.qrData:`https://${decoded.qrData}`);
         serverContent=`${content}\n\n[Decoded QR code content: ${decoded.qrData.slice(0,500)}]`;
@@ -1429,7 +1435,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       if(stopDiagnostic)stopDiagnostic();
       const result=mergeAnalysis(local,deep);
       if(inner){
-        showDiagnosticReport(inner,result,type);
+        showDiagnosticReport(inner,result,type,decodedQrForDisplay);
         if(isPro()){
           const button=document.createElement("button");
           button.className="report-download-btn";
