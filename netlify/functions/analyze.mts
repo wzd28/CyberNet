@@ -59,20 +59,6 @@ type ReputationResult = {
   checked: boolean;
   listed: boolean;
   threatTypes: string[];
-  cacheDuration?: string;
-  unavailable?: boolean;
-};
-
-type VirusTotalResult = {
-  checked: boolean;
-  configured: boolean;
-  malicious: number;
-  suspicious: number;
-  harmless: number;
-  undetected: number;
-  totalEngines: number;
-  flaggedBy: string[];
-  permalink?: string;
   unavailable?: boolean;
 };
 
@@ -1107,7 +1093,6 @@ export default async function handler(request: Request, context: any): Promise<R
   // merely gated behind a missing key, so that accidentally configuring either
   // API key in the future does not silently reintroduce the violation.
   let reputation: ReputationResult = { checked: false, listed: false, threatTypes: [] };
-  let virusTotal: VirusTotalResult = { checked: false, configured: false, malicious: 0, suspicious: 0, harmless: 0, undetected: 0, totalEngines: 0, flaggedBy: [] };
   void reputationUrls;
 
   if (reputation.listed) {
@@ -1158,7 +1143,6 @@ export default async function handler(request: Request, context: any): Promise<R
   return json({
     analysis,
     reputation,
-    virusTotal,
     aiUsed,
     model: aiUsed ? MODEL : "Server deterministic engine",
     mode,
