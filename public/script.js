@@ -1317,8 +1317,8 @@ document.addEventListener("DOMContentLoaded",()=>{
   }
 
   const DIAGNOSTIC_STAGES={
-    link:["Checking Google Safe Browsing…","Checking VirusTotal (70+ security engines)…","Running CyberNet AI deep analysis…","Correlating threat intelligence…"],
-    image:["Decoding QR and visual signals…","Checking Google Safe Browsing…","Checking VirusTotal (70+ security engines)…","Running CyberNet AI vision analysis…","Correlating threat intelligence…"],
+    link:["Analyzing link structure and domain patterns…","Running CyberNet AI deep analysis…","Correlating threat intelligence…"],
+    image:["Decoding QR and visual signals…","Running CyberNet AI vision analysis…","Correlating threat intelligence…"],
     text:["Parsing language and structural signals…","Running CyberNet AI deep analysis…","Correlating threat intelligence…"]
   };
   function runDiagnosticAnimation(container,type){
@@ -1341,40 +1341,10 @@ document.addEventListener("DOMContentLoaded",()=>{
     return ()=>clearInterval(interval);
   }
 
-  function virusTotalSummaryHTML(vt){
-    if(!vt||!vt.configured){
-      return `<div class="intel-row"><span class="intel-name">VirusTotal</span><span class="intel-status intel-status-off">Not configured</span></div>`;
-    }
-    if(!vt.checked){
-      return `<div class="intel-row"><span class="intel-name">VirusTotal</span><span class="intel-status intel-status-off">Unavailable right now</span></div>`;
-    }
-    if(!vt.totalEngines){
-      return `<div class="intel-row"><span class="intel-name">VirusTotal</span><span class="intel-status intel-status-neutral">Not previously scanned by VirusTotal</span></div>`;
-    }
-    const flagged=vt.malicious+vt.suspicious;
-    const statusClass=flagged>=3?"intel-status-bad":flagged>0?"intel-status-warn":"intel-status-good";
-    return `
-      <div class="intel-row">
-        <span class="intel-name">VirusTotal</span>
-        <span class="intel-status ${statusClass}">${flagged} / ${vt.totalEngines} engines flagged</span>
-      </div>
-      ${vt.flaggedBy?.length?`<div class="intel-vendors">${vt.flaggedBy.map(v=>`<span>${escapeHTML(v)}</span>`).join("")}</div>`:""}
-      ${vt.permalink?`<a class="intel-link" href="${escapeHTML(vt.permalink)}" target="_blank" rel="noopener">View full VirusTotal report →</a>`:""}
-    `;
-  }
-
-  function safeBrowsingSummaryHTML(rep){
-    if(!rep||!rep.checked){
-      return `<div class="intel-row"><span class="intel-name">Google Safe Browsing</span><span class="intel-status intel-status-off">Not available for this check</span></div>`;
-    }
-    return `<div class="intel-row"><span class="intel-name">Google Safe Browsing</span><span class="intel-status ${rep.listed?"intel-status-bad":"intel-status-good"}">${rep.listed?`Listed: ${escapeHTML((rep.threatTypes||[]).join(", ")||"known threat")}`:"No known-threat match"}</span></div>`;
-  }
-
   function showDiagnosticReport(resultBox,result,type,decodedQr){
     const uncertain=Boolean(result.uncertain||result.verdict==="inconclusive");
     const danger=getDanger(result.score,uncertain);
     const isSafe=danger.css==="safe";
-    const showIntel=type==="link"||type==="image";
     resultBox.className=resultBox.className.replace(/result-has-\w+/g,"").trim();
     resultBox.classList.add(`result-has-${danger.css}`);
     resultBox.innerHTML=`
@@ -1392,12 +1362,6 @@ document.addEventListener("DOMContentLoaded",()=>{
           <span>How sure are we?</span>
           <strong>${clamp(result.confidence)}%</strong>
         </div>
-        ${showIntel?`
-        <div class="diagnostic-intel-card">
-          <h5>Double-Checked With Outside Security Companies</h5>
-          ${safeBrowsingSummaryHTML(result.reputation)}
-          ${virusTotalSummaryHTML(result.virusTotal)}
-        </div>`:""}
         <div class="diagnostic-note"><p>${escapeHTML(result.note||"")}</p></div>
         ${unique(result.counterEvidence||[]).length?`<div class="diagnostic-counter"><strong>Reasons this might be okay</strong><ul>${unique(result.counterEvidence).slice(0,5).map(item=>`<li>${escapeHTML(item)}</li>`).join("")}</ul></div>`:""}
         <div class="diagnostic-body">
