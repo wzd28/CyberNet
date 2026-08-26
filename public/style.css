@@ -538,6 +538,20 @@ button{
   padding:9px 16px;
   border-radius:10px;
   transition:border-color .2s,color .2s;
+  white-space:nowrap;
+}
+
+.login-btn-short{
+  display:none;
+}
+
+@media(max-width:1480px){
+  .login-btn-long{
+    display:none;
+  }
+  .login-btn-short{
+    display:inline;
+  }
 }
 
 .login-btn:hover{
@@ -808,23 +822,23 @@ main{
 }
 
 .hero-learn-pill-filled{
-  background:var(--green);
+  background:#ffffff;
   border:none;
-  color:#ffffff;
+  color:var(--green);
   font-weight:700;
-  box-shadow:0 0 24px rgba(34,211,238,.3);
+  box-shadow:0 0 24px rgba(255,255,255,.2);
 }
 
 .hero-learn-pill-filled:hover,
 .hero-learn-pill-filled:focus-visible{
-  background:var(--green-bright);
-  color:#ffffff;
+  background:#ffffff;
+  color:var(--green-bright);
   transform:translateY(-1px);
-  box-shadow:0 0 30px rgba(34,211,238,.45);
+  box-shadow:0 0 30px rgba(255,255,255,.3);
 }
 
 .hero-learn-pill-filled svg{
-  color:#ffffff;
+  color:var(--green);
 }
 
 /* ═══ HERO INFO ROW: LIVE STATS + WHY CHOOSE ═══ */
@@ -4349,9 +4363,46 @@ img{
 }
 
 /* ═══ RESPONSIVE ═══ */
+@media(max-width:1480px){
+  .navbar{
+    padding:0 16px;
+  }
+
+  .nav-tabs{
+    gap:16px;
+  }
+
+  .nav-link{
+    font-size:12px;
+  }
+
+  .nav-actions{
+    gap:10px;
+  }
+
+  .login-btn{
+    padding:8px 12px;
+    font-size:12px;
+  }
+}
+
 @media(max-width:1250px){
   .nav-tabs{
-    gap:18px;
+    gap:12px;
+  }
+
+  .nav-link{
+    font-size:11px;
+  }
+
+  .nav-social-links{
+    gap:5px;
+    padding-right:2px;
+  }
+
+  .nav-social-btn{
+    width:32px;
+    height:32px;
   }
 }
 
