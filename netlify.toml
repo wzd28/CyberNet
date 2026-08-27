@@ -10,6 +10,36 @@
   to = "/.netlify/functions/:splat"
   status = 200
 
+[[redirects]]
+  from = "/quick-scan"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/analysis-ai"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/recovery"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/learn"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/pricing"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/about"
+  to = "/index.html"
+  status = 200
+
 [[headers]]
   for = "/*"
   [headers.values]

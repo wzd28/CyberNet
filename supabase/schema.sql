@@ -468,7 +468,7 @@ begin
   where profiles.id = p_user_id;
 
   if v_plan = 'pro' and v_status in ('active', 'trialing') then
-    v_limit := 5;
+    v_limit := 3;
   else
     v_plan := 'free';
     v_limit := 1;
@@ -501,7 +501,7 @@ $$;
 
 -- Reserves one Recovery update for a specific case, enforcing both the
 -- daily update limit and the per-plan cooldown between updates.
--- Free: 3/day, 6h cooldown. Pro: 12/day, 2h cooldown.
+-- Free: 1/day, 6h cooldown. Pro: no fixed daily cap (automatic updates), 2h cooldown only.
 create or replace function public.consume_recovery_update(
   p_user_id uuid
 )
@@ -520,7 +520,7 @@ as $$
 declare
   v_plan text := 'free';
   v_status text := 'inactive';
-  v_limit integer := 3;
+  v_limit integer := 1;
   v_cooldown interval := interval '6 hours';
   v_used integer := 0;
   v_window timestamptz := public.recovery_window_start();
@@ -533,11 +533,11 @@ begin
   where profiles.id = p_user_id;
 
   if v_plan = 'pro' and v_status in ('active', 'trialing') then
-    v_limit := 12;
+    v_limit := 999;
     v_cooldown := interval '2 hours';
   else
     v_plan := 'free';
-    v_limit := 3;
+    v_limit := 1;
     v_cooldown := interval '6 hours';
   end if;
 
@@ -655,3 +655,89 @@ $$;
 
 revoke all on function public.get_platform_stats() from public, anon, authenticated;
 grant execute on function public.get_platform_stats() to service_role;
+
+-- ═══════════════════════════════════════════════════════════════════
+-- CyberNet AI: Quick Scan usage tracking (Free: 5/day, Pro: unlimited).
+-- Quick Scan runs entirely client-side (no AI cost), but is now gated
+-- behind sign-in, so a lightweight server-side counter enforces the
+-- daily limit honestly rather than trusting the browser. Uses the same
+-- UTC-midnight reset as Analysis AI for a consistent mental model.
+-- ═══════════════════════════════════════════════════════════════════
+
+create table if not exists public.quickscan_usage (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  usage_date date not null,
+  scan_count integer not null default 0,
+  updated_at timestamptz not null default now(),
+  primary key (user_id, usage_date)
+);
+
+alter table public.quickscan_usage enable row level security;
+revoke all on public.quickscan_usage from anon, authenticated;
+grant select on public.quickscan_usage to authenticated;
+
+drop policy if exists "Users can read their own Quick Scan usage" on public.quickscan_usage;
+create policy "Users can read their own Quick Scan usage"
+  on public.quickscan_usage for select
+  to authenticated
+  using ((select auth.uid()) = user_id);
+
+create or replace function public.consume_quickscan(
+  p_user_id uuid
+)
+returns table (
+  allowed boolean,
+  used integer,
+  daily_limit integer,
+  plan text
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_plan text := 'free';
+  v_status text := 'inactive';
+  v_limit integer := 5;
+  v_used integer := 0;
+  v_date date := (now() at time zone 'utc')::date;
+begin
+  select profiles.plan, profiles.subscription_status
+  into v_plan, v_status
+  from public.profiles
+  where profiles.id = p_user_id;
+
+  if v_plan = 'pro' and v_status in ('active', 'trialing') then
+    v_limit := 100000; -- effectively unlimited for Pro
+  else
+    v_plan := 'free';
+    v_limit := 5;
+  end if;
+
+  insert into public.quickscan_usage (user_id, usage_date, scan_count)
+  values (p_user_id, v_date, 0)
+  on conflict (user_id, usage_date) do nothing;
+
+  update public.quickscan_usage
+  set scan_count = scan_count + 1, updated_at = now()
+  where user_id = p_user_id
+    and usage_date = v_date
+    and scan_count < v_limit
+  returning scan_count
+  into v_used;
+
+  if v_used is null then
+    select scan_count into v_used
+    from public.quickscan_usage
+    where user_id = p_user_id and usage_date = v_date;
+
+    return query select false, coalesce(v_used, 0), v_limit, v_plan;
+    return;
+  end if;
+
+  return query select true, v_used, v_limit, v_plan;
+end;
+$$;
+
+revoke all on function public.consume_quickscan(uuid) from public, anon, authenticated;
+grant execute on function public.consume_quickscan(uuid) to service_role;

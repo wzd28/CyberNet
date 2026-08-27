@@ -99,7 +99,7 @@ export function effectivePlan(profile = {}) {
 }
 
 export function dailyLimit(profile = {}) {
-  return effectivePlan(profile) === "pro" ? 50 : 5;
+  return effectivePlan(profile) === "pro" ? 15 : 3;
 }
 
 export async function getProfile(user) {

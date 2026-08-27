@@ -139,12 +139,35 @@ document.addEventListener("DOMContentLoaded",()=>{
     const descTag=document.querySelector('meta[name="description"]');
     if(descTag)descTag.setAttribute("content",meta?meta.description:DEFAULT_DESCRIPTION);
   }
-  function switchPage(pageName){
+
+  /* ─── Real, shareable URLs per page (e.g. cybernetai.app/quick-scan) ─── */
+  const PAGE_PATHS={
+    home:"/",
+    cybernet:"/quick-scan",
+    cybernetai:"/analysis-ai",
+    recovery:"/recovery",
+    learn:"/learn",
+    pricing:"/pricing",
+    about:"/about"
+  };
+  const PATH_TO_PAGE=Object.fromEntries(Object.entries(PAGE_PATHS).map(([page,path])=>[path,page]));
+  function pageForCurrentPath(){
+    const path=window.location.pathname.replace(/\/$/,"")||"/";
+    return PATH_TO_PAGE[path]||null;
+  }
+
+  function switchPage(pageName,options={}){
     const target=document.getElementById(pageName);if(!target)return;
     const current=document.querySelector(".page.active-page");
     if(current&&current.id===pageName){if(navbar)navbar.classList.remove("open");runRevealAnimation();return}
     currentPageId=pageName;
     updatePageMeta(pageName);
+    if(!options.skipUrlUpdate&&PAGE_PATHS[pageName]!==undefined){
+      const targetPath=PAGE_PATHS[pageName];
+      if(window.location.pathname!==targetPath){
+        history.pushState({page:pageName},"",targetPath+window.location.hash);
+      }
+    }
     moveNavIndicator(pageName);
     document.querySelectorAll(".nav-tabs .nav-link").forEach(btn=>{btn.classList.toggle("active",btn.dataset.page===pageName)});
     if(navbar)navbar.classList.remove("open");
@@ -166,6 +189,18 @@ document.addEventListener("DOMContentLoaded",()=>{
   }
   navButtons.forEach(btn=>{btn.addEventListener("click",e=>{e.preventDefault();if(btn.dataset.page)switchPage(btn.dataset.page)})});
   if(mobileMenu&&navbar)mobileMenu.addEventListener("click",()=>navbar.classList.toggle("open"));
+
+  /* ─── Route to the right page based on the URL when the site first loads ─── */
+  const initialRoutePage=pageForCurrentPath();
+  if(initialRoutePage&&initialRoutePage!=="home"){
+    switchPage(initialRoutePage,{skipUrlUpdate:true});
+  }
+
+  /* ─── Support the browser's back/forward buttons ─── */
+  window.addEventListener("popstate",()=>{
+    const page=pageForCurrentPath()||"home";
+    switchPage(page,{skipUrlUpdate:true});
+  });
 
   /* ─── Secure account, plan, and entitlement state ─── */
   const authModal=document.getElementById("authModal");
@@ -328,6 +363,18 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(openAuth)openAuth.hidden=signedIn;
     if(navGreeting)navGreeting.textContent=signedIn?`Hi ${firstName(appState.profile.fullName||appState.user?.user_metadata?.full_name||appState.user?.email)}`:"";
 
+    const cyberTextBtnEl=document.getElementById("cyberTextBtn");
+    const cyberLinkBtnEl=document.getElementById("cyberLinkBtn");
+    const cyberUploadHeading=document.querySelector("#cyberDropZone h3");
+    const chatSendBtnEl=document.getElementById("chatSendBtn");
+    if(cyberTextBtnEl)cyberTextBtnEl.textContent=signedIn?"Analyze Text":"Register for Free to Scan";
+    if(cyberLinkBtnEl)cyberLinkBtnEl.textContent=signedIn?"Analyze Link":"Register for Free to Scan";
+    if(cyberUploadHeading)cyberUploadHeading.textContent=signedIn?"Drag & Drop Your Image Here":"Register for Free to Scan";
+    if(chatSendBtnEl){
+      chatSendBtnEl.innerHTML=signedIn?"➤":"Register for Free to Scan";
+      chatSendBtnEl.classList.toggle("send-btn-wide",!signedIn);
+    }
+
     const badgeText=pro?"PRO":"FREE";
     [navPlanBadge,document.getElementById("aiPlanBadge")].forEach(badge=>{
       if(!badge)return;
@@ -350,7 +397,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     const aiApiStatus=document.getElementById("aiApiStatus");
 
     if(aiPlanTitle)aiPlanTitle.textContent=pro?"Analysis AI Pro":"Analysis AI Free";
-    if(aiPlanDescription)aiPlanDescription.textContent=!signedIn?"Sign in to activate 5 accurate AI analyses per day across text, links, and images.":pro?"Top-level Analysis AI protection with advanced analysis, history, and reports.":"Accurate everyday AI protection with 5 shared analyses per day.";
+    if(aiPlanDescription)aiPlanDescription.textContent=!signedIn?"Sign in to activate 3 accurate AI analyses per day across text, links, and images.":pro?"Top-level Analysis AI protection with advanced analysis, history, and reports.":"Accurate everyday AI protection with 3 shared analyses per day.";
     if(aiUsageText)aiUsageText.textContent=signedIn?`${used} / ${limit}`:`0 / 5`;
     if(aiUsageBar)aiUsageBar.style.width=`${signedIn?Math.min(100,(used/Math.max(1,limit))*100):0}%`;
     if(aiUsageReset)aiUsageReset.textContent=appState.usage.resetDate?`Resets ${new Date(appState.usage.resetDate).toLocaleDateString()}`:"Resets daily";
@@ -362,7 +409,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(aiApiStatus){
       if(!supabaseConfigured)aiApiStatus.innerHTML=`<span class="warning">${escapeHTML(authSetupMessage())}</span>`;
       else if(!signedIn)aiApiStatus.innerHTML='<span class="warning">Sign in or create a free account before running AI analysis.</span>';
-      else if(remaining<=0)aiApiStatus.innerHTML=`<span class="warning">Daily limit reached. ${pro?"Your 50 analyses reset tomorrow.":"Upgrade to Pro for 50 analyses per day."}</span>`;
+      else if(remaining<=0)aiApiStatus.innerHTML=`<span class="warning">Daily limit reached. ${pro?"Your 15 analyses reset tomorrow.":"Upgrade to Pro for 15 analyses per day."}</span>`;
       else aiApiStatus.innerHTML=`<span class="safe">✓ ${remaining} secure AI ${remaining===1?"analysis":"analyses"} remaining today.</span>`;
     }
 
@@ -436,6 +483,22 @@ document.addEventListener("DOMContentLoaded",()=>{
   }else{
     updateAccountUI();
   }
+
+  const googleAuthBtn=document.getElementById("googleAuthBtn");
+  if(googleAuthBtn)googleAuthBtn.addEventListener("click",async()=>{
+    if(!appState.supabase){setAuthMessage(authSetupMessage(),"error");return}
+    googleAuthBtn.disabled=true;
+    try{
+      const{error}=await appState.supabase.auth.signInWithOAuth({
+        provider:"google",
+        options:{redirectTo:window.location.origin}
+      });
+      if(error){setAuthMessage(error.message||"Google sign-in is not available right now.","error");googleAuthBtn.disabled=false}
+    }catch(error){
+      setAuthMessage(error.message||"Google sign-in is not available right now.","error");
+      googleAuthBtn.disabled=false;
+    }
+  });
 
   if(loginBtn)loginBtn.addEventListener("click",async()=>{
     if(!appState.supabase){setAuthMessage(authSetupMessage(),"error");return}
@@ -558,7 +621,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   /* ─── CyberNet support and Netlify feedback survey ─── */
   const SUPPORT_EMAIL="cybernetai.26@gmail.com";
   const feedbackModal=document.getElementById("feedbackModal");
-  const openFeedback=document.getElementById("openFeedback");
+  const openFeedbackButtons=document.querySelectorAll(".open-feedback-btn");
   const closeFeedback=document.getElementById("closeFeedback");
   const feedbackForm=document.getElementById("feedbackForm");
   const feedbackMessage=document.getElementById("feedbackMessage");
@@ -599,18 +662,22 @@ document.addEventListener("DOMContentLoaded",()=>{
     feedbackModal?.setAttribute("aria-hidden","true");
   }
 
-  openFeedback?.addEventListener("click",openFeedbackModal);
+  openFeedbackButtons.forEach(btn=>btn.addEventListener("click",openFeedbackModal));
   closeFeedback?.addEventListener("click",closeFeedbackModal);
   feedbackModal?.addEventListener("click",event=>{if(event.target===feedbackModal)closeFeedbackModal()});
 
-  /* ─── Home page how-to videos ─── */
+  /* ─── Home page how-to videos: full-screen player with custom controls ─── */
   const howtoVideoModal=document.getElementById("howtoVideoModal");
   const closeHowtoVideo=document.getElementById("closeHowtoVideo");
+  const closeHowtoVideoInline=document.getElementById("closeHowtoVideoInline");
   const howtoVideoTitle=document.getElementById("howtoVideoTitle");
   const howtoVideoPlayer=document.getElementById("howtoVideoPlayer");
   const howtoVideoCards=document.querySelectorAll(".hero-video-btn[data-video]");
   const howtoVideoTabs=document.querySelectorAll(".video-modal-tab[data-video]");
   const heroLearnFeaturesBtn=document.getElementById("heroLearnFeaturesBtn");
+  const videoPlayerControls=document.getElementById("videoPlayerControls");
+  const videoPlayPauseBtn=document.getElementById("videoPlayPauseBtn");
+  const videoSpeedBtn=document.getElementById("videoSpeedBtn");
 
   const HOWTO_VIDEOS={
     protect:{
@@ -627,14 +694,38 @@ document.addEventListener("DOMContentLoaded",()=>{
     }
   };
 
+  function wireVideoControls(videoEl){
+    if(!videoEl||!videoPlayerControls)return;
+    videoPlayerControls.hidden=false;
+    videoEl.playbackRate=1;
+    if(videoSpeedBtn)videoSpeedBtn.textContent="1x";
+    const iconPlay=videoPlayPauseBtn?.querySelector(".icon-play");
+    const iconPause=videoPlayPauseBtn?.querySelector(".icon-pause");
+    function syncPlayIcon(){
+      const playing=!videoEl.paused&&!videoEl.ended;
+      if(iconPlay)iconPlay.hidden=playing;
+      if(iconPause)iconPause.hidden=!playing;
+    }
+    videoEl.addEventListener("play",syncPlayIcon);
+    videoEl.addEventListener("pause",syncPlayIcon);
+    if(videoPlayPauseBtn)videoPlayPauseBtn.onclick=()=>{videoEl.paused?videoEl.play():videoEl.pause()};
+    if(videoSpeedBtn)videoSpeedBtn.onclick=()=>{
+      videoEl.playbackRate=videoEl.playbackRate===1?2:1;
+      videoSpeedBtn.textContent=videoEl.playbackRate===1?"1x":"2x";
+    };
+    syncPlayIcon();
+  }
+
   function openHowtoVideo(key){
     const activeKey=HOWTO_VIDEOS[key]?key:"protect";
     const data=HOWTO_VIDEOS[activeKey];
     if(howtoVideoTitle)howtoVideoTitle.textContent=data.title;
     if(howtoVideoPlayer){
       if(data.src){
-        howtoVideoPlayer.innerHTML=`<video src="${data.src}" controls autoplay playsinline></video>`;
+        howtoVideoPlayer.innerHTML=`<video src="${data.src}" autoplay playsinline></video>`;
+        wireVideoControls(howtoVideoPlayer.querySelector("video"));
       }else{
+        if(videoPlayerControls)videoPlayerControls.hidden=true;
         howtoVideoPlayer.innerHTML=`
           <div class="video-modal-placeholder">
             <svg viewBox="0 0 24 24" fill="none" width="46" height="46" aria-hidden="true"><circle cx="12" cy="12" r="11" stroke="currentColor" stroke-width="1.3"/><path d="M10 8.5l6 3.5-6 3.5v-7Z" fill="currentColor"/></svg>
@@ -645,12 +736,15 @@ document.addEventListener("DOMContentLoaded",()=>{
     howtoVideoTabs.forEach(tab=>tab.classList.toggle("active",tab.dataset.video===activeKey));
     howtoVideoModal?.classList.add("show");
     howtoVideoModal?.setAttribute("aria-hidden","false");
+    document.body.style.overflow="hidden";
   }
 
   function closeHowtoVideoModal(){
     howtoVideoModal?.classList.remove("show");
     howtoVideoModal?.setAttribute("aria-hidden","true");
     if(howtoVideoPlayer)howtoVideoPlayer.innerHTML="";
+    if(videoPlayerControls)videoPlayerControls.hidden=true;
+    document.body.style.overflow="";
   }
 
   howtoVideoCards.forEach(card=>{
@@ -661,7 +755,8 @@ document.addEventListener("DOMContentLoaded",()=>{
   });
   heroLearnFeaturesBtn?.addEventListener("click",()=>openHowtoVideo("protect"));
   closeHowtoVideo?.addEventListener("click",closeHowtoVideoModal);
-  howtoVideoModal?.addEventListener("click",event=>{if(event.target===howtoVideoModal)closeHowtoVideoModal()});
+  closeHowtoVideoInline?.addEventListener("click",closeHowtoVideoModal);
+  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&howtoVideoModal?.classList.contains("show"))closeHowtoVideoModal()});
 
   feedbackForm?.addEventListener("submit",async event=>{
     event.preventDefault();
@@ -992,7 +1087,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(original.includes("@")||url.username||url.password)addSignal(state,"userinfo",42,"Contains '@' or embedded credentials, which can disguise the actual destination.","URL destination deception","deception",true);
     if(shorteners.has(registered))addSignal(state,"shortener",28,"Uses a URL-shortening service that hides the final destination.","Hidden destination link","deception",true);
     if(/^\d{1,3}(\.\d{1,3}){3}$/.test(host)||/^\[[0-9a-f:]+\]$/i.test(url.hostname))addSignal(state,"ip",34,"Uses a raw IP address instead of a normal domain name.","IP-based phishing link","structure",true);
-    if(host.includes("xn--"))addSignal(state,"punycode",31,"Uses Punycode, which may imitate letters from a trusted domain.","Lookalike-domain phishing","deception",true);
+    if(host.includes("xn--"))addSignal(state,"punycode",31,"Uses special hidden characters in the web address that can make it look like a different, trusted website.","Lookalike-domain phishing","deception",true);
     if(/[\u0080-\uffff]/.test(host))addSignal(state,"unicode",25,"Contains internationalized characters that may visually imitate another domain.","Lookalike-domain phishing","deception",true);
     if(labels.length>=5)addSignal(state,"subdomains",13,"Uses an unusually deep subdomain chain.","Subdomain deception","structure");
     if((registered.match(/-/g)||[]).length>=3)addSignal(state,"hyphens",11,"The registered domain contains many hyphens.","Suspicious domain structure","structure");
@@ -1029,7 +1124,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     const counterEvidence=[];
     if(url.protocol==="https:")counterEvidence.push("The URL uses HTTPS, which protects transport but does not prove the site is legitimate.");
     if(officialBrand)counterEvidence.push(`The visible registered domain exactly matches ${officialBrand[1]}.`);
-    if(labels.length<=3&&!host.includes("xn--")&&!state.signals.has("entropy")&&!state.signals.has("hyphens"))counterEvidence.push("The visible hostname is relatively simple and does not use Punycode.");
+    if(labels.length<=3&&!host.includes("xn--")&&!state.signals.has("entropy")&&!state.signals.has("hyphens"))counterEvidence.push("The web address looks simple and doesn't use any hidden trick characters.");
     if(!state.reasons.length)state.reasons.push(officialBrand?`The visible registered domain matches ${officialBrand[1]}.`:"No strong suspicious pattern was found in the visible URL structure.");
     const advice=[
       "Do not open the link when the sender or context is unexpected.",
@@ -1134,10 +1229,30 @@ document.addEventListener("DOMContentLoaded",()=>{
     return{label:"Low Visible Risk",cls:"risk-tag-safe"};
   }
 
-  if(cyberTextBtn&&cyberTextInput&&cyberTextResult)cyberTextBtn.addEventListener("click",()=>{
+  async function checkQuickScanQuota(){
+    try{
+      const res=await fetch("/api/quickscan-usage",{method:"POST",headers:authHeaders()});
+      const data=await res.json().catch(()=>({}));
+      if(!res.ok){
+        return{allowed:false,message:data.error||"Daily Quick Scan limit reached. Upgrade to Pro for unlimited scans."};
+      }
+      return{allowed:true};
+    }catch{
+      return{allowed:false,message:"Could not check your Quick Scan usage right now. Please try again."};
+    }
+  }
+
+  if(cyberTextBtn&&cyberTextInput&&cyberTextResult)cyberTextBtn.addEventListener("click",async()=>{
+    if(!isSignedIn()){openAuthModal("signup");return}
     const text=cyberTextInput.value.trim();if(!text){cyberTextResult.innerHTML=`<span class="warning">Paste a suspicious message first.</span>`;return}
-    const ring=document.getElementById("textScanRing"),label=document.getElementById("textScanLabel"),status=document.getElementById("textScanStatus");
     cyberTextBtn.disabled=true;
+    const quota=await checkQuickScanQuota();
+    if(!quota.allowed){
+      cyberTextResult.innerHTML=`<span class="warning">${escapeHTML(quota.message)}</span>`;
+      cyberTextBtn.disabled=false;
+      return;
+    }
+    const ring=document.getElementById("textScanRing"),label=document.getElementById("textScanLabel"),status=document.getElementById("textScanStatus");
     const duration=window.matchMedia?.("(pointer: coarse)").matches?650:900;
     const isBareLink=detectChatContentType(text)==="link";
     animateScanRing(ring,label,status,duration,async()=>{
@@ -1154,8 +1269,17 @@ document.addEventListener("DOMContentLoaded",()=>{
 
   /* ─── CyberNet Link ─── */
   const cyberLinkInput=document.getElementById("cyberLinkInput"),cyberLinkResult=document.getElementById("cyberLinkResult"),cyberLinkBtn=document.getElementById("cyberLinkBtn");
-  if(cyberLinkBtn&&cyberLinkInput&&cyberLinkResult)cyberLinkBtn.addEventListener("click",()=>{
+  if(cyberLinkBtn&&cyberLinkInput&&cyberLinkResult)cyberLinkBtn.addEventListener("click",async()=>{
+    if(!isSignedIn()){openAuthModal("signup");return}
     const link=cyberLinkInput.value.trim();if(!link){cyberLinkResult.innerHTML=`<span class="warning">Paste a suspicious link first.</span>`;return}
+    cyberLinkBtn.disabled=true;
+    const quota=await checkQuickScanQuota();
+    if(!quota.allowed){
+      cyberLinkResult.innerHTML=`<span class="warning">${escapeHTML(quota.message)}</span>`;
+      cyberLinkBtn.disabled=false;
+      return;
+    }
+    cyberLinkBtn.disabled=false;
     runScan(cyberLinkBtn,cyberLinkResult,async()=>{
       const result=analyzeLinkRules(link);
       showReport(cyberLinkResult,result.score,result.scamType,result.reasons,result.advice,{...result,note:"Local structural URL scan complete. Use the CyberNet AI page for account-based AI analysis."});
@@ -1209,6 +1333,11 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(!file||!cyberImageResult)return;
     if(!file.type.startsWith("image/")){cyberImageResult.innerHTML=`<span class="warning">Please upload a JPG, PNG, or WEBP image.</span>`;return}
     if(file.size>10*1024*1024){cyberImageResult.innerHTML=`<span class="warning">The image must be smaller than 10 MB.</span>`;return}
+    const quota=await checkQuickScanQuota();
+    if(!quota.allowed){
+      cyberImageResult.innerHTML=`<span class="warning">${escapeHTML(quota.message)}</span>`;
+      return;
+    }
     if(cyberDropZone){const old=cyberDropZone.querySelector(".upload-preview");old?.remove();const preview=document.createElement("div");preview.className="upload-preview";const url=URL.createObjectURL(file);preview.innerHTML=`<img src="${url}" alt="Uploaded preview" decoding="async"><span class="upload-preview-label">${escapeHTML(file.name)}</span>`;preview.querySelector("img").onload=()=>URL.revokeObjectURL(url);cyberDropZone.appendChild(preview)}
     cyberImageResult.innerHTML=`<div class="scanning-placeholder"><span class="scanning-placeholder-text">Inspecting QR and visual signals</span><div class="scan-dots"><span></span><span></span><span></span></div></div>`;
     const decoded=await decodeQRFromFile(file);
@@ -1218,11 +1347,12 @@ document.addEventListener("DOMContentLoaded",()=>{
     showReport(cyberImageResult,result.score,result.scamType,result.reasons,result.advice,{...result,note:"Local QR and file checks complete. Use the CyberNet AI page for account-based visual AI analysis."});
     prependScan("imageScanList",file.name,result);
   }
-  if(cyberImageInput)cyberImageInput.addEventListener("change",()=>handleCyberImage(cyberImageInput.files[0]));
+  if(cyberDropZone)cyberDropZone.addEventListener("click",e=>{if(!isSignedIn()){e.preventDefault();openAuthModal("signup")}});
+  if(cyberImageInput)cyberImageInput.addEventListener("change",()=>{if(!isSignedIn()){cyberImageInput.value="";openAuthModal("signup");return}handleCyberImage(cyberImageInput.files[0])});
   if(cyberDropZone&&cyberImageInput){
     cyberDropZone.addEventListener("dragover",e=>{e.preventDefault();cyberDropZone.classList.add("drag-over")});
     cyberDropZone.addEventListener("dragleave",()=>cyberDropZone.classList.remove("drag-over"));
-    cyberDropZone.addEventListener("drop",e=>{e.preventDefault();cyberDropZone.classList.remove("drag-over");const f=e.dataTransfer.files[0];if(f)handleCyberImage(f)});
+    cyberDropZone.addEventListener("drop",e=>{e.preventDefault();cyberDropZone.classList.remove("drag-over");if(!isSignedIn()){openAuthModal("signup");return}const f=e.dataTransfer.files[0];if(f)handleCyberImage(f)});
   }
 
   /* ─── Detect tabs (CyberNet Features page) ─── */
@@ -1345,6 +1475,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     const uncertain=Boolean(result.uncertain||result.verdict==="inconclusive");
     const danger=getDanger(result.score,uncertain);
     const isSafe=danger.css==="safe";
+    const previewUrl=type==="link"?result.previewUrl:decodedQr&&/^https?:\/\//i.test(decodedQr)?decodedQr:null;
     resultBox.className=resultBox.className.replace(/result-has-\w+/g,"").trim();
     resultBox.classList.add(`result-has-${danger.css}`);
     resultBox.innerHTML=`
@@ -1362,6 +1493,7 @@ document.addEventListener("DOMContentLoaded",()=>{
           <span>How sure are we?</span>
           <strong>${clamp(result.confidence)}%</strong>
         </div>
+        ${previewUrl&&isPro()?`<div class="diagnostic-screenshot-preview" id="screenshotPreview-${Date.now()}"><div class="screenshot-loading"><span class="btn-spinner"></span> Loading a preview of this page…</div></div>`:""}
         <div class="diagnostic-note"><p>${escapeHTML(result.note||"")}</p></div>
         ${unique(result.counterEvidence||[]).length?`<div class="diagnostic-counter"><strong>Reasons this might be okay</strong><ul>${unique(result.counterEvidence).slice(0,5).map(item=>`<li>${escapeHTML(item)}</li>`).join("")}</ul></div>`:""}
         <div class="diagnostic-body">
@@ -1369,7 +1501,28 @@ document.addEventListener("DOMContentLoaded",()=>{
           <div class="diagnostic-col"><h5>What You Should Do</h5><ul class="diagnostic-actions">${unique(result.advice).slice(0,8).map(a=>`<li>${escapeHTML(a)}</li>`).join("")}</ul></div>
         </div>
       </div>`;
+    if(previewUrl&&isPro()){
+      const container=resultBox.querySelector(".diagnostic-screenshot-preview");
+      loadScreenshotPreview(container,previewUrl);
+    }
   }
+
+  async function loadScreenshotPreview(container,url){
+    if(!container)return;
+    try{
+      const res=await fetch("/api/screenshot-preview",{method:"POST",headers:authHeaders({"Content-Type":"application/json"}),body:JSON.stringify({url})});
+      const data=await res.json().catch(()=>({}));
+      if(!res.ok||!data.screenshot){container.remove();return}
+      container.innerHTML=`
+        <strong>📷 Here's what this page looks like right now:</strong>
+        <img src="${escapeHTML(data.screenshot)}" alt="Preview of the destination page" loading="lazy"/>
+        <p class="screenshot-disclaimer">A screenshot shows what a page looked like at this moment — it doesn't prove the page is safe. A convincing fake login page can look exactly like a real one.</p>
+      `;
+    }catch{
+      container.remove();
+    }
+  }
+
 
 
   async function analyzeChat(type,content,imageData=""){
@@ -1398,6 +1551,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       const [deep]=await Promise.all([requestDeepAnalysis(type,serverContent,local,imageData),minWait]);
       if(stopDiagnostic)stopDiagnostic();
       const result=mergeAnalysis(local,deep);
+      if(type==="link")result.previewUrl=/^https?:\/\//i.test(content)?content:`https://${content}`;
       if(inner){
         showDiagnosticReport(inner,result,type,decodedQrForDisplay);
         if(isPro()){
@@ -1490,8 +1644,23 @@ document.addEventListener("DOMContentLoaded",()=>{
       const wasExpanded=node.classList.contains("expanded");
       node.closest(".rm-nodes").querySelectorAll(".rm-node").forEach(n=>n.classList.remove("expanded"));
       if(!wasExpanded)node.classList.add("expanded");
+      if(!wasExpanded&&node.id)history.replaceState(null,"",`#${node.id}`);
     });
   });
+
+  /* ─── Learn deep-linking: #learn-<topic> opens Learn, scrolls to, and expands that topic ─── */
+  function openLearnDeepLink(){
+    const hash=window.location.hash.slice(1);
+    if(!hash||!hash.startsWith("learn-"))return;
+    const target=document.getElementById(hash);
+    if(!target)return;
+    switchPage("learn");
+    document.querySelectorAll(".rm-node").forEach(n=>n.classList.remove("expanded"));
+    target.classList.add("expanded");
+    setTimeout(()=>target.scrollIntoView({behavior:"smooth",block:"center"}),150);
+  }
+  window.addEventListener("hashchange",openLearnDeepLink);
+  if(window.location.hash)setTimeout(openLearnDeepLink,300);
 
   /* ─── Learn Search ─── */
   const learnSearch=document.getElementById("learnSearch"),learnSearchBtn=document.getElementById("learnSearchBtn"),learnSearchResult=document.getElementById("learnSearchResult");
@@ -1511,7 +1680,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(!matches.length){learnSearchResult.innerHTML=`<strong class="warning">Nothing found for "${query}".</strong><br>Try: password, phishing, malware, scam, ransomware, wifi, VPN, OTP.`;return}
     learnSearchResult.innerHTML=matches.slice(0,5).map((m,i)=>`<div class="search-result-item"><strong>${m.nodeTitle}</strong><br><span style="color:var(--green);font-size:12px">${m.modTitle}</span><p style="margin-top:6px;margin-bottom:0">${m.nodeDesc}</p><button class="secondary-btn" style="margin-top:9px;min-height:34px;padding:0 14px;font-size:12px" data-search-idx="${i}">open_lesson →</button></div>`).join("");
     learnSearchResult.querySelectorAll("[data-search-idx]").forEach((btn,i)=>{
-      btn.addEventListener("click",()=>{matches[i].nodeEl.classList.add("expanded");matches[i].nodeEl.scrollIntoView({behavior:"smooth",block:"center"})});
+      btn.addEventListener("click",()=>{matches[i].nodeEl.classList.add("expanded");matches[i].nodeEl.scrollIntoView({behavior:"smooth",block:"center"});if(matches[i].nodeEl.id)history.replaceState(null,"",`#${matches[i].nodeEl.id}`)});
     });
   }
   if(learnSearchBtn)learnSearchBtn.addEventListener("click",searchLessons);
