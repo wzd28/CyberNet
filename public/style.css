@@ -948,6 +948,13 @@ main{
 .why-icon{
   flex-shrink:0;
   font-size:14px;
+  display:inline-flex;
+  align-items:center;
+  color:var(--green-bright);
+}
+
+.why-icon svg{
+  display:block;
 }
 
 @media(max-width:900px){
@@ -3551,9 +3558,9 @@ input::placeholder{
 }
 
 .recovery-pro-upsell-icon{
-  font-size:30px;
   flex-shrink:0;
   line-height:1;
+  color:var(--recovery-green-bright);
 }
 
 .recovery-pro-upsell-body h4{
@@ -5784,8 +5791,10 @@ img{
   .account-summary{gap:6px}
   .nav-greeting{max-width:80px;font-size:11px}
   .plan-badge{min-height:21px;padding:3px 7px;font-size:9px}
-  .pricing-grid-two .price-card{padding:27px 22px}
-  .pricing-grid-two .price-card .price-amount{font-size:41px}
+  .pricing-grid-two .price-card,
+  .pricing-grid-three .price-card{padding:27px 22px}
+  .pricing-grid-two .price-card .price-amount,
+  .pricing-grid-three .price-card .price-amount{font-size:41px}
   .pricing-toggle-wrap{flex-direction:column}
   .pricing-footnote{display:grid;text-align:center}
   .feature-paywall h1{font-size:28px}
@@ -5812,7 +5821,7 @@ img{
 .feedback-honeypot{position:absolute!important;left:-10000px!important;width:1px!important;height:1px!important;overflow:hidden!important}
 .feedback-message{margin-top:12px}
 
-.support-box{max-width:1200px;margin:28px auto 0;border-radius:22px;padding:28px;display:flex;align-items:center;justify-content:space-between;gap:28px;background:linear-gradient(145deg,rgba(34,211,238,.065),rgba(59,130,246,.035))}
+.support-box{max-width:1200px;margin:28px auto 0;border-radius:14px;padding:26px 28px;display:flex;align-items:center;justify-content:space-between;gap:28px;background:linear-gradient(145deg,rgba(34,211,238,.065),rgba(59,130,246,.035))}
 .support-box-copy{max-width:760px}
 .support-box h2{font-family:var(--font-body);font-size:clamp(22px,2.8vw,32px);font-weight:800;margin:8px 0}
 .support-box p{color:var(--muted);font-size:14px;line-height:1.7}

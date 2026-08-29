@@ -220,7 +220,6 @@ document.addEventListener("DOMContentLoaded",()=>{
   const navGreeting=document.getElementById("navGreeting");
   const accountSummary=document.getElementById("accountSummary");
   const navPlanBadge=document.getElementById("navPlanBadge");
-  const navUsageChip=document.getElementById("navUsageChip");
   const authMessage=document.getElementById("authMessage");
   const freePlanBtn=document.getElementById("freePlanBtn");
   const proPlanBtn=document.getElementById("proPlanBtn");
@@ -395,8 +394,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     const used=Number(appState.usage.used)||0;
     const limit=Number(appState.usage.limit)||(signedIn?(pro?15:3):3);
     const remaining=Math.max(0,Number.isFinite(appState.usage.remaining)?Number(appState.usage.remaining):limit-used);
-    if(navUsageChip){navUsageChip.textContent=`${used} / ${limit}`;navUsageChip.title=`${remaining} AI analyses remaining today`}
-
+    
     // Quick Scan's own usage meter (separate limit from Analysis AI)
     const qsUsed=Number(appState.quickScanUsage?.used)||0;
     const qsPro=pro;
@@ -430,6 +428,13 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(aiUsageText)aiUsageText.textContent=signedIn?`${used} / ${limit}`:`0 / 3`;
     if(aiUsageBar)aiUsageBar.style.width=`${signedIn?Math.min(100,(used/Math.max(1,limit))*100):0}%`;
     if(aiUsageReset)aiUsageReset.textContent=appState.usage.resetDate?`Resets ${new Date(appState.usage.resetDate).toLocaleDateString()}`:"Resets daily";
+
+    const analysisAiHeaderUsageText=document.getElementById("analysisAiHeaderUsageText");
+    const analysisAiHeaderUsageBar=document.getElementById("analysisAiHeaderUsageBar");
+    const analysisAiHeaderUsageReset=document.getElementById("analysisAiHeaderUsageReset");
+    if(analysisAiHeaderUsageText)analysisAiHeaderUsageText.textContent=signedIn?`${used} / ${limit}`:`— / 3`;
+    if(analysisAiHeaderUsageBar)analysisAiHeaderUsageBar.style.width=`${signedIn?Math.min(100,(used/Math.max(1,limit))*100):0}%`;
+    if(analysisAiHeaderUsageReset)analysisAiHeaderUsageReset.textContent=appState.usage.resetDate?`Resets ${new Date(appState.usage.resetDate).toLocaleDateString()}`:"Resets daily";
     if(aiConnPill){
       aiConnPill.textContent=!signedIn?"Signed out":pro?"Pro active":"Free active";
       aiConnPill.className=`status-pill ${signedIn?"status-pill-safe":"status-pill-warn"}`;
@@ -1745,49 +1750,6 @@ document.addEventListener("DOMContentLoaded",()=>{
   }
   if(learnSearchBtn)learnSearchBtn.addEventListener("click",searchLessons);
   if(learnSearch)learnSearch.addEventListener("keydown",e=>{if(e.key==="Enter")searchLessons()});
-
-  /* ─── NEW: Hero terminal typing effect ─── */
-  const heroTermBody=document.getElementById("heroTermBody");
-  if(heroTermBody){
-    const reduceMotion=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const lines=[
-      "$ cybernet --status",
-      "> initializing threat engine... done",
-      "> scanning 12,847 endpoints",
-      "> 3 threats neutralized in the last hour",
-      "> connection secure_"
-    ];
-    if(reduceMotion){
-      heroTermBody.innerHTML=lines.map(l=>`<div class="term-line" style="opacity:1">${l.startsWith("$")?`<span class="prompt">$</span>${l.slice(1)}`:l}</div>`).join("");
-    }else{
-      let lineIndex=0;
-      function typeNextLine(){
-        if(lineIndex>=lines.length){
-          const cursor=document.createElement("span");cursor.className="term-cursor";
-          heroTermBody.lastElementChild&&heroTermBody.lastElementChild.appendChild(cursor);
-          return;
-        }
-        const raw=lines[lineIndex];
-        const div=document.createElement("div");div.className="term-line";
-        heroTermBody.appendChild(div);
-        let charIndex=0;
-        const prefix=raw.startsWith("$")?`<span class="prompt">$</span>`:"";
-        const text=raw.startsWith("$")?raw.slice(1):raw;
-        function typeChar(){
-          if(charIndex<=text.length){
-            div.innerHTML=prefix+text.slice(0,charIndex);
-            charIndex++;
-            setTimeout(typeChar,18+Math.random()*22);
-          }else{
-            lineIndex++;
-            setTimeout(typeNextLine,260);
-          }
-        }
-        typeChar();
-      }
-      setTimeout(typeNextLine,500);
-    }
-  }
 
   /* ─── NEW: Tilt-card interaction (subtle, Apple-style) ─── */
   (function initTiltCards(){

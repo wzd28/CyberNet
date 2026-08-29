@@ -65,58 +65,69 @@ async function sendCheckinEmail(email, caseTitle, caseId, siteUrl) {
   }
 }
 
+async function checkinForPlan(plan, thresholdMinutes, siteUrl) {
+  const cutoff = new Date(Date.now() - thresholdMinutes * 60 * 1000).toISOString();
+
+  const profilesRes = await serviceFetch(
+    `/rest/v1/profiles?select=id&plan=eq.${plan}&subscription_status=in.(active,trialing)&limit=1000`
+  );
+  if (!profilesRes.ok) {
+    console.error(`CyberNet recovery-checkin ${plan} profiles query failed`, await profilesRes.text().catch(() => ""));
+    return { checked: 0, sent: 0 };
+  }
+  const users = await profilesRes.json();
+  const userIds = users.map((p) => p.id).filter(Boolean);
+  if (!userIds.length) return { checked: 0, sent: 0 };
+
+  const idList = userIds.join(",");
+  const casesRes = await serviceFetch(
+    `/rest/v1/recovery_cases?select=id,owner_user_id,case_title,status,updated_at,last_checkin_sent_at` +
+    `&status=neq.resolved&updated_at=lt.${encodeURIComponent(cutoff)}` +
+    `&or=(last_checkin_sent_at.is.null,last_checkin_sent_at.lt.${encodeURIComponent(cutoff)})` +
+    `&owner_user_id=in.(${idList})&limit=100`
+  );
+
+  if (!casesRes.ok) {
+    console.error(`CyberNet recovery-checkin ${plan} cases query failed`, await casesRes.text().catch(() => ""));
+    return { checked: 0, sent: 0 };
+  }
+
+  const cases = await casesRes.json();
+  let sent = 0;
+
+  for (const item of cases) {
+    const email = await getUserEmail(item.owner_user_id);
+    if (!email) continue;
+
+    const ok = await sendCheckinEmail(email, item.case_title || "Recovery Case", item.id, siteUrl);
+    if (ok) {
+      sent += 1;
+      await serviceFetch(`/rest/v1/recovery_cases?id=eq.${encodeURIComponent(item.id)}`, {
+        method: "PATCH",
+        headers: { Prefer: "return=minimal" },
+        body: JSON.stringify({ last_checkin_sent_at: new Date().toISOString() })
+      });
+    }
+  }
+
+  return { checked: cases.length, sent };
+}
+
 export default async () => {
   const siteUrl = env("SITE_URL") || "https://cybernetai.app";
-  const thresholdHours = 24;
-  const cutoff = new Date(Date.now() - thresholdHours * 60 * 60 * 1000).toISOString();
 
   try {
-    // Step 1: find active Pro/Business account holders.
-    const profilesRes = await serviceFetch(
-      `/rest/v1/profiles?select=id&plan=in.(pro,business)&subscription_status=in.(active,trialing)&limit=1000`
-    );
-    if (!profilesRes.ok) {
-      console.error("CyberNet recovery-checkin profiles query failed", await profilesRes.text().catch(() => ""));
-      return new Response("profiles query failed", { status: 500 });
-    }
-    const proUsers = await profilesRes.json();
-    const proUserIds = proUsers.map((p) => p.id).filter(Boolean);
-    if (!proUserIds.length) return new Response(JSON.stringify({ checked: 0, sent: 0 }), { status: 200 });
+    // Business: automated AI check-ins every 30 minutes on open cases.
+    // Pro: proactive check-ins after 24 hours of inactivity on open cases.
+    const [businessResult, proResult] = await Promise.all([
+      checkinForPlan("business", 30, siteUrl),
+      checkinForPlan("pro", 24 * 60, siteUrl)
+    ]);
 
-    // Step 2: find their open cases that haven't been updated recently and
-    // haven't already received a check-in in the last 24 hours.
-    const idList = proUserIds.join(",");
-    const casesRes = await serviceFetch(
-      `/rest/v1/recovery_cases?select=id,owner_user_id,case_title,status,updated_at,last_checkin_sent_at` +
-      `&status=neq.resolved&updated_at=lt.${encodeURIComponent(cutoff)}` +
-      `&or=(last_checkin_sent_at.is.null,last_checkin_sent_at.lt.${encodeURIComponent(cutoff)})` +
-      `&owner_user_id=in.(${idList})&limit=100`
-    );
-
-    if (!casesRes.ok) {
-      console.error("CyberNet recovery-checkin cases query failed", await casesRes.text().catch(() => ""));
-      return new Response("cases query failed", { status: 500 });
-    }
-
-    const cases = await casesRes.json();
-    let sent = 0;
-
-    for (const item of cases) {
-      const email = await getUserEmail(item.owner_user_id);
-      if (!email) continue;
-
-      const ok = await sendCheckinEmail(email, item.case_title || "Recovery Case", item.id, siteUrl);
-      if (ok) {
-        sent += 1;
-        await serviceFetch(`/rest/v1/recovery_cases?id=eq.${encodeURIComponent(item.id)}`, {
-          method: "PATCH",
-          headers: { Prefer: "return=minimal" },
-          body: JSON.stringify({ last_checkin_sent_at: new Date().toISOString() })
-        });
-      }
-    }
-
-    return new Response(JSON.stringify({ checked: cases.length, sent }), { status: 200 });
+    return new Response(JSON.stringify({
+      business: businessResult,
+      pro: proResult
+    }), { status: 200 });
   } catch (error) {
     console.error("CyberNet recovery-checkin failed", error);
     return new Response("error", { status: 500 });
@@ -124,5 +135,5 @@ export default async () => {
 };
 
 export const config = {
-  schedule: "0 */6 * * *"
+  schedule: "*/15 * * * *"
 };

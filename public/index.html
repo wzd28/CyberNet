@@ -408,7 +408,7 @@
   <!-- ═══ NAVBAR ═══ -->
   <header class="navbar glass">
     <a href="#" class="brand" data-page="home">
-      <img src="cybernetshield.png?v=20260828-1" alt="CyberNet AI" class="brand-mark-icon"/>
+      <span class="brand-mark">&gt;_</span>
       <span class="brand-text">Cyber<span>Net</span><small>AI</small></span>
     </a>
 
@@ -439,7 +439,6 @@
       <div class="account-summary" id="accountSummary" hidden>
         <span class="nav-greeting" id="navGreeting"></span>
         <span class="plan-badge plan-badge-free" id="navPlanBadge">FREE</span>
-        <span class="usage-chip" id="navUsageChip" title="Daily AI analyses used">0 / 3</span>
         <button class="account-action-btn" id="logoutBtn" type="button">Sign Out</button>
       </div>
       <button class="login-btn" id="openAuth" hidden><span class="login-btn-long">Sign In or Create Account</span><span class="login-btn-short">Sign In</span></button>
@@ -554,12 +553,12 @@
         </div>
 
         <div class="hero-why-panel glass">
-          <h4>Why Choose CyberNet AI?</h4>
+          <h4>At A Glance</h4>
           <ul>
-            <li><span class="why-icon">⚡</span> Instant, expert-level threat analysis — no prompting required</li>
-            <li><span class="why-icon">🧠</span> Layered detection: deterministic rules + advanced AI</li>
-            <li><span class="why-icon">🔓</span> Use our managed AI or connect your own key</li>
-            <li><span class="why-icon">🛟</span> Guided step-by-step recovery if you have already been hit</li>
+            <li><span class="why-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" aria-hidden="true"><path d="M13 2 L4 14 H11 L10 22 L20 9 H13 Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></span> Instant, expert-level threat analysis — no prompting required</li>
+            <li><span class="why-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="3.4" stroke="currentColor" stroke-width="1.7"/></svg></span> Layered detection: deterministic rules + advanced AI</li>
+            <li><span class="why-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M8 11V7.5a4 4 0 0 1 7-2.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span> Use our managed AI or connect your own key</li>
+            <li><span class="why-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" aria-hidden="true"><path d="M12 2 L21 6 L20 15 L12 22 L4 15 L3 6 Z" stroke="currentColor" stroke-width="1.7"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span> Guided step-by-step recovery if you have already been hit</li>
           </ul>
           <button class="secondary-btn glass" data-page="about">See what makes us different</button>
         </div>
@@ -650,23 +649,6 @@
         <h1>Quick Scan</h1>
         <p>Paste a message, link, or screenshot — get an instant scam verdict.</p>
         <p class="feature-crosslink">Prefer a conversational back-and-forth instead of picking a tab? Try <button class="inline-link-btn" data-page="cybernetai" type="button">Analysis AI</button>.</p>
-        <div class="threat-icon-strip" aria-hidden="true">
-          <span class="threat-icon ti-shield" title="Protection">
-            <svg viewBox="0 0 24 26" fill="none"><path d="M12 2 L21 6 L20 15 L12 24 L4 15 L3 6 Z" stroke="currentColor" stroke-width="1.6" fill="rgba(34,211,238,0.08)"/></svg>
-          </span>
-          <span class="threat-icon ti-bug" title="Malware">
-            <svg viewBox="0 0 24 24" fill="none"><ellipse cx="12" cy="13" rx="5" ry="7" stroke="currentColor" stroke-width="1.6"/><path d="M12 6V3M8 8L5 6M16 8l3-2M7 13H3M21 13h-4M8 18l-3 2M16 18l3 2M9 9l-1-2M15 9l1-2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-          </span>
-          <span class="threat-icon ti-radar" title="Scanning">
-            <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.3" opacity=".4"/><circle cx="12" cy="12" r="5.5" stroke="currentColor" stroke-width="1.3" opacity=".6"/><circle cx="12" cy="12" r="1.8" fill="currentColor"/></svg>
-          </span>
-          <span class="threat-icon ti-warn" title="Threat Detection">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M12 3 L22 20 H2 Z" stroke="currentColor" stroke-width="1.6" fill="rgba(255,207,107,0.08)"/><path d="M12 10v4M12 17h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-          </span>
-          <span class="threat-icon ti-lock" title="Secure Access">
-            <svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" stroke-width="1.6"/></svg>
-          </span>
-        </div>
 
         <div class="usage-meter-card" id="quickScanUsageCard">
           <div class="usage-meter-labels">
@@ -879,22 +861,22 @@
             <h4>We Analyze For</h4>
 
             <div class="wwc-item-sm">
-              <span class="wwc-icon">🚨</span>
+              <span class="wwc-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3 L22 20 H2 Z" stroke="currentColor" stroke-width="1.6"/><path d="M12 10v4M12 17h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
               <span>Fake Alerts</span>
             </div>
 
             <div class="wwc-item-sm">
-              <span class="wwc-icon">▦</span>
+              <span class="wwc-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.6"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.6"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.6"/><path d="M14 14h3v3h-3zM19 14h2v2h-2zM14 19h2v2h-2zM19 19h2v2h-2z" fill="currentColor"/></svg></span>
               <span>QR Codes</span>
             </div>
 
             <div class="wwc-item-sm">
-              <span class="wwc-icon">™</span>
+              <span class="wwc-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2 L21 6 L20 15 L12 22 L4 15 L3 6 Z" stroke="currentColor" stroke-width="1.6"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
               <span>Brand Impersonation</span>
             </div>
 
             <div class="wwc-item-sm">
-              <span class="wwc-icon">🔤</span>
+              <span class="wwc-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
               <span>Text Extraction</span>
             </div>
 
@@ -958,22 +940,14 @@
         <h1>Analysis AI</h1>
         <p>A deeper, multi-stage AI diagnostic — see what a link or QR code leads to before you open it.</p>
         <p class="feature-crosslink">Just want a fast, instant verdict without chatting? Try <button class="inline-link-btn" data-page="cybernet" type="button">Quick Scan</button>.</p>
-        <div class="threat-icon-strip" aria-hidden="true">
-          <span class="threat-icon ti-shield" title="Protection">
-            <svg viewBox="0 0 24 26" fill="none"><path d="M12 2 L21 6 L20 15 L12 24 L4 15 L3 6 Z" stroke="currentColor" stroke-width="1.6" fill="rgba(34,211,238,0.08)"/></svg>
-          </span>
-          <span class="threat-icon ti-bug" title="Malware">
-            <svg viewBox="0 0 24 24" fill="none"><ellipse cx="12" cy="13" rx="5" ry="7" stroke="currentColor" stroke-width="1.6"/><path d="M12 6V3M8 8L5 6M16 8l3-2M7 13H3M21 13h-4M8 18l-3 2M16 18l3 2M9 9l-1-2M15 9l1-2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-          </span>
-          <span class="threat-icon ti-radar" title="Scanning">
-            <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.3" opacity=".4"/><circle cx="12" cy="12" r="5.5" stroke="currentColor" stroke-width="1.3" opacity=".6"/><circle cx="12" cy="12" r="1.8" fill="currentColor"/></svg>
-          </span>
-          <span class="threat-icon ti-warn" title="Threat Detection">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M12 3 L22 20 H2 Z" stroke="currentColor" stroke-width="1.6" fill="rgba(255,207,107,0.08)"/><path d="M12 10v4M12 17h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-          </span>
-          <span class="threat-icon ti-lock" title="Secure Access">
-            <svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" stroke-width="1.6"/></svg>
-          </span>
+
+        <div class="usage-meter-card" id="analysisAiHeaderUsageCard">
+          <div class="usage-meter-labels">
+            <span>Daily AI analyses</span>
+            <strong id="analysisAiHeaderUsageText">0 / 3</strong>
+          </div>
+          <div class="usage-meter-track"><span id="analysisAiHeaderUsageBar"></span></div>
+          <small id="analysisAiHeaderUsageReset">Resets daily</small>
         </div>
       </div>
 
@@ -1262,7 +1236,7 @@
         </div>
 
         <div class="recovery-pro-upsell glass" id="recoveryProUpsell" hidden>
-          <div class="recovery-pro-upsell-icon">🛡️</div>
+          <div class="recovery-pro-upsell-icon"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" aria-hidden="true"><path d="M12 2 L21 6 L20 15 L12 22 L4 15 L3 6 Z" stroke="currentColor" stroke-width="1.7"/><path d="M9 12l2 2 4-4.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
           <div class="recovery-pro-upsell-body">
             <h4>You've addressed the immediate danger. Let's finish the job.</h4>
             <p>Pro unlocks the complete recovery timeline (first hour, first 24 hours, next 7 days), verification steps for every action, remaining-risk analysis, more daily updates with a shorter wait between them, and a downloadable case report you can keep for your records.</p>
@@ -2090,8 +2064,8 @@
           <ul>
             <li>Everything in CyberNet AI Pro</li>
             <li><strong>100 AI analyses per day</strong></li>
-            <li><strong>10 Recovery Mode cases per day</strong></li>
-            <li><strong>Proactive AI check-ins</strong> on open Recovery cases over time</li>
+            <li><strong>10 Recovery Mode cases per day</strong> — open more than one at once</li>
+            <li><strong>Automated AI check-ins every 30 minutes</strong> on open Recovery cases</li>
             <li>Faster Recovery update cooldown (1 hour)</li>
             <li><strong>Priority, urgent-response support</strong> — direct line to our team</li>
             <li>Company-verified account</li>
