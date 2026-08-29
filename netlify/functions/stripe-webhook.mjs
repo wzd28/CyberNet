@@ -26,9 +26,11 @@ function subscriptionPatch(subscription) {
   );
 
   const active = ["active", "trialing"].includes(status);
+  const lookupKey = String(subscription.items?.data?.[0]?.price?.lookup_key || "");
+  const tier = lookupKey.includes("business") ? "business" : "pro";
 
   return {
-    plan: active ? "pro" : "free",
+    plan: active ? tier : "free",
     subscription_status: status,
     billing_interval:
       subscription.items?.data?.[0]?.price?.recurring?.interval || "",

@@ -207,9 +207,11 @@ document.addEventListener("DOMContentLoaded",()=>{
   const openAuth=document.getElementById("openAuth");
   const closeAuth=document.getElementById("closeAuth");
   const authTabs=document.querySelectorAll(".auth-tab");
+  const googleAuthWrap=document.getElementById("googleAuthWrap");
   const loginForm=document.getElementById("authLoginForm");
   const signupForm=document.getElementById("authSignupForm");
   const loginBtn=document.getElementById("loginBtn");
+  const resendConfirmBtn=document.getElementById("resendConfirmBtn");
   const signupBtn=document.getElementById("signupBtn");
   const forgotPasswordBtn=document.getElementById("forgotPasswordBtn");
   const switchToSignupBtn=document.getElementById("switchToSignupBtn");
@@ -222,6 +224,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   const authMessage=document.getElementById("authMessage");
   const freePlanBtn=document.getElementById("freePlanBtn");
   const proPlanBtn=document.getElementById("proPlanBtn");
+  const businessPlanBtn=document.getElementById("businessPlanBtn");
   const pricingNotice=document.getElementById("pricingNotice");
   const aiUpgradeBtn=document.getElementById("aiUpgradeBtn");
   const manageBillingBtn=document.getElementById("manageBillingBtn");
@@ -232,6 +235,8 @@ document.addEventListener("DOMContentLoaded",()=>{
     user:null,
     profile:{plan:"guest",fullName:"",subscriptionStatus:"inactive",billingInterval:""},
     usage:{used:0,limit:0,remaining:0,resetDate:""},
+    quickScanUsage:{used:0,limit:5,plan:"free"},
+    recoveryUsage:{used:0,limit:1},
     history:[],
     accountReady:false,
     recoveryMode:false
@@ -275,6 +280,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     authTabs.forEach(tab=>tab.classList.toggle("active",tab.dataset.auth===mode));
     loginForm?.classList.toggle("active-auth-form",mode==="login");
     signupForm?.classList.toggle("active-auth-form",mode==="signup");
+    if(googleAuthWrap)googleAuthWrap.hidden=mode!=="signup";
   }
 
   function openAuthModal(mode="login"){
@@ -360,13 +366,16 @@ document.addEventListener("DOMContentLoaded",()=>{
     document.body.dataset.plan=plan;
 
     if(accountSummary)accountSummary.hidden=!signedIn;
-    if(openAuth)openAuth.hidden=signedIn;
+    if(openAuth){openAuth.hidden=signedIn;}
+    const authCheckingSkeleton=document.getElementById("authCheckingSkeleton");
+    if(authCheckingSkeleton)authCheckingSkeleton.hidden=true;
     if(navGreeting)navGreeting.textContent=signedIn?`Hi ${firstName(appState.profile.fullName||appState.user?.user_metadata?.full_name||appState.user?.email)}`:"";
 
     const cyberTextBtnEl=document.getElementById("cyberTextBtn");
     const cyberLinkBtnEl=document.getElementById("cyberLinkBtn");
     const cyberUploadHeading=document.querySelector("#cyberDropZone h3");
     const chatSendBtnEl=document.getElementById("chatSendBtn");
+    const recoveryStartBtnEl=document.getElementById("recoveryStartBtn");
     if(cyberTextBtnEl)cyberTextBtnEl.textContent=signedIn?"Analyze Text":"Register for Free to Scan";
     if(cyberLinkBtnEl)cyberLinkBtnEl.textContent=signedIn?"Analyze Link":"Register for Free to Scan";
     if(cyberUploadHeading)cyberUploadHeading.textContent=signedIn?"Drag & Drop Your Image Here":"Register for Free to Scan";
@@ -374,6 +383,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       chatSendBtnEl.innerHTML=signedIn?"➤":"Register for Free to Scan";
       chatSendBtnEl.classList.toggle("send-btn-wide",!signedIn);
     }
+    if(recoveryStartBtnEl&&!recoveryStartBtnEl.disabled)recoveryStartBtnEl.textContent=signedIn?"Start Recovery":"Register for Free to Start a Recovery Case";
 
     const badgeText=pro?"PRO":"FREE";
     [navPlanBadge,document.getElementById("aiPlanBadge")].forEach(badge=>{
@@ -383,9 +393,28 @@ document.addEventListener("DOMContentLoaded",()=>{
     });
 
     const used=Number(appState.usage.used)||0;
-    const limit=Number(appState.usage.limit)||(signedIn?(pro?50:5):5);
+    const limit=Number(appState.usage.limit)||(signedIn?(pro?15:3):3);
     const remaining=Math.max(0,Number.isFinite(appState.usage.remaining)?Number(appState.usage.remaining):limit-used);
     if(navUsageChip){navUsageChip.textContent=`${used} / ${limit}`;navUsageChip.title=`${remaining} AI analyses remaining today`}
+
+    // Quick Scan's own usage meter (separate limit from Analysis AI)
+    const qsUsed=Number(appState.quickScanUsage?.used)||0;
+    const qsPro=pro;
+    const qsLimit=qsPro?Infinity:5;
+    const qsUsageText=document.getElementById("quickScanUsageText");
+    const qsUsageBar=document.getElementById("quickScanUsageBar");
+    const qsUsageReset=document.getElementById("quickScanUsageReset");
+    if(qsUsageText)qsUsageText.textContent=!signedIn?"— / 5":qsPro?`${qsUsed} / Unlimited`:`${qsUsed} / 5`;
+    if(qsUsageBar)qsUsageBar.style.width=`${signedIn&&!qsPro?Math.min(100,(qsUsed/5)*100):0}%`;
+    if(qsUsageReset)qsUsageReset.textContent=qsPro?"Unlimited on Pro":"Resets daily";
+
+    // Recovery Mode's own usage meter (separate limit, separate reset time)
+    const recUsed=Number(appState.recoveryUsage?.used)||0;
+    const recLimit=pro?3:1;
+    const recUsageText=document.getElementById("recoveryUsageCaseText");
+    const recUsageBar=document.getElementById("recoveryUsageCaseBar");
+    if(recUsageText)recUsageText.textContent=!signedIn?`— / ${recLimit}`:`${recUsed} / ${recLimit}`;
+    if(recUsageBar)recUsageBar.style.width=`${signedIn?Math.min(100,(recUsed/recLimit)*100):0}%`;
 
     const aiPlanTitle=document.getElementById("aiPlanTitle");
     const aiPlanDescription=document.getElementById("aiPlanDescription");
@@ -398,7 +427,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 
     if(aiPlanTitle)aiPlanTitle.textContent=pro?"Analysis AI Pro":"Analysis AI Free";
     if(aiPlanDescription)aiPlanDescription.textContent=!signedIn?"Sign in to activate 3 accurate AI analyses per day across text, links, and images.":pro?"Top-level Analysis AI protection with advanced analysis, history, and reports.":"Accurate everyday AI protection with 3 shared analyses per day.";
-    if(aiUsageText)aiUsageText.textContent=signedIn?`${used} / ${limit}`:`0 / 5`;
+    if(aiUsageText)aiUsageText.textContent=signedIn?`${used} / ${limit}`:`0 / 3`;
     if(aiUsageBar)aiUsageBar.style.width=`${signedIn?Math.min(100,(used/Math.max(1,limit))*100):0}%`;
     if(aiUsageReset)aiUsageReset.textContent=appState.usage.resetDate?`Resets ${new Date(appState.usage.resetDate).toLocaleDateString()}`:"Resets daily";
     if(aiConnPill){
@@ -417,6 +446,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(manageBillingBtn)manageBillingBtn.hidden=!pro;
     if(freePlanBtn){freePlanBtn.textContent=!signedIn?"Start Free":pro?"Included with Pro":"Current Plan";freePlanBtn.disabled=signedIn}
     if(proPlanBtn){proPlanBtn.textContent=pro?"Current Plan":"Upgrade to Pro";proPlanBtn.disabled=pro}
+    if(businessPlanBtn){const isBusiness=effectivePlanName()==="business";businessPlanBtn.textContent=isBusiness?"Current Plan":"Upgrade to Business";businessPlanBtn.disabled=isBusiness}
 
     updatePlanBenefits();
     renderProHistory();
@@ -520,9 +550,29 @@ document.addEventListener("DOMContentLoaded",()=>{
         if(error)throw error;
         setAuthMessage("Signed in successfully.","success");
         authModal?.classList.remove("show");
+        if(resendConfirmBtn)resendConfirmBtn.hidden=true;
       }
-    }catch(error){setAuthMessage(friendlyAuthError(error,"login"),"error")}
+    }catch(error){
+      setAuthMessage(friendlyAuthError(error,"login"),"error");
+      if(resendConfirmBtn)resendConfirmBtn.hidden=!String(error.message||"").toLowerCase().includes("email not confirmed");
+    }
     finally{loginBtn.disabled=false}
+  });
+
+  if(resendConfirmBtn)resendConfirmBtn.addEventListener("click",async()=>{
+    if(!appState.supabase)return;
+    const email=document.getElementById("loginEmail")?.value.trim()||"";
+    if(!email){setAuthMessage("Enter your email above first, then resend the confirmation.","error");return}
+    resendConfirmBtn.disabled=true;
+    try{
+      const{error}=await appState.supabase.auth.resend({type:"signup",email});
+      if(error)throw error;
+      setAuthMessage("Confirmation email resent. Check your inbox (and spam folder).","success");
+    }catch(error){
+      setAuthMessage(error.message||"Could not resend the confirmation email.","error");
+    }finally{
+      resendConfirmBtn.disabled=false;
+    }
   });
 
   if(signupBtn)signupBtn.addEventListener("click",async()=>{
@@ -569,28 +619,35 @@ document.addEventListener("DOMContentLoaded",()=>{
     switchPage("home");
   });
 
-  async function startCheckout(cycle="monthly"){
+  async function startCheckout(cycle="monthly",plan="pro"){
+    const btn=plan==="business"?businessPlanBtn:proPlanBtn;
     if(!isSignedIn()){
       sessionStorage.setItem("cybernet_pending_cycle",cycle);
+      sessionStorage.setItem("cybernet_pending_plan",plan);
       openAuthModal("signup");
-      showPricingNotice("Create a free account first, then choose Pro again.");
+      showPricingNotice(`Create a free account first, then choose ${plan==="business"?"Business":"Pro"} again.`);
       return;
     }
-    if(isPro()){showPricingNotice("CyberNet AI Pro is already active on this account.","success");return}
+    if(plan==="business"&&effectivePlanName()==="business"){showPricingNotice("CyberNet AI Business is already active on this account.","success");return}
+    if(plan==="pro"&&isPro()){showPricingNotice("CyberNet AI Pro is already active on this account.","success");return}
     showPricingNotice("Opening secure Stripe Checkout…");
-    if(proPlanBtn)proPlanBtn.disabled=true;
+    if(btn)btn.disabled=true;
     try{
       const response=await fetch("/api/create-checkout-session",{
         method:"POST",
         headers:authHeaders({"Content-Type":"application/json"}),
-        body:JSON.stringify({cycle})
+        body:JSON.stringify({cycle,plan})
       });
       const data=await response.json().catch(()=>({}));
       if(!response.ok)throw new Error(data.error||"Stripe Checkout is not configured yet.");
       if(!data.url)throw new Error("Stripe did not return a Checkout URL.");
       window.location.assign(data.url);
     }catch(error){showPricingNotice(error.message||"Checkout could not start.","error")}
-    finally{if(proPlanBtn)proPlanBtn.disabled=false}
+    finally{if(btn)btn.disabled=false}
+  }
+
+  function effectivePlanName(){
+    return appState.profile?.plan==="business"&&["active","trialing"].includes(appState.profile?.subscriptionStatus)?"business":isPro()?"pro":"free";
   }
 
   async function openBillingPortal(){
@@ -604,7 +661,8 @@ document.addEventListener("DOMContentLoaded",()=>{
   }
 
   if(freePlanBtn)freePlanBtn.addEventListener("click",()=>{if(!isSignedIn())openAuthModal("signup")});
-  if(proPlanBtn)proPlanBtn.addEventListener("click",()=>startCheckout(proPlanBtn.dataset.cycle||"monthly"));
+  if(proPlanBtn)proPlanBtn.addEventListener("click",()=>startCheckout(proPlanBtn.dataset.cycle||"monthly","pro"));
+  if(businessPlanBtn)businessPlanBtn.addEventListener("click",()=>startCheckout(businessPlanBtn.dataset.cycle||"monthly","business"));
   if(aiUpgradeBtn)aiUpgradeBtn.addEventListener("click",()=>switchPage("pricing"));
   if(manageBillingBtn)manageBillingBtn.addEventListener("click",openBillingPortal);
 
@@ -923,7 +981,6 @@ document.addEventListener("DOMContentLoaded",()=>{
         <span class="scam-type-tag">${escapeHTML(scamType)}</span>
         <span class="score-display">${clamp(Math.round(score))}<span>/100</span></span>
       </div>
-      <div class="analysis-confidence"><span>How sure are we?</span><strong>${confidence}% · ${confidenceText}</strong></div>
       ${sourceLabels.length?`<div class="analysis-sources">${sourceLabels.map(x=>`<span>${escapeHTML(x)}</span>`).join("")}</div>`:""}
       <div class="verdict-note ${uncertain?"verdict-uncertain":""}"><span>${uncertain?"◈":"ⓘ"}</span><p>${escapeHTML(verdictNote)}</p></div>
       ${unique(meta.counterEvidence||[]).length?`<div class="counter-evidence"><strong>Reasons this might be okay</strong><ul>${unique(meta.counterEvidence||[]).slice(0,5).map(item=>`<li>${escapeHTML(item)}</li>`).join("")}</ul></div>`:""}
@@ -954,7 +1011,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       {id:"prize",terms:["you won","winner","prize","gift card","giveaway","free money","claim reward","selected winner","gagné","cadeau","prix gratuit","ربحت","جائزة","هدية مجانية"],weight:16,reason:"Promises an unexpected prize, reward, or giveaway.",type:"Prize / giveaway scam",category:"reward"},
       {id:"credentials",terms:["password","sign in","login","verify your account","confirm your account","security alert","unusual activity","mot de passe","vérifiez votre compte","connexion","كلمة المرور","تحقق من حسابك","تسجيل الدخول","نشاط غير معتاد"],weight:9,reason:"Mentions account verification, login, or security-alert language.",type:"Credential phishing",category:"credentials"},
       {id:"otp",terms:["otp","one-time password","verification code","security code","2fa code","pin code","code de vérification","رمز التحقق","رمز الأمان","رمز لمرة واحدة"],weight:12,reason:"Mentions a private authentication or verification code.",type:"OTP / account takeover scam",category:"credentials"},
-      {id:"finance",terms:["wire transfer","bank transfer","payment","refund","invoice","crypto","bitcoin","wallet","gift cards","western union","deposit","tax payment","virement","paiement","remboursement","facture","تحويل مصرفي","دفعة","استرداد","فاتورة","عملات رقمية","محفظة"],weight:9,reason:"Mentions money, banking, payment, refund, or crypto activity.",type:"Financial scam",category:"money"},
+      {id:"finance",terms:["wire transfer","bank transfer","payment","refund","invoice","crypto","bitcoin","wallet","gift cards","western union","deposit","tax payment","back taxes","owe taxes","tax debt","unpaid taxes","tax notice","virement","paiement","remboursement","facture","تحويل مصرفي","دفعة","استرداد","فاتورة","عملات رقمية","محفظة"],weight:9,reason:"Mentions money, banking, payment, refund, tax debt, or crypto activity.",type:"Financial scam",category:"money"},
       {id:"threat",terms:["account locked","account suspended","legal action","arrest","police","court","warrant","will be deleted","compte suspendu","action légale","حسابك موقوف","إجراء قانوني","اعتقال","سيتم حذف"],weight:17,reason:"Uses fear, punishment, or account-loss threats.",type:"Threat-based phishing",category:"pressure"},
       {id:"remote",terms:["remote access","anydesk","teamviewer","quick support","screen share","install this app","accès à distance","partage d'écran","وصول عن بعد","مشاركة الشاشة","ثبت هذا التطبيق"],weight:34,reason:"Requests or discusses remote access, screen sharing, or control software.",type:"Remote-access support scam",category:"device"},
       {id:"delivery",terms:["parcel","package delivery","delivery fee","customs fee","missed delivery","shipping address","colis","frais de livraison","رسوم التوصيل","طرد","رسوم الجمارك"],weight:12,reason:"Uses a parcel, customs, or delivery problem as a lure.",type:"Delivery phishing",category:"delivery"},
@@ -967,6 +1024,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       {id:"sextortion",terms:["private photos","intimate video","send to your contacts","pay or i will share","leak your photos","صور خاصة","سأرسلها لجهات اتصالك","ادفع وإلا"],weight:42,reason:"Threatens to expose private or intimate material unless payment is made.",type:"Sextortion scam",category:"extortion",strong:true}
     ];
     groups.forEach(g=>{if(hasTerm(variants,g.terms))addSignal(state,g.id,g.weight,g.reason,g.type,g.category,g.strong)});
+    if(/\bwithin\s+\d{1,3}\s*(hours?|hrs?|minutes?|mins?|days?)\b/i.test(clean)&&!state.signals.has("urgency"))addSignal(state,"deadline-pressure",10,"Uses a specific time deadline to reduce careful thinking.","Urgency-based social engineering","pressure");
 
     const protective=/\b(never share|do not share|don't share|we will never ask|do not click|don't click|ignore suspicious|security tip|fraud warning|protect yourself|ne partagez jamais|ne cliquez pas|conseil de sécurité|لا تشارك|لن نطلب منك|لا تضغط|تحذير أمني)\b/iu.test(clean);
     const relationalSecretRequest=/\b(send me|send us|reply with|provide us|provide me|share with me|share with us|tell me|envoyez-nous|envoyez-moi|répondez avec|أرسل لي|أرسل لنا|شارك معي|شارك معنا)\b.{0,65}\b(password|otp|code|pin|card|cvv|account number|seed phrase|recovery phrase|mot de passe|رمز|كلمة المرور|رقم البطاقة|عبارة الاسترداد)\b/iu.test(clean);
@@ -1007,6 +1065,8 @@ document.addEventListener("DOMContentLoaded",()=>{
     const combo=(id,needs,weight,reason,type,category)=>{if(needs.every(x=>state.signals.has(x)))addSignal(state,id,weight,reason,type,category,true)};
     combo("credential-chain",["credentials","urgency","links"],28,"Combines account pressure, urgency, and a clickable link.","Credential phishing","credentials");
     combo("otp-chain",["otp","urgency"],18,"Combines authentication-code language with urgency.","OTP theft scam","credentials");
+    combo("govt-authority-threat",["authority","threat"],26,"Combines government/tax-authority impersonation with a legal or arrest threat — a classic pattern in IRS, police, and \"digital arrest\" impersonation scams.","Government / tax-authority impersonation scam","impersonation");
+    combo("govt-authority-finance",["authority","finance"],24,"Combines government/tax-authority impersonation with a financial demand — a classic pattern in IRS and tax-scam messages.","Government / tax-authority impersonation scam","impersonation");
     if(state.categories.has("money")&&state.categories.has("pressure"))addSignal(state,"money-pressure",20,"Combines financial activity with fear, secrecy, or urgency.","Financial social engineering","money",true);
     if(state.categories.has("impersonation")&&state.categories.has("action"))addSignal(state,"impersonation-action",19,"Combines impersonation clues with a requested click, call, or reply.","Impersonation phishing","impersonation",true);
 
@@ -1234,8 +1294,12 @@ document.addEventListener("DOMContentLoaded",()=>{
       const res=await fetch("/api/quickscan-usage",{method:"POST",headers:authHeaders()});
       const data=await res.json().catch(()=>({}));
       if(!res.ok){
+        appState.quickScanUsage={used:Number(data.used)||0,limit:Number(data.limit)||5,plan:data.plan||"free"};
+        updateAccountUI();
         return{allowed:false,message:data.error||"Daily Quick Scan limit reached. Upgrade to Pro for unlimited scans."};
       }
+      appState.quickScanUsage={used:Number(data.used)||0,limit:Number(data.limit)||5,plan:data.plan||"free"};
+      updateAccountUI();
       return{allowed:true};
     }catch{
       return{allowed:false,message:"Could not check your Quick Scan usage right now. Please try again."};
@@ -1488,10 +1552,6 @@ document.addEventListener("DOMContentLoaded",()=>{
         <div class="diagnostic-report-head">
           <span class="diagnostic-scam-type">${escapeHTML(result.scamType)}</span>
           <span class="diagnostic-score">${clamp(Math.round(result.score))}<span>/100</span></span>
-        </div>
-        <div class="diagnostic-confidence-row">
-          <span>How sure are we?</span>
-          <strong>${clamp(result.confidence)}%</strong>
         </div>
         ${previewUrl&&isPro()?`<div class="diagnostic-screenshot-preview" id="screenshotPreview-${Date.now()}"><div class="screenshot-loading"><span class="btn-spinner"></span> Loading a preview of this page…</div></div>`:""}
         <div class="diagnostic-note"><p>${escapeHTML(result.note||"")}</p></div>
@@ -1751,23 +1811,6 @@ document.addEventListener("DOMContentLoaded",()=>{
   })();
 
   /* ─── NEW: Magnetic buttons ─── */
-  (function initMagneticButtons(){
-    const reduceMotion=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const coarse=window.matchMedia&&window.matchMedia("(pointer: coarse)").matches;
-    const saveData=Boolean(navigator.connection?.saveData);
-    if(reduceMotion||coarse||saveData)return;
-    document.querySelectorAll(".primary-btn,.secondary-btn,.login-btn").forEach(btn=>{
-      if(btn.classList.contains("full"))return;
-      btn.addEventListener("mousemove",e=>{
-        const rect=btn.getBoundingClientRect();
-        const x=(e.clientX-rect.left-rect.width/2)*0.22;
-        const y=(e.clientY-rect.top-rect.height/2)*0.32;
-        btn.style.transform=`translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
-      });
-      btn.addEventListener("mouseleave",()=>{btn.style.transform=""});
-    });
-  })();
-
   /* ─── NEW: Cursor-follow glow in hero ─── */
   (function initCursorGlow(){
     const reduceMotion=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -1944,16 +1987,20 @@ document.addEventListener("DOMContentLoaded",()=>{
         if(!res.ok){
           const error=new Error(data.error||`Recovery service returned ${res.status}`);
           error.code=data.code;
+          error.usage=data.usage;
           throw error;
         }
         currentCaseId=data.caseId;
         currentPlan={...data.plan,progressPercent:0};
         currentTasks=[];
+        if(data.usage)appState.recoveryUsage={used:Number(data.usage.used)||0,limit:Number(data.usage.daily_limit)||1};
+        updateAccountUI();
         renderDashboard();
         showDashboard();
       }catch(error){
         if(error.code==="daily_limit_reached"){
           setIntakeMessage(`${error.message} Upgrade to Pro for more Recovery cases per day.`,"warning");
+          if(error.usage){appState.recoveryUsage={used:Number(error.usage.used)||0,limit:Number(error.usage.daily_limit)||1};updateAccountUI()}
         }else{
           setIntakeMessage(error.message||"Recovery Mode couldn't start right now. Please try again.","warning");
         }

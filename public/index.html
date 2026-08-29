@@ -242,20 +242,22 @@
     <div class="modal-card glass reveal">
       <button class="close-modal" id="closeAuth" aria-label="Close">&times;</button>
       <div class="auth-logo">
-        <span class="brand-mark">&gt;_</span>
+        <img src="cybernetshield.png?v=20260828-1" alt="CyberNet AI" class="auth-logo-icon"/>
       </div>
       <div class="auth-heading">
         <h2>Sign In or Create Account</h2>
         <p>Use an existing CyberNet account, or create a free account in seconds.</p>
       </div>
-      <button type="button" class="google-auth-btn" id="googleAuthBtn">
-        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="#4285F4" d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.47a5.53 5.53 0 0 1-2.4 3.63v3h3.87c2.27-2.09 3.58-5.17 3.58-8.82z"/><path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.94-2.91l-3.87-3c-1.08.72-2.45 1.15-4.07 1.15-3.13 0-5.78-2.11-6.73-4.96H1.28v3.11A12 12 0 0 0 12 24z"/><path fill="#FBBC05" d="M5.27 14.28A7.2 7.2 0 0 1 4.89 12c0-.79.14-1.56.38-2.28V6.61H1.28A12 12 0 0 0 0 12c0 1.94.46 3.77 1.28 5.39z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0A12 12 0 0 0 1.28 6.61l3.99 3.11C6.22 6.86 8.87 4.75 12 4.75z"/></svg>
-          Continue with Google
-      </button>
-      <div class="auth-divider"><span>or</span></div>
       <div class="auth-tabs">
         <button class="auth-tab active" data-auth="login">Sign In</button>
         <button class="auth-tab" data-auth="signup">Create Account</button>
+      </div>
+      <div id="googleAuthWrap" class="google-auth-wrap" hidden>
+        <button type="button" class="google-auth-btn" id="googleAuthBtn">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="#4285F4" d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.47a5.53 5.53 0 0 1-2.4 3.63v3h3.87c2.27-2.09 3.58-5.17 3.58-8.82z"/><path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.94-2.91l-3.87-3c-1.08.72-2.45 1.15-4.07 1.15-3.13 0-5.78-2.11-6.73-4.96H1.28v3.11A12 12 0 0 0 12 24z"/><path fill="#FBBC05" d="M5.27 14.28A7.2 7.2 0 0 1 4.89 12c0-.79.14-1.56.38-2.28V6.61H1.28A12 12 0 0 0 0 12c0 1.94.46 3.77 1.28 5.39z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0A12 12 0 0 0 1.28 6.61l3.99 3.11C6.22 6.86 8.87 4.75 12 4.75z"/></svg>
+            Continue with Google
+        </button>
+        <div class="auth-divider"><span>or sign up with email</span></div>
       </div>
       <div id="authLoginForm" class="auth-form active-auth-form">
         <label for="loginEmail">Email</label>
@@ -263,6 +265,7 @@
         <label for="loginPassword">Password</label>
         <input type="password" id="loginPassword" autocomplete="current-password" placeholder="••••••••" />
         <button type="button" class="primary-btn full" id="loginBtn">Sign In</button>
+        <button type="button" class="auth-text-btn" id="resendConfirmBtn" hidden>Resend confirmation email</button>
         <div class="auth-helper-row">
           <button type="button" class="auth-text-btn" id="forgotPasswordBtn">Forgot your password?</button>
           <button type="button" class="auth-text-btn auth-create-link" id="switchToSignupBtn">New here? Create Account</button>
@@ -405,7 +408,7 @@
   <!-- ═══ NAVBAR ═══ -->
   <header class="navbar glass">
     <a href="#" class="brand" data-page="home">
-      <span class="brand-mark">&gt;_</span>
+      <img src="cybernetshield.png?v=20260828-1" alt="CyberNet AI" class="brand-mark-icon"/>
       <span class="brand-text">Cyber<span>Net</span><small>AI</small></span>
     </a>
 
@@ -432,13 +435,14 @@
           <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.05.41 2.23.06 1.27.07 1.64.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.05.36-2.23.41-1.27.06-1.64.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.72 3.72 0 0 1-1.38-.9 3.72 3.72 0 0 1-.9-1.38c-.16-.42-.36-1.05-.41-2.23-.06-1.27-.07-1.64-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.05-.36 2.23-.41 1.27-.06 1.64-.07 4.85-.07M12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.8.31-1.47.72-2.14 1.39A5.9 5.9 0 0 0 .61 4.16c-.3.76-.5 1.64-.56 2.91C.01 8.35 0 8.76 0 12s.01 3.65.07 4.93c.06 1.27.26 2.15.56 2.91.31.8.72 1.47 1.39 2.14a5.9 5.9 0 0 0 2.14 1.39c.76.3 1.64.5 2.91.56C8.35 23.99 8.76 24 12 24s3.65-.01 4.93-.07c1.27-.06 2.15-.26 2.91-.56.8-.31 1.47-.72 2.14-1.39a5.9 5.9 0 0 0 1.39-2.14c.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.93s-.01-3.65-.07-4.93c-.06-1.27-.26-2.15-.56-2.91a5.9 5.9 0 0 0-1.39-2.14A5.9 5.9 0 0 0 19.84.63c-.76-.3-1.64-.5-2.91-.56C15.65.01 15.24 0 12 0zm0 5.84a6.16 6.16 0 1 0 0 12.32 6.16 6.16 0 0 0 0-12.32zm0 10.16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.41-10.4a1.44 1.44 0 1 1-2.88 0 1.44 1.44 0 0 1 2.88 0z"/></svg>
         </a>
       </div>
+      <span class="auth-checking-skeleton" id="authCheckingSkeleton"></span>
       <div class="account-summary" id="accountSummary" hidden>
         <span class="nav-greeting" id="navGreeting"></span>
         <span class="plan-badge plan-badge-free" id="navPlanBadge">FREE</span>
         <span class="usage-chip" id="navUsageChip" title="Daily AI analyses used">0 / 3</span>
         <button class="account-action-btn" id="logoutBtn" type="button">Sign Out</button>
       </div>
-      <button class="login-btn magnetic-btn" id="openAuth"><span class="login-btn-long">Sign In or Create Account</span><span class="login-btn-short">Sign In</span></button>
+      <button class="login-btn" id="openAuth" hidden><span class="login-btn-long">Sign In or Create Account</span><span class="login-btn-short">Sign In</span></button>
     </div>
     <button class="mobile-menu" id="mobileMenu" aria-label="Menu">☰</button>
   </header>
@@ -454,8 +458,8 @@
             Learn how to use the Features?
             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
-          <h1 class="hero-title">Stay <span>Secure</span><br/>Stay <span>Ahead</span></h1>
-          <p>On-demand cybersecurity analysis for suspicious messages, links, screenshots, email evidence, and incident cases.</p>
+          <h1 class="hero-title">Detect <span>&amp;</span><br/>Protect</h1>
+          <p>Check suspicious messages, links, and screenshots for scams — and get a clear recovery plan if something already went wrong.</p>
           <div class="hero-buttons">
             <button class="primary-btn big" data-page="cybernet">Start Scanning</button>
             <button class="secondary-btn big glass" data-page="about">Learn More</button>
@@ -662,6 +666,15 @@
           <span class="threat-icon ti-lock" title="Secure Access">
             <svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" stroke-width="1.6"/></svg>
           </span>
+        </div>
+
+        <div class="usage-meter-card" id="quickScanUsageCard">
+          <div class="usage-meter-labels">
+            <span>Daily Quick Scans</span>
+            <strong id="quickScanUsageText">0 / 5</strong>
+          </div>
+          <div class="usage-meter-track"><span id="quickScanUsageBar"></span></div>
+          <small id="quickScanUsageReset">Resets daily</small>
         </div>
       </div>
 
@@ -1073,8 +1086,17 @@
     </section>    <!-- ═══════════ RECOVERY ═══════════ -->
     <section id="recovery" class="page recovery-page">
       <div class="feature-page-header reveal recovery-header">
-        <h1>Recover. Secure. Move Forward.</h1>
+        <h1>You're Safe Now. Let's Fix What Happened.</h1>
         <p>CyberNet AI turns a cybersecurity incident into a clear recovery plan — showing what to do now, what to secure next, and what risks remain.</p>
+
+        <div class="usage-meter-card" id="recoveryUsageCard">
+          <div class="usage-meter-labels">
+            <span>Daily Recovery cases</span>
+            <strong id="recoveryUsageCaseText">0 / 1</strong>
+          </div>
+          <div class="usage-meter-track"><span id="recoveryUsageCaseBar"></span></div>
+          <small id="recoveryUsageCaseReset">Resets daily at 12:00 PM GST</small>
+        </div>
       </div>
 
       <!-- INTAKE FORM -->
@@ -2001,7 +2023,7 @@
         </div>
       </div>
 
-      <div class="pricing-grid pricing-grid-two">
+      <div class="pricing-grid pricing-grid-three">
         <article class="price-card glass reveal tilt-card free-price-card">
           <div class="price-card-topline">
             <span class="price-plan-label">FREE FOREVER</span>
@@ -2051,6 +2073,30 @@
             <li>Downloadable Recovery case report</li>
           </ul>
           <button class="primary-btn full plan-select-btn" id="proPlanBtn" data-plan="pro" data-cycle="monthly">Upgrade to Pro</button>
+        </article>
+
+        <article class="price-card glass reveal tilt-card business-price-card">
+          <div class="price-card-topline">
+            <span class="price-plan-label">FOR TEAMS &amp; ORGANIZATIONS</span>
+            <span class="plan-badge plan-badge-business">BUSINESS</span>
+          </div>
+          <h3>CyberNet AI Business</h3>
+          <h2>
+            <span class="price-amount" data-monthly="30" data-yearly="288">$30</span>
+            <span class="price-period">/month</span>
+          </h2>
+          <p class="billing-equivalent" id="businessBillingEquivalent">Billed monthly. Cancel anytime.</p>
+          <p class="business-email-note">Requires a company email address — free email providers (Gmail, Yahoo, Outlook, etc.) aren't eligible for this plan.</p>
+          <ul>
+            <li>Everything in CyberNet AI Pro</li>
+            <li><strong>100 AI analyses per day</strong></li>
+            <li><strong>10 Recovery Mode cases per day</strong></li>
+            <li><strong>Proactive AI check-ins</strong> on open Recovery cases over time</li>
+            <li>Faster Recovery update cooldown (1 hour)</li>
+            <li><strong>Priority, urgent-response support</strong> — direct line to our team</li>
+            <li>Company-verified account</li>
+          </ul>
+          <button class="secondary-btn full plan-select-btn" id="businessPlanBtn" data-plan="business" data-cycle="monthly">Upgrade to Business</button>
         </article>
       </div>
 
@@ -2237,25 +2283,25 @@
 
       <div class="about-values reveal">
         <div class="about-value glass tilt-card">
-          <div class="av-icon">◆</div>
+          <div class="av-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2 L21 6 L20 15 L12 22 L4 15 L3 6 Z" stroke="currentColor" stroke-width="1.7"/><path d="M8.5 12l2.5 2.5L16 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
           <h3>Accuracy</h3>
           <p>Precise detection powered by constantly updated rules and AI models.</p>
         </div>
 
         <div class="about-value glass tilt-card">
-          <div class="av-icon">◆</div>
+          <div class="av-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" stroke-width="1.7"/></svg></div>
           <h3>Privacy</h3>
           <p>Free accounts do not keep scan history. Pro history and account data are stored securely and are visible only to the signed-in user.</p>
         </div>
 
         <div class="about-value glass tilt-card">
-          <div class="av-icon">◆</div>
+          <div class="av-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M13 2 L4 14 H11 L10 22 L20 9 H13 Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></div>
           <h3>Speed</h3>
           <p>Instant scan results so you can make safe decisions in real time.</p>
         </div>
 
         <div class="about-value glass tilt-card">
-          <div class="av-icon">◆</div>
+          <div class="av-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 6c3-1.5 6-1.5 9 0v13c-3-1.5-6-1.5-9 0V6Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M21 6c-3-1.5-6-1.5-9 0v13c3-1.5 6-1.5 9 0V6Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></div>
           <h3>Education</h3>
           <p>
             Not just detection — we teach you why something is dangerous and

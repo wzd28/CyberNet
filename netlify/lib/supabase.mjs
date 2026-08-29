@@ -95,11 +95,14 @@ export function effectivePlan(profile = {}) {
     String(profile.subscription_status || "")
   );
 
+  if (profile.plan === "business" && active) return "business";
   return profile.plan === "pro" && active ? "pro" : "free";
 }
 
 export function dailyLimit(profile = {}) {
-  return effectivePlan(profile) === "pro" ? 15 : 3;
+  const plan = effectivePlan(profile);
+  if (plan === "business") return 100;
+  return plan === "pro" ? 15 : 3;
 }
 
 export async function getProfile(user) {

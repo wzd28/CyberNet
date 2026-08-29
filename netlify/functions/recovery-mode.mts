@@ -163,7 +163,7 @@ const OFFICIAL_RESOURCES: OfficialResource[] = [
   { id: "uk-actionfraud", country: "United Kingdom", organization: "Action Fraud", purpose: "National fraud and cyber crime reporting centre", officialUrl: "https://www.actionfraud.police.uk/", phone: "0300 123 2040" },
   { id: "ca-antifraud", country: "Canada", organization: "Canadian Anti-Fraud Centre", purpose: "Report fraud and cybercrime", officialUrl: "https://antifraudcentre-centreantifraude.ca/", phone: "1-888-495-8501" },
   { id: "au-cyber", country: "Australia", organization: "ReportCyber (Australian Signals Directorate)", purpose: "Report a cybercrime, incident, or vulnerability", officialUrl: "https://www.cyber.gov.au/report", phone: "1300 292 371" },
-  { id: "ae-ecrime", country: "United Arab Emirates", organization: "UAE eCrime (Dubai Police / Ministry of Interior)", purpose: "Report cybercrime", officialUrl: "https://www.ecrime.ae/", phone: "999" },
+  { id: "ae-ecrime", country: "United Arab Emirates", organization: "Dubai Police — Cybercrime (eCrime) Service", purpose: "Report cybercrime", officialUrl: "https://www.dubaipolice.gov.ae/wps/portal/home/services/individualservices/cybercrimeService", phone: "901" },
   { id: "global-general", country: "Global", organization: "Local police / consumer protection authority", purpose: "Report crimes and financial fraud in your country", officialUrl: "https://www.interpol.int/en/Crimes/Cybercrime" },
 ];
 

@@ -188,13 +188,18 @@ begin
   where profiles.id = p_user_id;
 
   if
+    v_plan = 'business'
+    and v_status in ('active', 'trialing')
+  then
+    v_limit := 100;
+  elsif
     v_plan = 'pro'
     and v_status in ('active', 'trialing')
   then
-    v_limit := 50;
+    v_limit := 15;
   else
     v_plan := 'free';
-    v_limit := 5;
+    v_limit := 3;
   end if;
 
   insert into public.daily_usage (
@@ -204,7 +209,7 @@ begin
   )
   values (
     p_user_id,
-    current_date,
+    (now() at time zone 'utc')::date,
     0
   )
   on conflict (user_id, usage_date)
@@ -216,7 +221,7 @@ begin
     updated_at = now()
   where
     user_id = p_user_id
-    and usage_date = current_date
+    and usage_date = (now() at time zone 'utc')::date
     and analysis_count < v_limit
   returning analysis_count
   into v_used;
@@ -227,7 +232,7 @@ begin
     from public.daily_usage
     where
       user_id = p_user_id
-      and usage_date = current_date;
+      and usage_date = (now() at time zone 'utc')::date;
 
     return query
     select
@@ -263,7 +268,7 @@ begin
     updated_at = now()
   where
     user_id = p_user_id
-    and usage_date = current_date;
+    and usage_date = (now() at time zone 'utc')::date;
 end;
 $$;
 
@@ -302,7 +307,8 @@ create table if not exists public.recovery_cases (
   case_title text not null default 'Recovery Case',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  resolved_at timestamptz
+  resolved_at timestamptz,
+  last_checkin_sent_at timestamptz
 );
 
 create index if not exists recovery_cases_owner_idx
@@ -350,6 +356,7 @@ create table if not exists public.recovery_usage (
 );
 
 alter table public.recovery_cases enable row level security;
+alter table public.recovery_cases add column if not exists last_checkin_sent_at timestamptz;
 alter table public.recovery_versions enable row level security;
 alter table public.recovery_tasks enable row level security;
 alter table public.recovery_usage enable row level security;
@@ -467,7 +474,9 @@ begin
   from public.profiles
   where profiles.id = p_user_id;
 
-  if v_plan = 'pro' and v_status in ('active', 'trialing') then
+  if v_plan = 'business' and v_status in ('active', 'trialing') then
+    v_limit := 10;
+  elsif v_plan = 'pro' and v_status in ('active', 'trialing') then
     v_limit := 3;
   else
     v_plan := 'free';
@@ -532,7 +541,10 @@ begin
   from public.profiles
   where profiles.id = p_user_id;
 
-  if v_plan = 'pro' and v_status in ('active', 'trialing') then
+  if v_plan = 'business' and v_status in ('active', 'trialing') then
+    v_limit := 999;
+    v_cooldown := interval '1 hour';
+  elsif v_plan = 'pro' and v_status in ('active', 'trialing') then
     v_limit := 999;
     v_cooldown := interval '2 hours';
   else
@@ -707,8 +719,8 @@ begin
   from public.profiles
   where profiles.id = p_user_id;
 
-  if v_plan = 'pro' and v_status in ('active', 'trialing') then
-    v_limit := 100000; -- effectively unlimited for Pro
+  if v_plan in ('pro','business') and v_status in ('active', 'trialing') then
+    v_limit := 100000; -- effectively unlimited for Pro and Business
   else
     v_plan := 'free';
     v_limit := 5;

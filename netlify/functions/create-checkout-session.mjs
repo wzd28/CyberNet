@@ -8,6 +8,19 @@ import {
   effectivePlan
 } from "../lib/supabase.mjs";
 
+// Common free/consumer email providers — Business plan checkout requires a
+// company email address, since it's priced and provisioned per-organization.
+const FREE_EMAIL_DOMAINS = new Set([
+  "gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "icloud.com",
+  "aol.com", "protonmail.com", "proton.me", "mail.com", "gmx.com",
+  "live.com", "msn.com", "yandex.com", "zoho.com"
+]);
+
+function isCompanyEmail(email) {
+  const domain = String(email || "").split("@")[1]?.toLowerCase() || "";
+  return Boolean(domain) && !FREE_EMAIL_DOMAINS.has(domain);
+}
+
 function env(name) {
   try {
     return globalThis.Netlify?.env?.get?.(name) || process.env[name] || "";
@@ -71,27 +84,37 @@ export default async (request) => {
 
     const { user } = await verifyUser(request);
     const profile = await getProfile(user);
+    const currentPlan = effectivePlan(profile);
 
-    if (effectivePlan(profile) === "pro") {
+    const body = await request.json().catch(() => ({}));
+    const cycle = body.cycle === "yearly" ? "yearly" : "monthly";
+    const targetPlan = body.plan === "business" ? "business" : "pro";
+
+    if (currentPlan === targetPlan) {
       return json(
-        { error: "CyberNet AI Pro is already active." },
+        { error: `CyberNet AI ${targetPlan === "business" ? "Business" : "Pro"} is already active.` },
         409
       );
     }
 
-    const body = await request.json().catch(() => ({}));
-    const cycle = body.cycle === "yearly" ? "yearly" : "monthly";
+    if (targetPlan === "business" && !isCompanyEmail(user.email)) {
+      return json(
+        { error: "The Business plan requires a company email address. Please sign in with your work email, not a personal/free email provider (Gmail, Yahoo, Outlook, etc.)." },
+        403
+      );
+    }
 
-    const lookupKey =
-      cycle === "yearly"
-        ? (
-            env("STRIPE_PRO_YEARLY_LOOKUP_KEY") ||
-            "cybernet_ai_pro_yearly"
-          )
-        : (
-            env("STRIPE_PRO_MONTHLY_LOOKUP_KEY") ||
-            "cybernet_ai_pro_monthly"
-          );
+    const lookupKey = targetPlan === "business"
+      ? (
+          cycle === "yearly"
+            ? (env("STRIPE_BUSINESS_YEARLY_LOOKUP_KEY") || "cybernet_ai_business_yearly")
+            : (env("STRIPE_BUSINESS_MONTHLY_LOOKUP_KEY") || "cybernet_ai_business_monthly")
+        )
+      : (
+          cycle === "yearly"
+            ? (env("STRIPE_PRO_YEARLY_LOOKUP_KEY") || "cybernet_ai_pro_yearly")
+            : (env("STRIPE_PRO_MONTHLY_LOOKUP_KEY") || "cybernet_ai_pro_monthly")
+        );
 
     const stripe = new Stripe(secret);
 
@@ -148,12 +171,14 @@ export default async (request) => {
       allow_promotion_codes: false,
       metadata: {
         supabase_user_id: user.id,
-        cycle
+        cycle,
+        plan: targetPlan
       },
       subscription_data: {
         metadata: {
           supabase_user_id: user.id,
-          cycle
+          cycle,
+          plan: targetPlan
         }
       }
     });
