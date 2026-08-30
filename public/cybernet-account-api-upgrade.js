@@ -153,7 +153,7 @@
 
         <div class="cybernet-account-head">
           <div class="cn-account-title-row">
-            <img src="cybernetshield.png?v=20260830-4" alt="CyberNet AI" class="cn-account-title-icon" width="40" height="40"/>
+            <img src="cybernetshield.png?v=20260830-5" alt="CyberNet AI" class="cn-account-title-icon" width="40" height="40"/>
             <div>
               <span class="account-eyebrow">YOUR CYBERNET ACCOUNT</span>
               <h2 id="cybernetAccountTitle">Account</h2>
