@@ -399,7 +399,6 @@ button{
   min-width:34px;
   max-width:34px;
   max-height:34px;
-  object-fit:contain;
   overflow:visible;
   flex-shrink:0;
   display:block;
@@ -4322,7 +4321,7 @@ input::placeholder{
   min-width:64px;
   max-width:64px;
   max-height:64px;
-  object-fit:contain;
+  overflow:visible;
   display:block;
   margin:0 auto;
 }

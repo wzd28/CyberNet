@@ -153,7 +153,7 @@
 
         <div class="cybernet-account-head">
           <div class="cn-account-title-row">
-            <img src="cybernetshield.png?v=20260830-5" alt="CyberNet AI" class="cn-account-title-icon" width="40" height="40"/>
+            <svg class="cn-account-title-icon" viewBox="0 0 24 26" fill="none" aria-label="CyberNet AI" width="40" height="40"><path d="M12 2 L21 6 L20 15 L12 24 L4 15 L3 6 Z" stroke="#22D3EE" stroke-width="1.8" stroke-linejoin="round"/><rect x="8.3" y="12.5" width="7.4" height="6.2" rx="1.2" fill="#22D3EE"/><path d="M9.6 12.5v-2.3a2.4 2.4 0 0 1 4.8 0v2.3" stroke="#22D3EE" stroke-width="1.6" fill="none" stroke-linecap="round"/><circle cx="12" cy="15.2" r="1" fill="#08152a"/><path d="M12 15.9v1.4" stroke="#08152a" stroke-width="1" stroke-linecap="round"/></svg>
             <div>
               <span class="account-eyebrow">YOUR CYBERNET ACCOUNT</span>
               <h2 id="cybernetAccountTitle">Account</h2>
