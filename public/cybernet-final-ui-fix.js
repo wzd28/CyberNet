@@ -589,7 +589,10 @@
 
     if (!modal || !card || !head || !grid || !actions || !message) return false;
 
-    addAccountTitleLogo(head);
+    // addAccountTitleLogo(head) intentionally disabled: it injected the old
+    // white-background logo image inside a circular crop into the Account
+    // panel heading, which is now handled correctly by the auth-logo markup
+    // in index.html instead.
 
     let tabs = card.querySelector(".cn-account-tabs");
     let infoPane = document.getElementById("cybernetAccountInfoPane");
@@ -645,8 +648,10 @@
 
   function refreshDynamicUi() {
     repairSubtree(document.body);
-    applyBrandLogos();
-    applyHeroShield();
+    // applyBrandLogos() and applyHeroShield() intentionally disabled: they were
+    // replacing the correct, transparent nav/hero logo images with an old
+    // white-background file inside a circular (border-radius:50%) crop,
+    // which clipped the shield's outline and left only the padlock visible.
     replaceStatusIcons();
     setupMobileMenu();
     setupAccountReports();
@@ -690,7 +695,9 @@
     document.documentElement.dataset.cybernetFinalUiFix = "ready";
 
     ensureUtf8Meta();
-    ensureFavicon();
+    // ensureFavicon() intentionally disabled: it was overwriting the correct,
+    // up-to-date favicon with an old white-background logo file on every page
+    // load, undoing the real favicon fix in index.html.
     injectStyles();
     refreshDynamicUi();
     observeDynamicChanges();

@@ -68,7 +68,7 @@
       <div class="cn-legal-dialog" role="dialog" aria-modal="true" aria-labelledby="cnLegalModalTitle">
         <header class="cn-legal-dialog-head">
           <div class="cn-legal-brand">
-            <img src="cybernet-logo.png" alt="CyberNet AI logo" />
+            <img src="cybernetshield.png?v=20260830-3" alt="CyberNet AI logo" width="32" height="32" style="object-fit:contain" />
             <div>
               <strong id="cnLegalModalTitle">CyberNet Legal Center</strong>
               <small>Effective ${EFFECTIVE_DATE} · Version ${LEGAL_VERSION}</small>
