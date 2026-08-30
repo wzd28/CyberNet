@@ -34,6 +34,23 @@
   padding-right:36px;
 }
 
+.cn-account-title-row{
+  display:flex;
+  align-items:flex-start;
+  gap:14px;
+}
+
+.cn-account-title-icon{
+  width:40px;
+  height:40px;
+  min-width:40px;
+  object-fit:contain;
+  overflow:visible;
+  flex-shrink:0;
+  display:block;
+  margin-top:4px;
+}
+
 .cybernet-account-head h2{
   margin:5px 0 6px;
   font-size:clamp(25px,4vw,38px);
