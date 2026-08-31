@@ -5351,6 +5351,13 @@ img{
   box-shadow:0 0 20px rgba(34,211,238,.24);
 }
 
+.plan-badge-business{
+  color:#0a0620;
+  background:linear-gradient(100deg,#a78bfa,#7c3aed);
+  border-color:rgba(196,175,255,.55);
+  box-shadow:0 0 20px rgba(124,58,237,.28);
+}
+
 .usage-chip{
   padding:4px 8px;
   border-radius:999px;

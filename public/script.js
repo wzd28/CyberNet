@@ -301,7 +301,12 @@ document.addEventListener("DOMContentLoaded",()=>{
     return raw.charAt(0).toUpperCase()+raw.slice(1);
   }
 
-  function isPro(){return appState.profile.plan==="pro"&&["active","trialing"].includes(appState.profile.subscriptionStatus||"active")}
+  function planTier(){
+    const plan=appState.profile?.plan;
+    return plan==="business"?"business":plan==="pro"?"pro":"free";
+  }
+  function isPro(){return planTier()!=="free"}
+  function isBusiness(){return planTier()==="business"}
   function isSignedIn(){return Boolean(appState.session?.access_token)}
 
   function authHeaders(extra={}){
@@ -385,11 +390,11 @@ document.addEventListener("DOMContentLoaded",()=>{
     }
     if(recoveryStartBtnEl&&!recoveryStartBtnEl.disabled)recoveryStartBtnEl.textContent=signedIn?"Start Recovery":"Register for Free to Start a Recovery Case";
 
-    const badgeText=pro?"PRO":"FREE";
+    const badgeText=isBusiness()?"BUSINESS":pro?"PRO":"FREE";
     [navPlanBadge,document.getElementById("aiPlanBadge")].forEach(badge=>{
       if(!badge)return;
       badge.textContent=badgeText;
-      badge.className=`plan-badge ${pro?"plan-badge-pro":"plan-badge-free"}`;
+      badge.className=`plan-badge ${isBusiness()?"plan-badge-business":pro?"plan-badge-pro":"plan-badge-free"}`;
     });
 
     const used=Number(appState.usage.used)||0;
@@ -398,22 +403,27 @@ document.addEventListener("DOMContentLoaded",()=>{
     
     // Quick Scan's own usage meter (separate limit from Analysis AI)
     const qsUsed=Number(appState.quickScanUsage?.used)||0;
-    const qsPro=pro;
-    const qsLimit=qsPro?Infinity:5;
+    const qsServerLimit=Number(appState.quickScanUsage?.limit);
+    const qsHasServerLimit=Number.isFinite(qsServerLimit)&&qsServerLimit>0;
+    const qsUnlimited=qsHasServerLimit?qsServerLimit>=99999:pro;
+    const qsFallbackLimit=qsHasServerLimit?qsServerLimit:5;
     const qsUsageText=document.getElementById("quickScanUsageText");
     const qsUsageBar=document.getElementById("quickScanUsageBar");
     const qsUsageReset=document.getElementById("quickScanUsageReset");
-    if(qsUsageText)qsUsageText.textContent=!signedIn?"— / 5":qsPro?`${qsUsed} / Unlimited`:`${qsUsed} / 5`;
-    if(qsUsageBar)qsUsageBar.style.width=`${signedIn&&!qsPro?Math.min(100,(qsUsed/5)*100):0}%`;
-    if(qsUsageReset)qsUsageReset.textContent=qsPro?"Unlimited on Pro":"Resets daily";
+    if(qsUsageText)qsUsageText.textContent=!signedIn?"— / 5":qsUnlimited?`${qsUsed} / Unlimited`:`${qsUsed} / ${qsFallbackLimit}`;
+    if(qsUsageBar)qsUsageBar.style.width=`${signedIn&&!qsUnlimited?Math.min(100,(qsUsed/qsFallbackLimit)*100):0}%`;
+    if(qsUsageReset)qsUsageReset.textContent=qsUnlimited?"Unlimited":"Resets daily";
 
     // Recovery Mode's own usage meter (separate limit, separate reset time)
     const recUsed=Number(appState.recoveryUsage?.used)||0;
-    const recLimit=pro?3:1;
+    const recServerLimit=Number(appState.recoveryUsage?.limit);
+    const recHasServerLimit=Number.isFinite(recServerLimit)&&recServerLimit>0;
+    const recUnlimited=recHasServerLimit?recServerLimit>=99999:false;
+    const recLimit=recHasServerLimit?recServerLimit:(isBusiness()?10:pro?3:1);
     const recUsageText=document.getElementById("recoveryUsageCaseText");
     const recUsageBar=document.getElementById("recoveryUsageCaseBar");
-    if(recUsageText)recUsageText.textContent=!signedIn?`— / ${recLimit}`:`${recUsed} / ${recLimit}`;
-    if(recUsageBar)recUsageBar.style.width=`${signedIn?Math.min(100,(recUsed/recLimit)*100):0}%`;
+    if(recUsageText)recUsageText.textContent=!signedIn?`— / ${recLimit}`:recUnlimited?`${recUsed} / Unlimited`:`${recUsed} / ${recLimit}`;
+    if(recUsageBar)recUsageBar.style.width=`${signedIn&&!recUnlimited?Math.min(100,(recUsed/recLimit)*100):0}%`;
 
     const aiPlanTitle=document.getElementById("aiPlanTitle");
     const aiPlanDescription=document.getElementById("aiPlanDescription");
