@@ -111,7 +111,7 @@ export function effectivePlan(profile = {}) {
 
 export function dailyLimit(profile = {}) {
   const plan = effectivePlan(profile);
-  if (plan === "business") return 100;
+  if (plan === "business") return 50;
   return plan === "pro" ? 15 : 3;
 }
 

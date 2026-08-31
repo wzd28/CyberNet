@@ -191,7 +191,7 @@ begin
     v_plan = 'business'
     and v_status in ('active', 'trialing')
   then
-    v_limit := 100;
+    v_limit := 50;
   elsif
     v_plan = 'pro'
     and v_status in ('active', 'trialing')
@@ -475,7 +475,7 @@ begin
   where profiles.id = p_user_id;
 
   if v_plan = 'business' and v_status in ('active', 'trialing') then
-    v_limit := 10;
+    v_limit := 20;
   elsif v_plan = 'pro' and v_status in ('active', 'trialing') then
     v_limit := 3;
   else
@@ -719,8 +719,10 @@ begin
   from public.profiles
   where profiles.id = p_user_id;
 
-  if v_plan in ('pro','business') and v_status in ('active', 'trialing') then
-    v_limit := 100000; -- effectively unlimited for Pro and Business
+  if v_plan = 'business' and v_status in ('active', 'trialing') then
+    v_limit := 100;
+  elsif v_plan = 'pro' and v_status in ('active', 'trialing') then
+    v_limit := 100000; -- effectively unlimited for Pro
   else
     v_plan := 'free';
     v_limit := 5;
