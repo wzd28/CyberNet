@@ -224,6 +224,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   const freePlanBtn=document.getElementById("freePlanBtn");
   const proPlanBtn=document.getElementById("proPlanBtn");
   const businessPlanBtn=document.getElementById("businessPlanBtn");
+  const switchToBusinessBtn=document.getElementById("switchToBusinessBtn");
   const pricingNotice=document.getElementById("pricingNotice");
   const aiUpgradeBtn=document.getElementById("aiUpgradeBtn");
   const manageBillingBtn=document.getElementById("manageBillingBtn");
@@ -452,6 +453,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(freePlanBtn){freePlanBtn.textContent=!signedIn?"Start Free":pro?"Included with Pro":"Current Plan";freePlanBtn.disabled=signedIn}
     if(proPlanBtn){proPlanBtn.textContent=pro?"Current Plan":"Upgrade to Pro";proPlanBtn.disabled=pro}
     if(businessPlanBtn){const isBusiness=effectivePlanName()==="business";businessPlanBtn.textContent=isBusiness?"Current Plan":"Upgrade to Business";businessPlanBtn.disabled=isBusiness}
+    if(switchToBusinessBtn){const isBusiness=effectivePlanName()==="business";switchToBusinessBtn.hidden=isBusiness}
 
     updatePlanBenefits();
     renderProHistory();
@@ -625,7 +627,8 @@ document.addEventListener("DOMContentLoaded",()=>{
   });
 
   async function startCheckout(cycle="monthly",plan="pro"){
-    const btn=plan==="business"?businessPlanBtn:proPlanBtn;
+    const btn=plan==="pro"?proPlanBtn:null;
+    const businessBtns=plan==="business"?[businessPlanBtn,switchToBusinessBtn].filter(Boolean):[];
     if(!isSignedIn()){
       sessionStorage.setItem("cybernet_pending_cycle",cycle);
       sessionStorage.setItem("cybernet_pending_plan",plan);
@@ -637,6 +640,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(plan==="pro"&&isPro()){showPricingNotice("CyberNet AI Pro is already active on this account.","success");return}
     showPricingNotice("Opening secure Stripe Checkout…");
     if(btn)btn.disabled=true;
+    businessBtns.forEach(b=>b.disabled=true);
     try{
       const response=await fetch("/api/create-checkout-session",{
         method:"POST",
@@ -648,7 +652,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       if(!data.url)throw new Error("Stripe did not return a Checkout URL.");
       window.location.assign(data.url);
     }catch(error){showPricingNotice(error.message||"Checkout could not start.","error")}
-    finally{if(btn)btn.disabled=false}
+    finally{if(btn)btn.disabled=false;businessBtns.forEach(b=>b.disabled=false)}
   }
 
   function effectivePlanName(){
@@ -668,6 +672,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   if(freePlanBtn)freePlanBtn.addEventListener("click",()=>{if(!isSignedIn())openAuthModal("signup")});
   if(proPlanBtn)proPlanBtn.addEventListener("click",()=>startCheckout(proPlanBtn.dataset.cycle||"monthly","pro"));
   if(businessPlanBtn)businessPlanBtn.addEventListener("click",()=>startCheckout(businessPlanBtn.dataset.cycle||"monthly","business"));
+  if(switchToBusinessBtn)switchToBusinessBtn.addEventListener("click",()=>startCheckout(switchToBusinessBtn.dataset.cycle||"monthly","business"));
   if(aiUpgradeBtn)aiUpgradeBtn.addEventListener("click",()=>switchPage("pricing"));
   if(manageBillingBtn)manageBillingBtn.addEventListener("click",openBillingPortal);
 
@@ -911,10 +916,10 @@ document.addEventListener("DOMContentLoaded",()=>{
         const target=Number(values[el.id])||0;
         animateToValue(el,target);
       });
-      if(noteEl)noteEl.innerHTML=`<strong>Live</strong> — real usage counts from CyberNet AI's own database, updated continuously.`;
+      if(noteEl)noteEl.innerHTML=`Real usage counts from CyberNet AI's own database, updated continuously.`;
     }catch{
       els.forEach(el=>{el.textContent="—"});
-      if(noteEl)noteEl.innerHTML=`<strong>Live stats unavailable</strong> — could not reach CyberNet AI's usage data right now.`;
+      if(noteEl)noteEl.innerHTML=`<strong>Stats unavailable</strong> — could not reach CyberNet AI's usage data right now.`;
     }
   }
 
@@ -1658,6 +1663,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   }
 
   function sendChatMessage(){
+    if(!isSignedIn()){openAuthModal("signup");return}
     const text=chatInput?.value.trim()||"";
     if(pendingAttachment){
       addChatBubble("user",`📎 ${escapeHTML(pendingAttachment.name)}${text?`<br>${escapeHTML(text)}`:""}`);

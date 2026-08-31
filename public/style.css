@@ -5784,6 +5784,24 @@ img{
   color:var(--text);
 }
 
+.pricing-legal-operator-note{
+  max-width:640px;
+  margin:10px auto 0;
+  text-align:center;
+  padding:12px 20px;
+  border-radius:14px;
+  background:rgba(255,255,255,.015);
+  border:1px solid var(--glass-border);
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.7;
+  letter-spacing:.01em;
+}
+
+.pricing-legal-operator-note strong{
+  color:var(--text);
+}
+
 .comparison-section-row td{
   padding-top:22px!important;
   font-family:var(--font-mono);

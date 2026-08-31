@@ -259,10 +259,14 @@
 }
 
 .cybernet-byok-actions{
-  display:grid;
-  grid-template-columns:1.4fr .8fr;
+  display:flex;
+  flex-wrap:wrap;
   gap:9px;
   margin-top:10px;
+}
+
+.cybernet-byok-actions > button{
+  flex:1 1 150px;
 }
 
 .cybernet-byok-message{
@@ -333,12 +337,55 @@
     padding:22px 16px;
   }
 
-  .cybernet-byok-actions{
-    grid-template-columns:1fr;
-  }
-
   #pricing .pricing-grid,
   #pricing .pricing-grid-two{
     padding-top:48px!important;
   }
+}
+
+#cybernetHowToGetKeyModal{
+  z-index:1400;
+}
+
+.cybernet-howto-modal{
+  width:min(640px,calc(100vw - 28px));
+}
+
+.cybernet-howto-provider{
+  margin-top:18px;
+  padding-top:16px;
+  border-top:1px solid var(--glass-border,rgba(255,255,255,.08));
+}
+
+.cybernet-howto-provider:first-of-type{
+  margin-top:22px;
+  padding-top:0;
+  border-top:none;
+}
+
+.cybernet-howto-provider h4{
+  margin:0 0 8px;
+  color:var(--text,#eaf6ff);
+  font-size:14px;
+}
+
+.cybernet-howto-provider ol{
+  margin:0;
+  padding-left:18px;
+  color:var(--muted,#8ea5b8);
+  font-size:12.5px;
+  line-height:1.7;
+}
+
+.cybernet-howto-provider ol li strong{
+  color:var(--text,#eaf6ff);
+}
+
+.cybernet-howto-note{
+  margin:20px 0 0;
+  padding-top:16px;
+  border-top:1px solid var(--glass-border,rgba(255,255,255,.08));
+  color:var(--soft,#425873);
+  font-size:11px;
+  line-height:1.6;
 }

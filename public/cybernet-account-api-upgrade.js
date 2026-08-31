@@ -94,6 +94,7 @@
     createAccountModal();
     moveBillingOutOfCyberNetAI();
     createApiKeyPanel();
+    createHowToGetKeyModal();
     initializeController();
     fixPopularBadge();
   }
@@ -182,18 +183,6 @@
             </strong>
           </div>
 
-          <div class="cybernet-account-item">
-            <span>Subscription status</span>
-            <strong id="accountDetailStatus">—</strong>
-          </div>
-
-          <div class="cybernet-account-item wide">
-            <span>Daily AI analyses</span>
-            <strong id="accountDetailUsage">—</strong>
-            <div class="cybernet-account-usage-track" aria-hidden="true">
-              <span id="accountDetailUsageBar"></span>
-            </div>
-          </div>
         </div>
 
         <div class="cybernet-account-actions">
@@ -268,6 +257,9 @@
                 id="cybernetValidateApiKey">Validate &amp; Connect</button>
         <button type="button"
                 class="secondary-btn"
+                id="cybernetHowToGetKey">How to get a personal API key</button>
+        <button type="button"
+                class="secondary-btn"
                 id="cybernetForgetApiKey">Forget Key</button>
       </div>
 
@@ -291,6 +283,91 @@
       upgradeButton.insertAdjacentElement("beforebegin", panel);
     } else {
       aiConfig.appendChild(panel);
+    }
+  }
+
+  function createHowToGetKeyModal() {
+    if (document.getElementById("cybernetHowToGetKeyModal")) return;
+
+    const modal = document.createElement("div");
+    modal.id = "cybernetHowToGetKeyModal";
+    modal.className = "modal";
+
+    modal.innerHTML = `
+      <div class="modal-card glass reveal cybernet-account-card cybernet-howto-modal"
+           role="dialog"
+           aria-modal="true"
+           aria-labelledby="cybernetHowToGetKeyTitle">
+        <button class="close-modal"
+                id="closeHowToGetKeyModal"
+                type="button"
+                aria-label="Close">&times;</button>
+
+        <div class="cybernet-account-head">
+          <div>
+            <span class="account-eyebrow">CONNECT YOUR OWN AI</span>
+            <h2 id="cybernetHowToGetKeyTitle">How to get a personal API key</h2>
+            <p>CyberNet AI's BYOK field currently validates OpenAI-format keys only. Steps for the most common providers are below in case you'd like to generate one, or see what it takes with other providers.</p>
+          </div>
+        </div>
+
+        <div class="cybernet-howto-provider">
+          <h4>OpenAI (ChatGPT)</h4>
+          <ol>
+            <li>Go to <strong>platform.openai.com</strong> and sign in with your ChatGPT account.</li>
+            <li>Open <strong>Dashboard → API keys</strong> from the left-hand menu.</li>
+            <li>Click <strong>Create new secret key</strong>, give it a name (e.g. "CyberNet AI"), and confirm.</li>
+            <li>Copy the key immediately — it's only shown once. Paste it into the field above.</li>
+            <li>Add a spending limit under <strong>Settings → Billing → Limits</strong> so usage stays controlled.</li>
+          </ol>
+        </div>
+
+        <div class="cybernet-howto-provider">
+          <h4>Anthropic (Claude)</h4>
+          <ol>
+            <li>Go to <strong>console.anthropic.com</strong> and sign in.</li>
+            <li>Open <strong>Settings → API Keys</strong>.</li>
+            <li>Click <strong>Create Key</strong>, name it, and copy the value shown.</li>
+            <li>A Claude key will not validate in CyberNet AI's field above — support for it hasn't been built yet.</li>
+          </ol>
+        </div>
+
+        <div class="cybernet-howto-provider">
+          <h4>Google (Gemini)</h4>
+          <ol>
+            <li>Go to <strong>aistudio.google.com/app/apikey</strong> and sign in with a Google account.</li>
+            <li>Click <strong>Create API key</strong>, then choose or create a Google Cloud project.</li>
+            <li>Copy the generated key.</li>
+            <li>A Gemini key will not validate in CyberNet AI's field above — support for it hasn't been built yet.</li>
+          </ol>
+        </div>
+
+        <p class="cybernet-howto-note">Never share your API key with anyone else. Use a restricted key with a spending limit, and press "Forget Key" when you're finished on a shared or public device.</p>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const closeBtn = document.getElementById("closeHowToGetKeyModal");
+    if (closeBtn) {
+      closeBtn.addEventListener("click", () => {
+        modal.classList.remove("show");
+      });
+    }
+    modal.addEventListener("click", (event) => {
+      if (event.target === modal) modal.classList.remove("show");
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && modal.classList.contains("show")) {
+        modal.classList.remove("show");
+      }
+    });
+
+    const openBtn = document.getElementById("cybernetHowToGetKey");
+    if (openBtn) {
+      openBtn.addEventListener("click", () => {
+        modal.classList.add("show");
+      });
     }
   }
 

@@ -10,8 +10,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=20260830-3" />
-  <link id="cybernetAccountUpgradeStylesheet" rel="stylesheet" href="cybernet-account-api-upgrade.css?v=20260830-4" />
+  <link rel="stylesheet" href="style.css?v=20260831-1" />
+  <link id="cybernetAccountUpgradeStylesheet" rel="stylesheet" href="cybernet-account-api-upgrade.css?v=20260831-1" />
   <link rel="icon" type="image/png" sizes="512x512" href="/favicon.png?v=20260830-5">
   <link rel="shortcut icon" type="image/png" href="/favicon.png?v=20260830-5">
   <link rel="apple-touch-icon" href="/favicon.png?v=20260830-5">
@@ -532,8 +532,7 @@
       <div class="hero-info-row reveal">
         <div class="hero-stats-panel glass">
           <div class="hero-stats-panel-head">
-            <span class="live-dot"></span>
-            <h4>Live Activity</h4>
+            <h4>Activity</h4>
           </div>
           <div class="hero-live-stats">
             <div class="hero-live-stat">
@@ -549,7 +548,7 @@
               <span>Recoveries Guided</span>
             </div>
           </div>
-          <p class="hero-stats-note" id="heroStatsNote"><strong>Loading live data…</strong></p>
+          <p class="hero-stats-note" id="heroStatsNote"><strong>Loading…</strong></p>
         </div>
 
         <div class="hero-why-panel glass">
@@ -2194,6 +2193,7 @@
             <li>Company-verified account</li>
           </ul>
           <button class="secondary-btn full plan-select-btn" id="businessPlanBtn" data-plan="business" data-cycle="monthly">Upgrade to Business</button>
+          <button class="secondary-btn full plan-select-btn" id="switchToBusinessBtn" data-plan="business" data-cycle="monthly">Switch to a Business Account</button>
         </article>
       </div>
 
@@ -2206,6 +2206,10 @@
 
       <div class="pricing-renewal-note reveal">
         <strong>Pro subscriptions renew automatically</strong> at the end of each billing period until cancelled. To cancel or change your plan at any time, go to <strong>Account → Manage Billing</strong>.
+      </div>
+
+      <div class="pricing-legal-operator-note reveal">
+        CyberNet AI is operated under <strong>Marks Events LLC FZE</strong>. All billing, subscriptions, and payment processing for CyberNet AI are conducted by this entity.
       </div>
 
       <div class="support-box glass reveal">
@@ -2391,8 +2395,8 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <script src="config.js?v=20260830-3" defer></script>
-  <script src="script.js?v=20260830-3" defer></script>
-  <script src="cybernet-account-api-upgrade.js?v=20260830-4" defer></script>
+  <script src="script.js?v=20260831-1" defer></script>
+  <script src="cybernet-account-api-upgrade.js?v=20260831-1" defer></script>
   <script src="cybernet-final-ui-fix.js?v=20260830-3" defer></script>
       <script src="cybernet-legal-upgrade.js?v=20260830-3" defer></script>
 </body>

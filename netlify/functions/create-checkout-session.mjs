@@ -168,7 +168,7 @@ export default async (request) => {
         `${origin}/?checkout=cancelled`,
       client_reference_id: user.id,
       billing_address_collection: "auto",
-      allow_promotion_codes: false,
+      allow_promotion_codes: true,
       metadata: {
         supabase_user_id: user.id,
         cycle,
