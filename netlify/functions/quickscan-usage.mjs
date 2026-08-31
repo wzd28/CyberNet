@@ -1,4 +1,4 @@
-import { json, verifyUser, serviceFetch } from "../lib/supabase.mjs";
+import { json, verifyUser, serviceFetch, isAdminUser } from "../lib/supabase.mjs";
 
 export default async (request) => {
   if (request.method !== "POST") {
@@ -10,6 +10,10 @@ export default async (request) => {
     ({ user } = await verifyUser(request));
   } catch (error) {
     return json({ error: "Please sign in to use Quick Scan." }, 401);
+  }
+
+  if (isAdminUser(user)) {
+    return json({ allowed: true, used: 0, limit: 999999, plan: "business" });
   }
 
   try {

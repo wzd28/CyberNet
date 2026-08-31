@@ -765,6 +765,15 @@ type UsageReservation = {
   resetDate: string;
 };
 
+const ADMIN_EMAILS = (Netlify.env.get("ADMIN_EMAILS") || "")
+  .split(",")
+  .map((value) => value.trim().toLowerCase())
+  .filter(Boolean);
+
+function isAdminUser(user: { email?: string } | null): boolean {
+  return Boolean(user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase()));
+}
+
 async function consumeAnalysis(userId: string): Promise<UsageReservation> {
   const response = await serviceFetch("/rest/v1/rpc/consume_analysis", {
     method: "POST",
@@ -1055,14 +1064,18 @@ export default async function handler(request: Request, context: any): Promise<R
   }
 
   let usage: UsageReservation;
-  try {
-    usage = await consumeAnalysis(user.id);
-  } catch (error) {
-    console.error("CyberNet usage reservation failed", error);
-    return json({ error: "Secure account limits are not configured. Run the supplied schema.sql and confirm the Supabase server environment variables.", code: "usage_service_unavailable" }, 503);
-  }
-  if (!usage.allowed) {
-    return json({ error: `Daily ${usage.plan === "pro" ? "Pro" : "Free"} limit reached.`, code: "daily_limit_reached", usage }, 429);
+  if (isAdminUser(user)) {
+    usage = { allowed: true, used: 0, limit: 999999, remaining: 999999, plan: "business", resetDate: nextUtcReset() };
+  } else {
+    try {
+      usage = await consumeAnalysis(user.id);
+    } catch (error) {
+      console.error("CyberNet usage reservation failed", error);
+      return json({ error: "Secure account limits are not configured. Run the supplied schema.sql and confirm the Supabase server environment variables.", code: "usage_service_unavailable" }, 503);
+    }
+    if (!usage.allowed) {
+      return json({ error: `Daily ${usage.plan === "pro" ? "Pro" : "Free"} limit reached.`, code: "daily_limit_reached", usage }, 429);
+    }
   }
 
   let serverEvidence: LocalEvidence;
@@ -1121,7 +1134,7 @@ export default async function handler(request: Request, context: any): Promise<R
   }
 
   const analysis = sanitizeAnalysisResult(rawAnalysis || fallback, fallback);
-  if (!aiUsed) {
+  if (!aiUsed && !isAdminUser(user)) {
     await refundAnalysis(user.id);
     usage.used = Math.max(0, usage.used - 1);
     usage.remaining = Math.max(0, usage.limit - usage.used);

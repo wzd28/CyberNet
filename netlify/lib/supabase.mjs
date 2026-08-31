@@ -6,6 +6,16 @@ function env(name) {
   }
 }
 
+// Admin bypass: checks the authenticated user's verified email against the
+// server-side ADMIN_EMAILS allowlist (comma-separated, case-insensitive).
+export function isAdminUser(user) {
+  const admins = env("ADMIN_EMAILS")
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+  return Boolean(user?.email && admins.includes(String(user.email).toLowerCase()));
+}
+
 export function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,

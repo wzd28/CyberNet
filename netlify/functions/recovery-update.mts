@@ -227,7 +227,7 @@ function serviceConfig() {
   };
 }
 
-async function verifySupabaseUser(request: Request): Promise<{ id: string } | null> {
+async function verifySupabaseUser(request: Request): Promise<{ id: string; email?: string } | null> {
   const authorization = request.headers.get("authorization") || "";
   const { url, publicKey } = serviceConfig();
   if (!authorization.startsWith("Bearer ") || !url || !publicKey) return null;
@@ -237,11 +237,20 @@ async function verifySupabaseUser(request: Request): Promise<{ id: string } | nu
       signal: AbortSignal.timeout(5_000),
     });
     if (!response.ok) return null;
-    const data = (await response.json()) as { id?: string };
-    return data.id ? { id: data.id } : null;
+    const data = (await response.json()) as { id?: string; email?: string };
+    return data.id ? { id: data.id, email: data.email } : null;
   } catch {
     return null;
   }
+}
+
+const ADMIN_EMAILS = (Netlify.env.get("ADMIN_EMAILS") || "")
+  .split(",")
+  .map((value) => value.trim().toLowerCase())
+  .filter(Boolean);
+
+function isAdminUser(user: { email?: string } | null): boolean {
+  return Boolean(user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase()));
 }
 
 async function serviceFetch(path: string, init: RequestInit = {}): Promise<Response> {
@@ -303,15 +312,19 @@ export default async function handler(request: Request, context: any): Promise<R
   if (caseRow.owner_user_id !== user.id) return json({ error: "You do not have access to this Recovery case." }, 403);
 
   let usage;
-  try {
-    usage = await consumeRecoveryUpdate(user.id);
-  } catch (error) {
-    console.error("CyberNet Recovery update usage reservation failed", error);
-    return json({ error: "Recovery Mode is not fully configured yet.", code: "usage_service_unavailable" }, 503);
-  }
-  if (!usage.allowed) {
-    const code = usage.cooldownSecondsRemaining > 0 ? "cooldown_active" : "daily_limit_reached";
-    return json({ error: usage.cooldownSecondsRemaining > 0 ? "Please wait before submitting another Recovery update." : `Daily ${usage.plan === "pro" ? "Pro" : "Free"} update limit reached.`, code, usage }, 429);
+  if (isAdminUser(user)) {
+    usage = { allowed: true, used: 0, limit: 999999, plan: "business", resetAt: null, cooldownSecondsRemaining: 0 };
+  } else {
+    try {
+      usage = await consumeRecoveryUpdate(user.id);
+    } catch (error) {
+      console.error("CyberNet Recovery update usage reservation failed", error);
+      return json({ error: "Recovery Mode is not fully configured yet.", code: "usage_service_unavailable" }, 503);
+    }
+    if (!usage.allowed) {
+      const code = usage.cooldownSecondsRemaining > 0 ? "cooldown_active" : "daily_limit_reached";
+      return json({ error: usage.cooldownSecondsRemaining > 0 ? "Please wait before submitting another Recovery update." : `Daily ${usage.plan === "pro" ? "Pro" : "Free"} update limit reached.`, code, usage }, 429);
+    }
   }
 
   const versionsResponse = await serviceFetch(`/rest/v1/recovery_versions?case_id=eq.${encodeURIComponent(caseId)}&select=*&order=version_number.desc&limit=1`);

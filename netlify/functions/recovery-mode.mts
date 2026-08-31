@@ -436,6 +436,15 @@ async function serviceFetch(path: string, init: RequestInit = {}): Promise<Respo
   return fetch(`${url}${path}`, { ...init, headers, signal: init.signal || AbortSignal.timeout(7_000) });
 }
 
+const ADMIN_EMAILS = (Netlify.env.get("ADMIN_EMAILS") || "")
+  .split(",")
+  .map((value) => value.trim().toLowerCase())
+  .filter(Boolean);
+
+function isAdminUser(user: { email?: string } | null): boolean {
+  return Boolean(user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase()));
+}
+
 async function consumeRecoveryCase(userId: string) {
   const response = await serviceFetch("/rest/v1/rpc/consume_recovery_case", {
     method: "POST",
@@ -549,14 +558,18 @@ export default async function handler(request: Request, context: any): Promise<R
   if (!user) return json({ error: "Sign in or create a free account before starting Recovery Mode.", code: "sign_in_required" }, 401);
 
   let usage;
-  try {
-    usage = await consumeRecoveryCase(user.id);
-  } catch (error) {
-    console.error("CyberNet Recovery usage reservation failed", error);
-    return json({ error: "Recovery Mode is not fully configured yet. Run the updated schema.sql and confirm Supabase environment variables.", code: "usage_service_unavailable" }, 503);
-  }
-  if (!usage.allowed) {
-    return json({ error: `Daily ${usage.plan === "pro" ? "Pro" : "Free"} Recovery case limit reached.`, code: "daily_limit_reached", usage }, 429);
+  if (isAdminUser(user)) {
+    usage = { allowed: true, used: 0, limit: 999999, plan: "business", resetAt: null };
+  } else {
+    try {
+      usage = await consumeRecoveryCase(user.id);
+    } catch (error) {
+      console.error("CyberNet Recovery usage reservation failed", error);
+      return json({ error: "Recovery Mode is not fully configured yet. Run the updated schema.sql and confirm Supabase environment variables.", code: "usage_service_unavailable" }, 503);
+    }
+    if (!usage.allowed) {
+      return json({ error: `Daily ${usage.plan === "pro" ? "Pro" : "Free"} Recovery case limit reached.`, code: "daily_limit_reached", usage }, 429);
+    }
   }
 
   const classifier = classifyIncident(description, quickAnswers);

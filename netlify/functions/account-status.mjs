@@ -4,7 +4,8 @@ import {
   getProfile,
   getUsage,
   effectivePlan,
-  getHistory
+  getHistory,
+  isAdminUser
 } from "../lib/supabase.mjs";
 
 export default async (request) => {
@@ -16,13 +17,16 @@ export default async (request) => {
     const { user } = await verifyUser(request);
     const profile = await getProfile(user);
     const plan = effectivePlan(profile);
-    const usage = await getUsage(user.id, profile);
+    const isAdmin = isAdminUser(user);
+    const usage = isAdmin
+      ? { used: 0, limit: 999999, remaining: 999999, resetDate: null }
+      : await getUsage(user.id, profile);
 
     const includeHistory =
       new URL(request.url).searchParams.get("includeHistory") === "1";
 
     const history =
-      includeHistory && plan === "pro"
+      includeHistory && (plan === "pro" || isAdmin)
         ? await getHistory(user.id, 8)
         : [];
 
@@ -32,7 +36,7 @@ export default async (request) => {
           profile.full_name ||
           user.user_metadata?.full_name ||
           "",
-        plan,
+        plan: isAdmin ? "business" : plan,
         subscriptionStatus:
           profile.subscription_status || "inactive",
         billingInterval:
