@@ -487,12 +487,25 @@
 
     function planDetails(account) {
       const profile = account?.profile || {};
-      const status = String(profile.subscriptionStatus || "").toLowerCase();
-      const active = ["active", "trialing"].includes(status);
-      const pro = profile.plan === "pro" && active;
+      const plan = String(profile.plan || "").toLowerCase();
       const interval = String(profile.billingInterval || "").toLowerCase();
 
-      if (!pro) {
+      // Trust the server's plan value directly. account-status.mjs already
+      // verifies subscription status (via effectivePlan) and the admin
+      // allowlist before deciding what "plan" to return, so re-deriving
+      // "active" status here was redundant and, worse, blocked the Business
+      // badge from ever showing for genuine Business subscribers or for the
+      // server-side admin override, since neither necessarily carries a
+      // real "active" Stripe subscription_status row.
+      if (plan === "business") {
+        return {
+          pro: true,
+          label: "CyberNet AI Business",
+          badge: "BUSINESS"
+        };
+      }
+
+      if (plan !== "pro") {
         return {
           pro: false,
           label: "CyberNet AI Free",
