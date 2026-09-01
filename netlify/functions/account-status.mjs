@@ -31,6 +31,7 @@ export default async (request) => {
         : [];
 
     return json({
+      isAdmin,
       profile: {
         fullName:
           profile.full_name ||

@@ -235,8 +235,8 @@ document.addEventListener("DOMContentLoaded",()=>{
     user:null,
     profile:{plan:"guest",fullName:"",subscriptionStatus:"inactive",billingInterval:""},
     usage:{used:0,limit:0,remaining:0,resetDate:""},
-    quickScanUsage:{used:0,limit:5,plan:"free"},
-    recoveryUsage:{used:0,limit:1},
+    quickScanUsage:{used:0,limit:0,plan:"free"},
+    recoveryUsage:{used:0,limit:0},
     history:[],
     accountReady:false,
     recoveryMode:false
@@ -405,8 +405,8 @@ document.addEventListener("DOMContentLoaded",()=>{
     const qsUsed=Number(appState.quickScanUsage?.used)||0;
     const qsServerLimit=Number(appState.quickScanUsage?.limit);
     const qsHasServerLimit=Number.isFinite(qsServerLimit)&&qsServerLimit>0;
-    const qsUnlimited=qsHasServerLimit?qsServerLimit>=99999:pro;
-    const qsFallbackLimit=qsHasServerLimit?qsServerLimit:5;
+    const qsUnlimited=qsHasServerLimit?qsServerLimit>=99999:(appState.isAdmin||(pro&&!isBusiness()));
+    const qsFallbackLimit=qsHasServerLimit?qsServerLimit:(isBusiness()?100:5);
     const qsUsageText=document.getElementById("quickScanUsageText");
     const qsUsageBar=document.getElementById("quickScanUsageBar");
     const qsUsageReset=document.getElementById("quickScanUsageReset");
@@ -418,8 +418,8 @@ document.addEventListener("DOMContentLoaded",()=>{
     const recUsed=Number(appState.recoveryUsage?.used)||0;
     const recServerLimit=Number(appState.recoveryUsage?.limit);
     const recHasServerLimit=Number.isFinite(recServerLimit)&&recServerLimit>0;
-    const recUnlimited=recHasServerLimit?recServerLimit>=99999:false;
-    const recLimit=recHasServerLimit?recServerLimit:(isBusiness()?10:pro?3:1);
+    const recUnlimited=recHasServerLimit?recServerLimit>=99999:appState.isAdmin;
+    const recLimit=recHasServerLimit?recServerLimit:(appState.isAdmin?999999:isBusiness()?20:pro?3:1);
     const recUsageText=document.getElementById("recoveryUsageCaseText");
     const recUsageBar=document.getElementById("recoveryUsageCaseBar");
     if(recUsageText)recUsageText.textContent=!signedIn?`— / ${recLimit}`:recUnlimited?`${recUsed} / Unlimited`:`${recUsed} / ${recLimit}`;
@@ -471,6 +471,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 
   async function refreshAccountStatus(){
     if(!isSignedIn()){
+      appState.isAdmin=false;
       appState.profile={plan:"guest",fullName:"",subscriptionStatus:"inactive",billingInterval:""};
       appState.usage={used:0,limit:0,remaining:0,resetDate:""};
       appState.history=[];
@@ -482,6 +483,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       const response=await fetch("/api/account-status?includeHistory=1",{headers:authHeaders({Accept:"application/json"}),cache:"no-store"});
       const data=await response.json().catch(()=>({}));
       if(!response.ok)throw new Error(data.error||"Account status is unavailable.");
+      appState.isAdmin=Boolean(data.isAdmin);
       appState.profile={
         plan:data.profile?.plan||"free",
         fullName:data.profile?.fullName||appState.user?.user_metadata?.full_name||"",
@@ -496,6 +498,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       };
       appState.history=Array.isArray(data.history)?data.history:[];
     }catch(error){
+      appState.isAdmin=false;
       appState.profile={plan:"free",fullName:appState.user?.user_metadata?.full_name||"",subscriptionStatus:"inactive",billingInterval:""};
       appState.usage={used:0,limit:5,remaining:5,resetDate:""};
       appState.history=[];
