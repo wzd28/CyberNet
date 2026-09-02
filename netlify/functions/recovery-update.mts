@@ -7,6 +7,12 @@ declare const Netlify: {
 };
 
 const MODEL = Netlify.env.get("ANALYSIS_MODEL") || "gpt-5";
+const MINI_MODEL = Netlify.env.get("ANALYSIS_MODEL_MINI") || "gpt-5-mini";
+
+// Higher-stakes cases get the full model; routine ones get the cheaper one.
+function modelForRiskFloor(riskFloor: string): string {
+  return riskFloor === "critical" || riskFloor === "high" ? MODEL : MINI_MODEL;
+}
 const MAX_UPDATE_CHARS = 4_000;
 
 function env(name: string): string {
@@ -143,7 +149,7 @@ async function runAiUpdate(args: {
   ].join("\n\n");
 
   const response = await client.responses.create({
-    model: MODEL,
+    model: modelForRiskFloor(args.riskFloor),
     instructions: updateInstructions,
     input: [{ role: "user", content: [{ type: "input_text", text: contextText }] }],
     text: {
