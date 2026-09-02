@@ -44,6 +44,8 @@ type LocalEvidence = {
 };
 
 const MODEL = Netlify.env.get("ANALYSIS_MODEL") || "gpt-5";
+const MINI_MODEL = Netlify.env.get("ANALYSIS_MODEL_MINI") || "gpt-5-mini";
+const AI_CONFIDENCE_SKIP_THRESHOLD = 70;
 const MAX_TEXT_CHARS = 14_000;
 const MAX_CASE_CHARS = 55_000;
 const MAX_IMAGE_DATA_CHARS = 4_500_000;
@@ -754,7 +756,7 @@ type UsageReservation = {
   used: number;
   limit: number;
   remaining: number;
-  plan: "free" | "pro";
+  plan: "free" | "pro" | "business";
   resetDate: string;
 };
 
@@ -783,7 +785,7 @@ async function consumeAnalysis(userId: string): Promise<UsageReservation> {
     used,
     limit,
     remaining: Math.max(0, limit - used),
-    plan: row?.plan === "pro" ? "pro" : "free",
+    plan: row?.plan === "pro" ? "pro" : row?.plan === "business" ? "business" : "free",
     resetDate: nextUtcReset(),
   };
 }
@@ -958,6 +960,29 @@ function sanitizeAnalysisResult(value: any, fallback: ReturnType<typeof fallback
   };
 }
 
+function decideAiRoute(
+  serverEvidence: LocalEvidence,
+  mode: "quick" | "investigation",
+  plan: string,
+): { call: boolean; model?: string } {
+  // Investigation is an explicit deep-dive request — always worth the full model.
+  if (mode === "investigation") return { call: true, model: MODEL };
+
+  // The deterministic engine already tells us how confident it is. When it's
+  // decisively low_risk or malicious with high confidence, an LLM call adds
+  // cost without adding accuracy — serve that result directly.
+  const ambiguous = serverEvidence.verdict === "suspicious" || serverEvidence.verdict === "inconclusive";
+  if (!ambiguous && serverEvidence.confidence >= AI_CONFIDENCE_SKIP_THRESHOLD) {
+    return { call: false };
+  }
+
+  // Free tier always gets the cheaper model; Pro/Business escalate to the
+  // full model specifically for the genuinely ambiguous middle.
+  if (plan === "free") return { call: true, model: MINI_MODEL };
+  if (ambiguous) return { call: true, model: MODEL };
+  return { call: true, model: MINI_MODEL };
+}
+
 async function runAiAnalysis(args: {
   mode: "quick" | "investigation";
   type: string;
@@ -966,6 +991,7 @@ async function runAiAnalysis(args: {
   browserHint: Record<string, unknown>;
   serverEvidence: LocalEvidence;
   caseData: { title: string; context: string; artifacts: Artifact[] };
+  model: string;
 }) {
   const apiKey = env("OPENAI_API_KEY");
   if (!apiKey) return null;
@@ -1001,7 +1027,7 @@ async function runAiAnalysis(args: {
   }
 
   const response = await client.responses.create({
-    model: MODEL,
+    model: args.model,
     instructions: analystInstructions,
     input: [{ role: "user", content: inputContent }],
     text: {
@@ -1138,8 +1164,12 @@ export default async function handler(request: Request, context: any): Promise<R
   let rawAnalysis: any = null;
   let aiUsed = false;
 
+  const aiRoute = decideAiRoute(serverEvidence, mode, usage.plan);
+
   try {
-    rawAnalysis = await runAiAnalysis({ mode, type, content, imageData, browserHint, serverEvidence, caseData });
+    if (aiRoute.call && aiRoute.model) {
+      rawAnalysis = await runAiAnalysis({ mode, type, content, imageData, browserHint, serverEvidence, caseData, model: aiRoute.model });
+    }
     aiUsed = Boolean(rawAnalysis);
   } catch (error) {
     console.error("CyberNet Protect analysis failed", {
@@ -1170,7 +1200,7 @@ export default async function handler(request: Request, context: any): Promise<R
   }
 
   let history: any[] = [];
-  if (aiUsed && usage.plan === "pro" && mode === "quick") {
+  if (aiUsed && (usage.plan === "pro" || usage.plan === "business") && mode === "quick") {
     await saveHistory(user.id, type, analysis);
     history = await getHistory(user.id, 8);
   }
@@ -1179,7 +1209,7 @@ export default async function handler(request: Request, context: any): Promise<R
     analysis,
     reputation,
     aiUsed,
-    model: aiUsed ? MODEL : "Server deterministic engine",
+    model: aiUsed ? (aiRoute.model || MODEL) : "Server deterministic engine",
     mode,
     serverEvidence,
     authenticated: true,

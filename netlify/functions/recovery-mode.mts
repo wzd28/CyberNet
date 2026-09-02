@@ -29,6 +29,14 @@ type OfficialResource = {
 };
 
 const MODEL = Netlify.env.get("ANALYSIS_MODEL") || "gpt-5";
+const MINI_MODEL = Netlify.env.get("ANALYSIS_MODEL_MINI") || "gpt-5-mini";
+
+// Higher-stakes cases get the full model; routine ones get the cheaper one.
+// There's no deterministic substitute for a recovery plan, so AI always runs
+// here — this only decides which model, never whether to skip it.
+function modelForRiskFloor(riskFloor: RiskLevel): string {
+  return riskFloor === "critical" || riskFloor === "high" ? MODEL : MINI_MODEL;
+}
 const MAX_DESCRIPTION_CHARS = 6_000;
 const MAX_IMAGE_DATA_CHARS = 4_500_000;
 
@@ -294,7 +302,7 @@ async function runAiRecoveryPlan(args: {
   }
 
   const response = await client.responses.create({
-    model: MODEL,
+    model: modelForRiskFloor(args.riskFloor),
     instructions: recoveryInstructions,
     input: [{ role: "user", content: inputContent }],
     text: {
@@ -639,7 +647,7 @@ export default async function handler(request: Request, context: any): Promise<R
     caseVersion: 1,
     plan,
     aiUsed,
-    model: aiUsed ? MODEL : "Server deterministic engine",
+    model: aiUsed ? modelForRiskFloor(classifier.riskFloor) : "Server deterministic engine",
     usage,
     redactedSecretsCount: redactedCount,
     authenticated: true,
