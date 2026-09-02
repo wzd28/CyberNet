@@ -999,8 +999,8 @@ async function runAiAnalysis(args: {
   const client = new OpenAI({
     apiKey,
     baseURL: env("OPENAI_BASE_URL") || undefined,
-    timeout: 22_000,
-    maxRetries: 1,
+    timeout: 20_000,
+    maxRetries: 0,
   });
 
   const caseEvidence = args.mode === "investigation"
@@ -1038,7 +1038,7 @@ async function runAiAnalysis(args: {
         schema: analysisSchema,
       },
     },
-    max_output_tokens: args.mode === "investigation" ? 16_000 : 12_000,
+    max_output_tokens: args.mode === "investigation" ? 8_000 : 12_000,
     reasoning: { effort: "low" },
     store: false,
   });
