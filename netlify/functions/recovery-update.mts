@@ -63,7 +63,7 @@ const actionSchema = {
     why: { type: "string" },
     verification: { type: "string" },
     priority: { type: "string", enum: ["critical", "high", "normal"] },
-    estimatedMinutes: { type: "integer", minimum: 1, maximum: 240 },
+    estimatedMinutes: { type: "integer" },
   },
 };
 
@@ -80,21 +80,21 @@ const updateSchema = {
     incidentType: { type: "string" },
     riskLevel: { type: "string", enum: ["critical", "high", "medium", "low"] },
     urgency: { type: "string", enum: ["immediate", "today", "soon"] },
-    confidence: { type: "integer", minimum: 0, maximum: 100 },
+    confidence: { type: "integer" },
     confidenceReason: { type: "string" },
     confidenceMeaning: { type: "string" },
     summary: { type: "string" },
     changeSummary: { type: "string" },
-    whatWeKnow: { type: "array", maxItems: 8, items: { type: "string" } },
-    inferences: { type: "array", maxItems: 8, items: { type: "string" } },
-    unknowns: { type: "array", maxItems: 8, items: { type: "string" } },
-    immediateActions: { type: "array", maxItems: 6, items: actionSchema },
-    first10Minutes: { type: "array", maxItems: 6, items: actionSchema },
-    firstHour: { type: "array", maxItems: 6, items: actionSchema },
-    first24Hours: { type: "array", maxItems: 6, items: actionSchema },
-    next7Days: { type: "array", maxItems: 6, items: actionSchema },
-    remainingRisk: { type: "array", maxItems: 6, items: { type: "string" } },
-    limitations: { type: "array", maxItems: 6, items: { type: "string" } },
+    whatWeKnow: { type: "array", items: { type: "string" } },
+    inferences: { type: "array", items: { type: "string" } },
+    unknowns: { type: "array", items: { type: "string" } },
+    immediateActions: { type: "array", items: actionSchema },
+    first10Minutes: { type: "array", items: actionSchema },
+    firstHour: { type: "array", items: actionSchema },
+    first24Hours: { type: "array", items: actionSchema },
+    next7Days: { type: "array", items: actionSchema },
+    remainingRisk: { type: "array", items: { type: "string" } },
+    limitations: { type: "array", items: { type: "string" } },
     updateQuestion: { type: "string" },
     resolutionAssessment: { type: "string", enum: ["active", "monitoring", "mostly_secured", "resolved"] },
   },
@@ -124,10 +124,15 @@ async function runAiUpdate(args: {
   updateText: string;
   riskFloor: string;
 }) {
-  const aiAvailable = Boolean(env("OPENAI_BASE_URL") || env("OPENAI_API_KEY"));
-  if (!aiAvailable) return null;
+  const apiKey = env("OPENAI_API_KEY");
+  if (!apiKey) return null;
 
-  const client = new OpenAI();
+  const client = new OpenAI({
+    apiKey,
+    baseURL: env("OPENAI_BASE_URL") || undefined,
+    timeout: 22_000,
+    maxRetries: 1,
+  });
   const contextText = [
     `PREVIOUS PLAN: ${JSON.stringify(args.previousPlan)}`,
     `COMPLETED TASKS SO FAR: ${JSON.stringify(args.completedTaskTitles)}`,
@@ -149,9 +154,27 @@ async function runAiUpdate(args: {
         schema: updateSchema,
       },
     },
-    max_output_tokens: 4_200,
+    max_output_tokens: 16_000,
+    reasoning: { effort: "low" },
     store: false,
   });
+
+  if (response.status === "incomplete") {
+    throw new Error(
+      `OpenAI response incomplete: ${response.incomplete_details?.reason || "unknown reason"}`,
+    );
+  }
+
+  const refusal = response.output
+    ?.flatMap((item: any) => (Array.isArray(item?.content) ? item.content : []))
+    .find((part: any) => part?.type === "refusal");
+  if (refusal) {
+    throw new Error(`OpenAI refused the request: ${refusal.refusal || "no reason given"}`);
+  }
+
+  if (!response.output_text) {
+    throw new Error("OpenAI returned an empty response.");
+  }
 
   return JSON.parse(response.output_text);
 }
@@ -355,8 +378,13 @@ export default async function handler(request: Request, context: any): Promise<R
     rawUpdate = await runAiUpdate({ previousPlan, completedTaskTitles, updateText, riskFloor: caseRow.risk_level });
   } catch (error) {
     console.error("CyberNet Recovery update generation failed", {
-      requestId: context?.requestId,
+      functionRequestId: context?.requestId,
+      name: error instanceof Error ? error.name : "UnknownError",
       message: error instanceof Error ? error.message : "Unknown error",
+      status: (error as any)?.status,
+      code: (error as any)?.code,
+      type: (error as any)?.error?.type,
+      requestId: (error as any)?.request_id,
     });
   }
 

@@ -193,7 +193,7 @@ const actionSchema = {
     why: { type: "string" },
     verification: { type: "string" },
     priority: { type: "string", enum: ["critical", "high", "normal"] },
-    estimatedMinutes: { type: "integer", minimum: 1, maximum: 240 },
+    estimatedMinutes: { type: "integer" },
   },
 };
 
@@ -210,20 +210,20 @@ const recoverySchema = {
     incidentType: { type: "string" },
     riskLevel: { type: "string", enum: ["critical", "high", "medium", "low"] },
     urgency: { type: "string", enum: ["immediate", "today", "soon"] },
-    confidence: { type: "integer", minimum: 0, maximum: 100 },
+    confidence: { type: "integer" },
     confidenceReason: { type: "string" },
     confidenceMeaning: { type: "string" },
     summary: { type: "string" },
-    whatWeKnow: { type: "array", maxItems: 8, items: { type: "string" } },
-    inferences: { type: "array", maxItems: 8, items: { type: "string" } },
-    unknowns: { type: "array", maxItems: 8, items: { type: "string" } },
-    immediateActions: { type: "array", maxItems: 6, items: actionSchema },
-    first10Minutes: { type: "array", maxItems: 6, items: actionSchema },
-    firstHour: { type: "array", maxItems: 6, items: actionSchema },
-    first24Hours: { type: "array", maxItems: 6, items: actionSchema },
-    next7Days: { type: "array", maxItems: 6, items: actionSchema },
-    remainingRisk: { type: "array", maxItems: 6, items: { type: "string" } },
-    limitations: { type: "array", maxItems: 6, items: { type: "string" } },
+    whatWeKnow: { type: "array", items: { type: "string" } },
+    inferences: { type: "array", items: { type: "string" } },
+    unknowns: { type: "array", items: { type: "string" } },
+    immediateActions: { type: "array", items: actionSchema },
+    first10Minutes: { type: "array", items: actionSchema },
+    firstHour: { type: "array", items: actionSchema },
+    first24Hours: { type: "array", items: actionSchema },
+    next7Days: { type: "array", items: actionSchema },
+    remainingRisk: { type: "array", items: { type: "string" } },
+    limitations: { type: "array", items: { type: "string" } },
     updateQuestion: { type: "string" },
   },
 };
@@ -263,10 +263,15 @@ async function runAiRecoveryPlan(args: {
   imageData: string;
   updateContext?: { previousPlan: unknown; completedTaskTitles: string[]; updateText: string };
 }) {
-  const aiAvailable = Boolean(env("OPENAI_BASE_URL") || env("OPENAI_API_KEY"));
-  if (!aiAvailable) return null;
+  const apiKey = env("OPENAI_API_KEY");
+  if (!apiKey) return null;
 
-  const client = new OpenAI();
+  const client = new OpenAI({
+    apiKey,
+    baseURL: env("OPENAI_BASE_URL") || undefined,
+    timeout: 22_000,
+    maxRetries: 1,
+  });
   const contextText = [
     `DETERMINISTIC RISK FLOOR (must not go below): ${args.riskFloor}`,
     `DETERMINISTIC URGENCY FLOOR (must not go below): ${args.urgencyFloor}`,
@@ -300,9 +305,27 @@ async function runAiRecoveryPlan(args: {
         schema: recoverySchema,
       },
     },
-    max_output_tokens: 4_200,
+    max_output_tokens: 16_000,
+    reasoning: { effort: "low" },
     store: false,
   });
+
+  if (response.status === "incomplete") {
+    throw new Error(
+      `OpenAI response incomplete: ${response.incomplete_details?.reason || "unknown reason"}`,
+    );
+  }
+
+  const refusal = response.output
+    ?.flatMap((item: any) => (Array.isArray(item?.content) ? item.content : []))
+    .find((part: any) => part?.type === "refusal");
+  if (refusal) {
+    throw new Error(`OpenAI refused the request: ${refusal.refusal || "no reason given"}`);
+  }
+
+  if (!response.output_text) {
+    throw new Error("OpenAI returned an empty response.");
+  }
 
   return JSON.parse(response.output_text);
 }
@@ -528,7 +551,7 @@ async function saveCase(userId: string, classifier: ClassifierResult, plan: any,
 
 export default async function handler(request: Request, context: any): Promise<Response> {
   if (request.method === "GET") {
-    const aiEnabled = Boolean(env("OPENAI_BASE_URL") || env("OPENAI_API_KEY"));
+    const aiEnabled = Boolean(env("OPENAI_API_KEY"));
     return json({ online: true, aiEnabled, model: aiEnabled ? MODEL : "Server deterministic engine" });
   }
 
@@ -591,8 +614,13 @@ export default async function handler(request: Request, context: any): Promise<R
     aiUsed = Boolean(rawPlan);
   } catch (error) {
     console.error("CyberNet Recovery plan generation failed", {
-      requestId: context?.requestId,
+      functionRequestId: context?.requestId,
+      name: error instanceof Error ? error.name : "UnknownError",
       message: error instanceof Error ? error.message : "Unknown error",
+      status: (error as any)?.status,
+      code: (error as any)?.code,
+      type: (error as any)?.error?.type,
+      requestId: (error as any)?.request_id,
     });
   }
 

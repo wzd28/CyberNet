@@ -62,9 +62,8 @@ type ReputationResult = {
   unavailable?: boolean;
 };
 
-const stringArray = (maxItems: number) => ({
+const stringArray = () => ({
   type: "array",
-  maxItems,
   items: { type: "string" },
 });
 
@@ -106,8 +105,8 @@ const analysisSchema = {
       type: "string",
       enum: ["malicious", "suspicious", "low_risk", "inconclusive"],
     },
-    score: { type: "integer", minimum: 0, maximum: 100 },
-    confidence: { type: "integer", minimum: 0, maximum: 100 },
+    score: { type: "integer" },
+    confidence: { type: "integer" },
     threatType: { type: "string" },
     summary: { type: "string" },
     caseTitle: { type: "string" },
@@ -122,10 +121,9 @@ const analysisSchema = {
       type: "string",
       enum: ["monitor", "soon", "immediate"],
     },
-    artifactsAnalyzed: { type: "integer", minimum: 0, maximum: MAX_ARTIFACTS },
+    artifactsAnalyzed: { type: "integer" },
     entities: {
       type: "array",
-      maxItems: 30,
       items: {
         type: "object",
         additionalProperties: false,
@@ -139,7 +137,6 @@ const analysisSchema = {
     },
     indicators: {
       type: "array",
-      maxItems: 30,
       items: {
         type: "object",
         additionalProperties: false,
@@ -153,7 +150,6 @@ const analysisSchema = {
     },
     timelineEvents: {
       type: "array",
-      maxItems: 20,
       items: {
         type: "object",
         additionalProperties: false,
@@ -167,34 +163,31 @@ const analysisSchema = {
     },
     hypotheses: {
       type: "array",
-      maxItems: 6,
       items: {
         type: "object",
         additionalProperties: false,
         required: ["hypothesis", "support", "contradictions", "confidence"],
         properties: {
           hypothesis: { type: "string" },
-          support: stringArray(6),
-          contradictions: stringArray(5),
-          confidence: { type: "integer", minimum: 0, maximum: 100 },
+          support: stringArray(),
+          contradictions: stringArray(),
+          confidence: { type: "integer" },
         },
       },
     },
-    observedFacts: stringArray(15),
-    reasonableInferences: stringArray(12),
-    unverifiedClaims: stringArray(12),
-    evidence: stringArray(14),
-    counterEvidence: stringArray(10),
-    limitations: stringArray(10),
-    missingEvidence: stringArray(12),
-    recommendedEvidenceToCollect: stringArray(12),
-    containmentActions: stringArray(10),
-    recoveryActions: stringArray(10),
-    reportingActions: stringArray(10),
+    observedFacts: stringArray(),
+    reasonableInferences: stringArray(),
+    unverifiedClaims: stringArray(),
+    evidence: stringArray(),
+    counterEvidence: stringArray(),
+    limitations: stringArray(),
+    missingEvidence: stringArray(),
+    recommendedEvidenceToCollect: stringArray(),
+    containmentActions: stringArray(),
+    recoveryActions: stringArray(),
+    reportingActions: stringArray(),
     actions: {
       type: "array",
-      minItems: 2,
-      maxItems: 12,
       items: { type: "string" },
     },
   },
@@ -974,10 +967,15 @@ async function runAiAnalysis(args: {
   serverEvidence: LocalEvidence;
   caseData: { title: string; context: string; artifacts: Artifact[] };
 }) {
-  const aiAvailable = Boolean(env("OPENAI_BASE_URL") || env("OPENAI_API_KEY"));
-  if (!aiAvailable) return null;
+  const apiKey = env("OPENAI_API_KEY");
+  if (!apiKey) return null;
 
-  const client = new OpenAI();
+  const client = new OpenAI({
+    apiKey,
+    baseURL: env("OPENAI_BASE_URL") || undefined,
+    timeout: 22_000,
+    maxRetries: 1,
+  });
 
   const caseEvidence = args.mode === "investigation"
     ? JSON.stringify({
@@ -1014,16 +1012,34 @@ async function runAiAnalysis(args: {
         schema: analysisSchema,
       },
     },
-    max_output_tokens: args.mode === "investigation" ? 5_000 : 3_200,
+    max_output_tokens: args.mode === "investigation" ? 16_000 : 12_000,
+    reasoning: { effort: "low" },
     store: false,
   });
+
+  if (response.status === "incomplete") {
+    throw new Error(
+      `OpenAI response incomplete: ${response.incomplete_details?.reason || "unknown reason"}`,
+    );
+  }
+
+  const refusal = response.output
+    ?.flatMap((item: any) => (Array.isArray(item?.content) ? item.content : []))
+    .find((part: any) => part?.type === "refusal");
+  if (refusal) {
+    throw new Error(`OpenAI refused the request: ${refusal.refusal || "no reason given"}`);
+  }
+
+  if (!response.output_text) {
+    throw new Error("OpenAI returned an empty response.");
+  }
 
   return JSON.parse(response.output_text);
 }
 
 export default async function handler(request: Request, context: any): Promise<Response> {
   if (request.method === "GET") {
-    const aiEnabled = Boolean(env("OPENAI_BASE_URL") || env("OPENAI_API_KEY"));
+    const aiEnabled = Boolean(env("OPENAI_API_KEY"));
     return json({
       online: true,
       aiEnabled,
@@ -1127,9 +1143,13 @@ export default async function handler(request: Request, context: any): Promise<R
     aiUsed = Boolean(rawAnalysis);
   } catch (error) {
     console.error("CyberNet Protect analysis failed", {
-      requestId: context?.requestId,
+      functionRequestId: context?.requestId,
       name: error instanceof Error ? error.name : "UnknownError",
       message: error instanceof Error ? error.message : "Unknown error",
+      status: (error as any)?.status,
+      code: (error as any)?.code,
+      type: (error as any)?.error?.type,
+      requestId: (error as any)?.request_id,
     });
   }
 
