@@ -277,8 +277,8 @@ async function runAiRecoveryPlan(args: {
   const client = new OpenAI({
     apiKey,
     baseURL: env("OPENAI_BASE_URL") || undefined,
-    timeout: 22_000,
-    maxRetries: 1,
+    timeout: 20_000,
+    maxRetries: 0,
   });
   const contextText = [
     `DETERMINISTIC RISK FLOOR (must not go below): ${args.riskFloor}`,
@@ -313,7 +313,7 @@ async function runAiRecoveryPlan(args: {
         schema: recoverySchema,
       },
     },
-    max_output_tokens: 16_000,
+    max_output_tokens: 8_000,
     reasoning: { effort: "low" },
     store: false,
   });

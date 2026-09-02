@@ -136,8 +136,8 @@ async function runAiUpdate(args: {
   const client = new OpenAI({
     apiKey,
     baseURL: env("OPENAI_BASE_URL") || undefined,
-    timeout: 22_000,
-    maxRetries: 1,
+    timeout: 20_000,
+    maxRetries: 0,
   });
   const contextText = [
     `PREVIOUS PLAN: ${JSON.stringify(args.previousPlan)}`,
@@ -160,7 +160,7 @@ async function runAiUpdate(args: {
         schema: updateSchema,
       },
     },
-    max_output_tokens: 16_000,
+    max_output_tokens: 8_000,
     reasoning: { effort: "low" },
     store: false,
   });
