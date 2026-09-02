@@ -38,14 +38,10 @@ const schema = {
       ]
     },
     score: {
-      type: "integer",
-      minimum: 0,
-      maximum: 100
+      type: "integer"
     },
     confidence: {
-      type: "integer",
-      minimum: 0,
-      maximum: 100
+      type: "integer"
     },
     threatType: {
       type: "string"
@@ -55,23 +51,18 @@ const schema = {
     },
     evidence: {
       type: "array",
-      maxItems: 10,
       items: { type: "string" }
     },
     counterEvidence: {
       type: "array",
-      maxItems: 7,
       items: { type: "string" }
     },
     limitations: {
       type: "array",
-      maxItems: 7,
       items: { type: "string" }
     },
     actions: {
       type: "array",
-      minItems: 2,
-      maxItems: 9,
       items: { type: "string" }
     }
   }
@@ -288,6 +279,20 @@ async function callOpenAI({
     const error = new Error(message);
     error.status = response.status;
     throw error;
+  }
+
+  if (payload?.status === "incomplete") {
+    throw new Error(
+      `OpenAI response incomplete: ${payload?.incomplete_details?.reason || "unknown reason"}`
+    );
+  }
+
+  const refusal = (Array.isArray(payload?.output) ? payload.output : [])
+    .flatMap(item => (Array.isArray(item?.content) ? item.content : []))
+    .find(part => part?.type === "refusal");
+
+  if (refusal) {
+    throw new Error(`OpenAI refused the request: ${refusal.refusal || "no reason given"}`);
   }
 
   const text = outputText(payload);
