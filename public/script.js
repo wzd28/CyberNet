@@ -763,11 +763,13 @@ document.addEventListener("DOMContentLoaded",()=>{
   const HOWTO_VIDEOS={
     protect:{
       title:"How To Use Quick Scan",
-      src:""
+      src:"howto/quick-scan.gif",
+      type:"gif"
     },
     cybernetai:{
       title:"How To Use Analysis AI",
-      src:""
+      src:"howto/analysis-ai.gif",
+      type:"gif"
     },
     recovery:{
       title:"How To Use Recovery Mode",
@@ -802,7 +804,10 @@ document.addEventListener("DOMContentLoaded",()=>{
     const data=HOWTO_VIDEOS[activeKey];
     if(howtoVideoTitle)howtoVideoTitle.textContent=data.title;
     if(howtoVideoPlayer){
-      if(data.src){
+      if(data.src&&data.type==="gif"){
+        if(videoPlayerControls)videoPlayerControls.hidden=true;
+        howtoVideoPlayer.innerHTML=`<img src="${data.src}" alt="${data.title}" class="howto-gif" />`;
+      }else if(data.src){
         howtoVideoPlayer.innerHTML=`<video src="${data.src}" autoplay playsinline></video>`;
         wireVideoControls(howtoVideoPlayer.querySelector("video"));
       }else{

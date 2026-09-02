@@ -1377,7 +1377,8 @@ main{
 }
 
 .video-modal-player video,
-.video-modal-player iframe{
+.video-modal-player iframe,
+.video-modal-player img{
   width:100%;
   height:100%;
   max-width:100%;
