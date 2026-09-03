@@ -136,7 +136,7 @@ async function runAiUpdate(args: {
   const client = new OpenAI({
     apiKey,
     baseURL: env("OPENAI_BASE_URL") || undefined,
-    timeout: 20_000,
+    timeout: 35_000,
     maxRetries: 0,
   });
   const contextText = [
