@@ -281,7 +281,13 @@ async function runAiRecoveryPlan(args: {
     // gateway killed the whole function before the catch below could run, so a
     // slow model call surfaced to the user as a raw 504 HTML page instead of the
     // deterministic fallback plan this function is designed to fall back to.
-    timeout: 26_000,
+    // Budget: the whole function must finish inside the ~30s platform gateway
+    // timeout, and this call is not the only work. After it returns we still
+    // write the case, the plan version and the task list to Supabase. 26s left
+    // too little room for that tail and still produced a 504, so the model call
+    // gets 20s and the remaining ~10s covers the pre- and post-work. Exceeding
+    // it now falls through to the deterministic plan instead of an error page.
+    timeout: 20_000,
     maxRetries: 0,
   });
   const contextText = [

@@ -138,7 +138,9 @@ async function runAiUpdate(args: {
     baseURL: env("OPENAI_BASE_URL") || undefined,
     // Kept under the ~30s platform gateway timeout so a slow model call degrades
     // to the deterministic path instead of returning a raw 504 (see recovery-mode).
-    timeout: 26_000,
+    // Same budget reasoning as recovery-mode: leave ~10s for the Supabase
+    // writes that follow, so a slow model call degrades instead of 504ing.
+    timeout: 20_000,
     maxRetries: 0,
   });
   const contextText = [
