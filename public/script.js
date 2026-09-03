@@ -639,6 +639,12 @@ document.addEventListener("DOMContentLoaded",()=>{
     switchPage("home");
   });
 
+  function selectedSeatTier(){
+    const active=document.querySelector("#businessSeatPicker .cn-seat-option.is-active");
+    const tier=Number(active?.dataset.seatTier)||5;
+    return [5,10,20].includes(tier)?tier:5;
+  }
+
   async function startCheckout(cycle="monthly",plan="pro"){
     const btn=plan==="pro"?proPlanBtn:null;
     const businessBtns=plan==="business"?[businessPlanBtn,switchToBusinessBtn].filter(Boolean):[];
@@ -655,14 +661,18 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(btn)btn.disabled=true;
     businessBtns.forEach(b=>b.disabled=true);
     try{
+      const seatTier=plan==="business"?selectedSeatTier():undefined;
       const response=await fetch("/api/create-checkout-session",{
         method:"POST",
         headers:authHeaders({"Content-Type":"application/json"}),
-        body:JSON.stringify({cycle,plan})
+        body:JSON.stringify(plan==="business"?{cycle,plan,seatTier}:{cycle,plan})
       });
       const data=await response.json().catch(()=>({}));
       if(!response.ok)throw new Error(data.error||"Stripe Checkout is not configured yet.");
       if(!data.url)throw new Error("Stripe did not return a Checkout URL.");
+      // Lets the Manage Business panel open itself once the owner lands back
+      // on the site after paying, so the first thing they see is their team.
+      if(plan==="business"){try{sessionStorage.setItem("cybernet_pending_business_checkout","1")}catch{}}
       window.location.assign(data.url);
     }catch(error){showPricingNotice(error.message||"Checkout could not start.","error")}
     finally{if(btn)btn.disabled=false;businessBtns.forEach(b=>b.disabled=false)}
@@ -1824,13 +1834,18 @@ document.addEventListener("DOMContentLoaded",()=>{
     heroSection.addEventListener("mouseleave",()=>heroSection.classList.remove("glow-active"));
   })();
 
-  /* ─── Pricing monthly/yearly toggle ─── */
+  /* ─── Pricing monthly/yearly toggle + Business seat-tier picker ─── */
   (function initPricingToggle(){
     const toggle=document.getElementById("pricingToggle");
     const proButton=document.getElementById("proPlanBtn");
     const equivalent=document.getElementById("billingEquivalent");
+    const businessEquivalent=document.getElementById("businessBillingEquivalent");
+    const seatPicker=document.getElementById("businessSeatPicker");
+    const businessAmount=document.querySelector(".business-price-card .price-amount");
+    const businessButtons=[document.getElementById("businessPlanBtn"),document.getElementById("switchToBusinessBtn")].filter(Boolean);
     if(!toggle)return;
     const options=toggle.querySelectorAll(".toggle-option");
+
     function applyCycle(cycle){
       toggle.dataset.cycle=cycle;
       options.forEach(option=>option.classList.toggle("active",option.dataset.cycle===cycle));
@@ -1842,7 +1857,35 @@ document.addEventListener("DOMContentLoaded",()=>{
       });
       if(equivalent)equivalent.textContent=cycle==="yearly"?"Billed once at $95.90 — about $7.99/month.":"Billed monthly. Cancel anytime.";
       if(proButton)proButton.dataset.cycle=cycle;
+      /* The Business buttons previously kept data-cycle="monthly" no matter
+         what the toggle said, so a yearly Business purchase would have checked
+         out at the monthly price. They now follow the toggle like Pro does. */
+      businessButtons.forEach(button=>{button.dataset.cycle=cycle});
+      updateBusinessEquivalent(cycle);
     }
+
+    function updateBusinessEquivalent(cycle){
+      if(!businessEquivalent||!businessAmount)return;
+      if(cycle==="yearly"){
+        const yearly=Number(businessAmount.dataset.yearly)||0;
+        const perMonth=yearly?(yearly/12).toFixed(0):"";
+        businessEquivalent.textContent=`Billed once at $${yearly} — about $${perMonth}/month.`;
+      }else{
+        businessEquivalent.textContent="Billed monthly. Cancel anytime.";
+      }
+    }
+
+    if(seatPicker&&businessAmount){
+      seatPicker.querySelectorAll(".cn-seat-option").forEach(option=>{
+        option.addEventListener("click",()=>{
+          seatPicker.querySelectorAll(".cn-seat-option").forEach(other=>other.classList.toggle("is-active",other===option));
+          businessAmount.dataset.monthly=option.dataset.monthly;
+          businessAmount.dataset.yearly=option.dataset.yearly;
+          applyCycle(toggle.dataset.cycle||"monthly");
+        });
+      });
+    }
+
     options.forEach(option=>option.addEventListener("click",()=>applyCycle(option.dataset.cycle)));
     applyCycle("monthly");
   })();
