@@ -773,7 +773,8 @@ document.addEventListener("DOMContentLoaded",()=>{
     },
     recovery:{
       title:"How To Use Recovery Mode",
-      src:""
+      src:"howto/recovery-mode.gif",
+      type:"gif"
     }
   };
 
