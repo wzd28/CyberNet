@@ -351,7 +351,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(!list)return;
     if(isPro()){
       list.innerHTML=`
-        <div><span>✓</span> 50 advanced AI analyses per day</div>
+        <div><span>✓</span> 15 advanced AI analyses per day</div>
         <div><span>✓</span> Detailed risk scoring and threat intelligence</div>
         <div><span>✓</span> Saved scan history</div>
         <div><span>✓</span> Downloadable security reports</div>`;
