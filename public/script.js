@@ -982,7 +982,15 @@ document.addEventListener("DOMContentLoaded",()=>{
   function nonlinearScore(raw){return clamp(Math.round(100*(1-Math.exp(-Math.max(0,raw)/78))))}
 
   function getDanger(score,uncertain=false){
-    if(uncertain)return{label:"Not Sure — Be Careful",headline:"NOT SURE",css:"uncertain"};
+    /*
+      Fail-safe verdicts: CyberNet AI always commits to an answer rather than
+      showing a "Not Sure" result. When the engines can't confidently clear
+      something, the honest and safe direction for a security tool is "do not
+      trust it" — never "probably fine". Detection scoring, weights, and
+      thresholds are unchanged; only the verdict shown to the user changes,
+      so an uncertain read presents as UNSAFE instead of NOT SURE.
+    */
+    if(uncertain)return{label:"Unsafe — Do Not Trust It",headline:"UNSAFE",css:"danger"};
     if(score>=32)return{label:"Scam",headline:"SCAM",css:"danger"};
     return{label:"Not A Scam",headline:"NOT A SCAM",css:"safe"};
   }
@@ -994,7 +1002,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     const isSafe=danger.css==="safe";
     const confidenceText=confidence>=82?"High confidence":confidence>=58?"Moderate confidence":"Limited confidence";
     const verdictNote=meta.note||(uncertain
-      ?"CyberNet AI could not find enough clear evidence to be sure. When in doubt, treat it as risky and double-check before doing anything."
+      ?"CyberNet AI could not confirm this is safe, so treat it as unsafe. Don't click any links, share any details, or send any money based on it."
       :isSafe
       ?"CyberNet AI didn't find any warning signs, but no scanner can promise something is 100% safe. Stay alert."
       :"CyberNet AI found signs that this could be a scam. Read the details below before you do anything.");
@@ -1003,7 +1011,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     resultBox.classList.add(`result-has-${danger.css}`);
     resultBox.innerHTML=`<div class="scan-report">
       <div class="verdict-headline verdict-headline-${danger.css}">
-        <span class="verdict-headline-icon">${isSafe?"✓":uncertain?"?":"✕"}</span>
+        <span class="verdict-headline-icon">${isSafe?"✓":"✕"}</span>
         <span class="verdict-headline-text">${danger.headline}</span>
       </div>
       <div class="report-top-row">
@@ -1011,7 +1019,7 @@ document.addEventListener("DOMContentLoaded",()=>{
         <span class="score-display">${clamp(Math.round(score))}<span>/100</span></span>
       </div>
       ${sourceLabels.length?`<div class="analysis-sources">${sourceLabels.map(x=>`<span>${escapeHTML(x)}</span>`).join("")}</div>`:""}
-      <div class="verdict-note ${uncertain?"verdict-uncertain":""}"><span>${uncertain?"◈":"ⓘ"}</span><p>${escapeHTML(verdictNote)}</p></div>
+      <div class="verdict-note"><span>ⓘ</span><p>${escapeHTML(verdictNote)}</p></div>
       ${unique(meta.counterEvidence||[]).length?`<div class="counter-evidence"><strong>Reasons this might be okay</strong><ul>${unique(meta.counterEvidence||[]).slice(0,5).map(item=>`<li>${escapeHTML(item)}</li>`).join("")}</ul></div>`:""}
       <div class="report-body">
         <div class="report-col"><div class="report-col-title"><span class="col-warn">⚠</span> ${isSafe?"Why This Looks Safe":"Why We Think This Is A Scam"}</div><ul class="report-list">${unique(reasons).slice(0,10).map(r=>`<li>${escapeHTML(r)}</li>`).join("")||"<li>Nothing unusual was found.</li>"}</ul></div>
@@ -1125,8 +1133,8 @@ document.addEventListener("DOMContentLoaded",()=>{
       score>=60?"Preserve evidence, block the sender, and report the message through the platform or organization.":"Treat the message as unverified until its sender and purpose are confirmed."
     ];
     const verdict=uncertain?"inconclusive":score>=85?"malicious":score>=55?"suspicious":"low_risk";
-    const scamType=protective&&score<=14&&state.strong===0?"Security guidance / low visible risk":state.types.at(-1)||(uncertain?"Inconclusive text analysis":"No dominant threat type");
-    return{score,scamType,reasons:[...state.reasons,...state.limitations],counterEvidence:state.counterEvidence,advice,uncertain,confidence,verdict,sources:["Local language engine",...(highestEmbedded?["Embedded-link engine"]:[])],note:uncertain?"CyberNet AI does not have enough reliable context to make a confident classification. This is unverified, not confirmed safe.":"CyberNet AI evaluated language, requested actions, pressure tactics, sensitive-data requests, impersonation, embedded links, and multi-signal combinations."};
+    const scamType=protective&&score<=14&&state.strong===0?"Security guidance / low visible risk":state.types.at(-1)||(uncertain?"Unverified message":"No dominant threat type");
+    return{score,scamType,reasons:[...state.reasons,...state.limitations],counterEvidence:state.counterEvidence,advice,uncertain,confidence,verdict,sources:["Local language engine",...(highestEmbedded?["Embedded-link engine"]:[])],note:uncertain?"CyberNet AI could not confirm this message is safe, so treat it as unsafe. Don't act on it, click anything inside it, or reply with personal details.":"CyberNet AI evaluated language, requested actions, pressure tactics, sensitive-data requests, impersonation, embedded links, and multi-signal combinations."};
   }
 
   function levenshtein(a,b){
@@ -1223,7 +1231,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       "A structural scan cannot prove a page is safe without live reputation and destination-content checks."
     ];
     const verdict=uncertain?"inconclusive":score>=85?"malicious":score>=58?"suspicious":"low_risk";
-    return{score,scamType:state.types.at(-1)||(uncertain?"Inconclusive link analysis":officialBrand?"Official-looking domain structure":"No dominant URL threat type"),reasons:state.reasons,counterEvidence,advice,uncertain,confidence,verdict,sources:["Local URL engine"],registeredDomain:registered,note:uncertain?"No decisive visible URL pattern was found. The link remains unverified until live reputation and destination checks complete.":officialBrand?"The visible domain matches a known official domain, but this does not verify the sender, page content, redirects, or account context.":"CyberNet AI evaluated the URL scheme, registered domain, lookalike patterns, path, query parameters, redirects, downloads, and brand impersonation."};
+    return{score,scamType:state.types.at(-1)||(uncertain?"Unverified link":officialBrand?"Official-looking domain structure":"No dominant URL threat type"),reasons:state.reasons,counterEvidence,advice,uncertain,confidence,verdict,sources:["Local URL engine"],registeredDomain:registered,note:uncertain?"CyberNet AI could not confirm this link is safe, so treat it as unsafe. Don't open it — go to the organization's official website directly instead.":officialBrand?"The visible domain matches a known official domain, but this does not verify the sender, page content, redirects, or account context.":"CyberNet AI evaluated the URL scheme, registered domain, lookalike patterns, path, query parameters, redirects, downloads, and brand impersonation."};
   }
 
   function analyzeImageRules(file,details={}){
@@ -1239,7 +1247,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     const score=details.qrResult?details.qrResult.score:nonlinearScore(state.raw);
     const reasons=details.qrResult?unique([...state.reasons,...details.qrResult.reasons]):unique([...state.reasons,"Local image analysis can reliably inspect file properties and QR codes, but not all visible text, logos, or layout details.",...state.limitations]);
     const advice=details.qrResult?details.qrResult.advice:["Do not scan unknown QR codes or follow instructions shown only in a screenshot.","Verify payments, alerts, and login requests through the official app or website.","Do not call phone numbers or install software shown in suspicious popups.","Use the secure deep-analysis service for visual text, logo, and impersonation inspection."];
-    return{score,scamType:details.qrResult?.scamType||state.types.at(-1)||"Unverified image content",reasons,advice,uncertain:details.qrResult?details.qrResult.uncertain:true,confidence:details.qrResult?Math.max(details.qrResult.confidence||0,78):(details.qrData?62:28),verdict:details.qrResult?.verdict||"inconclusive",sources:["Local image checks",...(details.qrData?["QR decoder"]:[])],note:details.qrResult?"CyberNet AI decoded the QR code and evaluated its content. Deep image analysis may add visible-text and impersonation evidence.":"CyberNet AI could not confidently inspect every visual element locally. The result is intentionally inconclusive until deep image analysis is available."};
+    return{score,scamType:details.qrResult?.scamType||state.types.at(-1)||"Unverified image content",reasons,advice,uncertain:details.qrResult?details.qrResult.uncertain:true,confidence:details.qrResult?Math.max(details.qrResult.confidence||0,78):(details.qrData?62:28),verdict:details.qrResult?.verdict||"inconclusive",sources:["Local image checks",...(details.qrData?["QR decoder"]:[])],note:details.qrResult?"CyberNet AI decoded the QR code and evaluated its content. Deep image analysis may add visible-text and impersonation evidence.":"CyberNet AI could not confirm this image is safe from local checks alone, so treat it as unsafe. Don't scan any QR code or follow any instructions shown in it."};
   }
 
   function normalizeServerResult(data){
@@ -1260,7 +1268,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     const agreement=local.verdict===deep.verdict&&!local.uncertain&&!deep.uncertain;
     const confidence=clamp(Math.max(deep.confidence,Math.round((local.confidence+deep.confidence)/2))+(agreement?5:0)+(reputationHit?6:0)-(disagreement?18:0));
     const uncertain=reputationHit?false:(disagreement||deep.verdict==="inconclusive"||(deep.uncertain&&local.uncertain));
-    return{score,confidence,scamType:reputationHit?"Known unsafe URL":(deep.scamType||local.scamType),reasons:unique([...(deep.reasons||[]),...(local.reasons||[])]),counterEvidence:unique([...(deep.counterEvidence||[]),...(local.counterEvidence||[])]),advice:unique([...(deep.advice||[]),...(local.advice||[])]),uncertain,verdict:reputationHit?"malicious":uncertain?"inconclusive":deep.verdict,sources:unique([...(local.sources||[]),...(deep.sources||[])]),note:reputationHit?"The live reputation service matched this URL to a known unsafe resource.":disagreement?"The local and deep-analysis layers disagree, so CyberNet AI is intentionally marking this result for review.":deep.note||local.note,reputation:deep.reputation,virusTotal:deep.virusTotal||null,aiUsed:Boolean(deep.aiUsed)};
+    return{score,confidence,scamType:reputationHit?"Known unsafe URL":(deep.scamType||local.scamType),reasons:unique([...(deep.reasons||[]),...(local.reasons||[])]),counterEvidence:unique([...(deep.counterEvidence||[]),...(local.counterEvidence||[])]),advice:unique([...(deep.advice||[]),...(local.advice||[])]),uncertain,verdict:reputationHit?"malicious":uncertain?"inconclusive":deep.verdict,sources:unique([...(local.sources||[]),...(deep.sources||[])]),note:reputationHit?"The live reputation service matched this URL to a known unsafe resource.":disagreement?"CyberNet AI's local and deep-analysis layers reached different conclusions, so this can't be confirmed safe — treat it as unsafe until you've verified it independently.":deep.note||local.note,reputation:deep.reputation,virusTotal:deep.virusTotal||null,aiUsed:Boolean(deep.aiUsed)};
   }
   async function requestDeepAnalysis(type,content,localResult,imageData=""){
     if(!isSignedIn()){
@@ -1312,7 +1320,9 @@ document.addEventListener("DOMContentLoaded",()=>{
     list.insertBefore(li,list.firstChild);if(list.children.length>4)list.removeChild(list.lastChild);
   }
   function riskMeta(result){
-    if(result.uncertain)return{label:"Needs Review",cls:"risk-tag-warning"};
+    // Fail-safe: an unconfirmed read is shown as risk, never as a neutral
+    // "needs review" state (see getDanger for the full rationale).
+    if(result.uncertain)return{label:"High Risk",cls:"risk-tag-danger"};
     if(result.score>=60)return{label:"High Risk",cls:"risk-tag-danger"};
     if(result.score>=32)return{label:"Medium Risk",cls:"risk-tag-warning"};
     return{label:"Low Visible Risk",cls:"risk-tag-safe"};
@@ -1574,7 +1584,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     resultBox.innerHTML=`
       <div class="diagnostic-report">
         <div class="verdict-headline verdict-headline-${danger.css}">
-          <span class="verdict-headline-icon">${isSafe?"✓":uncertain?"?":"✕"}</span>
+          <span class="verdict-headline-icon">${isSafe?"✓":"✕"}</span>
           <span class="verdict-headline-text">${danger.headline}</span>
         </div>
         ${decodedQr?`<div class="diagnostic-qr-preview"><strong>📷 This QR code leads to:</strong><code>${escapeHTML(decodedQr)}</code></div>`:""}
