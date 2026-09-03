@@ -489,12 +489,57 @@ async function consumeRecoveryCase(userId: string) {
     allowed: Boolean(row?.allowed),
     used: Number(row?.used) || 0,
     limit: Number(row?.daily_limit) || 1,
-    plan: row?.plan === "pro" ? "pro" : "free",
+    // Pre-existing gap fixed here: this previously collapsed "business" to
+    // "free" (row?.plan==="pro"?"pro":"free"), mislabeling any single-seat
+    // Business user's plan in error messages even though their real limit
+    // (v_limit) was already computed correctly server-side.
+    plan: row?.plan === "pro" ? "pro" : row?.plan === "business" ? "business" : "free",
     resetAt: row?.reset_at || null,
   };
 }
 
-async function saveCase(userId: string, classifier: ClassifierResult, plan: any, region: string, caseTitle: string) {
+// Business team accounts: duplicated inline (not imported from
+// lib/supabase.mjs) to match this file's existing self-contained pattern.
+async function getActiveTeamMembership(userId: string): Promise<{
+  businessAccountId: string;
+  recoveryPoolLimit: number;
+} | null> {
+  const response = await serviceFetch(
+    `/rest/v1/business_members?user_id=eq.${encodeURIComponent(userId)}` +
+    "&status=eq.active" +
+    "&select=business_accounts(id,recovery_pool_limit,subscription_status)"
+  );
+  const rows = await response.json().catch(() => []);
+  if (!response.ok) return null;
+  const row = (rows as any[]).find((r) =>
+    ["active", "trialing"].includes(String(r.business_accounts?.subscription_status || ""))
+  );
+  if (!row) return null;
+  return {
+    businessAccountId: row.business_accounts.id,
+    recoveryPoolLimit: row.business_accounts.recovery_pool_limit,
+  };
+}
+
+async function consumeRecoveryCaseBusiness(businessAccountId: string) {
+  const response = await serviceFetch("/rest/v1/rpc/consume_recovery_case_business", {
+    method: "POST",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify({ p_business_account_id: businessAccountId }),
+  });
+  const payload = await response.json().catch(() => []);
+  if (!response.ok) throw new Error((payload as any)?.message || "Could not reserve a team Recovery case.");
+  const row = Array.isArray(payload) ? payload[0] : payload;
+  return {
+    allowed: Boolean(row?.allowed),
+    used: Number(row?.used) || 0,
+    limit: Number(row?.daily_limit) || 0,
+    plan: "business" as const,
+    resetAt: row?.reset_at || null,
+  };
+}
+
+async function saveCase(userId: string, classifier: ClassifierResult, plan: any, region: string, caseTitle: string, businessAccountId?: string | null) {
   const insertResponse = await serviceFetch("/rest/v1/recovery_cases", {
     method: "POST",
     headers: { Prefer: "return=representation" },
@@ -509,6 +554,7 @@ async function saveCase(userId: string, classifier: ClassifierResult, plan: any,
       progress_percent: 0,
       current_version: 1,
       case_title: caseTitle,
+      ...(businessAccountId ? { business_account_id: businessAccountId } : {}),
     }),
   });
   const rows = await insertResponse.json().catch(() => []);
@@ -589,17 +635,22 @@ export default async function handler(request: Request, context: any): Promise<R
   if (!user) return json({ error: "Sign in or create a free account before starting Recovery Mode.", code: "sign_in_required" }, 401);
 
   let usage;
+  let team: { businessAccountId: string; recoveryPoolLimit: number } | null = null;
   if (isAdminUser(user)) {
     usage = { allowed: true, used: 0, limit: 999999, plan: "business", resetAt: null };
   } else {
     try {
-      usage = await consumeRecoveryCase(user.id);
+      team = await getActiveTeamMembership(user.id);
+      usage = team
+        ? await consumeRecoveryCaseBusiness(team.businessAccountId)
+        : await consumeRecoveryCase(user.id);
     } catch (error) {
       console.error("CyberNet Recovery usage reservation failed", error);
       return json({ error: "Recovery Mode is not fully configured yet. Run the updated schema.sql and confirm Supabase environment variables.", code: "usage_service_unavailable" }, 503);
     }
     if (!usage.allowed) {
-      return json({ error: `Daily ${usage.plan === "pro" ? "Pro" : "Free"} Recovery case limit reached.`, code: "daily_limit_reached", usage }, 429);
+      const planLabel = usage.plan === "business" ? "team" : usage.plan === "pro" ? "Pro" : "Free";
+      return json({ error: `Daily ${planLabel} Recovery case limit reached.`, code: "daily_limit_reached", usage }, 429);
     }
   }
 
@@ -636,7 +687,7 @@ export default async function handler(request: Request, context: any): Promise<R
 
   let caseId: string;
   try {
-    caseId = await saveCase(user.id, classifier, plan, region, `${plan.incidentType} — ${new Date().toLocaleDateString()}`);
+    caseId = await saveCase(user.id, classifier, plan, region, `${plan.incidentType} — ${new Date().toLocaleDateString()}`, team?.businessAccountId);
   } catch (error) {
     console.error("CyberNet Recovery case save failed", error);
     return json({ error: "Your recovery plan was generated, but it could not be saved. Please try again.", code: "save_failed" }, 500);

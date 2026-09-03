@@ -305,7 +305,46 @@ async function consumeRecoveryUpdate(userId: string) {
     allowed: Boolean(row?.allowed),
     used: Number(row?.used) || 0,
     limit: Number(row?.daily_limit) || 3,
-    plan: row?.plan === "pro" ? "pro" : "free",
+    // Pre-existing gap fixed here: this previously collapsed "business" to
+    // "free", same as recovery-mode.mts's consumeRecoveryCase did.
+    plan: row?.plan === "pro" ? "pro" : row?.plan === "business" ? "business" : "free",
+    resetAt: row?.reset_at || null,
+    cooldownSecondsRemaining: Number(row?.cooldown_seconds_remaining) || 0,
+  };
+}
+
+// Business team accounts: case UPDATES stay per-individual (only a case's
+// own owner_user_id may update it — see the ownership check below), so this
+// just gives a team member the same business-tier cooldown/limit an
+// individual Business subscriber gets, on their own recovery_usage row.
+// Duplicated inline to match this file's existing self-contained pattern.
+async function getActiveTeamMembership(userId: string): Promise<boolean> {
+  const response = await serviceFetch(
+    `/rest/v1/business_members?user_id=eq.${encodeURIComponent(userId)}` +
+    "&status=eq.active" +
+    "&select=business_accounts(subscription_status)"
+  );
+  const rows = await response.json().catch(() => []);
+  if (!response.ok) return false;
+  return (rows as any[]).some((r) =>
+    ["active", "trialing"].includes(String(r.business_accounts?.subscription_status || ""))
+  );
+}
+
+async function consumeRecoveryUpdateBusiness(userId: string) {
+  const response = await serviceFetch("/rest/v1/rpc/consume_recovery_update_business", {
+    method: "POST",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify({ p_user_id: userId }),
+  });
+  const payload = await response.json().catch(() => []);
+  if (!response.ok) throw new Error((payload as any)?.message || "Could not reserve a Recovery update.");
+  const row = Array.isArray(payload) ? payload[0] : payload;
+  return {
+    allowed: Boolean(row?.allowed),
+    used: Number(row?.used) || 0,
+    limit: Number(row?.daily_limit) || 999,
+    plan: "business" as const,
     resetAt: row?.reset_at || null,
     cooldownSecondsRemaining: Number(row?.cooldown_seconds_remaining) || 0,
   };
@@ -345,14 +384,18 @@ export default async function handler(request: Request, context: any): Promise<R
     usage = { allowed: true, used: 0, limit: 999999, plan: "business", resetAt: null, cooldownSecondsRemaining: 0 };
   } else {
     try {
-      usage = await consumeRecoveryUpdate(user.id);
+      const onTeam = await getActiveTeamMembership(user.id);
+      usage = onTeam
+        ? await consumeRecoveryUpdateBusiness(user.id)
+        : await consumeRecoveryUpdate(user.id);
     } catch (error) {
       console.error("CyberNet Recovery update usage reservation failed", error);
       return json({ error: "Recovery Mode is not fully configured yet.", code: "usage_service_unavailable" }, 503);
     }
     if (!usage.allowed) {
       const code = usage.cooldownSecondsRemaining > 0 ? "cooldown_active" : "daily_limit_reached";
-      return json({ error: usage.cooldownSecondsRemaining > 0 ? "Please wait before submitting another Recovery update." : `Daily ${usage.plan === "pro" ? "Pro" : "Free"} update limit reached.`, code, usage }, 429);
+      const planLabel = usage.plan === "business" ? "team" : usage.plan === "pro" ? "Pro" : "Free";
+      return json({ error: usage.cooldownSecondsRemaining > 0 ? "Please wait before submitting another Recovery update." : `Daily ${planLabel} update limit reached.`, code, usage }, 429);
     }
   }
 
