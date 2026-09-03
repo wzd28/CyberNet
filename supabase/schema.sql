@@ -755,3 +755,211 @@ $$;
 
 revoke all on function public.consume_quickscan(uuid) from public, anon, authenticated;
 grant execute on function public.consume_quickscan(uuid) to service_role;
+
+-- ═══════════════════════════════════════════════════════════════════
+-- CyberNet AI: Business team accounts — one subscription, named seats
+-- Run this block in Supabase Dashboard -> SQL Editor (safe to re-run).
+-- Applied directly to production via the Supabase MCP connector on
+-- 2026-09-03; this block is the version-controlled record of that.
+--
+-- profiles.plan is intentionally left untouched by this feature: a team
+-- member's own profile stays whatever it was before joining (free/pro),
+-- and their Business-tier access while on a team is derived at read time
+-- via business_members, never written onto profiles.plan. Note: profiles.plan
+-- itself still only allows ('free','pro') as of this writing — 'business'
+-- is not a legal value there (a separate pre-existing issue, unrelated to
+-- this feature, affecting only the old single-seat Business checkout path).
+-- ═══════════════════════════════════════════════════════════════════
+
+create table if not exists public.business_accounts (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references auth.users(id),
+  seat_tier smallint not null check (seat_tier in (5, 10, 20)),
+  daily_pool_limit smallint not null,
+  recovery_pool_limit smallint not null,
+  stripe_customer_id text,
+  stripe_subscription_id text,
+  subscription_status text not null default 'inactive',
+  billing_interval text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.business_accounts enable row level security;
+
+create table if not exists public.business_members (
+  id uuid primary key default gen_random_uuid(),
+  business_account_id uuid not null references public.business_accounts(id),
+  user_id uuid not null references auth.users(id),
+  role text not null check (role in ('owner','member')),
+  status text not null default 'active' check (status in ('active','removed')),
+  joined_at timestamptz not null default now(),
+  removed_at timestamptz,
+  unique (business_account_id, user_id)
+);
+
+alter table public.business_members enable row level security;
+
+-- Enforces "one active team per person" at the database level, not just
+-- in application code.
+create unique index if not exists business_members_one_active_team_per_user
+  on public.business_members (user_id)
+  where status = 'active';
+
+create table if not exists public.business_invites (
+  id uuid primary key default gen_random_uuid(),
+  business_account_id uuid not null references public.business_accounts(id),
+  email text not null,
+  token text not null unique,
+  invited_by_user_id uuid not null references auth.users(id),
+  status text not null default 'pending' check (status in ('pending','accepted','revoked','expired')),
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null,
+  accepted_at timestamptz
+);
+
+alter table public.business_invites enable row level security;
+create index if not exists business_invites_token_idx on public.business_invites (token);
+create index if not exists business_invites_business_account_idx on public.business_invites (business_account_id);
+
+-- Shared Quick Scan + Analysis AI pool (mirrors daily_usage/consume_analysis,
+-- UTC-midnight reset), scaled by seat tier: 5 seats -> 50/day (unchanged
+-- from the old single-seat limit), 10 seats -> 90/day, 20 seats -> 160/day.
+create table if not exists public.business_daily_usage (
+  business_account_id uuid not null references public.business_accounts(id),
+  usage_date date not null default (now() at time zone 'utc')::date,
+  analysis_count integer not null default 0 check (analysis_count >= 0),
+  updated_at timestamptz not null default now(),
+  primary key (business_account_id, usage_date)
+);
+
+alter table public.business_daily_usage enable row level security;
+
+-- Shared Recovery Mode pool (mirrors recovery_usage/consume_recovery_case,
+-- window resets daily at 12:00 PM Asia/Dubai via recovery_window_start()),
+-- scaled by seat tier: 5 seats -> 20/window (unchanged), 10 seats -> 36,
+-- 20 seats -> 64.
+create table if not exists public.business_recovery_usage (
+  business_account_id uuid not null references public.business_accounts(id),
+  window_start timestamptz not null,
+  cases_created integer not null default 0,
+  updated_at timestamptz not null default now(),
+  primary key (business_account_id, window_start)
+);
+
+alter table public.business_recovery_usage enable row level security;
+
+alter table public.recovery_cases add column if not exists business_account_id uuid references public.business_accounts(id);
+alter table public.scan_history add column if not exists business_account_id uuid references public.business_accounts(id);
+
+create index if not exists scan_history_business_account_idx on public.scan_history (business_account_id) where business_account_id is not null;
+create index if not exists recovery_cases_business_account_idx on public.recovery_cases (business_account_id) where business_account_id is not null;
+
+create or replace function public.consume_analysis_business(p_business_account_id uuid)
+returns table(allowed boolean, used integer, daily_limit integer)
+language plpgsql
+security definer
+set search_path to 'public'
+as $$
+declare
+  v_limit integer;
+  v_used integer;
+begin
+  select daily_pool_limit into v_limit
+  from public.business_accounts
+  where id = p_business_account_id;
+
+  if v_limit is null then
+    return query select false, 0, 0;
+    return;
+  end if;
+
+  insert into public.business_daily_usage (business_account_id, usage_date, analysis_count)
+  values (p_business_account_id, (now() at time zone 'utc')::date, 0)
+  on conflict (business_account_id, usage_date) do nothing;
+
+  update public.business_daily_usage
+  set analysis_count = analysis_count + 1, updated_at = now()
+  where business_account_id = p_business_account_id
+    and usage_date = (now() at time zone 'utc')::date
+    and analysis_count < v_limit
+  returning analysis_count into v_used;
+
+  if v_used is null then
+    select analysis_count into v_used
+    from public.business_daily_usage
+    where business_account_id = p_business_account_id
+      and usage_date = (now() at time zone 'utc')::date;
+
+    return query select false, coalesce(v_used, 0), v_limit;
+    return;
+  end if;
+
+  return query select true, v_used, v_limit;
+end;
+$$;
+
+create or replace function public.refund_analysis_business(p_business_account_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path to 'public'
+as $$
+begin
+  update public.business_daily_usage
+  set analysis_count = greatest(analysis_count - 1, 0), updated_at = now()
+  where business_account_id = p_business_account_id
+    and usage_date = (now() at time zone 'utc')::date;
+end;
+$$;
+
+create or replace function public.consume_recovery_case_business(p_business_account_id uuid)
+returns table(allowed boolean, used integer, daily_limit integer, reset_at timestamptz)
+language plpgsql
+security definer
+set search_path to 'public'
+as $$
+declare
+  v_limit integer;
+  v_used integer;
+  v_window timestamptz := public.recovery_window_start();
+begin
+  select recovery_pool_limit into v_limit
+  from public.business_accounts
+  where id = p_business_account_id;
+
+  if v_limit is null then
+    return query select false, 0, 0, public.recovery_next_reset();
+    return;
+  end if;
+
+  insert into public.business_recovery_usage (business_account_id, window_start, cases_created)
+  values (p_business_account_id, v_window, 0)
+  on conflict (business_account_id, window_start) do nothing;
+
+  update public.business_recovery_usage
+  set cases_created = cases_created + 1, updated_at = now()
+  where business_account_id = p_business_account_id
+    and window_start = v_window
+    and cases_created < v_limit
+  returning cases_created into v_used;
+
+  if v_used is null then
+    select cases_created into v_used
+    from public.business_recovery_usage
+    where business_account_id = p_business_account_id and window_start = v_window;
+
+    return query select false, coalesce(v_used, 0), v_limit, public.recovery_next_reset();
+    return;
+  end if;
+
+  return query select true, v_used, v_limit, public.recovery_next_reset();
+end;
+$$;
+
+revoke all on function public.consume_analysis_business(uuid) from public, anon, authenticated;
+revoke all on function public.refund_analysis_business(uuid) from public, anon, authenticated;
+revoke all on function public.consume_recovery_case_business(uuid) from public, anon, authenticated;
+grant execute on function public.consume_analysis_business(uuid) to service_role;
+grant execute on function public.refund_analysis_business(uuid) to service_role;
+grant execute on function public.consume_recovery_case_business(uuid) to service_role;
