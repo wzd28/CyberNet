@@ -1057,7 +1057,11 @@ async function runAiAnalysis(args: {
     // for this call is ~17-20s typical with a tail near 29s, so 26s preserves
     // the AI result in the normal case while guaranteeing that a slow call falls
     // back to the deterministic engine rather than returning a raw 504.
-    timeout: 26_000,
+    // Measured production latency for this call is ~17-20s typical with a tail
+    // near 29s, against a ~30s platform gateway timeout. 22s keeps the AI result
+    // for the normal case while leaving room for the history write that follows,
+    // so the slow tail degrades to the deterministic engine rather than 504ing.
+    timeout: 22_000,
     maxRetries: 0,
   });
 
