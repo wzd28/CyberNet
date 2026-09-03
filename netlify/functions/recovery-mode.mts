@@ -277,7 +277,11 @@ async function runAiRecoveryPlan(args: {
   const client = new OpenAI({
     apiKey,
     baseURL: env("OPENAI_BASE_URL") || undefined,
-    timeout: 35_000,
+    // Must stay comfortably under the ~30s platform gateway timeout. At 35s the
+    // gateway killed the whole function before the catch below could run, so a
+    // slow model call surfaced to the user as a raw 504 HTML page instead of the
+    // deterministic fallback plan this function is designed to fall back to.
+    timeout: 26_000,
     maxRetries: 0,
   });
   const contextText = [

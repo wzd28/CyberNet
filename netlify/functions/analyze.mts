@@ -1053,7 +1053,11 @@ async function runAiAnalysis(args: {
   const client = new OpenAI({
     apiKey,
     baseURL: env("OPENAI_BASE_URL") || undefined,
-    timeout: 35_000,
+    // Kept under the ~30s platform gateway timeout. Measured production latency
+    // for this call is ~17-20s typical with a tail near 29s, so 26s preserves
+    // the AI result in the normal case while guaranteeing that a slow call falls
+    // back to the deterministic engine rather than returning a raw 504.
+    timeout: 26_000,
     maxRetries: 0,
   });
 

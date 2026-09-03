@@ -136,7 +136,9 @@ async function runAiUpdate(args: {
   const client = new OpenAI({
     apiKey,
     baseURL: env("OPENAI_BASE_URL") || undefined,
-    timeout: 35_000,
+    // Kept under the ~30s platform gateway timeout so a slow model call degrades
+    // to the deterministic path instead of returning a raw 504 (see recovery-mode).
+    timeout: 26_000,
     maxRetries: 0,
   });
   const contextText = [
