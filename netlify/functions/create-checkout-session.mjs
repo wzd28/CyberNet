@@ -104,11 +104,23 @@ export default async (request) => {
       );
     }
 
+    const seatTier = targetPlan === "business" ? (Number(body.seatTier) || 5) : null;
+    if (targetPlan === "business" && ![5, 10, 20].includes(seatTier)) {
+      return json(
+        { error: "Invalid seat tier. Choose 5, 10, or 20 seats, or email cybernetai.26@gmail.com for a custom plan." },
+        400
+      );
+    }
+
+    // 5-seat keeps the existing lookup keys unchanged (tierSuffix empty);
+    // 10/20-seat use the new keys created for those tiers.
+    const tierSuffix = seatTier && seatTier !== 5 ? `_${seatTier}seat` : "";
+
     const lookupKey = targetPlan === "business"
       ? (
           cycle === "yearly"
-            ? (env("STRIPE_BUSINESS_YEARLY_LOOKUP_KEY") || "cybernet_ai_business_yearly")
-            : (env("STRIPE_BUSINESS_MONTHLY_LOOKUP_KEY") || "cybernet_ai_business_monthly")
+            ? (env(`STRIPE_BUSINESS${tierSuffix.toUpperCase()}_YEARLY_LOOKUP_KEY`) || `cybernet_ai_business${tierSuffix}_yearly`)
+            : (env(`STRIPE_BUSINESS${tierSuffix.toUpperCase()}_MONTHLY_LOOKUP_KEY`) || `cybernet_ai_business${tierSuffix}_monthly`)
         )
       : (
           cycle === "yearly"
@@ -172,13 +184,15 @@ export default async (request) => {
       metadata: {
         supabase_user_id: user.id,
         cycle,
-        plan: targetPlan
+        plan: targetPlan,
+        ...(seatTier ? { seat_tier: String(seatTier) } : {})
       },
       subscription_data: {
         metadata: {
           supabase_user_id: user.id,
           cycle,
-          plan: targetPlan
+          plan: targetPlan,
+          ...(seatTier ? { seat_tier: String(seatTier) } : {})
         }
       }
     });
