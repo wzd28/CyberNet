@@ -12,6 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css?v=20260831-2" />
   <link id="cybernetAccountUpgradeStylesheet" rel="stylesheet" href="cybernet-account-api-upgrade.css?v=20260831-1" />
+  <link id="cybernetBusinessTeamStylesheet" rel="stylesheet" href="cybernet-business-team.css?v=20260903-1" />
   <link rel="icon" type="image/png" sizes="512x512" href="/favicon.png?v=20260830-5">
   <link rel="shortcut icon" type="image/png" href="/favicon.png?v=20260830-5">
   <link rel="apple-touch-icon" href="/favicon.png?v=20260830-5">
@@ -2173,7 +2174,7 @@
 
         <article class="price-card glass reveal tilt-card business-price-card">
           <div class="price-card-topline">
-            <span class="price-plan-label">FOR VERIFIED PROFESSIONALS</span>
+            <span class="price-plan-label">FOR TEAMS &amp; ORGANIZATIONS</span>
             <span class="plan-badge plan-badge-business">BUSINESS</span>
           </div>
           <h3>CyberNet AI Business</h3>
@@ -2182,16 +2183,34 @@
             <span class="price-period">/month</span>
           </h2>
           <p class="billing-equivalent" id="businessBillingEquivalent">Billed monthly. Cancel anytime.</p>
-          <p class="business-email-note">One verified account per subscription — not a shared team login. Requires a company email address; free email providers (Gmail, Yahoo, Outlook, etc.) aren't eligible for this plan.</p>
+
+          <div class="cn-seat-picker" id="businessSeatPicker">
+            <span class="cn-seat-picker-label">Team size</span>
+            <div class="cn-seat-options">
+              <button class="cn-seat-option is-active" type="button" data-seat-tier="5" data-monthly="40" data-yearly="384">
+                <b>5 seats</b>$40/mo
+              </button>
+              <button class="cn-seat-option" type="button" data-seat-tier="10" data-monthly="80" data-yearly="768">
+                <b>10 seats</b>$80/mo
+              </button>
+              <button class="cn-seat-option" type="button" data-seat-tier="20" data-monthly="160" data-yearly="1536">
+                <b>20 seats</b>$160/mo
+              </button>
+            </div>
+            <small class="cn-seat-custom">Need more than 20 seats, or something custom? Email <a href="mailto:cybernetai.26@gmail.com">cybernetai.26@gmail.com</a>.</small>
+          </div>
+
+          <p class="business-email-note">One subscription covers your whole team. Every teammate signs in with their own named account, so any scan, analysis, or recovery case can be traced back to the person who ran it. Requires a company email address; free email providers (Gmail, Yahoo, Outlook, etc.) aren't eligible for this plan.</p>
           <ul>
-            <li>Everything in CyberNet AI Pro, except:</li>
-            <li><strong>100 Quick Scans per day</strong></li>
-            <li><strong>50 AI analyses per day</strong></li>
-            <li><strong>20 Recovery Mode cases per day</strong> — open more than one at once</li>
+            <li>Everything in CyberNet AI Pro, plus:</li>
+            <li><strong>Named seats for your team</strong> — invite teammates by email, each with their own login</li>
+            <li><strong>Full team activity log</strong> — see who ran what, and the full result of every analysis</li>
+            <li><strong>Shared daily pool</strong> — 50 analyses/day on 5 seats, 90 on 10, 160 on 20</li>
+            <li><strong>Shared Recovery Mode pool</strong> — 20 cases/day on 5 seats, 36 on 10, 64 on 20</li>
             <li><strong>Automated AI check-ins every 30 minutes</strong> on open Recovery cases</li>
             <li>Faster Recovery update cooldown (1 hour)</li>
+            <li>Owner controls who joins and who is removed</li>
             <li><strong>Priority, urgent-response support</strong> — direct line to our team</li>
-            <li>Company-verified account</li>
           </ul>
           <button class="secondary-btn full plan-select-btn" id="businessPlanBtn" data-plan="business" data-cycle="monthly">Upgrade to Business</button>
           <button class="secondary-btn full plan-select-btn" id="switchToBusinessBtn" data-plan="business" data-cycle="monthly">Switch to a Business Account</button>
@@ -2396,8 +2415,9 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <script src="config.js?v=20260830-3" defer></script>
-  <script src="script.js?v=20260903-2" defer></script>
+  <script src="script.js?v=20260903-3" defer></script>
   <script src="cybernet-account-api-upgrade.js?v=20260831-2" defer></script>
+  <script src="cybernet-business-team.js?v=20260903-1" defer></script>
   <script src="cybernet-final-ui-fix.js?v=20260830-3" defer></script>
       <script src="cybernet-legal-upgrade.js?v=20260831-3" defer></script>
 </body>
