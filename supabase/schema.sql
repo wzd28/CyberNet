@@ -963,3 +963,69 @@ revoke all on function public.consume_recovery_case_business(uuid) from public, 
 grant execute on function public.consume_analysis_business(uuid) to service_role;
 grant execute on function public.refund_analysis_business(uuid) to service_role;
 grant execute on function public.consume_recovery_case_business(uuid) to service_role;
+
+-- Recovery Mode case UPDATES (as opposed to new case creation, above) are
+-- already gated per-individual today: only a case's own owner_user_id can
+-- update it (enforced in recovery-update.mts, not a team-shared resource),
+-- and the existing per-plan cooldown lives on the same per-user
+-- recovery_usage row via consume_recovery_update(p_user_id). A team member's
+-- own profiles.plan is intentionally never set to 'business', so this
+-- mirrors that RPC with the plan hardcoded to the business tier's existing
+-- limits (999/"unlimited" count, 1 hour cooldown) instead of reading
+-- profiles.plan — no new team-pool table needed, since updates were never
+-- pooled across users to begin with.
+create or replace function public.consume_recovery_update_business(p_user_id uuid)
+returns table(allowed boolean, used integer, daily_limit integer, plan text, reset_at timestamptz, cooldown_seconds_remaining integer)
+language plpgsql
+security definer
+set search_path to 'public'
+as $$
+declare
+  v_limit integer := 999;
+  v_cooldown interval := interval '1 hour';
+  v_used integer := 0;
+  v_window timestamptz := public.recovery_window_start();
+  v_last_update timestamptz;
+  v_cooldown_remaining integer := 0;
+begin
+  select last_update_at into v_last_update
+  from public.recovery_usage
+  where user_id = p_user_id and window_start = v_window;
+
+  if v_last_update is not null and now() < v_last_update + v_cooldown then
+    v_cooldown_remaining := ceil(extract(epoch from ((v_last_update + v_cooldown) - now())));
+    select updates_used into v_used
+    from public.recovery_usage
+    where user_id = p_user_id and window_start = v_window;
+
+    return query select false, coalesce(v_used, 0), v_limit, 'business'::text, public.recovery_next_reset(), greatest(0, v_cooldown_remaining);
+    return;
+  end if;
+
+  insert into public.recovery_usage (user_id, window_start, cases_created, updates_used)
+  values (p_user_id, v_window, 0, 0)
+  on conflict (user_id, window_start) do nothing;
+
+  update public.recovery_usage
+  set updates_used = updates_used + 1, last_update_at = now(), updated_at = now()
+  where user_id = p_user_id
+    and window_start = v_window
+    and updates_used < v_limit
+  returning updates_used
+  into v_used;
+
+  if v_used is null then
+    select updates_used into v_used
+    from public.recovery_usage
+    where user_id = p_user_id and window_start = v_window;
+
+    return query select false, coalesce(v_used, 0), v_limit, 'business'::text, public.recovery_next_reset(), 0;
+    return;
+  end if;
+
+  return query select true, v_used, v_limit, 'business'::text, public.recovery_next_reset(), 0;
+end;
+$$;
+
+revoke execute on function public.consume_recovery_update_business(uuid) from public, anon, authenticated;
+grant execute on function public.consume_recovery_update_business(uuid) to service_role;

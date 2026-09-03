@@ -769,6 +769,59 @@ function isAdminUser(user: { email?: string } | null): boolean {
   return Boolean(user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase()));
 }
 
+// Business team accounts: a user's own profile is never modified when they
+// join a team, so this checks business_members directly rather than trusting
+// profiles.plan. Duplicated inline (not imported from lib/supabase.mjs) to
+// match this file's existing self-contained pattern.
+async function getActiveTeamMembership(userId: string): Promise<{
+  businessAccountId: string;
+  dailyPoolLimit: number;
+} | null> {
+  const response = await serviceFetch(
+    `/rest/v1/business_members?user_id=eq.${encodeURIComponent(userId)}` +
+    "&status=eq.active" +
+    "&select=business_accounts(id,daily_pool_limit,subscription_status)"
+  );
+  const rows = await response.json().catch(() => []);
+  if (!response.ok) return null;
+  const row = (rows as any[]).find((r) =>
+    ["active", "trialing"].includes(String(r.business_accounts?.subscription_status || ""))
+  );
+  if (!row) return null;
+  return {
+    businessAccountId: row.business_accounts.id,
+    dailyPoolLimit: row.business_accounts.daily_pool_limit,
+  };
+}
+
+async function consumeAnalysisBusiness(businessAccountId: string): Promise<UsageReservation> {
+  const response = await serviceFetch("/rest/v1/rpc/consume_analysis_business", {
+    method: "POST",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify({ p_business_account_id: businessAccountId }),
+  });
+  const payload = await response.json().catch(() => []);
+  if (!response.ok) throw new Error((payload as any)?.message || "Could not reserve a team analysis request.");
+  const row = Array.isArray(payload) ? payload[0] : payload;
+  const limit = Number(row?.daily_limit) || 0;
+  const used = Number(row?.used) || 0;
+  return {
+    allowed: Boolean(row?.allowed),
+    used,
+    limit,
+    remaining: Math.max(0, limit - used),
+    plan: "business",
+    resetDate: nextUtcReset(),
+  };
+}
+
+async function refundAnalysisBusiness(businessAccountId: string): Promise<void> {
+  await serviceFetch("/rest/v1/rpc/refund_analysis_business", {
+    method: "POST",
+    body: JSON.stringify({ p_business_account_id: businessAccountId }),
+  }).catch(() => undefined);
+}
+
 async function consumeAnalysis(userId: string): Promise<UsageReservation> {
   const response = await serviceFetch("/rest/v1/rpc/consume_analysis", {
     method: "POST",
@@ -797,7 +850,7 @@ async function refundAnalysis(userId: string): Promise<void> {
   }).catch(() => undefined);
 }
 
-async function saveHistory(userId: string, type: string, analysis: any): Promise<void> {
+async function saveHistory(userId: string, type: string, analysis: any, businessAccountId?: string | null): Promise<void> {
   if (!["text", "link", "image"].includes(type)) return;
   const response = await serviceFetch("/rest/v1/scan_history", {
     method: "POST",
@@ -809,6 +862,7 @@ async function saveHistory(userId: string, type: string, analysis: any): Promise
       score: Math.round(clamp(analysis.score)),
       threat_type: String(analysis.threatType || "Security analysis").slice(0, 160),
       summary: String(analysis.summary || "").slice(0, 2000),
+      ...(businessAccountId ? { business_account_id: businessAccountId } : {}),
     }),
   });
   if (!response.ok) console.warn("CyberNet history save failed", response.status);
@@ -1106,17 +1160,22 @@ export default async function handler(request: Request, context: any): Promise<R
   }
 
   let usage: UsageReservation;
+  let team: { businessAccountId: string; dailyPoolLimit: number } | null = null;
   if (isAdminUser(user)) {
     usage = { allowed: true, used: 0, limit: 999999, remaining: 999999, plan: "business", resetDate: nextUtcReset() };
   } else {
     try {
-      usage = await consumeAnalysis(user.id);
+      team = await getActiveTeamMembership(user.id);
+      usage = team
+        ? await consumeAnalysisBusiness(team.businessAccountId)
+        : await consumeAnalysis(user.id);
     } catch (error) {
       console.error("CyberNet usage reservation failed", error);
       return json({ error: "Secure account limits are not configured. Run the supplied schema.sql and confirm the Supabase server environment variables.", code: "usage_service_unavailable" }, 503);
     }
     if (!usage.allowed) {
-      return json({ error: `Daily ${usage.plan === "pro" ? "Pro" : "Free"} limit reached.`, code: "daily_limit_reached", usage }, 429);
+      const planLabel = usage.plan === "business" ? "team" : usage.plan === "pro" ? "Pro" : "Free";
+      return json({ error: `Daily ${planLabel} limit reached.`, code: "daily_limit_reached", usage }, 429);
     }
   }
 
@@ -1185,7 +1244,11 @@ export default async function handler(request: Request, context: any): Promise<R
 
   const analysis = sanitizeAnalysisResult(rawAnalysis || fallback, fallback);
   if (!aiUsed && !isAdminUser(user)) {
-    await refundAnalysis(user.id);
+    if (team) {
+      await refundAnalysisBusiness(team.businessAccountId);
+    } else {
+      await refundAnalysis(user.id);
+    }
     usage.used = Math.max(0, usage.used - 1);
     usage.remaining = Math.max(0, usage.limit - usage.used);
   }
@@ -1201,7 +1264,7 @@ export default async function handler(request: Request, context: any): Promise<R
 
   let history: any[] = [];
   if (aiUsed && (usage.plan === "pro" || usage.plan === "business") && mode === "quick") {
-    await saveHistory(user.id, type, analysis);
+    await saveHistory(user.id, type, analysis, team?.businessAccountId);
     history = await getHistory(user.id, 8);
   }
 
