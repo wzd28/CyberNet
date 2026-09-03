@@ -5,8 +5,31 @@ import {
   getUsage,
   effectivePlan,
   getHistory,
-  isAdminUser
+  isAdminUser,
+  getActiveTeamMembership,
+  serviceFetch
 } from "../lib/supabase.mjs";
+
+async function getTeamUsage(businessAccountId, dailyPoolLimit) {
+  const today = new Date().toISOString().slice(0, 10);
+  const response = await serviceFetch(
+    `/rest/v1/business_daily_usage?business_account_id=eq.${businessAccountId}` +
+    `&usage_date=eq.${today}&select=analysis_count`
+  );
+  const rows = await response.json().catch(() => []);
+  const used = Number(rows[0]?.analysis_count) || 0;
+
+  const next = new Date();
+  next.setUTCDate(next.getUTCDate() + 1);
+  next.setUTCHours(0, 0, 0, 0);
+
+  return {
+    used,
+    limit: dailyPoolLimit,
+    remaining: Math.max(0, dailyPoolLimit - used),
+    resetDate: next.toISOString()
+  };
+}
 
 export default async (request) => {
   if (request.method !== "GET") {
@@ -16,17 +39,21 @@ export default async (request) => {
   try {
     const { user } = await verifyUser(request);
     const profile = await getProfile(user);
-    const plan = effectivePlan(profile);
     const isAdmin = isAdminUser(user);
+    const team = isAdmin ? null : await getActiveTeamMembership(user.id);
+
+    const plan = isAdmin ? "business" : team ? "business" : effectivePlan(profile);
     const usage = isAdmin
       ? { used: 0, limit: 999999, remaining: 999999, resetDate: null }
-      : await getUsage(user.id, profile);
+      : team
+        ? await getTeamUsage(team.businessAccountId, team.dailyPoolLimit)
+        : await getUsage(user.id, profile);
 
     const includeHistory =
       new URL(request.url).searchParams.get("includeHistory") === "1";
 
     const history =
-      includeHistory && (plan === "pro" || isAdmin)
+      includeHistory && (plan === "pro" || plan === "business" || isAdmin)
         ? await getHistory(user.id, 8)
         : [];
 
@@ -41,7 +68,9 @@ export default async (request) => {
         subscriptionStatus:
           profile.subscription_status || "inactive",
         billingInterval:
-          profile.billing_interval || ""
+          profile.billing_interval || "",
+        isTeamMember: Boolean(team),
+        teamRole: team?.role || null
       },
       usage,
       history

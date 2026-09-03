@@ -115,6 +115,38 @@ export function dailyLimit(profile = {}) {
   return plan === "pro" ? 15 : 3;
 }
 
+// Business team accounts: checks whether a user currently belongs to an
+// active Business team, and if so, returns the team's shared-pool limits.
+// A team member's own `profiles` row is never modified when they join a
+// team — their Business-tier access is derived here, not stored on them.
+export async function getActiveTeamMembership(userId) {
+  const response = await serviceFetch(
+    `/rest/v1/business_members?user_id=eq.${encodeURIComponent(userId)}` +
+    "&status=eq.active" +
+    "&select=role,business_accounts(id,seat_tier,daily_pool_limit,recovery_pool_limit,subscription_status)"
+  );
+
+  const rows = await response.json().catch(() => []);
+
+  if (!response.ok) {
+    throw new Error(rows?.message || "Could not check team membership.");
+  }
+
+  const row = rows.find((r) =>
+    ["active", "trialing"].includes(String(r.business_accounts?.subscription_status || ""))
+  );
+
+  if (!row) return null;
+
+  return {
+    businessAccountId: row.business_accounts.id,
+    role: row.role,
+    seatTier: row.business_accounts.seat_tier,
+    dailyPoolLimit: row.business_accounts.daily_pool_limit,
+    recoveryPoolLimit: row.business_accounts.recovery_pool_limit
+  };
+}
+
 export async function getProfile(user) {
   const select =
     "id,full_name,plan,subscription_status,billing_interval," +
