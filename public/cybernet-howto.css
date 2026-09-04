@@ -62,9 +62,14 @@
 
 /* ── Callouts ─────────────────────────────────────────────────────────── */
 
+/*
+  Kind is carried by the label colour and a slight tint on the whole border,
+  not by a thick bar down one edge. An accent slab reads as a template, and
+  spreading the colour evenly is both quieter and more consistent with using
+  cyan as an accent rather than a default.
+*/
 .hw-callout {
   border: 1px solid var(--glass-border-quiet, rgba(56, 189, 248, .1));
-  border-left-width: 3px;
   border-radius: var(--radius-card, 16px);
   background: var(--glass);
   padding: var(--space-5, 24px);
@@ -83,11 +88,11 @@
 .hw-callout b { display: block; color: var(--text); font-size: 16px; margin-bottom: 6px; }
 .hw-callout p { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.6; }
 
-.hw-callout-info { border-left-color: var(--green); }
+.hw-callout-info { border-color: rgba(34, 211, 238, .24); }
 .hw-callout-info .hw-callout-label { color: var(--green); }
-.hw-callout-warn { border-left-color: var(--warning); }
+.hw-callout-warn { border-color: rgba(255, 207, 107, .26); }
 .hw-callout-warn .hw-callout-label { color: var(--warning); }
-.hw-callout-ok { border-left-color: var(--safe); }
+.hw-callout-ok { border-color: rgba(52, 211, 153, .24); }
 .hw-callout-ok .hw-callout-label { color: var(--safe); }
 
 /* ── Visual panel ─────────────────────────────────────────────────────── */
