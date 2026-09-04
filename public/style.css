@@ -4018,9 +4018,13 @@ input::placeholder{
 .rm-node-expand{
   max-height:0;
   overflow:hidden;
+  /* Ease-out rather than the previous overshoot curve, which sprang past
+     its open height and settled back. Real panels decelerate, they do not
+     bounce. Both properties now share one duration and curve so the panel
+     stops moving all at once instead of in two stages. */
   transition:
-    max-height .5s cubic-bezier(.34,1.56,.64,1),
-    padding .3s;
+    max-height .45s cubic-bezier(.22,1,.36,1),
+    padding .45s cubic-bezier(.22,1,.36,1);
   padding:0 22px;
 }
 
