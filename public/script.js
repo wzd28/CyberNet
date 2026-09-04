@@ -770,22 +770,13 @@ document.addEventListener("DOMContentLoaded",()=>{
   const videoPlayPauseBtn=document.getElementById("videoPlayPauseBtn");
   const videoSpeedBtn=document.getElementById("videoSpeedBtn");
 
+  // Titles and tab keys only. The content itself lives in cybernet-howto.js as
+  // a stepped walkthrough; the GIFs these used to point at have been removed.
+  // The src/type branches below are kept for any future real video.
   const HOWTO_VIDEOS={
-    protect:{
-      title:"How To Use Quick Scan",
-      src:"howto/quick-scan.gif",
-      type:"gif"
-    },
-    cybernetai:{
-      title:"How To Use Analysis AI",
-      src:"howto/analysis-ai.gif",
-      type:"gif"
-    },
-    recovery:{
-      title:"How To Use Recovery Mode",
-      src:"howto/recovery-mode.gif",
-      type:"gif"
-    }
+    protect:{title:"How To Use Quick Scan"},
+    cybernetai:{title:"How To Use Analysis AI"},
+    recovery:{title:"How To Use Recovery Mode"}
   };
 
   function wireVideoControls(videoEl){
@@ -810,12 +801,32 @@ document.addEventListener("DOMContentLoaded",()=>{
     syncPlayIcon();
   }
 
+  // Arrow-key handler for the walkthrough, registered only while the modal is
+  // open so it cannot swallow arrow keys anywhere else on the page.
+  let howtoKeyHandler=null;
+
+  function detachHowtoKeys(){
+    if(howtoKeyHandler){
+      document.removeEventListener("keydown",howtoKeyHandler);
+      howtoKeyHandler=null;
+    }
+  }
+
   function openHowtoVideo(key){
     const activeKey=HOWTO_VIDEOS[key]?key:"protect";
     const data=HOWTO_VIDEOS[activeKey];
     if(howtoVideoTitle)howtoVideoTitle.textContent=data.title;
+    detachHowtoKeys();
     if(howtoVideoPlayer){
-      if(data.src&&data.type==="gif"){
+      // Stepped walkthrough replaces the old GIFs. The playback controls belong
+      // to a <video> and mean nothing here, so they stay hidden.
+      if(window.CyberNetHowto?.has(activeKey)){
+        if(videoPlayerControls)videoPlayerControls.hidden=true;
+        howtoKeyHandler=window.CyberNetHowto.render(howtoVideoPlayer,activeKey,title=>{
+          if(howtoVideoTitle&&title)howtoVideoTitle.textContent=title;
+        });
+        if(howtoKeyHandler)document.addEventListener("keydown",howtoKeyHandler);
+      }else if(data.src&&data.type==="gif"){
         if(videoPlayerControls)videoPlayerControls.hidden=true;
         howtoVideoPlayer.innerHTML=`<img src="${data.src}" alt="${data.title}" class="howto-gif" />`;
       }else if(data.src){
@@ -839,6 +850,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   function closeHowtoVideoModal(){
     howtoVideoModal?.classList.remove("show");
     howtoVideoModal?.setAttribute("aria-hidden","true");
+    detachHowtoKeys();
     if(howtoVideoPlayer)howtoVideoPlayer.innerHTML="";
     if(videoPlayerControls)videoPlayerControls.hidden=true;
     document.body.style.overflow="";
