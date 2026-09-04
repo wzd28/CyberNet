@@ -26,7 +26,9 @@ if (!KEY) {
 }
 
 const DRY_RUN = process.argv.includes("--dry-run");
-const isLive = KEY.startsWith("sk_live_");
+// Restricted keys (rk_live_) are just as live as secret keys (sk_live_);
+// matching only sk_ would silently label a live run as a sandbox run.
+const isLive = /_live_/.test(KEY);
 const mode = isLive ? "LIVE  (real money)" : "TEST / SANDBOX";
 
 if (isLive && !DRY_RUN && process.env.CONFIRM_LIVE !== "yes") {
