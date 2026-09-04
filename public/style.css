@@ -4156,9 +4156,12 @@ input::placeholder{
 }
 
 .price-card{
-  border-radius:22px;
-  padding:26px;
-  transition:transform .3s;
+  border-radius:var(--radius-card,16px);
+  padding:var(--space-6,32px);
+  /* Pricing cards stay still. They are the surface people compare options on,
+     and movement under the cursor makes that harder, not more alive. The
+     tilt-card class is deliberately absent from these three in the markup;
+     the fixed lift on .pro-price-card is a static offset, not motion. */
 }
 
 .price-card h3{
