@@ -991,24 +991,52 @@ document.addEventListener("DOMContentLoaded",()=>{
   }
   function nonlinearScore(raw){return clamp(Math.round(100*(1-Math.exp(-Math.max(0,raw)/78))))}
 
-  function getDanger(score,uncertain=false){
+  function getDanger(score){
     /*
-      Fail-safe verdicts: CyberNet AI always commits to an answer rather than
-      showing a "Not Sure" result. When the engines can't confidently clear
-      something, the honest and safe direction for a security tool is "do not
-      trust it" — never "probably fine". Detection scoring, weights, and
-      thresholds are unchanged; only the verdict shown to the user changes,
-      so an uncertain read presents as UNSAFE instead of NOT SURE.
+      CyberNet AI always commits to a yes-or-no answer rather than showing a
+      "Not Sure" result, and that answer follows the score alone.
+
+      An earlier version also forced any "uncertain" read to UNSAFE. That was
+      intended as fail-safe, but it fired on ordinary content the engine simply
+      could not verify: a legitimate Google Docs link scored 28 and was still
+      reported UNSAFE. A warning that shows up on safe things teaches people to
+      ignore the warning, which costs more safety than it buys.
+
+      Where the engine cannot see the content at all — a screenshot with no QR
+      code, which the local image path cannot read — the honest answer is not a
+      verdict in either direction. That case is handled by the deep-scan prompt
+      instead of being guessed at here.
+
+      Detection scoring, weights and thresholds are unchanged.
     */
-    if(uncertain)return{label:"Unsafe — Do Not Trust It",headline:"UNSAFE",css:"danger"};
     if(score>=32)return{label:"Scam",headline:"SCAM",css:"danger"};
     return{label:"Not A Scam",headline:"NOT A SCAM",css:"safe"};
   }
 
+  function showDeepScanPrompt(resultBox,advice){
+    resultBox.className=resultBox.className.replace(/result-has-\w+/g,"").trim();
+    resultBox.classList.add("result-has-uncertain");
+    resultBox.innerHTML=`<div class="scan-report">
+      <div class="verdict-headline verdict-headline-uncertain">
+        <span class="verdict-headline-icon">↗</span>
+        <span class="verdict-headline-text">SEND THIS TO ANALYSIS AI</span>
+      </div>
+      <div class="verdict-note"><span>ⓘ</span><p>Quick Scan checks an image's file details and reads any QR code inside it. It cannot read the words, logos, or layout in a screenshot, so it has nothing to judge this picture on — calling it safe or unsafe here would be a guess either way.</p></div>
+      <div class="report-body">
+        <div class="report-col"><div class="report-col-title"><span class="col-safe">→</span> Get a real answer</div><ul class="report-list safe-list"><li><strong>Open Analysis AI and drop this same image in.</strong> It reads the text and logos in the picture and gives a straight verdict.</li><li>If the image contains a QR code, Quick Scan will decode it and judge where it leads — this one had none.</li></ul></div>
+        <div class="report-col"><div class="report-col-title"><span class="col-warn">⚠</span> Until then</div><ul class="report-list">${unique(advice).slice(0,4).map(a=>`<li>${escapeHTML(a)}</li>`).join("")}</ul></div>
+      </div>
+    </div>`;
+  }
+
   function showReport(resultBox,score,scamType,reasons,advice,meta={}){
+    // The local engine saw nothing it could judge, so say that plainly and
+    // point at the tool that can, rather than deriving a verdict from a score
+    // that was never based on the image's actual content.
+    if(meta.needsDeepScan){showDeepScanPrompt(resultBox,advice);return}
     const uncertain=Boolean(meta.uncertain||meta.verdict==="inconclusive");
     const confidence=clamp(meta.confidence??(uncertain?45:75));
-    const danger=getDanger(score,uncertain);
+    const danger=getDanger(score);
     const isSafe=danger.css==="safe";
     const confidenceText=confidence>=82?"High confidence":confidence>=58?"Moderate confidence":"Limited confidence";
     const verdictNote=meta.note||(uncertain
@@ -1330,9 +1358,9 @@ document.addEventListener("DOMContentLoaded",()=>{
     list.insertBefore(li,list.firstChild);if(list.children.length>4)list.removeChild(list.lastChild);
   }
   function riskMeta(result){
-    // Fail-safe: an unconfirmed read is shown as risk, never as a neutral
-    // "needs review" state (see getDanger for the full rationale).
-    if(result.uncertain)return{label:"High Risk",cls:"risk-tag-danger"};
+    // Follows the score, matching the verdict shown in the report itself (see
+    // getDanger). Tagging every unconfirmed read "High Risk" put that label on
+    // ordinary safe items and drained it of meaning.
     if(result.score>=60)return{label:"High Risk",cls:"risk-tag-danger"};
     if(result.score>=32)return{label:"Medium Risk",cls:"risk-tag-warning"};
     return{label:"Low Visible Risk",cls:"risk-tag-safe"};
@@ -1457,7 +1485,11 @@ document.addEventListener("DOMContentLoaded",()=>{
     let qrResult=null;
     if(decoded.qrData){const looksLikeUrl=/^https?:\/\//i.test(decoded.qrData)||/^[a-z0-9.-]+\.[a-z]{2,}/i.test(decoded.qrData);if(looksLikeUrl)qrResult=analyzeLinkRules(/^https?:\/\//i.test(decoded.qrData)?decoded.qrData:`https://${decoded.qrData}`)}
     const result=analyzeImageRules(file,{...decoded,qrResult});
-    showReport(cyberImageResult,result.score,result.scamType,result.reasons,result.advice,{...result,note:"Local QR and file checks complete. Use the CyberNet AI page for account-based visual AI analysis."});
+    // With no QR code there is nothing in the picture this path can actually
+    // read, so hand it to Analysis AI rather than showing a verdict built from
+    // the filename alone. Opted in here, not inside analyzeImageRules, because
+    // the Analysis AI page reuses that function for its own pre-analysis.
+    showReport(cyberImageResult,result.score,result.scamType,result.reasons,result.advice,{...result,needsDeepScan:!decoded.qrData,note:"Local QR and file checks complete. Use the CyberNet AI page for account-based visual AI analysis."});
     prependScan("imageScanList",file.name,result);
   }
   if(cyberDropZone)cyberDropZone.addEventListener("click",e=>{if(!isSignedIn()){e.preventDefault();openAuthModal("signup")}});
@@ -1586,7 +1618,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 
   function showDiagnosticReport(resultBox,result,type,decodedQr){
     const uncertain=Boolean(result.uncertain||result.verdict==="inconclusive");
-    const danger=getDanger(result.score,uncertain);
+    const danger=getDanger(result.score);
     const isSafe=danger.css==="safe";
     const previewUrl=type==="link"?result.previewUrl:decodedQr&&/^https?:\/\//i.test(decodedQr)?decodedQr:null;
     resultBox.className=resultBox.className.replace(/result-has-\w+/g,"").trim();

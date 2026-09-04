@@ -124,9 +124,39 @@ const HIGH_RISK_SIGNALS: Array<{ terms: string[]; note: string }> = [
   { terms: ["training fee for job", "advance payment for job"], note: "Job scam requesting an upfront payment — a common red flag." },
 ];
 
-function classifyIncident(description: string, quickAnswers: Record<string, boolean>): ClassifierResult {
+// The user telling us what happened is stronger evidence than keyword matching
+// over their free text, so the incident type they select sets the category and
+// puts a floor under the risk level.
+//
+// This value used to be sent to the model but never reached the classifier, so
+// the deterministic path ignored it entirely: selecting "Social media
+// compromised" and describing a live takeover still came out as "Other
+// cybersecurity incident" at LOW risk, because the description happened not to
+// contain an exact keyword phrase ("Someone changed my Instagram password"
+// does not contain "someone changed my password"). That mattered little while
+// the AI plan almost always ran; it matters a lot now that the deterministic
+// plan is the common path.
+const RISK_ORDER: RiskLevel[] = ["low", "medium", "high", "critical"];
+
+const SELECTED_INCIDENT_TYPES: Record<string, { label: string; riskFloor: RiskLevel }> = {
+  "account hacked": { label: "Account compromise", riskFloor: "high" },
+  "email compromised": { label: "Email compromise", riskFloor: "high" },
+  "social media compromised": { label: "Social media compromise", riskFloor: "high" },
+  "identity theft": { label: "Identity theft", riskFloor: "high" },
+  "cryptocurrency / wallet incident": { label: "Cryptocurrency / wallet incident", riskFloor: "high" },
+  "payment / card fraud": { label: "Financial / payment fraud", riskFloor: "high" },
+  "malware / device problem": { label: "Malware / device compromise", riskFloor: "high" },
+  "phishing / scam": { label: "Phishing", riskFloor: "medium" },
+};
+
+function classifyIncident(
+  description: string,
+  quickAnswers: Record<string, boolean>,
+  selectedIncidentType = "",
+): ClassifierResult {
   const text = description.toLowerCase();
   const signals: string[] = [];
+  const selected = SELECTED_INCIDENT_TYPES[selectedIncidentType.trim().toLowerCase()];
 
   let bestCategory = { id: "other", label: "Other cybersecurity incident", score: 0 };
   for (const category of CATEGORY_KEYWORDS) {
@@ -156,11 +186,22 @@ function classifyIncident(description: string, quickAnswers: Record<string, bool
   else if (riskScore >= 2) riskFloor = "high";
   else if (riskScore >= 1) riskFloor = "medium";
 
+  // Raise to the selected type's floor, never lower it: an explicit "my account
+  // was compromised" cannot leave the plan sitting at low risk, but a selection
+  // never softens what the description itself already evidenced.
+  if (selected && RISK_ORDER.indexOf(selected.riskFloor) > RISK_ORDER.indexOf(riskFloor)) {
+    riskFloor = selected.riskFloor;
+    signals.push(`Reported by the user as: ${selected.label}.`);
+  }
+
   let urgencyFloor: Urgency = "soon";
   if (quickAnswers.sentMoney || quickAnswers.sharedOtp || quickAnswers.lostAccess || riskFloor === "critical") urgencyFloor = "immediate";
   else if (riskFloor === "high" || quickAnswers.unknownLogin || quickAnswers.sharedPassword) urgencyFloor = "today";
 
-  return { incidentCategory: bestCategory.label, riskFloor, urgencyFloor, signals: uniqueStrings(signals, 10) };
+  // An explicit selection beats the keyword guess for naming the incident.
+  const incidentCategory = selected ? selected.label : bestCategory.label;
+
+  return { incidentCategory, riskFloor, urgencyFloor, signals: uniqueStrings(signals, 10) };
 }
 
 // ─── Verified official resource allowlist (never invented by the AI) ───
@@ -664,7 +705,7 @@ export default async function handler(request: Request, context: any): Promise<R
     }
   }
 
-  const classifier = classifyIncident(description, quickAnswers);
+  const classifier = classifyIncident(description, quickAnswers, incidentTypeHint);
 
   let rawPlan: any = null;
   let aiUsed = false;
