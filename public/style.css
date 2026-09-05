@@ -1427,11 +1427,25 @@ main{
   flex:1;
   min-height:0;
   border-radius:14px;
-  overflow:hidden;
+  /* The walkthrough that replaced the GIFs is taller than the viewport on a
+     phone. This was overflow:hidden with the content centred, which silently
+     clipped it — centring also puts the top of tall content above the scroll
+     origin, so it is unreachable even once scrolling is allowed. Start-aligned
+     and scrollable; a future <video> re-centres itself via margin below. */
+  overflow-y:auto;
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
   background:#03080f;
   border:1px solid var(--glass-border);
   display:grid;
-  place-items:center;
+  place-items:start center;
+  padding:var(--space-5,24px);
+}
+
+.video-modal-player video,
+.video-modal-player img{
+  margin:auto;
 }
 
 .video-modal-player video,
