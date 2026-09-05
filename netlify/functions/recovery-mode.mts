@@ -342,7 +342,7 @@ async function runAiRecoveryPlan(args: {
     // too little room for that tail and still produced a 504, so the model call
     // gets 20s and the remaining ~10s covers the pre- and post-work. Exceeding
     // it now falls through to the deterministic plan instead of an error page.
-    timeout: 20_000,
+    timeout: 24_000,
     maxRetries: 0,
   });
   const contextText = [
