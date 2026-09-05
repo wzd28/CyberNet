@@ -168,7 +168,7 @@
         color:var(--green-bright,#a5f0ff);
         background:rgba(34,211,238,.075);
         font-family:var(--font-mono,monospace);
-        font-size:9px;
+        font-size:12px;
         font-weight:800;
         text-transform:uppercase;
         letter-spacing:.06em;
@@ -211,7 +211,7 @@
       #accountDetailsModal .protect-saved-case h3{font-size:14px;margin:0;color:var(--text,#eaf3fb);overflow-wrap:anywhere}
       #accountDetailsModal .protect-saved-case p{color:var(--muted,#7d93ad);font-size:11px;line-height:1.55;margin:0}
       #accountDetailsModal .protect-saved-meta{display:flex;gap:6px;flex-wrap:wrap}
-      #accountDetailsModal .protect-saved-case small{color:var(--soft,#425873);font-family:var(--font-mono,monospace);font-size:9px}
+      #accountDetailsModal .protect-saved-case small{color:var(--soft,#425873);font-family:var(--font-mono,monospace);font-size:12px}
       #accountDetailsModal .protect-saved-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:3px}
       #accountDetailsModal .protect-no-cases{grid-column:1/-1;border:1px dashed var(--glass-border,rgba(56,189,248,.16));border-radius:15px;padding:35px;text-align:center;color:var(--muted,#7d93ad);font-size:12px;line-height:1.7}
       #accountDetailsModal .protect-primary,
@@ -221,7 +221,7 @@
         border-radius:10px;
         padding:9px 13px;
         font-family:var(--font-mono,monospace);
-        font-size:10px;
+        font-size:12px;
         font-weight:800;
         cursor:pointer;
       }
