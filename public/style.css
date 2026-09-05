@@ -5980,3 +5980,35 @@ footer a,.cn-footer-legal a,.cn-footer-legal button{
   .auth-helper-row{display:grid;justify-items:center}
 }
 
+
+/* ═══ Business Sign In ═══
+   Shown when someone tries to buy Business while signed in with a personal
+   email. The action is destructive-ish — it signs them out — so it reads as a
+   button rather than a link, and it only appears when there is a session to
+   sign out of. */
+.auth-business-switch{
+  display:block;
+  width:100%;
+  margin-top:var(--space-4,16px);
+  padding:12px 16px;
+  border-radius:12px;
+  border:1px solid var(--glass-border-quiet,rgba(56,189,248,.1));
+  background:transparent;
+  color:var(--text);
+  font-family:var(--font-mono);
+  font-size:13px;
+  cursor:pointer;
+  transition:border-color .2s ease,background .2s ease;
+}
+.auth-business-switch:hover:not(:disabled){
+  border-color:rgba(34,211,238,.4);
+  background:rgba(34,211,238,.06);
+}
+.auth-business-switch:disabled{opacity:.5;cursor:default}
+.auth-business-switch:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+
+.auth-business-mode .auth-heading p{
+  color:var(--muted);
+  font-size:var(--fs-small,15px);
+  line-height:1.6;
+}

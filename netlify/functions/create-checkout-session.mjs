@@ -181,6 +181,16 @@ export default async (request) => {
       client_reference_id: user.id,
       billing_address_collection: "auto",
       allow_promotion_codes: true,
+      // Stripe shows the Stripe account's business name on this page. This adds
+      // the trading relationship underneath it, so the customer can see that the
+      // CyberNet AI they signed up for and the entity taking the payment are the
+      // same business — which is also what stops the charge looking unfamiliar
+      // on a bank statement later.
+      custom_text: {
+        submit: {
+          message: "CyberNet AI is operated under Marks Events FZ LLE."
+        }
+      },
       metadata: {
         supabase_user_id: user.id,
         cycle,
