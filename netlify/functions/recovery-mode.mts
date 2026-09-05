@@ -374,7 +374,12 @@ async function runAiRecoveryPlan(args: {
       format: {
         type: "json_schema",
         name: "cybernet_recovery_plan",
-        strict: true,
+        // Not strict. Strict decoding grammar-checks every token, which is a
+        // large share of generation time on a schema this size, and the budget
+        // here is tight. sanitizePlan already validates and supplies a fallback
+        // for every single field, so a malformed response degrades exactly the
+        // way a refused or timed-out one does rather than reaching the user.
+        strict: false,
         schema: recoverySchema,
       },
     },
@@ -644,19 +649,6 @@ async function saveCase(userId: string, classifier: ClassifierResult, plan: any,
   }
   const caseRow = rows[0];
 
-  await serviceFetch("/rest/v1/recovery_versions", {
-    method: "POST",
-    headers: { Prefer: "return=minimal" },
-    body: JSON.stringify({
-      case_id: caseRow.id,
-      version_number: 1,
-      structured_plan: plan,
-      change_summary: "Initial recovery plan created.",
-      risk_level: plan.riskLevel,
-      progress_percent: 0,
-    }),
-  });
-
   const allTasks = [
     ...plan.immediateActions,
     ...plan.timeline.first10Minutes,
@@ -664,22 +656,40 @@ async function saveCase(userId: string, classifier: ClassifierResult, plan: any,
     ...plan.timeline.first24Hours,
     ...plan.timeline.next7Days,
   ];
-  if (allTasks.length) {
-    await serviceFetch("/rest/v1/recovery_tasks", {
+
+  // The plan version and the task list both depend on the case row and not on
+  // each other, so they go together. Sequential round trips were costing about
+  // a second of a request budget that has very little to spare.
+  await Promise.all([
+    serviceFetch("/rest/v1/recovery_versions", {
       method: "POST",
       headers: { Prefer: "return=minimal" },
-      body: JSON.stringify(
-        allTasks.map((task) => ({
-          case_id: caseRow.id,
-          plan_version: 1,
-          task_key: task.id,
-          title: task.title,
-          status: "pending",
-          priority: task.priority,
-        })),
-      ),
-    });
-  }
+      body: JSON.stringify({
+        case_id: caseRow.id,
+        version_number: 1,
+        structured_plan: plan,
+        change_summary: "Initial recovery plan created.",
+        risk_level: plan.riskLevel,
+        progress_percent: 0,
+      }),
+    }),
+    allTasks.length
+      ? serviceFetch("/rest/v1/recovery_tasks", {
+          method: "POST",
+          headers: { Prefer: "return=minimal" },
+          body: JSON.stringify(
+            allTasks.map((task) => ({
+              case_id: caseRow.id,
+              plan_version: 1,
+              task_key: task.id,
+              title: task.title,
+              status: "pending",
+              priority: task.priority,
+            })),
+          ),
+        })
+      : Promise.resolve(null),
+  ]);
 
   return caseRow.id as string;
 }
