@@ -1628,7 +1628,43 @@ document.addEventListener("DOMContentLoaded",()=>{
     return ()=>clearInterval(interval);
   }
 
+  /*
+    Mirrors AI_CONFIDENCE_SKIP_THRESHOLD in analyze.mts. The server treats a
+    deterministic result at or above this confidence as good enough to answer
+    with on its own — good enough to skip calling the model at all. Below it,
+    the deterministic layer is a stand-in, not an answer.
+  */
+  const DETERMINISTIC_TRUST_FLOOR=70;
+
+  function showAnalysisIncomplete(resultBox){
+    resultBox.className=resultBox.className.replace(/result-has-\w+/g,"").trim();
+    resultBox.classList.add("result-has-uncertain");
+    resultBox.innerHTML=`<div class="scan-report">
+      <div class="verdict-headline verdict-headline-uncertain">
+        <span class="verdict-headline-icon">↻</span>
+        <span class="verdict-headline-text">COULDN'T COMPLETE THIS ANALYSIS</span>
+      </div>
+      <div class="verdict-note"><span>ⓘ</span><p>CyberNet AI could not finish reading this one, so it is not going to guess. Saying "not a scam" on an analysis that did not actually run would be worse than saying nothing.</p></div>
+      <div class="report-body">
+        <div class="report-col"><div class="report-col-title"><span class="col-safe">→</span> What to do</div><ul class="report-list safe-list"><li><strong>Send it again.</strong> This is usually momentary, and a retry normally works.</li><li>This attempt was not counted against your daily analyses.</li></ul></div>
+        <div class="report-col"><div class="report-col-title"><span class="col-warn">⚠</span> Until it works</div><ul class="report-list"><li>Treat the message as unverified.</li><li>Do not click links, share codes, or send money based on it.</li><li>Check with the organisation through a number or app you already trust.</li></ul></div>
+      </div>
+    </div>`;
+  }
+
   function showDiagnosticReport(resultBox,result,type,decodedQr){
+    /*
+      The AI did not run and the deterministic layer is not confident enough to
+      speak for it, so no verdict is shown. This path exists because a real
+      phishing SMS was scored 0/100 at confidence 35 by the deterministic engine
+      and presented as NOT A SCAM — asserting safety from a fallback that never
+      analysed the content is the one failure direction a security tool cannot
+      afford. Refunding the usage already happens server-side.
+    */
+    if(!result.aiUsed&&clamp(result.confidence)<DETERMINISTIC_TRUST_FLOOR){
+      showAnalysisIncomplete(resultBox);
+      return;
+    }
     const uncertain=Boolean(result.uncertain||result.verdict==="inconclusive");
     const danger=getDanger(result.score);
     const isSafe=danger.css==="safe";
