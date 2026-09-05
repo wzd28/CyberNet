@@ -336,12 +336,17 @@ async function runAiRecoveryPlan(args: {
     // gateway killed the whole function before the catch below could run, so a
     // slow model call surfaced to the user as a raw 504 HTML page instead of the
     // deterministic fallback plan this function is designed to fall back to.
-    // Budget: the whole function must finish inside the ~30s platform gateway
-    // timeout, and this call is not the only work. After it returns we still
-    // write the case, the plan version and the task list to Supabase. 26s left
-    // too little room for that tail and still produced a 504, so the model call
-    // gets 20s and the remaining ~10s covers the pre- and post-work. Exceeding
-    // it now falls through to the deterministic plan instead of an error page.
+    // Budget: the whole request must finish inside the ~30s platform gateway
+    // timeout. Measured on production, everything around this call - auth,
+    // usage reservation, and the case/version/task writes afterwards - costs
+    // about 2s, not the 8-10s an earlier guess assumed. That guess is why this
+    // was set to 20s, which was just under what the call needs and so timed out
+    // every single time, giving every user the deterministic plan.
+    //
+    // Measured end-to-end after the changes in this commit: 18.3s, 23.0s and
+    // 23.7s, so roughly 6s of headroom in the worst observed case. Exceeding
+    // the timeout still falls through to the deterministic plan rather than
+    // surfacing an error page.
     timeout: 24_000,
     maxRetries: 0,
   });
@@ -404,14 +409,6 @@ async function runAiRecoveryPlan(args: {
   if (refusal) {
     throw new Error(`OpenAI refused the request: ${refusal.refusal || "no reason given"}`);
   }
-
-  (globalThis as any).__cnAiUsage = {
-    model: response.model,
-    outputTokens: (response as any)?.usage?.output_tokens,
-    reasoningTokens: (response as any)?.usage?.output_tokens_details?.reasoning_tokens,
-    inputTokens: (response as any)?.usage?.input_tokens,
-    status: response.status,
-  };
 
   if (!response.output_text) {
     throw new Error("OpenAI returned an empty response.");
@@ -749,8 +746,6 @@ export default async function handler(request: Request, context: any): Promise<R
 
   let rawPlan: any = null;
   let aiUsed = false;
-  const aiStartedAt = Date.now();
-  let aiFailure = "";
   try {
     rawPlan = await runAiRecoveryPlan({
       description,
@@ -765,7 +760,6 @@ export default async function handler(request: Request, context: any): Promise<R
     });
     aiUsed = Boolean(rawPlan);
   } catch (error) {
-    aiFailure = error instanceof Error ? `${error.name}: ${error.message}` : "unknown";
     console.error("CyberNet Recovery plan generation failed", {
       functionRequestId: context?.requestId,
       name: error instanceof Error ? error.name : "UnknownError",
@@ -793,8 +787,6 @@ export default async function handler(request: Request, context: any): Promise<R
     plan,
     aiUsed,
     model: aiUsed ? modelForRiskFloor(classifier.riskFloor) : "Server deterministic engine",
-    // TEMPORARY diagnostic - removed before merge.
-    __diag: { aiMs: Date.now() - aiStartedAt, aiFailure, usage: (globalThis as any).__cnAiUsage || null },
     usage,
     redactedSecretsCount: redactedCount,
     authenticated: true,
