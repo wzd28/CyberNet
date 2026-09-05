@@ -35,7 +35,14 @@ const MINI_MODEL = Netlify.env.get("ANALYSIS_MODEL_MINI") || "gpt-5-mini";
 // There's no deterministic substitute for a recovery plan, so AI always runs
 // here — this only decides which model, never whether to skip it.
 function modelForRiskFloor(riskFloor: RiskLevel): string {
-  return riskFloor === "critical" || riskFloor === "high" ? MODEL : MINI_MODEL;
+  // Only "critical" is worth the slower model. This used to include "high"
+  // too, which was affordable while few cases reached that floor - but once the
+  // selected incident type started raising the floor, most real cases became
+  // "high" and the slow path became the common path. Combined with an unbounded
+  // plan size that pushed the call past the request budget, so every case fell
+  // back to the deterministic plan and no case got AI at all. A mini-model plan
+  // is worth far more than a timed-out one.
+  return riskFloor === "critical" ? MODEL : MINI_MODEL;
 }
 const MAX_DESCRIPTION_CHARS = 6_000;
 const MAX_IMAGE_DATA_CHARS = 4_500_000;
@@ -298,6 +305,13 @@ Rules:
 12. When recommending authentication security, prefer authenticator apps or passkeys/FIDO2 over SMS one-time codes, which remain vulnerable to real-time phishing relay. Recommend scanning the device for malware BEFORE resetting passwords when device compromise is plausible — resetting first can let an attacker with device access regain control immediately.
 13. Recognize current 2025-2026 scam patterns in the incident description and tailor the plan accordingly: AI voice-cloning or deepfake family-emergency scams (advise verifying via a separate known channel, not the number/video that contacted them); romance-investment ("pig butchering") scams (advise stopping all further transfers immediately, since attackers often request "just one more" payment to "unlock" withdrawals); government/law-enforcement impersonation ("digital arrest") scams (reassure the user that real agencies do not demand secrecy or immediate payment by gift card, wire, or crypto); toll and package-delivery smishing; and job/task scams requesting upfront payment.
 
+14. PLAN SIZE — this is a hard requirement, not a style note. Structured Outputs cannot express array limits, so these counts are enforced here and trimmed server-side if exceeded:
+   - immediateActions: at most 3
+   - first10Minutes, firstHour, first24Hours, next7Days: at most 2 each
+   - whatWeKnow, inferences, unknowns, remainingRisk, limitations: at most 4 each
+   A person acting on this is frightened and in a hurry. Ten well-chosen actions get followed; thirty get abandoned. If a step does not change the outcome, leave it out. Empty timeline buckets are fine when nothing genuinely belongs there.
+15. LENGTH — keep instruction, why and verification to one sentence each, and summary to two or three. Be specific rather than lengthy: "Sign out all other sessions in Instagram's Security settings" beats a paragraph explaining what a session is.
+
 Return only the required structured result.`;
 
 async function runAiRecoveryPlan(args: {
@@ -364,7 +378,11 @@ async function runAiRecoveryPlan(args: {
         schema: recoverySchema,
       },
     },
-    max_output_tokens: 8_000,
+    // Sized for the plan the instructions now ask for (about 11 actions rather
+    // than up to 30). Generous enough that a legitimate plan is never truncated
+    // into an "incomplete" response, without leaving room for the sprawl that
+    // pushed this call past the request budget.
+    max_output_tokens: 3_500,
     reasoning: { effort: "low" },
     store: false,
   });
@@ -455,8 +473,12 @@ function sanitizePlan(raw: any, classifier: ClassifierResult, region: string) {
     estimatedMinutes: clamp(item?.estimatedMinutes, 1, 240) || 10,
   });
 
-  const sanitizeActionList = (list: any, prefix: string): RecoveryAction[] =>
-    (Array.isArray(list) ? list : []).slice(0, 6).map((item, index) => sanitizeAction(item, index, prefix));
+  // Mirrors the counts rule 14 gives the model. The schema cannot express array
+  // limits under Structured Outputs, so this is where they are actually
+  // enforced; the instruction exists so the model does not waste time
+  // generating items that would only be discarded here.
+  const sanitizeActionList = (list: any, prefix: string, limit: number): RecoveryAction[] =>
+    (Array.isArray(list) ? list : []).slice(0, limit).map((item, index) => sanitizeAction(item, index, prefix));
 
   return {
     incidentType: String(source.incidentType || classifier.incidentCategory).slice(0, 120),
@@ -466,18 +488,18 @@ function sanitizePlan(raw: any, classifier: ClassifierResult, region: string) {
     confidenceReason: String(source.confidenceReason || fallback.confidenceReason).slice(0, 500),
     confidenceMeaning: String(source.confidenceMeaning || fallback.confidenceMeaning).slice(0, 500),
     summary: String(source.summary || fallback.summary).slice(0, 1200),
-    whatWeKnow: uniqueStrings(source.whatWeKnow?.length ? source.whatWeKnow : fallback.whatWeKnow, 8),
-    inferences: uniqueStrings(source.inferences, 8),
-    unknowns: uniqueStrings(source.unknowns?.length ? source.unknowns : fallback.unknowns, 8),
-    immediateActions: sanitizeActionList(source.immediateActions?.length ? source.immediateActions : fallback.immediateActions, "immediate"),
+    whatWeKnow: uniqueStrings(source.whatWeKnow?.length ? source.whatWeKnow : fallback.whatWeKnow, 4),
+    inferences: uniqueStrings(source.inferences, 4),
+    unknowns: uniqueStrings(source.unknowns?.length ? source.unknowns : fallback.unknowns, 4),
+    immediateActions: sanitizeActionList(source.immediateActions?.length ? source.immediateActions : fallback.immediateActions, "immediate", 3),
     timeline: {
-      first10Minutes: sanitizeActionList(source.first10Minutes, "t10"),
-      firstHour: sanitizeActionList(source.firstHour, "t1h"),
-      first24Hours: sanitizeActionList(source.first24Hours, "t24h"),
-      next7Days: sanitizeActionList(source.next7Days, "t7d"),
+      first10Minutes: sanitizeActionList(source.first10Minutes, "t10", 2),
+      firstHour: sanitizeActionList(source.firstHour, "t1h", 2),
+      first24Hours: sanitizeActionList(source.first24Hours, "t24h", 2),
+      next7Days: sanitizeActionList(source.next7Days, "t7d", 2),
     },
-    remainingRisk: uniqueStrings(source.remainingRisk?.length ? source.remainingRisk : fallback.remainingRisk, 6),
-    limitations: uniqueStrings(source.limitations, 6),
+    remainingRisk: uniqueStrings(source.remainingRisk?.length ? source.remainingRisk : fallback.remainingRisk, 4),
+    limitations: uniqueStrings(source.limitations, 4),
     updateQuestion: String(source.updateQuestion || fallback.updateQuestion).slice(0, 200),
     reportingResources: selectResources(region),
   };
