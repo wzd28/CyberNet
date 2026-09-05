@@ -283,9 +283,59 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(googleAuthWrap)googleAuthWrap.hidden=mode!=="signup";
   }
 
-  function openAuthModal(mode="login"){
+  /*
+    Business is sold per organisation and checkout rejects free email providers,
+    so a customer signed in with a personal address cannot buy it. Rather than
+    letting them reach Stripe and bounce off a 403, the Business path sends them
+    back to sign-in first, relabelled so it is obvious why: they need to be in
+    with a work account. Kept in step with FREE_EMAIL_DOMAINS in
+    create-checkout-session.mjs, which is what actually enforces this.
+  */
+  const FREE_EMAIL_DOMAINS=new Set(["gmail.com","yahoo.com","outlook.com","hotmail.com","icloud.com","aol.com","protonmail.com","proton.me","mail.com","gmx.com","live.com","msn.com","yandex.com","zoho.com"]);
+
+  function isCompanyEmail(email){
+    const domain=String(email||"").split("@")[1]?.toLowerCase()||"";
+    return Boolean(domain)&&!FREE_EMAIL_DOMAINS.has(domain);
+  }
+
+  function setAuthPresentation(business){
+    const heading=document.querySelector(".auth-heading h2");
+    const sub=document.querySelector(".auth-heading p");
+    if(heading)heading.textContent=business?"Business Sign In":"Sign In or Create Account";
+    if(sub)sub.textContent=business
+      ?"CyberNet AI Business is billed to a company, so it needs a work email address rather than a personal one. Sign out below, then sign in with your work account or create one."
+      :"Use an existing CyberNet account, or create a free account in seconds.";
+    const modalCard=authModal?.querySelector(".modal-card");
+    modalCard?.classList.toggle("auth-business-mode",Boolean(business));
+    let action=document.getElementById("authBusinessSwitch");
+    if(business){
+      if(!action){
+        action=document.createElement("button");
+        action.type="button";
+        action.id="authBusinessSwitch";
+        action.className="auth-business-switch";
+        action.addEventListener("click",async()=>{
+          action.disabled=true;
+          try{await appState.supabase?.auth.signOut()}catch{}
+          setAuthTab("signup");
+          setAuthMessage("Signed out. Create or sign in with your work email to continue to Business.");
+          action.disabled=false;
+        });
+        document.querySelector(".auth-heading")?.appendChild(action);
+      }
+      action.textContent=isSignedIn()
+        ?`Sign out of ${appState.user?.email||"this account"}`
+        :"Use a work email to continue";
+      action.hidden=!isSignedIn();
+    }else if(action){
+      action.hidden=true;
+    }
+  }
+
+  function openAuthModal(mode="login",options={}){
     setAuthTab(mode);
     setAuthMessage("");
+    setAuthPresentation(options.business);
     authModal?.classList.add("show");
   }
 
@@ -656,6 +706,15 @@ document.addEventListener("DOMContentLoaded",()=>{
       return;
     }
     if(plan==="business"&&effectivePlanName()==="business"){showPricingNotice("CyberNet AI Business is already active on this account.","success");return}
+    // Send them to sign in with a work account before Stripe, rather than after
+    // checkout rejects the personal address.
+    if(plan==="business"&&!isCompanyEmail(appState.user?.email)){
+      sessionStorage.setItem("cybernet_pending_cycle",cycle);
+      sessionStorage.setItem("cybernet_pending_plan",plan);
+      openAuthModal("login",{business:true});
+      showPricingNotice("Business needs a work email address. Sign in with your work account to continue.");
+      return;
+    }
     if(plan==="pro"&&isPro()){showPricingNotice("CyberNet AI Pro is already active on this account.","success");return}
     showPricingNotice("Opening secure Stripe Checkout…");
     if(btn)btn.disabled=true;
@@ -674,7 +733,17 @@ document.addEventListener("DOMContentLoaded",()=>{
       // on the site after paying, so the first thing they see is their team.
       if(plan==="business"){try{sessionStorage.setItem("cybernet_pending_business_checkout","1")}catch{}}
       window.location.assign(data.url);
-    }catch(error){showPricingNotice(error.message||"Checkout could not start.","error")}
+    }catch(error){
+      // Backstop: the server owns the real rule, so if its list ever differs
+      // from the client's, route to the same place rather than dead-ending on a
+      // raw error the customer cannot act on.
+      if(plan==="business"&&/company email/i.test(error.message||"")){
+        openAuthModal("login",{business:true});
+        showPricingNotice("Business needs a work email address. Sign in with your work account to continue.");
+      }else{
+        showPricingNotice(error.message||"Checkout could not start.","error");
+      }
+    }
     finally{if(btn)btn.disabled=false;businessBtns.forEach(b=>b.disabled=false)}
   }
 
