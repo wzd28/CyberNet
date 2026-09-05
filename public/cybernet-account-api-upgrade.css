@@ -71,7 +71,7 @@
   color:var(--green-bright,#a5f0ff);
   background:rgba(34,211,238,.07);
   font-family:var(--font-mono,monospace);
-  font-size:10px;
+  font-size:12px;
   text-transform:uppercase;
   letter-spacing:.08em;
 }
@@ -108,7 +108,7 @@
   margin-bottom:8px;
   color:var(--muted,#7d93ad);
   font-family:var(--font-mono,monospace);
-  font-size:10px;
+  font-size:12px;
   font-weight:700;
   text-transform:uppercase;
   letter-spacing:.08em;
@@ -138,7 +138,7 @@
   border:1px solid rgba(34,211,238,.32);
   color:var(--green-bright,#a5f0ff);
   font-family:var(--font-mono,monospace);
-  font-size:10px;
+  font-size:12px;
   font-style:normal;
   text-transform:uppercase;
 }
@@ -216,7 +216,7 @@
   padding:5px 8px;
   color:var(--muted,#7d93ad);
   font-family:var(--font-mono,monospace);
-  font-size:9px;
+  font-size:12px;
   text-transform:uppercase;
 }
 
@@ -255,7 +255,7 @@
   background:rgba(255,255,255,.035);
   color:var(--green-bright,#a5f0ff);
   font-family:var(--font-mono,monospace);
-  font-size:10px;
+  font-size:12px;
 }
 
 .cybernet-byok-actions{
@@ -273,7 +273,7 @@
   min-height:18px;
   margin-top:9px;
   color:var(--muted,#7d93ad);
-  font-size:10px;
+  font-size:12px;
   line-height:1.55;
 }
 
@@ -285,7 +285,7 @@
   display:block;
   margin-top:8px;
   color:var(--soft,#425873);
-  font-size:9px;
+  font-size:12px;
   line-height:1.5;
 }
 
