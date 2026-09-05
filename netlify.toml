@@ -52,6 +52,19 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
     X-Frame-Options = "DENY"
+    # Built from what the site actually loads, measured in the browser rather
+    # than assumed: jsdelivr serves jsQR, Cloudflare Insights is the analytics
+    # beacon, Google Fonts serves the stylesheet and font files, and Supabase is
+    # the only cross-origin fetch target. Stripe needs no entry because checkout
+    # is a top-level redirect, which CSP does not govern.
+    #
+    # script-src and style-src keep 'unsafe-inline' because the page still has
+    # two inline <script> blocks and inline style attributes. That weakens the
+    # XSS protection this header is mainly for, so it is a step rather than the
+    # destination - moving those inline blocks into files would let both drop.
+    # Even so, this blocks script and style loads from any host not listed here,
+    # which is the common injection route and is currently unrestricted.
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://ndtcxippbufqzwcxkyjd.supabase.co https://static.cloudflareinsights.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests"
 
 [[headers]]
   for = "/api/*"
