@@ -383,7 +383,7 @@ async function runAiRecoveryPlan(args: {
     // into an "incomplete" response, without leaving room for the sprawl that
     // pushed this call past the request budget.
     max_output_tokens: 3_500,
-    reasoning: { effort: "low" },
+    reasoning: { effort: "minimal" },
     store: false,
   });
 
@@ -399,6 +399,14 @@ async function runAiRecoveryPlan(args: {
   if (refusal) {
     throw new Error(`OpenAI refused the request: ${refusal.refusal || "no reason given"}`);
   }
+
+  (globalThis as any).__cnAiUsage = {
+    model: response.model,
+    outputTokens: (response as any)?.usage?.output_tokens,
+    reasoningTokens: (response as any)?.usage?.output_tokens_details?.reasoning_tokens,
+    inputTokens: (response as any)?.usage?.input_tokens,
+    status: response.status,
+  };
 
   if (!response.output_text) {
     throw new Error("OpenAI returned an empty response.");
@@ -731,6 +739,8 @@ export default async function handler(request: Request, context: any): Promise<R
 
   let rawPlan: any = null;
   let aiUsed = false;
+  const aiStartedAt = Date.now();
+  let aiFailure = "";
   try {
     rawPlan = await runAiRecoveryPlan({
       description,
@@ -745,6 +755,7 @@ export default async function handler(request: Request, context: any): Promise<R
     });
     aiUsed = Boolean(rawPlan);
   } catch (error) {
+    aiFailure = error instanceof Error ? `${error.name}: ${error.message}` : "unknown";
     console.error("CyberNet Recovery plan generation failed", {
       functionRequestId: context?.requestId,
       name: error instanceof Error ? error.name : "UnknownError",
@@ -772,6 +783,8 @@ export default async function handler(request: Request, context: any): Promise<R
     plan,
     aiUsed,
     model: aiUsed ? modelForRiskFloor(classifier.riskFloor) : "Server deterministic engine",
+    // TEMPORARY diagnostic - removed before merge.
+    __diag: { aiMs: Date.now() - aiStartedAt, aiFailure, usage: (globalThis as any).__cnAiUsage || null },
     usage,
     redactedSecretsCount: redactedCount,
     authenticated: true,
