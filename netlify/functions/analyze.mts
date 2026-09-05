@@ -1061,7 +1061,11 @@ async function runAiAnalysis(args: {
     // near 29s, against a ~30s platform gateway timeout. 22s keeps the AI result
     // for the normal case while leaving room for the history write that follows,
     // so the slow tail degrades to the deterministic engine rather than 504ing.
-    timeout: 22_000,
+    // Measured: everything around this call costs about 2s, and the request
+    // budget is roughly 30s. 22s was low enough that the slow tail of this call
+    // (measured at 16.8s, 19.9s and 29.2s in production) timed out and dropped
+    // silently to the deterministic engine, which is far weaker than this one.
+    timeout: 24_000,
     maxRetries: 0,
   });
 
@@ -1096,12 +1100,17 @@ async function runAiAnalysis(args: {
       format: {
         type: "json_schema",
         name: "cybernet_protect_investigation",
-        strict: true,
+        // Not strict. Strict decoding grammar-checks every generated token and
+        // measured ~4.5s on the equivalent Recovery call. sanitizeAnalysisResult
+        // already validates every field and falls back to the deterministic
+        // result for anything missing, so strict adds latency rather than
+        // safety - and latency here is what makes the AI drop out entirely.
+        strict: false,
         schema: analysisSchema,
       },
     },
-    max_output_tokens: args.mode === "investigation" ? 8_000 : 12_000,
-    reasoning: { effort: "low" },
+    max_output_tokens: args.mode === "investigation" ? 8_000 : 5_000,
+    reasoning: { effort: "minimal" },
     store: false,
   });
 
