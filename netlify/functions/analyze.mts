@@ -195,6 +195,34 @@ const analysisSchema = {
   },
 };
 
+// Quick mode only asks for what the interface shows. The full schema above
+// makes the model write 28 fields - entities, indicators, timeline events,
+// hypotheses, three separate action lists - of which the standard result
+// renders nine. Everything else is investigation forensics generated and then
+// discarded, and it is why a quick analysis was taking 25-27s against a 24s
+// budget and dropping to the deterministic engine about a third of the time.
+// sanitizeAnalysisResult backfills every field not present here from the
+// deterministic result, so the response shape downstream is unchanged.
+const quickAnalysisSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: [
+    "verdict", "score", "confidence", "threatType", "summary",
+    "evidence", "counterEvidence", "limitations", "actions",
+  ],
+  properties: {
+    verdict: { type: "string", enum: ["malicious", "suspicious", "low_risk", "inconclusive"] },
+    score: { type: "integer" },
+    confidence: { type: "integer" },
+    threatType: { type: "string" },
+    summary: { type: "string" },
+    evidence: stringArray(),
+    counterEvidence: stringArray(),
+    limitations: stringArray(),
+    actions: stringArray(),
+  },
+};
+
 const analystInstructions = `You are CyberNet Protect's defensive cybersecurity investigation analyst.
 Your job is to analyze user-submitted messages, URLs, email headers, QR-code destinations, screenshots, and multi-artifact incident cases.
 
@@ -236,6 +264,8 @@ low: limited risk, no sensitive action taken.
 medium: credible attempt or possible exposure requiring follow-up.
 high: likely compromise, financial risk, credential exposure, malware delivery, or active impersonation.
 critical: confirmed high-impact compromise, ongoing account takeover, major financial loss, destructive malware, or immediate danger supported by evidence.
+
+21. OUTPUT SIZE in MODE quick - a hard requirement, since the schema cannot express array limits: at most 5 evidence items, 3 counterEvidence, 3 limitations and 5 actions, each one sentence. The summary keeps rule 20's 3-4 sentences; that is where the depth belongs. Do not pad a list to reach a count, and leave counterEvidence empty when there genuinely is none. In MODE investigation the full schema applies and these caps do not.
 
 Return only the required structured result.`;
 
@@ -1099,17 +1129,19 @@ async function runAiAnalysis(args: {
     text: {
       format: {
         type: "json_schema",
-        name: "cybernet_protect_investigation",
+        name: args.mode === "investigation" ? "cybernet_protect_investigation" : "cybernet_protect_quick",
         // Not strict. Strict decoding grammar-checks every generated token and
         // measured ~4.5s on the equivalent Recovery call. sanitizeAnalysisResult
         // already validates every field and falls back to the deterministic
         // result for anything missing, so strict adds latency rather than
         // safety - and latency here is what makes the AI drop out entirely.
         strict: false,
-        schema: analysisSchema,
+        schema: args.mode === "investigation" ? analysisSchema : quickAnalysisSchema,
       },
     },
-    max_output_tokens: args.mode === "investigation" ? 8_000 : 5_000,
+    // Quick mode now writes nine fields under explicit caps, so 2,500 is ample
+    // and stops the sprawl that was pushing the call past the request budget.
+    max_output_tokens: args.mode === "investigation" ? 8_000 : 2_500,
     reasoning: { effort: "minimal" },
     store: false,
   });
