@@ -1,0 +1,85 @@
+<!doctype html>
+<!--
+  Renders the social preview image (og:image / twitter:image) for cybernetai.app.
+
+  Drawn with the site's own fonts, colours and shield logo so the card people
+  see before they click matches what they land on. Run it through
+  scripts/og-image/serve.mjs, which serves this page and saves the result to
+  public/og-image.jpg. Edit the copy below and re-run to regenerate.
+-->
+<meta charset="utf-8">
+<title>CyberNet OG image</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+<body style="margin:0;background:#111">
+<!-- Force both faces to load before drawing; canvas will not wait for them. -->
+<span style="font:400 30px Inter;position:absolute;opacity:0">Aa</span>
+<span style="font:700 34px 'JetBrains Mono';position:absolute;opacity:0">Aa</span>
+<script>
+(async () => {
+  await document.fonts.load('400 30px Inter');
+  await document.fonts.load('700 34px "JetBrains Mono"');
+  await document.fonts.ready;
+
+  const W = 1200, H = 630;
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const x = c.getContext('2d');
+
+  // Ground: the site's navy with the hero's cyan glow.
+  x.fillStyle = '#050a16'; x.fillRect(0, 0, W, H);
+  const g = x.createRadialGradient(930, 250, 20, 930, 250, 560);
+  g.addColorStop(0, 'rgba(34,211,238,0.20)');
+  g.addColorStop(1, 'rgba(34,211,238,0)');
+  x.fillStyle = g; x.fillRect(0, 0, W, H);
+
+  // Faint grid, echoing the hero backdrop.
+  x.strokeStyle = 'rgba(56,189,248,0.05)'; x.lineWidth = 1;
+  for (let i = 0; i < W; i += 48) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, H); x.stroke(); }
+  for (let j = 0; j < H; j += 48) { x.beginPath(); x.moveTo(0, j); x.lineTo(W, j); x.stroke(); }
+
+  // The real shield logo, with the same glow it has on the site.
+  const img = new Image();
+  img.src = '/public/cybernetshield.png';
+  await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
+  x.save(); x.shadowColor = 'rgba(34,211,238,0.55)'; x.shadowBlur = 70;
+  x.drawImage(img, 790, 110, 300, 300); x.restore();
+
+  // Wordmark.
+  x.fillStyle = '#eaf3fb'; x.font = '700 34px "JetBrains Mono", monospace';
+  x.fillText('CyberNet', 80, 118);
+  const wm = x.measureText('CyberNet').width;
+  x.fillStyle = '#22d3ee'; x.fillText(' AI', 80 + wm, 118);
+
+  // Headline: the site hero, with the ampersand in cyan exactly as on the page.
+  x.font = '700 96px "JetBrains Mono", monospace';
+  x.fillStyle = '#eaf3fb'; x.fillText('Detect', 80, 262);
+  const dw = x.measureText('Detect ').width;
+  x.fillStyle = '#22d3ee'; x.fillText('&', 80 + dw, 262);
+  x.fillStyle = '#eaf3fb'; x.fillText('Protect', 80, 366);
+
+  // Supporting line, taken from the hero copy rather than invented for the ad.
+  x.font = '400 30px "Inter", system-ui, sans-serif';
+  x.fillStyle = '#a9bcd6';
+  x.fillText('Check suspicious messages, links and', 80, 446);
+  x.fillText('screenshots for scams in seconds.', 80, 488);
+
+  // Footer rule, domain and the three features.
+  x.strokeStyle = 'rgba(56,189,248,0.18)';
+  x.beginPath(); x.moveTo(80, 548); x.lineTo(1120, 548); x.stroke();
+  x.font = '700 24px "JetBrains Mono", monospace'; x.fillStyle = '#22d3ee';
+  x.fillText('cybernetai.app', 80, 592);
+  x.font = '400 22px "Inter", system-ui, sans-serif'; x.fillStyle = '#6d829f';
+  const tail = 'Quick Scan  ·  Analysis AI  ·  Recovery Mode';
+  x.fillText(tail, 1120 - x.measureText(tail).width, 592);
+
+  // JPEG, not PNG: the gradient and glow compress far better (88KB vs 583KB),
+  // and every platform recompresses the preview anyway.
+  const data = c.toDataURL('image/jpeg', 0.9);
+  const res = await fetch('/save', { method: 'POST', body: data });
+  document.body.innerHTML = '<img src="' + data + '" style="width:100%;display:block">';
+  document.title = res.ok ? 'SAVED' : 'FAILED';
+})().catch((e) => { document.title = 'ERROR: ' + e.message; });
+</script>
+</body>
