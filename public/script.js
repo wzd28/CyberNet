@@ -224,7 +224,6 @@ document.addEventListener("DOMContentLoaded",()=>{
   const freePlanBtn=document.getElementById("freePlanBtn");
   const proPlanBtn=document.getElementById("proPlanBtn");
   const businessPlanBtn=document.getElementById("businessPlanBtn");
-  const switchToBusinessBtn=document.getElementById("switchToBusinessBtn");
   const pricingNotice=document.getElementById("pricingNotice");
   const aiUpgradeBtn=document.getElementById("aiUpgradeBtn");
   const manageBillingBtn=document.getElementById("manageBillingBtn");
@@ -463,7 +462,6 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(freePlanBtn){freePlanBtn.textContent=!signedIn?"Start Free":pro?"Included with Pro":"Current Plan";freePlanBtn.disabled=signedIn}
     if(proPlanBtn){proPlanBtn.textContent=pro?"Current Plan":"Upgrade to Pro";proPlanBtn.disabled=pro}
     if(businessPlanBtn){const isBusiness=effectivePlanName()==="business";businessPlanBtn.textContent=isBusiness?"Current Plan":"Upgrade to Business";businessPlanBtn.disabled=isBusiness}
-    if(switchToBusinessBtn){const isBusiness=effectivePlanName()==="business";switchToBusinessBtn.hidden=isBusiness}
 
     updatePlanBenefits();
     renderProHistory();
@@ -647,7 +645,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 
   async function startCheckout(cycle="monthly",plan="pro"){
     const btn=plan==="pro"?proPlanBtn:null;
-    const businessBtns=plan==="business"?[businessPlanBtn,switchToBusinessBtn].filter(Boolean):[];
+    const businessBtns=plan==="business"?[businessPlanBtn].filter(Boolean):[];
     if(!isSignedIn()){
       sessionStorage.setItem("cybernet_pending_cycle",cycle);
       sessionStorage.setItem("cybernet_pending_plan",plan);
@@ -697,7 +695,6 @@ document.addEventListener("DOMContentLoaded",()=>{
   if(freePlanBtn)freePlanBtn.addEventListener("click",()=>{if(!isSignedIn())openAuthModal("signup")});
   if(proPlanBtn)proPlanBtn.addEventListener("click",()=>startCheckout(proPlanBtn.dataset.cycle||"monthly","pro"));
   if(businessPlanBtn)businessPlanBtn.addEventListener("click",()=>startCheckout(businessPlanBtn.dataset.cycle||"monthly","business"));
-  if(switchToBusinessBtn)switchToBusinessBtn.addEventListener("click",()=>startCheckout(switchToBusinessBtn.dataset.cycle||"monthly","business"));
   if(aiUpgradeBtn)aiUpgradeBtn.addEventListener("click",()=>switchPage("pricing"));
   if(manageBillingBtn)manageBillingBtn.addEventListener("click",openBillingPortal);
 
@@ -1924,7 +1921,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     const businessEquivalent=document.getElementById("businessBillingEquivalent");
     const seatPicker=document.getElementById("businessSeatPicker");
     const businessAmount=document.querySelector(".business-price-card .price-amount");
-    const businessButtons=[document.getElementById("businessPlanBtn"),document.getElementById("switchToBusinessBtn")].filter(Boolean);
+    const businessButtons=[document.getElementById("businessPlanBtn")].filter(Boolean);
     if(!toggle)return;
     const options=toggle.querySelectorAll(".toggle-option");
 
