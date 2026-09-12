@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=20260912-1" />
+  <link rel="stylesheet" href="style.css?v=20260912-2" />
   <link id="cybernetAccountUpgradeStylesheet" rel="stylesheet" href="cybernet-account-api-upgrade.css?v=20260905-1" />
   <link rel="stylesheet" href="cybernet-howto.css?v=20260905-1" />
   <link id="cybernetBusinessTeamStylesheet" rel="stylesheet" href="cybernet-business-team.css?v=20260905-1" />
@@ -265,12 +265,12 @@
         <button class="auth-tab active" data-auth="login">Sign In</button>
         <button class="auth-tab" data-auth="signup">Create Account</button>
       </div>
-      <div id="googleAuthWrap" class="google-auth-wrap" hidden>
+      <div id="googleAuthWrap" class="google-auth-wrap">
         <button type="button" class="google-auth-btn" id="googleAuthBtn">
           <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="#4285F4" d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.47a5.53 5.53 0 0 1-2.4 3.63v3h3.87c2.27-2.09 3.58-5.17 3.58-8.82z"/><path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.94-2.91l-3.87-3c-1.08.72-2.45 1.15-4.07 1.15-3.13 0-5.78-2.11-6.73-4.96H1.28v3.11A12 12 0 0 0 12 24z"/><path fill="#FBBC05" d="M5.27 14.28A7.2 7.2 0 0 1 4.89 12c0-.79.14-1.56.38-2.28V6.61H1.28A12 12 0 0 0 0 12c0 1.94.46 3.77 1.28 5.39z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0A12 12 0 0 0 1.28 6.61l3.99 3.11C6.22 6.86 8.87 4.75 12 4.75z"/></svg>
             Continue with Google
         </button>
-        <div class="auth-divider"><span>or sign up with email</span></div>
+        <div class="auth-divider"><span id="googleAuthDivider">or sign up with email</span></div>
       </div>
       <div id="authLoginForm" class="auth-form active-auth-form">
         <label for="loginEmail">Email</label>
@@ -432,6 +432,7 @@
       <button class="nav-link" data-page="cybernetai">Analysis AI</button>
       <button class="nav-link" data-page="recovery">Recovery</button>
       <button class="nav-link" data-page="learn">Learn</button>
+      <button class="nav-link" id="navManageBusinessBtn" type="button" aria-haspopup="dialog">Manage Business</button>
       <button class="nav-link" data-page="pricing">Pricing</button>
       <button class="nav-link" data-page="about">About</button>
     </nav>
@@ -2152,7 +2153,7 @@
             <li class="feature-unavailable">No downloadable reports</li>
             <li class="feature-unavailable">Recovery timeline limited to immediate actions</li>
           </ul>
-          <button class="secondary-btn full plan-select-btn" id="freePlanBtn" data-plan="free">Start Free</button>
+          <button class="primary-btn full plan-select-btn" id="freePlanBtn" data-plan="free">Start Free</button>
         </article>
 
         <article class="price-card featured-price glass reveal pro-price-card">
@@ -2224,7 +2225,7 @@
             <li>Owner controls who joins and who is removed</li>
             <li><strong>Priority, urgent-response support</strong> — direct line to our team</li>
           </ul>
-          <button class="secondary-btn full plan-select-btn" id="businessPlanBtn" data-plan="business" data-cycle="monthly">Upgrade to Business</button>
+          <button class="primary-btn full plan-select-btn" id="businessPlanBtn" data-plan="business" data-cycle="monthly">Upgrade to Business</button>
         </article>
       </div>
 
@@ -2426,10 +2427,10 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <script src="config.js?v=20260830-3" defer></script>
-  <script src="script.js?v=20260912-2" defer></script>
+  <script src="script.js?v=20260912-3" defer></script>
   <script src="cybernet-account-api-upgrade.js?v=20260831-2" defer></script>
   <script src="cybernet-howto.js?v=20260904-1" defer></script>
-<script src="cybernet-business-team.js?v=20260912-1" defer></script>
+<script src="cybernet-business-team.js?v=20260912-2" defer></script>
   <script src="cybernet-final-ui-fix.js?v=20260905-1" defer></script>
       <script src="cybernet-legal-upgrade.js?v=20260905-1" defer></script>
 </body>

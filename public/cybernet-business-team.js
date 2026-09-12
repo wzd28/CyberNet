@@ -649,6 +649,45 @@
 
     /* ─── Wiring ─── */
 
+    // The "Manage Business" entry in the main navigation. Team members get the
+    // panel; everyone else is pointed at the Business plan rather than shown an
+    // empty panel, and visitors who aren't signed in get the sign-in modal.
+    async function openTeamFromNav() {
+      document.querySelector(".navbar")?.classList.remove("open");
+
+      if (!(await getSession())) {
+        openExistingAuth();
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/business-account", {
+          headers: authHeaders({ Accept: "application/json" })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (response.ok && data.onTeam) {
+          openTeam();
+          return;
+        }
+      } catch {}
+
+      document.querySelector('.nav-tabs .nav-link[data-page="pricing"]')?.click();
+      const notice = document.getElementById("pricingNotice");
+      if (notice) {
+        notice.textContent = "Manage Business comes with the Business plan. Upgrade below to create your team.";
+        notice.className = "pricing-notice glass show";
+      }
+      setTimeout(() => {
+        document.querySelector(".business-price-card")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 350);
+    }
+
+    const navManageBtn = document.getElementById("navManageBusinessBtn");
+    if (navManageBtn && !navManageBtn.dataset.wired) {
+      navManageBtn.dataset.wired = "1";
+      navManageBtn.addEventListener("click", openTeamFromNav);
+    }
+
     function syncManageButton(account) {
       if (!injectManageButton()) return;
 

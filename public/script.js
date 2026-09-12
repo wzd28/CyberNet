@@ -279,7 +279,13 @@ document.addEventListener("DOMContentLoaded",()=>{
     authTabs.forEach(tab=>tab.classList.toggle("active",tab.dataset.auth===mode));
     loginForm?.classList.toggle("active-auth-form",mode==="login");
     signupForm?.classList.toggle("active-auth-form",mode==="signup");
-    if(googleAuthWrap)googleAuthWrap.hidden=mode!=="signup";
+    // Google works for both tabs — an existing Google account signs in, a new one
+    // is created — so only the divider's wording follows the tab.
+    if(googleAuthWrap){
+      googleAuthWrap.hidden=false;
+      const divider=document.getElementById("googleAuthDivider");
+      if(divider)divider.textContent=mode==="signup"?"or sign up with email":"or sign in with email";
+    }
   }
 
   function openAuthModal(mode="login"){
