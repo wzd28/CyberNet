@@ -15,8 +15,18 @@ export default async (request: Request) => {
     const limit = Math.max(1, Math.min(100, Number(url.searchParams.get("limit")) || 30));
     const memberFilter = url.searchParams.get("userId");
 
-    const scanFilter = memberFilter ? `&user_id=eq.${encodeURIComponent(memberFilter)}` : "";
-    const recoveryFilter = memberFilter ? `&owner_user_id=eq.${encodeURIComponent(memberFilter)}` : "";
+    // The log is the owner's view of the team, not of themselves: the owner's
+    // own scans and cases stay private and never appear here, even when the
+    // owner is the member being filtered for.
+    if (memberFilter === user.id) return json({ feed: [] });
+
+    const ownerId = encodeURIComponent(user.id);
+    const scanFilter = memberFilter
+      ? `&user_id=eq.${encodeURIComponent(memberFilter)}`
+      : `&user_id=neq.${ownerId}`;
+    const recoveryFilter = memberFilter
+      ? `&owner_user_id=eq.${encodeURIComponent(memberFilter)}`
+      : `&owner_user_id=neq.${ownerId}`;
 
     const [scanRes, recoveryRes] = await Promise.all([
       serviceFetch(

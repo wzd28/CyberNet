@@ -374,7 +374,7 @@
       if (!host) return;
 
       if (!feed?.length) {
-        host.innerHTML = '<div class="cn-team-empty">No team activity yet. Scans and recovery cases your team runs will appear here.</div>';
+        host.innerHTML = '<div class="cn-team-empty">No team activity yet. Scans and recovery cases your teammates run will appear here. Your own stay private.</div>';
         return;
       }
 

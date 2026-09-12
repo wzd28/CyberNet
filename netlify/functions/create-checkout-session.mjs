@@ -8,19 +8,6 @@ import {
   effectivePlan
 } from "../lib/supabase.mjs";
 
-// Common free/consumer email providers — Business plan checkout requires a
-// company email address, since it's priced and provisioned per-organization.
-const FREE_EMAIL_DOMAINS = new Set([
-  "gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "icloud.com",
-  "aol.com", "protonmail.com", "proton.me", "mail.com", "gmx.com",
-  "live.com", "msn.com", "yandex.com", "zoho.com"
-]);
-
-function isCompanyEmail(email) {
-  const domain = String(email || "").split("@")[1]?.toLowerCase() || "";
-  return Boolean(domain) && !FREE_EMAIL_DOMAINS.has(domain);
-}
-
 function env(name) {
   try {
     return globalThis.Netlify?.env?.get?.(name) || process.env[name] || "";
@@ -94,13 +81,6 @@ export default async (request) => {
       return json(
         { error: `CyberNet AI ${targetPlan === "business" ? "Business" : "Pro"} is already active.` },
         409
-      );
-    }
-
-    if (targetPlan === "business" && !isCompanyEmail(user.email)) {
-      return json(
-        { error: "The Business plan requires a company email address. Please sign in with your work email, not a personal/free email provider (Gmail, Yahoo, Outlook, etc.)." },
-        403
       );
     }
 
