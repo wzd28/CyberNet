@@ -569,7 +569,7 @@ button{
   box-shadow:0 6px 18px rgba(34,211,238,.18);
 }
 
-@media(max-width:920px){
+@media(max-width:1060px){
   .nav-social-links{
     padding-right:0;
     border-right:none;
@@ -4776,11 +4776,10 @@ img{
   }
 }
 
-@media(max-width:920px){
-  .navbar{
-    width:calc(100% - 26px);
-  }
-
+/* The tab row switches to the menu button at 1060px rather than 920px: with
+   nine entries (Manage Business joined the row) the tabs wrapped onto a second
+   line between those two widths. Page padding and heading sizes stay at 920. */
+@media(max-width:1060px){
   .nav-tabs,
   .nav-actions{
     display:none;
@@ -4821,6 +4820,12 @@ img{
     position:absolute;
     right:16px;
     top:14px;
+  }
+}
+
+@media(max-width:920px){
+  .navbar{
+    width:calc(100% - 26px);
   }
 
   main{
