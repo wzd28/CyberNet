@@ -130,21 +130,60 @@ async function upsertBusinessAccount(userId, subscription) {
     headers: { Prefer: "return=representation" },
     body: JSON.stringify({ owner_user_id: effectiveUserId, ...patch })
   });
+
+  // Stripe sends checkout.session.completed and customer.subscription.created
+  // for the same purchase within milliseconds of each other, and Netlify runs
+  // the two deliveries concurrently. Both can pass the lookups above before
+  // either has inserted, so the unique index on stripe_subscription_id turns
+  // the second insert into a 409: treat that as "the other delivery created
+  // it" and update that row instead of creating a second account.
+  if (insertRes.status === 409) {
+    const raceRes = await serviceFetch(
+      `/rest/v1/business_accounts?stripe_subscription_id=eq.${encodeURIComponent(subscriptionId)}&select=id`
+    );
+    const raceRows = await raceRes.json().catch(() => []);
+    const raceId = raceRows[0]?.id;
+
+    if (raceId) {
+      await serviceFetch(`/rest/v1/business_accounts?id=eq.${raceId}`, {
+        method: "PATCH",
+        body: JSON.stringify(patch)
+      });
+      await ensureOwnerMembership(raceId, effectiveUserId);
+    }
+
+    return raceId || null;
+  }
+
   const rows = await insertRes.json().catch(() => []);
   const newAccountId = rows[0]?.id;
 
   if (newAccountId) {
-    await serviceFetch("/rest/v1/business_members", {
-      method: "POST",
-      body: JSON.stringify({
-        business_account_id: newAccountId,
-        user_id: effectiveUserId,
-        role: "owner"
-      })
-    });
+    await ensureOwnerMembership(newAccountId, effectiveUserId);
   }
 
   return newAccountId;
+}
+
+// The owner's membership row is what makes the account theirs; it is created
+// once and left alone if it already exists.
+async function ensureOwnerMembership(accountId, userId) {
+  if (!accountId || !userId) return;
+
+  const existingRes = await serviceFetch(
+    `/rest/v1/business_members?business_account_id=eq.${accountId}&user_id=eq.${encodeURIComponent(userId)}&select=id`
+  );
+  const existing = await existingRes.json().catch(() => []);
+  if (existing.length) return;
+
+  await serviceFetch("/rest/v1/business_members", {
+    method: "POST",
+    body: JSON.stringify({
+      business_account_id: accountId,
+      user_id: userId,
+      role: "owner"
+    })
+  });
 }
 
 async function getBusinessAccountByStripeCustomer(customerId) {
