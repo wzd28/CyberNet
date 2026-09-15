@@ -112,6 +112,7 @@ const CATEGORY_KEYWORDS: Array<{ id: string; label: string; terms: string[] }> =
   { id: "romance_investment_scam", label: "Romance / investment (\"pig butchering\") scam", terms: ["met online", "dating app", "online relationship", "investment platform", "trading app", "guaranteed returns", "crypto trading", "convinced me to invest", "trading mentor"] },
   { id: "family_emergency_scam", label: "Family-emergency / voice-cloning scam", terms: ["sounded just like", "voice sounded like", "claimed to be my grandson", "claimed to be my son", "claimed to be my daughter", "called pretending to be", "ai voice", "deepfake", "bail money", "in an accident and needs money"] },
   { id: "government_impersonation_scam", label: "Government / law-enforcement impersonation scam", terms: ["said they were the police", "said they were from the irs", "said they were from the government", "arrest warrant", "digital arrest", "claimed i owed taxes", "said i was under investigation"] },
+  { id: "sim_swap", label: "SIM swap / phone-number takeover", terms: ["sim swap", "sim-swap", "simswap", "lost signal", "no signal", "no service on my phone", "number was ported", "ported my number", "port out", "new sim", "sim card stopped", "phone stopped working", "sos only"] },
   { id: "toll_delivery_smishing", label: "Toll / package-delivery smishing", terms: ["unpaid toll", "toll text", "e-zpass text", "package could not be delivered", "delivery text", "customs fee text", "redelivery fee"] },
   { id: "job_task_scam", label: "Job / task scam", terms: ["work from home job", "task job", "product boosting job", "hired me online", "job offer online", "advance payment for job", "training fee for job"] },
 ];
@@ -124,6 +125,8 @@ const HIGH_RISK_SIGNALS: Array<{ terms: string[]; note: string }> = [
   { terms: ["still happening", "still talking to", "still messaging", "keeps calling", "keeps messaging"], note: "Attacker contact may still be ongoing." },
   { terms: ["passport", "national id", "drivers license", "identity document"], note: "Identity document exposure reported." },
   { terms: ["multiple accounts", "several accounts", "other accounts too"], note: "Multiple accounts may be affected." },
+  { terms: ["sim swap", "sim-swap", "lost signal", "no signal", "number was ported", "ported my number", "port out", "sos only"], note: "Possible SIM swap: the phone number used for bank and email codes may be under an attacker's control." },
+  { terms: ["password reset", "reset email", "reset emails", "reset code", "reset link", "verification codes i didn't request", "codes i didn't request"], note: "Unrequested password resets or codes reported - an account takeover may be in progress." },
   { terms: ["remote access", "teamviewer", "anydesk", "let them control my"], note: "Remote-access software may have been installed by an attacker." },
   { terms: ["investment platform", "trading app", "guaranteed returns", "convinced me to invest", "trading mentor"], note: "Possible romance/investment (\"pig butchering\") scam involving ongoing financial exposure." },
   { terms: ["sounded just like", "voice sounded like", "ai voice", "deepfake", "bail money"], note: "Possible AI voice-cloning or deepfake-assisted family-emergency scam." },
@@ -199,6 +202,14 @@ function classifyIncident(
   if (selected && RISK_ORDER.indexOf(selected.riskFloor) > RISK_ORDER.indexOf(riskFloor)) {
     riskFloor = selected.riskFloor;
     signals.push(`Reported by the user as: ${selected.label}.`);
+  }
+
+  // "Other" carries no floor of its own, so a description that already
+  // mentions money, banking, passwords or codes cannot sit at low risk just
+  // because no category matched it.
+  if (riskFloor === "low" && /\b(bank|money|payment|card|password|otp|code|reset|transfer|transaction|wallet|crypto)\b/i.test(text)) {
+    riskFloor = "medium";
+    signals.push("Money, banking or credential details are involved even though no specific incident pattern matched.");
   }
 
   let urgencyFloor: Urgency = "soon";
