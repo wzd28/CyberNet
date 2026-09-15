@@ -329,12 +329,14 @@ Rules:
 12. When recommending authentication security, prefer authenticator apps or passkeys/FIDO2 over SMS one-time codes, which remain vulnerable to real-time phishing relay. Recommend scanning the device for malware BEFORE resetting passwords when device compromise is plausible — resetting first can let an attacker with device access regain control immediately.
 13. Recognize current 2025-2026 scam patterns in the incident description and tailor the plan accordingly: AI voice-cloning or deepfake family-emergency scams (advise verifying via a separate known channel, not the number/video that contacted them); romance-investment ("pig butchering") scams (advise stopping all further transfers immediately, since attackers often request "just one more" payment to "unlock" withdrawals); government/law-enforcement impersonation ("digital arrest") scams (reassure the user that real agencies do not demand secrecy or immediate payment by gift card, wire, or crypto); toll and package-delivery smishing; and job/task scams requesting upfront payment.
 
-14. PLAN SIZE — this is a hard requirement, not a style note. Structured Outputs cannot express array limits, so these counts are enforced here and trimmed server-side if exceeded:
+14. REGION — name only institutions, apps and authorities that belong to the user's REGION (for a case in Kuwait do not mention UAE Pass; for Saudi Arabia use Absher and the Saudi banks the user named). If the region is missing, say "your bank", "your national ID authority" and "your local police" rather than guessing a country.
+
+15. PLAN SIZE — this is a hard requirement, not a style note. Structured Outputs cannot express array limits, so these counts are enforced here and trimmed server-side if exceeded:
    - immediateActions: at most 3
    - first10Minutes, firstHour, first24Hours, next7Days: at most 2 each
    - whatWeKnow, inferences, unknowns, remainingRisk, limitations: at most 4 each
    A person acting on this is frightened and in a hurry. Ten well-chosen actions get followed; thirty get abandoned. If a step does not change the outcome, leave it out. Empty timeline buckets are fine when nothing genuinely belongs there.
-15. LENGTH — keep instruction, why and verification to one sentence each, and summary to two or three. Be specific rather than lengthy: "Sign out all other sessions in Instagram's Security settings" beats a paragraph explaining what a session is.
+16. LENGTH — keep instruction, why and verification to one sentence each, and summary to two or three. Be specific rather than lengthy: "Sign out all other sessions in Instagram's Security settings" beats a paragraph explaining what a session is.
 
 Return only the required structured result.`;
 

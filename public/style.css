@@ -6113,3 +6113,23 @@ footer a,.cn-footer-legal a,.cn-footer-legal button{
   .dest-preview,.qr-preview,.links-found{padding:12px}
   .dest-url,.qr-raw{font-size:11.5px}
 }
+
+/* A follow-up in Analysis AI is an answer about an earlier item, not a verdict. */
+.diagnostic-followup-head{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  font-weight:600;
+  font-size:14px;
+  color:var(--text);
+  margin-bottom:10px;
+}
+.diagnostic-followup-tag{
+  font-family:var(--font-mono);
+  font-size:11px;
+  color:var(--muted);
+  padding:3px 9px;
+  border-radius:999px;
+  border:1px solid var(--glass-border-quiet,rgba(56,189,248,.12));
+}

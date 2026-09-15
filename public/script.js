@@ -1140,7 +1140,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(/^\d{1,3}(\.\d{1,3}){3}$/.test(host))badges.push({cls:"bad",text:"Raw IP address instead of a website name"});
     const lures=isOfficialDomain(registered)?[]:lureWordsIn(registered);
     if(lures.length)badges.push({cls:"warn",text:`Uses “${lures.slice(0,2).join("”, “")}” in the domain name to look official`});
-    if(/login|signin|verify|password|account|wallet|unlock/.test(pathQuery))badges.push({cls:"warn",text:"The page asks for login or account details"});
+    if(!isOfficialDomain(registered)&&/login|signin|verify|password|account|wallet|unlock/.test(pathQuery))badges.push({cls:"warn",text:"The page asks for login or account details"});
     return{href:url.href,host,registered,path:url.pathname+url.search,badges,mismatch,score:linkResult?.score};
   }
   function renderLinkPreview(rawUrl,linkResult,options={}){
@@ -1359,6 +1359,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     return host==="localhost"||host.endsWith(".local")||/^127\./.test(host)||/^10\./.test(host)||/^192\.168\./.test(host)||/^169\.254\./.test(host)||/^172\.(1[6-9]|2\d|3[01])\./.test(host)||host==="::1";
   }
   function registrableDomain(host){
+    if(/^\d{1,3}(\.\d{1,3}){3}$/.test(host)||host.includes(":"))return host;
     const labels=host.split(".").filter(Boolean);if(labels.length<=2)return host;
     const compound=new Set(["co.uk","org.uk","gov.uk","com.au","net.au","co.nz","com.br","com.tr","com.lb","com.cy","co.jp","co.in","com.sg","com.cn","com.hk","com.mx","gov.ae","ac.ae","co.ae","net.ae","org.ae","sch.ae","com.sa","gov.sa","edu.sa","org.sa","net.sa","com.qa","gov.qa","edu.qa","com.kw","gov.kw","edu.kw","com.bh","gov.bh","com.om","gov.om","com.eg","gov.eg","com.jo","gov.jo","co.za","com.pk","gov.in"]);
     const tail2=labels.slice(-2).join(".");return compound.has(tail2)?labels.slice(-3).join("."):tail2;
@@ -1842,6 +1843,18 @@ document.addEventListener("DOMContentLoaded",()=>{
     */
     if(!result.aiUsed&&clamp(result.confidence)<DETERMINISTIC_TRUST_FLOOR){
       showAnalysisIncomplete(resultBox);
+      return;
+    }
+    // A follow-up is an answer about an earlier item, not a new verdict, so it
+    // reads as one: the question, the answer, and what to do - no score line.
+    if(result.isFollowUp){
+      resultBox.className=resultBox.className.replace(/result-has-\w+/g,"").trim();
+      resultBox.innerHTML=`
+        <div class="diagnostic-report diagnostic-followup">
+          <div class="diagnostic-followup-head">💬 About your earlier message <span class="diagnostic-followup-tag">${escapeHTML(String(result.scamType||"").replace(/^Follow-up\s*·\s*/,""))}</span></div>
+          <div class="diagnostic-note"><p>${escapeHTML(result.note||"")}</p></div>
+          ${unique(result.advice||[]).length?`<div class="diagnostic-body"><div class="diagnostic-col"><h5>What You Should Do</h5><ul class="diagnostic-actions">${unique(result.advice).slice(0,6).map(a=>`<li>${escapeHTML(a)}</li>`).join("")}</ul></div></div>`:""}
+        </div>`;
       return;
     }
     const uncertain=Boolean(result.uncertain||result.verdict==="inconclusive");
