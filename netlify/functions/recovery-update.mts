@@ -1,4 +1,11 @@
 import OpenAI from "openai";
+import { streamedJson } from "../lib/streamed-json.mts";
+
+const JSON_HEADERS = {
+  "Cache-Control": "no-store",
+  "Content-Type": "application/json; charset=utf-8",
+  "X-Content-Type-Options": "nosniff",
+};
 
 declare const Netlify: {
   env: {
@@ -140,7 +147,9 @@ async function runAiUpdate(args: {
     // to the deterministic path instead of returning a raw 504 (see recovery-mode).
     // Same budget reasoning as recovery-mode: leave ~10s for the Supabase
     // writes that follow, so a slow model call degrades instead of 504ing.
-    timeout: 20_000,
+    // Streamed response (see streamedJson): a 60-second budget for the request,
+    // so the update is no longer cut off at 20 seconds.
+    timeout: 45_000,
     maxRetries: 0,
   });
   const contextText = [
@@ -426,6 +435,9 @@ export default async function handler(request: Request, context: any): Promise<R
 
   const completedTaskTitles = taskList.filter((task) => task.status === "completed").map((task) => task.title);
 
+  // Everything that can fail with a non-200 status has happened above; from here
+  // the work runs inside a streamed 200 so the AI update is no longer cut off.
+  return streamedJson(async () => {
   let rawUpdate: any = null;
   try {
     rawUpdate = await runAiUpdate({ previousPlan, completedTaskTitles, updateText, riskFloor: caseRow.risk_level });
@@ -499,14 +511,18 @@ export default async function handler(request: Request, context: any): Promise<R
     }),
   });
 
-  return json({
+  return {
     caseId,
     caseVersion: newVersionNumber,
     plan: { ...updatedPlan, progressPercent },
     status,
     usage,
     redactedSecretsCount: redactedCount,
-  });
+  };
+  }, (error) => {
+    console.error("CyberNet Recovery update save failed", error);
+    return { error: "Couldn't update this case right now. Please try again.", code: "update_failed" };
+  }, JSON_HEADERS);
 }
 
 export const config = {
