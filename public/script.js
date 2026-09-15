@@ -2134,6 +2134,7 @@ document.addEventListener("DOMContentLoaded",()=>{
         updateAccountUI();
         renderDashboard();
         showDashboard();
+        if(data.aiPending)watchForAiPlan(data.caseId,Number(data.caseVersion)||1,"plan");
       }catch(error){
         if(error.code==="daily_limit_reached"){
           setIntakeMessage(`${error.message} Upgrade to Pro for more Recovery cases per day.`,"warning");
@@ -2335,7 +2336,8 @@ document.addEventListener("DOMContentLoaded",()=>{
         currentPlan=data.plan;
         if(updateTextEl)updateTextEl.value="";
         renderDashboard();
-        setUpdateMessage("Recovery case updated.","success");
+        if(data.aiPending)watchForAiPlan(currentCaseId,Number(data.caseVersion)||1,"update");
+        else setUpdateMessage("Recovery case updated.","success");
       }catch(error){
         if(error.code==="cooldown_active"){
           setUpdateMessage(error.message||"Please wait before submitting another update.","warning");
@@ -2350,6 +2352,33 @@ document.addEventListener("DOMContentLoaded",()=>{
       }
     }
     if(updateBtn)updateBtn.addEventListener("click",submitRecoveryUpdate);
+
+    // The server answers with the deterministic plan and builds the AI one in
+    // the background; this swaps it in once the case's version number moves.
+    let aiWatch=null;
+    async function watchForAiPlan(caseId,seenVersion,kind){
+      const token={};aiWatch=token;
+      const started=Date.now();
+      setUpdateMessage(kind==="update"?"Updating your plan with CyberNet AI… the plan below stays current until then.":"Your essential actions are ready. CyberNet AI is preparing your full plan…","");
+      while(aiWatch===token&&currentCaseId===caseId&&Date.now()-started<180000){
+        await new Promise(r=>setTimeout(r,4000));
+        if(aiWatch!==token||currentCaseId!==caseId)return;
+        try{
+          const res=await fetch(`${RECOVERY_CASE_ENDPOINT}?caseId=${encodeURIComponent(caseId)}`,{headers:authHeaders({Accept:"application/json"}),cache:"no-store"});
+          const data=await res.json().catch(()=>({}));
+          const version=Number(data.case?.current_version)||0;
+          if(res.ok&&data.plan&&version>seenVersion){
+            currentPlan={...data.plan,progressPercent:Number(data.case?.progress_percent)||0};
+            currentTasks=Array.isArray(data.tasks)?data.tasks:[];
+            renderDashboard();
+            setUpdateMessage(kind==="update"?"Recovery case updated.":"Your full CyberNet AI recovery plan is ready.","success");
+            loadCaseList();
+            return;
+          }
+        }catch{}
+      }
+      if(aiWatch===token&&currentCaseId===caseId)setUpdateMessage(kind==="update"?"The AI update is taking longer than usual — the plan below is still current.":"CyberNet AI couldn't finish the full plan this time — the essential actions below still apply.","warning");
+    }
 
     function showDashboard(){
       intakeEl.hidden=true;

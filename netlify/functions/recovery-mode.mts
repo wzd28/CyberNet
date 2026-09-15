@@ -1,11 +1,4 @@
 import OpenAI from "openai";
-import { streamedJson } from "../lib/streamed-json.mts";
-
-const JSON_HEADERS = {
-  "Cache-Control": "no-store",
-  "Content-Type": "application/json; charset=utf-8",
-  "X-Content-Type-Options": "nosniff",
-};
 
 declare const Netlify: {
   env: {
@@ -332,32 +325,17 @@ async function runAiRecoveryPlan(args: {
   urgencyFloor: Urgency;
   imageData: string;
   updateContext?: { previousPlan: unknown; completedTaskTitles: string[]; updateText: string };
-}) {
+}, options: { timeoutMs?: number } = {}) {
   const apiKey = env("OPENAI_API_KEY");
   if (!apiKey) return null;
 
   const client = new OpenAI({
     apiKey,
     baseURL: env("OPENAI_BASE_URL") || undefined,
-    // Must stay comfortably under the ~30s platform gateway timeout. At 35s the
-    // gateway killed the whole function before the catch below could run, so a
-    // slow model call surfaced to the user as a raw 504 HTML page instead of the
-    // deterministic fallback plan this function is designed to fall back to.
-    // Budget: the whole request must finish inside the ~30s platform gateway
-    // timeout. Measured on production, everything around this call - auth,
-    // usage reservation, and the case/version/task writes afterwards - costs
-    // about 2s, not the 8-10s an earlier guess assumed. That guess is why this
-    // was set to 20s, which was just under what the call needs and so timed out
-    // every single time, giving every user the deterministic plan.
-    //
-    // Measured end-to-end after the changes in this commit: 18.3s, 23.0s and
-    // 23.7s, so roughly 6s of headroom in the worst observed case. Exceeding
-    // the timeout still falls through to the deterministic plan rather than
-    // surfacing an error page.
-    // The response is streamed (see streamedJson), which gives the whole request
-    // a 60-second budget instead of the plain-response one that kept cutting the
-    // plan off at 24 seconds and handing every case to the deterministic engine.
-    timeout: 50_000,
+    // This runs inside the background function (15-minute limit), so the model
+    // gets a generous budget. The synchronous request never waits on it: it
+    // returns the deterministic plan at once and the page polls for this one.
+    timeout: options.timeoutMs ?? 120_000,
     maxRetries: 0,
   });
   const contextText = [
@@ -754,13 +732,27 @@ export default async function handler(request: Request, context: any): Promise<R
 
   const classifier = classifyIncident(description, quickAnswers, incidentTypeHint);
 
-  // Everything that can fail with a non-200 status has happened above; from here
-  // the work runs inside a streamed 200 so the AI plan is no longer cut off.
-  return streamedJson(async () => {
-  let rawPlan: any = null;
-  let aiUsed = false;
+  // The deterministic plan is saved and returned at once. The AI plan is built
+  // by the background function, which has no request-time limit, and the page
+  // polls the case until it lands. Every AI plan used to have to finish inside
+  // the request budget, and on production most of them did not.
+  const plan = sanitizePlan(null, classifier, region);
+
+  let caseId: string;
   try {
-    rawPlan = await runAiRecoveryPlan({
+    caseId = await saveCase(user.id, classifier, plan, region, `${plan.incidentType} — ${new Date().toLocaleDateString()}`, team?.businessAccountId);
+  } catch (error) {
+    console.error("CyberNet Recovery case save failed", error);
+    return json({ error: "Your recovery plan was generated, but it could not be saved. Please try again.", code: "save_failed" }, 500);
+  }
+
+  const aiPending = await triggerBackgroundJob(request, {
+    kind: "start",
+    caseId,
+    userId: user.id,
+    classifier,
+    region,
+    input: {
       description,
       quickAnswers,
       incidentTypeHint,
@@ -770,45 +762,65 @@ export default async function handler(request: Request, context: any): Promise<R
       riskFloor: classifier.riskFloor,
       urgencyFloor: classifier.urgencyFloor,
       imageData,
-    });
-    aiUsed = Boolean(rawPlan);
-  } catch (error) {
-    console.error("CyberNet Recovery plan generation failed", {
-      functionRequestId: context?.requestId,
-      name: error instanceof Error ? error.name : "UnknownError",
-      message: error instanceof Error ? error.message : "Unknown error",
-      status: (error as any)?.status,
-      code: (error as any)?.code,
-      type: (error as any)?.error?.type,
-      requestId: (error as any)?.request_id,
-    });
+    },
+  });
+
+  if (aiPending) {
+    plan.summary = "Your essential safety actions are ready below. CyberNet AI is preparing your full recovery plan now - it will appear here in about a minute.";
   }
 
-  const plan = sanitizePlan(rawPlan, classifier, region);
-
-  let caseId: string;
-  try {
-    caseId = await saveCase(user.id, classifier, plan, region, `${plan.incidentType} — ${new Date().toLocaleDateString()}`, team?.businessAccountId);
-  } catch (error) {
-    console.error("CyberNet Recovery case save failed", error);
-    throw error;
-  }
-
-  return {
+  return json({
     caseId,
     caseVersion: 1,
     plan,
-    aiUsed,
-    model: aiUsed ? modelForRiskFloor(classifier.riskFloor) : "Server deterministic engine",
+    aiUsed: false,
+    aiPending,
+    model: aiPending ? modelForRiskFloor(classifier.riskFloor) : "Server deterministic engine",
     usage,
     redactedSecretsCount: redactedCount,
     authenticated: true,
-  };
-  }, () => ({
-    error: "Your recovery plan was generated, but it could not be saved. Please try again.",
-    code: "save_failed",
-  }), JSON_HEADERS);
+  });
 }
+
+// ─── Background AI plan job ───
+// The request signs the job with the service key, so the background endpoint
+// only ever runs work that one of these functions created.
+async function hmacHex(text: string): Promise<string> {
+  const secret = env("SUPABASE_SERVICE_ROLE_KEY") || env("SUPABASE_SECRET_KEY");
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(text));
+  return [...new Uint8Array(signature)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function verifyBackgroundSignature(body: string, signature: string): Promise<boolean> {
+  if (!signature || signature.length !== 64) return false;
+  return (await hmacHex(body)) === signature;
+}
+
+async function triggerBackgroundJob(request: Request, job: Record<string, unknown>): Promise<boolean> {
+  try {
+    const body = JSON.stringify(job);
+    const signature = await hmacHex(body);
+    const origin = new URL(request.url).origin;
+    const response = await fetch(`${origin}/api/recovery-plan-background`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CyberNet-Signature": signature },
+      body,
+      signal: AbortSignal.timeout(8_000),
+    });
+    if (!response.ok) {
+      console.error("CyberNet Recovery background trigger refused", { status: response.status });
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error("CyberNet Recovery background trigger failed", error);
+    return false;
+  }
+}
+
+export { classifyIncident, runAiRecoveryPlan, sanitizePlan, serviceFetch, modelForRiskFloor, triggerBackgroundJob, verifyBackgroundSignature };
+export type { ClassifierResult };
 
 export const config = {
   path: "/api/recovery-mode",

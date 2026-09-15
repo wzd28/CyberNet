@@ -1,11 +1,5 @@
 import OpenAI from "openai";
-import { streamedJson } from "../lib/streamed-json.mts";
-
-const JSON_HEADERS = {
-  "Cache-Control": "no-store",
-  "Content-Type": "application/json; charset=utf-8",
-  "X-Content-Type-Options": "nosniff",
-};
+import { triggerBackgroundJob } from "./recovery-mode.mts";
 
 declare const Netlify: {
   env: {
@@ -136,20 +130,17 @@ async function runAiUpdate(args: {
   completedTaskTitles: string[];
   updateText: string;
   riskFloor: string;
-}) {
+}, options: { timeoutMs?: number } = {}) {
   const apiKey = env("OPENAI_API_KEY");
   if (!apiKey) return null;
 
   const client = new OpenAI({
     apiKey,
     baseURL: env("OPENAI_BASE_URL") || undefined,
-    // Kept under the ~30s platform gateway timeout so a slow model call degrades
-    // to the deterministic path instead of returning a raw 504 (see recovery-mode).
-    // Same budget reasoning as recovery-mode: leave ~10s for the Supabase
-    // writes that follow, so a slow model call degrades instead of 504ing.
-    // Streamed response (see streamedJson): a 60-second budget for the request,
-    // so the update is no longer cut off at 20 seconds.
-    timeout: 45_000,
+    // This runs inside the background function (15-minute limit), so the model
+    // gets a generous budget; the request that asked for the update has already
+    // returned and the page polls for the new version.
+    timeout: options.timeoutMs ?? 120_000,
     maxRetries: 0,
   });
   const contextText = [
@@ -434,27 +425,53 @@ export default async function handler(request: Request, context: any): Promise<R
   }
 
   const completedTaskTitles = taskList.filter((task) => task.status === "completed").map((task) => task.title);
+  const previousProgress = progressFromTasks(taskList);
 
-  // Everything that can fail with a non-200 status has happened above; from here
-  // the work runs inside a streamed 200 so the AI update is no longer cut off.
-  return streamedJson(async () => {
-  let rawUpdate: any = null;
-  try {
-    rawUpdate = await runAiUpdate({ previousPlan, completedTaskTitles, updateText, riskFloor: caseRow.risk_level });
-  } catch (error) {
-    console.error("CyberNet Recovery update generation failed", {
-      functionRequestId: context?.requestId,
-      name: error instanceof Error ? error.name : "UnknownError",
-      message: error instanceof Error ? error.message : "Unknown error",
-      status: (error as any)?.status,
-      code: (error as any)?.code,
-      type: (error as any)?.error?.type,
-      requestId: (error as any)?.request_id,
+  // The AI update is built by the background function, which has no
+  // request-time limit; the page keeps showing the current plan and polls the
+  // case until the new version lands. If the job cannot be started, the update
+  // is still recorded deterministically so the note and ticked tasks count.
+  const aiPending = await triggerBackgroundJob(request, {
+    kind: "update",
+    caseId,
+    userId: user.id,
+    updateText,
+    completedTaskTitles,
+    previousPlan,
+    riskFloor: caseRow.risk_level,
+  });
+
+  if (!aiPending) {
+    const updatedPlan = sanitizeUpdate(null, previousPlan);
+    const written = await writeUpdatedVersion({ caseId, caseRow, updatedPlan, taskList });
+    return json({
+      caseId,
+      caseVersion: written.newVersionNumber,
+      plan: { ...updatedPlan, progressPercent: written.progressPercent },
+      status: written.status,
+      aiPending: false,
+      usage,
+      redactedSecretsCount: redactedCount,
     });
   }
 
-  const updatedPlan = sanitizeUpdate(rawUpdate, previousPlan);
-  const newVersionNumber = (caseRow.current_version || 1) + 1;
+  return json({
+    caseId,
+    caseVersion: Number(caseRow.current_version) || 1,
+    plan: { ...previousPlan, progressPercent: previousProgress },
+    status: caseRow.status,
+    aiPending: true,
+    usage,
+    redactedSecretsCount: redactedCount,
+  });
+}
+
+// Records an updated plan as the case's next version: new actions become
+// tasks, progress is recomputed over every task, and the case row follows the
+// plan's risk, urgency and resolution state.
+async function writeUpdatedVersion(args: { caseId: string; caseRow: any; updatedPlan: any; taskList: any[] }) {
+  const { caseId, caseRow, updatedPlan, taskList } = args;
+  const newVersionNumber = (Number(caseRow.current_version) || 1) + 1;
 
   const newTasks = [
     ...updatedPlan.immediateActions,
@@ -511,19 +528,10 @@ export default async function handler(request: Request, context: any): Promise<R
     }),
   });
 
-  return {
-    caseId,
-    caseVersion: newVersionNumber,
-    plan: { ...updatedPlan, progressPercent },
-    status,
-    usage,
-    redactedSecretsCount: redactedCount,
-  };
-  }, (error) => {
-    console.error("CyberNet Recovery update save failed", error);
-    return { error: "Couldn't update this case right now. Please try again.", code: "update_failed" };
-  }, JSON_HEADERS);
+  return { newVersionNumber, progressPercent, status };
 }
+
+export { runAiUpdate, sanitizeUpdate, progressFromTasks, writeUpdatedVersion };
 
 export const config = {
   path: "/api/recovery-update",
