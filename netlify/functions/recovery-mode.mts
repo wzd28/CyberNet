@@ -112,6 +112,7 @@ const CATEGORY_KEYWORDS: Array<{ id: string; label: string; terms: string[] }> =
   { id: "romance_investment_scam", label: "Romance / investment (\"pig butchering\") scam", terms: ["met online", "dating app", "online relationship", "investment platform", "trading app", "guaranteed returns", "crypto trading", "convinced me to invest", "trading mentor"] },
   { id: "family_emergency_scam", label: "Family-emergency / voice-cloning scam", terms: ["sounded just like", "voice sounded like", "claimed to be my grandson", "claimed to be my son", "claimed to be my daughter", "called pretending to be", "ai voice", "deepfake", "bail money", "in an accident and needs money"] },
   { id: "government_impersonation_scam", label: "Government / law-enforcement impersonation scam", terms: ["said they were the police", "said they were from the irs", "said they were from the government", "arrest warrant", "digital arrest", "claimed i owed taxes", "said i was under investigation"] },
+  { id: "sim_swap", label: "SIM swap / phone-number takeover", terms: ["sim swap", "sim-swap", "simswap", "lost signal", "no signal", "no service on my phone", "number was ported", "ported my number", "port out", "new sim", "sim card stopped", "phone stopped working", "sos only"] },
   { id: "toll_delivery_smishing", label: "Toll / package-delivery smishing", terms: ["unpaid toll", "toll text", "e-zpass text", "package could not be delivered", "delivery text", "customs fee text", "redelivery fee"] },
   { id: "job_task_scam", label: "Job / task scam", terms: ["work from home job", "task job", "product boosting job", "hired me online", "job offer online", "advance payment for job", "training fee for job"] },
 ];
@@ -124,6 +125,8 @@ const HIGH_RISK_SIGNALS: Array<{ terms: string[]; note: string }> = [
   { terms: ["still happening", "still talking to", "still messaging", "keeps calling", "keeps messaging"], note: "Attacker contact may still be ongoing." },
   { terms: ["passport", "national id", "drivers license", "identity document"], note: "Identity document exposure reported." },
   { terms: ["multiple accounts", "several accounts", "other accounts too"], note: "Multiple accounts may be affected." },
+  { terms: ["sim swap", "sim-swap", "lost signal", "no signal", "number was ported", "ported my number", "port out", "sos only"], note: "Possible SIM swap: the phone number used for bank and email codes may be under an attacker's control." },
+  { terms: ["password reset", "reset email", "reset emails", "reset code", "reset link", "verification codes i didn't request", "codes i didn't request"], note: "Unrequested password resets or codes reported - an account takeover may be in progress." },
   { terms: ["remote access", "teamviewer", "anydesk", "let them control my"], note: "Remote-access software may have been installed by an attacker." },
   { terms: ["investment platform", "trading app", "guaranteed returns", "convinced me to invest", "trading mentor"], note: "Possible romance/investment (\"pig butchering\") scam involving ongoing financial exposure." },
   { terms: ["sounded just like", "voice sounded like", "ai voice", "deepfake", "bail money"], note: "Possible AI voice-cloning or deepfake-assisted family-emergency scam." },
@@ -199,6 +202,14 @@ function classifyIncident(
   if (selected && RISK_ORDER.indexOf(selected.riskFloor) > RISK_ORDER.indexOf(riskFloor)) {
     riskFloor = selected.riskFloor;
     signals.push(`Reported by the user as: ${selected.label}.`);
+  }
+
+  // "Other" carries no floor of its own, so a description that already
+  // mentions money, banking, passwords or codes cannot sit at low risk just
+  // because no category matched it.
+  if (riskFloor === "low" && /\b(bank|money|payment|card|password|otp|code|reset|transfer|transaction|wallet|crypto)\b/i.test(text)) {
+    riskFloor = "medium";
+    signals.push("Money, banking or credential details are involved even though no specific incident pattern matched.");
   }
 
   let urgencyFloor: Urgency = "soon";
@@ -318,12 +329,14 @@ Rules:
 12. When recommending authentication security, prefer authenticator apps or passkeys/FIDO2 over SMS one-time codes, which remain vulnerable to real-time phishing relay. Recommend scanning the device for malware BEFORE resetting passwords when device compromise is plausible — resetting first can let an attacker with device access regain control immediately.
 13. Recognize current 2025-2026 scam patterns in the incident description and tailor the plan accordingly: AI voice-cloning or deepfake family-emergency scams (advise verifying via a separate known channel, not the number/video that contacted them); romance-investment ("pig butchering") scams (advise stopping all further transfers immediately, since attackers often request "just one more" payment to "unlock" withdrawals); government/law-enforcement impersonation ("digital arrest") scams (reassure the user that real agencies do not demand secrecy or immediate payment by gift card, wire, or crypto); toll and package-delivery smishing; and job/task scams requesting upfront payment.
 
-14. PLAN SIZE — this is a hard requirement, not a style note. Structured Outputs cannot express array limits, so these counts are enforced here and trimmed server-side if exceeded:
+14. REGION — name only institutions, apps and authorities that belong to the user's REGION (for a case in Kuwait do not mention UAE Pass; for Saudi Arabia use Absher and the Saudi banks the user named). If the region is missing, say "your bank", "your national ID authority" and "your local police" rather than guessing a country.
+
+15. PLAN SIZE — this is a hard requirement, not a style note. Structured Outputs cannot express array limits, so these counts are enforced here and trimmed server-side if exceeded:
    - immediateActions: at most 3
    - first10Minutes, firstHour, first24Hours, next7Days: at most 2 each
    - whatWeKnow, inferences, unknowns, remainingRisk, limitations: at most 4 each
    A person acting on this is frightened and in a hurry. Ten well-chosen actions get followed; thirty get abandoned. If a step does not change the outcome, leave it out. Empty timeline buckets are fine when nothing genuinely belongs there.
-15. LENGTH — keep instruction, why and verification to one sentence each, and summary to two or three. Be specific rather than lengthy: "Sign out all other sessions in Instagram's Security settings" beats a paragraph explaining what a session is.
+16. LENGTH — keep instruction, why and verification to one sentence each, and summary to two or three. Be specific rather than lengthy: "Sign out all other sessions in Instagram's Security settings" beats a paragraph explaining what a session is.
 
 Return only the required structured result.`;
 

@@ -6004,3 +6004,132 @@ footer a,.cn-footer-legal a,.cn-footer-legal button{
   .auth-helper-row{display:grid;justify-items:center}
 }
 
+
+/* ═══ Destination and QR previews ═══
+   Shown with every verdict that involves a link or a QR code: where the
+   address really goes, which real brand it imitates, and (paid plans) a live
+   picture of the page - the user sees the destination before deciding. */
+.dest-preview,
+.qr-preview,
+.links-found{
+  padding:14px 16px;
+  border-radius:12px;
+  background:rgba(56,189,248,.05);
+  border:1px solid rgba(56,189,248,.22);
+  margin:0 0 14px;
+  font-size:13px;
+  text-align:left;
+}
+.links-found .dest-preview,
+.qr-preview .dest-preview{
+  margin:12px 0 0;
+  background:rgba(255,255,255,.02);
+  border-color:var(--glass-border-quiet,rgba(56,189,248,.12));
+}
+.links-found .dest-preview:last-child{margin-bottom:0}
+.dest-preview>strong,
+.qr-preview>strong,
+.links-found>strong{
+  display:block;
+  color:#38bdf8;
+  font-family:var(--font-mono);
+  font-size:12px;
+  letter-spacing:.02em;
+  margin-bottom:8px;
+}
+.dest-url,
+.qr-raw{
+  display:block;
+  direction:ltr;
+  unicode-bidi:plaintext;
+  word-break:break-all;
+  overflow-wrap:anywhere;
+  color:var(--text);
+  font-family:var(--font-mono);
+  font-size:12px;
+  line-height:1.6;
+  padding:8px 10px;
+  border-radius:8px;
+  background:rgba(0,0,0,.28);
+  border:1px solid rgba(255,255,255,.06);
+}
+.qr-kind{
+  display:inline-block;
+  margin-bottom:8px;
+  padding:3px 9px;
+  border-radius:999px;
+  font-family:var(--font-mono);
+  font-size:11px;
+  color:var(--muted);
+  border:1px solid var(--glass-border-quiet,rgba(56,189,248,.12));
+}
+.dest-facts{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px 8px;
+  margin-top:10px;
+  align-items:center;
+}
+.dest-domain{
+  color:var(--muted);
+  font-size:12.5px;
+}
+.dest-domain b{
+  color:var(--text);
+  font-family:var(--font-mono);
+  font-weight:600;
+}
+.dest-badge{
+  display:inline-block;
+  padding:3px 9px;
+  border-radius:999px;
+  font-family:var(--font-mono);
+  font-size:11px;
+  line-height:1.5;
+  border:1px solid transparent;
+}
+.dest-badge-good{color:#3ddc97;background:rgba(61,220,151,.1);border-color:rgba(61,220,151,.3)}
+.dest-badge-warn{color:#ffb35c;background:rgba(255,159,69,.1);border-color:rgba(255,159,69,.32)}
+.dest-badge-bad{color:#ff8a8f;background:rgba(255,92,98,.1);border-color:rgba(255,92,98,.34)}
+.dest-shot{margin-top:12px}
+.dest-shot img{
+  width:100%;
+  display:block;
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,.08);
+}
+.dest-shot strong{
+  display:block;
+  color:#d8ccff;
+  font-size:12px;
+  margin-bottom:8px;
+}
+.dest-shot-note{
+  margin:0;
+  color:var(--muted);
+  font-size:12px;
+}
+@media(max-width:600px){
+  .dest-preview,.qr-preview,.links-found{padding:12px}
+  .dest-url,.qr-raw{font-size:11.5px}
+}
+
+/* A follow-up in Analysis AI is an answer about an earlier item, not a verdict. */
+.diagnostic-followup-head{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  font-weight:600;
+  font-size:14px;
+  color:var(--text);
+  margin-bottom:10px;
+}
+.diagnostic-followup-tag{
+  font-family:var(--font-mono);
+  font-size:11px;
+  color:var(--muted);
+  padding:3px 9px;
+  border-radius:999px;
+  border:1px solid var(--glass-border-quiet,rgba(56,189,248,.12));
+}

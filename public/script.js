@@ -1074,6 +1074,7 @@ document.addEventListener("DOMContentLoaded",()=>{
         <span class="score-display">${clamp(Math.round(score))}<span>/100</span></span>
       </div>
       ${sourceLabels.length?`<div class="analysis-sources">${sourceLabels.map(x=>`<span>${escapeHTML(x)}</span>`).join("")}</div>`:""}
+      ${meta.previewHtml||""}
       <div class="verdict-note"><span>ⓘ</span><p>${escapeHTML(verdictNote)}</p></div>
       ${unique(meta.counterEvidence||[]).length?`<div class="counter-evidence"><strong>Reasons this might be okay</strong><ul>${unique(meta.counterEvidence||[]).slice(0,5).map(item=>`<li>${escapeHTML(item)}</li>`).join("")}</ul></div>`:""}
       <div class="report-body">
@@ -1081,6 +1082,7 @@ document.addEventListener("DOMContentLoaded",()=>{
         <div class="report-col"><div class="report-col-title"><span class="col-safe">→</span> What You Should Do</div><ul class="report-list safe-list">${unique(advice).slice(0,8).map(a=>`<li>${escapeHTML(a)}</li>`).join("")}</ul></div>
       </div>
     </div>`;
+    hydratePreviews(resultBox);
   }
 
   function runScan(btn,resultBox,cb,delay=420){
@@ -1089,7 +1091,132 @@ document.addEventListener("DOMContentLoaded",()=>{
     setTimeout(async()=>{try{await cb()}finally{btn.innerHTML=orig;btn.disabled=false}},delay);
   }
 
+  /* ─── Known brands, lure words, link facts and the preview cards ─── */
+  // Official domains per brand. The link engine flags a brand name inside any
+  // other registered domain, and the previews say which real site it imitates.
+  const KNOWN_BRANDS={
+    paypal:["paypal.com"],microsoft:["microsoft.com"],apple:["apple.com"],google:["google.com"],amazon:["amazon.com","amazon.ae","amazon.sa"],netflix:["netflix.com"],instagram:["instagram.com"],facebook:["facebook.com"],whatsapp:["whatsapp.com"],dropbox:["dropbox.com"],dhl:["dhl.com"],fedex:["fedex.com"],ups:["ups.com"],usps:["usps.com"],adobe:["adobe.com"],coinbase:["coinbase.com"],binance:["binance.com"],icloud:["icloud.com"],walmart:["walmart.com"],chase:["chase.com"],wellsfargo:["wellsfargo.com"],bankofamerica:["bankofamerica.com"],venmo:["venmo.com"],zelle:["zelle.com"],cashapp:["cash.app"],steam:["steampowered.com"],linkedin:["linkedin.com"],tiktok:["tiktok.com"],snapchat:["snapchat.com"],discord:["discord.com"],spotify:["spotify.com"],ezpass:["e-zpass.com"],xfinity:["xfinity.com"],verizon:["verizon.com"],
+    hsbc:["hsbc.com","hsbc.ae","hsbc.co.uk"],barclays:["barclays.co.uk"],lloyds:["lloydsbank.com"],santander:["santander.co.uk","santander.com"],citibank:["citi.com","citibank.com"],revolut:["revolut.com"],
+    adcb:["adcb.com"],emiratesnbd:["emiratesnbd.com"],enbd:["emiratesnbd.com"],mashreq:["mashreq.com","mashreqbank.com"],rakbank:["rakbank.ae"],bankfab:["bankfab.com"],adib:["adib.ae"],dib:["dib.ae"],
+    alrajhi:["alrajhibank.com.sa"],riyadbank:["riyadbank.com"],alahli:["alahli.com"],qnb:["qnb.com"],kfh:["kfh.com"],nbk:["nbk.com"],boubyan:["boubyan.com"],bankmuscat:["bankmuscat.com"],
+    etisalat:["etisalat.ae","eand.com"],mobily:["mobily.com.sa"],zain:["zain.com","sa.zain.com"],ooredoo:["ooredoo.com","ooredoo.qa"],dewa:["dewa.gov.ae"],sewa:["sewa.gov.ae"],salik:["salik.ae"],
+    uaepass:["uaepass.ae"],absher:["absher.sa"],emiratespost:["emiratespost.ae"],emiratesid:["icp.gov.ae"],
+    aramex:["aramex.com"],smsa:["smsaexpress.com"],noon:["noon.com"],talabat:["talabat.com"],careem:["careem.com"],
+    tesla:["tesla.com"],metamask:["metamask.io"],trustwallet:["trustwallet.com"],ledger:["ledger.com"],telegram:["telegram.org","t.me"],outlook:["outlook.com","live.com"],gmail:["gmail.com","google.com"]
+  };
+  const SHORTENERS=new Set(["bit.ly","tinyurl.com","t.co","goo.gl","ow.ly","is.gd","buff.ly","cutt.ly","rebrand.ly","shorturl.at","tiny.one","rb.gy","v.gd","s.id","lnkd.in","tr.im","clickmeter.com"]);
+  // Words criminals put in a domain name to make it feel official.
+  const LURE_WORDS=["secure","security","verify","verification","login","signin","update","support","alert","confirm","unlock","refund","billing","payment","pay","wallet","account","auth","helpdesk","service","redelivery","reschedule","customs","claim","prize","bonus","activate","reactivate"];
+  function isOfficialDomain(registered){return Object.values(KNOWN_BRANDS).some(domains=>domains.includes(registered))}
+  // A brand name as a whole token of the host ("adcb-secure-login.info"), or a
+  // longer name anywhere in the hyphen-stripped host ("emirates-post-redelivery")
+  // or the path, on a domain the brand does not own.
+  function brandMismatch(host,registered,pathQuery=""){
+    if(isOfficialDomain(registered))return null;
+    const tokens=new Set([...host.split(/[.-]/),...String(pathQuery||"").split(/[\/._-]/)].filter(Boolean));
+    const compact=host.replace(/-/g,"");
+    for(const [brand,officials] of Object.entries(KNOWN_BRANDS)){
+      if(tokens.has(brand)||(brand.length>=5&&compact.includes(brand)))return{brand,official:officials[0]};
+    }
+    return null;
+  }
+  function lureWordsIn(registered){
+    const core=String(registered||"").split(".")[0];const parts=core.split("-");const compact=core.replace(/-/g,"");
+    return LURE_WORDS.filter(word=>parts.includes(word)||(word.length>=5&&compact.includes(word)));
+  }
+  function linkFacts(rawUrl,linkResult){
+    const original=String(rawUrl||"").trim();
+    const candidate=/^[a-z][a-z0-9+.-]*:\/\//i.test(original)?original:`https://${original}`;
+    let url;try{url=new URL(candidate)}catch{return{href:original,host:"",registered:"",path:"",badges:[{cls:"bad",text:"Not a valid web address"}],mismatch:null,score:linkResult?.score}}
+    const host=url.hostname.toLowerCase().replace(/^www\./,"");
+    const registered=registrableDomain(host);
+    const pathQuery=(url.pathname+url.search).toLowerCase();
+    const badges=[];
+    const mismatch=brandMismatch(host,registered,pathQuery);
+    if(mismatch)badges.push({cls:"bad",text:`Looks like ${mismatch.brand} but the real site is ${mismatch.official}`});
+    if(isOfficialDomain(registered))badges.push({cls:"good",text:"This is the brand's official domain"});
+    if(url.protocol==="http:")badges.push({cls:"warn",text:"Not encrypted (http)"});
+    if(SHORTENERS.has(registered))badges.push({cls:"warn",text:"Shortened link — the real destination is hidden"});
+    if(/^\d{1,3}(\.\d{1,3}){3}$/.test(host))badges.push({cls:"bad",text:"Raw IP address instead of a website name"});
+    const lures=isOfficialDomain(registered)?[]:lureWordsIn(registered);
+    if(lures.length)badges.push({cls:"warn",text:`Uses “${lures.slice(0,2).join("”, “")}” in the domain name to look official`});
+    if(!isOfficialDomain(registered)&&/login|signin|verify|password|account|wallet|unlock/.test(pathQuery))badges.push({cls:"warn",text:"The page asks for login or account details"});
+    return{href:url.href,host,registered,path:url.pathname+url.search,badges,mismatch,score:linkResult?.score};
+  }
+  function renderLinkPreview(rawUrl,linkResult,options={}){
+    const f=linkFacts(rawUrl,linkResult);
+    const score=typeof f.score==="number"?clamp(Math.round(f.score)):null;
+    const label=score===null?null:score>=60?{cls:"bad",text:"High risk"}:score>=32?{cls:"warn",text:"Suspicious"}:{cls:"good",text:"No red flags in the address"};
+    return `<div class="dest-preview">
+      <strong>${escapeHTML(options.heading||"🔗 Where this link goes")}</strong>
+      <code class="dest-url">${escapeHTML(f.href)}</code>
+      <div class="dest-facts">
+        ${f.registered?`<span class="dest-domain">Website: <b>${escapeHTML(f.registered)}</b></span>`:""}
+        ${label?`<span class="dest-badge dest-badge-${label.cls}">${label.text} · ${score}/100</span>`:""}
+        ${f.badges.map(b=>`<span class="dest-badge dest-badge-${b.cls}">${escapeHTML(b.text)}</span>`).join("")}
+      </div>
+      ${options.screenshot===false||!/^https?:\/\//i.test(f.href)?"":`<div class="dest-shot" data-shot-url="${escapeHTML(f.href)}"></div>`}
+    </div>`;
+  }
+  const QR_KIND_LABELS={url:"Web link",wifi:"Wi-Fi network",contact:"Contact card",action:"Phone / email / SMS action",payment:"Payment request",text:"Plain text"};
+  function renderQrPreview(qrData,kind,qrResult){
+    const links=kind!=="url"&&qrResult?.links?.length?renderLinksFound(qrResult.links):"";
+    return `<div class="qr-preview">
+      <strong>📷 What this QR code contains</strong>
+      <span class="qr-kind">${escapeHTML(QR_KIND_LABELS[kind]||"Content")}</span>
+      <code class="qr-raw">${escapeHTML(String(qrData||"").slice(0,600))}</code>
+      ${kind==="url"?renderLinkPreview(qrData,qrResult,{heading:"🔗 Where this QR code takes you"}):links}
+    </div>`;
+  }
+  function renderLinksFound(links){
+    const list=(links||[]).filter(l=>l&&l.url).slice(0,4).sort((a,b)=>(b.result?.score||0)-(a.result?.score||0));
+    if(!list.length)return "";
+    return `<div class="links-found">
+      <strong>🔗 ${list.length===1?"Link found in this message":`${list.length} links found in this message`}</strong>
+      ${list.map((l,i)=>renderLinkPreview(l.url,l.result,{heading:list.length===1?"Where it goes":`Link ${i+1}`,screenshot:i===0})).join("")}
+    </div>`;
+  }
+  // Fills every screenshot slot in a rendered report: a live picture of the
+  // page for paid plans, a one-line upgrade note otherwise.
+  function hydratePreviews(root){
+    if(!root)return;
+    root.querySelectorAll(".dest-shot[data-shot-url]").forEach(slot=>{
+      const url=slot.getAttribute("data-shot-url");slot.removeAttribute("data-shot-url");
+      if(!isSignedIn()){slot.remove();return}
+      if(!isPro()){slot.innerHTML=`<p class="dest-shot-note">Upgrade to Pro to see a live picture of this page before you decide.</p>`;return}
+      slot.innerHTML=`<div class="screenshot-loading"><span class="btn-spinner"></span> Loading a picture of this page…</div>`;
+      loadScreenshotPreview(slot,url);
+    });
+  }
+  function collectLinksInText(text){
+    const raw=String(text||"");
+    const urls=unique((raw.match(/(?:https?:\/\/|www\.)[^\s<>()]+|\b(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s<>()]*)?/gi)||[]).filter(value=>!value.includes("@")));
+    return urls.slice(0,4).map(url=>({url,result:analyzeLinkRules(url)}));
+  }
+  // What a decoded QR code holds decides which engine judges it: a web address
+  // goes to the link engine, text to the text engine, and the structured kinds
+  // (Wi-Fi, contact card, payment) get their own plain-language read. A flat
+  // "any QR content is suspicious" score used to call a restaurant menu a scam.
+  function analyzeQrPayload(data){
+    const value=String(data||"").trim();
+    if(!value)return{kind:"text",result:null};
+    if(/^https?:\/\//i.test(value)||/^[a-z0-9.-]+\.[a-z]{2,}(\/|$)/i.test(value))return{kind:"url",result:analyzeLinkRules(/^https?:\/\//i.test(value)?value:`https://${value}`)};
+    if(/^WIFI:/i.test(value)){
+      const ssid=(value.match(/S:([^;]*)/)||[])[1]||"";const auth=((value.match(/T:([^;]*)/)||[])[1]||"").toLowerCase();const open=!auth||auth==="nopass";
+      return{kind:"wifi",result:{score:open?18:8,scamType:"Wi-Fi network credentials",reasons:[`Joins the Wi-Fi network “${ssid||"unnamed"}”${open?" with no password":""}.`,"Joining a network from a QR code routes your traffic through whoever runs it.",...(open?["Open networks let others nearby watch unencrypted traffic."]:[])],counterEvidence:["Wi-Fi QR codes are a normal way for cafés, hotels and offices to share access."],advice:["Only join if the QR code comes from the venue you are actually in.","Avoid banking or logging into important accounts on shared Wi-Fi.","Forget the network when you leave."],uncertain:false,confidence:82,verdict:"low_risk",sources:["QR decoder"]}};
+    }
+    if(/^(BEGIN:VCARD|MECARD:)/i.test(value))return{kind:"contact",result:{score:8,scamType:"Contact card",reasons:["The QR code holds a contact card (name, phone, email)."],counterEvidence:["Contact-card QR codes are common on business cards and posters."],advice:["Check the name and number match the person or business you expect before saving it.","Do not call numbers or open links from a card you did not expect."],uncertain:false,confidence:80,verdict:"low_risk",sources:["QR decoder"]}};
+    if(/^(bitcoin|ethereum|litecoin|upi|pay):/i.test(value)||/^0x[0-9a-f]{40}$/i.test(value)||/^(bc1|1|3)[a-z0-9]{25,60}$/i.test(value))return{kind:"payment",result:{score:58,scamType:"Payment request in a QR code",reasons:["The QR code encodes a payment destination (wallet address or payment link).","Scanning and paying sends money that usually cannot be reversed."],counterEvidence:["Legitimate shops and invoices also use payment QR codes."],advice:["Only pay a QR code you received directly from a business you already trust, in person or in their official app.","Never pay a QR code sent in a message, email or post to 'unlock', 'verify' or 'release' anything.","If in doubt, ask for an invoice through the business's official channel first."],uncertain:false,confidence:78,verdict:"suspicious",sources:["QR decoder"]}};
+    if(/^(mailto|tel|sms|smsto):/i.test(value)){const r=analyzeTextRules(value.replace(/^(mailto|tel|sms|smsto):/i,""));r.reasons=[`The QR code triggers a ${value.split(":")[0].toLowerCase()} action: ${value.slice(0,120)}.`,...r.reasons];r.sources=unique(["QR decoder",...(r.sources||[])]);return{kind:"action",result:r}}
+    const r=analyzeTextRules(value);r.sources=unique(["QR decoder",...(r.sources||[])]);return{kind:"text",result:r};
+  }
+
   function analyzeTextRules(text){
+    const result=analyzeTextRulesCore(text);
+    result.links=collectLinksInText(text);
+    return result;
+  }
+  function analyzeTextRulesCore(text){
     const raw=String(text||"");
     const clean=normalizeText(raw),obfuscated=deobfuscate(clean),variants=[clean,obfuscated];
     const state=createState();
@@ -1114,6 +1241,16 @@ document.addEventListener("DOMContentLoaded",()=>{
       {id:"romance",terms:["my dear","future together","love you","emergency money","military deployment","inheritance for us","حبيبي","مستقبلنا","أحتاج المال بشكل عاجل"],weight:13,reason:"Combines emotional trust language with a personal or financial story.",type:"Romance / trust scam",category:"relationship"},
       {id:"mule",terms:["receive money for me","forward the payment","keep a percentage","use your bank account","cash this check","استقبل المال","حوّل الدفعة","احتفظ بنسبة"],weight:31,reason:"Asks the recipient to receive or forward money through their own account.",type:"Money-mule recruitment",category:"money",strong:true},
       {id:"sextortion",terms:["private photos","intimate video","send to your contacts","pay or i will share","leak your photos","صور خاصة","سأرسلها لجهات اتصالك","ادفع وإلا"],weight:42,reason:"Threatens to expose private or intimate material unless payment is made.",type:"Sextortion scam",category:"extortion",strong:true}
+      ,
+      // Regional and Arabic vocabulary for the same families. Same ids as the
+      // entries above: a signal fires once whichever list matched it.
+      {id:"job",terms:["part-time","part time","daily salary","daily income","no experience","reply yes","reply \"yes\"","reply 'yes'","hr department","online job","remote job","earn daily","flexible hours","بدوام جزئي","راتب يومي","دخل يومي","بدون خبرة","أرسل نعم","أرسل 'نعم'","الموارد البشرية","وظيفة عن بعد","وظيفة بدوام","عمل من المنزل","مهام بسيطة","أرباح يومية"],weight:16,reason:"Offers unusually easy income, task commissions, or guaranteed returns.",type:"Job / investment scam",category:"money"},
+      {id:"delivery",terms:["could not be delivered","redelivery","reschedule delivery","parcel on hold","shipment on hold","بريد الإمارات","لم نتمكن من توصيل","توصيل طردك","إعادة الجدولة","إعادة جدولة","شحنتك","الشحنة","رسوم جمركية","رسوم إعادة","الطرد","طردك"],weight:12,reason:"Uses a parcel, customs, or delivery problem as a lure.",type:"Delivery phishing",category:"delivery"},
+      {id:"credentials",terms:["reactivate","re-activate","restore access","account limited","account has been limited","تعليق حسابك","تم تعليق","تم إيقاف","إيقاف حسابك","إعادة التفعيل","للتفعيل","ادخل بياناتك","أدخل بياناتك","تحديث بياناتك","إعادة تفعيل","بطاقتك"],weight:9,reason:"Mentions account verification, login, or security-alert language.",type:"Credential phishing",category:"credentials"},
+      {id:"threat",terms:["will be closed","will be deactivated","permanently closed","سيتم إغلاق","سيتم تعطيل","سيتم إيقاف","إغلاق الحساب","تعطيل حسابك","إلغاء حسابك"],weight:17,reason:"Uses fear, punishment, or account-loss threats.",type:"Threat-based phishing",category:"pressure"},
+      {id:"urgency",terms:["within 24h","within 48h","within 12h","خلال 24 ساعة","خلال 48 ساعة","خلال 12 ساعة","خلال ساعة","قبل انتهاء","آخر فرصة","بشكل عاجل"],weight:10,reason:"Uses urgency or a deadline to reduce careful thinking.",type:"Urgency-based social engineering",category:"pressure"},
+      {id:"authority",terms:["uae pass","emirates id","ministry of","federal authority","traffic fine","government services","الهوية الإماراتية","هوية الإمارات","الهيئة الاتحادية","وزارة الداخلية","الحكومة","مخالفة مرورية","غرامة","الهوية الوطنية","أبشر","هويتي","الخدمات الحكومية"],weight:13,reason:"Invokes government, police, tax, immigration, or another authority.",type:"Authority impersonation scam",category:"impersonation"},
+      {id:"finance",terms:["iban","new bank details","درهم","ريال","حوالة","آيبان","رقم الحساب","تحويل"],weight:9,reason:"Mentions money, banking, payment, refund, tax debt, or crypto activity.",type:"Financial scam",category:"money"}
     ];
     groups.forEach(g=>{if(hasTerm(variants,g.terms))addSignal(state,g.id,g.weight,g.reason,g.type,g.category,g.strong)});
     if(/\bwithin\s+\d{1,3}\s*(hours?|hrs?|minutes?|mins?|days?)\b/i.test(clean)&&!state.signals.has("urgency"))addSignal(state,"deadline-pressure",10,"Uses a specific time deadline to reduce careful thinking.","Urgency-based social engineering","pressure");
@@ -1136,21 +1273,36 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(countMatches(raw,/[$€£]\s?\d|\d+\s?(usd|eur|gbp|dollars?|euros?)/gi)>=1)addSignal(state,"amount",5,"Includes a specific monetary amount.","Financial request","money");
     if(phones.length&&hasTerm(variants,["support","call now","helpline","microsoft","apple","bank","اتصل","الدعم"]))addSignal(state,"support-phone",19,"Provides a phone number in a support or security-alert context.","Tech-support / vishing scam","impersonation",true);
     if(emails.some(e=>/@(gmail|yahoo|outlook|hotmail|protonmail)\./i.test(e))&&hasTerm(variants,["bank","support","security team","government","microsoft","apple","paypal","البنك","الدعم"]))addSignal(state,"public-email",25,"Claims to represent an organization while using a public email provider.","Brand impersonation","impersonation",true);
-    if(/\b(paypal|microsoft|apple|google|amazon|netflix|instagram|facebook|whatsapp|dhl|fedex|bank)\b/i.test(clean)&&hasTerm(variants,["verify","locked","suspended","refund","security alert","تحقق","موقوف","استرداد"]))addSignal(state,"brand-pressure",18,"Combines a well-known brand with account or payment pressure.","Brand impersonation phishing","impersonation");
+    if((/\b(paypal|microsoft|apple|google|amazon|netflix|instagram|facebook|whatsapp|dhl|fedex|bank|adcb|enbd|emirates nbd|mashreq|rakbank|hsbc|al ?rajhi|riyad bank|qnb|nbk|kfh|etisalat|stc|mobily|zain|ooredoo|dewa|sewa|salik|uae pass|emirates id|emirates post|aramex|smsa|noon|careem|talabat)\b/i.test(clean)||/(بنك|الراجحي|اتصالات|بريد الإمارات|أرامكس|الهوية|هيئة كهرباء|سالك)/u.test(clean))&&hasTerm(variants,["verify","locked","suspended","refund","security alert","reactivate","restore access","account limited","will be closed","deactivated","customs","blocked","تحقق","موقوف","استرداد","تفعيل","تعليق","إيقاف","تحديث","رسوم","إغلاق","تعطيل"]))addSignal(state,"brand-pressure",18,"Combines a well-known brand with account or payment pressure.","Brand impersonation phishing","impersonation");
     if(hiddenChars)addSignal(state,"hidden-chars",16,"Contains hidden bidirectional or zero-width Unicode characters that can disguise content.","Obfuscated phishing","style",true);
     if(containsAny(clean,["unpaid toll","outstanding toll","toll balance","e-zpass","ezpass","toll invoice"])&&containsAny(clean,["pay","suspend","fine","fee","link","click"]))addSignal(state,"toll-smishing",30,"Claims an unpaid road toll and pressures payment or a link click — a widely-reported smishing pattern.","Toll-fee smishing scam","impersonation",true);
     if(containsAny(clean,["package could not be delivered","delivery failed","parcel is on hold","redelivery fee","customs fee","shipment is on hold","update your delivery"]))addSignal(state,"delivery-smishing",26,"Claims a package or delivery problem requiring a fee or link click.","Package-delivery smishing scam","impersonation",true);
-    if(containsAny(clean,["work from home","earn $","earn up to","no experience needed","flexible hours easy money","daily payout","task completion bonus","product boosting","earn per task"]))addSignal(state,"job-scam",24,"Uses work-from-home or easy-money task language typical of job and task scams.","Job / task scam","money",true);
+    if(containsAny(clean,["work from home","earn $","earn up to","no experience needed","no experience required","flexible hours easy money","daily payout","task completion bonus","product boosting","earn per task","بدون خبرة","راتب يومي","دخل يومي","أرباح يومية","وظيفة بدوام جزئي براتب","أرسل نعم","أرسل 'نعم'","عمل من المنزل براتب"]))addSignal(state,"job-scam",24,"Uses work-from-home or easy-money task language typical of job and task scams.","Job / task scam","money",true);
     if(containsAny(clean,["arrest warrant","failure to appear","legal action will be taken","this call is being recorded for legal purposes","stay on the line","do not hang up","identity was used in a crime","federal investigation"]))addSignal(state,"authority-impersonation",34,"Impersonates law enforcement or a government agency with legal threats — a common impersonation/\"digital arrest\" scam pattern.","Government / law-enforcement impersonation scam","impersonation",true);
     if(containsAny(clean,["grandma its me","grandpa its me","ive been in an accident","i need bail money","dont tell mom","dont tell my parents","im in trouble and need money"]))addSignal(state,"family-emergency",30,"Uses a family-emergency plea combined with urgency and secrecy — a pattern seen in impersonation and AI voice-cloning scams.","Family-emergency impersonation scam","impersonation",true);
     if(containsAny(clean,["investment opportunity","guaranteed returns","double your money","crypto trading platform","my broker","trading mentor","withdraw your profits"])&&containsAny(clean,["love","miss you","my dear","sweetheart","darling","relationship"]))addSignal(state,"romance-investment",36,"Combines romantic language with an investment or crypto-trading pitch — the classic \"pig butchering\" scam pattern.","Romance / investment (\"pig butchering\") scam","money",true);
+
+    // "I sent a code to your number by mistake, send it back": the code is the
+    // reader's own one-time password, and forwarding it hands the account over.
+    if(!protective&&(/\b(sent|send|texted|entered|typed|received|got)\b.{0,50}\b(code|otp|pin|verification|password)\b.{0,70}\b(by mistake|accidentally|wrong number|to your (?:number|phone))\b/i.test(clean)||/\b(by mistake|accidentally|wrong number)\b.{0,70}\b(code|otp|verification|pin)\b/i.test(clean)||/(أرسلت|وصلك|وصلت|تلقيت|جاك).{0,50}(رمز|كود|الرمز|الكود).{0,50}(بالخطأ|عن طريق الخطأ|بالغلط)/u.test(clean)||/(أرسل|ارسل|حول|أعد إرسال).{0,25}(الرمز|الكود|رمز التحقق).{0,25}(لي|إلي|إليّ|لنا)/u.test(clean)))addSignal(state,"otp-hijack",44,"Asks you to forward a code that was 'sent by mistake' — the code is really for your own account, and passing it on hands that account over.","OTP interception scam","credentials",true);
+    // New bank details for a payment, with a reason not to pick up the phone:
+    // the shape of invoice and CEO-fraud messages that redirect money.
+    if(/\b(new|updated|changed|different)\b.{0,20}\b(bank details|bank account|banking details|iban|account details|payment details|beneficiary|account number)\b/i.test(clean)||/\b(bank details|iban|account details)\b.{0,30}\b(changed|updated|new)\b/i.test(clean)||/(تغيرت|تم تغيير|جديد|الجديد).{0,25}(تفاصيل البنك|الحساب البنكي|آيبان|iban|رقم الحساب)/u.test(clean)||/(الحساب البنكي|آيبان|تفاصيل البنك).{0,25}(تغير|تغيرت|الجديد|جديد)/u.test(clean)){
+      const paymentTalk=/\b(invoice|payment|transfer|wire|pay|remit|settle|process)\b/i.test(clean)||/(فاتورة|دفع|تحويل|حوالة|سداد)/u.test(clean);
+      const noCall=/\b(don'?t call|do not call|can'?t talk|cannot talk|in a meeting|in meetings|unavailable|email only|reply by email|discreet)\b/i.test(clean)||/(لا تتصل|لا تكلمني|في اجتماع|مشغول)/u.test(clean);
+      const invitesCall=/\b(call me|feel free to call|give me a call|as discussed on the call|as discussed by phone|call to confirm|verify by phone|confirm by phone)\b/i.test(clean)||/(اتصل بي|كما اتفقنا هاتفياً|للتأكيد اتصل)/u.test(clean);
+      // A genuine change invites a phone check; the fraud version forbids one.
+      if(paymentTalk&&invitesCall&&!noCall){addSignal(state,"payment-redirect",14,"Announces new bank details for a payment — always confirm a change like this by phone with a number you already have before paying.","Payment-detail change","money");state.counterEvidence.push("Invites a phone call to confirm the change, which genuine notices usually do.")}
+      else if(paymentTalk)addSignal(state,"payment-redirect",36,"Announces new bank details for a payment — the classic way invoice and CEO-fraud messages redirect money to a criminal's account.","Payment redirection (business email compromise)","money",true);
+      if(paymentTalk&&noCall)addSignal(state,"no-verify-pressure",12,"Discourages checking by phone, so the change cannot be verified with the real person.","Payment redirection (business email compromise)","pressure");
+    }
 
     let highestEmbedded=null;
     for(const value of urls.slice(0,4)){
       const linkResult=analyzeLinkRules(value);
       if(!highestEmbedded||linkResult.score>highestEmbedded.score)highestEmbedded=linkResult;
     }
-    if(highestEmbedded?.score>=60)addSignal(state,"dangerous-embedded-link",34,`An embedded link has high-risk structural indicators: ${highestEmbedded.reasons[0]||highestEmbedded.scamType}.`,"Message carrying a suspicious link","action",true);
+    if(highestEmbedded?.score>=58)addSignal(state,"dangerous-embedded-link",34,`An embedded link has high-risk structural indicators: ${highestEmbedded.reasons[0]||highestEmbedded.scamType}.`,"Message carrying a suspicious link","action",true);
     else if(highestEmbedded?.score>=32)addSignal(state,"suspicious-embedded-link",18,"An embedded link contains multiple suspicious structural indicators.","Message carrying an unverified link","action");
     if(highestEmbedded?.registeredDomain)state.reasons.push(`Most suspicious visible destination: ${highestEmbedded.registeredDomain}.`);
 
@@ -1207,8 +1359,9 @@ document.addEventListener("DOMContentLoaded",()=>{
     return host==="localhost"||host.endsWith(".local")||/^127\./.test(host)||/^10\./.test(host)||/^192\.168\./.test(host)||/^169\.254\./.test(host)||/^172\.(1[6-9]|2\d|3[01])\./.test(host)||host==="::1";
   }
   function registrableDomain(host){
+    if(/^\d{1,3}(\.\d{1,3}){3}$/.test(host)||host.includes(":"))return host;
     const labels=host.split(".").filter(Boolean);if(labels.length<=2)return host;
-    const compound=new Set(["co.uk","org.uk","gov.uk","com.au","net.au","co.nz","com.br","com.tr","com.lb","com.cy","co.jp","co.in","com.sg","com.cn","com.hk","com.mx"]);
+    const compound=new Set(["co.uk","org.uk","gov.uk","com.au","net.au","co.nz","com.br","com.tr","com.lb","com.cy","co.jp","co.in","com.sg","com.cn","com.hk","com.mx","gov.ae","ac.ae","co.ae","net.ae","org.ae","sch.ae","com.sa","gov.sa","edu.sa","org.sa","net.sa","com.qa","gov.qa","edu.qa","com.kw","gov.kw","edu.kw","com.bh","gov.bh","com.om","gov.om","com.eg","gov.eg","com.jo","gov.jo","co.za","com.pk","gov.in"]);
     const tail2=labels.slice(-2).join(".");return compound.has(tail2)?labels.slice(-3).join("."):tail2;
   }
   function looksLikeWebAddress(value){
@@ -1234,10 +1387,10 @@ document.addEventListener("DOMContentLoaded",()=>{
     const full=url.href.toLowerCase();
     const pathQuery=(url.pathname+url.search+url.hash).toLowerCase();
     const domainCore=registered.split(".")[0]||"";
-    const shorteners=new Set(["bit.ly","tinyurl.com","t.co","goo.gl","ow.ly","is.gd","buff.ly","cutt.ly","rebrand.ly","shorturl.at","tiny.one","rb.gy","v.gd","s.id","lnkd.in","tr.im","clickmeter.com"]);
+    const shorteners=SHORTENERS;
     const riskyTlds=new Set(["xyz","top","click","zip","mov","review","country","work","support","live","cam","gq","tk","ml","cf","buzz","rest","fit","quest","monster","download","xin","bond","shop","online","cfd","lol","vip","cc","win","loan","men","party","science","stream","racing","accountant","date","faith","icu","bar","rip","surf","cyou","sbs"]);
-    const brands={paypal:"paypal.com",microsoft:"microsoft.com",apple:"apple.com",google:"google.com",amazon:"amazon.com",netflix:"netflix.com",instagram:"instagram.com",facebook:"facebook.com",whatsapp:"whatsapp.com",dropbox:"dropbox.com",dhl:"dhl.com",fedex:"fedex.com",ups:"ups.com",usps:"usps.com",adobe:"adobe.com",coinbase:"coinbase.com",binance:"binance.com",icloud:"icloud.com",walmart:"walmart.com",chase:"chase.com",wellsfargo:"wellsfargo.com",bankofamerica:"bankofamerica.com",venmo:"venmo.com",zelle:"zelle.com",cashapp:"cash.app",steam:"steampowered.com",linkedin:"linkedin.com",tiktok:"tiktok.com",snapchat:"snapchat.com",discord:"discord.com",spotify:"spotify.com",ezpass:"e-zpass.com",xfinity:"xfinity.com",verizon:"verizon.com"};
-    const officialBrand=Object.entries(brands).find(([,domain])=>registered===domain);
+    const brands=KNOWN_BRANDS;
+    const officialBrand=(()=>{const hit=Object.entries(brands).find(([,domains])=>domains.includes(registered));return hit?[hit[0],registered]:null})();
 
     if(!hadScheme)addSignal(state,"missing-scheme",4,"The protocol was omitted; CyberNet AI assumed HTTPS for parsing.","Unverified URL","structure");
     if(isPrivateHost(host))addSignal(state,"private-host",32,"Points to localhost, a private network, or a link-local address rather than a public website.","Private-network destination","structure",true);
@@ -1267,16 +1420,22 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(/[?&](email|user|username|phone|card|account)=/i.test(url.search)&&state.categories.has("credentials"))addSignal(state,"prefill-identity",12,"Pre-fills identity or account information on a credential-related page.","Targeted credential page","credentials");
     if(/[?&](token|session|auth|password|pass|otp|code|key)=/i.test(url.search))addSignal(state,"secrets-query",24,"Places authentication-like information in the query string.","Credential-bearing URL","credentials",true);
 
-    Object.entries(brands).forEach(([brand,official])=>{
-      if((host.includes(brand)||pathQuery.includes(brand))&&registered!==official)addSignal(state,`brand-${brand}`,35,`References “${brand}” but the registered domain is ${registered}, not ${official}.`,"Brand impersonation phishing","impersonation",true);
+    const mismatch=brandMismatch(host,registered,pathQuery);
+    if(mismatch)addSignal(state,`brand-${mismatch.brand}`,35,`References “${mismatch.brand}” but the registered domain is ${registered}, not ${mismatch.official}.`,"Brand impersonation phishing","impersonation",true);
+    Object.entries(brands).forEach(([brand,officials])=>{
       const core=registered.split(".")[0];const d=levenshtein(core,brand);
-      if(registered!==official&&brand.length>=5&&d>0&&d<=1)addSignal(state,`typo-${brand}`,37,`The domain is one character away from the brand “${brand}”.`,"Typosquatting phishing","impersonation",true);
+      if(!officials.includes(registered)&&brand.length>=5&&d>0&&d<=1)addSignal(state,`typo-${brand}`,37,`The domain is one character away from the brand “${brand}”.`,"Typosquatting phishing","impersonation",true);
     });
+    const lures=officialBrand?[]:lureWordsIn(registered);
+    if(lures.length)addSignal(state,"lure-domain",mismatch||registered.includes("-")?16:10,`The domain name itself uses account or security wording (“${lures.slice(0,2).join("”, “")}”) to look official.`,"Lookalike-domain phishing","deception");
     if(/[a-z]\d[a-z]|\d[a-z]{2,}|[a-z]{2,}\d/i.test(registered.split(".")[0])&&state.categories.has("impersonation"))addSignal(state,"substitution",16,"Uses letter-number substitutions commonly found in lookalike domains.","Typosquatting phishing","impersonation",true);
 
     let score=nonlinearScore(state.raw);
     if(state.strong>=2)score=Math.max(score,83);else if(state.strong===1)score=Math.max(score,58);
     if(officialBrand&&state.signals.size===0)score=2;
+    // A login or account page on the brand's own domain is the normal case,
+    // not a warning sign; only strong signals can lift an official domain.
+    if(officialBrand&&!state.strong)score=Math.min(score,12);
     if(!state.signals.size&&!officialBrand)score=7;
     const confidence=clamp(48+state.categories.size*8+state.strong*10+(hadScheme?4:0)+(!state.signals.size?20:0),35,97);
     const uncertain=!state.strong&&state.signals.size>0&&score<32&&!officialBrand;
@@ -1301,7 +1460,9 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(containsAny(name,["qr","scan","qrcode"]))addSignal(state,"filename-qr",9,"The filename suggests QR-code content.","Possible QR-code content","qr");
     if(containsAny(name,["bank","payment","invoice","receipt","crypto","wallet","refund"]))addSignal(state,"filename-money",8,"The filename suggests payment, banking, invoice, or crypto content.","Possible payment image","money");
     if(containsAny(name,["login","account","verify","security","password","otp"]))addSignal(state,"filename-login",9,"The filename suggests login, account, or verification content.","Possible login image","credentials");
-    if(details.qrData)addSignal(state,"decoded-qr",32,`A QR code was decoded${details.qrData.length?`: ${details.qrData.slice(0,90)}${details.qrData.length>90?"…":""}`:"."}`,"QR code content","qr",true);
+    // The decoded content is judged by the engine that fits it (see
+    // analyzeQrPayload); this line only records that a code was read.
+    if(details.qrData)addSignal(state,"decoded-qr",4,`A QR code was decoded${details.qrData.length?`: ${details.qrData.slice(0,90)}${details.qrData.length>90?"…":""}`:"."}`,"","qr");
     if(details.width&&details.height){
       const megapixels=(details.width*details.height)/1e6;
       if(megapixels>20)state.limitations.push("The uploaded image was downscaled for efficient analysis.");
@@ -1316,7 +1477,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     const r=data?.analysis||data;
     if(!r||typeof r!=="object")return null;
     const verdict=String(r.verdict||"inconclusive").toLowerCase();
-    return{score:clamp(r.score),confidence:clamp(r.confidence),scamType:r.threatType||r.scamType||"Deep security analysis",reasons:unique([...(r.evidence||r.reasons||[]),...(r.limitations||[])]),counterEvidence:unique(r.counterEvidence||[]),advice:unique(r.actions||r.advice||[]),uncertain:verdict==="inconclusive",verdict,sources:unique([...(data?.aiUsed?["Secure AI analysis"]:[]),...(data?.reputation?.checked?["Live URL reputation"]:[])]),note:r.summary||r.note||"Secure deep analysis completed.",reputation:data?.reputation||null,virusTotal:data?.virusTotal||null,aiUsed:Boolean(data?.aiUsed)};
+    return{score:clamp(r.score),confidence:clamp(r.confidence),scamType:r.threatType||r.scamType||"Deep security analysis",reasons:unique([...(r.evidence||r.reasons||[]),...(r.limitations||[])]),counterEvidence:unique(r.counterEvidence||[]),advice:unique(r.actions||r.advice||[]),uncertain:verdict==="inconclusive",verdict,sources:unique([...(data?.aiUsed?["Secure AI analysis"]:[]),...(data?.reputation?.checked?["Live URL reputation"]:[])]),note:r.summary||r.note||"Secure deep analysis completed.",reputation:data?.reputation||null,virusTotal:data?.virusTotal||null,aiUsed:Boolean(data?.aiUsed),isFollowUp:r.isFollowUp===true};
   }
   function mergeAnalysis(local,deep){
     if(!deep)return local;
@@ -1327,12 +1488,16 @@ document.addEventListener("DOMContentLoaded",()=>{
     score=Math.max(deep.score,score);
     if(localHigh)score=Math.max(score,Math.max(55,local.score-8));
     if(reputationHit)score=Math.max(score,98);
+    // The label follows the score, so the score can never sit below the line
+    // the model's own verdict implies: "suspicious" is at least a medium read
+    // and "malicious" at least a high one.
+    if(deep.verdict==="malicious")score=Math.max(score,60);else if(deep.verdict==="suspicious")score=Math.max(score,32);
     const agreement=local.verdict===deep.verdict&&!local.uncertain&&!deep.uncertain;
     const confidence=clamp(Math.max(deep.confidence,Math.round((local.confidence+deep.confidence)/2))+(agreement?5:0)+(reputationHit?6:0)-(disagreement?18:0));
     const uncertain=reputationHit?false:(disagreement||deep.verdict==="inconclusive"||(deep.uncertain&&local.uncertain));
     return{score,confidence,scamType:reputationHit?"Known unsafe URL":(deep.scamType||local.scamType),reasons:unique([...(deep.reasons||[]),...(local.reasons||[])]),counterEvidence:unique([...(deep.counterEvidence||[]),...(local.counterEvidence||[])]),advice:unique([...(deep.advice||[]),...(local.advice||[])]),uncertain,verdict:reputationHit?"malicious":uncertain?"inconclusive":deep.verdict,sources:unique([...(local.sources||[]),...(deep.sources||[])]),note:reputationHit?"The live reputation service matched this URL to a known unsafe resource.":disagreement?"CyberNet AI's local and deep-analysis layers reached different conclusions, so this can't be confirmed safe — treat it as unsafe until you've verified it independently.":deep.note||local.note,reputation:deep.reputation,virusTotal:deep.virusTotal||null,aiUsed:Boolean(deep.aiUsed)};
   }
-  async function requestDeepAnalysis(type,content,localResult,imageData=""){
+  async function requestDeepAnalysis(type,content,localResult,imageData="",history=[]){
     if(!isSignedIn()){
       openAuthModal("login");
       const error=new Error("Sign in or create a free account before running AI analysis.");
@@ -1345,7 +1510,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       const res=await fetch(ANALYSIS_ENDPOINT,{
         method:"POST",
         headers:authHeaders({"Content-Type":"application/json"}),
-        body:JSON.stringify({type,content,imageData,localResult}),
+        body:JSON.stringify({type,content,imageData,localResult,history}),
         signal:controller.signal
       });
       const data=await res.json().catch(()=>({}));
@@ -1425,7 +1590,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       const note=isBareLink
         ?"This looked like a link rather than a message, so CyberNet AI analyzed it with the link engine for a more accurate result. Use Link Detection directly next time for the same result."
         :"Local protection scan complete. Use the CyberNet AI page for account-based AI analysis.";
-      showReport(cyberTextResult,result.score,result.scamType,result.reasons,result.advice,{...result,note});
+      showReport(cyberTextResult,result.score,result.scamType,result.reasons,result.advice,{...result,note,previewHtml:isBareLink?renderLinkPreview(text,result):renderLinksFound(result.links||[])});
       prependScan("textScanList",`“${text.slice(0,42)}${text.length>42?"…":""}”`,result);
       if(status)status.textContent="Local scan complete";
       cyberTextBtn.disabled=false;
@@ -1450,7 +1615,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     cyberLinkBtn.disabled=false;
     runScan(cyberLinkBtn,cyberLinkResult,async()=>{
       const result=analyzeLinkRules(link);
-      showReport(cyberLinkResult,result.score,result.scamType,result.reasons,result.advice,{...result,note:"Local structural URL scan complete. Use the CyberNet AI page for account-based AI analysis."});
+      showReport(cyberLinkResult,result.score,result.scamType,result.reasons,result.advice,{...result,note:"Local structural URL scan complete. Use the CyberNet AI page for account-based AI analysis.",previewHtml:renderLinkPreview(link,result)});
       prependScan("linkScanList",link.slice(0,52),result);
     });
   });
@@ -1509,14 +1674,14 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(cyberDropZone){const old=cyberDropZone.querySelector(".upload-preview");old?.remove();const preview=document.createElement("div");preview.className="upload-preview";const url=URL.createObjectURL(file);preview.innerHTML=`<img src="${url}" alt="Uploaded preview" decoding="async"><span class="upload-preview-label">${escapeHTML(file.name)}</span>`;preview.querySelector("img").onload=()=>URL.revokeObjectURL(url);cyberDropZone.appendChild(preview)}
     cyberImageResult.innerHTML=`<div class="scanning-placeholder"><span class="scanning-placeholder-text">Inspecting QR and visual signals</span><div class="scan-dots"><span></span><span></span><span></span></div></div>`;
     const decoded=await decodeQRFromFile(file);
-    let qrResult=null;
-    if(decoded.qrData){const looksLikeUrl=/^https?:\/\//i.test(decoded.qrData)||/^[a-z0-9.-]+\.[a-z]{2,}/i.test(decoded.qrData);if(looksLikeUrl)qrResult=analyzeLinkRules(/^https?:\/\//i.test(decoded.qrData)?decoded.qrData:`https://${decoded.qrData}`)}
+    let qrResult=null,qrKind="";
+    if(decoded.qrData)({kind:qrKind,result:qrResult}=analyzeQrPayload(decoded.qrData));
     const result=analyzeImageRules(file,{...decoded,qrResult});
     // With no QR code there is nothing in the picture this path can actually
     // read, so hand it to Analysis AI rather than showing a verdict built from
     // the filename alone. Opted in here, not inside analyzeImageRules, because
     // the Analysis AI page reuses that function for its own pre-analysis.
-    showReport(cyberImageResult,result.score,result.scamType,result.reasons,result.advice,{...result,needsDeepScan:!decoded.qrData,note:"Local QR and file checks complete. Use the CyberNet AI page for account-based visual AI analysis."});
+    showReport(cyberImageResult,result.score,result.scamType,result.reasons,result.advice,{...result,needsDeepScan:!decoded.qrData,note:"Local QR and file checks complete. Use the CyberNet AI page for account-based visual AI analysis.",previewHtml:decoded.qrData?renderQrPreview(decoded.qrData,qrKind,qrResult):""});
     prependScan("imageScanList",file.name,result);
   }
   if(cyberDropZone)cyberDropZone.addEventListener("click",e=>{if(!isSignedIn()){e.preventDefault();openAuthModal("signup")}});
@@ -1680,6 +1845,18 @@ document.addEventListener("DOMContentLoaded",()=>{
       showAnalysisIncomplete(resultBox);
       return;
     }
+    // A follow-up is an answer about an earlier item, not a new verdict, so it
+    // reads as one: the question, the answer, and what to do - no score line.
+    if(result.isFollowUp){
+      resultBox.className=resultBox.className.replace(/result-has-\w+/g,"").trim();
+      resultBox.innerHTML=`
+        <div class="diagnostic-report diagnostic-followup">
+          <div class="diagnostic-followup-head">💬 About your earlier message <span class="diagnostic-followup-tag">${escapeHTML(String(result.scamType||"").replace(/^Follow-up\s*·\s*/,""))}</span></div>
+          <div class="diagnostic-note"><p>${escapeHTML(result.note||"")}</p></div>
+          ${unique(result.advice||[]).length?`<div class="diagnostic-body"><div class="diagnostic-col"><h5>What You Should Do</h5><ul class="diagnostic-actions">${unique(result.advice).slice(0,6).map(a=>`<li>${escapeHTML(a)}</li>`).join("")}</ul></div></div>`:""}
+        </div>`;
+      return;
+    }
     const uncertain=Boolean(result.uncertain||result.verdict==="inconclusive");
     const danger=getDanger(result.score);
     const isSafe=danger.css==="safe";
@@ -1692,12 +1869,11 @@ document.addEventListener("DOMContentLoaded",()=>{
           <span class="verdict-headline-icon">${isSafe?"✓":"✕"}</span>
           <span class="verdict-headline-text">${danger.headline}</span>
         </div>
-        ${decodedQr?`<div class="diagnostic-qr-preview"><strong>📷 This QR code leads to:</strong><code>${escapeHTML(decodedQr)}</code></div>`:""}
         <div class="diagnostic-report-head">
           <span class="diagnostic-scam-type">${escapeHTML(result.scamType)}</span>
           <span class="diagnostic-score">${clamp(Math.round(result.score))}<span>/100</span></span>
         </div>
-        ${previewUrl&&isPro()?`<div class="diagnostic-screenshot-preview" id="screenshotPreview-${Date.now()}"><div class="screenshot-loading"><span class="btn-spinner"></span> Loading a preview of this page…</div></div>`:""}
+        ${result.previewHtml||(decodedQr?renderQrPreview(decodedQr,/^https?:\/\//i.test(decodedQr)?"url":"text",null):"")}
         <div class="diagnostic-note"><p>${escapeHTML(result.note||"")}</p></div>
         ${unique(result.counterEvidence||[]).length?`<div class="diagnostic-counter"><strong>Reasons this might be okay</strong><ul>${unique(result.counterEvidence).slice(0,5).map(item=>`<li>${escapeHTML(item)}</li>`).join("")}</ul></div>`:""}
         <div class="diagnostic-body">
@@ -1705,10 +1881,7 @@ document.addEventListener("DOMContentLoaded",()=>{
           <div class="diagnostic-col"><h5>What You Should Do</h5><ul class="diagnostic-actions">${unique(result.advice).slice(0,8).map(a=>`<li>${escapeHTML(a)}</li>`).join("")}</ul></div>
         </div>
       </div>`;
-    if(previewUrl&&isPro()){
-      const container=resultBox.querySelector(".diagnostic-screenshot-preview");
-      loadScreenshotPreview(container,previewUrl);
-    }
+    hydratePreviews(resultBox);
   }
 
   async function loadScreenshotPreview(container,url){
@@ -1729,18 +1902,20 @@ document.addEventListener("DOMContentLoaded",()=>{
 
 
 
+  // The last few turns, sent with each analysis so a follow-up question is
+  // answered about the item it refers to.
+  const chatHistory=[];
   async function analyzeChat(type,content,imageData=""){
     if(!canStartAiAnalysis())return;
     let local;
     let serverContent=content;
     let decodedQrForDisplay="";
+    let qrKind="",qrResult=null;
     if(type==="image"){
       const decoded=await decodeQRFromDataUrl(imageData);
-      let qrResult=null;
       if(decoded.qrData){
         decodedQrForDisplay=decoded.qrData;
-        const looksLikeUrl=/^https?:\/\//i.test(decoded.qrData)||/^[a-z0-9.-]+\.[a-z]{2,}/i.test(decoded.qrData);
-        if(looksLikeUrl)qrResult=analyzeLinkRules(/^https?:\/\//i.test(decoded.qrData)?decoded.qrData:`https://${decoded.qrData}`);
+        ({kind:qrKind,result:qrResult}=analyzeQrPayload(decoded.qrData));
         serverContent=`${content}\n\n[Decoded QR code content: ${decoded.qrData.slice(0,500)}]`;
       }
       local=analyzeImageRules({name:"uploaded-image",size:0},{...decoded,qrResult});
@@ -1752,10 +1927,15 @@ document.addEventListener("DOMContentLoaded",()=>{
     const stopDiagnostic=inner?runDiagnosticAnimation(inner,type):null;
     const minWait=new Promise(resolve=>setTimeout(resolve,3400));
     try{
-      const [deep]=await Promise.all([requestDeepAnalysis(type,serverContent,local,imageData),minWait]);
+      const [deep]=await Promise.all([requestDeepAnalysis(type,serverContent,local,imageData,chatHistory.slice(-6)),minWait]);
       if(stopDiagnostic)stopDiagnostic();
-      const result=mergeAnalysis(local,deep);
+      // A follow-up question is answered about the earlier item, so the local
+      // engine's read of the question itself has nothing to add.
+      const result=deep?.isFollowUp?{...deep,scamType:`Follow-up · ${deep.scamType}`}:mergeAnalysis(local,deep);
       if(type==="link")result.previewUrl=/^https?:\/\//i.test(content)?content:`https://${content}`;
+      result.previewHtml=deep?.isFollowUp?"":type==="link"?renderLinkPreview(result.previewUrl,local):type==="image"&&decodedQrForDisplay?renderQrPreview(decodedQrForDisplay,qrKind,qrResult):renderLinksFound(local.links||[]);
+      chatHistory.push({role:"user",text:(type==="image"?"[image attached] ":"")+String(content||"").slice(0,600)},{role:"assistant",text:`${getDanger(result.score).headline} ${clamp(Math.round(result.score))}/100 · ${result.scamType}. ${String(result.note||"").slice(0,320)}`});
+      if(chatHistory.length>8)chatHistory.splice(0,chatHistory.length-8);
       if(inner){
         showDiagnosticReport(inner,result,type,decodedQrForDisplay);
         if(isPro()){
