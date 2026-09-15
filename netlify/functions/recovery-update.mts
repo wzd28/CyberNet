@@ -431,7 +431,7 @@ export default async function handler(request: Request, context: any): Promise<R
   // request-time limit; the page keeps showing the current plan and polls the
   // case until the new version lands. If the job cannot be started, the update
   // is still recorded deterministically so the note and ticked tasks count.
-  const aiPending = await triggerBackgroundJob(request, {
+  const aiPending = await triggerBackgroundJob(request, context, {
     kind: "update",
     caseId,
     userId: user.id,

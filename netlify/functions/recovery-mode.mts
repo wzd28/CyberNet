@@ -759,7 +759,7 @@ export default async function handler(request: Request, context: any): Promise<R
     return json({ error: "Your recovery plan was generated, but it could not be saved. Please try again.", code: "save_failed" }, 500);
   }
 
-  const aiPending = await triggerBackgroundJob(request, {
+  const aiPending = await triggerBackgroundJob(request, context, {
     kind: "start",
     caseId,
     userId: user.id,
@@ -810,26 +810,38 @@ async function verifyBackgroundSignature(body: string, signature: string): Promi
   return (await hmacHex(body)) === signature;
 }
 
-async function triggerBackgroundJob(request: Request, job: Record<string, unknown>): Promise<boolean> {
-  try {
-    const body = JSON.stringify(job);
-    const signature = await hmacHex(body);
-    const origin = new URL(request.url).origin;
-    const response = await fetch(`${origin}/api/recovery-plan-background`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-CyberNet-Signature": signature },
-      body,
-      signal: AbortSignal.timeout(8_000),
-    });
-    if (!response.ok) {
-      console.error("CyberNet Recovery background trigger refused", { status: response.status });
-      return false;
+async function triggerBackgroundJob(request: Request, context: any, job: Record<string, unknown>): Promise<boolean> {
+  const body = JSON.stringify(job);
+  const signature = await hmacHex(body);
+
+  // The public domain sits behind Cloudflare, which challenges server-to-server
+  // calls from the function's data-centre address; on production the trigger
+  // came back refused. The deploy's own Netlify address reaches exactly this
+  // deploy's functions directly, so it goes first; the public origin is only a
+  // last resort (it is what works on deploy previews without a custom domain).
+  const siteName = String(context?.site?.name || "");
+  const deployId = String(context?.deploy?.id || "");
+  const candidates = [
+    siteName && deployId ? `https://${deployId}--${siteName}.netlify.app` : "",
+    siteName ? `https://${siteName}.netlify.app` : "",
+    new URL(request.url).origin,
+  ].filter((origin, index, all) => origin && all.indexOf(origin) === index);
+
+  for (const origin of candidates) {
+    try {
+      const response = await fetch(`${origin}/api/recovery-plan-background`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CyberNet-Signature": signature },
+        body,
+        signal: AbortSignal.timeout(8_000),
+      });
+      if (response.ok) return true;
+      console.error("CyberNet Recovery background trigger refused", { origin, status: response.status });
+    } catch (error) {
+      console.error("CyberNet Recovery background trigger failed", { origin, error });
     }
-    return true;
-  } catch (error) {
-    console.error("CyberNet Recovery background trigger failed", error);
-    return false;
   }
+  return false;
 }
 
 export { classifyIncident, runAiRecoveryPlan, sanitizePlan, serviceFetch, modelForRiskFloor, triggerBackgroundJob, verifyBackgroundSignature };
