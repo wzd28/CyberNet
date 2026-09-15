@@ -2119,7 +2119,9 @@ document.addEventListener("DOMContentLoaded",()=>{
           })
         });
         const data=await res.json().catch(()=>({}));
-        if(!res.ok){
+        // The plan arrives on a streamed 200, so a failure after the stream
+        // opened comes back as an error field rather than a status code.
+        if(!res.ok||data.error||!data.plan){
           const error=new Error(data.error||`Recovery service returned ${res.status}`);
           error.code=data.code;
           error.usage=data.usage;
@@ -2324,7 +2326,7 @@ document.addEventListener("DOMContentLoaded",()=>{
           body:JSON.stringify({caseId:currentCaseId,updateText,completedTaskKeys})
         });
         const data=await res.json().catch(()=>({}));
-        if(!res.ok){
+        if(!res.ok||data.error||!data.plan){
           const error=new Error(data.error||`Recovery update returned ${res.status}`);
           error.code=data.code;
           error.usage=data.usage;

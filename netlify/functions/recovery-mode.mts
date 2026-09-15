@@ -1,4 +1,11 @@
 import OpenAI from "openai";
+import { streamedJson } from "../lib/streamed-json.mts";
+
+const JSON_HEADERS = {
+  "Cache-Control": "no-store",
+  "Content-Type": "application/json; charset=utf-8",
+  "X-Content-Type-Options": "nosniff",
+};
 
 declare const Netlify: {
   env: {
@@ -347,7 +354,10 @@ async function runAiRecoveryPlan(args: {
     // 23.7s, so roughly 6s of headroom in the worst observed case. Exceeding
     // the timeout still falls through to the deterministic plan rather than
     // surfacing an error page.
-    timeout: 24_000,
+    // The response is streamed (see streamedJson), which gives the whole request
+    // a 60-second budget instead of the plain-response one that kept cutting the
+    // plan off at 24 seconds and handing every case to the deterministic engine.
+    timeout: 50_000,
     maxRetries: 0,
   });
   const contextText = [
@@ -744,6 +754,9 @@ export default async function handler(request: Request, context: any): Promise<R
 
   const classifier = classifyIncident(description, quickAnswers, incidentTypeHint);
 
+  // Everything that can fail with a non-200 status has happened above; from here
+  // the work runs inside a streamed 200 so the AI plan is no longer cut off.
+  return streamedJson(async () => {
   let rawPlan: any = null;
   let aiUsed = false;
   try {
@@ -778,10 +791,10 @@ export default async function handler(request: Request, context: any): Promise<R
     caseId = await saveCase(user.id, classifier, plan, region, `${plan.incidentType} — ${new Date().toLocaleDateString()}`, team?.businessAccountId);
   } catch (error) {
     console.error("CyberNet Recovery case save failed", error);
-    return json({ error: "Your recovery plan was generated, but it could not be saved. Please try again.", code: "save_failed" }, 500);
+    throw error;
   }
 
-  return json({
+  return {
     caseId,
     caseVersion: 1,
     plan,
@@ -790,7 +803,11 @@ export default async function handler(request: Request, context: any): Promise<R
     usage,
     redactedSecretsCount: redactedCount,
     authenticated: true,
-  });
+  };
+  }, () => ({
+    error: "Your recovery plan was generated, but it could not be saved. Please try again.",
+    code: "save_failed",
+  }), JSON_HEADERS);
 }
 
 export const config = {
