@@ -1211,6 +1211,13 @@ document.addEventListener("DOMContentLoaded",()=>{
     const compound=new Set(["co.uk","org.uk","gov.uk","com.au","net.au","co.nz","com.br","com.tr","com.lb","com.cy","co.jp","co.in","com.sg","com.cn","com.hk","com.mx"]);
     const tail2=labels.slice(-2).join(".");return compound.has(tail2)?labels.slice(-3).join("."):tail2;
   }
+  function looksLikeWebAddress(value){
+    const candidate=/^[a-z][a-z0-9+.-]*:\/\//i.test(value)?value:"https://"+value;
+    let parsed;try{parsed=new URL(candidate)}catch{return false}
+    if(!/^https?:$/i.test(parsed.protocol))return false;
+    const host=parsed.hostname;
+    return host==="localhost"||/^\d{1,3}(\.\d{1,3}){3}$/.test(host)||host.includes(":")||/\.[a-z0-9-]{2,}$/i.test(host);
+  }
   function analyzeLinkRules(rawLink){
     const original=String(rawLink||"").trim();
     const state=createState();
@@ -1430,6 +1437,9 @@ document.addEventListener("DOMContentLoaded",()=>{
   if(cyberLinkBtn&&cyberLinkInput&&cyberLinkResult)cyberLinkBtn.addEventListener("click",async()=>{
     if(!isSignedIn()){openAuthModal("signup");return}
     const link=cyberLinkInput.value.trim();if(!link){cyberLinkResult.innerHTML=`<span class="warning">Paste a suspicious link first.</span>`;return}
+    // Plain sentences used to be parsed as an "encoded URL" and scored, which
+    // read as a verdict on nothing. Only web addresses get a report.
+    if(!looksLikeWebAddress(link)){cyberLinkResult.innerHTML=`<span class="warning">That doesn't look like a web address. Paste the full link, for example https://example.com/page.</span>`;return}
     cyberLinkBtn.disabled=true;
     const quota=await checkQuickScanQuota();
     if(!quota.allowed){
