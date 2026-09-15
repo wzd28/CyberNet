@@ -227,6 +227,14 @@ const OFFICIAL_RESOURCES: OfficialResource[] = [
   { id: "ca-antifraud", country: "Canada", organization: "Canadian Anti-Fraud Centre", purpose: "Report fraud and cybercrime", officialUrl: "https://antifraudcentre-centreantifraude.ca/", phone: "1-888-495-8501" },
   { id: "au-cyber", country: "Australia", organization: "ReportCyber (Australian Signals Directorate)", purpose: "Report a cybercrime, incident, or vulnerability", officialUrl: "https://www.cyber.gov.au/report", phone: "1300 292 371" },
   { id: "ae-ecrime", country: "United Arab Emirates", organization: "Dubai Police — Cybercrime (eCrime) Service", purpose: "Report cybercrime", officialUrl: "https://www.dubaipolice.gov.ae/wps/portal/home/services/individualservices/cybercrimeService", phone: "901" },
+  { id: "ae-ecrime-federal", country: "United Arab Emirates", organization: "UAE Ministry of Interior — eCrime platform", purpose: "Report cybercrime anywhere in the UAE (also via the eCrime app); emergencies 999", officialUrl: "https://www.ecrime.ae/" },
+  { id: "ae-aman", country: "United Arab Emirates", organization: "Abu Dhabi Police — Aman service", purpose: "Report cybercrime and security concerns in Abu Dhabi, 24/7 (SMS 2828, ADPolice app)", officialUrl: "https://www.adpolice.gov.ae/", phone: "800 2626" },
+  { id: "sa-absher", country: "Saudi Arabia", organization: "Ministry of Interior — Absher \"Cybercrime Report\" service", purpose: "File a cybercrime report online; Kollona Amn app for serious crimes; police emergencies 999", officialUrl: "https://www.absher.sa/", phone: "1909" },
+  { id: "sa-cst", country: "Saudi Arabia", organization: "Communications, Space & Technology Commission (CST)", purpose: "Forward scam and fraud SMS to the toll-free reporting number", officialUrl: "https://www.cst.gov.sa/", phone: "330330" },
+  { id: "qa-moi", country: "Qatar", organization: "Ministry of Interior — Economic and Cyber Crimes Combating Department", purpose: "Report cybercrime via the Metrash2 app, hotline 66815757, or cccc@moi.gov.qa", officialUrl: "https://portal.moi.gov.qa/", phone: "2347444" },
+  { id: "kw-moi", country: "Kuwait", organization: "Ministry of Interior — Electronic and Cyber Crime Combating Department", purpose: "Report cybercrime by phone or WhatsApp (handled confidentially)", officialUrl: "https://www.moi.gov.kw/main/sections/cyber-crime?culture=en", phone: "+965 97283939" },
+  { id: "bh-acees", country: "Bahrain", organization: "Ministry of Interior — General Directorate of Anti-Corruption & Economic & Electronic Security", purpose: "Report cybercrime and online fraud via the 992 hotline, WhatsApp +973 17108108, or the online form", officialUrl: "https://www.acees.gov.bh/", phone: "992" },
+  { id: "om-rop", country: "Oman", organization: "Royal Oman Police — Cyber Crime Unit", purpose: "Report cyber fraud and extortion on the dedicated line; emergencies 9999", officialUrl: "https://www.rop.gov.om/", phone: "80077444" },
   { id: "global-general", country: "Global", organization: "Local police / consumer protection authority", purpose: "Report crimes and financial fraud in your country", officialUrl: "https://www.interpol.int/en/Crimes/Cybercrime" },
 ];
 
@@ -239,6 +247,11 @@ function selectResources(region: string): OfficialResource[] {
     if (normalized.includes("canada")) return country === "canada";
     if (normalized.includes("australia")) return country === "australia";
     if (normalized.includes("uae") || normalized.includes("emirates") || normalized.includes("dubai") || normalized.includes("abu dhabi")) return country === "united arab emirates";
+    if (normalized.includes("saudi") || normalized.includes("ksa") || normalized.includes("riyadh") || normalized.includes("jeddah")) return country === "saudi arabia";
+    if (normalized.includes("qatar") || normalized.includes("doha")) return country === "qatar";
+    if (normalized.includes("kuwait")) return country === "kuwait";
+    if (normalized.includes("bahrain") || normalized.includes("manama")) return country === "bahrain";
+    if (normalized.includes("oman") || normalized.includes("muscat")) return country === "oman";
     return false;
   });
   const global = OFFICIAL_RESOURCES.find((resource) => resource.id === "global-general");
