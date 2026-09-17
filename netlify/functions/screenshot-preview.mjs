@@ -67,26 +67,45 @@ export default async (request) => {
   // add a key once previews are popular). Either way the page is rendered by
   // the provider, never by the visitor's browser, so a hostile page is looked
   // at from a distance.
-  // The whole request has to finish inside the platform's response budget, so
-  // both providers share one deadline and the fallback only runs if there is
-  // still time for it.
-  const deadline = Date.now() + 24_000;
+  // The whole request has to finish inside the platform's response budget.
+  // GetScreenshot goes first and usually answers in about seven seconds; if it
+  // has not answered after nine (a heavy page) or it fails outright, the
+  // keyless fallback starts alongside it and whichever finishes first wins.
+  // Running them one after the other left slow pages with no picture at all.
+  const deadline = Date.now() + 25_000;
   const remaining = () => Math.max(1_000, deadline - Date.now());
 
-  const providers = [];
-  if (apiKey) providers.push({ name: "getscreenshot", run: () => rasterwiseScreenshot(apiKey, safeUrl, remaining) });
-  providers.push({ name: "microlink", run: () => microlinkScreenshot(safeUrl, remaining) });
+  const attempt = (name, run) =>
+    run().then((screenshot) => {
+      if (!screenshot) throw new Error("Provider returned no image.");
+      return { screenshot, provider: name };
+    }).catch((error) => {
+      console.error("CyberNet screenshot-preview provider failed", { provider: name, message: error?.message });
+      throw error;
+    });
 
-  for (const provider of providers) {
-    if (deadline - Date.now() < 8_000) break;
-    try {
-      const screenshot = await provider.run();
-      if (screenshot) return json({ screenshot, url: safeUrl, provider: provider.name });
-    } catch (error) {
-      console.error("CyberNet screenshot-preview provider failed", { provider: provider.name, message: error?.message });
+  try {
+    let result;
+    if (!apiKey) {
+      result = await attempt("microlink", () => microlinkScreenshot(safeUrl, remaining));
+    } else {
+      const primary = attempt("getscreenshot", () => rasterwiseScreenshot(apiKey, safeUrl, remaining));
+      const fallback = new Promise((resolve, reject) => {
+        let started = false;
+        const start = () => {
+          if (started) return;
+          started = true;
+          attempt("microlink", () => microlinkScreenshot(safeUrl, remaining)).then(resolve, reject);
+        };
+        const headStart = setTimeout(start, 9_000);
+        primary.then(() => clearTimeout(headStart), () => { clearTimeout(headStart); start(); });
+      });
+      result = await Promise.any([primary, fallback]);
     }
+    return json({ screenshot: result.screenshot, url: safeUrl, provider: result.provider });
+  } catch {
+    return json({ error: "Couldn't generate a preview of that link right now." }, 503);
   }
-  return json({ error: "Couldn't generate a preview of that link right now." }, 503);
 };
 
 async function isActiveTeamMember(userId) {
@@ -107,7 +126,7 @@ async function rasterwiseScreenshot(apiKey, safeUrl, remaining) {
   endpoint.searchParams.set("width", "1280");
   endpoint.searchParams.set("height", "800");
   endpoint.searchParams.set("format", "jpeg");
-  const response = await fetch(endpoint, { signal: AbortSignal.timeout(Math.min(16_000, remaining())) });
+  const response = await fetch(endpoint, { signal: AbortSignal.timeout(Math.min(20_000, remaining())) });
   const data = await response.json().catch(() => ({}));
   const imageUrl = data?.screenshotImage || data?.screenshot;
   if (!response.ok || data?.status === "error" || !imageUrl) {
