@@ -55,10 +55,10 @@ export default async (request: Request) => {
     const recoveryRows = await recoveryRes.json().catch(() => []);
 
     const perMemberToday: Record<string, number> = {};
-    for (const row of scanRows as any[]) {
+    for (const row of (Array.isArray(scanRows) ? scanRows : []) as any[]) {
       perMemberToday[row.user_id] = (perMemberToday[row.user_id] || 0) + 1;
     }
-    for (const row of recoveryRows as any[]) {
+    for (const row of (Array.isArray(recoveryRows) ? recoveryRows : []) as any[]) {
       perMemberToday[row.owner_user_id] = (perMemberToday[row.owner_user_id] || 0) + 1;
     }
 

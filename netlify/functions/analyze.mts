@@ -1387,15 +1387,20 @@ export default async function handler(request: Request, context: any): Promise<R
   let history: any[] = [];
   let teamLogId: number | null = null;
   if (mode === "quick" && (isTeamMember || (aiUsed && (usage.plan === "pro" || usage.plan === "business")))) {
-    const savedId = await saveHistory(
-      user.id,
-      type,
-      analysis,
-      team?.businessAccountId,
-      isTeamMember ? { content, hadImage: Boolean(imageData), aiUsed, model: modelLabel } : null,
-    );
-    if (isTeamMember) teamLogId = savedId;
-    history = await getHistory(user.id, 8);
+    // Keeping a record must never cost the person their result.
+    try {
+      const savedId = await saveHistory(
+        user.id,
+        type,
+        analysis,
+        team?.businessAccountId,
+        isTeamMember ? { content, hadImage: Boolean(imageData), aiUsed, model: modelLabel } : null,
+      );
+      if (isTeamMember) teamLogId = savedId;
+      history = await getHistory(user.id, 8);
+    } catch (error) {
+      console.warn("CyberNet history save failed", error instanceof Error ? error.message : error);
+    }
   }
 
   return json({
