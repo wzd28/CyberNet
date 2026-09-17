@@ -300,6 +300,7 @@ export async function getHistory(userId, limit = 8) {
 
   const response = await serviceFetch(
     `/rest/v1/scan_history?user_id=eq.${encodeURIComponent(userId)}` +
+    "&source=eq.analysis_ai" +
     "&select=id,analysis_type,verdict,score,threat_type,summary,created_at" +
     `&order=created_at.desc&limit=${safeLimit}`
   );

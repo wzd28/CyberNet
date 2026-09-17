@@ -2,6 +2,8 @@
   "use strict";
 
   const LEGAL_VERSION = "2026-09-04";
+  // The Privacy Policy was revised on its own (Business team activity log).
+  const PRIVACY_VERSION = "2026-09-17";
   const EFFECTIVE_DATE = "4 September 2026";
   const SUPPORT_EMAIL = "cybernetai.26@gmail.com";
   const DOCS = {
@@ -31,7 +33,7 @@
       kind,
       version: LEGAL_VERSION,
       termsVersion: LEGAL_VERSION,
-      privacyVersion: LEGAL_VERSION,
+      privacyVersion: PRIVACY_VERSION,
       acceptableUseVersion: LEGAL_VERSION,
       refundVersion: LEGAL_VERSION,
       billingCycle: kind === "checkout" ? selectedCycle() : "",

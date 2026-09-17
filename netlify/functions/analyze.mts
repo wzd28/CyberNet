@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { redactForTeamLog } from "../lib/team-log.mjs";
 
 declare const Netlify: {
   env: {
@@ -811,11 +812,12 @@ function isAdminUser(user: { email?: string } | null): boolean {
 async function getActiveTeamMembership(userId: string): Promise<{
   businessAccountId: string;
   dailyPoolLimit: number;
+  role: string;
 } | null> {
   const response = await serviceFetch(
     `/rest/v1/business_members?user_id=eq.${encodeURIComponent(userId)}` +
     "&status=eq.active" +
-    "&select=business_accounts(id,daily_pool_limit,subscription_status)"
+    "&select=role,business_accounts(id,daily_pool_limit,subscription_status)"
   );
   const rows = await response.json().catch(() => []);
   if (!response.ok) return null;
@@ -826,6 +828,7 @@ async function getActiveTeamMembership(userId: string): Promise<{
   return {
     businessAccountId: row.business_accounts.id,
     dailyPoolLimit: row.business_accounts.daily_pool_limit,
+    role: String(row.role || "member"),
   };
 }
 
@@ -885,11 +888,29 @@ async function refundAnalysis(userId: string): Promise<void> {
   }).catch(() => undefined);
 }
 
-async function saveHistory(userId: string, type: string, analysis: any, businessAccountId?: string | null): Promise<void> {
-  if (!["text", "link", "image"].includes(type)) return;
-  const response = await serviceFetch("/rest/v1/scan_history", {
+// What the team owner's activity log needs beyond the one-line summary: what
+// the member sent in and everything the analysis said about it. Only passed
+// for non-owner members of a Business team - the invitation and the Privacy
+// Policy tell them the owner can see this. Nobody else's submissions are kept,
+// and pictures are never kept for anyone.
+type TeamLogDetail = {
+  content: string;
+  hadImage: boolean;
+  aiUsed: boolean;
+  model: string;
+};
+
+async function saveHistory(
+  userId: string,
+  type: string,
+  analysis: any,
+  businessAccountId?: string | null,
+  teamLog?: TeamLogDetail | null,
+): Promise<number | null> {
+  if (!["text", "link", "image"].includes(type)) return null;
+  const response = await serviceFetch("/rest/v1/scan_history?select=id", {
     method: "POST",
-    headers: { Prefer: "return=minimal" },
+    headers: { Prefer: "return=representation" },
     body: JSON.stringify({
       user_id: userId,
       analysis_type: type,
@@ -897,14 +918,37 @@ async function saveHistory(userId: string, type: string, analysis: any, business
       score: Math.round(clamp(analysis.score)),
       threat_type: String(analysis.threatType || "Security analysis").slice(0, 160),
       summary: String(analysis.summary || "").slice(0, 2000),
+      source: "analysis_ai",
       ...(businessAccountId ? { business_account_id: businessAccountId } : {}),
+      ...(teamLog
+        ? {
+            submitted_content: redactForTeamLog(teamLog.content, MAX_TEXT_CHARS) || null,
+            analysis: {
+              confidence: Math.round(clamp(analysis.confidence)),
+              evidence: uniqueStrings(analysis.evidence, 14),
+              counterEvidence: uniqueStrings(analysis.counterEvidence, 10),
+              limitations: uniqueStrings(analysis.limitations, 10),
+              actions: uniqueStrings(analysis.actions, 12),
+              isFollowUp: analysis.isFollowUp === true,
+              hadImage: teamLog.hadImage,
+              aiUsed: teamLog.aiUsed,
+              engine: teamLog.model,
+            },
+          }
+        : {}),
     }),
   });
-  if (!response.ok) console.warn("CyberNet history save failed", response.status);
+  if (!response.ok) {
+    console.warn("CyberNet history save failed", response.status);
+    return null;
+  }
+  const rows = await response.json().catch(() => []);
+  const id = Number(Array.isArray(rows) ? rows[0]?.id : NaN);
+  return Number.isFinite(id) ? id : null;
 }
 
 async function getHistory(userId: string, limit = 8): Promise<any[]> {
-  const response = await serviceFetch(`/rest/v1/scan_history?user_id=eq.${encodeURIComponent(userId)}&select=id,analysis_type,verdict,score,threat_type,summary,created_at&order=created_at.desc&limit=${Math.max(1, Math.min(30, limit))}`);
+  const response = await serviceFetch(`/rest/v1/scan_history?user_id=eq.${encodeURIComponent(userId)}&source=eq.analysis_ai&select=id,analysis_type,verdict,score,threat_type,summary,created_at&order=created_at.desc&limit=${Math.max(1, Math.min(30, limit))}`);
   const rows = await response.json().catch(() => []);
   return response.ok && Array.isArray(rows) ? rows : [];
 }
@@ -1231,7 +1275,7 @@ export default async function handler(request: Request, context: any): Promise<R
   }
 
   let usage: UsageReservation;
-  let team: { businessAccountId: string; dailyPoolLimit: number } | null = null;
+  let team: { businessAccountId: string; dailyPoolLimit: number; role: string } | null = null;
   if (isAdminUser(user)) {
     usage = { allowed: true, used: 0, limit: 999999, remaining: 999999, plan: "business", resetDate: nextUtcReset() };
   } else {
@@ -1334,22 +1378,42 @@ export default async function handler(request: Request, context: any): Promise<R
     analysis.evidence = uniqueStrings([`Live reputation match: ${reputation.threatTypes.join(", ") || "known unsafe resource"}.`, ...analysis.evidence], 14);
   }
 
+  const modelLabel = aiUsed ? (aiRoute.model || MODEL) : "Server deterministic engine";
+
+  // A team member's analysis goes in the owner's activity log whether or not
+  // the AI was needed for it, along with what they submitted. The owner's own
+  // activity stays private, so it never carries that detail.
+  const isTeamMember = Boolean(team && team.role !== "owner");
   let history: any[] = [];
-  if (aiUsed && (usage.plan === "pro" || usage.plan === "business") && mode === "quick") {
-    await saveHistory(user.id, type, analysis, team?.businessAccountId);
-    history = await getHistory(user.id, 8);
+  let teamLogId: number | null = null;
+  if (mode === "quick" && (isTeamMember || (aiUsed && (usage.plan === "pro" || usage.plan === "business")))) {
+    // Keeping a record must never cost the person their result.
+    try {
+      const savedId = await saveHistory(
+        user.id,
+        type,
+        analysis,
+        team?.businessAccountId,
+        isTeamMember ? { content, hadImage: Boolean(imageData), aiUsed, model: modelLabel } : null,
+      );
+      if (isTeamMember) teamLogId = savedId;
+      history = await getHistory(user.id, 8);
+    } catch (error) {
+      console.warn("CyberNet history save failed", error instanceof Error ? error.message : error);
+    }
   }
 
   return json({
     analysis,
     reputation,
     aiUsed,
-    model: aiUsed ? (aiRoute.model || MODEL) : "Server deterministic engine",
+    model: modelLabel,
     mode,
     serverEvidence,
     authenticated: true,
     usage,
     history,
+    teamLogId,
     rateLimitMode: "account + ip",
   });
 }

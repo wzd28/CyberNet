@@ -318,12 +318,16 @@
   display:flex;
   flex-direction:column;
   gap:8px;
-  max-height:340px;
+  max-height:min(70vh,640px);
   overflow-y:auto;
   padding-right:4px;
 }
 
+/* The list is a scrolling flex column, and its entries clip their own
+   corners. Without this they are allowed to shrink, so an opened entry was
+   cut short and the ones under it were squeezed to slivers. */
 .cn-activity-item{
+  flex:0 0 auto;
   border:1px solid var(--glass-border,rgba(56,189,248,.16));
   border-radius:12px;
   background:rgba(2,9,18,.32);
@@ -435,6 +439,79 @@
   font-size:12px;
   letter-spacing:.06em;
   text-transform:uppercase;
+}
+
+.cn-activity-kind.is-quick{
+  border-color:rgba(167,139,250,.34);
+  color:#c4b5fd;
+  background:rgba(167,139,250,.09);
+}
+
+.cn-activity-verdict.is-neutral{
+  border:1px solid rgba(148,163,184,.3);
+  background:rgba(148,163,184,.1);
+  color:#cbd5e1;
+}
+
+.cn-activity-body p{
+  margin:0;
+}
+
+.cn-activity-body p + p{
+  margin-top:6px;
+}
+
+.cn-activity-submitted{
+  margin:0;
+  max-height:240px;
+  overflow:auto;
+  padding:10px 12px;
+  border:1px solid var(--glass-border,rgba(56,189,248,.16));
+  border-radius:9px;
+  background:rgba(2,9,18,.55);
+  color:var(--text,#eaf3fb);
+  font-family:var(--font-mono,monospace);
+  font-size:12px;
+  line-height:1.6;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  unicode-bidi:plaintext;
+}
+
+.cn-activity-note{
+  margin-top:6px;
+  color:var(--soft,#6b829e);
+  font-size:11.5px;
+}
+
+.cn-activity-note.is-error{
+  color:#ff9d9d;
+}
+
+.cn-activity-list{
+  margin:0;
+  padding-left:18px;
+  display:grid;
+  gap:4px;
+}
+
+.cn-activity-list b{
+  color:var(--text,#eaf3fb);
+  font-weight:600;
+}
+
+.cn-activity-tasks{
+  list-style:none;
+  padding-left:0;
+}
+
+.cn-activity-tasks .is-done{
+  color:#86efac;
+}
+
+.cn-activity-url{
+  font-family:var(--font-mono,monospace);
+  color:var(--text,#eaf3fb);
 }
 
 .cn-team-empty{
@@ -620,5 +697,32 @@
 
   .cn-seat-options{
     flex-direction:column;
+  }
+
+  /* Three things on one line left the title a few pixels wide and pushed the
+     longer verdicts off the edge. The label and verdict share the first line
+     and the title gets a full line of its own. */
+  .cn-activity-summary{
+    flex-wrap:wrap;
+    row-gap:8px;
+  }
+
+  .cn-activity-main{
+    order:3;
+    flex:1 1 100%;
+  }
+
+  .cn-activity-title{
+    white-space:normal;
+  }
+
+  .cn-activity-kind,
+  .cn-activity-verdict{
+    font-size:11px;
+    letter-spacing:.03em;
+  }
+
+  .cn-activity-verdict{
+    margin-left:auto;
   }
 }

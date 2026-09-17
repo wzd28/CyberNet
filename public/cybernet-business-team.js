@@ -105,7 +105,7 @@
         <div class="cn-team-section" id="cnTeamActivitySection">
           <div class="cn-team-section-head">
             <h3>Team activity</h3>
-            <p>Every analysis and recovery case your team has run, newest first. Tap any entry to open the full stored result.</p>
+            <p>Every Quick Scan, Analysis AI check and recovery case your teammates have run, newest first. Tap an entry to see what they submitted and the full result.</p>
           </div>
           <div class="cn-team-activity" id="cnTeamActivity"></div>
         </div>
@@ -139,7 +139,7 @@
         <div class="cn-invite-terms">
           <strong>Before you accept</strong>
           <ul>
-            <li>The team owner can see the full results of every scan, analysis, and recovery case you run on this team.</li>
+            <li>The team owner can see what you submit (the messages, links and QR code contents you check, and what you write in Recovery Mode) and the full results of every Quick Scan, analysis, and recovery case you run on this team. Pictures you upload are not stored.</li>
             <li>Once you join, only the team owner can remove you from the team.</li>
             <li>Your Quick Scan, Analysis AI, and Recovery Mode usage comes out of the team's shared daily pool.</li>
           </ul>
@@ -369,56 +369,234 @@
       renderPending();
     }
 
+    /* ─── Activity log ─── */
+
+    const ANALYSIS_TYPE_LABELS = { text: "Message", link: "Link", image: "Picture or QR code" };
+    const TIMELINE_LABELS = [
+      ["first10Minutes", "First 10 minutes"],
+      ["firstHour", "First hour"],
+      ["first24Hours", "First 24 hours"],
+      ["next7Days", "Next 7 days"]
+    ];
+    let activityDetailCache = new Map();
+
+    // The badge repeats what the member saw on their own screen: the site calls
+    // anything from 32 up a scam and anything below it not a scam. When the page
+    // reported the figures it actually showed, those are used as they are.
+    function scanBadge(row) {
+      if (row.followUp === true) return { label: "Follow-up question", tone: "is-neutral" };
+      if (row.needsDeepScan === true) return { label: "No verdict", tone: "is-neutral" };
+      const score = Number(row.shown?.score ?? row.score) || 0;
+      const label = row.shown?.label || (score >= 32 ? "SCAM" : "NOT A SCAM");
+      return { label: `${label} · ${score}/100`, tone: score >= 32 ? "is-danger" : "is-safe" };
+    }
+
+    function detailBlock(title, html) {
+      return html ? `<strong>${escapeHtml(title)}</strong>${html}` : "";
+    }
+
+    function detailList(title, items) {
+      const list = (Array.isArray(items) ? items : []).map((item) => String(item || "").trim()).filter(Boolean);
+      if (!list.length) return "";
+      return detailBlock(title, `<ul class="cn-activity-list">${list.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`);
+    }
+
+    function renderScanDetail(detail) {
+      const analysis = detail.analysis || {};
+      const isQuick = detail.source === "quick_scan";
+      const parts = [];
+
+      // Shown as plain text on purpose: a link in a suspicious message must
+      // never become something the owner can click from here.
+      let submitted = "";
+      if (detail.submittedContent) {
+        submitted += `<pre class="cn-activity-submitted">${escapeHtml(detail.submittedContent)}</pre>`;
+      }
+      if (analysis.hadImage) {
+        const file = analysis.fileName ? ` (${escapeHtml(analysis.fileName)})` : "";
+        submitted += `<p class="cn-activity-note">A picture was uploaded${file}. Pictures are never stored, only what was read from them.</p>`;
+      }
+      if (!submitted) {
+        submitted = '<p class="cn-activity-note">The original text was not saved for this entry. Entries made from 17 September 2026 onward include it.</p>';
+      }
+      const submittedTitle = analysis.qr?.data && isQuick ? "What the QR code contained" : "What they submitted";
+      parts.push(detailBlock(submittedTitle, submitted));
+
+      const badge = scanBadge({
+        score: detail.score,
+        shown: analysis.shown,
+        followUp: analysis.isFollowUp === true,
+        needsDeepScan: analysis.needsDeepScan === true
+      });
+      const confidence = Number(analysis.confidence) > 0 ? ` · confidence ${Number(analysis.confidence)}%` : "";
+      let resultHtml = `<p>${escapeHtml(badge.label)}${escapeHtml(confidence)} · ${escapeHtml(detail.threatType || "Security analysis")}</p>`;
+      if (analysis.shown && Number(analysis.shown.score) !== Number(detail.score)) {
+        resultHtml += `<p class="cn-activity-note">The AI on its own scored this ${Number(detail.score) || 0}/100. The page blends that with its on-device check, which is why your teammate saw ${Number(analysis.shown.score) || 0}/100.</p>`;
+      }
+      parts.push(detailBlock("Result shown to them", resultHtml));
+
+      const checkedBy = isQuick
+        ? "Quick Scan — the on-device check, no AI involved"
+        : analysis.aiUsed === false
+          ? "Analysis AI — settled by the built-in rules, the AI was not needed (no usage charged)"
+          : `Analysis AI${analysis.engine ? ` (${analysis.engine})` : ""}`;
+      parts.push(detailBlock("Checked by", `<p>${escapeHtml(checkedBy)} · ${escapeHtml(ANALYSIS_TYPE_LABELS[detail.analysisType] || detail.analysisType || "—")}</p>`));
+
+      parts.push(detailBlock(isQuick ? "In short" : "Full explanation", `<p>${escapeHtml(detail.summary || "No summary stored.")}</p>`));
+      parts.push(detailList("Warning signs found", analysis.evidence));
+      parts.push(detailList("Signs it may be fine", analysis.counterEvidence));
+      parts.push(detailList("What they were told to do", analysis.actions));
+      parts.push(detailList("Limits of this check", analysis.limitations));
+
+      const links = (Array.isArray(analysis.links) ? analysis.links : []).filter((link) => link?.url);
+      if (links.length) {
+        parts.push(detailBlock("Links found in it", `<ul class="cn-activity-list">${links.map((link) =>
+          `<li><span class="cn-activity-url">${escapeHtml(link.url)}</span> — ${Number(link.score) || 0}/100${link.label ? ` · ${escapeHtml(link.label)}` : ""}</li>`
+        ).join("")}</ul>`));
+      }
+
+      return parts.filter(Boolean).join("");
+    }
+
+    function renderRecoveryDetail(detail) {
+      const plan = detail.plan || {};
+      const parts = [];
+
+      parts.push(detailBlock("What they described", detail.submittedDescription
+        ? `<pre class="cn-activity-submitted">${escapeHtml(detail.submittedDescription)}</pre><p class="cn-activity-note">Card numbers, one-time codes and keys are removed before anything is stored.</p>`
+        : '<p class="cn-activity-note">The description was not saved for this case. Cases opened from 17 September 2026 onward include it.</p>'));
+
+      const facts = [
+        `Incident: ${detail.incidentType || "—"}`,
+        `Risk: ${detail.riskLevel || "—"}`,
+        `Urgency: ${detail.urgency || "—"}`,
+        `Status: ${detail.status || "—"}`,
+        `Progress: ${Number(detail.progressPercent) || 0}%`,
+        Number(detail.confidence) > 0 ? `Confidence: ${Number(detail.confidence)}%` : "",
+        detail.region ? `Region: ${detail.region}` : ""
+      ].filter(Boolean);
+      parts.push(detailBlock("Case", `<p>${facts.map(escapeHtml).join(" · ")}</p>`));
+
+      if (plan.summary) parts.push(detailBlock("Plan summary", `<p>${escapeHtml(plan.summary)}</p>`));
+      parts.push(detailList("What is known", plan.whatWeKnow));
+
+      const actionItems = (list) => (Array.isArray(list) ? list : [])
+        .filter((action) => action?.title)
+        .map((action) => `<li><b>${escapeHtml(action.title)}</b>${action.instruction ? ` — ${escapeHtml(action.instruction)}` : ""}</li>`)
+        .join("");
+
+      const doFirst = actionItems(plan.immediateActions);
+      if (doFirst) parts.push(detailBlock("Do first", `<ul class="cn-activity-list">${doFirst}</ul>`));
+
+      TIMELINE_LABELS.forEach(([key, label]) => {
+        const items = actionItems(plan.timeline?.[key]);
+        if (items) parts.push(detailBlock(label, `<ul class="cn-activity-list">${items}</ul>`));
+      });
+
+      parts.push(detailList("Risk that remains", plan.remainingRisk));
+      parts.push(detailList("Limits of this plan", plan.limitations));
+
+      // Every task on the case, the same set the progress figure is worked out from.
+      const tasks = Array.isArray(detail.tasks) ? detail.tasks : [];
+      if (tasks.length) {
+        const done = tasks.filter((task) => task.status === "done" || task.status === "completed").length;
+        parts.push(detailBlock(`Checklist — ${done} of ${tasks.length} done`, `<ul class="cn-activity-list cn-activity-tasks">${tasks.map((task) => {
+          const finished = task.status === "done" || task.status === "completed";
+          return `<li class="${finished ? "is-done" : ""}">${finished ? "✓" : "○"} ${escapeHtml(task.title)}</li>`;
+        }).join("")}</ul>`));
+      }
+
+      const versions = Array.isArray(detail.versions) ? detail.versions : [];
+      if (versions.length) {
+        parts.push(detailBlock("Plan history", `<ul class="cn-activity-list">${versions.map((version) =>
+          `<li>Version ${Number(version.version) || 1} · ${escapeHtml(formatDate(version.createdAt))} — ${escapeHtml(version.changeSummary || "Updated")}</li>`
+        ).join("")}</ul>`));
+      }
+
+      return parts.filter(Boolean).join("");
+    }
+
+    async function openActivityDetail(row, bodyEl) {
+      const key = `${row.type}:${row.id}`;
+      if (activityDetailCache.has(key)) {
+        bodyEl.innerHTML = activityDetailCache.get(key);
+        return;
+      }
+
+      bodyEl.innerHTML = '<p class="cn-activity-note">Loading the full entry…</p>';
+
+      try {
+        const response = await fetch(
+          `/api/business-activity?detail=${encodeURIComponent(row.type)}&id=${encodeURIComponent(row.id)}`,
+          { headers: authHeaders(), cache: "no-store" }
+        );
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.detail) throw new Error(data.error || "Could not load this entry.");
+
+        const html = row.type === "scan" ? renderScanDetail(data.detail) : renderRecoveryDetail(data.detail);
+        activityDetailCache.set(key, html);
+        bodyEl.innerHTML = html;
+      } catch (error) {
+        bodyEl.innerHTML = `<p class="cn-activity-note is-error">${escapeHtml(error?.message || "Could not load this entry.")} Tap the entry again to retry.</p>`;
+      }
+    }
+
     function renderActivity(feed) {
       const host = document.getElementById("cnTeamActivity");
       if (!host) return;
 
+      activityDetailCache = new Map();
+
       if (!feed?.length) {
-        host.innerHTML = '<div class="cn-team-empty">No team activity yet. Scans and recovery cases your teammates run will appear here. Your own stay private.</div>';
+        host.innerHTML = '<div class="cn-team-empty">No team activity yet. Every Quick Scan, Analysis AI check and recovery case your teammates run will appear here. Your own stay private.</div>';
         return;
       }
 
       host.innerHTML = feed.map((row, index) => {
         const who = row.member?.fullName || row.member?.email || "Team member";
         const isScan = row.type === "scan";
-        const dangerous = isScan
-          ? !["low_risk", "safe"].includes(String(row.verdict || "").toLowerCase())
-          : ["critical", "high"].includes(String(row.riskLevel || "").toLowerCase());
+        const isQuick = isScan && row.source === "quick_scan";
+
+        const kindLabel = !isScan ? "Recovery" : isQuick ? "Quick Scan" : "Analysis AI";
+        const kindClass = !isScan ? "is-recovery" : isQuick ? "is-quick" : "is-scan";
 
         const title = isScan
           ? row.threatType || "Security analysis"
           : row.caseTitle || row.incidentType || "Recovery case";
 
-        const verdictLabel = isScan
-          ? `${row.verdict || "—"} · ${Number(row.score) || 0}/100`
-          : `${row.riskLevel || "—"} risk`;
+        const badge = isScan
+          ? scanBadge(row)
+          : {
+              label: `${row.riskLevel || "—"} risk`,
+              tone: ["critical", "high"].includes(String(row.riskLevel || "").toLowerCase()) ? "is-danger" : "is-safe"
+            };
 
-        const body = isScan
-          ? `<strong>Result summary</strong>${escapeHtml(row.summary || "No summary stored.")}
-             <strong>Analysis type</strong>${escapeHtml(row.analysisType || "—")}`
-          : `<strong>Incident type</strong>${escapeHtml(row.incidentType || "—")}
-             <strong>Urgency</strong>${escapeHtml(row.urgency || "—")}
-             <strong>Status</strong>${escapeHtml(row.status || "—")}`;
+        const what = isScan ? ANALYSIS_TYPE_LABELS[row.analysisType] || "" : `${Number(row.progressPercent) || 0}% done`;
 
         return `
           <div class="cn-activity-item">
-            <button class="cn-activity-summary" type="button" data-activity-toggle="${index}">
-              <span class="cn-activity-kind ${isScan ? "is-scan" : "is-recovery"}">${isScan ? "Scan" : "Recovery"}</span>
+            <button class="cn-activity-summary" type="button" data-activity-toggle="${index}" aria-expanded="false" aria-controls="cnActivityBody${index}">
+              <span class="cn-activity-kind ${kindClass}">${kindLabel}</span>
               <span class="cn-activity-main">
                 <span class="cn-activity-title">${escapeHtml(title)}</span>
-                <span class="cn-activity-meta">${escapeHtml(who)} · ${escapeHtml(formatDate(row.createdAt))}</span>
+                <span class="cn-activity-meta">${escapeHtml(who)} · ${escapeHtml(formatDate(row.createdAt))}${what ? ` · ${escapeHtml(what)}` : ""}</span>
               </span>
-              <span class="cn-activity-verdict ${dangerous ? "is-danger" : "is-safe"}">${escapeHtml(verdictLabel)}</span>
+              <span class="cn-activity-verdict ${badge.tone}">${escapeHtml(badge.label)}</span>
             </button>
-            <div class="cn-activity-body" id="cnActivityBody${index}" hidden>${body}</div>
+            <div class="cn-activity-body" id="cnActivityBody${index}" hidden></div>
           </div>
         `;
       }).join("");
 
       host.querySelectorAll("[data-activity-toggle]").forEach((button) => {
         button.addEventListener("click", () => {
-          const body = document.getElementById(`cnActivityBody${button.dataset.activityToggle}`);
-          if (body) body.hidden = !body.hidden;
+          const index = Number(button.dataset.activityToggle);
+          const body = document.getElementById(`cnActivityBody${index}`);
+          if (!body) return;
+
+          body.hidden = !body.hidden;
+          button.setAttribute("aria-expanded", String(!body.hidden));
+          if (!body.hidden) openActivityDetail(feed[index], body);
         });
       });
     }

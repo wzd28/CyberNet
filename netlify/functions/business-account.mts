@@ -36,12 +36,15 @@ export default async (request: Request) => {
 
     // Per-member usage-today rollup: scan_history + recovery_cases rows
     // created today, tagged with this business_account_id, grouped by who
-    // did them.
+    // did them. Only rows that actually drew on the shared pool count: Quick
+    // Scans are free, and an analysis the AI was not needed for is refunded,
+    // but both are still written to the log for the owner to read.
     const startOfDayUtc = `${today}T00:00:00Z`;
     const [scanRes, recoveryRes] = await Promise.all([
       serviceFetch(
         `/rest/v1/scan_history?business_account_id=eq.${team.businessAccountId}` +
-        `&created_at=gte.${startOfDayUtc}&select=user_id`
+        `&created_at=gte.${startOfDayUtc}&source=eq.analysis_ai` +
+        "&or=(analysis.is.null,analysis->>aiUsed.eq.true)&select=user_id"
       ),
       serviceFetch(
         `/rest/v1/recovery_cases?business_account_id=eq.${team.businessAccountId}` +
@@ -52,10 +55,10 @@ export default async (request: Request) => {
     const recoveryRows = await recoveryRes.json().catch(() => []);
 
     const perMemberToday: Record<string, number> = {};
-    for (const row of scanRows as any[]) {
+    for (const row of (Array.isArray(scanRows) ? scanRows : []) as any[]) {
       perMemberToday[row.user_id] = (perMemberToday[row.user_id] || 0) + 1;
     }
-    for (const row of recoveryRows as any[]) {
+    for (const row of (Array.isArray(recoveryRows) ? recoveryRows : []) as any[]) {
       perMemberToday[row.owner_user_id] = (perMemberToday[row.owner_user_id] || 0) + 1;
     }
 
