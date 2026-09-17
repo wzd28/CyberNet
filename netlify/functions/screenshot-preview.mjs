@@ -67,16 +67,23 @@ export default async (request) => {
   // add a key once previews are popular). Either way the page is rendered by
   // the provider, never by the visitor's browser, so a hostile page is looked
   // at from a distance.
+  // The whole request has to finish inside the platform's response budget, so
+  // both providers share one deadline and the fallback only runs if there is
+  // still time for it.
+  const deadline = Date.now() + 24_000;
+  const remaining = () => Math.max(1_000, deadline - Date.now());
+
   const providers = [];
-  if (apiKey) providers.push(() => rasterwiseScreenshot(apiKey, safeUrl));
-  providers.push(() => microlinkScreenshot(safeUrl));
+  if (apiKey) providers.push({ name: "getscreenshot", run: () => rasterwiseScreenshot(apiKey, safeUrl, remaining) });
+  providers.push({ name: "microlink", run: () => microlinkScreenshot(safeUrl, remaining) });
 
   for (const provider of providers) {
+    if (deadline - Date.now() < 8_000) break;
     try {
-      const screenshot = await provider();
-      if (screenshot) return json({ screenshot, url: safeUrl });
+      const screenshot = await provider.run();
+      if (screenshot) return json({ screenshot, url: safeUrl, provider: provider.name });
     } catch (error) {
-      console.error("CyberNet screenshot-preview provider failed", error);
+      console.error("CyberNet screenshot-preview provider failed", { provider: provider.name, message: error?.message });
     }
   }
   return json({ error: "Couldn't generate a preview of that link right now." }, 503);
@@ -90,39 +97,51 @@ async function isActiveTeamMember(userId) {
   }
 }
 
-async function rasterwiseScreenshot(apiKey, safeUrl) {
+// GetScreenshot (by Rasterwise). Its response carries the picture's address in
+// `screenshotImage`; this used to read `screenshot`, which does not exist, so
+// every call looked like a failure and the paid plan was never actually used.
+async function rasterwiseScreenshot(apiKey, safeUrl, remaining) {
   const endpoint = new URL("https://api.rasterwise.com/v1/get-screenshot");
   endpoint.searchParams.set("apikey", apiKey);
   endpoint.searchParams.set("url", safeUrl);
   endpoint.searchParams.set("width", "1280");
   endpoint.searchParams.set("height", "800");
-  const response = await fetch(endpoint, { headers: { Auth: "allow" }, signal: AbortSignal.timeout(20_000) });
+  endpoint.searchParams.set("format", "jpeg");
+  const response = await fetch(endpoint, { signal: AbortSignal.timeout(Math.min(16_000, remaining())) });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok || !data?.screenshot) throw new Error(data?.message || "Rasterwise returned an error.");
-  return data.screenshot;
+  const imageUrl = data?.screenshotImage || data?.screenshot;
+  if (!response.ok || data?.status === "error" || !imageUrl) {
+    throw new Error(data?.message || `GetScreenshot returned ${response.status}.`);
+  }
+  return imageToDataUrl(imageUrl, remaining);
 }
 
-// Microlink returns a hosted image URL; the bytes are fetched here and handed
-// to the page as a data URL, because the page's Content-Security-Policy only
-// allows images from the site itself and inline data.
-async function microlinkScreenshot(safeUrl) {
+// Providers hand back a hosted image address; the bytes are fetched here and
+// given to the page as a data URL, because the page's Content-Security-Policy
+// only allows images from the site itself and inline data.
+async function imageToDataUrl(imageUrl, remaining) {
+  const image = await fetch(imageUrl, { signal: AbortSignal.timeout(Math.min(10_000, remaining())) });
+  if (!image.ok) throw new Error(`Screenshot download failed (${image.status}).`);
+  const bytes = Buffer.from(await image.arrayBuffer());
+  if (bytes.length > 2_500_000) throw new Error("Screenshot too large to inline.");
+  const type = image.headers.get("content-type") || "image/jpeg";
+  return `data:${type};base64,${bytes.toString("base64")}`;
+}
+
+// Keyless fallback, used when GetScreenshot is not configured or refuses a URL
+// (it blocks link shorteners, for one).
+async function microlinkScreenshot(safeUrl, remaining) {
   const endpoint = new URL("https://api.microlink.io/");
   endpoint.searchParams.set("url", safeUrl);
   endpoint.searchParams.set("screenshot", "true");
   endpoint.searchParams.set("meta", "false");
   endpoint.searchParams.set("viewport.width", "1280");
   endpoint.searchParams.set("viewport.height", "800");
-  const response = await fetch(endpoint, { signal: AbortSignal.timeout(22_000) });
+  const response = await fetch(endpoint, { signal: AbortSignal.timeout(Math.min(18_000, remaining())) });
   const data = await response.json().catch(() => ({}));
   const imageUrl = data?.data?.screenshot?.url;
   if (!response.ok || data?.status !== "success" || !imageUrl) throw new Error(data?.message || data?.code || "Microlink returned an error.");
-
-  const image = await fetch(imageUrl, { signal: AbortSignal.timeout(15_000) });
-  if (!image.ok) throw new Error(`Screenshot download failed (${image.status}).`);
-  const bytes = Buffer.from(await image.arrayBuffer());
-  if (bytes.length > 2_500_000) throw new Error("Screenshot too large to inline.");
-  const type = image.headers.get("content-type") || "image/jpeg";
-  return `data:${type};base64,${bytes.toString("base64")}`;
+  return imageToDataUrl(imageUrl, remaining);
 }
 
 export const config = {
