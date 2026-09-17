@@ -36,12 +36,15 @@ export default async (request: Request) => {
 
     // Per-member usage-today rollup: scan_history + recovery_cases rows
     // created today, tagged with this business_account_id, grouped by who
-    // did them.
+    // did them. Only rows that actually drew on the shared pool count: Quick
+    // Scans are free, and an analysis the AI was not needed for is refunded,
+    // but both are still written to the log for the owner to read.
     const startOfDayUtc = `${today}T00:00:00Z`;
     const [scanRes, recoveryRes] = await Promise.all([
       serviceFetch(
         `/rest/v1/scan_history?business_account_id=eq.${team.businessAccountId}` +
-        `&created_at=gte.${startOfDayUtc}&select=user_id`
+        `&created_at=gte.${startOfDayUtc}&source=eq.analysis_ai` +
+        "&or=(analysis.is.null,analysis->>aiUsed.eq.true)&select=user_id"
       ),
       serviceFetch(
         `/rest/v1/recovery_cases?business_account_id=eq.${team.businessAccountId}` +

@@ -314,6 +314,19 @@ document.addEventListener("DOMContentLoaded",()=>{
   function isBusiness(){return planTier()==="business"}
   function isSignedIn(){return Boolean(appState.session?.access_token)}
 
+  // A Business team member's activity is shown to their team owner; they agree
+  // to that when they accept the invite. Quick Scan runs on this device, so its
+  // result has to be sent up for the owner's log. Nothing is sent for anyone
+  // else, and the owner's own activity is never reported.
+  function isLoggedTeamMember(){return Boolean(appState.profile?.isTeamMember)&&appState.profile?.teamRole!=="owner"}
+  function reportTeamActivity(payload){
+    if(!isSignedIn()||!isLoggedTeamMember())return;
+    try{fetch("/api/team-activity",{method:"POST",headers:authHeaders({"Content-Type":"application/json"}),body:JSON.stringify(payload),keepalive:true}).catch(()=>{})}catch{}
+  }
+  function quickScanLogResult(result,extra={}){
+    return{score:result.score,scamType:result.scamType,confidence:result.confidence,reasons:(result.reasons||[]).slice(0,14),advice:(result.advice||[]).slice(0,12),counterEvidence:(result.counterEvidence||[]).slice(0,10),links:(result.links||[]).slice(0,4).map(link=>({url:link.url,score:link.result?.score,label:link.result?.scamType})),...extra};
+  }
+
   function authHeaders(extra={}){
     return appState.session?.access_token?{...extra,Authorization:`Bearer ${appState.session.access_token}`}:{...extra};
   }
@@ -492,7 +505,9 @@ document.addEventListener("DOMContentLoaded",()=>{
         plan:data.profile?.plan||"free",
         fullName:data.profile?.fullName||appState.user?.user_metadata?.full_name||"",
         subscriptionStatus:data.profile?.subscriptionStatus||"inactive",
-        billingInterval:data.profile?.billingInterval||""
+        billingInterval:data.profile?.billingInterval||"",
+        isTeamMember:Boolean(data.profile?.isTeamMember),
+        teamRole:data.profile?.teamRole||null
       };
       appState.usage={
         used:Number(data.usage?.used)||0,
@@ -1477,7 +1492,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     const r=data?.analysis||data;
     if(!r||typeof r!=="object")return null;
     const verdict=String(r.verdict||"inconclusive").toLowerCase();
-    return{score:clamp(r.score),confidence:clamp(r.confidence),scamType:r.threatType||r.scamType||"Deep security analysis",reasons:unique([...(r.evidence||r.reasons||[]),...(r.limitations||[])]),counterEvidence:unique(r.counterEvidence||[]),advice:unique(r.actions||r.advice||[]),uncertain:verdict==="inconclusive",verdict,sources:unique([...(data?.aiUsed?["Secure AI analysis"]:[]),...(data?.reputation?.checked?["Live URL reputation"]:[])]),note:r.summary||r.note||"Secure deep analysis completed.",reputation:data?.reputation||null,virusTotal:data?.virusTotal||null,aiUsed:Boolean(data?.aiUsed),isFollowUp:r.isFollowUp===true};
+    return{score:clamp(r.score),confidence:clamp(r.confidence),scamType:r.threatType||r.scamType||"Deep security analysis",reasons:unique([...(r.evidence||r.reasons||[]),...(r.limitations||[])]),counterEvidence:unique(r.counterEvidence||[]),advice:unique(r.actions||r.advice||[]),uncertain:verdict==="inconclusive",verdict,sources:unique([...(data?.aiUsed?["Secure AI analysis"]:[]),...(data?.reputation?.checked?["Live URL reputation"]:[])]),note:r.summary||r.note||"Secure deep analysis completed.",reputation:data?.reputation||null,virusTotal:data?.virusTotal||null,aiUsed:Boolean(data?.aiUsed),isFollowUp:r.isFollowUp===true,teamLogId:Number(data?.teamLogId)||null};
   }
   function mergeAnalysis(local,deep){
     if(!deep)return local;
@@ -1592,6 +1607,7 @@ document.addEventListener("DOMContentLoaded",()=>{
         :"Local protection scan complete. Use the CyberNet AI page for account-based AI analysis.";
       showReport(cyberTextResult,result.score,result.scamType,result.reasons,result.advice,{...result,note,previewHtml:isBareLink?renderLinkPreview(text,result):renderLinksFound(result.links||[])});
       prependScan("textScanList",`“${text.slice(0,42)}${text.length>42?"…":""}”`,result);
+      reportTeamActivity({kind:"quick_scan",scanType:isBareLink?"link":"text",content:text,result:quickScanLogResult(result)});
       if(status)status.textContent="Local scan complete";
       cyberTextBtn.disabled=false;
     });
@@ -1617,6 +1633,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       const result=analyzeLinkRules(link);
       showReport(cyberLinkResult,result.score,result.scamType,result.reasons,result.advice,{...result,note:"Local structural URL scan complete. Use the CyberNet AI page for account-based AI analysis.",previewHtml:renderLinkPreview(link,result)});
       prependScan("linkScanList",link.slice(0,52),result);
+      reportTeamActivity({kind:"quick_scan",scanType:"link",content:link,result:quickScanLogResult(result)});
     });
   });
 
@@ -1683,6 +1700,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     // the Analysis AI page reuses that function for its own pre-analysis.
     showReport(cyberImageResult,result.score,result.scamType,result.reasons,result.advice,{...result,needsDeepScan:!decoded.qrData,note:"Local QR and file checks complete. Use the CyberNet AI page for account-based visual AI analysis.",previewHtml:decoded.qrData?renderQrPreview(decoded.qrData,qrKind,qrResult):""});
     prependScan("imageScanList",file.name,result);
+    reportTeamActivity({kind:"quick_scan",scanType:"image",content:"",fileName:file.name,qr:decoded.qrData?{kind:qrKind,data:decoded.qrData}:null,result:quickScanLogResult(result,{needsDeepScan:!decoded.qrData})});
   }
   if(cyberDropZone)cyberDropZone.addEventListener("click",e=>{if(!isSignedIn()){e.preventDefault();openAuthModal("signup")}});
   if(cyberImageInput)cyberImageInput.addEventListener("change",()=>{if(!isSignedIn()){cyberImageInput.value="";openAuthModal("signup");return}handleCyberImage(cyberImageInput.files[0])});
@@ -1933,6 +1951,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       // engine's read of the question itself has nothing to add.
       const result=deep?.isFollowUp?{...deep,scamType:`Follow-up · ${deep.scamType}`}:mergeAnalysis(local,deep);
       if(type==="link")result.previewUrl=/^https?:\/\//i.test(content)?content:`https://${content}`;
+      if(deep?.teamLogId)reportTeamActivity({kind:"analysis_shown",logId:deep.teamLogId,shown:{score:clamp(Math.round(result.score)),label:deep.isFollowUp?"FOLLOW-UP":getDanger(result.score).headline,threatType:result.scamType}});
       result.previewHtml=deep?.isFollowUp?"":type==="link"?renderLinkPreview(result.previewUrl,local):type==="image"&&decodedQrForDisplay?renderQrPreview(decodedQrForDisplay,qrKind,qrResult):renderLinksFound(local.links||[]);
       chatHistory.push({role:"user",text:(type==="image"?"[image attached] ":"")+String(content||"").slice(0,600)},{role:"assistant",text:`${getDanger(result.score).headline} ${clamp(Math.round(result.score))}/100 · ${result.scamType}. ${String(result.note||"").slice(0,320)}`});
       if(chatHistory.length>8)chatHistory.splice(0,chatHistory.length-8);

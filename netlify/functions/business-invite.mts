@@ -45,13 +45,13 @@ async function sendInviteEmail(toEmail: string, inviterName: string, acceptUrl: 
             <a href="${acceptUrl}" style="background: #22d3ee; color: #050a16; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">Accept invite</a>
           </p>
           <p style="color: #64748b; font-size: 13px; line-height: 1.6;">
-            Note: on a Business team, the team owner can view the full content of your Quick Scan, Analysis AI, and
-            Recovery Mode activity. Once you accept, only the team owner can remove you from the team.
+            Note: on a Business team, the team owner can view what you submit and the full results of your Quick Scan,
+            Analysis AI, and Recovery Mode activity (pictures you upload are not stored). Once you accept, only the team owner can remove you from the team.
           </p>
           <p style="color: #94a3b8; font-size: 12px;">This invite expires in 7 days. If you didn't expect this, you can ignore this email.</p>
         </div>
       `,
-      text: `${inviterName || "Someone"} invited you to join their CyberNet AI Business team.\n\nAccept: ${acceptUrl}\n\nNote: the team owner can view the full content of your activity while you're on the team. Only the team owner can remove you once you accept. This invite expires in 7 days.`,
+      text: `${inviterName || "Someone"} invited you to join their CyberNet AI Business team.\n\nAccept: ${acceptUrl}\n\nNote: the team owner can view what you submit and the full results of your activity while you're on the team (pictures you upload are not stored). Only the team owner can remove you once you accept. This invite expires in 7 days.`,
     }),
   });
 

@@ -600,11 +600,12 @@ async function consumeRecoveryCase(userId: string) {
 async function getActiveTeamMembership(userId: string): Promise<{
   businessAccountId: string;
   recoveryPoolLimit: number;
+  role: string;
 } | null> {
   const response = await serviceFetch(
     `/rest/v1/business_members?user_id=eq.${encodeURIComponent(userId)}` +
     "&status=eq.active" +
-    "&select=business_accounts(id,recovery_pool_limit,subscription_status)"
+    "&select=role,business_accounts(id,recovery_pool_limit,subscription_status)"
   );
   const rows = await response.json().catch(() => []);
   if (!response.ok) return null;
@@ -615,6 +616,7 @@ async function getActiveTeamMembership(userId: string): Promise<{
   return {
     businessAccountId: row.business_accounts.id,
     recoveryPoolLimit: row.business_accounts.recovery_pool_limit,
+    role: String(row.role || "member"),
   };
 }
 
@@ -636,7 +638,7 @@ async function consumeRecoveryCaseBusiness(businessAccountId: string) {
   };
 }
 
-async function saveCase(userId: string, classifier: ClassifierResult, plan: any, region: string, caseTitle: string, businessAccountId?: string | null) {
+async function saveCase(userId: string, classifier: ClassifierResult, plan: any, region: string, caseTitle: string, businessAccountId?: string | null, teamLogDescription?: string | null) {
   const insertResponse = await serviceFetch("/rest/v1/recovery_cases", {
     method: "POST",
     headers: { Prefer: "return=representation" },
@@ -652,6 +654,9 @@ async function saveCase(userId: string, classifier: ClassifierResult, plan: any,
       current_version: 1,
       case_title: caseTitle,
       ...(businessAccountId ? { business_account_id: businessAccountId } : {}),
+      // What a team member wrote, already stripped of card numbers, codes and
+      // keys by redactSecrets, kept so the team owner's log can show it.
+      ...(teamLogDescription ? { submitted_description: teamLogDescription } : {}),
     }),
   });
   const rows = await insertResponse.json().catch(() => []);
@@ -737,7 +742,7 @@ export default async function handler(request: Request, context: any): Promise<R
   if (!user) return json({ error: "Sign in or create a free account before starting Recovery Mode.", code: "sign_in_required" }, 401);
 
   let usage;
-  let team: { businessAccountId: string; recoveryPoolLimit: number } | null = null;
+  let team: { businessAccountId: string; recoveryPoolLimit: number; role: string } | null = null;
   if (isAdminUser(user)) {
     usage = { allowed: true, used: 0, limit: 999999, plan: "business", resetAt: null };
   } else {
@@ -766,7 +771,15 @@ export default async function handler(request: Request, context: any): Promise<R
 
   let caseId: string;
   try {
-    caseId = await saveCase(user.id, classifier, plan, region, `${plan.incidentType} — ${new Date().toLocaleDateString()}`, team?.businessAccountId);
+    caseId = await saveCase(
+      user.id,
+      classifier,
+      plan,
+      region,
+      `${plan.incidentType} — ${new Date().toLocaleDateString()}`,
+      team?.businessAccountId,
+      team && team.role !== "owner" ? description : null,
+    );
   } catch (error) {
     console.error("CyberNet Recovery case save failed", error);
     return json({ error: "Your recovery plan was generated, but it could not be saved. Please try again.", code: "save_failed" }, 500);

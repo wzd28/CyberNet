@@ -855,6 +855,19 @@ alter table public.scan_history add column if not exists business_account_id uui
 create index if not exists scan_history_business_account_idx on public.scan_history (business_account_id) where business_account_id is not null;
 create index if not exists recovery_cases_business_account_idx on public.recovery_cases (business_account_id) where business_account_id is not null;
 
+-- Team activity log: what a team member submitted and the full result, so the
+-- team owner's log can show it. Optional columns, filled only for non-owner
+-- members of a Business team. `source` tells Analysis AI rows from Quick Scans
+-- the member's browser reports for the log.
+alter table public.scan_history add column if not exists submitted_content text;
+alter table public.scan_history add column if not exists analysis jsonb;
+alter table public.scan_history add column if not exists source text not null default 'analysis_ai';
+alter table public.recovery_cases add column if not exists submitted_description text;
+
+create index if not exists scan_history_business_created_idx
+  on public.scan_history (business_account_id, created_at desc)
+  where business_account_id is not null;
+
 create or replace function public.consume_analysis_business(p_business_account_id uuid)
 returns table(allowed boolean, used integer, daily_limit integer)
 language plpgsql
