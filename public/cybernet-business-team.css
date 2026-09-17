@@ -318,12 +318,16 @@
   display:flex;
   flex-direction:column;
   gap:8px;
-  max-height:340px;
+  max-height:min(70vh,640px);
   overflow-y:auto;
   padding-right:4px;
 }
 
+/* The list is a scrolling flex column, and its entries clip their own
+   corners. Without this they are allowed to shrink, so an opened entry was
+   cut short and the ones under it were squeezed to slivers. */
 .cn-activity-item{
+  flex:0 0 auto;
   border:1px solid var(--glass-border,rgba(56,189,248,.16));
   border-radius:12px;
   background:rgba(2,9,18,.32);
@@ -693,5 +697,32 @@
 
   .cn-seat-options{
     flex-direction:column;
+  }
+
+  /* Three things on one line left the title a few pixels wide and pushed the
+     longer verdicts off the edge. The label and verdict share the first line
+     and the title gets a full line of its own. */
+  .cn-activity-summary{
+    flex-wrap:wrap;
+    row-gap:8px;
+  }
+
+  .cn-activity-main{
+    order:3;
+    flex:1 1 100%;
+  }
+
+  .cn-activity-title{
+    white-space:normal;
+  }
+
+  .cn-activity-kind,
+  .cn-activity-verdict{
+    font-size:11px;
+    letter-spacing:.03em;
+  }
+
+  .cn-activity-verdict{
+    margin-left:auto;
   }
 }
