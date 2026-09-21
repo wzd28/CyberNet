@@ -5,7 +5,8 @@ import {
   verifyUser,
   getProfile,
   updateProfile,
-  effectivePlan
+  effectivePlan,
+  serviceFetch
 } from "../lib/supabase.mjs";
 
 function env(name) {
@@ -56,6 +57,11 @@ export default async (request) => {
     return json({ error: "Method not allowed." }, 405);
   }
 
+  let debugUserId = null;
+  let debugLookupKey = null;
+  let debugCycle = null;
+  let debugTargetPlan = null;
+
   try {
     const secret = env("STRIPE_SECRET_KEY");
 
@@ -70,12 +76,15 @@ export default async (request) => {
     }
 
     const { user } = await verifyUser(request);
+    debugUserId = user.id;
     const profile = await getProfile(user);
     const currentPlan = effectivePlan(profile);
 
     const body = await request.json().catch(() => ({}));
     const cycle = body.cycle === "yearly" ? "yearly" : "monthly";
     const targetPlan = body.plan === "business" ? "business" : "pro";
+    debugCycle = cycle;
+    debugTargetPlan = targetPlan;
 
     if (currentPlan === targetPlan) {
       return json(
@@ -107,8 +116,10 @@ export default async (request) => {
             ? (env("STRIPE_PRO_YEARLY_LOOKUP_KEY") || "cybernet_ai_pro_yearly")
             : (env("STRIPE_PRO_MONTHLY_LOOKUP_KEY") || "cybernet_ai_pro_monthly")
         );
+    debugLookupKey = lookupKey;
 
     const stripe = new Stripe(secret);
+
 
     const prices = await stripe.prices.list({
       lookup_keys: [lookupKey],
@@ -197,6 +208,24 @@ export default async (request) => {
     return json({ url: session.url });
   } catch (error) {
     console.error("Stripe Checkout error", error);
+
+    try {
+      await serviceFetch("/rest/v1/checkout_debug_log", {
+        method: "POST",
+        body: JSON.stringify({
+          user_id: debugUserId,
+          lookup_key: debugLookupKey,
+          cycle: debugCycle,
+          target_plan: debugTargetPlan,
+          error_type: error.type || error.name || null,
+          error_code: error.code || null,
+          error_message: error.message || null,
+          error_raw: error.raw ? JSON.stringify(error.raw) : null
+        })
+      });
+    } catch (logError) {
+      console.error("Failed to write checkout debug log", logError);
+    }
 
     return json(
       {
