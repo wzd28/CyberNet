@@ -70,7 +70,7 @@
       <div class="cn-legal-dialog" role="dialog" aria-modal="true" aria-labelledby="cnLegalModalTitle">
         <header class="cn-legal-dialog-head">
           <div class="cn-legal-brand">
-            <img src="cybernetshield.png?v=20260830-3" alt="CyberNet AI logo" width="32" height="32" style="object-fit:contain" />
+            <img src="/cybernetshield.png?v=20260830-3" alt="CyberNet AI logo" width="32" height="32" style="object-fit:contain" />
             <div>
               <strong id="cnLegalModalTitle">CyberNet Legal Center</strong>
               <small>Effective ${EFFECTIVE_DATE} · Version ${LEGAL_VERSION}</small>
@@ -237,12 +237,12 @@
     if (checkbox && checkbox.dataset.cnLegalBound !== "true") {
       checkbox.dataset.cnLegalBound = "true";
       const sync = () => {
-        signupButton.disabled = !checkbox.checked;
+        signupButton.classList.toggle("cn-consent-pending", !checkbox.checked);
         box.classList.toggle("cn-legal-error", false);
         if (checkbox.checked) storeAcceptance("signup");
       };
       checkbox.addEventListener("change", sync);
-      signupButton.disabled = !checkbox.checked;
+      signupButton.classList.toggle("cn-consent-pending", !checkbox.checked);
     }
 
     return true;

@@ -649,20 +649,26 @@ create policy "Users can read their own legal acceptances"
 -- ═══════════════════════════════════════════════════════════════════
 
 create or replace function public.get_platform_stats()
-returns table (
-  total_scans bigint,
-  threats_found bigint,
-  recovery_cases bigint
-)
+returns table(total_scans bigint, threats_found bigint, recovery_cases bigint)
 language sql
+stable
 security definer
 set search_path = public
-stable
 as $$
+  -- Quick scans come from quickscan_usage; analyses from the persistent history
+  -- record (or the usage counters, whichever is larger), so refunded or
+  -- AI-skipped analyses still count as scans the person completed.
   select
-    (select coalesce(sum(analysis_count), 0) from public.daily_usage) as total_scans,
-    (select count(*) from public.scan_history where verdict in ('malicious', 'suspicious')) as threats_found,
-    (select count(*) from public.recovery_cases) as recovery_cases;
+    (
+      (select coalesce(sum(scan_count), 0) from public.quickscan_usage)
+      + greatest(
+          (select count(*) from public.scan_history where source = 'analysis_ai'),
+          (select coalesce(sum(analysis_count), 0) from public.daily_usage)
+          + (select coalesce(sum(analysis_count), 0) from public.business_daily_usage)
+        )
+    )::bigint as total_scans,
+    (select count(*) from public.scan_history where verdict in ('malicious', 'suspicious'))::bigint as threats_found,
+    (select count(*) from public.recovery_cases)::bigint as recovery_cases;
 $$;
 
 revoke all on function public.get_platform_stats() from public, anon, authenticated;
