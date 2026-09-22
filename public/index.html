@@ -10,10 +10,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=20260915-2" />
-  <link id="cybernetAccountUpgradeStylesheet" rel="stylesheet" href="cybernet-account-api-upgrade.css?v=20260905-1" />
-  <link rel="stylesheet" href="cybernet-howto.css?v=20260905-1" />
-  <link id="cybernetBusinessTeamStylesheet" rel="stylesheet" href="cybernet-business-team.css?v=20260917-1" />
+  <link rel="stylesheet" href="/style.css?v=20260922-1" />
+  <link id="cybernetAccountUpgradeStylesheet" rel="stylesheet" href="/cybernet-account-api-upgrade.css?v=20260905-1" />
+  <link rel="stylesheet" href="/cybernet-howto.css?v=20260905-1" />
+  <link id="cybernetBusinessTeamStylesheet" rel="stylesheet" href="/cybernet-business-team.css?v=20260917-1" />
   <link rel="icon" type="image/png" sizes="512x512" href="/favicon.png?v=20260830-5">
   <link rel="shortcut icon" type="image/png" href="/favicon.png?v=20260830-5">
   <link rel="apple-touch-icon" href="/favicon.png?v=20260830-5">
@@ -247,7 +247,7 @@
 }
 </script>
 <!-- CYBERNET-SEO-UPGRADE:END -->
-      <link rel="stylesheet" href="cybernet-legal.css?v=20260905-2" />
+      <link rel="stylesheet" href="/cybernet-legal.css?v=20260905-2" />
 </head>
 <body>
   <!-- ═══ LOGIN / SIGNUP MODAL ═══ -->
@@ -686,7 +686,7 @@
             <h3>Text Detection</h3>
             <p>Analyze suspicious text, emails, or messages for potential threats and scams.</p>
             <textarea id="cyberTextInput" class="feature-textarea" placeholder="Paste your text here..." maxlength="5000"></textarea>
-            <div class="char-count"><span id="cyberTextCount">0</span>/5000</div>
+            <div class="input-tools"><button type="button" class="input-clear-btn" data-clear="cyberTextInput" hidden>Clear</button><div class="char-count"><span id="cyberTextCount">0</span>/5000</div></div>
             <button class="primary-btn full" id="cyberTextBtn">Analyze Text</button>
             <div id="cyberTextResult" class="result-box">Your text scam result will appear here.</div>
           </div>
@@ -757,6 +757,7 @@
             <h3>Link Detection</h3>
             <p>Check URLs for phishing, malware, and other malicious activity.</p>
             <input id="cyberLinkInput" type="text" placeholder="Enter URL to analyze..."/>
+            <div class="input-tools"><button type="button" class="input-clear-btn" data-clear="cyberLinkInput" hidden>Clear</button></div>
             <button class="primary-btn full" id="cyberLinkBtn">Analyze Link</button>
             <div id="cyberLinkResult" class="result-box">Your link scam result will appear here.</div>
           </div>
@@ -830,17 +831,17 @@
 
           <ul class="scan-list" id="linkScanList">
             <li>
-              <span class="scan-list-main">https://bit.ly/free-gift-card</span>
+              <span class="scan-list-main">Shortened link promising a “free gift card”</span>
               <span class="risk-tag risk-tag-danger">High Risk</span>
             </li>
 
             <li>
-              <span class="scan-list-main">https://freerewards.com</span>
+              <span class="scan-list-main">“Claim your reward” sign-in page</span>
               <span class="risk-tag risk-tag-danger">High Risk</span>
             </li>
 
             <li>
-              <span class="scan-list-main">https://microsoft.com</span>
+              <span class="scan-list-main">A company’s official website</span>
               <span class="risk-tag risk-tag-safe">Safe</span>
             </li>
           </ul>
@@ -881,11 +882,6 @@
             <div class="wwc-item-sm">
               <span class="wwc-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.6"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.6"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.6"/><path d="M14 14h3v3h-3zM19 14h2v2h-2zM14 19h2v2h-2zM19 19h2v2h-2z" fill="currentColor"/></svg></span>
               <span>QR Codes</span>
-            </div>
-
-            <div class="wwc-item-sm">
-              <span class="wwc-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2 L21 6 L20 15 L12 22 L4 15 L3 6 Z" stroke="currentColor" stroke-width="1.6"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-              <span>Brand Impersonation</span>
             </div>
 
             <div class="wwc-item-sm">
@@ -1054,6 +1050,7 @@
               <span aria-hidden="true">📎</span>
             </label>
             <input id="chatInput" type="text" placeholder="Paste a message, link, or describe what happened..."/>
+            <button type="button" class="input-clear-btn chat-clear-btn" data-clear="chatInput" data-sync-after="chatSendBtn" aria-label="Clear text" title="Clear" hidden><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
             <button id="chatSendBtn" class="send-btn" aria-label="Send">➤</button>
           </div>
         </div>
@@ -1091,6 +1088,7 @@
         <div class="recovery-intake-card glass">
           <label for="recoveryDescription" class="recovery-label-lg">What happened?</label>
           <textarea id="recoveryDescription" rows="4" maxlength="6000" placeholder='Tell CyberNet AI what happened. For example: "I clicked a link from what looked like my bank and entered my password."'></textarea>
+          <div class="input-tools"><button type="button" class="input-clear-btn" data-clear="recoveryDescription" hidden>Clear</button></div>
 
           <div class="recovery-privacy-warning">
             <strong>Never send CyberNet AI your password, OTP, MFA code, recovery code, full card number, crypto seed phrase, or private key.</strong>
@@ -1491,7 +1489,7 @@
 
               <div class="rm-node-expand">
                 <div class="rm-lesson">
-                  Phishing messages pretend to be from real companies — banks, Netflix, Amazon, delivery services — and contain links to fake websites built to look identical to the real ones. When you type your password or card details into the fake page, the attacker captures it instantly.
+                  Phishing messages pretend to be from real companies — banks, streaming services, online shops, delivery services — and contain links to fake websites built to look identical to the real ones. When you type your password or card details into the fake page, the attacker captures it instantly.
                   <br/><br/>
                   <strong>Two more targeted variants worth knowing:</strong>
                   <br/>
@@ -1502,7 +1500,7 @@
 
                 <div class="rm-tip">
                   <strong>How to spot it:</strong>
-                  Hover over links before clicking to see the real destination. Check for misspelled domains such as "amaz0n.com" or "paypaI.com" (with a capital i instead of a lowercase L). Real companies never ask for your full password by email, and legitimate links usually match the company's actual domain exactly.
+                  Hover over links before clicking to see the real destination. Check for misspelled domains — a zero in place of the letter “o”, or a capital “I” in place of a lowercase “l”, inside a name you know well. Real companies never ask for your full password by email, and legitimate links usually match the company's actual domain exactly.
                 </div>
               </div>
             </div>
@@ -1559,7 +1557,7 @@
                 <div class="rm-lesson">
                   A popup message — often loud, flashing, and hard to close — claims your computer is infected and instructs you to call a phone number immediately. The person who answers claims to be a "technician," walks you through installing remote-access software, and then either installs real malware, steals personal files, or simply charges hundreds of dollars for a "repair" that never happened.
                   <br/><br/>
-                  Real companies like Microsoft or Apple do not monitor your computer for viruses and do not show browser popups asking you to call them. Any popup making that specific claim is fake by definition.
+                  Real software companies do not monitor your computer for viruses and do not show browser popups asking you to call them. Any popup making that specific claim is fake by definition.
                 </div>
 
                 <div class="rm-example">
@@ -2431,13 +2429,13 @@
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-  <script src="config.js?v=20260830-3" defer></script>
-  <script src="script.js?v=20260917-1" defer></script>
-  <script src="cybernet-account-api-upgrade.js?v=20260831-2" defer></script>
-  <script src="cybernet-howto.js?v=20260904-1" defer></script>
-<script src="cybernet-business-team.js?v=20260917-1" defer></script>
-  <script src="cybernet-final-ui-fix.js?v=20260905-1" defer></script>
-      <script src="cybernet-legal-upgrade.js?v=20260917-1" defer></script>
+  <script src="/config.js?v=20260830-3" defer></script>
+  <script src="/script.js?v=20260922-1" defer></script>
+  <script src="/cybernet-account-api-upgrade.js?v=20260831-2" defer></script>
+  <script src="/cybernet-howto.js?v=20260904-1" defer></script>
+<script src="/cybernet-business-team.js?v=20260917-1" defer></script>
+  <script src="/cybernet-final-ui-fix.js?v=20260905-1" defer></script>
+      <script src="/cybernet-legal-upgrade.js?v=20260922-1" defer></script>
 </body>
 </html>
 

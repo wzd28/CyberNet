@@ -45,6 +45,37 @@
   to = "/index.html"
   status = 200
 
+# People type these by hand. Send them to the home page with the sign-in card open.
+[[redirects]]
+  from = "/login"
+  to = "/?auth=login"
+  status = 302
+
+[[redirects]]
+  from = "/signin"
+  to = "/?auth=login"
+  status = 302
+
+[[redirects]]
+  from = "/sign-in"
+  to = "/?auth=login"
+  status = 302
+
+[[redirects]]
+  from = "/signup"
+  to = "/?auth=signup"
+  status = 302
+
+[[redirects]]
+  from = "/sign-up"
+  to = "/?auth=signup"
+  status = 302
+
+[[redirects]]
+  from = "/register"
+  to = "/?auth=signup"
+  status = 302
+
 [[headers]]
   for = "/*"
   [headers.values]

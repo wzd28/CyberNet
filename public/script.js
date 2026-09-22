@@ -538,7 +538,9 @@ document.addEventListener("DOMContentLoaded",()=>{
     appState.supabase=window.supabase.createClient(publicConfig.SUPABASE_URL,publicConfig.SUPABASE_ANON_KEY,{
       auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
     });
-    appState.supabase.auth.getSession().then(({data})=>syncSession(data.session));
+    appState.supabase.auth.getSession().then(({data})=>syncSession(data.session)).catch(()=>syncSession(null));
+    /* Failsafe: if the session check never answers, the Sign In button still appears. */
+    setTimeout(()=>{if(openAuth&&openAuth.hidden&&!isSignedIn()){openAuth.hidden=false;const skeleton=document.getElementById("authCheckingSkeleton");if(skeleton)skeleton.hidden=true}},5000);
     appState.supabase.auth.onAuthStateChange((event,session)=>{
       if(event==="PASSWORD_RECOVERY"){
         appState.recoveryMode=true;
@@ -554,6 +556,15 @@ document.addEventListener("DOMContentLoaded",()=>{
   }
 
   const googleAuthBtn=document.getElementById("googleAuthBtn");
+  /* Coming back from Google with the browser's Back button restores the page from cache with the button still disabled. */
+  window.addEventListener("pageshow",event=>{if(event.persisted&&googleAuthBtn)googleAuthBtn.disabled=false});
+  /* In-app browsers (Instagram, TikTok, LinkedIn, Facebook) often cannot complete Google sign-in. */
+  if(googleAuthBtn&&/FBAN|FBAV|FB_IAB|Instagram|musical_ly|BytedanceWebview|TikTok|LinkedInApp|Snapchat/i.test(navigator.userAgent||"")){
+    const note=document.createElement("p");
+    note.className="auth-inapp-note";
+    note.textContent="Inside the Instagram, TikTok or LinkedIn app, Google sign-in may not open. Use email sign-in, or open cybernetai.app in Safari or Chrome.";
+    googleAuthBtn.insertAdjacentElement("afterend",note);
+  }
   if(googleAuthBtn)googleAuthBtn.addEventListener("click",async()=>{
     if(!appState.supabase){setAuthMessage(authSetupMessage(),"error");return}
     googleAuthBtn.disabled=true;
@@ -668,8 +679,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     const btn=plan==="pro"?proPlanBtn:null;
     const businessBtns=plan==="business"?[businessPlanBtn].filter(Boolean):[];
     if(!isSignedIn()){
-      sessionStorage.setItem("cybernet_pending_cycle",cycle);
-      sessionStorage.setItem("cybernet_pending_plan",plan);
+      try{sessionStorage.setItem("cybernet_pending_cycle",cycle);sessionStorage.setItem("cybernet_pending_plan",plan)}catch{}
       openAuthModal("signup");
       showPricingNotice(`Create a free account first, then choose ${plan==="business"?"Business":"Pro"} again.`);
       return;
@@ -2650,6 +2660,32 @@ document.addEventListener("DOMContentLoaded",()=>{
 
     loadCaseList();
   })();
+
+  /* ─── Clear buttons on the analysis inputs ─── */
+  document.querySelectorAll(".input-clear-btn[data-clear]").forEach(btn=>{
+    const field=document.getElementById(btn.dataset.clear);
+    if(!field)return;
+    const sync=()=>{btn.hidden=!field.value};
+    ["input","change","focus","blur","keyup"].forEach(type=>field.addEventListener(type,sync));
+    const after=btn.dataset.syncAfter?document.getElementById(btn.dataset.syncAfter):null;
+    if(after)after.addEventListener("click",()=>setTimeout(sync,60));
+    btn.addEventListener("click",()=>{
+      field.value="";
+      field.dispatchEvent(new Event("input",{bubbles:true}));
+      sync();
+      field.focus();
+    });
+    sync();
+  });
+
+  /* ─── /login and /signup aliases land here with ?auth=login|signup ─── */
+  try{
+    const authParam=new URLSearchParams(window.location.search).get("auth");
+    if(authParam==="login"||authParam==="signup"){
+      openAuthModal(authParam);
+      history.replaceState(null,"",window.location.pathname+window.location.hash);
+    }
+  }catch{}
 
   moveNavIndicator(currentPageId);
   runRevealAnimation();
