@@ -6168,3 +6168,9 @@ footer a,.cn-footer-legal a,.cn-footer-legal button{
 .input-clear-btn:hover,.input-clear-btn:focus-visible{color:var(--text);border-color:var(--glass-border-strong);background:rgba(34,211,238,.08);outline:none}
 .input-clear-btn[hidden]{display:none}
 .chat-clear-btn{width:44px;height:44px;min-height:44px;padding:0;border-radius:12px;flex-shrink:0}
+/* The input must be allowed to shrink, or the row overflows on phones once
+   the clear button appears. Guests see the wide "Register for Free to Scan"
+   send button and cannot send anyway, so the clear button stays out of their
+   row. */
+.chat-input-row input{min-width:0}
+body[data-plan="guest"] .chat-clear-btn{display:none}
