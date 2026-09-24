@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "dev": "netlify dev",
-    "deploy": "netlify deploy --prod --dir=public --functions=netlify/functions"
+    "deploy": "netlify deploy --prod --dir=public --functions=netlify/functions",
+    "test:engine": "node tests/run-engine.mjs"
   },
   "dependencies": {
     "@netlify/functions": "5.3.0",

@@ -8,7 +8,7 @@
 // The server layer is bundled from netlify/functions/analyze.mts with esbuild
 // into .tmp/, with the Netlify runtime stubbed out.
 import { spawnSync } from "node:child_process";
-import { mkdirSync, existsSync } from "node:fs";
+import { mkdirSync, existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { CASES as BASE_CASES } from "./engine-cases.mjs";
@@ -31,6 +31,26 @@ const only = process.argv.find((a) => a.startsWith("--only="))?.slice(7);
 await import(pathToFileURL(path.join(root, "public/cybernet-engine.js")).href);
 const engine = globalThis.CyberNetEngine;
 if (!engine) throw new Error("public/cybernet-engine.js did not register CyberNetEngine");
+
+// Guard: every string id in PLAIN_POINTS must be one the engine can emit,
+// otherwise the plain-language summary silently never mentions it. Ids are
+// read from the source text: addSignal(state,"id"...), combo("id"...), group
+// entries {id:"id"...} and template ids like `brand-${...}` (prefixes).
+{
+  const source = readFileSync(path.join(root, "public/cybernet-engine.js"), "utf8");
+  const emitted = new Set();
+  const prefixes = new Set();
+  for (const m of source.matchAll(/addSignal\(state,"([^"]+)"/g)) emitted.add(m[1]);
+  for (const m of source.matchAll(/addSignal\(state,`([^`$]*)\$\{/g)) prefixes.add(m[1]);
+  for (const m of source.matchAll(/\bcombo\("([^"]+)"/g)) emitted.add(m[1]);
+  for (const m of source.matchAll(/\{id:"([^"]+)"/g)) emitted.add(m[1]);
+  const block = source.slice(source.indexOf("const PLAIN_POINTS=["), source.indexOf("];", source.indexOf("const PLAIN_POINTS=[")));
+  const plainIds = new Set();
+  for (const m of block.matchAll(/(?:ids|unless):\[([^\]]*)\]/g)) for (const s of m[1].matchAll(/"([^"]+)"/g)) plainIds.add(s[1]);
+  const missing = [...plainIds].filter((id) => !emitted.has(id) && ![...prefixes].some((p) => id.startsWith(p)));
+  if (!plainIds.size) throw new Error("PLAIN_POINTS not found in public/cybernet-engine.js (guard needs updating)");
+  if (missing.length) throw new Error(`PLAIN_POINTS lists ids the engine never emits: ${missing.join(", ")}`);
+}
 
 // The function file reads Netlify.env at import time; give it an empty one.
 globalThis.Netlify = { env: { get: () => undefined } };

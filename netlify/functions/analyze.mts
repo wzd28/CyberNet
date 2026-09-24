@@ -576,7 +576,10 @@ function analyzeLinkServer(raw: string): LocalEvidence {
   // above; the strongest reading wins.
   const shared = CyberNetEngine.analyzeLink(original);
   const sharedScore = clamp(shared.score);
-  const ownScore = clamp(state.score);
+  // On a vouched official domain the structural checks above (a "continue="
+  // parameter, "signin" in the path) are the site's normal shape, as the
+  // shared engine already treats them; only a serious own signal can lift it.
+  const ownScore = shared.officialBrand && clamp(state.score) < 60 ? Math.min(clamp(state.score), 12) : clamp(state.score);
   const score = clamp(Math.max(sharedScore, ownScore) + (sharedScore >= 32 && ownScore >= 32 ? 6 : 0));
   const confidence = clamp(Math.max(Number(shared.confidence) || 0, 55 + Math.min(40, state.evidence.length * 6) + (state.evidence.length === 0 ? 15 : 0)));
   const threatType = sharedScore >= ownScore && shared.scamType
