@@ -1,5 +1,9 @@
 import OpenAI from "openai";
 import { redactForTeamLog } from "../lib/team-log.mjs";
+// The rule set Quick Scan runs in the browser. It registers itself on
+// globalThis, so the page, this function and the tests all read one copy.
+import "../../public/cybernet-engine.js";
+const CyberNetEngine: any = (globalThis as any).CyberNetEngine;
 
 declare const Netlify: {
   env: {
@@ -334,7 +338,7 @@ function uniqueIndicators(items: Indicator[], max = 30): Indicator[] {
 function verdictFromScore(score: number, uncertain = false): Verdict {
   if (uncertain && score < 70) return "inconclusive";
   if (score >= 75) return "malicious";
-  if (score >= 35) return "suspicious";
+  if (score >= 32) return "suspicious";
   return "low_risk";
 }
 
@@ -354,15 +358,8 @@ function normalizeUrl(value: unknown): string {
 }
 
 function registrableDomain(hostname: string): string {
-  const host = hostname.toLowerCase().replace(/^www\./, "").replace(/\.$/, "");
-  const labels = host.split(".").filter(Boolean);
-  if (labels.length <= 2) return host;
-  const compoundSuffixes = new Set([
-    "co.uk", "org.uk", "gov.uk", "com.au", "net.au", "co.nz", "com.br", "com.tr", "co.jp", "com.sg", "com.mx", "co.za",
-  ]);
-  const lastTwo = labels.slice(-2).join(".");
-  if (compoundSuffixes.has(lastTwo) && labels.length >= 3) return labels.slice(-3).join(".");
-  return lastTwo;
+  // Same answer as the page (Gulf and other compound suffixes included).
+  return String(CyberNetEngine.registrableDomain(String(hostname || "").toLowerCase().replace(/^www\./, "")));
 }
 
 function isIpHost(host: string): boolean {
@@ -444,7 +441,7 @@ function analyzeTextServer(text: string, label = "Submitted text"): LocalEvidenc
 
   signal(/\b(?:password|passcode|login code|verification code|one[- ]?time code|otp|2fa code|authentication code)\b/, 28, "The text references credentials or authentication codes.", "credential_request", "Credential or OTP request");
   signal(/\b(?:seed phrase|recovery phrase|private key|wallet key)\b/, 42, "The text references a cryptocurrency recovery phrase or private key.", "wallet_secret", "Wallet secret request");
-  signal(/\b(?:card number|cvv|security code|bank account|routing number|iban|pin number)\b/, 32, "The text requests or discusses sensitive financial information.", "financial_data", "Sensitive financial details");
+  signal(/\b(?:card number|cvv|security code|bank account|routing number|iban|pin number)\b/, 20, "The text requests or discusses sensitive financial information.", "financial_data", "Sensitive financial details");
   signal(/\b(?:urgent|immediately|act now|final warning|within \d+ (?:minutes?|hours?)|account (?:will be )?(?:locked|closed|suspended)|limited time)\b/, 14, "The message uses urgency, scarcity, or account-threat pressure.", "urgency", "Urgency or threatened consequence");
   signal(/\b(?:keep this secret|do not tell|don't tell|confidential transfer|stay on the line)\b/, 18, "The message encourages secrecy or isolation from trusted people.", "secrecy", "Secrecy instruction");
   signal(/\b(?:gift card|google play card|apple gift card|steam card|wire transfer|western union|moneygram|crypto payment|bitcoin payment|usdt|cashapp|zelle|back taxes|owe taxes|tax debt|unpaid taxes|tax notice)\b/, 28, "The message requests payment or references a tax/financial debt.", "payment", "Irreversible payment method or tax-debt demand");
@@ -472,18 +469,30 @@ function analyzeTextServer(text: string, label = "Submitted text"): LocalEvidenc
   if (value.length < 30) limitations.push("The submitted text is short, so surrounding conversation and sender context may materially change the assessment.");
   limitations.push("Sender identity and account ownership were not independently verified.");
 
-  const score = clamp(state.score);
-  const uncertain = state.evidence.length > 0 && score < 45 && (value.length < 80 || educationContext);
-  const confidence = clamp(35 + Math.min(45, state.evidence.length * 8) + Math.min(12, Math.floor(value.length / 250)) - (uncertain ? 12 : 0));
-  const threatType = state.types.at(-1)?.replace(/_/g, " ") || "No decisive text threat identified";
+  // The shared rule set is what Quick Scan runs in the browser, so both tools
+  // start from the same reading of the message; the server-only rules above
+  // (wallet secrets, sextortion, money mules, ...) add to it.
+  const shared = CyberNetEngine.analyzeText(value);
+  const sharedScore = clamp(shared.score);
+  const ownScore = clamp(state.score);
+  const score = clamp(Math.max(sharedScore, ownScore) + (sharedScore >= 32 && ownScore >= 32 ? 6 : 0));
+  // A single stray keyword must not force an AI call: the shared engine's
+  // "uncertain" only counts once it has some weight behind it.
+  const uncertain = score < 45 && ((Boolean(shared.uncertain) && sharedScore >= 22) || (state.evidence.length > 0 && (value.length < 80 || educationContext)));
+  const confidence = clamp(Math.max(Number(shared.confidence) || 0, 35 + Math.min(45, state.evidence.length * 8) + Math.min(12, Math.floor(value.length / 250))) - (uncertain ? 12 : 0));
+  const threatType = sharedScore >= ownScore && shared.scamType
+    ? String(shared.scamType)
+    : (state.types.at(-1)?.replace(/_/g, " ") || "No decisive text threat identified");
 
   return {
     score,
     confidence,
     verdict: verdictFromScore(score, uncertain),
     threatType,
-    evidence: uniqueStrings(state.evidence, 14),
-    counterEvidence: uniqueStrings(counterEvidence, 8),
+    strong: Number(shared.strong) || 0,
+    signals: Array.isArray(shared.signals) ? shared.signals.slice(0, 20) : [],
+    evidence: uniqueStrings([...(shared.reasons || []), ...state.evidence], 14),
+    counterEvidence: uniqueStrings([...(shared.counterEvidence || []), ...counterEvidence], 8),
     limitations: uniqueStrings(limitations, 8),
     entities: extractEntities(value),
     indicators: uniqueIndicators(state.indicators),
@@ -553,7 +562,7 @@ function analyzeLinkServer(raw: string): LocalEvidence {
   if (/%[0-9a-f]{2}/i.test(original) || /(?:%25){2,}/i.test(original)) addSignal(state, 10, "The URL contains encoded characters that can obscure its path or parameters.", "encoded_url", { type: "url", value: normalized, riskReason: "Encoding may hide readable destinations or commands." });
   if (/(?:redirect|redir|url|uri|target|dest|destination|continue|next|return|callback)=/i.test(url.search)) addSignal(state, 17, "The query contains a redirect or destination parameter.", "redirect_parameter", { type: "url", value: normalized, riskReason: "Redirect parameters can send users to a second destination." });
   if (/\b(?:login|signin|verify|verification|secure|account|wallet|password|reset|update-payment|billing)\b/i.test(pathQuery)) addSignal(state, 15, "The path or query contains login, account, verification, wallet, or payment wording.", "credential_path", { type: "path", value: `${url.pathname}${url.search}`.slice(0, 500), riskReason: "Credential-themed paths are common in phishing flows." });
-  if (/\.(?:exe|msi|scr|bat|cmd|ps1|js|vbs|jar|apk|dmg|pkg|iso|zip|rar)(?:$|[?#])/i.test(url.pathname)) addSignal(state, 32, "The URL appears to deliver an executable, script, archive, or installer.", "risky_download", { type: "download", value: url.pathname, riskReason: "The file type can deliver malware or unwanted software." });
+  if (/\.(?:exe|msi|scr|bat|cmd|ps1|js|vbs|jar|apk|dmg|pkg|iso|img|zip|rar|7z|hta|lnk|docm|xlsm)(?:$|[?#])/i.test(url.pathname)) addSignal(state, 32, "The URL appears to deliver an executable, script, archive, or installer.", "risky_download", { type: "download", value: url.pathname, riskReason: "The file type can deliver malware or unwanted software." });
   if (full.length > 180) addSignal(state, 7, "The URL is unusually long, which can make manual inspection difficult.", "long_url");
 
   for (const [brand, official] of Object.entries(brands)) {
@@ -563,17 +572,28 @@ function analyzeLinkServer(raw: string): LocalEvidence {
     }
   }
 
-  const score = clamp(state.score);
-  const confidence = clamp(55 + Math.min(40, state.evidence.length * 6) + (state.evidence.length === 0 ? 15 : 0));
-  const threatType = state.types.at(-1)?.replace(/_/g, " ") || "No decisive structural URL threat identified";
+  // Same shared rules as the Quick Scan link tab, plus the server-only checks
+  // above; the strongest reading wins.
+  const shared = CyberNetEngine.analyzeLink(original);
+  const sharedScore = clamp(shared.score);
+  const ownScore = clamp(state.score);
+  const score = clamp(Math.max(sharedScore, ownScore) + (sharedScore >= 32 && ownScore >= 32 ? 6 : 0));
+  const confidence = clamp(Math.max(Number(shared.confidence) || 0, 55 + Math.min(40, state.evidence.length * 6) + (state.evidence.length === 0 ? 15 : 0)));
+  const threatType = sharedScore >= ownScore && shared.scamType
+    ? String(shared.scamType)
+    : (state.types.at(-1)?.replace(/_/g, " ") || "No decisive structural URL threat identified");
 
   return {
     score,
     confidence,
-    verdict: verdictFromScore(score, state.evidence.length > 0 && score < 25),
+    verdict: verdictFromScore(score, Boolean(shared.uncertain) || (state.evidence.length > 0 && score < 25)),
     threatType,
-    evidence: uniqueStrings(state.evidence, 14),
-    counterEvidence: uniqueStrings(counterEvidence, 8),
+    strong: Number(shared.strong) || 0,
+    signals: Array.isArray(shared.signals) ? shared.signals.slice(0, 20) : [],
+    kind: "link",
+    officialBrand: String(shared.officialBrand || ""),
+    evidence: uniqueStrings([...(shared.reasons || []), ...state.evidence], 14),
+    counterEvidence: uniqueStrings([...(shared.counterEvidence || []), ...counterEvidence], 8),
     limitations,
     entities: uniqueEntities([
       { type: "url", value: normalized, context: "Submitted URL" },
@@ -1359,6 +1379,24 @@ export default async function handler(request: Request, context: any): Promise<R
   }
 
   const analysis = sanitizeAnalysisResult(rawAnalysis || fallback, fallback);
+  // The rules set the floor. The AI adds meaning and can raise the risk, but
+  // it can only lower a score within a bounded margin, and a strong rule hit
+  // (a request for a code, a lure link, an authority name on a commercial
+  // domain) stays on the scam side of the line. Quick Scan runs the same
+  // rules, so the two tools no longer contradict each other on one message.
+  if (mode === "quick" && !analysis.isFollowUp) {
+    const ruleScore = clamp(serverEvidence.score);
+    const ruleStrong = Number((serverEvidence as any).strong) || 0;
+    let floor = ruleScore >= 32 ? ruleScore - 15 : 0;
+    if (ruleStrong >= 1) floor = Math.max(floor, 32);
+    if (ruleStrong >= 2) floor = Math.max(floor, 55);
+    if (analysis.score < floor) {
+      analysis.score = floor;
+      analysis.limitations = uniqueStrings([...analysis.limitations, "The AI read this as lower risk than the rule engine did; the rules' warning signs are kept in the score."], 10);
+    }
+    // The label always follows the score.
+    analysis.verdict = analysis.verdict === "inconclusive" && analysis.score < 70 ? "inconclusive" : verdictFromScore(analysis.score);
+  }
   if (!aiUsed && !isAdminUser(user)) {
     if (team) {
       await refundAnalysisBusiness(team.businessAccountId);
@@ -1417,6 +1455,8 @@ export default async function handler(request: Request, context: any): Promise<R
     rateLimitMode: "account + ip",
   });
 }
+
+export { analyzeTextServer, analyzeLinkServer, verdictFromScore };
 
 export const config = {
   path: "/api/analyze",
