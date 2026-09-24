@@ -6174,3 +6174,30 @@ footer a,.cn-footer-legal a,.cn-footer-legal button{
    row. */
 .chat-input-row input{min-width:0}
 body[data-plan="guest"] .chat-clear-btn{display:none}
+
+/* ═══ PLAIN-LANGUAGE SUMMARY + "SHOW MORE DETAILS" ═══ */
+/* The verdict, why in plain words, and what to do come first; the score,
+   sources and technical evidence sit under a toggle. */
+.plain-summary{margin:0 0 14px;padding:14px 16px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid var(--glass-border)}
+.plain-lead{margin:0 0 8px;font-size:15.5px;font-weight:700;color:var(--text);line-height:1.45}
+.plain-points{margin:0 0 10px;padding-left:18px;color:var(--text);font-size:14px;line-height:1.55}
+.plain-points li+li{margin-top:5px}
+.plain-action{margin:0;font-size:13.5px;line-height:1.55;color:var(--muted)}
+.plain-action strong{color:var(--green)}
+.result-has-danger .plain-action strong{color:var(--danger)}
+.result-has-uncertain .plain-action strong{color:#b9a4ff}
+.details-toggle{
+  appearance:none;display:inline-flex;align-items:center;gap:6px;
+  margin:2px 0 14px;padding:8px 14px;border-radius:9px;
+  border:1px solid var(--glass-border);background:rgba(255,255,255,.04);
+  color:var(--muted);font-family:var(--font-mono);font-size:12px;font-weight:600;letter-spacing:.04em;
+  cursor:pointer;transition:color .2s ease,border-color .2s ease,background .2s ease;
+}
+.details-toggle::before{content:"▸";font-size:11px}
+.details-toggle[aria-expanded="true"]::before{content:"▾"}
+.details-toggle:hover,.details-toggle:focus-visible{color:var(--text);border-color:var(--glass-border-strong);background:rgba(34,211,238,.08);outline:none}
+.report-details[hidden]{display:none}
+.report-details{animation:fadeInDetails .25s ease}
+@keyframes fadeInDetails{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.analysis-sources span+span{margin-left:6px}
+.plain-summary,.plain-summary p,.plain-summary li{font-family:var(--font-body)}
