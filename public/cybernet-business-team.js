@@ -18,7 +18,7 @@
   const PENDING_INVITE = "cybernet_pending_invite";
   const PENDING_INVITE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
   const INVITE_TOKEN_PATTERN = /^[a-f0-9]{64}$/;
-  const STYLESHEET_VERSION = "20260927-1";
+  const STYLESHEET_VERSION = "20260927-2";
 
   function start() {
     if (document.documentElement.dataset.cybernetBusinessTeam === "ready") return;
@@ -462,7 +462,7 @@
       if (track) {
         track.classList.toggle("is-high", percent >= 80);
         const fill = track.querySelector("span");
-        if (fill) fill.style.width = `${percent}%`;
+        if (fill) fill.style.transform = `scaleX(${percent / 100})`;
       }
 
       const recoveryEl = document.getElementById("cnTeamRecovery");

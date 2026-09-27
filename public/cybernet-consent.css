@@ -1,0 +1,159 @@
+/*
+  CyberNet AI — analytics cookie choice bar
+  Self-contained: every colour has a literal fallback because privacy.html uses
+  its own stylesheet without the main site's tokens.
+  Stacking: above page content, the sticky navbar (50) and sticky tabs (20),
+  below every modal (.modal 200, account 1300, team 1350, how-to 1400,
+  invite 1500, sign-in 1600, Legal Center 100000). The bar is non-modal.
+*/
+
+.cn-consent{
+  --cn-consent-accent:var(--green,#22d3ee);
+  --cn-consent-text:var(--text,#eaf3fb);
+  --cn-consent-muted:#a9bbcf;
+  --cn-consent-border:rgba(56,189,248,.34);
+  position:fixed;
+  left:16px;
+  right:16px;
+  bottom:calc(12px + env(safe-area-inset-bottom, 0px));
+  z-index:150;
+  max-width:720px;
+  margin:0 auto;
+  display:flex;
+  align-items:center;
+  gap:18px;
+  padding:14px 16px 14px 18px;
+  border:1px solid var(--cn-consent-border);
+  border-radius:16px;
+  background:rgba(8,17,31,.94);
+  -webkit-backdrop-filter:blur(14px);
+  backdrop-filter:blur(14px);
+  box-shadow:0 18px 50px rgba(0,0,0,.5),0 0 0 1px rgba(34,211,238,.05) inset;
+  color:var(--cn-consent-text);
+  font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  text-align:left;
+}
+.cn-consent[hidden]{display:none!important}
+.cn-consent *{box-sizing:border-box}
+
+.cn-consent-copy{flex:1 1 auto;min-width:0}
+.cn-consent p{margin:0}
+.cn-consent-title{
+  color:var(--cn-consent-text);
+  font-size:14.5px;
+  font-weight:700;
+  line-height:1.35;
+  letter-spacing:-.005em;
+}
+.cn-consent-text{
+  margin-top:3px!important;
+  color:var(--cn-consent-muted);
+  font-size:13px;
+  line-height:1.5;
+}
+.cn-consent-text a{
+  color:var(--cn-consent-accent);
+  font-weight:600;
+  text-decoration:underline;
+  text-underline-offset:2px;
+  white-space:nowrap;
+}
+.cn-consent-current{
+  margin-top:4px!important;
+  color:var(--cn-consent-accent);
+  font-size:12px;
+  font-weight:600;
+  line-height:1.4;
+}
+.cn-consent-current[hidden]{display:none}
+
+/* Decline and Accept share one style and one size: declining is exactly as
+   easy and as prominent as accepting. */
+.cn-consent-actions{
+  flex:0 0 auto;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  width:216px;
+}
+.cn-consent-btn{
+  appearance:none;
+  min-height:40px;
+  padding:0 12px;
+  border:1px solid rgba(34,211,238,.42);
+  border-radius:10px;
+  background:rgba(34,211,238,.08);
+  color:var(--cn-consent-text);
+  font:700 14px/1 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  cursor:pointer;
+  transition:background-color .15s ease,border-color .15s ease;
+}
+.cn-consent-btn:hover{background:rgba(34,211,238,.16);border-color:var(--cn-consent-accent)}
+.cn-consent-btn[aria-pressed="true"]{border-color:var(--cn-consent-accent);background:rgba(34,211,238,.18)}
+.cn-consent-btn:focus-visible,
+.cn-consent-text a:focus-visible{
+  outline:2px solid var(--cn-consent-accent);
+  outline-offset:2px;
+}
+
+@media (prefers-reduced-motion:no-preference){
+  .cn-consent{animation:cnConsentIn .32s cubic-bezier(.2,.7,.2,1) both}
+  @keyframes cnConsentIn{
+    from{opacity:0;transform:translateY(14px)}
+    to{opacity:1;transform:none}
+  }
+}
+
+@media (max-width:600px){
+  .cn-consent{
+    flex-direction:column;
+    align-items:stretch;
+    gap:10px;
+    padding:12px 14px;
+    bottom:calc(8px + env(safe-area-inset-bottom, 0px));
+  }
+  .cn-consent-title{font-size:14px}
+  .cn-consent-text{font-size:12.5px;line-height:1.45}
+  .cn-consent-actions{width:100%}
+}
+
+/* While the bar is up, leave room under the page so the footer can scroll
+   clear of it. */
+html.cn-consent-visible body{padding-bottom:calc(var(--cn-consent-space,0px) + 20px)}
+
+/* "Cookie settings" in the main site footer, styled like the footer links. */
+footer .cn-cookie-settings{
+  appearance:none;
+  display:inline-block;
+  min-height:24px;
+  padding:6px 2px;
+  border:0;
+  background:none;
+  color:var(--green,#22d3ee);
+  font:inherit;
+  cursor:pointer;
+}
+footer .cn-cookie-settings:hover{text-decoration:underline}
+footer .cn-cookie-settings:focus-visible{outline:2px solid var(--green,#22d3ee);outline-offset:2px}
+
+/* "Cookie settings" button inside the Privacy Policy page. */
+.cn-consent-open-btn{
+  appearance:none;
+  display:inline-flex;
+  align-items:center;
+  min-height:38px;
+  margin-top:4px;
+  padding:8px 14px;
+  border:1px solid var(--cn-legal-border-strong,rgba(34,211,238,.38));
+  border-radius:10px;
+  background:rgba(34,211,238,.06);
+  color:var(--cn-legal-text,#eaf3fb);
+  font:700 13px/1 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  cursor:pointer;
+}
+.cn-consent-open-btn:hover{background:rgba(34,211,238,.12);border-color:var(--cn-legal-accent,#22d3ee)}
+.cn-consent-open-btn:focus-visible{outline:2px solid var(--cn-legal-accent,#22d3ee);outline-offset:2px}
+
+@media print{
+  .cn-consent{display:none!important}
+}
