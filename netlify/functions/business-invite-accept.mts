@@ -73,19 +73,42 @@ export default async (request: Request) => {
     }
 
     try {
-      const memberInsert = await serviceFetch("/rest/v1/business_members", {
-        method: "POST",
-        headers: { Prefer: "return=representation" },
-        body: JSON.stringify({
-          business_account_id: invite.business_account_id,
-          user_id: user.id,
-          role: "member",
-        }),
-      });
+      // Someone the owner removed earlier still has their old row (one row per
+      // person per team), so rejoining the same team reactivates that row.
+      const rejoinRes = await serviceFetch(
+        `/rest/v1/business_members?business_account_id=eq.${invite.business_account_id}` +
+        `&user_id=eq.${user.id}&status=eq.removed`,
+        {
+          method: "PATCH",
+          headers: { Prefer: "return=representation" },
+          body: JSON.stringify({
+            status: "active",
+            role: "member",
+            removed_at: null,
+            joined_at: new Date().toISOString(),
+          }),
+        }
+      );
+      const rejoined = await rejoinRes.json().catch(() => []);
+      if (!rejoinRes.ok) {
+        throw new Error((rejoined as any)?.message || "Could not join the team.");
+      }
 
-      if (!memberInsert.ok) {
-        const payload = await memberInsert.json().catch(() => ({}));
-        throw new Error((payload as any)?.message || "Could not join the team.");
+      if (!Array.isArray(rejoined) || !rejoined.length) {
+        const memberInsert = await serviceFetch("/rest/v1/business_members", {
+          method: "POST",
+          headers: { Prefer: "return=representation" },
+          body: JSON.stringify({
+            business_account_id: invite.business_account_id,
+            user_id: user.id,
+            role: "member",
+          }),
+        });
+
+        if (!memberInsert.ok) {
+          const payload = await memberInsert.json().catch(() => ({}));
+          throw new Error((payload as any)?.message || "Could not join the team.");
+        }
       }
     } catch (insertError) {
       // Hand the invite back (also when the request itself failed) so the link
