@@ -555,6 +555,8 @@ document.addEventListener("DOMContentLoaded",()=>{
     updateAccountUI();
   }
 
+  /* Signing up or using Google from an invite link comes back to that invite, not the home page. */
+  function inviteReturnUrl(){const token=new URLSearchParams(window.location.search).get("token")||"";return window.location.pathname.replace(/\/+$/,"")==="/accept-invite"&&/^[a-f0-9]{64}$/.test(token)?`${window.location.origin}/accept-invite?token=${encodeURIComponent(token)}`:""}
   const googleAuthBtn=document.getElementById("googleAuthBtn");
   /* Coming back from Google with the browser's Back button restores the page from cache with the button still disabled. */
   window.addEventListener("pageshow",event=>{if(event.persisted&&googleAuthBtn)googleAuthBtn.disabled=false});
@@ -571,7 +573,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     try{
       const{error}=await appState.supabase.auth.signInWithOAuth({
         provider:"google",
-        options:{redirectTo:window.location.origin}
+        options:{redirectTo:inviteReturnUrl()||window.location.origin}
       });
       if(error){setAuthMessage(error.message||"Google sign-in is not available right now.","error");googleAuthBtn.disabled=false}
     }catch(error){
@@ -615,7 +617,8 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(!email){setAuthMessage("Enter your email above first, then resend the confirmation.","error");return}
     resendConfirmBtn.disabled=true;
     try{
-      const{error}=await appState.supabase.auth.resend({type:"signup",email});
+      const returnUrl=inviteReturnUrl();
+      const{error}=await appState.supabase.auth.resend(returnUrl?{type:"signup",email,options:{emailRedirectTo:returnUrl}}:{type:"signup",email});
       if(error)throw error;
       setAuthMessage("Confirmation email resent. Check your inbox (and spam folder).","success");
     }catch(error){
@@ -639,7 +642,7 @@ document.addEventListener("DOMContentLoaded",()=>{
         email,password,
         options:{
           data:{full_name:fullName,first_name:first,last_name:last},
-          emailRedirectTo:`${window.location.origin}/`
+          emailRedirectTo:inviteReturnUrl()||`${window.location.origin}/`
         }
       });
       if(error)throw error;

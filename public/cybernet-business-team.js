@@ -15,6 +15,10 @@
   "use strict";
 
   const PENDING_BUSINESS_CHECKOUT = "cybernet_pending_business_checkout";
+  const PENDING_INVITE = "cybernet_pending_invite";
+  const PENDING_INVITE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
+  const INVITE_TOKEN_PATTERN = /^[a-f0-9]{64}$/;
+  const STYLESHEET_VERSION = "20260927-1";
 
   function start() {
     if (document.documentElement.dataset.cybernetBusinessTeam === "ready") return;
@@ -33,7 +37,7 @@
     const link = document.createElement("link");
     link.id = "cybernetBusinessTeamStylesheet";
     link.rel = "stylesheet";
-    link.href = "cybernet-business-team.css";
+    link.href = `/cybernet-business-team.css?v=${STYLESHEET_VERSION}`;
     document.head.appendChild(link);
   }
 
@@ -65,7 +69,7 @@
           <div class="cn-team-stat">
             <span>Seats used</span>
             <strong id="cnTeamSeats">—</strong>
-            <small id="cnTeamSeatsNote">Members plus any invites you've sent that haven't been accepted yet.</small>
+            <small id="cnTeamSeatsNote">Members plus invites still waiting to be accepted. Expired or cancelled invites free their seat.</small>
           </div>
 
           <div class="cn-team-stat">
@@ -91,6 +95,7 @@
             <input id="cnTeamInviteEmail" type="email" autocomplete="off" spellcheck="false" placeholder="teammate@yourcompany.com" />
             <button class="primary-btn" id="cnTeamInviteBtn" type="button">Send invite</button>
           </div>
+          <p class="cn-team-invite-note">Invites expire 24 hours after you send them. You can cancel a pending invite any time before it's accepted.</p>
           <div class="cn-team-pending" id="cnTeamPending"></div>
         </div>
 
@@ -222,6 +227,13 @@
     let team = null;
     let autoOpened = false;
 
+    // Pending-invite countdown: one interval for the whole list, only while
+    // the panel is open. clockSkew corrects a device clock that is off.
+    let countdownTimer = null;
+    let clockSkew = 0;
+    let expiryRefreshTimer = null;
+    let lastExpiryRefresh = 0;
+
     function setMessage(text = "", tone = "") {
       if (!message) return;
       message.textContent = text;
@@ -304,12 +316,126 @@
       if (!host || !team) return;
 
       const pending = team.pendingInvites || [];
-      host.innerHTML = pending.map((invite) => `
-        <div class="cn-team-pending-item">
-          <span>Invite sent</span>
-          ${escapeHtml(invite.email)}
-        </div>
-      `).join("");
+      host.innerHTML = pending.map((invite) => {
+        const expiresText = formatExpiry(invite.expiresAt);
+        const label = `Pending invite to ${invite.email || "this person"}${expiresText ? `, expires ${expiresText}` : ""}`;
+
+        // The ticking text has no aria-live on purpose; the row's label carries
+        // the exact expiry time for screen readers instead.
+        return `
+          <div class="cn-team-pending-item" role="group" title="${escapeHtml(expiresText ? `Expires ${expiresText}` : "")}" aria-label="${escapeHtml(label)}">
+            <div class="cn-team-pending-id">
+              <span class="cn-team-pending-email">${escapeHtml(invite.email)}</span>
+              <span class="cn-team-pending-meta">
+                <span class="cn-team-pending-badge">Pending</span>
+                <span class="cn-team-pending-countdown" data-expires-at="${escapeHtml(invite.expiresAt || "")}" aria-hidden="true"></span>
+              </span>
+            </div>
+            ${invite.id
+              ? `<button class="cn-team-remove" type="button" data-cancel-invite="${escapeHtml(invite.id)}" data-cancel-email="${escapeHtml(invite.email || "")}">Cancel invite</button>`
+              : ""}
+          </div>
+        `;
+      }).join("");
+
+      host.querySelectorAll("[data-cancel-invite]").forEach((button) => {
+        button.addEventListener("click", () => {
+          cancelInvite(button.dataset.cancelInvite, button.dataset.cancelEmail, button);
+        });
+      });
+
+      syncCountdown();
+    }
+
+    function formatExpiry(value) {
+      const time = Date.parse(value || "");
+      if (!Number.isFinite(time)) return "";
+      try {
+        return new Date(time).toLocaleString(undefined, {
+          weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit"
+        });
+      } catch {
+        return "";
+      }
+    }
+
+    function formatRemaining(ms) {
+      const totalSeconds = Math.floor(ms / 1000);
+      const days = Math.floor(totalSeconds / 86400);
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+      const pad = (value) => String(value).padStart(2, "0");
+
+      // Invites sent before the 24-hour limit still run on 7 days.
+      if (ms > 48 * 3600 * 1000) return `${days}d ${Math.floor((totalSeconds % 86400) / 3600)}h`;
+      if (hours > 0) return `${hours}h ${pad(minutes)}m ${pad(seconds)}s`;
+      return `${minutes}m ${pad(seconds)}s`;
+    }
+
+    function panelOpen() {
+      return Boolean(modal?.classList.contains("show"));
+    }
+
+    function stopCountdown() {
+      if (countdownTimer) clearInterval(countdownTimer);
+      countdownTimer = null;
+      if (expiryRefreshTimer) clearTimeout(expiryRefreshTimer);
+      expiryRefreshTimer = null;
+    }
+
+    function syncCountdown() {
+      const hasCountdowns = Boolean(document.querySelector("#cnTeamPending [data-expires-at]"));
+      if (!panelOpen() || !hasCountdowns) {
+        stopCountdown();
+        return;
+      }
+      tickCountdown();
+      if (!countdownTimer) countdownTimer = setInterval(tickCountdown, 1000);
+    }
+
+    function tickCountdown() {
+      if (!panelOpen()) {
+        stopCountdown();
+        return;
+      }
+
+      const now = Date.now() + clockSkew;
+      let anyExpired = false;
+
+      document.querySelectorAll("#cnTeamPending [data-expires-at]").forEach((node) => {
+        const expiresAt = Date.parse(node.dataset.expiresAt || "");
+        if (!Number.isFinite(expiresAt)) {
+          node.textContent = "";
+          return;
+        }
+
+        const remaining = expiresAt - now;
+        if (remaining <= 0) {
+          node.textContent = "Expired";
+          node.classList.remove("is-soon");
+          node.classList.add("is-expired");
+          anyExpired = true;
+          return;
+        }
+
+        node.textContent = `Expires in ${formatRemaining(remaining)}`;
+        node.classList.toggle("is-soon", remaining < 3600 * 1000);
+      });
+
+      if (anyExpired) refreshAfterExpiry();
+    }
+
+    // Once an invite runs out, ask the server once (it marks it expired and
+    // frees the seat). Held back so several invites expiring together, or a
+    // clock that is still slightly off, never turn into a request every second.
+    function refreshAfterExpiry() {
+      if (expiryRefreshTimer || Date.now() - lastExpiryRefresh < 15000) return;
+      expiryRefreshTimer = setTimeout(() => {
+        expiryRefreshTimer = null;
+        lastExpiryRefresh = Date.now();
+        if (panelOpen()) loadTeam({ quiet: true, activity: false });
+      }, 1500);
     }
 
     function renderTeam() {
@@ -601,7 +727,7 @@
       });
     }
 
-    async function loadTeam({ quiet = false } = {}) {
+    async function loadTeam({ quiet = false, activity = true } = {}) {
       if (!(await getSession())) {
         openExistingAuth();
         return null;
@@ -623,11 +749,14 @@
           return null;
         }
 
+        const serverTime = Date.parse(data.serverTime || "");
+        clockSkew = Number.isFinite(serverTime) ? serverTime - Date.now() : 0;
+
         team = data;
         renderTeam();
         if (!quiet) setMessage("");
 
-        if (team.role === "owner") loadActivity();
+        if (team.role === "owner" && activity) loadActivity();
 
         return data;
       } catch (error) {
@@ -675,8 +804,8 @@
         if (!response.ok) throw new Error(data.error || "Could not send the invite.");
 
         if (inviteEmail) inviteEmail.value = "";
-        setMessage(`Invite sent to ${email}. They'll get an email with a link to join.`, "success");
-        await loadTeam({ quiet: true });
+        setMessage(`Invite sent to ${email}. It expires in 24 hours, and you can cancel it below any time before they accept.`, "success");
+        await loadTeam({ quiet: true, activity: false });
       } catch (error) {
         setMessage(error?.message || "Could not send the invite.", "error");
       } finally {
@@ -723,6 +852,46 @@
       }
     }
 
+    async function cancelInvite(inviteId, email, button) {
+      if (!inviteId) return;
+
+      const who = email || "this person";
+      const confirmed = window.confirm(`Cancel the invite to ${who}? The link in their email will stop working.`);
+      if (!confirmed) return;
+
+      if (button) {
+        button.disabled = true;
+        button.textContent = "Cancelling…";
+      }
+
+      try {
+        const response = await fetch("/api/business-invite-cancel", {
+          method: "POST",
+          headers: authHeaders({ "Content-Type": "application/json" }),
+          body: JSON.stringify({ inviteId })
+        });
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          const failure = new Error(data.error || "Could not cancel the invite.");
+          failure.status = response.status;
+          throw failure;
+        }
+
+        setMessage(`Invite to ${who} cancelled. That seat is free again.`, "success");
+        await loadTeam({ quiet: true, activity: false });
+      } catch (error) {
+        setMessage(error?.message || "Could not cancel the invite.", "error");
+        // Gone or already accepted: the list is out of date, so redraw it.
+        if (error?.status === 404 || error?.status === 409) {
+          await loadTeam({ quiet: true, activity: false });
+        } else if (button) {
+          button.disabled = false;
+          button.textContent = "Cancel invite";
+        }
+      }
+    }
+
     function openTeam() {
       modal?.classList.add("show");
       modal?.setAttribute("aria-hidden", "false");
@@ -734,15 +903,73 @@
       modal?.classList.remove("show");
       modal?.setAttribute("aria-hidden", "true");
       document.body.style.overflow = "";
+      stopCountdown();
     }
 
     /* ─── Accept invite ─── */
 
+    function onInvitePage() {
+      return window.location.pathname.replace(/\/+$/, "") === "/accept-invite";
+    }
+
     function inviteToken() {
       const params = new URLSearchParams(window.location.search);
       const token = params.get("token") || "";
-      const onInvitePath = window.location.pathname.replace(/\/+$/, "") === "/accept-invite";
-      return onInvitePath && token ? token : "";
+      return onInvitePage() && token ? token : "";
+    }
+
+    // Signing up (email confirmation) or signing in with Google can land the
+    // visitor on the home page when the invite URL isn't on Supabase's
+    // redirect allow-list. The token is kept here so they're sent back.
+    function rememberInvite(token) {
+      if (!INVITE_TOKEN_PATTERN.test(token)) return;
+      try {
+        localStorage.setItem(PENDING_INVITE, JSON.stringify({ token, savedAt: Date.now() }));
+      } catch {
+        // Storage blocked: the redirect URL is the only way back.
+      }
+    }
+
+    function forgetInvite() {
+      try {
+        localStorage.removeItem(PENDING_INVITE);
+      } catch {
+        // Ignore storage failures.
+      }
+    }
+
+    function storedInvite() {
+      let saved = null;
+      try {
+        saved = JSON.parse(localStorage.getItem(PENDING_INVITE) || "null");
+      } catch {
+        saved = null;
+      }
+      if (!saved) {
+        forgetInvite();
+        return "";
+      }
+
+      const token = String(saved.token || "");
+      const age = Date.now() - Number(saved.savedAt);
+      if (!INVITE_TOKEN_PATTERN.test(token) || !(age >= 0 && age < PENDING_INVITE_MAX_AGE)) {
+        forgetInvite();
+        return "";
+      }
+      return token;
+    }
+
+    // Signed in somewhere other than the invite page with an invite still
+    // waiting: go back to it. The entry is removed before leaving so this can
+    // only ever happen once per saved invite.
+    function resumeStoredInvite() {
+      if (!session || onInvitePage()) return;
+
+      const token = storedInvite();
+      if (!token) return;
+
+      forgetInvite();
+      window.location.replace(`/accept-invite?token=${encodeURIComponent(token)}`);
     }
 
     function openInviteModal() {
@@ -766,13 +993,17 @@
       const body = document.getElementById("cnInviteBody");
 
       if (!session) {
+        // Only needed while signed out: it carries the invite through sign-up
+        // or Google. Once signed in here, the visitor is already back.
+        rememberInvite(token);
         if (inviteAcceptBtn) inviteAcceptBtn.textContent = "Sign in to accept";
         if (body) {
           body.textContent =
-            "Sign in to your CyberNet AI account to accept this invite. If you don't have one yet, create a free account with the email the invite was sent to — then come back to this page.";
+            "Sign in or create a free account with the email this invite was sent to. You'll come straight back here to accept.";
         }
         setInviteMessage("You need to be signed in before you can join a team.", "warning");
       } else {
+        forgetInvite();
         if (inviteAcceptBtn) inviteAcceptBtn.textContent = "Accept and join the team";
         if (body) {
           body.textContent =
@@ -808,8 +1039,12 @@
         });
         const data = await response.json().catch(() => ({}));
 
+        // Invalid, cancelled, expired, used or meant for another email: none of
+        // these will work later either, so stop sending the visitor back here.
+        if ([403, 404, 410].includes(response.status)) forgetInvite();
         if (!response.ok) throw new Error(data.error || "Could not accept this invite.");
 
+        forgetInvite();
         setInviteMessage("You're on the team. Business features are unlocked on this account.", "success");
         if (inviteAcceptBtn) inviteAcceptBtn.textContent = "Joined";
 
@@ -927,6 +1162,7 @@
 
     inviteCloseBtn?.addEventListener("click", closeInviteModal);
     inviteDeclineBtn?.addEventListener("click", () => {
+      forgetInvite();
       closeInviteModal();
       window.location.assign("/");
     });
@@ -942,12 +1178,15 @@
       client.auth.onAuthStateChange((_event, nextSession) => {
         session = nextSession || null;
         if (inviteToken()) refreshInviteGate();
+        else resumeStoredInvite();
       });
     }
 
     if (inviteToken()) {
       openInviteModal();
       refreshInviteGate();
+    } else {
+      getSession().then(resumeStoredInvite).catch(() => {});
     }
   }
 

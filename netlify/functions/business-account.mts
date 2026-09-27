@@ -1,4 +1,4 @@
-import { json, verifyUser, getActiveTeamMembership, serviceFetch } from "../lib/supabase.mjs";
+import { json, verifyUser, getActiveTeamMembership, serviceFetch, expireStaleInvites } from "../lib/supabase.mjs";
 
 export default async (request: Request) => {
   if (request.method !== "GET") return json({ error: "Method not allowed." }, 405);
@@ -28,11 +28,16 @@ export default async (request: Request) => {
     const usageRows = await usageRes.json().catch(() => []);
     const poolUsedToday = Number(usageRows[0]?.analysis_count) || 0;
 
+    // Stale invites are swept first so they stop holding a seat. Only invites
+    // that can still be accepted are counted or listed.
+    await expireStaleInvites(team.businessAccountId);
     const pendingInvitesRes = await serviceFetch(
       `/rest/v1/business_invites?business_account_id=eq.${team.businessAccountId}` +
-      "&status=eq.pending&select=id,email,created_at,expires_at"
+      `&status=eq.pending&expires_at=gt.${new Date().toISOString()}` +
+      "&select=id,email,created_at,expires_at&order=created_at.asc"
     );
-    const pendingInvites = await pendingInvitesRes.json().catch(() => []);
+    const pendingRows = await pendingInvitesRes.json().catch(() => []);
+    const pendingInvites = Array.isArray(pendingRows) ? pendingRows : [];
 
     // Per-member usage-today rollup: scan_history + recovery_cases rows
     // created today, tagged with this business_account_id, grouped by who
@@ -91,11 +96,17 @@ export default async (request: Request) => {
       poolUsedToday,
       recoveryPoolLimit: team.recoveryPoolLimit,
       members: memberDetails,
-      pendingInvites: (pendingInvites as any[]).map((i) => ({
-        email: i.email,
-        invitedAt: i.created_at,
-        expiresAt: i.expires_at,
-      })),
+      // Invitee emails are for the owner only; members just see the seat count.
+      pendingInvites: team.role === "owner"
+        ? (pendingInvites as any[]).map((i) => ({
+            id: i.id,
+            email: i.email,
+            invitedAt: i.created_at,
+            expiresAt: i.expires_at,
+          }))
+        : [],
+      // Lets the browser correct for a wrong device clock in the expiry countdown.
+      serverTime: new Date().toISOString(),
     });
   } catch (error: any) {
     return json({ error: error.message || "Could not load team info." }, Number(error.status) || 500);
