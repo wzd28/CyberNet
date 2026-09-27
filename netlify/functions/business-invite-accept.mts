@@ -72,24 +72,29 @@ export default async (request: Request) => {
       return inactiveInviteResponse(status === "pending" ? "expired" : status);
     }
 
-    const memberInsert = await serviceFetch("/rest/v1/business_members", {
-      method: "POST",
-      headers: { Prefer: "return=representation" },
-      body: JSON.stringify({
-        business_account_id: invite.business_account_id,
-        user_id: user.id,
-        role: "member",
-      }),
-    });
+    try {
+      const memberInsert = await serviceFetch("/rest/v1/business_members", {
+        method: "POST",
+        headers: { Prefer: "return=representation" },
+        body: JSON.stringify({
+          business_account_id: invite.business_account_id,
+          user_id: user.id,
+          role: "member",
+        }),
+      });
 
-    if (!memberInsert.ok) {
-      const payload = await memberInsert.json().catch(() => ({}));
-      // Hand the invite back so the link still works once the problem is fixed.
+      if (!memberInsert.ok) {
+        const payload = await memberInsert.json().catch(() => ({}));
+        throw new Error((payload as any)?.message || "Could not join the team.");
+      }
+    } catch (insertError) {
+      // Hand the invite back (also when the request itself failed) so the link
+      // still works once the problem is fixed.
       await serviceFetch(`/rest/v1/business_invites?id=eq.${invite.id}&status=eq.accepted`, {
         method: "PATCH",
         body: JSON.stringify({ status: "pending", accepted_at: null }),
       }).catch(() => null);
-      throw new Error((payload as any)?.message || "Could not join the team.");
+      throw insertError;
     }
 
     return json({ ok: true });
