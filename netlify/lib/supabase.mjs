@@ -147,6 +147,21 @@ export async function getActiveTeamMembership(userId) {
   };
 }
 
+// A pending invite past its expires_at only used to become "expired" when
+// someone opened the link. Sweeping a team's stale invites whenever the owner
+// invites or opens the panel frees their seats without a scheduled job.
+export async function expireStaleInvites(businessAccountId) {
+  await serviceFetch(
+    `/rest/v1/business_invites?business_account_id=eq.${encodeURIComponent(businessAccountId)}` +
+    `&status=eq.pending&expires_at=lt.${new Date().toISOString()}`,
+    {
+      method: "PATCH",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify({ status: "expired" })
+    }
+  ).catch(() => null);
+}
+
 export async function getProfile(user) {
   const select =
     "id,full_name,plan,subscription_status,billing_interval," +

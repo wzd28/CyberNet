@@ -1,4 +1,4 @@
-import { json, verifyUser, getActiveTeamMembership, serviceFetch } from "../lib/supabase.mjs";
+import { json, verifyUser, getActiveTeamMembership, serviceFetch, expireStaleInvites } from "../lib/supabase.mjs";
 
 declare const Netlify: {
   env: {
@@ -13,6 +13,9 @@ function env(name: string): string {
     return process.env[name] || "";
   }
 }
+
+// Invites can be accepted for 24 hours after they are sent.
+const INVITE_TTL_MS = 24 * 60 * 60 * 1000;
 
 function randomToken(): string {
   const bytes = new Uint8Array(32);
@@ -48,10 +51,10 @@ async function sendInviteEmail(toEmail: string, inviterName: string, acceptUrl: 
             Note: on a Business team, the team owner can view what you submit and the full results of your Quick Scan,
             Analysis AI, and Recovery Mode activity (pictures you upload are not stored). Once you accept, only the team owner can remove you from the team.
           </p>
-          <p style="color: #94a3b8; font-size: 12px;">This invite expires in 7 days. If you didn't expect this, you can ignore this email.</p>
+          <p style="color: #94a3b8; font-size: 12px;">This invite expires in 24 hours. If you didn't expect this, you can ignore this email.</p>
         </div>
       `,
-      text: `${inviterName || "Someone"} invited you to join their CyberNet AI Business team.\n\nAccept: ${acceptUrl}\n\nNote: the team owner can view what you submit and the full results of your activity while you're on the team (pictures you upload are not stored). Only the team owner can remove you once you accept. This invite expires in 7 days.`,
+      text: `${inviterName || "Someone"} invited you to join their CyberNet AI Business team.\n\nAccept: ${acceptUrl}\n\nNote: the team owner can view what you submit and the full results of your activity while you're on the team (pictures you upload are not stored). Only the team owner can remove you once you accept. This invite expires in 24 hours.`,
     }),
   });
 
@@ -78,18 +81,23 @@ export default async (request: Request) => {
       return json({ error: "A valid email address is required." }, 400);
     }
 
+    await expireStaleInvites(team.businessAccountId);
+
+    // Only invites that can still be accepted hold a seat or block a resend.
+    const now = new Date().toISOString();
     const [membersRes, pendingRes] = await Promise.all([
       serviceFetch(
         `/rest/v1/business_members?business_account_id=eq.${team.businessAccountId}&status=eq.active&select=id`
       ),
       serviceFetch(
-        `/rest/v1/business_invites?business_account_id=eq.${team.businessAccountId}&status=eq.pending&select=id,email`
+        `/rest/v1/business_invites?business_account_id=eq.${team.businessAccountId}` +
+        `&status=eq.pending&expires_at=gt.${now}&select=id,email`
       ),
     ]);
     const members = await membersRes.json().catch(() => []);
     const pending = await pendingRes.json().catch(() => []);
 
-    if ((pending as any[]).some((p) => p.email === email)) {
+    if ((pending as any[]).some((p) => String(p.email || "").toLowerCase() === email)) {
       return json({ error: "There's already a pending invite for this email." }, 409);
     }
 
@@ -104,7 +112,7 @@ export default async (request: Request) => {
     }
 
     const token = randomToken();
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    const expiresAt = new Date(Date.now() + INVITE_TTL_MS).toISOString();
 
     const insertRes = await serviceFetch("/rest/v1/business_invites", {
       method: "POST",
@@ -128,7 +136,7 @@ export default async (request: Request) => {
 
     await sendInviteEmail(email, inviterName, acceptUrl);
 
-    return json({ ok: true });
+    return json({ ok: true, expiresAt });
   } catch (error: any) {
     return json({ error: error.message || "Could not send the invite." }, Number(error.status) || 500);
   }

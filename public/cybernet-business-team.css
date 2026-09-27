@@ -288,28 +288,76 @@
   margin-top:12px;
 }
 
+.cn-team-invite-note{
+  margin:9px 0 0;
+  color:var(--soft,#425873);
+  font-size:11.5px;
+  line-height:1.5;
+}
+
+/* Email on the left, Cancel on the right; the whole row wraps on a phone so
+   the button drops under the email instead of squeezing it. */
 .cn-team-pending-item{
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap:12px;
+  flex-wrap:wrap;
+  gap:10px 12px;
   padding:10px 13px;
   border:1px dashed rgba(255,207,107,.3);
   border-radius:11px;
   background:rgba(255,207,107,.05);
   color:var(--text,#eaf3fb);
   font-size:12.5px;
+}
+
+.cn-team-pending-id{
+  flex:1 1 220px;
+  min-width:0;
+}
+
+.cn-team-pending-email{
+  display:block;
   overflow-wrap:anywhere;
 }
 
-.cn-team-pending-item span{
-  flex:0 0 auto;
+.cn-team-pending-meta{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:6px 9px;
+  margin-top:5px;
+}
+
+.cn-team-pending-badge{
+  display:inline-flex;
+  border:1px solid rgba(255,207,107,.32);
+  border-radius:999px;
+  padding:2px 8px;
+  background:rgba(255,207,107,.08);
   color:var(--warning,#ffcf6b);
   font-family:var(--font-mono,monospace);
-  font-size:12px;
+  font-size:11px;
+  font-weight:700;
   letter-spacing:.05em;
   text-transform:uppercase;
   white-space:nowrap;
+}
+
+.cn-team-pending-countdown{
+  color:var(--muted,#7d93ad);
+  font-family:var(--font-mono,monospace);
+  font-size:12px;
+  font-variant-numeric:tabular-nums;
+  white-space:nowrap;
+}
+
+.cn-team-pending-countdown.is-soon{
+  color:var(--warning,#ffcf6b);
+}
+
+.cn-team-pending-countdown.is-expired{
+  color:var(--danger,#ff6b6b);
 }
 
 /* ─── Activity log ─── */
