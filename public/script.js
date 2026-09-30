@@ -353,7 +353,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     }
     if(label)label.textContent="Saved securely";
     if(!appState.history.length){
-      list.innerHTML="<p>Your completed Pro analyses will appear here.</p>";
+      list.innerHTML="<p>Your completed analyses will appear here.</p>";
       return;
     }
     list.innerHTML=appState.history.slice(0,8).map(item=>{
@@ -452,7 +452,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     const aiReqLeft=document.getElementById("aiReqLeft");
     const aiApiStatus=document.getElementById("aiApiStatus");
 
-    if(aiPlanTitle)aiPlanTitle.textContent=pro?"Analysis AI Pro":"Analysis AI Free";
+    if(aiPlanTitle)aiPlanTitle.textContent=isBusiness()?"Analysis AI Business":pro?"Analysis AI Pro":"Analysis AI Free";
     if(aiPlanDescription)aiPlanDescription.textContent=!signedIn?"Sign in to activate 3 accurate AI analyses per day across text, links, and images.":pro?"Top-level Analysis AI protection with advanced analysis, history, and reports.":"Accurate everyday AI protection with 3 shared analyses per day.";
     if(aiUsageText)aiUsageText.textContent=signedIn?`${used} / ${limit}`:`0 / 3`;
     if(aiUsageBar)aiUsageBar.style.width=`${signedIn?Math.min(100,(used/Math.max(1,limit))*100):0}%`;
@@ -465,22 +465,24 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(analysisAiHeaderUsageBar)analysisAiHeaderUsageBar.style.width=`${signedIn?Math.min(100,(used/Math.max(1,limit))*100):0}%`;
     if(analysisAiHeaderUsageReset)analysisAiHeaderUsageReset.textContent=appState.usage.resetDate?`Resets ${new Date(appState.usage.resetDate).toLocaleDateString()}`:"Resets daily";
     if(aiConnPill){
-      aiConnPill.textContent=!signedIn?"Signed out":pro?"Pro active":"Free active";
+      aiConnPill.textContent=!signedIn?"Signed out":isBusiness()?"Business active":pro?"Pro active":"Free active";
       aiConnPill.className=`status-pill ${signedIn?"status-pill-safe":"status-pill-warn"}`;
     }
     if(aiReqLeft)aiReqLeft.textContent=signedIn?String(remaining):"—";
     if(aiApiStatus){
       if(!supabaseConfigured)aiApiStatus.innerHTML=`<span class="warning">${escapeHTML(authSetupMessage())}</span>`;
       else if(!signedIn)aiApiStatus.innerHTML='<span class="warning">Sign in or create a free account before running AI analysis.</span>';
-      else if(remaining<=0)aiApiStatus.innerHTML=`<span class="warning">Daily limit reached. ${pro?"Your 15 analyses reset tomorrow.":"Upgrade to Pro for 15 analyses per day."}</span>`;
+      else if(remaining<=0)aiApiStatus.innerHTML=`<span class="warning">Daily limit reached. ${isBusiness()?"Your team's daily analyses reset tomorrow.":pro?"Your 15 analyses reset tomorrow.":"Upgrade to Pro for 15 analyses per day."}</span>`;
       else aiApiStatus.innerHTML=`<span class="safe">✓ ${remaining} secure AI ${remaining===1?"analysis":"analyses"} remaining today.</span>`;
     }
 
     if(aiUpgradeBtn){aiUpgradeBtn.hidden=pro;aiUpgradeBtn.textContent=signedIn?"Upgrade to Pro":"View Pro Plan"}
     if(manageBillingBtn)manageBillingBtn.hidden=!pro;
-    if(freePlanBtn){freePlanBtn.textContent=!signedIn?"Start Free":pro?"Included with Pro":"Current Plan";freePlanBtn.disabled=signedIn}
-    if(proPlanBtn){proPlanBtn.textContent=pro?"Current Plan":"Upgrade to Pro";proPlanBtn.disabled=pro}
-    if(businessPlanBtn){const isBusiness=effectivePlanName()==="business";businessPlanBtn.textContent=isBusiness?"Current Plan":"Upgrade to Business";businessPlanBtn.disabled=isBusiness}
+    /* Exactly one pricing card says "Current Plan": Business includes Pro, so it is never shown as Pro. */
+    const tier=planTier();
+    if(freePlanBtn){freePlanBtn.textContent=!signedIn?"Start Free":tier==="free"?"Current Plan":`Included with ${tier==="business"?"Business":"Pro"}`;freePlanBtn.disabled=signedIn}
+    if(proPlanBtn){proPlanBtn.textContent=tier==="pro"?"Current Plan":tier==="business"?"Included with Business":"Upgrade to Pro";proPlanBtn.disabled=tier!=="free"}
+    if(businessPlanBtn){businessPlanBtn.textContent=tier==="business"?"Current Plan":"Upgrade to Business";businessPlanBtn.disabled=tier==="business"}
 
     updatePlanBenefits();
     renderProHistory();
@@ -688,7 +690,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       return;
     }
     if(plan==="business"&&effectivePlanName()==="business"){showPricingNotice("CyberNet AI Business is already active on this account.","success");return}
-    if(plan==="pro"&&isPro()){showPricingNotice("CyberNet AI Pro is already active on this account.","success");return}
+    if(plan==="pro"&&isPro()){showPricingNotice(isBusiness()?"Your Business plan already includes everything in Pro.":"CyberNet AI Pro is already active on this account.","success");return}
     showPricingNotice("Opening secure Stripe Checkout…");
     if(btn)btn.disabled=true;
     businessBtns.forEach(b=>b.disabled=true);
@@ -712,8 +714,9 @@ document.addEventListener("DOMContentLoaded",()=>{
     finally{if(btn)btn.disabled=false;businessBtns.forEach(b=>b.disabled=false)}
   }
 
+  /* The server already resolves the plan (a team member gets "business" from their team, not from their own subscription). */
   function effectivePlanName(){
-    return appState.profile?.plan==="business"&&["active","trialing"].includes(appState.profile?.subscriptionStatus)?"business":isPro()?"pro":"free";
+    return planTier();
   }
 
   async function openBillingPortal(){

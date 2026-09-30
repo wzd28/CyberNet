@@ -585,7 +585,10 @@
       }
       if (usageBar) usageBar.style.width = `${percent}%`;
 
-      if (manageButton) manageButton.hidden = !details.pro;
+      // Billing belongs to whoever pays: a Business team member (not the owner)
+      // has no subscription of their own to manage.
+      const teamMemberOnly = Boolean(profile.isTeamMember) && profile.teamRole !== "owner";
+      if (manageButton) manageButton.hidden = !details.pro || teamMemberOnly;
       if (upgradeButton) {
         upgradeButton.hidden = details.pro;
         upgradeButton.textContent = "View Pro Plans";
