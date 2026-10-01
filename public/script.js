@@ -1390,8 +1390,10 @@ document.addEventListener("DOMContentLoaded",()=>{
   function riskMeta(result){
     // Follows the score, matching the verdict shown in the report itself (see
     // getDanger). Tagging every unconfirmed read "High Risk" put that label on
-    // ordinary safe items and drained it of meaning.
-    if(result.score>=60)return{label:"High Risk",cls:"risk-tag-danger"};
+    // ordinary safe items and drained it of meaning. Every score from 32 is a
+    // SCAM verdict, so the tag always reads "Scam"; only its colour is stronger
+    // from 60 (display only, thresholds unchanged).
+    if(result.score>=60)return{label:"Scam",cls:"risk-tag-danger"};
     if(result.score>=32)return{label:"Scam",cls:"risk-tag-warning"};
     if(result.kind==="link"&&!result.officialBrand)return{label:"Can't Confirm",cls:"risk-tag-warning"};
     return{label:"Low Visible Risk",cls:"risk-tag-safe"};
