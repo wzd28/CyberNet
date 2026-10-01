@@ -105,8 +105,27 @@
     moveBillingOutOfCyberNetAI();
     createApiKeyPanel();
     createHowToGetKeyModal();
-    initializeController();
+    whenAppReady(initializeController);
     fixPopularBadge();
+  }
+
+  // script.js creates the page's Supabase client in its DOMContentLoaded
+  // handler, which runs after this deferred file has executed. Wait for it so
+  // the page shares one auth client (one token-refresh timer, one reader of
+  // OAuth codes in the URL) instead of creating a second one.
+  function whenAppReady(callback) {
+    if (window.CyberNetAccount || document.readyState === "complete") {
+      callback();
+      return;
+    }
+    let done = false;
+    const run = () => {
+      if (done) return;
+      done = true;
+      callback();
+    };
+    document.addEventListener("DOMContentLoaded", run, { once: true });
+    window.addEventListener("load", run, { once: true });
   }
 
   function ensureUpgradeStylesheet() {
@@ -400,19 +419,22 @@
       /^https:\/\//.test(String(config.SUPABASE_URL || "")) &&
       String(config.SUPABASE_ANON_KEY || "").length > 20;
 
-    const client = supabaseReady
+    // Reuse script.js's client. The fallback is only used if script.js failed,
+    // so it neither refreshes tokens nor consumes codes in the URL.
+    const shared = window.CyberNetAccount?.appState?.supabase || null;
+    const client = shared || (supabaseReady
       ? window.supabase.createClient(
           config.SUPABASE_URL,
           config.SUPABASE_ANON_KEY,
           {
             auth: {
               persistSession: true,
-              autoRefreshToken: true,
-              detectSessionInUrl: true
+              autoRefreshToken: false,
+              detectSessionInUrl: false
             }
           }
         )
-      : null;
+      : null);
 
     const modal = document.getElementById("accountDetailsModal");
     const accountButton = document.getElementById("accountNavBtn");
@@ -621,6 +643,10 @@
       }
     }
 
+    let accountInflight = null;
+    let accountInflightToken = null;
+    let accountLoadedToken = null;
+
     async function refreshAccount({ quiet = false } = {}) {
       if (!client) {
         setMessage(
@@ -643,6 +669,27 @@
 
       if (!quiet) setMessage("Refreshing your secure account…");
 
+      // getSession() and INITIAL_SESSION both ask on load: share one request
+      // per access token, and skip a quiet refresh for an already-loaded token.
+      const token = session.access_token;
+      if (quiet && currentAccount && accountLoadedToken === token) return currentAccount;
+      if (accountInflight && accountInflightToken === token) {
+        const shared = await accountInflight;
+        if (!quiet && shared) setMessage("Account information is up to date.", "success");
+        return shared;
+      }
+
+      accountInflightToken = token;
+      const request = loadAccount(session, quiet);
+      accountInflight = request;
+      try {
+        return await request;
+      } finally {
+        if (accountInflight === request) accountInflight = null;
+      }
+    }
+
+    async function loadAccount(session, quiet) {
       try {
         const response = await ORIGINAL_FETCH(
           "/api/account-status?includeHistory=1",
@@ -658,6 +705,7 @@
         }
 
         currentAccount = data;
+        accountLoadedToken = session.access_token;
         renderAccount(session, data);
 
         if (!quiet) {

@@ -488,8 +488,14 @@ document.addEventListener("DOMContentLoaded",()=>{
     renderProHistory();
   }
 
+  // One request per access token at a time (getSession, INITIAL_SESSION and
+  // the service check all ask on load). A response for a token that is no
+  // longer current (sign-out, user switch, token refresh) is dropped: the call
+  // made for the newer token owns the state.
+  let accountStatusInflight=null,accountStatusToken=null,accountStatusRetried=false;
   async function refreshAccountStatus(){
     if(!isSignedIn()){
+      appState.accountUserId=null;
       appState.isAdmin=false;
       appState.profile={plan:"guest",fullName:"",subscriptionStatus:"inactive",billingInterval:""};
       appState.usage={used:0,limit:0,remaining:0,resetDate:""};
@@ -498,9 +504,14 @@ document.addEventListener("DOMContentLoaded",()=>{
       updateAccountUI();
       return null;
     }
+    const token=appState.session?.access_token;
+    if(accountStatusInflight&&accountStatusToken===token)return accountStatusInflight;
+    accountStatusToken=token;
+    const request=(async()=>{
     try{
       const response=await fetch("/api/account-status?includeHistory=1",{headers:authHeaders({Accept:"application/json"}),cache:"no-store"});
       const data=await response.json().catch(()=>({}));
+      if(appState.session?.access_token!==token)return appState;
       if(!response.ok)throw new Error(data.error||"Account status is unavailable.");
       appState.isAdmin=Boolean(data.isAdmin);
       appState.profile={
@@ -518,22 +529,35 @@ document.addEventListener("DOMContentLoaded",()=>{
         resetDate:data.usage?.resetDate||""
       };
       appState.history=Array.isArray(data.history)?data.history:[];
+      appState.accountUserId=appState.user?.id||null;
+      appState.accountStatusError=false;
+      accountStatusRetried=false;
     }catch(error){
+      if(appState.session?.access_token!==token)return appState;
+      /* A failed refresh (timeout, cold start, 5xx) keeps this user's last good plan instead of showing Free. */
+      if(appState.accountReady&&appState.accountUserId&&appState.accountUserId===appState.user?.id){console.warn(error);return appState}
       appState.isAdmin=false;
       appState.profile={plan:"free",fullName:appState.user?.user_metadata?.full_name||"",subscriptionStatus:"inactive",billingInterval:""};
       appState.usage={used:0,limit:5,remaining:5,resetDate:""};
       appState.history=[];
+      appState.accountStatusError=true;
       console.warn(error);
+      if(!accountStatusRetried){accountStatusRetried=true;setTimeout(()=>{if(isSignedIn())refreshAccountStatus()},3000)}
     }
     appState.accountReady=true;
     updateAccountUI();
     return appState;
+    })();
+    accountStatusInflight=request;
+    try{return await request}finally{if(accountStatusInflight===request)accountStatusInflight=null}
   }
 
   async function syncSession(session){
     appState.session=session||null;
     appState.user=session?.user||null;
     await refreshAccountStatus();
+    /* Lets the Recovery case list and the legal-acceptance recorder follow sign-in and sign-out. */
+    try{window.dispatchEvent(new CustomEvent("cybernet:session",{detail:{userId:appState.user?.id||null}}))}catch{}
   }
 
   if(supabaseConfigured){
@@ -1486,7 +1510,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       serviceState.reputation=Boolean(data.reputationEnabled);
       serviceState.lastChecked=Date.now();
       if(aiModelName)aiModelName.textContent=serviceState.model;
-      await refreshAccountStatus();
+      if(force||!appState.accountReady)await refreshAccountStatus();else updateAccountUI();
       return true;
     }catch(error){
       serviceState.online=false;
