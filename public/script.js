@@ -126,11 +126,15 @@ document.addEventListener("DOMContentLoaded",()=>{
     },
     pricing:{
       title:"Pricing | CyberNet AI",
-      description:"Compare CyberNet AI Free and Pro plans: daily AI analysis limits, saved history, downloadable reports, and Recovery features."
+      description:"Compare CyberNet AI Free, Pro and Business plans: daily AI analysis limits, saved history, downloadable reports, and Recovery features."
     },
     about:{
       title:"About | CyberNet AI",
       description:"CyberNet AI's mission is to protect people before threats become real damage, by making cybersecurity understandable and accessible."
+    },
+    recovery:{
+      title:"Recovery Mode | CyberNet AI",
+      description:"Got scammed or hacked? Describe what happened and CyberNet AI builds a step-by-step recovery plan to secure your accounts, money and devices."
     }
   };
   function updatePageMeta(pageName){
@@ -2044,6 +2048,19 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(!intakeEl||!dashboardEl)return;
 
     let pendingRecoveryImage=null;
+    const uploadLabelDefault=uploadLabel?.textContent||"";
+    /* The attached screenshot belongs to one case only. */
+    function clearRecoveryImage(){
+      pendingRecoveryImage=null;
+      if(imageInput)imageInput.value="";
+      if(uploadLabel)uploadLabel.textContent=uploadLabelDefault;
+    }
+    // Plan-aware wording for Recovery limit messages: only Free is told to upgrade.
+    function recoveryLimitSuffix(usage,freeText,paidText){
+      const plan=usage?.plan;
+      if(plan==="free"||!plan)return ` ${freeText}`;
+      return plan==="business"?` Your team's shared ${paidText}`:` Your ${paidText}`;
+    }
     let currentCaseId=null;
     let currentPlan=null;
     let currentTasks=[];
@@ -2115,15 +2132,16 @@ document.addEventListener("DOMContentLoaded",()=>{
         currentCaseId=data.caseId;
         currentPlan={...data.plan,progressPercent:0};
         currentTasks=[];
-        if(data.usage)appState.recoveryUsage={used:Number(data.usage.used)||0,limit:Number(data.usage.daily_limit)||1};
+        if(data.usage)appState.recoveryUsage={used:Number(data.usage.used)||0,limit:Number(data.usage.limit??data.usage.daily_limit)||1};
+        clearRecoveryImage();
         updateAccountUI();
         renderDashboard();
         showDashboard();
         if(data.aiPending)watchForAiPlan(data.caseId,Number(data.caseVersion)||1,"plan");
       }catch(error){
         if(error.code==="daily_limit_reached"){
-          setIntakeMessage(`${error.message} Upgrade to Pro for more Recovery cases per day.`,"warning");
-          if(error.usage){appState.recoveryUsage={used:Number(error.usage.used)||0,limit:Number(error.usage.daily_limit)||1};updateAccountUI()}
+          setIntakeMessage(`${error.message}${recoveryLimitSuffix(error.usage,"Upgrade to Pro for more Recovery cases per day.","Recovery cases reset at 12:00 PM Gulf time.")}`,"warning");
+          if(error.usage){appState.recoveryUsage={used:Number(error.usage.used)||0,limit:Number(error.usage.limit??error.usage.daily_limit)||1};updateAccountUI()}
         }else{
           setIntakeMessage(error.message||"Recovery Mode couldn't start right now. Please try again.","warning");
         }
@@ -2268,13 +2286,13 @@ document.addEventListener("DOMContentLoaded",()=>{
 
     document.querySelectorAll(".recovery-timeline-tab").forEach(tab=>{
       tab.addEventListener("click",()=>{
-        document.querySelectorAll(".recovery-timeline-tab").forEach(t=>t.classList.remove("active"));
-        tab.classList.add("active");
-        activeTimelineTab=tab.dataset.timeline;
-        if(!isPro()&&activeTimelineTab!=="first10Minutes"){
+        if(!isPro()&&tab.dataset.timeline!=="first10Minutes"){
           switchPage("pricing");
           return;
         }
+        document.querySelectorAll(".recovery-timeline-tab").forEach(t=>t.classList.remove("active"));
+        tab.classList.add("active");
+        activeTimelineTab=tab.dataset.timeline;
         renderDashboard();
       });
     });
@@ -2325,9 +2343,11 @@ document.addEventListener("DOMContentLoaded",()=>{
         else setUpdateMessage("Recovery case updated.","success");
       }catch(error){
         if(error.code==="cooldown_active"){
-          setUpdateMessage(error.message||"Please wait before submitting another update.","warning");
+          const seconds=Number(error.usage?.cooldownSecondsRemaining)||0;
+          const hours=Math.ceil(seconds/3600),minutes=Math.max(1,Math.ceil(seconds/60));
+          setUpdateMessage(seconds>0?`You can send your next update in about ${seconds>=3600?`${hours} hour${hours>1?"s":""}`:`${minutes} minute${minutes>1?"s":""}`}.`:(error.message||"Please wait before submitting another update."),"warning");
         }else if(error.code==="daily_limit_reached"){
-          setUpdateMessage(`${error.message} Upgrade to Pro for more updates per day.`,"warning");
+          setUpdateMessage(`${error.message}${error.usage?.plan==="free"||!error.usage?.plan?" Upgrade to Pro for more updates per day.":" Updates reset at 12:00 PM Gulf time."}`,"warning");
         }else{
           setUpdateMessage(error.message||"Couldn't update this case right now.","warning");
         }
@@ -2375,6 +2395,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       currentCaseId=null;
       currentPlan=null;
       currentTasks=[];
+      clearRecoveryImage();
       loadCaseList();
     }
     if(backBtn)backBtn.addEventListener("click",showIntake);
@@ -2432,6 +2453,16 @@ document.addEventListener("DOMContentLoaded",()=>{
 
     document.querySelectorAll('[data-page="recovery"]').forEach(btn=>{
       btn.addEventListener("click",()=>{if(intakeEl&&!intakeEl.hidden)loadCaseList()});
+    });
+
+    /* The session is not known yet at start-up; reload the list when the signed-in user changes. */
+    let caseListUser;
+    window.addEventListener("cybernet:session",event=>{
+      const uid=event.detail?.userId||null;
+      if(uid===caseListUser)return;
+      caseListUser=uid;
+      if(!uid||!dashboardEl.hidden)showIntake();
+      else{clearRecoveryImage();loadCaseList()}
     });
 
     loadCaseList();
