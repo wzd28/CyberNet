@@ -646,8 +646,15 @@
     return true;
   }
 
-  function refreshDynamicUi() {
-    repairSubtree(document.body);
+  // Only the nodes that changed are repaired; the whole document is walked
+  // once, in init(). Counters, countdowns and scan progress add nodes all the
+  // time, and a full-document walk for each was the main cost here.
+  const pendingRoots = new Set();
+
+  function refreshDynamicUi(roots = []) {
+    roots.forEach((root) => {
+      if (root.isConnected) repairSubtree(root);
+    });
     // applyBrandLogos() and applyHeroShield() intentionally disabled: they were
     // replacing the correct, transparent nav/hero logo images with an old
     // white-background file inside a circular (border-radius:50%) crop,
@@ -662,25 +669,32 @@
     observerQueued = true;
     requestAnimationFrame(() => {
       observerQueued = false;
-      refreshDynamicUi();
+      const roots = [...pendingRoots];
+      pendingRoots.clear();
+      refreshDynamicUi(roots);
     });
   }
 
   function observeDynamicChanges() {
     const observer = new MutationObserver((mutations) => {
+      let changed = false;
       for (const mutation of mutations) {
         if (mutation.type === "characterData") {
           if (BAD_TEXT_PATTERN.test(mutation.target.nodeValue || "")) {
-            queueRefresh();
-            return;
+            pendingRoots.add(mutation.target);
+            changed = true;
           }
+          continue;
         }
 
-        if (mutation.addedNodes.length) {
-          queueRefresh();
-          return;
-        }
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === Node.ELEMENT_NODE || node.nodeType === Node.TEXT_NODE) {
+            pendingRoots.add(node);
+            changed = true;
+          }
+        });
       }
+      if (changed) queueRefresh();
     });
 
     observer.observe(document.body, {
@@ -699,6 +713,7 @@
     // up-to-date favicon with an old white-background logo file on every page
     // load, undoing the real favicon fix in index.html.
     injectStyles();
+    repairSubtree(document.body);
     refreshDynamicUi();
     observeDynamicChanges();
 
