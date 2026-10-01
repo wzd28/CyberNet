@@ -70,10 +70,20 @@
         headers.set("X-CyberNet-OpenAI-Key", visitorKey);
         headers.set("X-CyberNet-OpenAI-Model", getSessionModel());
 
-        return ORIGINAL_FETCH("/api/byok-analyze", {
+        const byokResponse = await ORIGINAL_FETCH("/api/byok-analyze", {
           ...init,
           headers
         });
+
+        // Business team members use the shared team pool (and the owner's
+        // activity log), so their analysis goes to /api/analyze after all.
+        // The body is a JSON string, so the original request can be resent.
+        if (byokResponse.status === 409) {
+          const info = await byokResponse.clone().json().catch(() => ({}));
+          if (info?.code === "byok_team_member") return ORIGINAL_FETCH(input, init);
+        }
+
+        return byokResponse;
       }
     } catch {
       // Keep the original request if routing checks fail.
@@ -614,7 +624,7 @@
     async function refreshAccount({ quiet = false } = {}) {
       if (!client) {
         setMessage(
-          "Supabase account configuration is unavailable. Confirm config.js is loaded.",
+          "Account services are unavailable right now. Please refresh the page and try again.",
           "error"
         );
         return null;
