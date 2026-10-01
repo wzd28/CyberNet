@@ -39,6 +39,12 @@
       use /api/byok-analyze instead.
   */
   window.fetch = async function cyberNetFetch(input, init = {}) {
+    // Only the routing decision is guarded. The BYOK request itself runs
+    // outside the try/catch so a network failure reaches the caller instead
+    // of silently resending the analysis to /api/analyze (platform key and
+    // the user's daily quota).
+    let byokHeaders = null;
+
     try {
       const rawUrl =
         typeof input === "string"
@@ -69,24 +75,28 @@
 
         headers.set("X-CyberNet-OpenAI-Key", visitorKey);
         headers.set("X-CyberNet-OpenAI-Model", getSessionModel());
-
-        const byokResponse = await ORIGINAL_FETCH("/api/byok-analyze", {
-          ...init,
-          headers
-        });
-
-        // Business team members use the shared team pool (and the owner's
-        // activity log), so their analysis goes to /api/analyze after all.
-        // The body is a JSON string, so the original request can be resent.
-        if (byokResponse.status === 409) {
-          const info = await byokResponse.clone().json().catch(() => ({}));
-          if (info?.code === "byok_team_member") return ORIGINAL_FETCH(input, init);
-        }
-
-        return byokResponse;
+        byokHeaders = headers;
       }
     } catch {
       // Keep the original request if routing checks fail.
+      byokHeaders = null;
+    }
+
+    if (byokHeaders) {
+      const byokResponse = await ORIGINAL_FETCH("/api/byok-analyze", {
+        ...init,
+        headers: byokHeaders
+      });
+
+      // Business team members use the shared team pool (and the owner's
+      // activity log), so their analysis goes to /api/analyze after all.
+      // The body is a JSON string, so the original request can be resent.
+      if (byokResponse.status === 409) {
+        const info = await byokResponse.clone().json().catch(() => ({}));
+        if (info?.code === "byok_team_member") return ORIGINAL_FETCH(input, init);
+      }
+
+      return byokResponse;
     }
 
     return ORIGINAL_FETCH(input, init);
