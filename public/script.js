@@ -122,11 +122,11 @@ document.addEventListener("DOMContentLoaded",()=>{
     },
     learn:{
       title:"Learn Cybersecurity | CyberNet AI",
-      description:"Free, interactive cybersecurity lessons covering phishing, malware, passwords, authentication, safe browsing, and privacy — with real examples, warning signs, and quizzes."
+      description:"Free, interactive cybersecurity lessons covering phishing, malware, passwords, authentication, safe browsing, and privacy — with real examples and warning signs."
     },
     pricing:{
       title:"Pricing | CyberNet AI",
-      description:"Compare CyberNet AI Free, Pro and Business plans: daily AI analysis limits, saved history, downloadable reports, and Recovery features."
+      description:"Compare CyberNet AI Free, Pro, and Business plans: daily AI analysis limits, saved history, downloadable reports, team seats, and Recovery features."
     },
     about:{
       title:"About | CyberNet AI",
@@ -399,7 +399,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(isPro()){
       list.innerHTML=`
         <div><span>✓</span> 15 advanced AI analyses per day</div>
-        <div><span>✓</span> Detailed risk scoring and threat intelligence</div>
+        <div><span>✓</span> Detailed risk scoring and explanations</div>
         <div><span>✓</span> Saved scan history</div>
         <div><span>✓</span> Downloadable security reports</div>`;
     }else{
@@ -805,7 +805,8 @@ document.addEventListener("DOMContentLoaded",()=>{
 
   const checkoutState=new URLSearchParams(window.location.search).get("checkout");
   if(checkoutState==="success"){
-    setTimeout(()=>{switchPage("pricing");showPricingNotice("Payment received. Your Pro access is being confirmed securely.","success");refreshAccountStatus()},900);
+    let isBusinessCheckout=false;try{isBusinessCheckout=sessionStorage.getItem("cybernet_pending_business_checkout")==="1"}catch{}
+    setTimeout(()=>{switchPage("pricing");showPricingNotice(isBusinessCheckout?"Payment received. Your Business plan is being confirmed securely.":"Payment received. Your Pro access is being confirmed securely.","success");refreshAccountStatus()},900);
     history.replaceState({},"",window.location.pathname);
   }else if(checkoutState==="cancelled"){
     setTimeout(()=>{switchPage("pricing");showPricingNotice("Checkout was cancelled. No payment was taken.")},500);
@@ -1389,7 +1390,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     // getDanger). Tagging every unconfirmed read "High Risk" put that label on
     // ordinary safe items and drained it of meaning.
     if(result.score>=60)return{label:"High Risk",cls:"risk-tag-danger"};
-    if(result.score>=32)return{label:"Medium Risk",cls:"risk-tag-warning"};
+    if(result.score>=32)return{label:"Scam",cls:"risk-tag-warning"};
     if(result.kind==="link"&&!result.officialBrand)return{label:"Can't Confirm",cls:"risk-tag-warning"};
     return{label:"Low Visible Risk",cls:"risk-tag-safe"};
   }
@@ -1428,7 +1429,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       const result=isBareLink?analyzeLinkRules(text):analyzeTextRules(text);
       const note=isBareLink
         ?"This looked like a link rather than a message, so CyberNet AI analyzed it with the link engine for a more accurate result. Use Link Detection directly next time for the same result."
-        :"Local protection scan complete. Use the CyberNet AI page for account-based AI analysis.";
+        :"Local protection scan complete. Use Analysis AI for a deeper, AI-assisted check.";
       showReport(cyberTextResult,result.score,result.scamType,result.reasons,result.advice,{...result,note,previewHtml:isBareLink?renderLinkPreview(text,result):renderLinksFound(result.links||[])});
       prependScan("textScanList",`“${text.slice(0,42)}${text.length>42?"…":""}”`,result);
       reportTeamActivity({kind:"quick_scan",scanType:isBareLink?"link":"text",content:text,result:quickScanLogResult(result)});
@@ -1455,7 +1456,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     cyberLinkBtn.disabled=false;
     runScan(cyberLinkBtn,cyberLinkResult,async()=>{
       const result=analyzeLinkRules(link);
-      showReport(cyberLinkResult,result.score,result.scamType,result.reasons,result.advice,{...result,note:"Local structural URL scan complete. Use the CyberNet AI page for account-based AI analysis.",previewHtml:renderLinkPreview(link,result)});
+      showReport(cyberLinkResult,result.score,result.scamType,result.reasons,result.advice,{...result,note:"Local structural URL scan complete. Use Analysis AI for a deeper, AI-assisted check.",previewHtml:renderLinkPreview(link,result)});
       prependScan("linkScanList",link.slice(0,52),result);
       reportTeamActivity({kind:"quick_scan",scanType:"link",content:link,result:quickScanLogResult(result)});
     });
@@ -1522,7 +1523,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     // read, so hand it to Analysis AI rather than showing a verdict built from
     // the filename alone. Opted in here, not inside analyzeImageRules, because
     // the Analysis AI page reuses that function for its own pre-analysis.
-    showReport(cyberImageResult,result.score,result.scamType,result.reasons,result.advice,{...result,needsDeepScan:!decoded.qrData,note:"Local QR and file checks complete. Use the CyberNet AI page for account-based visual AI analysis.",previewHtml:decoded.qrData?renderQrPreview(decoded.qrData,qrKind,qrResult):""});
+    showReport(cyberImageResult,result.score,result.scamType,result.reasons,result.advice,{...result,needsDeepScan:!decoded.qrData,note:"Local QR and file checks complete. Use Analysis AI for a deeper, AI-assisted check.",previewHtml:decoded.qrData?renderQrPreview(decoded.qrData,qrKind,qrResult):""});
     prependScan("imageScanList",file.name,result);
     reportTeamActivity({kind:"quick_scan",scanType:"image",content:"",fileName:file.name,qr:decoded.qrData?{kind:qrKind,data:decoded.qrData}:null,result:quickScanLogResult(result,{needsDeepScan:!decoded.qrData})});
   }
@@ -1618,9 +1619,9 @@ document.addEventListener("DOMContentLoaded",()=>{
   }
 
   const DIAGNOSTIC_STAGES={
-    link:["Analyzing link structure and domain patterns…","Running CyberNet AI deep analysis…","Correlating threat intelligence…"],
-    image:["Decoding QR and visual signals…","Running CyberNet AI vision analysis…","Correlating threat intelligence…"],
-    text:["Parsing language and structural signals…","Running CyberNet AI deep analysis…","Correlating threat intelligence…"]
+    link:["Analyzing link structure and domain patterns…","Running CyberNet AI deep analysis…","Cross-checking the evidence…"],
+    image:["Decoding QR and visual signals…","Running CyberNet AI vision analysis…","Cross-checking the evidence…"],
+    text:["Parsing language and structural signals…","Running CyberNet AI deep analysis…","Cross-checking the evidence…"]
   };
   function runDiagnosticAnimation(container,type){
     const stages=DIAGNOSTIC_STAGES[type]||DIAGNOSTIC_STAGES.text;
@@ -1983,6 +1984,7 @@ document.addEventListener("DOMContentLoaded",()=>{
          out at the monthly price. They now follow the toggle like Pro does. */
       businessButtons.forEach(button=>{button.dataset.cycle=cycle});
       updateBusinessEquivalent(cycle);
+      document.querySelectorAll("#businessSeatPicker .cn-seat-option").forEach(o=>{const b=o.querySelector("b");const v=o.dataset[cycle];if(b&&v!==undefined){o.textContent="";o.appendChild(b);o.append(cycle==="yearly"?`$${v}/yr`:`$${v}/mo`)}});
     }
 
     function updateBusinessEquivalent(cycle){
