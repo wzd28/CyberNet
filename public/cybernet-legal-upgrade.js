@@ -42,7 +42,7 @@
       billingCycle: kind === "checkout" ? selectedCycle() : "",
       effectiveDate: EFFECTIVE_DATE,
       acceptedAt: new Date().toISOString(),
-      page: window.location.href
+      page: window.location.origin + window.location.pathname
     };
   }
 
@@ -56,6 +56,67 @@
       window.dispatchEvent(new CustomEvent("cybernet:legal-acceptance", { detail: record }));
     } catch {}
     return record;
+  }
+
+  // Sign-up acceptance is ticked before the account exists (and, with email
+  // confirmation, before there is a session), so it is kept in this browser
+  // and sent to /api/legal-acceptance once the user is signed in. A record is
+  // sent once; failures are retried on later sign-ins, at most 3 times.
+  const SIGNUP_ACCEPTANCE_KEY = "cybernet_signup_legal_acceptance";
+  const ACCEPTANCE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+  let acceptanceFlushing = false;
+
+  function readStoredAcceptance(key) {
+    try {
+      return JSON.parse(localStorage.getItem(key) || "null");
+    } catch {
+      return null;
+    }
+  }
+
+  function writeStoredAcceptance(key, record) {
+    try {
+      localStorage.setItem(key, JSON.stringify(record));
+    } catch {}
+  }
+
+  async function flushPendingAcceptance() {
+    if (acceptanceFlushing) return;
+    const token = window.CyberNetAccount?.appState?.session?.access_token;
+    if (!token) return;
+    const record = readStoredAcceptance(SIGNUP_ACCEPTANCE_KEY);
+    if (!record || record.kind !== "signup" || record.serverRecorded) return;
+    if ((Number(record.attempts) || 0) >= 3) return;
+    const acceptedAt = Date.parse(record.acceptedAt || "");
+    if (!Number.isFinite(acceptedAt) || Date.now() - acceptedAt > ACCEPTANCE_MAX_AGE_MS) return;
+
+    acceptanceFlushing = true;
+    try {
+      record.attempts = (Number(record.attempts) || 0) + 1;
+      writeStoredAcceptance(SIGNUP_ACCEPTANCE_KEY, record);
+      const response = await fetch("/api/legal-acceptance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          kind: "signup",
+          version: record.version,
+          termsVersion: record.termsVersion,
+          privacyVersion: record.privacyVersion,
+          acceptableUseVersion: record.acceptableUseVersion,
+          refundVersion: record.refundVersion,
+          page: window.location.origin + window.location.pathname
+        }),
+        keepalive: true
+      });
+      if (response.ok) {
+        record.serverRecorded = true;
+        writeStoredAcceptance(SIGNUP_ACCEPTANCE_KEY, record);
+      }
+    } catch {
+      // Kept for the next sign-in.
+    } finally {
+      acceptanceFlushing = false;
+    }
   }
 
   function injectLegalModal() {
@@ -251,6 +312,16 @@
     return true;
   }
 
+  function setupGoogleLegalNote() {
+    const googleButton = byId("googleAuthBtn");
+    if (!googleButton || byId("cnGoogleLegalNote")) return false;
+    const note = create("p", "cn-google-legal-note");
+    note.id = "cnGoogleLegalNote";
+    note.innerHTML = `By continuing with Google you agree to the <button type="button" class="cn-legal-link-btn" data-open-legal="terms">Terms of Service</button>, <button type="button" class="cn-legal-link-btn" data-open-legal="privacy">Privacy Policy</button> and <button type="button" class="cn-legal-link-btn" data-open-legal="acceptable">Acceptable Use Policy</button>.`;
+    googleButton.insertAdjacentElement("afterend", note);
+    return true;
+  }
+
   function selectedCycle() {
     const button = byId("proPlanBtn");
     const cycle = String(button?.dataset.cycle || byId("pricingToggle")?.dataset.cycle || "monthly").toLowerCase();
@@ -368,6 +439,30 @@
       return;
     }
 
+    const googleButton = event.target.closest?.("#googleAuthBtn");
+    if (googleButton) {
+      // On the Create Account tab the same required checkbox applies to Google.
+      const signupActive = byId("authSignupForm")?.classList.contains("active-auth-form");
+      if (signupActive) {
+        const checkbox = byId("cnSignupLegalConsent");
+        if (!checkbox?.checked) {
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+          showAuthLegalError("You must accept the Terms of Service, Privacy Policy, and Acceptable Use Policy before creating an account.");
+          return;
+        }
+        storeAcceptance("signup");
+      } else {
+        // Sign In tab: a new Google user agrees through the notice under the
+        // button. Keep an earlier, still-current record rather than adding one
+        // for every returning sign-in.
+        const existing = readStoredAcceptance(SIGNUP_ACCEPTANCE_KEY);
+        if (existing?.version !== LEGAL_VERSION || existing?.privacyVersion !== PRIVACY_VERSION) storeAcceptance("signup");
+      }
+      return;
+    }
+
     const signupButton = event.target.closest?.("#signupBtn");
     if (signupButton) {
       const checkbox = byId("cnSignupLegalConsent");
@@ -408,6 +503,7 @@
   function refresh() {
     injectLegalModal();
     setupSignupConsent();
+    setupGoogleLegalNote();
     setupCheckoutConsent();
     setupFooterLinks();
     setupAccountLegalPanel();
@@ -430,6 +526,11 @@
 
     injectLegalModal();
     document.addEventListener("click", handleLegalClicks, true);
+    // script.js announces every sign-in state change; record a pending
+    // sign-up acceptance once a user is signed in.
+    window.addEventListener("cybernet:session", event => {
+      if (event.detail?.userId) flushPendingAcceptance();
+    });
     refresh();
 
     const observer = new MutationObserver(mutations => {

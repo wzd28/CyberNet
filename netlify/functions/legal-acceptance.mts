@@ -1,6 +1,6 @@
 import { json, verifyUser } from "../lib/supabase.mjs";
 
-const CURRENT_VERSION = "2026-08-06";
+const CURRENT_VERSION = "2026-09-04";
 const ALLOWED_TYPES = new Set(["signup", "checkout", "reaccept"]);
 
 function env(name) {
