@@ -12,7 +12,7 @@
   --green-bright:#a5f0ff;
   --text:#eaf3fb;
   --muted:#7d93ad;
-  --soft:#425873;
+  --soft:#6f86a3;
   --danger:#ff6b6b;
   --warning:#ffcf6b;
   --safe:#34d399;
@@ -2103,6 +2103,8 @@ main{
 }
 
 .scan-list-main{
+  flex:1 1 auto;
+  min-width:0;
   color:var(--text);
   font-size:13px;
   font-family:var(--font-mono);
@@ -5203,6 +5205,11 @@ img{
     height:44px;
     flex:0 0 44px;
   }
+
+  /* Signed out, the send button reads "Register for Free to Scan"; give it its
+     own row so the text field keeps a usable width. */
+  .chat-input-row{flex-wrap:wrap}
+  .send-btn.send-btn-wide{flex:1 1 100%;width:100%;min-width:0;white-space:normal;height:44px}
 
   .hero-visual{
     display:none;

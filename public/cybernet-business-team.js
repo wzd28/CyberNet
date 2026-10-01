@@ -28,7 +28,25 @@
     createTeamModal();
     createAcceptInviteModal();
     injectManageButton();
-    initializeController();
+    whenAppReady(initializeController);
+  }
+
+  // script.js creates the page's Supabase client in its DOMContentLoaded
+  // handler, which runs after this deferred file has executed. Wait for it so
+  // the page shares one auth client instead of creating another one.
+  function whenAppReady(callback) {
+    if (window.CyberNetAccount || document.readyState === "complete") {
+      callback();
+      return;
+    }
+    let done = false;
+    const run = () => {
+      if (done) return;
+      done = true;
+      callback();
+    };
+    document.addEventListener("DOMContentLoaded", run, { once: true });
+    window.addEventListener("load", run, { once: true });
   }
 
   function ensureStylesheet() {
@@ -203,11 +221,14 @@
       /^https:\/\//.test(String(config.SUPABASE_URL || "")) &&
       String(config.SUPABASE_ANON_KEY || "").length > 20;
 
-    const client = supabaseReady
+    // Reuse script.js's client. The fallback is only used if script.js failed,
+    // so it neither refreshes tokens nor consumes codes in the URL.
+    const shared = window.CyberNetAccount?.appState?.supabase || null;
+    const client = shared || (supabaseReady
       ? window.supabase.createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY, {
-          auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+          auth: { persistSession: true, autoRefreshToken: false, detectSessionInUrl: false }
         })
-      : null;
+      : null);
 
     const modal = document.getElementById("businessTeamModal");
     const closeBtn = document.getElementById("cnTeamClose");
@@ -487,7 +508,7 @@
       const membersNote = document.getElementById("cnTeamMembersNote");
       if (membersNote) {
         membersNote.textContent = seatsUsed >= seatCap
-          ? `Team is full (${seatsUsed}/${seatCap} seats). Remove a member to free a seat, or email cybernetai.26@gmail.com to move up a tier.`
+          ? `Team is full (${seatsUsed}/${seatCap} seats, including ${isOwner ? "you" : "the owner"}). Remove a member to free a seat, or email cybernetai.26@gmail.com to move up a tier.`
           : `"Used today" is each person's own share of the team pool.`;
       }
 

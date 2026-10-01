@@ -211,7 +211,7 @@
       #accountDetailsModal .protect-saved-case h3{font-size:14px;margin:0;color:var(--text,#eaf3fb);overflow-wrap:anywhere}
       #accountDetailsModal .protect-saved-case p{color:var(--muted,#7d93ad);font-size:11px;line-height:1.55;margin:0}
       #accountDetailsModal .protect-saved-meta{display:flex;gap:6px;flex-wrap:wrap}
-      #accountDetailsModal .protect-saved-case small{color:var(--soft,#425873);font-family:var(--font-mono,monospace);font-size:12px}
+      #accountDetailsModal .protect-saved-case small{color:var(--soft,#6f86a3);font-family:var(--font-mono,monospace);font-size:12px}
       #accountDetailsModal .protect-saved-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:3px}
       #accountDetailsModal .protect-no-cases{grid-column:1/-1;border:1px dashed var(--glass-border,rgba(56,189,248,.16));border-radius:15px;padding:35px;text-align:center;color:var(--muted,#7d93ad);font-size:12px;line-height:1.7}
       #accountDetailsModal .protect-primary,
@@ -646,8 +646,15 @@
     return true;
   }
 
-  function refreshDynamicUi() {
-    repairSubtree(document.body);
+  // Only the nodes that changed are repaired; the whole document is walked
+  // once, in init(). Counters, countdowns and scan progress add nodes all the
+  // time, and a full-document walk for each was the main cost here.
+  const pendingRoots = new Set();
+
+  function refreshDynamicUi(roots = []) {
+    roots.forEach((root) => {
+      if (root.isConnected) repairSubtree(root);
+    });
     // applyBrandLogos() and applyHeroShield() intentionally disabled: they were
     // replacing the correct, transparent nav/hero logo images with an old
     // white-background file inside a circular (border-radius:50%) crop,
@@ -662,25 +669,32 @@
     observerQueued = true;
     requestAnimationFrame(() => {
       observerQueued = false;
-      refreshDynamicUi();
+      const roots = [...pendingRoots];
+      pendingRoots.clear();
+      refreshDynamicUi(roots);
     });
   }
 
   function observeDynamicChanges() {
     const observer = new MutationObserver((mutations) => {
+      let changed = false;
       for (const mutation of mutations) {
         if (mutation.type === "characterData") {
           if (BAD_TEXT_PATTERN.test(mutation.target.nodeValue || "")) {
-            queueRefresh();
-            return;
+            pendingRoots.add(mutation.target);
+            changed = true;
           }
+          continue;
         }
 
-        if (mutation.addedNodes.length) {
-          queueRefresh();
-          return;
-        }
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === Node.ELEMENT_NODE || node.nodeType === Node.TEXT_NODE) {
+            pendingRoots.add(node);
+            changed = true;
+          }
+        });
       }
+      if (changed) queueRefresh();
     });
 
     observer.observe(document.body, {
@@ -699,6 +713,7 @@
     // up-to-date favicon with an old white-background logo file on every page
     // load, undoing the real favicon fix in index.html.
     injectStyles();
+    repairSubtree(document.body);
     refreshDynamicUi();
     observeDynamicChanges();
 

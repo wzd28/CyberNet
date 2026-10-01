@@ -6,7 +6,8 @@ import {
   consumeAnalysis,
   refundAnalysis,
   saveHistory,
-  getHistory
+  getHistory,
+  getActiveTeamMembership
 } from "../lib/supabase.mjs";
 
 const MAX_TEXT_CHARS = 16_000;
@@ -266,7 +267,9 @@ async function callOpenAI({
       max_output_tokens: plan === "pro" ? 2400 : 1400,
       store: false
     }),
-    signal: AbortSignal.timeout(45_000)
+    // Shorter than the page's 36 s abort, so a call the page has given up on
+    // is refunded rather than charged.
+    signal: AbortSignal.timeout(30_000)
   });
 
   const payload = await response.json().catch(() => ({}));
@@ -339,6 +342,13 @@ export default async request => {
 
     ({ user } = await verifyUser(request));
 
+    // Team members use the shared team pool and their activity goes in the
+    // owner's log, which only /api/analyze does; the page falls back to it.
+    const team = await getActiveTeamMembership(user.id).catch(() => null);
+    if (team) {
+      return json({ error: "Team accounts use the shared team pool.", code: "byok_team_member" }, 409);
+    }
+
     const profile = await getProfile(user);
     const plan = effectivePlan(profile);
 
@@ -349,8 +359,8 @@ export default async request => {
         {
           error:
             plan === "pro"
-              ? "You have reached your 50-analysis daily limit."
-              : "You have used all 5 free analyses today. Upgrade to Pro for 50 analyses per day.",
+              ? `You have used all ${reservation.limit} analyses for today.`
+              : `You have used all ${reservation.limit} free analyses today. Upgrade to Pro for more daily analyses.`,
           code: "daily_limit_reached",
           usage: reservation
         },

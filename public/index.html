@@ -10,14 +10,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/style.css?v=20260924-1" />
+  <link rel="stylesheet" href="/style.css?v=20260930-2" />
   <link id="cybernetAccountUpgradeStylesheet" rel="stylesheet" href="/cybernet-account-api-upgrade.css?v=20260905-1" />
   <link rel="stylesheet" href="/cybernet-howto.css?v=20260905-1" />
   <link id="cybernetBusinessTeamStylesheet" rel="stylesheet" href="/cybernet-business-team.css?v=20260927-2" />
   <link rel="stylesheet" href="/cybernet-consent.css?v=20260927-2" />
-  <link rel="icon" type="image/png" sizes="512x512" href="/favicon.png?v=20260830-5">
-  <link rel="shortcut icon" type="image/png" href="/favicon.png?v=20260830-5">
-  <link rel="apple-touch-icon" href="/favicon.png?v=20260830-5">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=20260830-5">
+  <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=20260830-5">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=20260830-5">
+  <link rel="manifest" href="/site.webmanifest">
 
 <!-- CYBERNET-SEO-UPGRADE:START -->
 <link rel="canonical" href="https://cybernetai.app/" />
@@ -68,7 +69,7 @@
       "provider": {
         "@id": "https://cybernetai.app/#organization"
       },
-      "url": "https://cybernetai.app/#learn",
+      "url": "https://cybernetai.app/learn",
       "isAccessibleForFree": true,
       "inLanguage": "en",
       "hasCourseInstance": {
@@ -248,18 +249,18 @@
 }
 </script>
 <!-- CYBERNET-SEO-UPGRADE:END -->
-      <link rel="stylesheet" href="/cybernet-legal.css?v=20260905-2" />
+      <link rel="stylesheet" href="/cybernet-legal.css?v=20260930-2" />
 </head>
 <body>
   <!-- ═══ LOGIN / SIGNUP MODAL ═══ -->
   <div id="authModal" class="modal">
-    <div class="modal-card glass reveal">
+    <div class="modal-card glass reveal" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
       <button class="close-modal" id="closeAuth" aria-label="Close">&times;</button>
       <div class="auth-logo">
         <svg class="auth-logo-icon" viewBox="0 0 24 26" fill="none" aria-label="CyberNet AI" width="64" height="64"><path d="M12 2 L21 6 L20 15 L12 24 L4 15 L3 6 Z" stroke="#22D3EE" stroke-width="1.8" stroke-linejoin="round"/><rect x="8.3" y="12.5" width="7.4" height="6.2" rx="1.2" fill="#22D3EE"/><path d="M9.6 12.5v-2.3a2.4 2.4 0 0 1 4.8 0v2.3" stroke="#22D3EE" stroke-width="1.6" fill="none" stroke-linecap="round"/><circle cx="12" cy="15.2" r="1" fill="#08152a"/><path d="M12 15.9v1.4" stroke="#08152a" stroke-width="1" stroke-linecap="round"/></svg>
       </div>
       <div class="auth-heading">
-        <h2>Sign In or Create Account</h2>
+        <h2 id="authModalTitle">Sign In or Create Account</h2>
         <p>Use an existing CyberNet account, or create a free account in seconds.</p>
       </div>
       <div class="auth-tabs">
@@ -440,7 +441,7 @@
 
     <div class="nav-actions">
       <div class="nav-social-links" aria-label="CyberNet AI on social media">
-        <a class="nav-social-btn" href="https://www.linkedin.com/company/cybernetai/?viewAsMember=true" target="_blank" rel="noopener" aria-label="CyberNet AI on LinkedIn" title="LinkedIn">
+        <a class="nav-social-btn" href="https://www.linkedin.com/company/cybernetai/" target="_blank" rel="noopener" aria-label="CyberNet AI on LinkedIn" title="LinkedIn">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M20.45 20.45h-3.55v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.36V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.45v6.29zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.11 20.45H3.56V9h3.55v11.45z"/></svg>
         </a>
         <a class="nav-social-btn" href="https://www.tiktok.com/@cybernetai26" target="_blank" rel="noopener" aria-label="CyberNet AI on TikTok" title="TikTok">
@@ -469,7 +470,7 @@
         <span class="cursor-glow" id="cursorGlow"></span>
         <div class="hero-content reveal">
           <button class="pill hero-learn-pill hero-learn-pill-filled" id="heroLearnFeaturesBtn" type="button">
-            Learn how to use the Features?
+            Learn how to use each feature
             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
           <h1 class="hero-title">Detect <span>&amp;</span><br/>Protect</h1>
@@ -556,7 +557,7 @@
             </div>
             <div class="hero-live-stat">
               <strong id="liveThreatsCount">—</strong>
-              <span>Threats Blocked</span>
+              <span>Threats Flagged</span>
             </div>
             <div class="hero-live-stat">
               <strong id="liveRecoveriesCount">—</strong>
@@ -654,7 +655,7 @@
         </div>
         <div class="support-box-actions">
           <a class="secondary-btn" href="mailto:cybernetai.26@gmail.com?subject=CyberNet%20AI%20Support">Email CyberNet</a>
-          <button type="button" class="primary-btn open-feedback-btn">Fill Out the Survey</button>
+          <button type="button" class="primary-btn open-feedback-btn">Send Feedback</button>
         </div>
       </div>
     </section>    <!-- ═══════════ CYBERNET ═══════════ -->
@@ -686,7 +687,7 @@
           <div class="detect-main glass">
             <h3>Text Detection</h3>
             <p>Analyze suspicious text, emails, or messages for potential threats and scams.</p>
-            <textarea id="cyberTextInput" class="feature-textarea" placeholder="Paste your text here..." maxlength="5000"></textarea>
+            <textarea id="cyberTextInput" class="feature-textarea" aria-label="Suspicious message to scan" placeholder="Paste your text here..." maxlength="5000"></textarea>
             <div class="input-tools"><button type="button" class="input-clear-btn" data-clear="cyberTextInput" hidden>Clear</button><div class="char-count"><span id="cyberTextCount">0</span>/5000</div></div>
             <button class="primary-btn full" id="cyberTextBtn">Analyze Text</button>
             <div id="cyberTextResult" class="result-box">Your text scam result will appear here.</div>
@@ -757,7 +758,7 @@
           <div class="detect-main glass">
             <h3>Link Detection</h3>
             <p>Check URLs for phishing, malware, and other malicious activity.</p>
-            <input id="cyberLinkInput" type="text" placeholder="Enter URL to analyze..."/>
+            <input id="cyberLinkInput" type="text" aria-label="Link to scan" placeholder="Enter URL to analyze..."/>
             <div class="input-tools"><button type="button" class="input-clear-btn" data-clear="cyberLinkInput" hidden>Clear</button></div>
             <button class="primary-btn full" id="cyberLinkBtn">Analyze Link</button>
             <div id="cyberLinkResult" class="result-box">Your link scam result will appear here.</div>
@@ -782,7 +783,7 @@
 
               <div class="hiw-step-sm glass">
                 <span>2</span>
-                <div><h4>Run Analysis</h4><p>We inspect the link's structure and reputation.</p></div>
+                <div><h4>Run Analysis</h4><p>We inspect the link's structure, domain, and redirect clues.</p></div>
               </div>
 
               <div class="hiw-step-sm glass">
@@ -797,8 +798,8 @@
           <div class="wwc-item glass">
             <span class="wwc-icon">🌐</span>
             <div>
-              <h4>Domain Reputation</h4>
-              <p>Check known-threat reputation when configured.</p>
+              <h4>Lookalike Domains</h4>
+              <p>Spot brand impersonation and risky domain endings.</p>
             </div>
           </div>
 
@@ -821,7 +822,7 @@
           <div class="wwc-item glass">
             <span class="wwc-icon">🔒</span>
             <div>
-              <h4>SSL &amp; Security</h4>
+              <h4>Address Checks</h4>
               <p>Inspect HTTPS, domain structure, and redirect clues.</p>
             </div>
           </div>
@@ -843,7 +844,7 @@
 
             <li>
               <span class="scan-list-main">A company’s official website</span>
-              <span class="risk-tag risk-tag-safe">Safe</span>
+              <span class="risk-tag risk-tag-safe">Low Visible Risk</span>
             </li>
           </ul>
         </div>
@@ -854,7 +855,7 @@
         <div class="detect-panel-grid reveal">
           <div class="detect-main glass">
             <h3>Image Detection</h3>
-            <p>Upload an image or screenshot to detect scams, fake alerts, and malicious content.</p>
+            <p>Upload a screenshot or photo that contains a QR code. Quick Scan decodes it and checks where it leads. For the words and logos in a screenshot, use Analysis AI.</p>
 
             <label class="real-upload-box glass" id="cyberDropZone">
               <input type="file" id="cyberImageInput" accept="image/*"/>
@@ -877,7 +878,7 @@
 
             <div class="wwc-item-sm">
               <span class="wwc-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3 L22 20 H2 Z" stroke="currentColor" stroke-width="1.6"/><path d="M12 10v4M12 17h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
-              <span>Fake Alerts</span>
+              <span>QR Destination</span>
             </div>
 
             <div class="wwc-item-sm">
@@ -887,7 +888,7 @@
 
             <div class="wwc-item-sm">
               <span class="wwc-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
-              <span>Text Extraction</span>
+              <span>File Checks</span>
             </div>
 
             <div class="hiw-steps-stacked">
@@ -898,7 +899,7 @@
 
               <div class="hiw-step-sm glass">
                 <span>2</span>
-                <div><h4>Run Analysis</h4><p>We check for QR codes and visual scam signs.</p></div>
+                <div><h4>Run Analysis</h4><p>We decode any QR code and check where it leads.</p></div>
               </div>
 
               <div class="hiw-step-sm glass">
@@ -914,17 +915,17 @@
 
           <ul class="scan-list" id="imageScanList">
             <li>
-              <span class="scan-list-main">screenshot_01.png</span>
+              <span class="scan-list-main">QR code on a parking meter sticker</span>
               <span class="risk-tag risk-tag-danger">High Risk</span>
             </li>
 
             <li>
-              <span class="scan-list-main">invoice_fake.png</span>
+              <span class="scan-list-main">QR code linking to a lookalike bank site</span>
               <span class="risk-tag risk-tag-warning">Medium Risk</span>
             </li>
 
             <li>
-              <span class="scan-list-main">alert_popup.jpg</span>
+              <span class="scan-list-main">QR code on a “claim your prize” flyer</span>
               <span class="risk-tag risk-tag-danger">High Risk</span>
             </li>
           </ul>
@@ -939,7 +940,7 @@
         </div>
         <div class="support-box-actions">
           <a class="secondary-btn" href="mailto:cybernetai.26@gmail.com?subject=CyberNet%20AI%20Support">Email CyberNet</a>
-          <button type="button" class="primary-btn open-feedback-btn">Fill Out the Survey</button>
+          <button type="button" class="primary-btn open-feedback-btn">Send Feedback</button>
         </div>
       </div>
     </section>
@@ -1050,7 +1051,7 @@
               <input type="file" id="aiImageInput" accept="image/*" hidden />
               <span aria-hidden="true">📎</span>
             </label>
-            <input id="chatInput" type="text" placeholder="Paste a message, link, or describe what happened..."/>
+            <input id="chatInput" type="text" aria-label="Message for Analysis AI" placeholder="Paste a message, link, or describe what happened..."/>
             <button type="button" class="input-clear-btn chat-clear-btn" data-clear="chatInput" data-sync-after="chatSendBtn" aria-label="Clear text" title="Clear" hidden><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
             <button id="chatSendBtn" class="send-btn" aria-label="Send">➤</button>
           </div>
@@ -1065,7 +1066,7 @@
         </div>
         <div class="support-box-actions">
           <a class="secondary-btn" href="mailto:cybernetai.26@gmail.com?subject=CyberNet%20AI%20Support">Email CyberNet</a>
-          <button type="button" class="primary-btn open-feedback-btn">Fill Out the Survey</button>
+          <button type="button" class="primary-btn open-feedback-btn">Send Feedback</button>
         </div>
       </div>
     </section>    <!-- ═══════════ RECOVERY ═══════════ -->
@@ -1291,7 +1292,7 @@
         </div>
         <div class="support-box-actions">
           <a class="secondary-btn" href="mailto:cybernetai.26@gmail.com?subject=CyberNet%20AI%20Support">Email CyberNet</a>
-          <button type="button" class="primary-btn open-feedback-btn">Fill Out the Survey</button>
+          <button type="button" class="primary-btn open-feedback-btn">Send Feedback</button>
         </div>
       </div>
     </section>    <!-- ═══════════ LEARN ═══════════ -->
@@ -1306,7 +1307,7 @@
           <label>Find Something Specific</label>
 
           <div class="learn-search-row">
-            <input id="learnSearch" type="text" placeholder="Password, HTTPS, phishing, Wi-Fi..."/>
+            <input id="learnSearch" type="text" aria-label="Search lessons" placeholder="Password, HTTPS, phishing, Wi-Fi..."/>
             <button class="primary-btn" id="learnSearchBtn">Search</button>
           </div>
 
@@ -2117,7 +2118,7 @@
         </div>
         <div class="support-box-actions">
           <a class="secondary-btn" href="mailto:cybernetai.26@gmail.com?subject=CyberNet%20AI%20Support">Email CyberNet</a>
-          <button type="button" class="primary-btn open-feedback-btn">Fill Out the Survey</button>
+          <button type="button" class="primary-btn open-feedback-btn">Send Feedback</button>
         </div>
       </div>
     </section>    <!-- ═══════════ PRICING ═══════════ -->
@@ -2177,11 +2178,11 @@
             <li><strong>Unlimited Quick Scans</strong></li>
             <li><strong>15 AI analyses per day</strong></li>
             <li>Advanced Text, Image, and Link analysis</li>
-            <li>Detailed risk scoring and threat intelligence</li>
+            <li>Detailed risk scoring and explanations</li>
             <li>Downloadable security reports</li>
             <li>Saved scan history</li>
             <li>Faster AI responses</li>
-            <li><strong>3 Recovery Mode cases per day</strong>, automatic updates</li>
+            <li><strong>3 Recovery Mode cases per day</strong>, with a reminder email if a case sits idle for a day</li>
             <li>Full recovery timeline: first hour, 24 hours, and 7 days</li>
             <li>Verification steps and remaining-risk analysis</li>
             <li>Downloadable Recovery case report</li>
@@ -2224,7 +2225,7 @@
             <li><strong>Full team activity log</strong> — see who ran what, and the full result of every analysis</li>
             <li><strong>Shared daily pool</strong> — 50 analyses/day on 5 seats, 90 on 10, 160 on 20</li>
             <li><strong>Shared Recovery Mode pool</strong> — 20 cases/day on 5 seats, 36 on 10, 64 on 20</li>
-            <li><strong>Automated AI check-ins every 30 minutes</strong> on open Recovery cases</li>
+            <li><strong>Email check-in reminders</strong> while an open Recovery case is idle</li>
             <li>Faster Recovery update cooldown (1 hour)</li>
             <li>Owner controls who joins and who is removed</li>
             <li><strong>Priority, urgent-response support</strong> — direct line to our team</li>
@@ -2256,7 +2257,7 @@
         </div>
         <div class="support-box-actions">
           <a class="secondary-btn" href="mailto:cybernetai.26@gmail.com?subject=CyberNet%20AI%20Support">Email CyberNet</a>
-          <button type="button" class="primary-btn open-feedback-btn">Fill Out the Survey</button>
+          <button type="button" class="primary-btn open-feedback-btn">Send Feedback</button>
         </div>
       </div>
     </section>
@@ -2314,7 +2315,7 @@
 
           <div class="fetch-line">
             <span class="fetch-key">data policy</span>
-            <span>secure processing; Free scans are not saved; Pro history is account-only</span>
+            <span>secure processing; Free scans are not saved; Pro history is private to you; Business owners see team activity</span>
           </div>
 
           <div class="fetch-line">
@@ -2391,7 +2392,7 @@
         <div class="about-value glass tilt-card">
           <div class="av-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" stroke-width="1.7"/></svg></div>
           <h3>Privacy</h3>
-          <p>Free accounts do not keep scan history. Pro history and account data are stored securely and are visible only to the signed-in user.</p>
+          <p>Free accounts do not keep scan history. Pro history and account data are stored securely and visible only to you. On a Business team, the team owner can see members’ submissions and results (see the Privacy Policy).</p>
         </div>
 
         <div class="about-value glass tilt-card">
@@ -2418,7 +2419,7 @@
         </div>
         <div class="support-box-actions">
           <a class="secondary-btn" href="mailto:cybernetai.26@gmail.com?subject=CyberNet%20AI%20Support">Email CyberNet</a>
-          <button type="button" class="primary-btn open-feedback-btn">Fill Out the Survey</button>
+          <button type="button" class="primary-btn open-feedback-btn">Send Feedback</button>
         </div>
       </div>
     </section>
@@ -2430,15 +2431,15 @@
   </footer>
 
   <script src="/cybernet-consent.js?v=20260927-2" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" defer></script>
   <script src="/config.js?v=20260830-3" defer></script>
   <script src="/cybernet-engine.js?v=20260924-1" defer></script>
-  <script src="/script.js?v=20260930-1" defer></script>
-  <script src="/cybernet-account-api-upgrade.js?v=20260930-1" defer></script>
-  <script src="/cybernet-howto.js?v=20260904-1" defer></script>
-<script src="/cybernet-business-team.js?v=20260927-2" defer></script>
-  <script src="/cybernet-final-ui-fix.js?v=20260905-1" defer></script>
-      <script src="/cybernet-legal-upgrade.js?v=20260927-2" defer></script>
+  <script src="/script.js?v=20260930-2" defer></script>
+  <script src="/cybernet-account-api-upgrade.js?v=20260930-2" defer></script>
+  <script src="/cybernet-howto.js?v=20260930-2" defer></script>
+<script src="/cybernet-business-team.js?v=20260930-2" defer></script>
+  <script src="/cybernet-final-ui-fix.js?v=20260930-2" defer></script>
+      <script src="/cybernet-legal-upgrade.js?v=20260930-2" defer></script>
 </body>
 </html>
 

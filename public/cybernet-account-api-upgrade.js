@@ -39,6 +39,12 @@
       use /api/byok-analyze instead.
   */
   window.fetch = async function cyberNetFetch(input, init = {}) {
+    // Only the routing decision is guarded. The BYOK request itself runs
+    // outside the try/catch so a network failure reaches the caller instead
+    // of silently resending the analysis to /api/analyze (platform key and
+    // the user's daily quota).
+    let byokHeaders = null;
+
     try {
       const rawUrl =
         typeof input === "string"
@@ -69,14 +75,28 @@
 
         headers.set("X-CyberNet-OpenAI-Key", visitorKey);
         headers.set("X-CyberNet-OpenAI-Model", getSessionModel());
-
-        return ORIGINAL_FETCH("/api/byok-analyze", {
-          ...init,
-          headers
-        });
+        byokHeaders = headers;
       }
     } catch {
       // Keep the original request if routing checks fail.
+      byokHeaders = null;
+    }
+
+    if (byokHeaders) {
+      const byokResponse = await ORIGINAL_FETCH("/api/byok-analyze", {
+        ...init,
+        headers: byokHeaders
+      });
+
+      // Business team members use the shared team pool (and the owner's
+      // activity log), so their analysis goes to /api/analyze after all.
+      // The body is a JSON string, so the original request can be resent.
+      if (byokResponse.status === 409) {
+        const info = await byokResponse.clone().json().catch(() => ({}));
+        if (info?.code === "byok_team_member") return ORIGINAL_FETCH(input, init);
+      }
+
+      return byokResponse;
     }
 
     return ORIGINAL_FETCH(input, init);
@@ -95,8 +115,27 @@
     moveBillingOutOfCyberNetAI();
     createApiKeyPanel();
     createHowToGetKeyModal();
-    initializeController();
+    whenAppReady(initializeController);
     fixPopularBadge();
+  }
+
+  // script.js creates the page's Supabase client in its DOMContentLoaded
+  // handler, which runs after this deferred file has executed. Wait for it so
+  // the page shares one auth client (one token-refresh timer, one reader of
+  // OAuth codes in the URL) instead of creating a second one.
+  function whenAppReady(callback) {
+    if (window.CyberNetAccount || document.readyState === "complete") {
+      callback();
+      return;
+    }
+    let done = false;
+    const run = () => {
+      if (done) return;
+      done = true;
+      callback();
+    };
+    document.addEventListener("DOMContentLoaded", run, { once: true });
+    window.addEventListener("load", run, { once: true });
   }
 
   function ensureUpgradeStylesheet() {
@@ -242,6 +281,7 @@
       <div class="cybernet-byok-field">
         <input id="cybernetVisitorApiKey"
                type="password"
+               aria-label="OpenAI API key"
                inputmode="text"
                autocomplete="off"
                spellcheck="false"
@@ -390,19 +430,22 @@
       /^https:\/\//.test(String(config.SUPABASE_URL || "")) &&
       String(config.SUPABASE_ANON_KEY || "").length > 20;
 
-    const client = supabaseReady
+    // Reuse script.js's client. The fallback is only used if script.js failed,
+    // so it neither refreshes tokens nor consumes codes in the URL.
+    const shared = window.CyberNetAccount?.appState?.supabase || null;
+    const client = shared || (supabaseReady
       ? window.supabase.createClient(
           config.SUPABASE_URL,
           config.SUPABASE_ANON_KEY,
           {
             auth: {
               persistSession: true,
-              autoRefreshToken: true,
-              detectSessionInUrl: true
+              autoRefreshToken: false,
+              detectSessionInUrl: false
             }
           }
         )
-      : null;
+      : null);
 
     const modal = document.getElementById("accountDetailsModal");
     const accountButton = document.getElementById("accountNavBtn");
@@ -500,6 +543,7 @@
       if (plan === "business") {
         return {
           pro: true,
+          business: true,
           label: "CyberNet AI Business",
           badge: "BUSINESS"
         };
@@ -553,7 +597,7 @@
 
       const email = session?.user?.email || "—";
       const used = Math.max(0, Number(usage.used) || 0);
-      const limit = Math.max(1, Number(usage.limit) || (details.pro ? 50 : 5));
+      const limit = Math.max(1, Number(usage.limit) || (details.business ? 50 : details.pro ? 15 : 3));
       const remaining = Math.max(
         0,
         Number.isFinite(Number(usage.remaining))
@@ -611,10 +655,14 @@
       }
     }
 
+    let accountInflight = null;
+    let accountInflightToken = null;
+    let accountLoadedToken = null;
+
     async function refreshAccount({ quiet = false } = {}) {
       if (!client) {
         setMessage(
-          "Supabase account configuration is unavailable. Confirm config.js is loaded.",
+          "Account services are unavailable right now. Please refresh the page and try again.",
           "error"
         );
         return null;
@@ -633,6 +681,27 @@
 
       if (!quiet) setMessage("Refreshing your secure account…");
 
+      // getSession() and INITIAL_SESSION both ask on load: share one request
+      // per access token, and skip a quiet refresh for an already-loaded token.
+      const token = session.access_token;
+      if (quiet && currentAccount && accountLoadedToken === token) return currentAccount;
+      if (accountInflight && accountInflightToken === token) {
+        const shared = await accountInflight;
+        if (!quiet && shared) setMessage("Account information is up to date.", "success");
+        return shared;
+      }
+
+      accountInflightToken = token;
+      const request = loadAccount(session, quiet);
+      accountInflight = request;
+      try {
+        return await request;
+      } finally {
+        if (accountInflight === request) accountInflight = null;
+      }
+    }
+
+    async function loadAccount(session, quiet) {
       try {
         const response = await ORIGINAL_FETCH(
           "/api/account-status?includeHistory=1",
@@ -648,6 +717,7 @@
         }
 
         currentAccount = data;
+        accountLoadedToken = session.access_token;
         renderAccount(session, data);
 
         if (!quiet) {

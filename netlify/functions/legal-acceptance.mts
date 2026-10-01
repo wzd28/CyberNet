@@ -1,6 +1,6 @@
 import { json, verifyUser } from "../lib/supabase.mjs";
 
-const CURRENT_VERSION = "2026-08-06";
+const CURRENT_VERSION = "2026-09-04";
 const ALLOWED_TYPES = new Set(["signup", "checkout", "reaccept"]);
 
 function env(name) {
@@ -29,7 +29,8 @@ async function insertAcceptance(payload) {
 
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
-    throw Object.assign(new Error(detail || "Legal acceptance could not be recorded."), { status: 500 });
+    console.error("CyberNet legal-acceptance db error", response.status, detail.slice(0, 500));
+    throw Object.assign(new Error("Legal acceptance could not be recorded."), { status: 500 });
   }
 }
 

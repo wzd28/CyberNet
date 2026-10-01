@@ -92,7 +92,7 @@
         {
           heading: "Read the verdict",
           body:
-            "You always get a straight answer. There is no 'not sure' — the headline is the conclusion, and everything under it is the evidence for it.",
+            "You get SCAM or NOT A SCAM. If Quick Scan can't see enough — an unknown link on its own, or a screenshot without a QR code — it says so and tells you what to do next. The headline is the conclusion, and everything under it is the evidence for it.",
           visual: verdict("danger", "SCAM", "Credential phishing", 80),
           callout: {
             kind: "info",

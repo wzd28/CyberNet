@@ -6,6 +6,7 @@ import {
   type ClassifierResult,
 } from "./recovery-mode.mts";
 import { runAiUpdate, sanitizeUpdate, writeUpdatedVersion } from "./recovery-update.mts";
+import { rekeyPlan, planActions as listPlanActions, buildTaskRows, supersededTaskKeys, taskKeyInList } from "../lib/recovery-tasks.mjs";
 
 // Builds the AI recovery plan (or AI update) after the user's request has
 // already returned. Netlify runs this as a background function: the caller
@@ -50,44 +51,32 @@ async function loadTasks(caseId: string): Promise<any[]> {
 // The AI plan replaces the deterministic one the case was created with: it
 // becomes the next version, its actions become the task list, and the
 // deterministic tasks nobody has ticked yet are dropped so progress is
-// measured against the plan the user actually sees.
+// measured against the plan the user actually sees. Task keys carry the
+// version (v2-immediate-0) so a new action never lands on an old task's row.
 async function writeAiStartVersion(caseId: string, plan: any) {
   const caseRow = await loadCase(caseId);
   if (!caseRow) throw new Error("Recovery case disappeared before the AI plan was ready.");
 
   const newVersionNumber = (Number(caseRow.current_version) || 1) + 1;
+  rekeyPlan(plan, newVersionNumber);
   const existingTasks = await loadTasks(caseId);
-  const planActions = [
-    ...plan.immediateActions,
-    ...plan.timeline.first10Minutes,
-    ...plan.timeline.firstHour,
-    ...plan.timeline.first24Hours,
-    ...plan.timeline.next7Days,
-  ];
-  const planKeys = new Set(planActions.map((action: any) => action.id));
+  const planActions = listPlanActions(plan);
 
-  const stalePending = existingTasks.filter((task) => task.status !== "completed" && !planKeys.has(task.task_key));
-  if (stalePending.length) {
-    await serviceFetch(
-      `/rest/v1/recovery_tasks?case_id=eq.${encodeURIComponent(caseId)}&task_key=in.(${stalePending.map((t) => `"${t.task_key}"`).join(",")})`,
-      { method: "DELETE", headers: { Prefer: "return=minimal" } },
-    );
-  }
-
-  const newTasks = planActions.filter((action: any) => !existingTasks.some((task) => task.task_key === action.id));
-  if (newTasks.length) {
+  const newTaskRows = buildTaskRows(caseId, newVersionNumber, planActions, existingTasks);
+  if (newTaskRows.length) {
     await serviceFetch("/rest/v1/recovery_tasks", {
       method: "POST",
       headers: { Prefer: "return=minimal" },
-      body: JSON.stringify(newTasks.map((task: any) => ({
-        case_id: caseId,
-        plan_version: newVersionNumber,
-        task_key: task.id,
-        title: task.title,
-        status: "pending",
-        priority: task.priority,
-      }))),
+      body: JSON.stringify(newTaskRows),
     });
+  }
+
+  const superseded = supersededTaskKeys(existingTasks, planActions, newTaskRows);
+  if (superseded.length) {
+    await serviceFetch(
+      `/rest/v1/recovery_tasks?case_id=eq.${encodeURIComponent(caseId)}&task_key=in.(${taskKeyInList(superseded)})`,
+      { method: "DELETE", headers: { Prefer: "return=minimal" } },
+    );
   }
 
   await Promise.all([

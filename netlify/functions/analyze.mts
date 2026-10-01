@@ -1297,6 +1297,18 @@ export default async function handler(request: Request, context: any): Promise<R
     return json({ error: "Too many requests from this connection. Please try again later.", code: "rate_limited" }, 429);
   }
 
+  // Durable per-account limiter shared across function instances (the IP one
+  // above lives in one warm instance only). Fails open if the RPC is down.
+  if (!isAdminUser(user)) {
+    const withinLimit = await serviceFetch("/rest/v1/rpc/check_protect_rate_limit", {
+      method: "POST",
+      body: JSON.stringify({ p_key: `analyze:${mode}:${user.id}`, p_window_seconds: 600, p_max_requests: mode === "investigation" ? 12 : 40 }),
+    }).then((r) => (r.ok ? r.json() : true)).catch(() => true);
+    if (withinLimit === false) {
+      return json({ error: "Too many requests. Please try again later.", code: "rate_limited" }, 429);
+    }
+  }
+
   let usage: UsageReservation;
   let team: { businessAccountId: string; dailyPoolLimit: number; role: string } | null = null;
   if (isAdminUser(user)) {
@@ -1309,11 +1321,18 @@ export default async function handler(request: Request, context: any): Promise<R
         : await consumeAnalysis(user.id);
     } catch (error) {
       console.error("CyberNet usage reservation failed", error);
-      return json({ error: "Secure account limits are not configured. Run the supplied schema.sql and confirm the Supabase server environment variables.", code: "usage_service_unavailable" }, 503);
+      return json({ error: "We couldn't check your daily allowance just now. Please try again in a minute. This attempt was not counted.", code: "usage_service_unavailable" }, 503);
     }
     if (!usage.allowed) {
       const planLabel = usage.plan === "business" ? "team" : usage.plan === "pro" ? "Pro" : "Free";
       return json({ error: `Daily ${planLabel} limit reached.`, code: "daily_limit_reached", usage }, 429);
+    }
+    // Investigation mode always runs the full model with a large output budget,
+    // so it is a paid-plan feature (team members reserve with plan "business").
+    if (mode === "investigation" && usage.plan !== "pro" && usage.plan !== "business") {
+      if (team) await refundAnalysisBusiness(team.businessAccountId);
+      else await refundAnalysis(user.id);
+      return json({ error: "Investigation mode is available on Pro and Business plans.", code: "plan_required" }, 403);
     }
   }
 
@@ -1361,11 +1380,13 @@ export default async function handler(request: Request, context: any): Promise<R
   const fallback = fallbackAnalysis(serverEvidence, reputation, mode, mode === "investigation" ? caseData.artifacts.length : 1, mode === "investigation" ? caseData.title : "CyberNet Protect Quick Analysis");
   let rawAnalysis: any = null;
   let aiUsed = false;
+  let aiAttempted = false;
 
   const aiRoute = decideAiRoute(serverEvidence, mode, usage.plan);
 
   try {
     if (aiRoute.call && aiRoute.model) {
+      aiAttempted = Boolean(env("OPENAI_API_KEY"));
       rawAnalysis = await runAiAnalysis({ mode, type, content, imageData, browserHint, history: chatContext, serverEvidence, caseData, model: aiRoute.model });
     }
     aiUsed = Boolean(rawAnalysis);
@@ -1400,7 +1421,9 @@ export default async function handler(request: Request, context: any): Promise<R
     // The label always follows the score.
     analysis.verdict = analysis.verdict === "inconclusive" && analysis.score < 70 ? "inconclusive" : verdictFromScore(analysis.score);
   }
-  if (!aiUsed && !isAdminUser(user)) {
+  // No AI result means no charge - except an investigation call that reached
+  // OpenAI (a timeout, "incomplete" or refusal is still billed upstream).
+  if (!aiUsed && !isAdminUser(user) && !(mode === "investigation" && aiAttempted)) {
     if (team) {
       await refundAnalysisBusiness(team.businessAccountId);
     } else {

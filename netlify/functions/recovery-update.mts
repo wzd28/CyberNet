@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { triggerBackgroundJob } from "./recovery-mode.mts";
+import { rekeyPlan, planActions, buildTaskRows, supersededTaskKeys, taskKeyInList } from "../lib/recovery-tasks.mjs";
 
 declare const Netlify: {
   env: {
@@ -371,6 +372,9 @@ export default async function handler(request: Request, context: any): Promise<R
   const completedTaskKeys: string[] = uniqueStrings(body?.completedTaskKeys, 60);
   if (!caseId) return json({ error: "Missing caseId." }, 400);
   if (!rawUpdateText.trim() && !completedTaskKeys.length) return json({ error: "Tell CyberNet AI what changed before updating." }, 400);
+  // Real keys are server-generated (immediate-0, v3-t1h-1); anything else
+  // could break out of the PostgREST in.() filter below.
+  const safeTaskKeys = completedTaskKeys.filter((k) => /^[a-z0-9-]{1,40}$/i.test(k));
 
   const { text: updateText, redactedCount } = redactSecrets(rawUpdateText);
 
@@ -413,15 +417,17 @@ export default async function handler(request: Request, context: any): Promise<R
   const existingTasks = await tasksResponse.json().catch(() => []);
   const taskList: any[] = Array.isArray(existingTasks) ? existingTasks : [];
 
-  if (completedTaskKeys.length) {
-    await serviceFetch(`/rest/v1/recovery_tasks?case_id=eq.${encodeURIComponent(caseId)}&task_key=in.(${completedTaskKeys.map((k) => `"${k}"`).join(",")})`, {
+  if (safeTaskKeys.length) {
+    const patchRes = await serviceFetch(`/rest/v1/recovery_tasks?case_id=eq.${encodeURIComponent(caseId)}&task_key=in.(${safeTaskKeys.map((k) => encodeURIComponent(`"${k}"`)).join(",")})`, {
       method: "PATCH",
       headers: { Prefer: "return=minimal" },
       body: JSON.stringify({ status: "completed", completed_at: new Date().toISOString() }),
     });
-    taskList.forEach((task) => {
-      if (completedTaskKeys.includes(task.task_key)) task.status = "completed";
-    });
+    if (patchRes.ok) {
+      taskList.forEach((task) => {
+        if (safeTaskKeys.includes(task.task_key)) task.status = "completed";
+      });
+    }
   }
 
   const completedTaskTitles = taskList.filter((task) => task.status === "completed").map((task) => task.title);
@@ -468,27 +474,29 @@ export default async function handler(request: Request, context: any): Promise<R
 
 // Records an updated plan as the case's next version: new actions become
 // tasks, progress is recomputed over every task, and the case row follows the
-// plan's risk, urgency and resolution state.
+// plan's risk, urgency and resolution state. The plan's action ids are
+// re-keyed to the new version in place, so the caller's updatedPlan (stored
+// and returned to the page) carries the same keys as the task rows.
 async function writeUpdatedVersion(args: { caseId: string; caseRow: any; updatedPlan: any; taskList: any[] }) {
   const { caseId, caseRow, updatedPlan, taskList } = args;
   const newVersionNumber = (Number(caseRow.current_version) || 1) + 1;
 
-  const newTasks = [
-    ...updatedPlan.immediateActions,
-    ...updatedPlan.timeline.first10Minutes,
-    ...updatedPlan.timeline.firstHour,
-    ...updatedPlan.timeline.first24Hours,
-    ...updatedPlan.timeline.next7Days,
-  ];
-  for (const task of newTasks) {
-    const existing = taskList.find((t) => t.task_key === task.id);
-    if (!existing) {
-      await serviceFetch("/rest/v1/recovery_tasks", {
-        method: "POST",
-        headers: { Prefer: "return=minimal" },
-        body: JSON.stringify({ case_id: caseId, plan_version: newVersionNumber, task_key: task.id, title: task.title, status: "pending", priority: task.priority }),
-      });
-    }
+  rekeyPlan(updatedPlan, newVersionNumber);
+  const actions = planActions(updatedPlan);
+  const newTaskRows = buildTaskRows(caseId, newVersionNumber, actions, taskList);
+  if (newTaskRows.length) {
+    await serviceFetch("/rest/v1/recovery_tasks", {
+      method: "POST",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify(newTaskRows),
+    });
+  }
+  const superseded = supersededTaskKeys(taskList, actions, newTaskRows);
+  if (superseded.length) {
+    await serviceFetch(
+      `/rest/v1/recovery_tasks?case_id=eq.${encodeURIComponent(caseId)}&task_key=in.(${taskKeyInList(superseded)})`,
+      { method: "DELETE", headers: { Prefer: "return=minimal" } },
+    );
   }
 
   const allCurrentTasksResponse = await serviceFetch(`/rest/v1/recovery_tasks?case_id=eq.${encodeURIComponent(caseId)}&select=priority,status`);

@@ -122,15 +122,19 @@ document.addEventListener("DOMContentLoaded",()=>{
     },
     learn:{
       title:"Learn Cybersecurity | CyberNet AI",
-      description:"Free, interactive cybersecurity lessons covering phishing, malware, passwords, authentication, safe browsing, and privacy — with real examples, warning signs, and quizzes."
+      description:"Free, interactive cybersecurity lessons covering phishing, malware, passwords, authentication, safe browsing, and privacy — with real examples and warning signs."
     },
     pricing:{
       title:"Pricing | CyberNet AI",
-      description:"Compare CyberNet AI Free and Pro plans: daily AI analysis limits, saved history, downloadable reports, and Recovery features."
+      description:"Compare CyberNet AI Free, Pro, and Business plans: daily AI analysis limits, saved history, downloadable reports, team seats, and Recovery features."
     },
     about:{
       title:"About | CyberNet AI",
       description:"CyberNet AI's mission is to protect people before threats become real damage, by making cybersecurity understandable and accessible."
+    },
+    recovery:{
+      title:"Recovery Mode | CyberNet AI",
+      description:"Got scammed or hacked? Describe what happened and CyberNet AI builds a step-by-step recovery plan to secure your accounts, money and devices."
     }
   };
   function updatePageMeta(pageName){
@@ -288,17 +292,34 @@ document.addEventListener("DOMContentLoaded",()=>{
     }
   }
 
+  /* Moves keyboard focus to the first visible field of a dialog. */
+  function focusFirstField(container){
+    if(!container)return;
+    requestAnimationFrame(()=>{
+      const field=[...container.querySelectorAll("input:not([type=hidden]):not([disabled]),textarea:not([disabled]),select:not([disabled])")].find(el=>el.offsetParent!==null&&!el.closest("[hidden]"));
+      field?.focus({preventScroll:true});
+    });
+  }
+  let authReturnFocus=null;
   function openAuthModal(mode="login"){
     setAuthTab(mode);
     setAuthMessage("");
+    if(!authModal?.classList.contains("show"))authReturnFocus=document.activeElement;
     authModal?.classList.add("show");
+    focusFirstField(authModal?.querySelector(".auth-form.active-auth-form"));
+  }
+  function closeAuthModal(){
+    if(!authModal?.classList.contains("show"))return;
+    authModal.classList.remove("show");
+    if(authReturnFocus?.isConnected)authReturnFocus.focus?.({preventScroll:true});
+    authReturnFocus=null;
   }
 
   if(openAuth)openAuth.addEventListener("click",()=>openAuthModal("login"));
   if(switchToSignupBtn)switchToSignupBtn.addEventListener("click",()=>setAuthTab("signup"));
   if(switchToLoginBtn)switchToLoginBtn.addEventListener("click",()=>setAuthTab("login"));
-  if(closeAuth&&authModal)closeAuth.addEventListener("click",()=>authModal.classList.remove("show"));
-  if(authModal)authModal.addEventListener("click",event=>{if(event.target===authModal)authModal.classList.remove("show")});
+  if(closeAuth&&authModal)closeAuth.addEventListener("click",closeAuthModal);
+  if(authModal)authModal.addEventListener("click",event=>{if(event.target===authModal)closeAuthModal()});
   authTabs.forEach(tab=>tab.addEventListener("click",()=>setAuthTab(tab.dataset.auth)));
 
   function firstName(value=""){
@@ -367,10 +388,18 @@ document.addEventListener("DOMContentLoaded",()=>{
   function updatePlanBenefits(){
     const list=document.getElementById("aiBenefitList");
     if(!list)return;
+    if(isBusiness()){
+      list.innerHTML=`
+        <div><span>✓</span> Shared team pool of AI analyses (50, 90, or 160 per day by team size)</div>
+        <div><span>✓</span> Detailed risk scoring and explanations</div>
+        <div><span>✓</span> Saved scan history</div>
+        <div><span>✓</span> Downloadable security reports</div>`;
+      return;
+    }
     if(isPro()){
       list.innerHTML=`
         <div><span>✓</span> 15 advanced AI analyses per day</div>
-        <div><span>✓</span> Detailed risk scoring and threat intelligence</div>
+        <div><span>✓</span> Detailed risk scoring and explanations</div>
         <div><span>✓</span> Saved scan history</div>
         <div><span>✓</span> Downloadable security reports</div>`;
     }else{
@@ -488,8 +517,14 @@ document.addEventListener("DOMContentLoaded",()=>{
     renderProHistory();
   }
 
+  // One request per access token at a time (getSession, INITIAL_SESSION and
+  // the service check all ask on load). A response for a token that is no
+  // longer current (sign-out, user switch, token refresh) is dropped: the call
+  // made for the newer token owns the state.
+  let accountStatusInflight=null,accountStatusToken=null,accountStatusRetried=false;
   async function refreshAccountStatus(){
     if(!isSignedIn()){
+      appState.accountUserId=null;
       appState.isAdmin=false;
       appState.profile={plan:"guest",fullName:"",subscriptionStatus:"inactive",billingInterval:""};
       appState.usage={used:0,limit:0,remaining:0,resetDate:""};
@@ -498,9 +533,14 @@ document.addEventListener("DOMContentLoaded",()=>{
       updateAccountUI();
       return null;
     }
+    const token=appState.session?.access_token;
+    if(accountStatusInflight&&accountStatusToken===token)return accountStatusInflight;
+    accountStatusToken=token;
+    const request=(async()=>{
     try{
       const response=await fetch("/api/account-status?includeHistory=1",{headers:authHeaders({Accept:"application/json"}),cache:"no-store"});
       const data=await response.json().catch(()=>({}));
+      if(appState.session?.access_token!==token)return appState;
       if(!response.ok)throw new Error(data.error||"Account status is unavailable.");
       appState.isAdmin=Boolean(data.isAdmin);
       appState.profile={
@@ -518,22 +558,35 @@ document.addEventListener("DOMContentLoaded",()=>{
         resetDate:data.usage?.resetDate||""
       };
       appState.history=Array.isArray(data.history)?data.history:[];
+      appState.accountUserId=appState.user?.id||null;
+      appState.accountStatusError=false;
+      accountStatusRetried=false;
     }catch(error){
+      if(appState.session?.access_token!==token)return appState;
+      /* A failed refresh (timeout, cold start, 5xx) keeps this user's last good plan instead of showing Free. */
+      if(appState.accountReady&&appState.accountUserId&&appState.accountUserId===appState.user?.id){console.warn(error);return appState}
       appState.isAdmin=false;
       appState.profile={plan:"free",fullName:appState.user?.user_metadata?.full_name||"",subscriptionStatus:"inactive",billingInterval:""};
       appState.usage={used:0,limit:5,remaining:5,resetDate:""};
       appState.history=[];
+      appState.accountStatusError=true;
       console.warn(error);
+      if(!accountStatusRetried){accountStatusRetried=true;setTimeout(()=>{if(isSignedIn())refreshAccountStatus()},3000)}
     }
     appState.accountReady=true;
     updateAccountUI();
     return appState;
+    })();
+    accountStatusInflight=request;
+    try{return await request}finally{if(accountStatusInflight===request)accountStatusInflight=null}
   }
 
   async function syncSession(session){
     appState.session=session||null;
     appState.user=session?.user||null;
     await refreshAccountStatus();
+    /* Lets the Recovery case list and the legal-acceptance recorder follow sign-in and sign-out. */
+    try{window.dispatchEvent(new CustomEvent("cybernet:session",{detail:{userId:appState.user?.id||null}}))}catch{}
   }
 
   if(supabaseConfigured){
@@ -551,6 +604,7 @@ document.addEventListener("DOMContentLoaded",()=>{
         setAuthMessage("Enter your new password below, then choose Update Password.","success");
         authModal?.classList.add("show");
       }
+      if(event==="SIGNED_OUT"){try{resetChatState()}catch{}}
       setTimeout(()=>syncSession(session),0);
     });
   }else{
@@ -662,16 +716,30 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(!appState.supabase){setAuthMessage(authSetupMessage(),"error");return}
     const email=document.getElementById("loginEmail")?.value.trim()||"";
     if(!email){setAuthMessage("Enter your email address first.","error");return}
-    const {error}=await appState.supabase.auth.resetPasswordForEmail(email,{redirectTo:`${window.location.origin}/?reset=1`});
-    setAuthMessage(error?error.message:"Password reset email sent.",error?"error":"success");
+    forgotPasswordBtn.disabled=true;
+    let sent=false;
+    try{
+      const {error}=await appState.supabase.auth.resetPasswordForEmail(email,{redirectTo:`${window.location.origin}/?reset=1`});
+      if(error)throw error;
+      sent=true;
+      setAuthMessage("Password reset email sent.","success");
+    }catch(error){
+      setAuthMessage(friendlyAuthError(error,"login"),"error");
+    }finally{
+      /* After a successful send, wait before allowing another reset email. */
+      setTimeout(()=>{forgotPasswordBtn.disabled=false},sent?30000:0);
+    }
   });
 
   document.getElementById("loginPassword")?.addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();loginBtn?.click()}});
   document.getElementById("signupPassword")?.addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();signupBtn?.click()}});
 
+  /* Reload after signing out, like the Account modal does, so the previous user's chat, Recovery plan and scan lists are gone. */
   if(logoutBtn)logoutBtn.addEventListener("click",async()=>{
-    await appState.supabase?.auth.signOut();
-    switchPage("home");
+    logoutBtn.disabled=true;
+    try{await appState.supabase?.auth.signOut()}catch(error){console.warn(error)}
+    try{["cybernet_validated_openai_key","cybernet_validated_openai_model","cybernet_openai_key_suffix"].forEach(key=>sessionStorage.removeItem(key))}catch{}
+    window.location.replace("/");
   });
 
   function selectedSeatTier(){
@@ -737,7 +805,8 @@ document.addEventListener("DOMContentLoaded",()=>{
 
   const checkoutState=new URLSearchParams(window.location.search).get("checkout");
   if(checkoutState==="success"){
-    setTimeout(()=>{switchPage("pricing");showPricingNotice("Payment received. Your Pro access is being confirmed securely.","success");refreshAccountStatus()},900);
+    let isBusinessCheckout=false;try{isBusinessCheckout=sessionStorage.getItem("cybernet_pending_business_checkout")==="1"}catch{}
+    setTimeout(()=>{switchPage("pricing");showPricingNotice(isBusinessCheckout?"Payment received. Your Business plan is being confirmed securely.":"Payment received. Your Pro access is being confirmed securely.","success");refreshAccountStatus()},900);
     history.replaceState({},"",window.location.pathname);
   }else if(checkoutState==="cancelled"){
     setTimeout(()=>{switchPage("pricing");showPricingNotice("Checkout was cancelled. No payment was taken.")},500);
@@ -778,16 +847,30 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(browser)browser.value=navigator.userAgent.slice(0,500);
   }
 
+  let feedbackReturnFocus=null;
   function openFeedbackModal(){
     prefillFeedback();
     setFeedbackMessage("");
+    if(!feedbackModal?.classList.contains("show"))feedbackReturnFocus=document.activeElement;
     feedbackModal?.classList.add("show");
     feedbackModal?.setAttribute("aria-hidden","false");
+    focusFirstField(feedbackModal);
   }
   function closeFeedbackModal(){
+    const wasOpen=feedbackModal?.classList.contains("show");
     feedbackModal?.classList.remove("show");
     feedbackModal?.setAttribute("aria-hidden","true");
+    if(wasOpen&&feedbackReturnFocus?.isConnected)feedbackReturnFocus.focus?.({preventScroll:true});
+    feedbackReturnFocus=null;
   }
+  /* Escape closes the sign-in and feedback dialogs (the Legal Center, when open on top, closes first).
+     Capture phase: the legal module's own (bubble) listener is registered earlier and would otherwise
+     close the Legal Center before this check runs, so one Escape would close both dialogs. */
+  document.addEventListener("keydown",event=>{
+    if(event.key!=="Escape"||document.querySelector("#cnLegalModal.show"))return;
+    if(feedbackModal?.classList.contains("show"))closeFeedbackModal();
+    else if(authModal?.classList.contains("show"))closeAuthModal();
+  },true);
 
   openFeedbackButtons.forEach(btn=>btn.addEventListener("click",openFeedbackModal));
   closeFeedback?.addEventListener("click",closeFeedbackModal);
@@ -1307,9 +1390,11 @@ document.addEventListener("DOMContentLoaded",()=>{
   function riskMeta(result){
     // Follows the score, matching the verdict shown in the report itself (see
     // getDanger). Tagging every unconfirmed read "High Risk" put that label on
-    // ordinary safe items and drained it of meaning.
-    if(result.score>=60)return{label:"High Risk",cls:"risk-tag-danger"};
-    if(result.score>=32)return{label:"Medium Risk",cls:"risk-tag-warning"};
+    // ordinary safe items and drained it of meaning. Every score from 32 is a
+    // SCAM verdict, so the tag always reads "Scam"; only its colour is stronger
+    // from 60 (display only, thresholds unchanged).
+    if(result.score>=60)return{label:"Scam",cls:"risk-tag-danger"};
+    if(result.score>=32)return{label:"Scam",cls:"risk-tag-warning"};
     if(result.kind==="link"&&!result.officialBrand)return{label:"Can't Confirm",cls:"risk-tag-warning"};
     return{label:"Low Visible Risk",cls:"risk-tag-safe"};
   }
@@ -1348,7 +1433,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       const result=isBareLink?analyzeLinkRules(text):analyzeTextRules(text);
       const note=isBareLink
         ?"This looked like a link rather than a message, so CyberNet AI analyzed it with the link engine for a more accurate result. Use Link Detection directly next time for the same result."
-        :"Local protection scan complete. Use the CyberNet AI page for account-based AI analysis.";
+        :"Local protection scan complete. Use Analysis AI for a deeper, AI-assisted check.";
       showReport(cyberTextResult,result.score,result.scamType,result.reasons,result.advice,{...result,note,previewHtml:isBareLink?renderLinkPreview(text,result):renderLinksFound(result.links||[])});
       prependScan("textScanList",`“${text.slice(0,42)}${text.length>42?"…":""}”`,result);
       reportTeamActivity({kind:"quick_scan",scanType:isBareLink?"link":"text",content:text,result:quickScanLogResult(result)});
@@ -1375,7 +1460,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     cyberLinkBtn.disabled=false;
     runScan(cyberLinkBtn,cyberLinkResult,async()=>{
       const result=analyzeLinkRules(link);
-      showReport(cyberLinkResult,result.score,result.scamType,result.reasons,result.advice,{...result,note:"Local structural URL scan complete. Use the CyberNet AI page for account-based AI analysis.",previewHtml:renderLinkPreview(link,result)});
+      showReport(cyberLinkResult,result.score,result.scamType,result.reasons,result.advice,{...result,note:"Local structural URL scan complete. Use Analysis AI for a deeper, AI-assisted check.",previewHtml:renderLinkPreview(link,result)});
       prependScan("linkScanList",link.slice(0,52),result);
       reportTeamActivity({kind:"quick_scan",scanType:"link",content:link,result:quickScanLogResult(result)});
     });
@@ -1442,7 +1527,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     // read, so hand it to Analysis AI rather than showing a verdict built from
     // the filename alone. Opted in here, not inside analyzeImageRules, because
     // the Analysis AI page reuses that function for its own pre-analysis.
-    showReport(cyberImageResult,result.score,result.scamType,result.reasons,result.advice,{...result,needsDeepScan:!decoded.qrData,note:"Local QR and file checks complete. Use the CyberNet AI page for account-based visual AI analysis.",previewHtml:decoded.qrData?renderQrPreview(decoded.qrData,qrKind,qrResult):""});
+    showReport(cyberImageResult,result.score,result.scamType,result.reasons,result.advice,{...result,needsDeepScan:!decoded.qrData,note:"Local QR and file checks complete. Use Analysis AI for a deeper, AI-assisted check.",previewHtml:decoded.qrData?renderQrPreview(decoded.qrData,qrKind,qrResult):""});
     prependScan("imageScanList",file.name,result);
     reportTeamActivity({kind:"quick_scan",scanType:"image",content:"",fileName:file.name,qr:decoded.qrData?{kind:qrKind,data:decoded.qrData}:null,result:quickScanLogResult(result,{needsDeepScan:!decoded.qrData})});
   }
@@ -1486,7 +1571,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       serviceState.reputation=Boolean(data.reputationEnabled);
       serviceState.lastChecked=Date.now();
       if(aiModelName)aiModelName.textContent=serviceState.model;
-      await refreshAccountStatus();
+      if(force||!appState.accountReady)await refreshAccountStatus();else updateAccountUI();
       return true;
     }catch(error){
       serviceState.online=false;
@@ -1538,9 +1623,9 @@ document.addEventListener("DOMContentLoaded",()=>{
   }
 
   const DIAGNOSTIC_STAGES={
-    link:["Analyzing link structure and domain patterns…","Running CyberNet AI deep analysis…","Correlating threat intelligence…"],
-    image:["Decoding QR and visual signals…","Running CyberNet AI vision analysis…","Correlating threat intelligence…"],
-    text:["Parsing language and structural signals…","Running CyberNet AI deep analysis…","Correlating threat intelligence…"]
+    link:["Analyzing link structure and domain patterns…","Running CyberNet AI deep analysis…","Cross-checking the evidence…"],
+    image:["Decoding QR and visual signals…","Running CyberNet AI vision analysis…","Cross-checking the evidence…"],
+    text:["Parsing language and structural signals…","Running CyberNet AI deep analysis…","Cross-checking the evidence…"]
   };
   function runDiagnosticAnimation(container,type){
     const stages=DIAGNOSTIC_STAGES[type]||DIAGNOSTIC_STAGES.text;
@@ -1665,6 +1750,11 @@ document.addEventListener("DOMContentLoaded",()=>{
   // The last few turns, sent with each analysis so a follow-up question is
   // answered about the item it refers to.
   const chatHistory=[];
+  /* Signing out drops the previous user's turns so they are never sent as another user's history. */
+  function resetChatState(){
+    chatHistory.length=0;
+    if(chatMessages)[...chatMessages.children].slice(1).forEach(node=>node.remove());
+  }
   async function analyzeChat(type,content,imageData=""){
     if(!canStartAiAnalysis())return;
     let local;
@@ -1823,8 +1913,8 @@ document.addEventListener("DOMContentLoaded",()=>{
         matches.push({modTitle,nodeTitle,nodeDesc,nodeEl:node});
       }
     });
-    if(!matches.length){learnSearchResult.innerHTML=`<strong class="warning">Nothing found for "${query}".</strong><br>Try: password, phishing, malware, scam, ransomware, wifi, VPN, OTP.`;return}
-    learnSearchResult.innerHTML=matches.slice(0,5).map((m,i)=>`<div class="search-result-item"><strong>${m.nodeTitle}</strong><br><span style="color:var(--green);font-size:12px">${m.modTitle}</span><p style="margin-top:6px;margin-bottom:0">${m.nodeDesc}</p><button class="secondary-btn" style="margin-top:9px;min-height:34px;padding:0 14px;font-size:12px" data-search-idx="${i}">open_lesson →</button></div>`).join("");
+    if(!matches.length){learnSearchResult.innerHTML=`<strong class="warning">Nothing found for "${escapeHTML(query)}".</strong><br>Try: password, phishing, malware, scam, ransomware, wifi, VPN, OTP.`;return}
+    learnSearchResult.innerHTML=matches.slice(0,5).map((m,i)=>`<div class="search-result-item"><strong>${escapeHTML(m.nodeTitle)}</strong><br><span style="color:var(--green);font-size:12px">${escapeHTML(m.modTitle)}</span><p style="margin-top:6px;margin-bottom:0">${escapeHTML(m.nodeDesc)}</p><button class="secondary-btn" style="margin-top:9px;min-height:34px;padding:0 14px;font-size:12px" data-search-idx="${i}">open_lesson →</button></div>`).join("");
     learnSearchResult.querySelectorAll("[data-search-idx]").forEach((btn,i)=>{
       btn.addEventListener("click",()=>{matches[i].nodeEl.classList.add("expanded");matches[i].nodeEl.scrollIntoView({behavior:"smooth",block:"center"});if(matches[i].nodeEl.id)history.replaceState(null,"",`#${matches[i].nodeEl.id}`)});
     });
@@ -1898,6 +1988,7 @@ document.addEventListener("DOMContentLoaded",()=>{
          out at the monthly price. They now follow the toggle like Pro does. */
       businessButtons.forEach(button=>{button.dataset.cycle=cycle});
       updateBusinessEquivalent(cycle);
+      document.querySelectorAll("#businessSeatPicker .cn-seat-option").forEach(o=>{const b=o.querySelector("b");const v=o.dataset[cycle];if(b&&v!==undefined){o.textContent="";o.appendChild(b);o.append(cycle==="yearly"?`$${v}/yr`:`$${v}/mo`)}});
     }
 
     function updateBusinessEquivalent(cycle){
@@ -2000,6 +2091,19 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(!intakeEl||!dashboardEl)return;
 
     let pendingRecoveryImage=null;
+    const uploadLabelDefault=uploadLabel?.textContent||"";
+    /* The attached screenshot belongs to one case only. */
+    function clearRecoveryImage(){
+      pendingRecoveryImage=null;
+      if(imageInput)imageInput.value="";
+      if(uploadLabel)uploadLabel.textContent=uploadLabelDefault;
+    }
+    // Plan-aware wording for Recovery limit messages: only Free is told to upgrade.
+    function recoveryLimitSuffix(usage,freeText,paidText){
+      const plan=usage?.plan;
+      if(plan==="free"||!plan)return ` ${freeText}`;
+      return plan==="business"?` Your team's shared ${paidText}`:` Your ${paidText}`;
+    }
     let currentCaseId=null;
     let currentPlan=null;
     let currentTasks=[];
@@ -2071,15 +2175,16 @@ document.addEventListener("DOMContentLoaded",()=>{
         currentCaseId=data.caseId;
         currentPlan={...data.plan,progressPercent:0};
         currentTasks=[];
-        if(data.usage)appState.recoveryUsage={used:Number(data.usage.used)||0,limit:Number(data.usage.daily_limit)||1};
+        if(data.usage)appState.recoveryUsage={used:Number(data.usage.used)||0,limit:Number(data.usage.limit??data.usage.daily_limit)||1};
+        clearRecoveryImage();
         updateAccountUI();
         renderDashboard();
         showDashboard();
         if(data.aiPending)watchForAiPlan(data.caseId,Number(data.caseVersion)||1,"plan");
       }catch(error){
         if(error.code==="daily_limit_reached"){
-          setIntakeMessage(`${error.message} Upgrade to Pro for more Recovery cases per day.`,"warning");
-          if(error.usage){appState.recoveryUsage={used:Number(error.usage.used)||0,limit:Number(error.usage.daily_limit)||1};updateAccountUI()}
+          setIntakeMessage(`${error.message}${recoveryLimitSuffix(error.usage,"Upgrade to Pro for more Recovery cases per day.","Recovery cases reset at 12:00 PM Gulf time.")}`,"warning");
+          if(error.usage){appState.recoveryUsage={used:Number(error.usage.used)||0,limit:Number(error.usage.limit??error.usage.daily_limit)||1};updateAccountUI()}
         }else{
           setIntakeMessage(error.message||"Recovery Mode couldn't start right now. Please try again.","warning");
         }
@@ -2224,13 +2329,13 @@ document.addEventListener("DOMContentLoaded",()=>{
 
     document.querySelectorAll(".recovery-timeline-tab").forEach(tab=>{
       tab.addEventListener("click",()=>{
-        document.querySelectorAll(".recovery-timeline-tab").forEach(t=>t.classList.remove("active"));
-        tab.classList.add("active");
-        activeTimelineTab=tab.dataset.timeline;
-        if(!isPro()&&activeTimelineTab!=="first10Minutes"){
+        if(!isPro()&&tab.dataset.timeline!=="first10Minutes"){
           switchPage("pricing");
           return;
         }
+        document.querySelectorAll(".recovery-timeline-tab").forEach(t=>t.classList.remove("active"));
+        tab.classList.add("active");
+        activeTimelineTab=tab.dataset.timeline;
         renderDashboard();
       });
     });
@@ -2274,16 +2379,31 @@ document.addEventListener("DOMContentLoaded",()=>{
           error.usage=data.usage;
           throw error;
         }
+        // A synchronous update writes a new plan version whose actions have new
+        // (version-scoped) task keys; reload the task rows so carried-over ticks show.
+        let newTasks=null;
+        if(!data.aiPending){
+          const caseId=currentCaseId;
+          try{
+            const caseRes=await fetch(`${RECOVERY_CASE_ENDPOINT}?caseId=${encodeURIComponent(caseId)}`,{headers:authHeaders({Accept:"application/json"}),cache:"no-store"});
+            const caseData=await caseRes.json().catch(()=>({}));
+            if(caseRes.ok&&Array.isArray(caseData.tasks))newTasks=caseData.tasks;
+          }catch{}
+          if(currentCaseId!==caseId)return;
+        }
         currentPlan=data.plan;
+        if(newTasks)currentTasks=newTasks;
         if(updateTextEl)updateTextEl.value="";
         renderDashboard();
         if(data.aiPending)watchForAiPlan(currentCaseId,Number(data.caseVersion)||1,"update");
         else setUpdateMessage("Recovery case updated.","success");
       }catch(error){
         if(error.code==="cooldown_active"){
-          setUpdateMessage(error.message||"Please wait before submitting another update.","warning");
+          const seconds=Number(error.usage?.cooldownSecondsRemaining)||0;
+          const hours=Math.ceil(seconds/3600),minutes=Math.max(1,Math.ceil(seconds/60));
+          setUpdateMessage(seconds>0?`You can send your next update in about ${seconds>=3600?`${hours} hour${hours>1?"s":""}`:`${minutes} minute${minutes>1?"s":""}`}.`:(error.message||"Please wait before submitting another update."),"warning");
         }else if(error.code==="daily_limit_reached"){
-          setUpdateMessage(`${error.message} Upgrade to Pro for more updates per day.`,"warning");
+          setUpdateMessage(`${error.message}${error.usage?.plan==="free"||!error.usage?.plan?" Upgrade to Pro for more updates per day.":" Updates reset at 12:00 PM Gulf time."}`,"warning");
         }else{
           setUpdateMessage(error.message||"Couldn't update this case right now.","warning");
         }
@@ -2331,6 +2451,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       currentCaseId=null;
       currentPlan=null;
       currentTasks=[];
+      clearRecoveryImage();
       loadCaseList();
     }
     if(backBtn)backBtn.addEventListener("click",showIntake);
@@ -2388,6 +2509,16 @@ document.addEventListener("DOMContentLoaded",()=>{
 
     document.querySelectorAll('[data-page="recovery"]').forEach(btn=>{
       btn.addEventListener("click",()=>{if(intakeEl&&!intakeEl.hidden)loadCaseList()});
+    });
+
+    /* The session is not known yet at start-up; reload the list when the signed-in user changes. */
+    let caseListUser;
+    window.addEventListener("cybernet:session",event=>{
+      const uid=event.detail?.userId||null;
+      if(uid===caseListUser)return;
+      caseListUser=uid;
+      if(!uid||!dashboardEl.hidden)showIntake();
+      else{clearRecoveryImage();loadCaseList()}
     });
 
     loadCaseList();
