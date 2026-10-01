@@ -292,17 +292,34 @@ document.addEventListener("DOMContentLoaded",()=>{
     }
   }
 
+  /* Moves keyboard focus to the first visible field of a dialog. */
+  function focusFirstField(container){
+    if(!container)return;
+    requestAnimationFrame(()=>{
+      const field=[...container.querySelectorAll("input:not([type=hidden]):not([disabled]),textarea:not([disabled]),select:not([disabled])")].find(el=>el.offsetParent!==null&&!el.closest("[hidden]"));
+      field?.focus({preventScroll:true});
+    });
+  }
+  let authReturnFocus=null;
   function openAuthModal(mode="login"){
     setAuthTab(mode);
     setAuthMessage("");
+    if(!authModal?.classList.contains("show"))authReturnFocus=document.activeElement;
     authModal?.classList.add("show");
+    focusFirstField(authModal?.querySelector(".auth-form.active-auth-form"));
+  }
+  function closeAuthModal(){
+    if(!authModal?.classList.contains("show"))return;
+    authModal.classList.remove("show");
+    if(authReturnFocus?.isConnected)authReturnFocus.focus?.({preventScroll:true});
+    authReturnFocus=null;
   }
 
   if(openAuth)openAuth.addEventListener("click",()=>openAuthModal("login"));
   if(switchToSignupBtn)switchToSignupBtn.addEventListener("click",()=>setAuthTab("signup"));
   if(switchToLoginBtn)switchToLoginBtn.addEventListener("click",()=>setAuthTab("login"));
-  if(closeAuth&&authModal)closeAuth.addEventListener("click",()=>authModal.classList.remove("show"));
-  if(authModal)authModal.addEventListener("click",event=>{if(event.target===authModal)authModal.classList.remove("show")});
+  if(closeAuth&&authModal)closeAuth.addEventListener("click",closeAuthModal);
+  if(authModal)authModal.addEventListener("click",event=>{if(event.target===authModal)closeAuthModal()});
   authTabs.forEach(tab=>tab.addEventListener("click",()=>setAuthTab(tab.dataset.auth)));
 
   function firstName(value=""){
@@ -371,6 +388,14 @@ document.addEventListener("DOMContentLoaded",()=>{
   function updatePlanBenefits(){
     const list=document.getElementById("aiBenefitList");
     if(!list)return;
+    if(isBusiness()){
+      list.innerHTML=`
+        <div><span>✓</span> Shared team pool of AI analyses (50, 90, or 160 per day by team size)</div>
+        <div><span>✓</span> Detailed risk scoring and explanations</div>
+        <div><span>✓</span> Saved scan history</div>
+        <div><span>✓</span> Downloadable security reports</div>`;
+      return;
+    }
     if(isPro()){
       list.innerHTML=`
         <div><span>✓</span> 15 advanced AI analyses per day</div>
@@ -821,16 +846,28 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(browser)browser.value=navigator.userAgent.slice(0,500);
   }
 
+  let feedbackReturnFocus=null;
   function openFeedbackModal(){
     prefillFeedback();
     setFeedbackMessage("");
+    if(!feedbackModal?.classList.contains("show"))feedbackReturnFocus=document.activeElement;
     feedbackModal?.classList.add("show");
     feedbackModal?.setAttribute("aria-hidden","false");
+    focusFirstField(feedbackModal);
   }
   function closeFeedbackModal(){
+    const wasOpen=feedbackModal?.classList.contains("show");
     feedbackModal?.classList.remove("show");
     feedbackModal?.setAttribute("aria-hidden","true");
+    if(wasOpen&&feedbackReturnFocus?.isConnected)feedbackReturnFocus.focus?.({preventScroll:true});
+    feedbackReturnFocus=null;
   }
+  /* Escape closes the sign-in and feedback dialogs (the Legal Center, when open on top, closes first). */
+  document.addEventListener("keydown",event=>{
+    if(event.key!=="Escape"||document.querySelector("#cnLegalModal.show"))return;
+    if(feedbackModal?.classList.contains("show"))closeFeedbackModal();
+    else if(authModal?.classList.contains("show"))closeAuthModal();
+  });
 
   openFeedbackButtons.forEach(btn=>btn.addEventListener("click",openFeedbackModal));
   closeFeedback?.addEventListener("click",closeFeedbackModal);
@@ -1871,8 +1908,8 @@ document.addEventListener("DOMContentLoaded",()=>{
         matches.push({modTitle,nodeTitle,nodeDesc,nodeEl:node});
       }
     });
-    if(!matches.length){learnSearchResult.innerHTML=`<strong class="warning">Nothing found for "${query}".</strong><br>Try: password, phishing, malware, scam, ransomware, wifi, VPN, OTP.`;return}
-    learnSearchResult.innerHTML=matches.slice(0,5).map((m,i)=>`<div class="search-result-item"><strong>${m.nodeTitle}</strong><br><span style="color:var(--green);font-size:12px">${m.modTitle}</span><p style="margin-top:6px;margin-bottom:0">${m.nodeDesc}</p><button class="secondary-btn" style="margin-top:9px;min-height:34px;padding:0 14px;font-size:12px" data-search-idx="${i}">open_lesson →</button></div>`).join("");
+    if(!matches.length){learnSearchResult.innerHTML=`<strong class="warning">Nothing found for "${escapeHTML(query)}".</strong><br>Try: password, phishing, malware, scam, ransomware, wifi, VPN, OTP.`;return}
+    learnSearchResult.innerHTML=matches.slice(0,5).map((m,i)=>`<div class="search-result-item"><strong>${escapeHTML(m.nodeTitle)}</strong><br><span style="color:var(--green);font-size:12px">${escapeHTML(m.modTitle)}</span><p style="margin-top:6px;margin-bottom:0">${escapeHTML(m.nodeDesc)}</p><button class="secondary-btn" style="margin-top:9px;min-height:34px;padding:0 14px;font-size:12px" data-search-idx="${i}">open_lesson →</button></div>`).join("");
     learnSearchResult.querySelectorAll("[data-search-idx]").forEach((btn,i)=>{
       btn.addEventListener("click",()=>{matches[i].nodeEl.classList.add("expanded");matches[i].nodeEl.scrollIntoView({behavior:"smooth",block:"center"});if(matches[i].nodeEl.id)history.replaceState(null,"",`#${matches[i].nodeEl.id}`)});
     });

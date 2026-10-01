@@ -271,6 +271,7 @@
       <div class="cybernet-byok-field">
         <input id="cybernetVisitorApiKey"
                type="password"
+               aria-label="OpenAI API key"
                inputmode="text"
                autocomplete="off"
                spellcheck="false"
@@ -532,6 +533,7 @@
       if (plan === "business") {
         return {
           pro: true,
+          business: true,
           label: "CyberNet AI Business",
           badge: "BUSINESS"
         };
@@ -585,7 +587,7 @@
 
       const email = session?.user?.email || "—";
       const used = Math.max(0, Number(usage.used) || 0);
-      const limit = Math.max(1, Number(usage.limit) || (details.pro ? 50 : 5));
+      const limit = Math.max(1, Number(usage.limit) || (details.business ? 50 : details.pro ? 15 : 3));
       const remaining = Math.max(
         0,
         Number.isFinite(Number(usage.remaining))
