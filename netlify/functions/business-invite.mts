@@ -32,13 +32,19 @@ function escapeHtml(s: string): string {
 }
 
 // The display name is user-controlled (supabase.auth.updateUser), so strip
-// control characters, angle brackets and links, and cap the length.
+// control characters, angle brackets and links, and cap the length. A name
+// that still contains a host name (for example "Claim at www.evil-pay.com"),
+// which mail clients auto-link, is dropped and the email uses the generic
+// wording instead.
+const DOMAIN_LIKE = /[a-z0-9-]+(?:[.。．｡][a-z0-9-]+)*[.。．｡][a-z]{2,}(?![a-z0-9-])/i;
+
 function sanitizeInviterName(value: unknown): string {
-  return String(value || "")
+  const name = String(value || "")
     .replace(/[\u0000-\u001f\u007f<>]/g, "")
     .replace(/https?:\/\/\S+/gi, "")
-    .trim()
-    .slice(0, 60);
+    .trim();
+  if (DOMAIN_LIKE.test(name)) return "";
+  return name.slice(0, 60).trim();
 }
 
 async function sendInviteEmail(toEmail: string, inviterName: string, acceptUrl: string): Promise<void> {
