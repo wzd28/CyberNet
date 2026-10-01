@@ -575,6 +575,7 @@ document.addEventListener("DOMContentLoaded",()=>{
         setAuthMessage("Enter your new password below, then choose Update Password.","success");
         authModal?.classList.add("show");
       }
+      if(event==="SIGNED_OUT"){try{resetChatState()}catch{}}
       setTimeout(()=>syncSession(session),0);
     });
   }else{
@@ -686,16 +687,30 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(!appState.supabase){setAuthMessage(authSetupMessage(),"error");return}
     const email=document.getElementById("loginEmail")?.value.trim()||"";
     if(!email){setAuthMessage("Enter your email address first.","error");return}
-    const {error}=await appState.supabase.auth.resetPasswordForEmail(email,{redirectTo:`${window.location.origin}/?reset=1`});
-    setAuthMessage(error?error.message:"Password reset email sent.",error?"error":"success");
+    forgotPasswordBtn.disabled=true;
+    let sent=false;
+    try{
+      const {error}=await appState.supabase.auth.resetPasswordForEmail(email,{redirectTo:`${window.location.origin}/?reset=1`});
+      if(error)throw error;
+      sent=true;
+      setAuthMessage("Password reset email sent.","success");
+    }catch(error){
+      setAuthMessage(friendlyAuthError(error,"login"),"error");
+    }finally{
+      /* After a successful send, wait before allowing another reset email. */
+      setTimeout(()=>{forgotPasswordBtn.disabled=false},sent?30000:0);
+    }
   });
 
   document.getElementById("loginPassword")?.addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();loginBtn?.click()}});
   document.getElementById("signupPassword")?.addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();signupBtn?.click()}});
 
+  /* Reload after signing out, like the Account modal does, so the previous user's chat, Recovery plan and scan lists are gone. */
   if(logoutBtn)logoutBtn.addEventListener("click",async()=>{
-    await appState.supabase?.auth.signOut();
-    switchPage("home");
+    logoutBtn.disabled=true;
+    try{await appState.supabase?.auth.signOut()}catch(error){console.warn(error)}
+    try{["cybernet_validated_openai_key","cybernet_validated_openai_model","cybernet_openai_key_suffix"].forEach(key=>sessionStorage.removeItem(key))}catch{}
+    window.location.replace("/");
   });
 
   function selectedSeatTier(){
@@ -1689,6 +1704,11 @@ document.addEventListener("DOMContentLoaded",()=>{
   // The last few turns, sent with each analysis so a follow-up question is
   // answered about the item it refers to.
   const chatHistory=[];
+  /* Signing out drops the previous user's turns so they are never sent as another user's history. */
+  function resetChatState(){
+    chatHistory.length=0;
+    if(chatMessages)[...chatMessages.children].slice(1).forEach(node=>node.remove());
+  }
   async function analyzeChat(type,content,imageData=""){
     if(!canStartAiAnalysis())return;
     let local;
