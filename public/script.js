@@ -863,12 +863,14 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(wasOpen&&feedbackReturnFocus?.isConnected)feedbackReturnFocus.focus?.({preventScroll:true});
     feedbackReturnFocus=null;
   }
-  /* Escape closes the sign-in and feedback dialogs (the Legal Center, when open on top, closes first). */
+  /* Escape closes the sign-in and feedback dialogs (the Legal Center, when open on top, closes first).
+     Capture phase: the legal module's own (bubble) listener is registered earlier and would otherwise
+     close the Legal Center before this check runs, so one Escape would close both dialogs. */
   document.addEventListener("keydown",event=>{
     if(event.key!=="Escape"||document.querySelector("#cnLegalModal.show"))return;
     if(feedbackModal?.classList.contains("show"))closeFeedbackModal();
     else if(authModal?.classList.contains("show"))closeAuthModal();
-  });
+  },true);
 
   openFeedbackButtons.forEach(btn=>btn.addEventListener("click",openFeedbackModal));
   closeFeedback?.addEventListener("click",closeFeedbackModal);
