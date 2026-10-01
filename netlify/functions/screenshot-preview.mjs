@@ -1,4 +1,29 @@
-import { json, verifyUser, getProfile, effectivePlan, getActiveTeamMembership } from "../lib/supabase.mjs";
+import { json, verifyUser, getProfile, effectivePlan, getActiveTeamMembership, serviceFetch, isAdminUser } from "../lib/supabase.mjs";
+
+// Every preview spends a paid GetScreenshot credit (or the shared keyless
+// Microlink allowance), so each account gets a short-burst and a daily cap.
+const SHOT_PER_MINUTE = 6;
+const SHOT_PER_DAY = 60;
+
+// Fails open: a quota-service outage must not take previews away from paying
+// users.
+async function consumeQuota(key, windowSeconds, max) {
+  try {
+    const r = await serviceFetch("/rest/v1/rpc/consume_api_quota", {
+      method: "POST",
+      body: JSON.stringify({ p_key: key, p_window_seconds: windowSeconds, p_max_requests: max })
+    });
+    if (!r.ok) {
+      console.error("CyberNet screenshot quota check failed", r.status);
+      return true;
+    }
+    const d = await r.json().catch(() => null);
+    return d?.allowed !== false;
+  } catch (e) {
+    console.error("CyberNet screenshot quota check failed", e?.message);
+    return true;
+  }
+}
 
 function isPrivateHost(host) {
   const h = host.toLowerCase();
@@ -41,11 +66,15 @@ export default async (request) => {
     return json({ error: "Please sign in to use this feature." }, 401);
   }
 
-  const profile = await getProfile(user).catch(() => ({}));
-  const plan = effectivePlan(profile);
-  const onTeam = plan === "business" || Boolean(profile?.isTeamMember) || (await isActiveTeamMember(user.id));
-  if (plan !== "pro" && !onTeam) {
-    return json({ error: "Link and QR previews are a Pro feature." }, 403);
+  // Admin-allowlist accounts have Business access (as account-status reports).
+  const isAdmin = isAdminUser(user);
+  if (!isAdmin) {
+    const profile = await getProfile(user).catch(() => ({}));
+    const plan = effectivePlan(profile);
+    const onTeam = plan === "business" || Boolean(profile?.isTeamMember) || (await isActiveTeamMember(user.id));
+    if (plan !== "pro" && !onTeam) {
+      return json({ error: "Link and QR previews are a Pro feature." }, 403);
+    }
   }
 
   const apiKey = process.env.GETSCREENSHOT_API_KEY || globalThis.Netlify?.env?.get?.("GETSCREENSHOT_API_KEY");
@@ -60,6 +89,15 @@ export default async (request) => {
   const safeUrl = normalizeUrl(body?.url);
   if (!safeUrl) {
     return json({ error: "That link can't be previewed safely." }, 400);
+  }
+
+  if (!isAdmin) {
+    const allowed =
+      (await consumeQuota(`shot:min:${user.id}`, 60, SHOT_PER_MINUTE)) &&
+      (await consumeQuota(`shot:day:${user.id}`, 86400, SHOT_PER_DAY));
+    if (!allowed) {
+      return json({ error: "Preview limit reached. Please try again later.", code: "rate_limited" }, 429);
+    }
   }
 
   // Two providers: Rasterwise when a key is configured, otherwise Microlink's
