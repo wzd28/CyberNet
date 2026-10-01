@@ -46,8 +46,8 @@
     };
   }
 
-  function storeAcceptance(kind) {
-    const record = legalRecord(kind);
+  function storeAcceptance(kind, extra) {
+    const record = { ...legalRecord(kind), ...(extra || {}) };
     try {
       localStorage.setItem(`cybernet_${kind}_legal_acceptance`, JSON.stringify(record));
     } catch {}
@@ -62,9 +62,34 @@
   // confirmation, before there is a session), so it is kept in this browser
   // and sent to /api/legal-acceptance once the user is signed in. A record is
   // sent once; failures are retried on later sign-ins, at most 3 times.
+  // The record is tied to the account it was made for: the email typed in the
+  // sign-up form, and an account created around the time of the acceptance
+  // (Google sign-ups carry no email, so only the creation time is checked).
+  // Someone else signing in on the same browser does not inherit it.
   const SIGNUP_ACCEPTANCE_KEY = "cybernet_signup_legal_acceptance";
   const ACCEPTANCE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+  // An hour either way allows for device clock drift and slow OAuth round trips.
+  const ACCOUNT_CREATED_BEFORE_MS = 60 * 60 * 1000;
+  const ACCOUNT_CREATED_AFTER_MS = 60 * 60 * 1000;
   let acceptanceFlushing = false;
+
+  function signupFormEmail() {
+    return String(byId("signupEmail")?.value || "").trim().toLowerCase();
+  }
+
+  function storeSignupAcceptance(email) {
+    return storeAcceptance("signup", { email: email || "" });
+  }
+
+  function acceptanceMatchesUser(record, user) {
+    if (!user) return false;
+    const acceptedAt = Date.parse(record.acceptedAt || "");
+    const createdAt = Date.parse(user.created_at || "");
+    if (!Number.isFinite(acceptedAt) || !Number.isFinite(createdAt)) return false;
+    if (createdAt < acceptedAt - ACCOUNT_CREATED_BEFORE_MS) return false;
+    if (record.email) return String(user.email || "").trim().toLowerCase() === record.email;
+    return createdAt <= acceptedAt + ACCOUNT_CREATED_AFTER_MS;
+  }
 
   function readStoredAcceptance(key) {
     try {
@@ -82,13 +107,16 @@
 
   async function flushPendingAcceptance() {
     if (acceptanceFlushing) return;
-    const token = window.CyberNetAccount?.appState?.session?.access_token;
+    const session = window.CyberNetAccount?.appState?.session;
+    const token = session?.access_token;
     if (!token) return;
     const record = readStoredAcceptance(SIGNUP_ACCEPTANCE_KEY);
     if (!record || record.kind !== "signup" || record.serverRecorded) return;
     if ((Number(record.attempts) || 0) >= 3) return;
     const acceptedAt = Date.parse(record.acceptedAt || "");
     if (!Number.isFinite(acceptedAt) || Date.now() - acceptedAt > ACCEPTANCE_MAX_AGE_MS) return;
+    // Only the account this acceptance was made for (see above).
+    if (!acceptanceMatchesUser(record, session.user)) return;
 
     acceptanceFlushing = true;
     try {
@@ -303,7 +331,7 @@
       const sync = () => {
         signupButton.classList.toggle("cn-consent-pending", !checkbox.checked);
         box.classList.toggle("cn-legal-error", false);
-        if (checkbox.checked) storeAcceptance("signup");
+        if (checkbox.checked) storeSignupAcceptance(signupFormEmail());
       };
       checkbox.addEventListener("change", sync);
       signupButton.classList.toggle("cn-consent-pending", !checkbox.checked);
@@ -452,13 +480,20 @@
           showAuthLegalError("You must accept the Terms of Service, Privacy Policy, and Acceptable Use Policy before creating an account.");
           return;
         }
-        storeAcceptance("signup");
+        storeSignupAcceptance("");
       } else {
         // Sign In tab: a new Google user agrees through the notice under the
-        // button. Keep an earlier, still-current record rather than adding one
-        // for every returning sign-in.
+        // button. The record carries no email, so it is only sent if the
+        // Google account turns out to be new (created around this click);
+        // returning users get no 'signup' row. An unsent, current record (for
+        // example an email sign-up awaiting confirmation) is kept.
         const existing = readStoredAcceptance(SIGNUP_ACCEPTANCE_KEY);
-        if (existing?.version !== LEGAL_VERSION || existing?.privacyVersion !== PRIVACY_VERSION) storeAcceptance("signup");
+        const existingAt = Date.parse(existing?.acceptedAt || "");
+        const keepExisting = existing && !existing.serverRecorded &&
+          existing.version === LEGAL_VERSION && existing.privacyVersion === PRIVACY_VERSION &&
+          (Number(existing.attempts) || 0) < 3 &&
+          Number.isFinite(existingAt) && Date.now() - existingAt <= ACCEPTANCE_MAX_AGE_MS;
+        if (!keepExisting) storeSignupAcceptance("");
       }
       return;
     }
@@ -473,7 +508,7 @@
         showAuthLegalError("You must accept the Terms of Service, Privacy Policy, and Acceptable Use Policy before creating an account.");
         openLegalModal("terms");
       } else {
-        storeAcceptance("signup");
+        storeSignupAcceptance(signupFormEmail());
       }
       return;
     }
