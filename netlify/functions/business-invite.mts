@@ -23,9 +23,30 @@ function randomToken(): string {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+// Daily cap on invites a team can send, so the CyberNet domain cannot be used
+// to mass-mail arbitrary addresses (a revoked invite frees its seat).
+const MAX_INVITES_PER_DAY = 30;
+
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" } as Record<string, string>)[c]);
+}
+
+// The display name is user-controlled (supabase.auth.updateUser), so strip
+// control characters, angle brackets and links, and cap the length.
+function sanitizeInviterName(value: unknown): string {
+  return String(value || "")
+    .replace(/[\u0000-\u001f\u007f<>]/g, "")
+    .replace(/https?:\/\/\S+/gi, "")
+    .trim()
+    .slice(0, 60);
+}
+
 async function sendInviteEmail(toEmail: string, inviterName: string, acceptUrl: string): Promise<void> {
   const apiKey = env("RESEND_API_KEY");
-  if (!apiKey) throw new Error("Email delivery is not configured (missing RESEND_API_KEY).");
+  if (!apiKey) {
+    console.error("CyberNet invite: RESEND_API_KEY missing");
+    throw Object.assign(new Error("Invite emails can't be sent right now. Please try again later."), { status: 503 });
+  }
 
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -41,7 +62,7 @@ async function sendInviteEmail(toEmail: string, inviterName: string, acceptUrl: 
         <div style="font-family: -apple-system, Helvetica, Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
           <h2 style="color: #0f172a;">You've been invited to a CyberNet AI Business team</h2>
           <p style="color: #334155; line-height: 1.6;">
-            ${inviterName ? `${inviterName} has` : "Someone has"} invited you to join their CyberNet AI Business team.
+            ${inviterName ? `${escapeHtml(inviterName)} has` : "Someone has"} invited you to join their CyberNet AI Business team.
             Accepting gives you Business-tier access to Quick Scan, Analysis AI, and Recovery Mode while you're on the team.
           </p>
           <p style="margin: 32px 0;">
@@ -101,6 +122,16 @@ export default async (request: Request) => {
       return json({ error: "There's already a pending invite for this email." }, 409);
     }
 
+    const since = new Date(Date.now() - 86_400_000).toISOString();
+    const recentRes = await serviceFetch(
+      `/rest/v1/business_invites?business_account_id=eq.${team.businessAccountId}` +
+      `&created_at=gt.${encodeURIComponent(since)}&select=id`
+    );
+    const recent = await recentRes.json().catch(() => []);
+    if (Array.isArray(recent) && recent.length >= MAX_INVITES_PER_DAY) {
+      return json({ error: "Invite limit reached for today. Please try again tomorrow." }, 429);
+    }
+
     const seatsTaken = (members as any[]).length + (pending as any[]).length;
     const seatCap = { 5: 5, 10: 10, 20: 20 }[team.seatTier as 5 | 10 | 20] || 5;
 
@@ -132,9 +163,25 @@ export default async (request: Request) => {
     }
 
     const acceptUrl = `${new URL(request.url).origin}/accept-invite?token=${token}`;
-    const inviterName = String(user.user_metadata?.full_name || "").trim();
+    const inviterName = sanitizeInviterName(user.user_metadata?.full_name);
 
-    await sendInviteEmail(email, inviterName, acceptUrl);
+    // The row is written before the email goes out; if sending fails, revoke it
+    // so it does not hold a seat or block a retry to the same address.
+    try {
+      await sendInviteEmail(email, inviterName, acceptUrl);
+    } catch (sendError: any) {
+      await serviceFetch(`/rest/v1/business_invites?token=eq.${token}&status=eq.pending`, {
+        method: "PATCH",
+        headers: { Prefer: "return=minimal" },
+        body: JSON.stringify({ status: "revoked" }),
+      }).catch(() => null);
+      console.error("CyberNet invite email failed", sendError?.message);
+      if (sendError?.status) throw sendError;
+      throw Object.assign(
+        new Error("The invite email could not be sent, so the invite was not created. Please try again in a moment."),
+        { status: 502 }
+      );
+    }
 
     return json({ ok: true, expiresAt });
   } catch (error: any) {
