@@ -2379,7 +2379,20 @@ document.addEventListener("DOMContentLoaded",()=>{
           error.usage=data.usage;
           throw error;
         }
+        // A synchronous update writes a new plan version whose actions have new
+        // (version-scoped) task keys; reload the task rows so carried-over ticks show.
+        let newTasks=null;
+        if(!data.aiPending){
+          const caseId=currentCaseId;
+          try{
+            const caseRes=await fetch(`${RECOVERY_CASE_ENDPOINT}?caseId=${encodeURIComponent(caseId)}`,{headers:authHeaders({Accept:"application/json"}),cache:"no-store"});
+            const caseData=await caseRes.json().catch(()=>({}));
+            if(caseRes.ok&&Array.isArray(caseData.tasks))newTasks=caseData.tasks;
+          }catch{}
+          if(currentCaseId!==caseId)return;
+        }
         currentPlan=data.plan;
+        if(newTasks)currentTasks=newTasks;
         if(updateTextEl)updateTextEl.value="";
         renderDashboard();
         if(data.aiPending)watchForAiPlan(currentCaseId,Number(data.caseVersion)||1,"update");
