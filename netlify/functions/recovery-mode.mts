@@ -46,6 +46,13 @@ function modelForRiskFloor(riskFloor: RiskLevel): string {
 }
 const MAX_DESCRIPTION_CHARS = 6_000;
 const MAX_IMAGE_DATA_CHARS = 4_500_000;
+// Netlify caps a background function's request payload at 256 KB; the job
+// body is kept under this (in UTF-8 bytes) so the trigger is never refused.
+const MAX_BACKGROUND_JOB_CHARS = 240_000;
+
+function utf8Length(text: string): number {
+  return new TextEncoder().encode(text).length;
+}
 
 function env(name: string): string {
   return (Netlify.env.get(name) || "").trim();
@@ -736,7 +743,8 @@ export default async function handler(request: Request, context: any): Promise<R
   const accountsInvolved = uniqueStrings(body?.accountsInvolved, 8);
   const incidentTime = String(body?.incidentTime || "").slice(0, 60);
   const region = String(body?.region || "").slice(0, 80);
-  const imageData = typeof body?.imageData === "string" ? body.imageData.slice(0, MAX_IMAGE_DATA_CHARS) : "";
+  // A cut-off data URL is not a valid image, so an oversize one is dropped.
+  const imageData = typeof body?.imageData === "string" && body.imageData.length <= MAX_IMAGE_DATA_CHARS ? body.imageData : "";
 
   const user = await verifySupabaseUser(request);
   if (!user) return json({ error: "Sign in or create a free account before starting Recovery Mode.", code: "sign_in_required" }, 401);
@@ -753,7 +761,7 @@ export default async function handler(request: Request, context: any): Promise<R
         : await consumeRecoveryCase(user.id);
     } catch (error) {
       console.error("CyberNet Recovery usage reservation failed", error);
-      return json({ error: "Recovery Mode is not fully configured yet. Run the updated schema.sql and confirm Supabase environment variables.", code: "usage_service_unavailable" }, 503);
+      return json({ error: "Recovery Mode couldn't check your daily allowance just now. Please try again in a minute.", code: "usage_service_unavailable" }, 503);
     }
     if (!usage.allowed) {
       const planLabel = usage.plan === "business" ? "team" : usage.plan === "pro" ? "Pro" : "Free";
@@ -785,7 +793,7 @@ export default async function handler(request: Request, context: any): Promise<R
     return json({ error: "Your recovery plan was generated, but it could not be saved. Please try again.", code: "save_failed" }, 500);
   }
 
-  const aiPending = await triggerBackgroundJob(request, context, {
+  const job = {
     kind: "start",
     caseId,
     userId: user.id,
@@ -802,7 +810,17 @@ export default async function handler(request: Request, context: any): Promise<R
       urgencyFloor: classifier.urgencyFloor,
       imageData,
     },
-  });
+  };
+  // A typical screenshot alone is larger than the background payload cap, so
+  // it is left out and the planner is told one was attached.
+  const jobSize = utf8Length(JSON.stringify(job));
+  if (jobSize > MAX_BACKGROUND_JOB_CHARS && job.input.imageData) {
+    job.input.imageData = "";
+    job.input.description += "\n\n[The user attached a screenshot, but it was too large to forward to the planner; base the plan on the description.]";
+    console.warn("CyberNet Recovery image dropped from background job", { caseId, chars: jobSize });
+  }
+
+  const aiPending = await triggerBackgroundJob(request, context, job);
 
   if (aiPending) {
     plan.summary = "Your essential safety actions are ready below. CyberNet AI is preparing your full recovery plan now - it will appear here in about a minute.";
@@ -838,6 +856,12 @@ async function verifyBackgroundSignature(body: string, signature: string): Promi
 
 async function triggerBackgroundJob(request: Request, context: any, job: Record<string, unknown>): Promise<boolean> {
   const body = JSON.stringify(job);
+  // Netlify would refuse an oversize payload on every origin below; give up at
+  // once so the deterministic plan stands without three failing calls.
+  if (utf8Length(body) > MAX_BACKGROUND_JOB_CHARS) {
+    console.error("CyberNet Recovery background job too large", { kind: job.kind, caseId: job.caseId, bytes: utf8Length(body) });
+    return false;
+  }
   const signature = await hmacHex(body);
 
   // The public domain sits behind Cloudflare, which challenges server-to-server
