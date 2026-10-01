@@ -508,7 +508,7 @@
       const membersNote = document.getElementById("cnTeamMembersNote");
       if (membersNote) {
         membersNote.textContent = seatsUsed >= seatCap
-          ? `Team is full (${seatsUsed}/${seatCap} seats). Remove a member to free a seat, or email cybernetai.26@gmail.com to move up a tier.`
+          ? `Team is full (${seatsUsed}/${seatCap} seats, including ${isOwner ? "you" : "the owner"}). Remove a member to free a seat, or email cybernetai.26@gmail.com to move up a tier.`
           : `"Used today" is each person's own share of the team pool.`;
       }
 

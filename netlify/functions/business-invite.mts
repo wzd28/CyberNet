@@ -137,7 +137,7 @@ export default async (request: Request) => {
 
     if (seatsTaken >= seatCap) {
       return json(
-        { error: `Team is full (${seatsTaken}/${seatCap} seats). Remove a member or upgrade your tier to add more.` },
+        { error: `Team is full (${seatsTaken}/${seatCap} seats, including you). Remove a member, or email cybernetai.26@gmail.com to move up a tier.` },
         409
       );
     }
