@@ -113,7 +113,7 @@ for (const c of CASES.filter((c) => !only || c.id.includes(only))) {
   const check = (id, ok, detail) => { checks.push({ id, ok }); if (!ok) { failures++; console.log(`\n[wording/${id}] FAIL ${JSON.stringify(detail)}`); } };
   const lure = engine.analyzeLink("https://darb-toll-pay.com");
   const lurePlain = engine.plainSummary(lure);
-  check("weak-lure-not-no-tricks", engine.resultBand(lure) === "safe" && lure.signals.some((s) => s.id === "lure-domain") && !lurePlain.points.includes(NO_TRICKS), { score: lure.score, points: lurePlain.points });
+  check("weak-lure-not-no-tricks", engine.resultBand(lure) === "unverified" && lure.signals.some((s) => s.id === "lure-domain") && !lurePlain.points.includes(NO_TRICKS), { score: lure.score, points: lurePlain.points });
   const plainShop = engine.plainSummary(engine.analyzeLink("https://oakandhoney-candles.com/shop/autumn"));
   check("clean-link-no-tricks", plainShop.points[0] === NO_TRICKS, plainShop.points);
   const httpSite = engine.plainSummary(engine.analyzeLink("http://cornerbakery-jlt.ae/menu"));

@@ -510,9 +510,10 @@ function verdictFromScore(score,uncertain=false){
 // The one rule for "CAN'T CONFIRM" on a link, shared by the page's headline,
 // the scan-list tag, the plain summary and the tests so they never disagree.
 // Labelling only: the score and the 32 line are untouched. A link below 32 on
-// an unknown domain is a decisive LOW RISK unless it is genuinely borderline:
-// close to the line (26-31) AND carrying a deception or impersonation sign
-// (look-alike spelling, lure words in the domain, a disguised destination).
+// an unknown domain is a decisive LOW RISK unless the address itself carries a
+// deception or impersonation sign (look-alike spelling, payment/gift/brand lure
+// words in the domain, a disguised destination), at any score below 32: a green
+// answer on a lure domain like "brand-gift-pay.com" would be the wrong signal.
 // Transport or structure notes alone, like "no HTTPS", never qualify, and
 // neither does "authority-word": an ordinary trade word such as "immigration"
 // or "traffic" in a law firm's or analytics tool's name, with no fine or fee.
@@ -520,7 +521,10 @@ function verdictFromScore(score,uncertain=false){
 // link at 32+ (a strong sign such as a copied brand name, or localScore from
 // Analysis AI) and only the AI's reading pulled it under the line. Rules and
 // AI disagree there, so a green LOW RISK would contradict the evidence shown.
+// Words that only appear in the page path ("/billing", "/tax", "/track") are common on
+// real sites too, so on their own they only count close to the line.
 const CAUTION_FLOOR=26;
+const CAUTION_PATH_ONLY=["lure-path","delivery-path","toll-path"];
 const CAUTION_CATEGORIES=["deception","impersonation"];
 const CAUTION_IGNORED=["authority-word"];
 function linkNeedsCaution(result){
@@ -529,8 +533,7 @@ function linkNeedsCaution(result){
   if(score>=SCAM_THRESHOLD)return false;
   const signals=Array.isArray(result.signals)?result.signals:[];
   if((Number(result.localScore)||0)>=SCAM_THRESHOLD||signals.some(item=>item&&item.strong))return true;
-  if(score<CAUTION_FLOOR)return false;
-  return signals.some(item=>item&&CAUTION_CATEGORIES.includes(item.category)&&!CAUTION_IGNORED.includes(item.id));
+  return signals.some(item=>item&&CAUTION_CATEGORIES.includes(item.category)&&!CAUTION_IGNORED.includes(item.id)&&(score>=CAUTION_FLOOR||!CAUTION_PATH_ONLY.includes(item.id)));
 }
 // Signals that say nothing about a trick in the address itself: no HTTPS, no
 // scheme typed, or an ordinary sign-in path (each has its own plain line).
