@@ -28,6 +28,11 @@ async function getUser(userId) {
   }
 }
 
+// Case titles are typed by the user, so they are escaped before going into the email HTML.
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+}
+
 async function sendCheckinEmail(email, caseTitle, caseId, siteUrl) {
   const apiKey = env("RESEND_API_KEY");
   if (!apiKey || !email) return false;
@@ -53,7 +58,7 @@ async function sendCheckinEmail(email, caseTitle, caseId, siteUrl) {
                 <h1 style="color:#eaf6ff;font-size:20px;margin:0 0 10px 0;">How's your recovery going?</h1>
                 <p style="color:#8ea5b8;font-size:14px;line-height:1.6;margin:0 0 22px 0;">
                   It's been a little while since you updated your case
-                  <strong style="color:#eaf6ff;">"${caseTitle}"</strong>.
+                  <strong style="color:#eaf6ff;">"${escapeHtml(caseTitle)}"</strong>.
                   If you've made progress on the recommended steps, let us know
                   so we can adjust your plan and check what's left to secure.
                 </p>
