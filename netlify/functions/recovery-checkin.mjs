@@ -8,7 +8,10 @@ function env(name) {
   }
 }
 
-async function getUserEmail(userId) {
+// The owner's email plus their Recovery email preference. The account panel
+// stores it in user_metadata.recovery_emails: missing or true = on (the
+// default), false = off until the user turns it back on.
+async function getUser(userId) {
   try {
     const { url, serviceKey } = { url: env("SUPABASE_URL"), serviceKey: env("SUPABASE_SERVICE_ROLE_KEY") || env("SUPABASE_SECRET_KEY") };
     const response = await fetch(`${url}/auth/v1/admin/users/${encodeURIComponent(userId)}`, {
@@ -16,10 +19,18 @@ async function getUserEmail(userId) {
     });
     if (!response.ok) return null;
     const data = await response.json();
-    return data?.email || null;
+    return {
+      email: data?.email || null,
+      recoveryEmailsOff: data?.user_metadata?.recovery_emails === false
+    };
   } catch {
     return null;
   }
+}
+
+// Case titles are typed by the user, so they are escaped before going into the email HTML.
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 }
 
 async function sendCheckinEmail(email, caseTitle, caseId, siteUrl) {
@@ -47,12 +58,13 @@ async function sendCheckinEmail(email, caseTitle, caseId, siteUrl) {
                 <h1 style="color:#eaf6ff;font-size:20px;margin:0 0 10px 0;">How's your recovery going?</h1>
                 <p style="color:#8ea5b8;font-size:14px;line-height:1.6;margin:0 0 22px 0;">
                   It's been a little while since you updated your case
-                  <strong style="color:#eaf6ff;">"${caseTitle}"</strong>.
+                  <strong style="color:#eaf6ff;">"${escapeHtml(caseTitle)}"</strong>.
                   If you've made progress on the recommended steps, let us know
                   so we can adjust your plan and check what's left to secure.
                 </p>
                 <a href="${caseUrl}" style="display:inline-block;background:#22d3ee;color:#04141c;font-weight:700;font-size:14px;text-decoration:none;padding:13px 28px;border-radius:10px;">Update My Case</a>
                 <p style="color:#5b6b7a;font-size:11px;margin-top:22px;">You're receiving this because you have an open Recovery case on a Pro or Business CyberNet AI account.</p>
+                <p style="color:#5b6b7a;font-size:11px;margin-top:6px;">You can turn these emails off any time in your CyberNet AI account settings.</p>
               </td></tr>
             </table>
           </div>
@@ -73,11 +85,11 @@ async function checkinForPlan(plan, thresholdMinutes, siteUrl) {
   );
   if (!profilesRes.ok) {
     console.error(`CyberNet recovery-checkin ${plan} profiles query failed`, await profilesRes.text().catch(() => ""));
-    return { checked: 0, sent: 0 };
+    return { checked: 0, sent: 0, skipped: 0 };
   }
   const users = await profilesRes.json();
   const userIds = users.map((p) => p.id).filter(Boolean);
-  if (!userIds.length) return { checked: 0, sent: 0 };
+  if (!userIds.length) return { checked: 0, sent: 0, skipped: 0 };
 
   const idList = userIds.join(",");
   const casesRes = await serviceFetch(
@@ -89,28 +101,43 @@ async function checkinForPlan(plan, thresholdMinutes, siteUrl) {
 
   if (!casesRes.ok) {
     console.error(`CyberNet recovery-checkin ${plan} cases query failed`, await casesRes.text().catch(() => ""));
-    return { checked: 0, sent: 0 };
+    return { checked: 0, sent: 0, skipped: 0 };
   }
 
   const cases = await casesRes.json();
   let sent = 0;
+  let skipped = 0;
+
+  const markCheckedIn = (caseId) => serviceFetch(`/rest/v1/recovery_cases?id=eq.${encodeURIComponent(caseId)}`, {
+    method: "PATCH",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({ last_checkin_sent_at: new Date().toISOString() })
+  });
 
   for (const item of cases) {
-    const email = await getUserEmail(item.owner_user_id);
-    if (!email) continue;
+    const user = await getUser(item.owner_user_id);
+    if (!user) continue;
 
-    const ok = await sendCheckinEmail(email, item.case_title || "Recovery Case", item.id, siteUrl);
+    // Turned off in the account panel: no email, but the case is marked the
+    // same way as after a send so it is not retried every 15 minutes. Once the
+    // user turns emails back on, the next check-in follows the usual rules.
+    if (user.recoveryEmailsOff) {
+      skipped += 1;
+      console.log(`CyberNet recovery-checkin ${plan} case ${item.id} skipped: recovery emails turned off`);
+      await markCheckedIn(item.id);
+      continue;
+    }
+
+    if (!user.email) continue;
+
+    const ok = await sendCheckinEmail(user.email, item.case_title || "Recovery Case", item.id, siteUrl);
     if (ok) {
       sent += 1;
-      await serviceFetch(`/rest/v1/recovery_cases?id=eq.${encodeURIComponent(item.id)}`, {
-        method: "PATCH",
-        headers: { Prefer: "return=minimal" },
-        body: JSON.stringify({ last_checkin_sent_at: new Date().toISOString() })
-      });
+      await markCheckedIn(item.id);
     }
   }
 
-  return { checked: cases.length, sent };
+  return { checked: cases.length, sent, skipped };
 }
 
 export default async () => {

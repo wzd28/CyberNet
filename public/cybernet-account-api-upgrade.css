@@ -122,6 +122,127 @@
   overflow-wrap:anywhere;
 }
 
+.cybernet-account-notify[hidden]{
+  display:none;
+}
+
+.cybernet-notify-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+}
+
+.cybernet-notify-copy{
+  min-width:0;
+}
+
+.cybernet-notify-copy label{
+  display:block;
+  color:var(--text,#eaf3fb);
+  font-size:15px;
+  font-weight:700;
+  line-height:1.5;
+  cursor:pointer;
+}
+
+.cybernet-notify-copy p{
+  margin:2px 0 0;
+  color:var(--muted,#7d93ad);
+  font-size:12px;
+  line-height:1.55;
+}
+
+.cybernet-switch{
+  position:relative;
+  flex:0 0 auto;
+  width:46px;
+  height:26px;
+}
+
+.cybernet-switch input{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  margin:0;
+  opacity:0;
+  cursor:pointer;
+  z-index:1;
+}
+
+.cybernet-switch input[aria-disabled="true"]{
+  cursor:wait;
+}
+
+.cybernet-switch-track{
+  position:absolute;
+  inset:0;
+  border:1px solid var(--glass-border,rgba(56,189,248,.16));
+  border-radius:999px;
+  background:rgba(255,255,255,.06);
+  transition:background .2s ease,border-color .2s ease;
+}
+
+.cybernet-switch-track::after{
+  content:"";
+  position:absolute;
+  top:3px;
+  left:3px;
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  background:var(--muted,#7d93ad);
+  transition:transform .2s ease,background .2s ease;
+}
+
+.cybernet-switch input:checked + .cybernet-switch-track{
+  border-color:rgba(34,211,238,.5);
+  background:rgba(34,211,238,.22);
+}
+
+.cybernet-switch input:checked + .cybernet-switch-track::after{
+  transform:translateX(20px);
+  background:#22d3ee;
+  box-shadow:0 0 10px rgba(34,211,238,.6);
+}
+
+.cybernet-switch input:focus-visible + .cybernet-switch-track{
+  outline:2px solid var(--green-bright,#a5f0ff);
+  outline-offset:2px;
+}
+
+.cybernet-switch input[aria-disabled="true"] + .cybernet-switch-track{
+  opacity:.6;
+}
+
+.cybernet-notify-warning{
+  margin:10px 0 0;
+  color:rgba(255,207,107,.78);
+  font-size:11.5px;
+  line-height:1.55;
+}
+
+.cybernet-notify-status{
+  color:var(--muted,#7d93ad);
+  font-size:12px;
+  line-height:1.5;
+}
+
+.cybernet-notify-status:not(:empty){
+  margin-top:6px;
+}
+
+.cybernet-notify-status.error{color:var(--danger,#ff6b6b)}
+.cybernet-notify-status.success{color:var(--safe,#34d399)}
+
+@media (prefers-reduced-motion:reduce){
+  .cybernet-switch-track,
+  .cybernet-switch-track::after{
+    transition:none;
+  }
+}
+
 .cybernet-account-plan{
   display:flex!important;
   align-items:center;

@@ -222,6 +222,34 @@
             </strong>
           </div>
 
+          <div class="cybernet-account-item wide cybernet-account-notify"
+               id="accountNotifySection"
+               role="group"
+               aria-labelledby="accountNotifyHeading"
+               hidden>
+            <span id="accountNotifyHeading">Notifications</span>
+            <div class="cybernet-notify-row">
+              <div class="cybernet-notify-copy">
+                <label for="accountRecoveryEmailsToggle"
+                       id="accountRecoveryEmailsLabel">Recovery Mode emails</label>
+                <p id="accountRecoveryEmailsHint">Updates and reminders about your Recovery cases.</p>
+              </div>
+              <span class="cybernet-switch">
+                <input type="checkbox"
+                       role="switch"
+                       id="accountRecoveryEmailsToggle"
+                       aria-labelledby="accountRecoveryEmailsLabel"
+                       aria-describedby="accountRecoveryEmailsHint accountRecoveryEmailsWarning"
+                       checked />
+                <span class="cybernet-switch-track" aria-hidden="true"></span>
+              </span>
+            </div>
+            <p class="cybernet-notify-warning" id="accountRecoveryEmailsWarning">If you turn this off, it stays off until you turn it back on, and you won't get any emails about your Recovery cases.</p>
+            <div class="cybernet-notify-status"
+                 id="accountRecoveryEmailsStatus"
+                 aria-live="polite"></div>
+          </div>
+
         </div>
 
         <div class="cybernet-account-actions">
@@ -455,6 +483,9 @@
     const upgradeButton = document.getElementById("accountUpgradeBtn");
     const manageButton = document.getElementById("accountManageBillingBtn");
     const message = document.getElementById("accountDetailsMessage");
+    const notifySection = document.getElementById("accountNotifySection");
+    const recoveryEmailsToggle = document.getElementById("accountRecoveryEmailsToggle");
+    const recoveryEmailsStatus = document.getElementById("accountRecoveryEmailsStatus");
 
     const keyInput = document.getElementById("cybernetVisitorApiKey");
     const keyShow = document.getElementById("cybernetByokShow");
@@ -470,6 +501,160 @@
       if (!message) return;
       message.textContent = text;
       message.className = `cybernet-account-message ${tone}`.trim();
+    }
+
+    // Recovery Mode emails preference, kept in the user's auth metadata as
+    // recovery_emails: missing or true = on (the default), false = off.
+    let notifySaving = false;
+    let notifySavingValue = null;
+    let notifyUserId = null;
+    // Newest known value for the signed-in user: set by a finished save, by the
+    // auth server (getUser when the panel opens) and by USER_UPDATED /
+    // TOKEN_REFRESHED. A render from an older session copy, such as a slow
+    // account-status request that started before a save, cannot undo it.
+    let notifyKnown = null;
+    let notifyGen = 0;
+
+    function rememberNotify(user, enabled) {
+      if (!user?.id) return;
+      notifyKnown = {
+        userId: user.id,
+        enabled: typeof enabled === "boolean"
+          ? enabled
+          : user.user_metadata?.recovery_emails !== false
+      };
+    }
+
+    function notifyEnabledFor(user) {
+      if (notifyKnown && notifyKnown.userId === user.id) return notifyKnown.enabled;
+      return user.user_metadata?.recovery_emails !== false;
+    }
+
+    function setNotifySaving(saving, value = null) {
+      notifySaving = saving;
+      notifySavingValue = saving ? value : null;
+      // aria-disabled instead of disabled: disabling the focused input would
+      // drop keyboard and screen-reader focus to the page body mid-save.
+      if (saving) {
+        recoveryEmailsToggle.setAttribute("aria-disabled", "true");
+      } else {
+        recoveryEmailsToggle.removeAttribute("aria-disabled");
+      }
+    }
+
+    function setNotifyStatus(text = "", tone = "") {
+      if (!recoveryEmailsStatus) return;
+      recoveryEmailsStatus.textContent = text;
+      recoveryEmailsStatus.className = `cybernet-notify-status ${tone}`.trim();
+    }
+
+    function renderNotifications(session) {
+      if (!notifySection || !recoveryEmailsToggle) return;
+      const user = session?.user || null;
+
+      if (!user) {
+        notifySection.hidden = true;
+        notifyUserId = null;
+        notifyKnown = null;
+        setNotifyStatus();
+        return;
+      }
+
+      if (notifyUserId !== user.id) {
+        notifyUserId = user.id;
+        setNotifyStatus();
+      }
+
+      notifySection.hidden = false;
+      if (!notifySaving) {
+        recoveryEmailsToggle.checked = notifyEnabledFor(user);
+      }
+    }
+
+    // The stored session only changes on sign-in, a save in this browser or a
+    // token refresh, so ask the auth server for the value saved elsewhere.
+    async function refreshNotifyFromServer(userId) {
+      if (!client?.auth?.getUser || !userId) return;
+      const gen = notifyGen;
+
+      try {
+        const { data, error } = await client.auth.getUser();
+        const user = data?.user;
+        if (error || !user || user.id !== userId) return;
+        if (notifySaving || gen !== notifyGen || notifyUserId !== userId) return;
+
+        rememberNotify(user);
+        recoveryEmailsToggle.checked = notifyKnown.enabled;
+      } catch {
+        // Keep the value from the stored session.
+      }
+    }
+
+    function blockToggleWhileSaving(event) {
+      if (notifySaving) event.preventDefault();
+    }
+
+    async function saveRecoveryEmails() {
+      if (!recoveryEmailsToggle) return;
+      if (notifySaving) {
+        recoveryEmailsToggle.checked = notifySavingValue;
+        return;
+      }
+      const enabled = recoveryEmailsToggle.checked;
+
+      if (!client) {
+        recoveryEmailsToggle.checked = !enabled;
+        setNotifyStatus("Account services are unavailable right now. Please try again.", "error");
+        return;
+      }
+
+      notifyGen += 1;
+      setNotifySaving(true, enabled);
+      setNotifyStatus("Saving…");
+
+      try {
+        const session = await getSession();
+
+        if (!session) {
+          recoveryEmailsToggle.checked = !enabled;
+          setNotifyStatus();
+          closeAccount();
+          openExistingAuth();
+          return;
+        }
+
+        const { data, error } = await client.auth.updateUser({
+          data: { recovery_emails: enabled }
+        });
+
+        if (error) throw error;
+
+        // Keep this page's copies of the user in step with the saved value.
+        const synced = {
+          ...(session.user?.user_metadata || {}),
+          ...(data?.user?.user_metadata || {}),
+          recovery_emails: enabled
+        };
+        [session.user, currentSession?.user, window.CyberNetAccount?.appState?.user]
+          .forEach(user => {
+            if (user && user.id === session.user?.id) user.user_metadata = { ...synced };
+          });
+        rememberNotify(session.user, enabled);
+
+        recoveryEmailsToggle.checked = enabled;
+        setNotifyStatus(
+          enabled ? "Saved. Recovery Mode emails are on." : "Saved. Recovery Mode emails are off.",
+          "success"
+        );
+      } catch (error) {
+        recoveryEmailsToggle.checked = !enabled;
+        setNotifyStatus(
+          error?.message || "Could not save your email preference. Please try again.",
+          "error"
+        );
+      } finally {
+        setNotifySaving(false);
+      }
     }
 
     function setKeyMessage(text = "", tone = "") {
@@ -614,6 +799,8 @@
       const usageEl = document.getElementById("accountDetailUsage");
       const usageBar = document.getElementById("accountDetailUsageBar");
 
+      renderNotifications(session);
+
       if (nameEl) nameEl.textContent = name;
       if (emailEl) emailEl.textContent = email;
       if (planEl) planEl.textContent = details.label;
@@ -748,6 +935,8 @@
         return;
       }
 
+      renderNotifications(session);
+      refreshNotifyFromServer(session.user?.id);
       modal?.classList.add("show");
       modal?.setAttribute("aria-hidden", "false");
       document.body.style.overflow = "hidden";
@@ -937,6 +1126,8 @@
     signOutButton?.addEventListener("click", signOut);
     upgradeButton?.addEventListener("click", openPricing);
     manageButton?.addEventListener("click", openBillingPortal);
+    recoveryEmailsToggle?.addEventListener("click", blockToggleWhileSaving);
+    recoveryEmailsToggle?.addEventListener("change", saveRecoveryEmails);
 
     modal?.addEventListener("click", event => {
       if (event.target === modal) closeAccount();
@@ -988,6 +1179,12 @@
           closeAccount();
           setKeyConnected(false);
         }
+
+        if (event === "USER_UPDATED" || event === "TOKEN_REFRESHED") {
+          rememberNotify(session?.user);
+        }
+
+        renderNotifications(session);
 
         if (session) {
           setTimeout(() => refreshAccount({ quiet: true }), 250);
