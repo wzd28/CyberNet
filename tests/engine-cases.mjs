@@ -1,8 +1,10 @@
 // Labelled inputs for the detection engine. Every case runs through the
 // shared rules (what Quick Scan shows) and through the server's deterministic
 // layer (what Analysis AI starts from before the AI). "scam" means the page
-// shows SCAM (score 32 or more), "safe" means NOT A SCAM, "unverified" means a
-// bare link from a domain nobody has vouched for ("COULDN'T VERIFY").
+// shows SCAM (score 32 or more), "safe" means NOT A SCAM (or LOW RISK for a
+// link on an unknown domain), "unverified" means CAN'T CONFIRM: only a
+// borderline link, 26-31 with a deception or impersonation sign
+// (CyberNetEngine.linkNeedsCaution).
 //
 // Add a case whenever a real message fools the engine; keep the input close
 // to what people actually receive. Never put real people's details here.
@@ -59,8 +61,8 @@ export const CASES = [
   { id: "dewa-official", type: "link", expect: "safe", input: "https://www.dewa.gov.ae/en/consumer/billing" },
 
   // ── Bare links from unknown domains: not proven safe, not proven a scam ──
-  { id: "unknown-shop", type: "link", expect: "unverified", input: "https://my-random-shop.com/product/42" },
-  { id: "unknown-blog", type: "link", expect: "unverified", input: "https://travel-notes-blog.net/2026/09/lisbon" },
-  { id: "policy-site", type: "link", expect: "unverified", input: "https://policy-review.org/about" },
-  { id: "taxi-site", type: "link", expect: "unverified", input: "https://dubai-taxi.com/book" },
+  { id: "unknown-shop", type: "link", expect: "safe", input: "https://my-random-shop.com/product/42" },
+  { id: "unknown-blog", type: "link", expect: "safe", input: "https://travel-notes-blog.net/2026/09/lisbon" },
+  { id: "policy-site", type: "link", expect: "safe", input: "https://policy-review.org/about" },
+  { id: "taxi-site", type: "link", expect: "safe", input: "https://dubai-taxi.com/book" },
 ];

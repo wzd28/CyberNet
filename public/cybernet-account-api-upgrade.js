@@ -814,7 +814,7 @@
         usageEl.textContent =
           `${used} of ${limit} used today • ${remaining} remaining`;
       }
-      if (usageBar) usageBar.style.width = `${percent}%`;
+      if (usageBar) usageBar.style.transform = `scaleX(${percent / 100})`;
 
       // Billing belongs to whoever pays: a Business team member (not the owner)
       // has no subscription of their own to manage.

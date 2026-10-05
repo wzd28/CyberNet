@@ -1158,10 +1158,12 @@ document.addEventListener("DOMContentLoaded",()=>{
       Detection scoring, weights and thresholds are unchanged.
     */
     if(score>=32)return{label:"Scam",headline:"SCAM",css:"danger"};
-    // A bare link from a domain nobody has vouched for is not evidence of
-    // safety: the same link inside its message may well read as a scam. Say
-    // that plainly instead of a "NOT A SCAM" the message would contradict.
-    if(meta&&meta.kind==="link"&&!meta.officialBrand)return{label:"Can't Confirm",headline:"CAN'T CONFIRM",css:"uncertain"};
+    // A link on a domain nobody has vouched for reads LOW RISK: a decisive
+    // answer, not a "NOT A SCAM" the message around it could contradict.
+    // CAN'T CONFIRM is kept for the genuinely borderline link only, by the
+    // one shared rule (CyberNetEngine.linkNeedsCaution). The AI's own
+    // "inconclusive" verdict does not change the label: it follows the score.
+    if(meta&&meta.kind==="link"&&!meta.officialBrand)return window.CyberNetEngine.linkNeedsCaution({...meta,score})?{label:"Can't Confirm",headline:"CAN'T CONFIRM",css:"uncertain"}:{label:"Low Risk",headline:"LOW RISK",css:"safe"};
     return{label:"Not A Scam",headline:"NOT A SCAM",css:"safe"};
   }
 
@@ -1395,7 +1397,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     // from 60 (display only, thresholds unchanged).
     if(result.score>=60)return{label:"Scam",cls:"risk-tag-danger"};
     if(result.score>=32)return{label:"Scam",cls:"risk-tag-warning"};
-    if(result.kind==="link"&&!result.officialBrand)return{label:"Can't Confirm",cls:"risk-tag-warning"};
+    if(result.kind==="link"&&!result.officialBrand)return window.CyberNetEngine.linkNeedsCaution(result)?{label:"Can't Confirm",cls:"risk-tag-warning"}:{label:"Low Risk",cls:"risk-tag-safe"};
     return{label:"Low Visible Risk",cls:"risk-tag-safe"};
   }
 

@@ -6,7 +6,9 @@
 // legitimate links that must NOT be flagged. All sample data is made up.
 //
 // Labels: "scam" = page shows SCAM (score 32+), "safe" = NOT A SCAM on a
-// vouched-for domain, "unverified" = bare link on an unknown domain.
+// vouched-for domain or LOW RISK on an unknown one, "unverified" = CAN'T
+// CONFIRM, kept for the borderline link only (26-31 with a deception or
+// impersonation sign; CyberNetEngine.linkNeedsCaution).
 export const CASES = [
   // ── Brand look-alikes and brand names in the wrong place ──
   { id: "google-brand-in-subdomain", type: "link", expect: "scam", input: "https://accounts.google.com.session-check.net/signin", note: "The real-looking accounts.google.com is only a subdomain of session-check.net" },
@@ -54,15 +56,26 @@ export const CASES = [
   { id: "gov-cy-police", type: "link", expect: "safe", input: "https://www.police.gov.cy/en/news", note: "Real Cyprus Police site" },
   { id: "gov-sa-portal", type: "link", expect: "safe", input: "https://www.my.gov.sa/wps/portal/snp/main", note: "Saudi national portal" },
 
-  // ── Ordinary unknown domains: COULDN'T VERIFY, never SCAM ──
-  { id: "bakery-menu", type: "link", expect: "unverified", input: "https://sunrise-bakery-dubai.com/menu" },
-  { id: "school-parent-portal-login", type: "link", expect: "unverified", input: "https://portal.brightfuture-school.com/parents/login", note: "A school login page is normal; nobody has vouched for the domain" },
-  { id: "taxfoundation-research", type: "link", expect: "unverified", input: "https://taxfoundation.org/research/federal-tax/", note: "tax inside a longer word, tax in the path; a think tank, not a fine notice" },
-  { id: "pineapple-bakery", type: "link", expect: "unverified", input: "https://pineapple-bakery.com/menu", note: "apple inside pineapple is not Apple" },
-  { id: "upstream-media", type: "link", expect: "unverified", input: "https://upstream-media.co/portfolio", note: "Ordinary agency site on a .co domain" },
-  { id: "traffic-analytics-tool", type: "link", expect: "unverified", input: "https://traffic-analytics-tool.io/docs", note: "Web-traffic analytics, not traffic fines" },
-  { id: "immigration-lawyers", type: "link", expect: "unverified", input: "https://immigration-lawyers-dubai.com/contact", note: "A law firm's contact page; immigration is its trade, not an authority claim" },
-  { id: "french-cooking-blog", type: "link", expect: "unverified", input: "https://www.blog-de-cuisine.fr/recettes/tarte-aux-pommes" },
-  { id: "nursery-fees-no-scheme", type: "link", expect: "unverified", input: "www.greenvalley-nursery.ae/fees", note: "A fees page on a nursery site, pasted without https://" },
-  { id: "payroll-software-reviews", type: "link", expect: "unverified", input: "https://payroll-software-reviews.com/compare", note: "pay is a prefix of payroll, not a lure word" },
+  // ── Ordinary unknown domains: LOW RISK, never SCAM or CAN'T CONFIRM ──
+  { id: "bakery-menu", type: "link", expect: "safe", input: "https://sunrise-bakery-dubai.com/menu" },
+  { id: "school-parent-portal-login", type: "link", expect: "safe", input: "https://portal.brightfuture-school.com/parents/login", note: "A school login page is normal; nobody has vouched for the domain" },
+  { id: "taxfoundation-research", type: "link", expect: "safe", input: "https://taxfoundation.org/research/federal-tax/", note: "tax inside a longer word, tax in the path; a think tank, not a fine notice" },
+  { id: "pineapple-bakery", type: "link", expect: "safe", input: "https://pineapple-bakery.com/menu", note: "apple inside pineapple is not Apple" },
+  { id: "upstream-media", type: "link", expect: "safe", input: "https://upstream-media.co/portfolio", note: "Ordinary agency site on a .co domain" },
+  { id: "traffic-analytics-tool", type: "link", expect: "safe", input: "https://traffic-analytics-tool.io/docs", note: "Web-traffic analytics, not traffic fines" },
+  { id: "immigration-lawyers", type: "link", expect: "safe", input: "https://immigration-lawyers-dubai.com/contact", note: "A law firm's contact page; immigration is its trade, not an authority claim" },
+  { id: "french-cooking-blog", type: "link", expect: "safe", input: "https://www.blog-de-cuisine.fr/recettes/tarte-aux-pommes" },
+  { id: "nursery-fees-no-scheme", type: "link", expect: "safe", input: "www.greenvalley-nursery.ae/fees", note: "A fees page on a nursery site, pasted without https://" },
+  { id: "payroll-software-reviews", type: "link", expect: "safe", input: "https://payroll-software-reviews.com/compare", note: "pay is a prefix of payroll, not a lure word" },
+
+  // ── When CAN'T CONFIRM shows: only the genuinely borderline link ──
+  { id: "plain-unknown-https-shop", type: "link", expect: "safe", input: "https://oakandhoney-candles.com/shop/autumn", note: "Ordinary shop on an unknown domain: LOW RISK" },
+  { id: "unknown-http-no-lure", type: "link", expect: "safe", input: "http://cornerbakery-jlt.ae/menu", note: "No HTTPS is a note, not a deception sign: LOW RISK" },
+  { id: "unknown-http-no-scheme-structure", type: "link", expect: "safe", input: "http://kids-art-club-sharjah.org/timetable", note: "http plus a few dashes, nothing deceptive" },
+  { id: "borderline-lure-domain-no-scheme", type: "link", expect: "unverified", input: "myaccount-verify.net/home", note: "Two lure words in the domain, just under 32: CAN'T CONFIRM" },
+  { id: "borderline-lure-domain-https", type: "link", expect: "unverified", input: "https://secure-login.net/", note: "secure + login in the domain itself, score in 26-31" },
+  { id: "lure-domain-at-scam-line", type: "link", expect: "scam", input: "https://secure-login-verify.com/", note: "Three lure words reach 32: SCAM" },
+  { id: "official-brand-root", type: "link", expect: "safe", input: "https://www.emiratesnbd.com/en", note: "Vouched brand domain: NOT A SCAM" },
+  { id: "uae-portal-unlisted", type: "link", expect: "safe", input: "https://u.ae/en/information-and-services", note: "u.ae is not in the registry list, so it reads LOW RISK, not CAN'T CONFIRM" },
+  { id: "government-gov-domain", type: "link", expect: "safe", input: "https://www.moe.gov.ae/en/pages/home.aspx", note: "Ministry on gov.ae: NOT A SCAM" },
 ];

@@ -460,7 +460,8 @@ function analyzeLinkRules(rawLink){
     "A structural scan cannot prove a page is safe without live reputation and destination-content checks."
   ];
   const verdict=verdictFromScore(score,uncertain);
-  return{kind:"link",officialBrand:officialBrand?officialBrand[1]:"",signals:state.signalList,categories:[...state.categories],strong:state.strong,score,scamType:state.types.at(-1)||(uncertain?"Unverified link":officialBrand?"Official-looking domain structure":"No dominant URL threat type"),reasons:state.reasons,counterEvidence,advice,uncertain,confidence,verdict,sources:["Local URL engine"],registeredDomain:registered,note:uncertain?"CyberNet AI could not confirm this link is safe, so treat it as unsafe. Don't open it — go to the organization's official website directly instead.":officialBrand?"The visible domain matches a known official domain, but this does not verify the sender, page content, redirects, or account context.":"CyberNet AI evaluated the URL scheme, registered domain, lookalike patterns, path, query parameters, redirects, downloads, and brand impersonation."};
+  const caution=linkNeedsCaution({kind:"link",officialBrand:officialBrand?officialBrand[1]:"",score,signals:state.signalList});
+  return{kind:"link",officialBrand:officialBrand?officialBrand[1]:"",signals:state.signalList,categories:[...state.categories],strong:state.strong,score,scamType:state.types.at(-1)||(uncertain?"Unverified link":officialBrand?"Official-looking domain structure":"No dominant URL threat type"),reasons:state.reasons,counterEvidence,advice,uncertain,confidence,verdict,sources:["Local URL engine"],registeredDomain:registered,note:caution?"CyberNet AI could not confirm this link is safe, so treat it as unsafe. Don't open it — go to the organization's official website directly instead.":officialBrand?"The visible domain matches a known official domain, but this does not verify the sender, page content, redirects, or account context.":"CyberNet AI evaluated the URL scheme, registered domain, lookalike patterns, path, query parameters, redirects, downloads, and brand impersonation."};
 }
 
 function analyzeImageRules(file,details={}){
@@ -504,6 +505,31 @@ function verdictFromScore(score,uncertain=false){
   if(value>=75)return "malicious";
   if(value>=SCAM_THRESHOLD)return "suspicious";
   return "low_risk";
+}
+
+// The one rule for "CAN'T CONFIRM" on a link, shared by the page's headline,
+// the scan-list tag, the plain summary and the tests so they never disagree.
+// Labelling only: the score and the 32 line are untouched. A link below 32 on
+// an unknown domain is a decisive LOW RISK unless it is genuinely borderline:
+// close to the line (26-31) AND carrying a deception or impersonation sign
+// (look-alike spelling, lure words in the domain, a disguised destination).
+// Transport or structure notes alone, like "no HTTPS", never qualify, and
+// neither does "authority-word": an ordinary trade word such as "immigration"
+// or "traffic" in a law firm's or analytics tool's name, with no fine or fee.
+const CAUTION_FLOOR=26;
+const CAUTION_CATEGORIES=["deception","impersonation"];
+const CAUTION_IGNORED=["authority-word"];
+function linkNeedsCaution(result){
+  if(!result||result.kind!=="link"||result.officialBrand)return false;
+  const score=Number(result.score)||0;
+  if(score<CAUTION_FLOOR||score>=SCAM_THRESHOLD)return false;
+  return (Array.isArray(result.signals)?result.signals:[]).some(item=>item&&CAUTION_CATEGORIES.includes(item.category)&&!CAUTION_IGNORED.includes(item.id));
+}
+// "scam" (32+), "unverified" (the borderline link rule above) or "safe"
+// (NOT A SCAM, or LOW RISK for an ordinary link on an unknown domain).
+function resultBand(result){
+  if((Number(result&&result.score)||0)>=SCAM_THRESHOLD)return "scam";
+  return linkNeedsCaution(result)?"unverified":"safe";
 }
 
 // Plain-language reading of a result: one lead sentence, up to three reasons
@@ -560,14 +586,18 @@ function plainSummary(result,options={}){
   const score=Number(result?.score)||0;
   const isLink=result?.kind==="link";
   const scam=score>=SCAM_THRESHOLD;
-  const unverified=isLink&&!scam&&!result?.officialBrand;
+  const unverified=!scam&&linkNeedsCaution({...result,score});
+  const lowRiskLink=isLink&&!scam&&!unverified&&!result?.officialBrand;
   const points=[];
-  if(scam){
+  const collect=(limit)=>{
     for(const point of PLAIN_POINTS){
       if(point.unless&&point.unless.some(matches))continue;
       if(point.ids.some(matches)&&!points.includes(point.text))points.push(point.text);
-      if(points.length>=3)break;
+      if(points.length>=limit)break;
     }
+  };
+  if(scam){
+    collect(3);
     // The AI can flag something the rules have no pattern for; its own words
     // then carry the summary.
     if(!points.length&&options.fallbackText){
@@ -585,14 +615,29 @@ function plainSummary(result,options={}){
     };
   }
   if(unverified){
+    // Borderline: one sign of a disguised or copied address, close to the line.
+    collect(1);
     return{
       lead:"We can’t tell yet if this website is real.",
       points:[
-        "No known scam tricks in the address, but that does not prove the site is real.",
+        ...(points.length?points:["The address has one sign that scam sites use, but not enough to call it a scam."]),
         "Scams usually show in the message around a link. Paste the whole message for a better check."
       ],
       action:"Only open it if you were expecting it, and never type passwords or card details there.",
       scam:false,unverified:true
+    };
+  }
+  if(lowRiskLink){
+    const note=matches("http")
+      ?"It doesn’t use a secure connection (HTTPS), so don’t type passwords or card details there."
+      :matches("credential-path")
+      ?"It opens a sign-in or account page, so only sign in if you went there yourself."
+      :"";
+    return{
+      lead:"We didn’t find strong scam signs in this link.",
+      points:["The address has no known scam tricks.",...(note?[note]:[]),"If it came in a message, paste the whole message for the best check."],
+      action:"Open it only if you were expecting it.",
+      scam:false,unverified:false,lowRisk:true
     };
   }
   return{
@@ -628,6 +673,8 @@ return {
   unique,
   SCAM_THRESHOLD,
   verdictFromScore,
+  linkNeedsCaution,
+  resultBand,
   plainSummary,
 };
 });

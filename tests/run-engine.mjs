@@ -62,16 +62,20 @@ const build = spawnSync(esbuild, ["netlify/functions/analyze.mts", "--bundle", "
 if (build.status !== 0) throw new Error("esbuild failed");
 const server = await import(pathToFileURL(bundle).href + `?t=${Date.now()}`);
 
-const SCAM = engine.SCAM_THRESHOLD;
-function bandLocal(result) {
-  if (result.score >= SCAM) return "scam";
-  if (result.kind === "link" && !result.officialBrand) return "unverified";
-  return "safe";
-}
-function bandServer(result) {
-  if (result.score >= SCAM) return "scam";
-  if (result.kind === "link" && !result.officialBrand) return "unverified";
-  return "safe";
+// Bands come from the same shared rule the page uses for its headline, list
+// tag and plain summary (CyberNetEngine.resultBand / linkNeedsCaution):
+// "scam" = 32 or more, "unverified" = CAN'T CONFIRM, only for a borderline
+// link (26-31 with a deception or impersonation sign on an unknown domain),
+// "safe" = NOT A SCAM or LOW RISK.
+const bandLocal = (result) => engine.resultBand(result);
+const bandServer = (result) => engine.resultBand(result);
+
+// The plain summary must agree with the band: its "unverified" flag is set
+// exactly when the band is "unverified".
+function summaryAgrees(result) {
+  const plain = engine.plainSummary(result);
+  const band = engine.resultBand(result);
+  return plain.scam === (band === "scam") && plain.unverified === (band === "unverified");
 }
 
 let failures = 0;
@@ -85,9 +89,11 @@ for (const c of CASES.filter((c) => !only || c.id.includes(only))) {
   const okServer = gotServer === c.expect;
   // The server may be stricter than the page (its extra rules), never softer.
   const consistent = srv.score >= local.score - 1;
-  if (!okLocal || !okServer || !consistent) failures++;
-  rows.push({ id: c.id, expect: c.expect, local: `${gotLocal}/${local.score}`, server: `${gotServer}/${srv.score}`, ok: okLocal && okServer && consistent ? "ok" : `FAIL${!okLocal ? " page" : ""}${!okServer ? " server" : ""}${!consistent ? " server<page" : ""}` });
-  if (verbose || !(okLocal && okServer && consistent)) {
+  const agrees = summaryAgrees(local);
+  const pass = okLocal && okServer && consistent && agrees;
+  if (!pass) failures++;
+  rows.push({ id: c.id, expect: c.expect, local: `${gotLocal}/${local.score}`, server: `${gotServer}/${srv.score}`, ok: pass ? "ok" : `FAIL${!okLocal ? " page" : ""}${!okServer ? " server" : ""}${!consistent ? " server<page" : ""}${!agrees ? " summary" : ""}` });
+  if (verbose || !pass) {
     console.log(`\n[${c.id}] expect=${c.expect}`);
     console.log(`  page   ${gotLocal.padEnd(10)} ${String(local.score).padStart(3)}  ${local.scamType}  strong=${local.strong || 0}  signals=${(local.signals || []).map((s) => s.id).join(",")}`);
     console.log(`  server ${gotServer.padEnd(10)} ${String(srv.score).padStart(3)}  ${srv.threatType}  strong=${srv.strong || 0}`);
