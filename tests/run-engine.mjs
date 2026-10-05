@@ -99,6 +99,38 @@ for (const c of CASES.filter((c) => !only || c.id.includes(only))) {
     console.log(`  server ${gotServer.padEnd(10)} ${String(srv.score).padStart(3)}  ${srv.threatType}  strong=${srv.strong || 0}`);
   }
 }
+// Wording and Analysis AI checks on the shared rule (labelling only).
+{
+  const NO_TRICKS = "The address has no known scam tricks.";
+  // Analysis AI's merge (public/script.js mergeAnalysis) with an AI reply of
+  // the given score: the label must follow the shared rule on the merged result.
+  const merged = (local, aiScore, aiVerdict) => {
+    let score = Math.max(aiScore, Math.round(local.score * 0.34 + aiScore * 0.66));
+    if (local.score >= 60 && local.confidence >= 65) score = Math.max(score, Math.max(55, local.score - 8));
+    return { ...local, score, localScore: local.score, verdict: aiVerdict, uncertain: aiVerdict === "inconclusive" };
+  };
+  const checks = [];
+  const check = (id, ok, detail) => { checks.push({ id, ok }); if (!ok) { failures++; console.log(`\n[wording/${id}] FAIL ${JSON.stringify(detail)}`); } };
+  const lure = engine.analyzeLink("https://darb-toll-pay.com");
+  const lurePlain = engine.plainSummary(lure);
+  check("weak-lure-not-no-tricks", engine.resultBand(lure) === "safe" && lure.signals.some((s) => s.id === "lure-domain") && !lurePlain.points.includes(NO_TRICKS), { score: lure.score, points: lurePlain.points });
+  const plainShop = engine.plainSummary(engine.analyzeLink("https://oakandhoney-candles.com/shop/autumn"));
+  check("clean-link-no-tricks", plainShop.points[0] === NO_TRICKS, plainShop.points);
+  const httpSite = engine.plainSummary(engine.analyzeLink("http://cornerbakery-jlt.ae/menu"));
+  check("http-only-no-tricks-plus-https-line", httpSite.points[0] === NO_TRICKS && httpSite.points.some((p) => p.includes("HTTPS")), httpSite.points);
+  for (const url of ["https://noon-sale.store/", "https://rewards-uae.shop/"]) {
+    const local = engine.analyzeLink(url);
+    const m = merged(local, 5, "low_risk");
+    const plain = engine.plainSummary(m);
+    check(`ai-pulls-scam-under-line:${url}`, local.score >= 32 && m.score < 32 && engine.resultBand(m) === "unverified" && plain.unverified && !plain.points.includes(NO_TRICKS), { local: local.score, merged: m.score, band: engine.resultBand(m) });
+  }
+  for (const url of ["https://sunrise-bakery-dubai.com/menu", "http://cornerbakery-jlt.ae/menu", "https://portal.brightfuture-school.com/parents/login"]) {
+    const local = engine.analyzeLink(url);
+    const m = merged(local, 10, "inconclusive");
+    check(`ai-inconclusive-stays-low-risk:${url}`, engine.resultBand(m) === "safe" && engine.plainSummary(m).lowRisk === true, { local: local.score, merged: m.score, band: engine.resultBand(m) });
+  }
+  console.log(`\nwording/merge checks: ${checks.filter((c) => c.ok).length}/${checks.length} pass`);
+}
 console.log("");
 console.table(rows);
 const ran = CASES.filter((c) => !only || c.id.includes(only)).length;

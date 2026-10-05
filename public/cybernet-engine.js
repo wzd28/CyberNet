@@ -516,15 +516,25 @@ function verdictFromScore(score,uncertain=false){
 // Transport or structure notes alone, like "no HTTPS", never qualify, and
 // neither does "authority-word": an ordinary trade word such as "immigration"
 // or "traffic" in a law firm's or analytics tool's name, with no fine or fee.
+// One more case is borderline at any score below 32: the rules alone put the
+// link at 32+ (a strong sign such as a copied brand name, or localScore from
+// Analysis AI) and only the AI's reading pulled it under the line. Rules and
+// AI disagree there, so a green LOW RISK would contradict the evidence shown.
 const CAUTION_FLOOR=26;
 const CAUTION_CATEGORIES=["deception","impersonation"];
 const CAUTION_IGNORED=["authority-word"];
 function linkNeedsCaution(result){
   if(!result||result.kind!=="link"||result.officialBrand)return false;
   const score=Number(result.score)||0;
-  if(score<CAUTION_FLOOR||score>=SCAM_THRESHOLD)return false;
-  return (Array.isArray(result.signals)?result.signals:[]).some(item=>item&&CAUTION_CATEGORIES.includes(item.category)&&!CAUTION_IGNORED.includes(item.id));
+  if(score>=SCAM_THRESHOLD)return false;
+  const signals=Array.isArray(result.signals)?result.signals:[];
+  if((Number(result.localScore)||0)>=SCAM_THRESHOLD||signals.some(item=>item&&item.strong))return true;
+  if(score<CAUTION_FLOOR)return false;
+  return signals.some(item=>item&&CAUTION_CATEGORIES.includes(item.category)&&!CAUTION_IGNORED.includes(item.id));
 }
+// Signals that say nothing about a trick in the address itself: no HTTPS, no
+// scheme typed, or an ordinary sign-in path (each has its own plain line).
+const NOT_A_TRICK=["http","missing-scheme","credential-path"];
 // "scam" (32+), "unverified" (the borderline link rule above) or "safe"
 // (NOT A SCAM, or LOW RISK for an ordinary link on an unknown domain).
 function resultBand(result){
@@ -633,9 +643,13 @@ function plainSummary(result,options={}){
       :matches("credential-path")
       ?"It opens a sign-in or account page, so only sign in if you went there yourself."
       :"";
+    // Only say "no known scam tricks" when that is literally true; a weak
+    // sign below the line (a lure word, many dashes) is named honestly.
+    const tricks=signals.filter(item=>item&&!NOT_A_TRICK.includes(item.id)).length;
+    const first=!tricks?"The address has no known scam tricks.":tricks===1?"The address has one small sign that scam sites also use, but not enough to call it a scam.":"The address has a few small signs that scam sites also use, but not enough to call it a scam.";
     return{
       lead:"We didn’t find strong scam signs in this link.",
-      points:["The address has no known scam tricks.",...(note?[note]:[]),"If it came in a message, paste the whole message for the best check."],
+      points:[first,...(note?[note]:[]),"If it came in a message, paste the whole message for the best check."],
       action:"Open it only if you were expecting it.",
       scam:false,unverified:false,lowRisk:true
     };
