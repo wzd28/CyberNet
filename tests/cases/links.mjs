@@ -204,4 +204,6 @@ export const CASES = [
   { id: "news-salik-fake-links", type: "link", expect: "safe", input: "https://www.khaleejtimes.com/uae/beware-of-fake-salik-and-rta-fine-payment-links" },
   { id: "news-darb-toll-scam", type: "link", expect: "safe", input: "https://www.thenationalnews.com/uae/2024/03/12/darb-toll-scam-texts-warning/" },
   { id: "news-absher-scam-warning", type: "link", expect: "safe", input: "https://www.arabnews.com/node/2400000/saudi-arabia/absher-scam-warning" },
+  { id: "medium-at-path", type: "link", expect: "safe", input: "https://medium.com/@janedoe/how-i-spot-phishing-texts-5b1c2d", note: "an @ in the path is ordinary, not a disguised destination" },
+  { id: "userinfo-disguise", type: "link", expect: "scam", input: "http://paypal.com@login-check.example-secure.net/verify", note: "an @ before the host hides the real destination" },
 ];
