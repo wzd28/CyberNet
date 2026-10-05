@@ -111,7 +111,7 @@ for (const c of CASES.filter((c) => !only || c.id.includes(only))) {
   };
   const checks = [];
   const check = (id, ok, detail) => { checks.push({ id, ok }); if (!ok) { failures++; console.log(`\n[wording/${id}] FAIL ${JSON.stringify(detail)}`); } };
-  const lure = engine.analyzeLink("https://darb-toll-pay.com");
+  const lure = engine.analyzeLink("https://brand-gift-pay.com");
   const lurePlain = engine.plainSummary(lure);
   check("weak-lure-not-no-tricks", engine.resultBand(lure) === "unverified" && lure.signals.some((s) => s.id === "lure-domain") && !lurePlain.points.includes(NO_TRICKS), { score: lure.score, points: lurePlain.points });
   const plainShop = engine.plainSummary(engine.analyzeLink("https://oakandhoney-candles.com/shop/autumn"));

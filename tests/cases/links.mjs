@@ -78,4 +78,48 @@ export const CASES = [
   { id: "official-brand-root", type: "link", expect: "safe", input: "https://www.emiratesnbd.com/en", note: "Vouched brand domain: NOT A SCAM" },
   { id: "uae-portal-unlisted", type: "link", expect: "safe", input: "https://u.ae/en/information-and-services", note: "u.ae is not in the registry list, so it reads LOW RISK, not CAN'T CONFIRM" },
   { id: "government-gov-domain", type: "link", expect: "safe", input: "https://www.moe.gov.ae/en/pages/home.aspx", note: "Ministry on gov.ae: NOT A SCAM" },
+
+  // ── Free hosting / site-builder pages dressed up as a brand or a bill ──
+  { id: "free-host-du-billing", type: "link", expect: "scam", input: "https://du-ae.netlify.app/billing", note: "Telecom name plus country code on a free Netlify subdomain, billing path" },
+  { id: "free-host-google-sites-du", type: "link", expect: "scam", input: "https://sites.google.com/view/du-billing", note: "Google Sites page named after a telecom bill" },
+  { id: "free-host-rta-fines", type: "link", expect: "scam", input: "https://rta-fines.web.app", note: "Transport authority plus fines on Firebase hosting" },
+  { id: "free-host-dhl-path", type: "link", expect: "scam", input: "https://abc123.firebaseapp.com/dhl/pay", note: "Courier name and pay in the path of a free Firebase site" },
+
+  // ── Gulf service / payment-network names next to a payment or reward word ──
+  { id: "darb-toll-pay", type: "link", expect: "scam", input: "http://darb-toll-pay.com", note: "Abu Dhabi toll system name plus toll and pay" },
+  { id: "darb-toll-pay-https", type: "link", expect: "scam", input: "https://darb-toll-pay.com", note: "Same with HTTPS: the domain alone is the lure" },
+  { id: "parking-pay-dubai", type: "link", expect: "scam", input: "http://parking-pay-dubai.com" },
+  { id: "itc-mawaqif-pay", type: "link", expect: "scam", input: "http://itc-mawaqif-pay.com", note: "Abu Dhabi parking (Mawaqif / ITC) plus pay" },
+  { id: "nol-rta-bonus", type: "link", expect: "scam", input: "http://nol-rta-bonus.com", note: "nol card and RTA plus a bonus" },
+  { id: "knet-payment-kw", type: "link", expect: "scam", input: "https://knet-payment-kw.com", note: "Kuwait's KNET payment network on a commercial domain" },
+  { id: "mof-sa-pay", type: "link", expect: "scam", input: "https://mof-sa-pay.com", note: "Saudi Ministry of Finance initials plus pay" },
+  { id: "smart-dubai-pay", type: "link", expect: "scam", input: "https://smart-dubai-pay.com", note: "Smart Dubai spelled across two tokens plus pay" },
+
+  // ── Known brand plus a lure word on a domain the brand does not own ──
+  { id: "carrefour-gift", type: "link", expect: "scam", input: "https://carrefour-uae-gift.com" },
+  { id: "meta-business-support", type: "link", expect: "scam", input: "https://meta-business-support.com", note: "Classic Facebook page-ban phishing domain" },
+  { id: "parcel-tracking-ae", type: "link", expect: "scam", input: "https://parcel-tracking-ae.com", note: "Parcel plus tracking plus country code" },
+
+  // ── Guards: the real sites and ordinary look-alikes stay NOT A SCAM / LOW RISK ──
+  { id: "carrefour-official", type: "link", expect: "safe", input: "https://www.carrefouruae.com/" },
+  { id: "meta-official", type: "link", expect: "safe", input: "https://www.meta.com/" },
+  { id: "rta-official", type: "link", expect: "safe", input: "https://www.rta.ae/wps/portal/rta/ae/home" },
+  { id: "parkin-official", type: "link", expect: "safe", input: "https://www.parkin.ae/" },
+  { id: "dubizzle-official", type: "link", expect: "safe", input: "https://www.dubizzle.com/" },
+  { id: "emirates-skywards-official", type: "link", expect: "safe", input: "https://www.emirates.com/ae/english/skywards/" },
+  { id: "etihad-official", type: "link", expect: "safe", input: "https://www.etihad.com/en-ae/" },
+  { id: "knet-official", type: "link", expect: "safe", input: "https://www.knet.com.kw/" },
+  { id: "mof-sa-official", type: "link", expect: "safe", input: "https://www.mof.gov.sa/" },
+  { id: "dubai-portal-official", type: "link", expect: "safe", input: "https://www.dubai.ae/" },
+  { id: "fab-official", type: "link", expect: "safe", input: "https://www.bankfab.com/en-ae/personal" },
+  { id: "github-io-portfolio", type: "link", expect: "safe", input: "https://jane-doe.github.io/portfolio", note: "Personal site on a free host, no brand or lure words" },
+  { id: "netlify-recipes", type: "link", expect: "safe", input: "https://my-recipes.netlify.app" },
+  { id: "vercel-weather-app", type: "link", expect: "safe", input: "https://weather-dashboard.vercel.app/" },
+  { id: "wixsite-bakery", type: "link", expect: "safe", input: "https://acme.wixsite.com/bakery" },
+  { id: "blogspot-bills-post", type: "link", expect: "safe", input: "https://my-blog.blogspot.com/2026/10/paying-bills.html", note: "A blog post about bills: the lure word is part of a longer word in the path" },
+  { id: "paypoint-cafe-menu", type: "link", expect: "safe", input: "https://paypoint-cafe.com/menu", note: "pay inside a longer business name" },
+  { id: "parking-garage-company", type: "link", expect: "safe", input: "https://www.skyline-parking.com/locations", note: "A parking company with no payment or reward word" },
+  { id: "gift-shop-flowers", type: "link", expect: "safe", input: "https://thegiftbox-dubai.com/flowers" },
+  { id: "news-tax-bill-article", type: "link", expect: "safe", input: "https://www.thenationalnews.com/business/2026/10/04/uae-corporate-tax-bill", note: "News article path with tax and bill" },
+  { id: "emirates-hospital", type: "link", expect: "safe", input: "https://emirates-hospital.ae/", note: "Emirates as an ordinary business prefix, no lure word" },
 ];

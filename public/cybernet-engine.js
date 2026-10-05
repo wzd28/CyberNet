@@ -54,8 +54,27 @@ const KNOWN_BRANDS={
   uaepass:["uaepass.ae"],absher:["absher.sa"],emiratespost:["emiratespost.ae"],emiratesid:["icp.gov.ae"],
   aramex:["aramex.com"],smsa:["smsaexpress.com"],noon:["noon.com"],talabat:["talabat.com"],careem:["careem.com"],
   tesla:["tesla.com"],metamask:["metamask.io"],trustwallet:["trustwallet.com"],ledger:["ledger.com"],telegram:["telegram.org","t.me"],outlook:["outlook.com","live.com","office.com","office365.com","microsoftonline.com"],gmail:["gmail.com","google.com"],
-  sharepoint:["sharepoint.com"],onedrive:["onedrive.com"],docusign:["docusign.com","docusign.net"],royalmail:["royalmail.com"],disneyplus:["disneyplus.com"],du:["du.ae"]
+  sharepoint:["sharepoint.com"],onedrive:["onedrive.com"],docusign:["docusign.com","docusign.net"],royalmail:["royalmail.com"],disneyplus:["disneyplus.com"],du:["du.ae"],
+  carrefour:["carrefouruae.com","carrefourksa.com","carrefourqatar.com","carrefourkuwait.com","carrefourbahrain.com","carrefouroman.com","carrefour.com","mafcarrefour.com"],meta:["meta.com","facebook.com"],rta:["rta.ae"],parkin:["parkin.ae"],dubizzle:["dubizzle.com"],emirates:["emirates.com"],skywards:["emirates.com"],etihad:["etihad.com"],flydubai:["flydubai.com"],knet:["knet.com.kw"],fab:["bankfab.com"],smartdubai:["smartdubai.ae","digitaldubai.ae","dubai.ae"]
 };
+// Brand names that are also ordinary words or common business prefixes
+// ("meta" tags, "Emirates Security Services"): like the two- and three-letter
+// brands they only count as a whole host token next to a lure word, and the
+// generic trade words below do not count as that lure.
+const LURE_ONLY_BRANDS=new Set(["carrefour","meta","emirates","skywards","etihad","flydubai","dubizzle","parkin","knet","smartdubai"]);
+const TRADE_WORDS=["service","security"];
+const GULF_CODES=["ae","uae","sa","ksa","kw","qa","bh","om","dubai","abudhabi","sharjah","kuwait","qatar","oman","bahrain","riyadh"];
+// Gulf government services, toll/parking systems and payment networks that
+// scam texts copy ("darb-toll-pay", "knet-payment-kw"). None of them takes
+// payment on an unknown commercial domain. Whole tokens only.
+const GULF_SERVICES=["darb","mawaqif","itc","nol","rta","salik","parkin","parking","knet","mof","smartdubai","icp","moi","absher","tamm","gdrfa","mohre","sadad","dewa","sewa","addc","fewa"];
+const PAY_LURES=["pay","payment","payments","paynow","fine","fines","toll","tolls","bonus","reward","rewards","gift","refund","refunds","bill","bills","billing","topup","recharge","penalty","penalties","prize","claim","wallet","fee","fees","unpaid","cashback","voucher"];
+// Free site builders and hosting subdomains: anyone can publish a page on
+// them in minutes, so a brand, government service or payment word in the site
+// name ("du-ae.netlify.app/billing") is the scammer's own label.
+const FREE_HOSTS=["netlify.app","vercel.app","github.io","pages.dev","workers.dev","web.app","firebaseapp.com","herokuapp.com","onrender.com","glitch.me","repl.co","replit.app","replit.dev","wixsite.com","weebly.com","blogspot.com","sites.google.com","000webhostapp.com","square.site","godaddysites.com","ngrok-free.app","ngrok.io","ngrok.app","surge.sh","azurewebsites.net","webflow.io","framer.website","framer.app","carrd.co","glide.page"];
+const FREE_HOST_LURES=["billing","bill","pay","payment","payments","verify","verification","login","signin","refund","refunds","fine","fines","toll","tolls","parcel","parcels","redelivery","customs","penalty","unpaid","overdue","invoice","wallet","unlock","suspended","reactivate","otp","claim","prize","reward","rewards","bonus"];
+const FREE_HOST_DEV=["clone","demo","tutorial","portfolio","project","practice","sample","replica"];
 
 const SHORTENERS=new Set(["bit.ly","tinyurl.com","t.co","goo.gl","ow.ly","is.gd","buff.ly","cutt.ly","rebrand.ly","shorturl.at","tiny.one","rb.gy","v.gd","s.id","lnkd.in","tr.im","clickmeter.com","t.ly","short.io","tiny.cc","bl.ink","shorte.st","urlz.fr","surl.li","cutt.us"]);
 
@@ -82,8 +101,12 @@ function brandMismatch(host,registered,pathQuery=""){
   // Two- and three-letter brands ("du", "ups", "dhl") are ordinary syllables
   // too ("start-ups"): they only count next to a lure word in the host.
   const lured=lureWordsIn(registered).length>0||hostTokens.some(t=>LURE_WORDS.includes(t));
+  const luredTrade=lureWordsIn(registered).some(w=>!TRADE_WORDS.includes(w))||hostTokens.some(t=>LURE_WORDS.includes(t)&&!TRADE_WORDS.includes(t));
+  // "carrefouruae-gift": the brand glued to a Gulf country code.
+  const gluedCode=brand=>hostTokens.some(t=>t.startsWith(brand)&&GULF_CODES.includes(t.slice(brand.length)));
   for(const [brand,officials] of Object.entries(KNOWN_BRANDS)){
     if(brand.length<=3){if(hostTokens.includes(brand)&&lured)return{brand,official:officials[0]};continue}
+    if(LURE_ONLY_BRANDS.has(brand)){if((hostTokens.includes(brand)||joins.has(brand)||gluedCode(brand))&&luredTrade)return{brand,official:officials[0]};continue}
     if(tokens.has(brand)||(brand.length>=5&&(joins.has(brand)||glued(brand))))return{brand,official:officials[0]};
   }
   return null;
@@ -385,7 +408,7 @@ function analyzeLinkRules(rawLink){
   if(containsAny(pathQuery,["login","signin","verify","verification","account","password","secure-update","wallet-connect","unlock-account"]))addSignal(state,"credential-path",18,"The path asks for login, verification, account, password, or wallet action.","Credential phishing link","credentials");
   if(containsAny(pathQuery,["free","gift","claim","prize","winner","airdrop","bonus","reward"]))addSignal(state,"reward-path",15,"The path promotes a prize, gift, bonus, reward, or airdrop.","Prize / crypto scam link","reward");
   if(containsAny(pathQuery,["toll","unpaid","e-zpass","ezpass","turnpike","tollway"]))addSignal(state,"toll-path",26,"The path references an unpaid toll or turnpike fee, a widely-reported smishing pattern.","Toll / package-delivery smishing link","impersonation",true);
-  const deliveryActs=["fee","fees","pay","confirm","reschedule","customs","waiting","hold","release"];
+  const deliveryActs=["fee","fees","pay","confirm","reschedule","customs","waiting","hold","release","track","tracking","trace"];
   // Whole hyphen tokens only: "your-parcel-is-waiting" yes, "parcel2go" and "parcelforce" no.
   const deliveryInHost=!officialBrand&&domainCore.split("-").some(t=>["parcel","parcels","package","packages","redelivery","redeliver"].includes(t));
   if((containsAny(pathQuery,["package","delivery","redeliver","shipment","parcel","customs-fee"])&&containsAny(pathQuery,["fee","pay","confirm","reschedule"]))||(deliveryInHost&&(containsAny(pathQuery,["fee","pay","confirm","reschedule","customs","release"])||domainCore.split("-").some(t=>deliveryActs.includes(t)))))addSignal(state,"delivery-path",22,"The path references a delivery combined with a fee, confirmation, or rescheduling request.","Package-delivery smishing link","impersonation",true);
@@ -436,6 +459,33 @@ function analyzeLinkRules(rawLink){
     else if(authorityHit)addSignal(state,"authority-word",12,`The domain name uses an official-sounding word (“${authorityHit}”) that is not backed by a government website.`,"Official-sounding domain","impersonation");
     const pathLure=(pathQuery.match(/\b(fine|fines|penalty|penalties|unpaid|overdue|refund|refunds|reward|rewards|prize|claim|unlock|suspended|reactivate|verify|verification|confirm|secure|update-payment|billing|invoice|customs|tax|toll)\b/)||[])[1];
     if(pathLure&&!state.signals.has("lure-domain"))addSignal(state,"lure-path",12,`The link’s path uses payment or account wording (“${pathLure}”) that scam pages use to look urgent.`,"Lure wording in the link","deception");
+    // A Gulf toll, parking, government or payment-network name next to a
+    // payment or reward word ("nol-rta-bonus", "knetpay"): those services
+    // only take payment on their own official sites.
+    const serviceJoins=new Set(coreTokens);for(let i=0;i+1<coreTokens.length;i++)serviceJoins.add(coreTokens[i]+coreTokens[i+1]);
+    const service=GULF_SERVICES.find(s=>serviceJoins.has(s)||coreTokens.some(t=>t.startsWith(s)&&PAY_LURES.includes(t.slice(s.length))));
+    const payLure=PAY_LURES.find(w=>coreTokens.includes(w)||(w.length>=5&&compactCore.includes(w)))||(service&&coreTokens.some(t=>t.startsWith(service)&&PAY_LURES.includes(t.slice(service.length)))?"pay":"");
+    if(service&&payLure)addSignal(state,"service-lure-domain",30,`The domain name pairs “${service}” with “${payLure}”, but that service only takes payments on its official website.`,"Government service / payment impersonation","impersonation",true);
+  }
+  // Free hosting and site-builder subdomains dressed up as a brand, a Gulf
+  // service or a bill ("du-ae.netlify.app/billing"). The site name is the
+  // subdomain, or the first path segments on path-named builders.
+  const freeHost=FREE_HOSTS.find(s=>host.endsWith("."+s)||(s==="sites.google.com"&&host===s));
+  if(freeHost){
+    const pathNamed=["sites.google.com","wixsite.com","weebly.com"].includes(freeHost);
+    const siteTokens=[...host.slice(0,Math.max(0,host.length-freeHost.length-1)).split(/[.-]/),...(pathNamed?url.pathname.toLowerCase().split("/").slice(1,3).join("-").split(/[._-]/):[])].filter(Boolean);
+    const pathTokens=pathQuery.split(/[\/._\-?=&#]/).filter(Boolean);
+    const siteJoins=new Set(siteTokens);for(let i=0;i+1<siteTokens.length;i++)siteJoins.add(siteTokens[i]+siteTokens[i+1]);
+    const lureSite=siteTokens.find(t=>FREE_HOST_LURES.includes(t));
+    const lurePath=pathTokens.find(t=>FREE_HOST_LURES.includes(t));
+    // A brand alone is not enough here: developers name projects after the APIs
+    // they use ("spotify-stats"); the bill, login or country code is.
+    const brandSite=(lureSite||lurePath||siteTokens.some(t=>GULF_CODES.includes(t)))&&[...Object.keys(KNOWN_BRANDS),...GULF_SERVICES].find(name=>siteJoins.has(name));
+    const brandPath=!brandSite&&lurePath?[...Object.keys(KNOWN_BRANDS),...GULF_SERVICES].find(name=>pathTokens.includes(name)):"";
+    if(!siteTokens.some(t=>FREE_HOST_DEV.includes(t))){
+      if(brandSite||brandPath)addSignal(state,"free-host-brand",32,`The page sits on ${freeHost}, a free website host anyone can use, under the name “${brandSite||brandPath}”, which the real organization does not use.`,"Free-hosted impersonation page","impersonation",true);
+      else if(lureSite)addSignal(state,"free-host-lure",30,`The page sits on ${freeHost}, a free website host anyone can use, and its name uses payment or account wording (“${lureSite}”).`,"Free-hosted phishing page","deception",true);
+    }
   }
 
   let score=nonlinearScore(state.raw);
@@ -567,6 +617,8 @@ const PLAIN_POINTS=[
   {ids:["support-phone"],text:"It gives you a phone number to call for ‘support’. The people who answer are the scammers."},
   {ids:["authority-impersonation","govt-authority-threat","govt-authority-finance","authority"],text:"It claims to be the police, a government office or a court, and uses that to pressure you."},
   {ids:["authority-lure-domain"],text:"The address uses a police or government name, but it is not a government website."},
+  {ids:["service-lure-domain"],text:"The address pairs a toll, parking, government or bank-card service name with a payment or reward word. Those services only take payments on their own official websites."},
+  {ids:["free-host-brand","free-host-lure"],text:"It is a free website anyone can make in minutes, dressed up with a company, government or payment name. Real organizations don’t send you there to pay or sign in."},
   {ids:["brand-pressure"],text:"It uses a well-known company’s name to make you trust it, then says your account or payment is in trouble."},
   {ids:[/^brand-(?!pressure)/,/^typo-/,"substitution","punycode","unicode","com-prefix-trick"],text:"The web address copies a real company’s name with a look-alike spelling."},
   {ids:["dangerous-embedded-link"],text:"The link inside it looks unsafe: it does not go where it claims."},
@@ -666,7 +718,7 @@ function plainSummary(result,options={}){
 }
 
 return {
-  VERSION: "2026-09-24",
+  VERSION: "2026-10-05",
   analyzeText: analyzeTextRules,
   analyzeTextRules,
   analyzeTextRulesCore,
