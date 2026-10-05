@@ -1158,10 +1158,12 @@ document.addEventListener("DOMContentLoaded",()=>{
       Detection scoring, weights and thresholds are unchanged.
     */
     if(score>=32)return{label:"Scam",headline:"SCAM",css:"danger"};
-    // A bare link from a domain nobody has vouched for is not evidence of
-    // safety: the same link inside its message may well read as a scam. Say
-    // that plainly instead of a "NOT A SCAM" the message would contradict.
-    if(meta&&meta.kind==="link"&&!meta.officialBrand)return{label:"Can't Confirm",headline:"CAN'T CONFIRM",css:"uncertain"};
+    // A link on a domain nobody has vouched for reads LOW RISK: a decisive
+    // answer, not a "NOT A SCAM" the message around it could contradict.
+    // CAN'T CONFIRM is kept for the genuinely borderline link only, by the
+    // one shared rule (CyberNetEngine.linkNeedsCaution). The AI's own
+    // "inconclusive" verdict does not change the label: it follows the score.
+    if(meta&&meta.kind==="link"&&!meta.officialBrand)return window.CyberNetEngine.linkNeedsCaution({...meta,score})?{label:"Can't Confirm",headline:"CAN'T CONFIRM",css:"uncertain"}:{label:"Low Risk",headline:"LOW RISK",css:"safe"};
     return{label:"Not A Scam",headline:"NOT A SCAM",css:"safe"};
   }
 
@@ -1336,7 +1338,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     const agreement=local.verdict===deep.verdict&&!local.uncertain&&!deep.uncertain;
     const confidence=clamp(Math.max(deep.confidence,Math.round((local.confidence+deep.confidence)/2))+(agreement?5:0)+(reputationHit?6:0)-(disagreement?18:0));
     const uncertain=reputationHit?false:(disagreement||deep.verdict==="inconclusive"||(deep.uncertain&&local.uncertain));
-    return{kind:local.kind,officialBrand:local.officialBrand,signals:local.signals,summary:deep.summary||"",score,confidence,scamType:reputationHit?"Known unsafe URL":(deep.scamType||local.scamType),reasons:unique([...(deep.reasons||[]),...(local.reasons||[])]),counterEvidence:unique([...(deep.counterEvidence||[]),...(local.counterEvidence||[])]),advice:unique([...(deep.advice||[]),...(local.advice||[])]),uncertain,verdict:reputationHit?"malicious":uncertain?"inconclusive":deep.verdict,sources:unique([...(local.sources||[]),...(deep.sources||[])]),note:reputationHit?"The live reputation service matched this URL to a known unsafe resource.":disagreement?"CyberNet AI's local and deep-analysis layers reached different conclusions, so this can't be confirmed safe — treat it as unsafe until you've verified it independently.":deep.note||local.note,reputation:deep.reputation,virusTotal:deep.virusTotal||null,aiUsed:Boolean(deep.aiUsed)};
+    return{kind:local.kind,officialBrand:local.officialBrand,signals:local.signals,localScore:local.score,summary:deep.summary||"",score,confidence,scamType:reputationHit?"Known unsafe URL":(deep.scamType||local.scamType),reasons:unique([...(deep.reasons||[]),...(local.reasons||[])]),counterEvidence:unique([...(deep.counterEvidence||[]),...(local.counterEvidence||[])]),advice:unique([...(deep.advice||[]),...(local.advice||[])]),uncertain,verdict:reputationHit?"malicious":uncertain?"inconclusive":deep.verdict,sources:unique([...(local.sources||[]),...(deep.sources||[])]),note:reputationHit?"The live reputation service matched this URL to a known unsafe resource.":disagreement?"CyberNet AI's local and deep-analysis layers reached different conclusions, so this can't be confirmed safe — treat it as unsafe until you've verified it independently.":deep.note||local.note,reputation:deep.reputation,virusTotal:deep.virusTotal||null,aiUsed:Boolean(deep.aiUsed)};
   }
   async function requestDeepAnalysis(type,content,localResult,imageData="",history=[]){
     if(!isSignedIn()){
@@ -1395,7 +1397,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     // from 60 (display only, thresholds unchanged).
     if(result.score>=60)return{label:"Scam",cls:"risk-tag-danger"};
     if(result.score>=32)return{label:"Scam",cls:"risk-tag-warning"};
-    if(result.kind==="link"&&!result.officialBrand)return{label:"Can't Confirm",cls:"risk-tag-warning"};
+    if(result.kind==="link"&&!result.officialBrand)return window.CyberNetEngine.linkNeedsCaution(result)?{label:"Can't Confirm",cls:"risk-tag-warning"}:{label:"Low Risk",cls:"risk-tag-safe"};
     return{label:"Low Visible Risk",cls:"risk-tag-safe"};
   }
 

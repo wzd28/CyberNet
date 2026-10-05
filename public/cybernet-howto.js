@@ -92,7 +92,7 @@
         {
           heading: "Read the verdict",
           body:
-            "You get SCAM or NOT A SCAM. If Quick Scan can't see enough — an unknown link on its own, or a screenshot without a QR code — it says so and tells you what to do next. The headline is the conclusion, and everything under it is the evidence for it.",
+            "You get SCAM, NOT A SCAM, or LOW RISK for a link on a site CyberNet doesn't know. Rarely, a link right on the edge shows CAN'T CONFIRM, and a screenshot without a QR code asks for a deeper check; both tell you what to do next. The headline is the conclusion, and everything under it is the evidence for it.",
           visual: verdict("danger", "SCAM", "Credential phishing", 80),
           callout: {
             kind: "info",

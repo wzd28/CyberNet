@@ -63,6 +63,6 @@ export const CASES = [
   { id: "link-enbd-noscheme", type: "link", expect: "safe", input: "emiratesnbd.com/en/help/otp" },
 
   // ── Bare links on unknown domains ──
-  { id: "link-parking-rates", type: "link", expect: "unverified", input: "https://dubai-mall-parking-rates.net/info" },
-  { id: "link-sharjah-events", type: "link", expect: "unverified", input: "sharjah-events.ae/october" },
+  { id: "link-parking-rates", type: "link", expect: "safe", input: "https://dubai-mall-parking-rates.net/info" },
+  { id: "link-sharjah-events", type: "link", expect: "safe", input: "sharjah-events.ae/october" },
 ];
