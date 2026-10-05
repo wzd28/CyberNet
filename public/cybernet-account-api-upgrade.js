@@ -222,6 +222,34 @@
             </strong>
           </div>
 
+          <div class="cybernet-account-item wide cybernet-account-notify"
+               id="accountNotifySection"
+               role="group"
+               aria-labelledby="accountNotifyHeading"
+               hidden>
+            <span id="accountNotifyHeading">Notifications</span>
+            <div class="cybernet-notify-row">
+              <div class="cybernet-notify-copy">
+                <label for="accountRecoveryEmailsToggle"
+                       id="accountRecoveryEmailsLabel">Recovery Mode emails</label>
+                <p id="accountRecoveryEmailsHint">Updates and reminders about your Recovery cases.</p>
+              </div>
+              <span class="cybernet-switch">
+                <input type="checkbox"
+                       role="switch"
+                       id="accountRecoveryEmailsToggle"
+                       aria-labelledby="accountRecoveryEmailsLabel"
+                       aria-describedby="accountRecoveryEmailsHint accountRecoveryEmailsWarning"
+                       checked />
+                <span class="cybernet-switch-track" aria-hidden="true"></span>
+              </span>
+            </div>
+            <p class="cybernet-notify-warning" id="accountRecoveryEmailsWarning">If you turn this off, it stays off until you turn it back on, and you won't get any emails about your Recovery cases.</p>
+            <div class="cybernet-notify-status"
+                 id="accountRecoveryEmailsStatus"
+                 aria-live="polite"></div>
+          </div>
+
         </div>
 
         <div class="cybernet-account-actions">
@@ -455,6 +483,9 @@
     const upgradeButton = document.getElementById("accountUpgradeBtn");
     const manageButton = document.getElementById("accountManageBillingBtn");
     const message = document.getElementById("accountDetailsMessage");
+    const notifySection = document.getElementById("accountNotifySection");
+    const recoveryEmailsToggle = document.getElementById("accountRecoveryEmailsToggle");
+    const recoveryEmailsStatus = document.getElementById("accountRecoveryEmailsStatus");
 
     const keyInput = document.getElementById("cybernetVisitorApiKey");
     const keyShow = document.getElementById("cybernetByokShow");
@@ -470,6 +501,98 @@
       if (!message) return;
       message.textContent = text;
       message.className = `cybernet-account-message ${tone}`.trim();
+    }
+
+    // Recovery Mode emails preference, kept in the user's auth metadata as
+    // recovery_emails: missing or true = on (the default), false = off.
+    let notifySaving = false;
+    let notifyUserId = null;
+
+    function setNotifyStatus(text = "", tone = "") {
+      if (!recoveryEmailsStatus) return;
+      recoveryEmailsStatus.textContent = text;
+      recoveryEmailsStatus.className = `cybernet-notify-status ${tone}`.trim();
+    }
+
+    function renderNotifications(session) {
+      if (!notifySection || !recoveryEmailsToggle) return;
+      const user = session?.user || null;
+
+      if (!user) {
+        notifySection.hidden = true;
+        notifyUserId = null;
+        setNotifyStatus();
+        return;
+      }
+
+      if (notifyUserId !== user.id) {
+        notifyUserId = user.id;
+        setNotifyStatus();
+      }
+
+      notifySection.hidden = false;
+      if (!notifySaving) {
+        recoveryEmailsToggle.checked = user.user_metadata?.recovery_emails !== false;
+      }
+    }
+
+    async function saveRecoveryEmails() {
+      if (!recoveryEmailsToggle || notifySaving) return;
+      const enabled = recoveryEmailsToggle.checked;
+
+      if (!client) {
+        recoveryEmailsToggle.checked = !enabled;
+        setNotifyStatus("Account services are unavailable right now. Please try again.", "error");
+        return;
+      }
+
+      notifySaving = true;
+      recoveryEmailsToggle.disabled = true;
+      setNotifyStatus("Saving…");
+
+      try {
+        const session = await getSession();
+
+        if (!session) {
+          recoveryEmailsToggle.checked = !enabled;
+          setNotifyStatus();
+          closeAccount();
+          openExistingAuth();
+          return;
+        }
+
+        const { data, error } = await client.auth.updateUser({
+          data: { recovery_emails: enabled }
+        });
+
+        if (error) throw error;
+
+        // Keep this page's copies of the user in step with the saved value.
+        const synced = {
+          ...(session.user?.user_metadata || {}),
+          ...(data?.user?.user_metadata || {}),
+          recovery_emails: enabled
+        };
+        [session.user, currentSession?.user, window.CyberNetAccount?.appState?.user]
+          .forEach(user => {
+            if (user && user.id === session.user?.id) user.user_metadata = { ...synced };
+          });
+
+        recoveryEmailsToggle.checked = enabled;
+        setNotifyStatus(
+          enabled ? "Saved. Recovery Mode emails are on." : "Saved. Recovery Mode emails are off.",
+          "success"
+        );
+      } catch (error) {
+        recoveryEmailsToggle.checked = !enabled;
+        setNotifyStatus(
+          error?.message || "Could not save your email preference. Please try again.",
+          "error"
+        );
+      } finally {
+        notifySaving = false;
+        recoveryEmailsToggle.disabled = false;
+      }
     }
 
     function setKeyMessage(text = "", tone = "") {
@@ -614,6 +737,8 @@
       const usageEl = document.getElementById("accountDetailUsage");
       const usageBar = document.getElementById("accountDetailUsageBar");
 
+      renderNotifications(session);
+
       if (nameEl) nameEl.textContent = name;
       if (emailEl) emailEl.textContent = email;
       if (planEl) planEl.textContent = details.label;
@@ -748,6 +873,7 @@
         return;
       }
 
+      renderNotifications(session);
       modal?.classList.add("show");
       modal?.setAttribute("aria-hidden", "false");
       document.body.style.overflow = "hidden";
@@ -937,6 +1063,7 @@
     signOutButton?.addEventListener("click", signOut);
     upgradeButton?.addEventListener("click", openPricing);
     manageButton?.addEventListener("click", openBillingPortal);
+    recoveryEmailsToggle?.addEventListener("change", saveRecoveryEmails);
 
     modal?.addEventListener("click", event => {
       if (event.target === modal) closeAccount();
@@ -988,6 +1115,8 @@
           closeAccount();
           setKeyConnected(false);
         }
+
+        renderNotifications(session);
 
         if (session) {
           setTimeout(() => refreshAccount({ quiet: true }), 250);
