@@ -1,0 +1,58 @@
+/* Buttons react instead of following the cursor: a small lift and brighter glow on
+   hover, a quick press-down on click, and a ripple from the point you pressed.
+   Uses the independent translate/scale properties so legacy transform rules keep
+   working, and the ::after slot (the glass sheen lives in ::before). */
+html.v2 :is(.primary-btn, .secondary-btn, .hero-video-btn, .v2-chip, .login-btn, .cn-seat-option, .detect-tab, .toggle-option, .auth-tab, .send-btn) {
+  transition-property: translate, scale, filter, box-shadow, background-color, border-color, color;
+  transition-duration: .28s, .12s, .28s, .28s, .2s, .2s, .2s;
+  transition-timing-function: cubic-bezier(.2, .8, .2, 1);
+}
+@media (hover: hover) and (pointer: fine) {
+  html.v2 :is(.primary-btn, .secondary-btn, .hero-video-btn, .login-btn):not(:disabled):hover {
+    translate: 0 -2px;
+    filter: brightness(1.08) saturate(1.08);
+  }
+  html.v2 :is(.v2-chip, .cn-seat-option, .detect-tab, .toggle-option, .auth-tab):not(:disabled):hover {
+    filter: brightness(1.12);
+  }
+}
+html.v2 :is(.primary-btn, .secondary-btn, .hero-video-btn, .v2-chip, .login-btn, .cn-seat-option, .detect-tab, .toggle-option, .auth-tab, .send-btn):not(:disabled):active {
+  scale: .97;
+  transition-duration: .28s, .08s, .28s, .28s, .2s, .2s, .2s;
+}
+
+/* ripple: 50-press.js sets --v2-rx/--v2-ry and re-adds .v2-rippling on each press */
+html.v2 :is(.primary-btn, .secondary-btn, .hero-video-btn, .v2-chip, .login-btn).v2-press {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+html.v2 :is(.primary-btn, .secondary-btn, .hero-video-btn, .v2-chip, .login-btn).v2-press::after {
+  content: "";
+  position: absolute;
+  left: var(--v2-rx, 50%);
+  top: var(--v2-ry, 50%);
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(34, 211, 238, .55), rgba(34, 211, 238, 0) 70%);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+html.v2 .primary-btn.v2-press::after {
+  background: radial-gradient(circle, rgba(255, 255, 255, .7), rgba(255, 255, 255, 0) 70%);
+}
+html.v2 :is(.primary-btn, .secondary-btn, .hero-video-btn, .v2-chip, .login-btn).v2-rippling::after {
+  animation: v2-ripple .6s cubic-bezier(.2, .8, .2, 1) forwards;
+}
+@keyframes v2-ripple {
+  0% { opacity: .9; transform: scale(0); }
+  100% { opacity: 0; transform: scale(var(--v2-rs, 18)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html.v2 :is(.primary-btn, .secondary-btn, .hero-video-btn, .v2-chip, .login-btn).v2-rippling::after { animation: none; }
+  html.v2 :is(.primary-btn, .secondary-btn, .hero-video-btn, .login-btn):hover { translate: none; }
+  html.v2 :is(.primary-btn, .secondary-btn, .hero-video-btn, .v2-chip, .login-btn, .cn-seat-option, .detect-tab, .toggle-option, .auth-tab, .send-btn):active { scale: none; }
+}

@@ -7,6 +7,8 @@
   const connection=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
   const saveData=Boolean(connection?.saveData);
   if(reduceMotion||saveData){canvas.style.display="none";return}
+  // The v2 design has its own background layer, so the old particle network stays off.
+  if(document.documentElement.classList.contains("v2")){canvas.style.display="none";return}
 
   const ctx=canvas.getContext("2d",{alpha:true,desynchronized:true});
   if(!ctx)return;

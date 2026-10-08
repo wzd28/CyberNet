@@ -1,0 +1,2163 @@
+/* ==========================================================================
+   v2 / 40-pages  -  Recovery (#recovery), Learn (#learn) and About (#about)
+   Owner: pages agent. Every selector is prefixed "html.v2 #recovery|#learn|#about".
+   Traps handled here (maps/HAZARDS.md 00-recovery, 01-learn, 04-pricing/about):
+   - [hidden]{display:none!important} drives #recoveryIntake/#recoveryDashboard,
+     #recoveryTimelineLocked, #recoveryProUpsell, #recoveryDownloadBtn and the
+     clear button: nothing here gives them a display value.
+   - Inline styles from JS are never fought: #recoveryTimelineActions display,
+     #recoveryUsageCaseBar / .recovery-case-progress span width, .tilt-card
+     transform. Fills are coloured only.
+   - className rewrites (#recoveryRiskOut, #recovery*Message) and textContent
+     rewrites (#recoveryStartBtn, #recoveryUpdateBtn, #recoveryUploadLabel):
+     styled through the JS-set classes and ids, icons only as pseudo-elements.
+   - #recoveryStartBtn keeps white-space:normal (the guest label wraps).
+   - Timeline tabs stay clickable (no pointer-events / disabled look).
+   - Learn: the legacy max-height:600px cap clipped 25 of 33 lessons on phones.
+     The panel now opens to height:auto (animated where interpolate-size exists,
+     instant elsewhere) so any number of open lessons always fit.
+   - content-visibility:auto on .roadmap and .about-values clipped glows and
+     left blank blocks in full-page captures: set visible.
+   - The learn search result template has inline styles (span colour/size, button
+     margin/height/padding/size): !important is used only on those properties.
+   - .secondary-btn::before is the shared glass sheen (00-base), so the download
+     icon on #recoveryDownloadBtn is an ::after placed first with order:-1.
+   - .reveal owns opacity/transform on the page blocks: no transforms here.
+   ========================================================================== */
+
+html.v2 #recovery,
+html.v2 #learn,
+html.v2 #about{
+  --pg-ink:var(--v2-ink,#effdff);
+  --pg-muted:var(--v2-muted,rgba(239,253,255,.64));
+  --pg-faint:var(--v2-faint,rgba(239,253,255,.56));
+  --pg-g1:var(--v2-g1,#22d3ee);
+  --pg-g2:var(--v2-g2,#a5f3fc);
+  --pg-blue:var(--v2-blue,#22d3ee);
+  --pg-violet:var(--v2-violet,#2dd4bf);
+  --pg-amber:var(--v2-amber,#FFB547);
+  --pg-safe:var(--v2-safe,#6CF0B0);
+  --pg-danger:var(--v2-danger,#FF5C7A);
+  --pg-navy:var(--v2-navy,#06232a);
+  --pg-sans:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --pg-mono:"Geist Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
+  --pg-ease:cubic-bezier(.2,.8,.2,1);
+  --pg-grad-text:linear-gradient(95deg,#22d3ee 0%,#a5f3fc 60%,#e0fcff 100%);
+  --pg-glass:linear-gradient(180deg,rgba(255,255,255,.085),rgba(255,255,255,.032));
+  --pg-navy-tint:linear-gradient(180deg,rgba(19,35,38,.22),rgba(8,15,16,.08));
+  --pg-blur:blur(26px) saturate(160%);
+  --pg-rim:rgba(255,255,255,.13);
+  --pg-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 30px 80px -34px rgba(0,0,0,.8);
+  --pg-well:rgba(4,7,8,.5);
+  --pg-solid:#0e191c;
+  --pg-i-alert:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z'/%3E%3Cpath d='M12 9v4M12 17h.01'/%3E%3C/svg%3E");
+  --pg-i-arrow:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14M13 6l6 6-6 6'/%3E%3C/svg%3E");
+  --pg-i-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='16' rx='3'/%3E%3Ccircle cx='9' cy='10' r='1.8'/%3E%3Cpath d='m21 16-5-5-9 9'/%3E%3C/svg%3E");
+  --pg-i-lock:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V7a4 4 0 0 1 8 0v4'/%3E%3C/svg%3E");
+  --pg-i-download:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 4v11M7 10l5 5 5-5M5 20h14'/%3E%3C/svg%3E");
+  --pg-i-chat:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.9A8 8 0 1 1 21 12Z'/%3E%3C/svg%3E");
+  --pg-check-dark:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2305060c' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
+  --pg-check-safe:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2304140d' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
+  --pg-chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23c9d3f7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  font-family:var(--pg-sans);
+  color:var(--pg-ink);
+}
+
+/* ==========================================================================
+   SHARED: glass panels, buttons, eyebrow tags, support box
+   ========================================================================== */
+
+html.v2 #recovery .recovery-intake-card,
+html.v2 #recovery .recovery-cases-card,
+html.v2 #recovery .recovery-status-card,
+html.v2 #recovery .recovery-summary-card,
+html.v2 #recovery .recovery-fact-card,
+html.v2 #recovery .recovery-immediate-card,
+html.v2 #recovery .recovery-timeline-card,
+html.v2 #recovery .recovery-remaining-card,
+html.v2 #recovery .recovery-resources-card,
+html.v2 #recovery .recovery-update-card,
+html.v2 #recovery .recovery-history-card,
+html.v2 #learn .learn-search-card,
+html.v2 #about .fetch-panel,
+html.v2 #about .about-block,
+html.v2 #about .about-value,
+html.v2 #recovery .support-box,
+html.v2 #learn .support-box,
+html.v2 #about .support-box{
+  background:var(--pg-glass),var(--pg-navy-tint);
+  border:1px solid var(--pg-rim);
+  box-shadow:var(--pg-shadow);
+  -webkit-backdrop-filter:var(--pg-blur);
+  backdrop-filter:var(--pg-blur);
+}
+
+/* ---------- buttons (scoped to these three pages) ---------- */
+html.v2 #recovery .primary-btn,
+html.v2 #learn .primary-btn,
+html.v2 #about .primary-btn,
+html.v2 #recovery .secondary-btn,
+html.v2 #learn .secondary-btn,
+html.v2 #about .secondary-btn{
+  position:relative;
+  min-height:50px;
+  padding:0 24px;
+  border-radius:999px;
+  font-family:var(--pg-sans);
+  font-size:15.5px;
+  font-weight:580;
+  letter-spacing:-.01em;
+  line-height:1.25;
+  text-decoration:none;
+  transition:transform .35s var(--pg-ease),box-shadow .35s var(--pg-ease),background .35s var(--pg-ease),border-color .35s var(--pg-ease),opacity .2s ease;
+}
+
+html.v2 #recovery .primary-btn,
+html.v2 #learn .primary-btn,
+html.v2 #about .primary-btn{
+  border:0;
+  background:var(--v2-white);
+  color:#030505;
+  box-shadow:inset 0 1px 0 #fff,inset 0 -3px 8px rgba(67,201,224,.18),0 0 0 1px rgba(255,255,255,.55),0 10px 34px -8px rgba(34,211,238,.55),0 0 50px -12px rgba(45,212,191,.35);
+  filter:none;
+}
+
+html.v2 #recovery .primary-btn:hover,
+html.v2 #learn .primary-btn:hover,
+html.v2 #about .primary-btn:hover{
+  transform:translateY(-1px);
+  filter:none;
+  box-shadow:inset 0 1px 0 #fff,inset 0 -3px 8px rgba(67,201,224,.18),0 0 0 1px rgba(255,255,255,.7),0 14px 50px -8px rgba(34,211,238,.8),0 0 80px -12px rgba(45,212,191,.6);
+}
+
+/* the top specular sheen is the shared .secondary-btn::before from 00-base */
+html.v2 #recovery .secondary-btn,
+html.v2 #learn .secondary-btn,
+html.v2 #about .secondary-btn{
+  border:1px solid rgba(255,255,255,.15);
+  background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.04));
+  color:var(--pg-ink);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.3),inset 0 -1px 0 rgba(255,255,255,.05),0 10px 26px -12px rgba(0,0,0,.7);
+}
+
+html.v2 #recovery .secondary-btn:hover,
+html.v2 #learn .secondary-btn:hover,
+html.v2 #about .secondary-btn:hover{
+  transform:translateY(-1px);
+  border-color:rgba(255,255,255,.28);
+  background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,.06));
+  color:#fff;
+}
+
+html.v2 #recovery .primary-btn:disabled,
+html.v2 #recovery .secondary-btn:disabled,
+html.v2 #learn .primary-btn:disabled,
+html.v2 #learn .secondary-btn:disabled{
+  opacity:.55;
+  transform:none;
+  cursor:not-allowed;
+}
+
+html.v2 #recovery :is(.primary-btn,.secondary-btn,button,a,select,input,textarea):focus-visible,
+html.v2 #learn :is(.primary-btn,.secondary-btn,button,a,input):focus-visible,
+html.v2 #about :is(.primary-btn,.secondary-btn,button,a):focus-visible{
+  outline:2px solid var(--pg-g1);
+  outline-offset:3px;
+}
+
+/* ---------- mono eyebrow tag (Recovery header, Learn hero, About pill) ---------- */
+html.v2 #recovery .recovery-header::before,
+html.v2 #learn .learn-hero > div:first-child::before,
+html.v2 #about .about-top .pill{
+  display:block;
+  width:max-content;
+  max-width:100%;
+  margin:0 auto 18px;
+  padding:0 0 0 28px;
+  background:linear-gradient(currentColor,currentColor) no-repeat 0 50%/18px 1px;
+  color:var(--pg-g1);
+  font-family:var(--pg-mono);
+  font-size:11.5px;
+  font-weight:500;
+  letter-spacing:.14em;
+  line-height:1.6;
+  text-transform:uppercase;
+}
+
+html.v2 #recovery .recovery-header::before{content:"Recovery Mode"}
+html.v2 #learn .learn-hero > div:first-child::before{content:"Learn Center"}
+
+/* ---------- gradient span in titles ---------- */
+html.v2 #learn .learn-hero h1 span,
+html.v2 #about .about-top h1 span{
+  background:var(--pg-grad-text);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+  -webkit-text-fill-color:transparent;
+  text-shadow:none;
+  -webkit-box-decoration-break:clone;
+  box-decoration-break:clone;
+  padding-bottom:.04em;
+}
+
+/* ---------- support & feedback box ----------
+   Layout, eyebrow, h2 and copy come from the shared 00-base.css section 10
+   rules so this box matches Home / Quick Scan / Analysis / Pricing. Only the
+   glass fill (panel group above), text alignment and per-page width live here. */
+html.v2 #recovery .support-box,
+html.v2 #learn .support-box,
+html.v2 #about .support-box{text-align:left}
+
+/* line the box up with each page's own content width */
+html.v2 #learn .support-box{max-width:880px}
+html.v2 #about .support-box{max-width:1140px}
+/* the case plan column is narrower than the intake grid */
+html.v2 #recovery:has(#recoveryDashboard:not([hidden])) .support-box{max-width:1080px}
+
+/* the page buttons above are 50px; the support pills use the site-wide
+   00-base pill size (46px / 15px) like every other page */
+html.v2 #recovery .support-box-actions > *,
+html.v2 #learn .support-box-actions > *,
+html.v2 #about .support-box-actions > *{
+  min-height:46px;
+  padding:0 22px;
+  font-size:15px;
+  font-weight:560;
+  line-height:1.15;
+}
+
+/* ==========================================================================
+   RECOVERY  (section#recovery)
+   ========================================================================== */
+
+/* ---------- header ---------- */
+html.v2 #recovery .recovery-header{
+  max-width:780px;
+  margin:0 auto 36px;
+}
+
+html.v2 #recovery .recovery-header h1{
+  margin:0 0 16px;
+  font-family:var(--pg-sans);
+  font-size:clamp(34px,4.6vw,64px);
+  font-weight:620;
+  line-height:1.02;
+  letter-spacing:-.048em;
+  text-wrap:balance;
+  color:var(--pg-ink);
+}
+
+html.v2 #recovery .recovery-header > p{
+  max-width:620px;
+  margin:0 auto;
+  color:var(--pg-muted);
+  font-size:18px;
+  line-height:1.6;
+  text-wrap:pretty;
+}
+
+/* ---------- daily usage meter (only #recoveryUsageCard; other meters untouched) ---------- */
+html.v2 #recovery #recoveryUsageCard{
+  max-width:440px;
+  margin:28px auto 0;
+  padding:14px 18px 12px;
+  border-radius:20px;
+  text-align:left;
+  background:var(--pg-glass),var(--pg-navy-tint);
+  border:1px solid rgba(255,255,255,.12);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 20px 50px -30px rgba(0,0,0,.8);
+}
+
+html.v2 #recovery #recoveryUsageCard .usage-meter-labels span{
+  color:var(--pg-muted);
+  font-family:var(--pg-mono);
+  font-size:11px;
+  font-weight:500;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+
+html.v2 #recovery #recoveryUsageCaseText{
+  color:var(--pg-ink);
+  font-family:var(--pg-mono);
+  font-size:13px;
+  font-weight:600;
+}
+
+html.v2 #recovery #recoveryUsageCard .usage-meter-track{
+  height:4px;
+  margin:12px 0 10px;
+  background:rgba(255,255,255,.08);
+}
+
+/* width is inline from JS: colour only */
+html.v2 #recovery #recoveryUsageCaseBar{
+  background:linear-gradient(90deg,var(--pg-g1),var(--pg-g2));
+  box-shadow:0 0 12px rgba(34,211,238,.6);
+}
+
+html.v2 #recovery #recoveryUsageCaseReset{
+  display:block;
+  color:var(--pg-faint);
+  font-size:12.5px;
+}
+
+/* ---------- intake layout ---------- */
+html.v2 #recovery .recovery-intake{
+  max-width:1200px;
+  gap:20px;
+  align-items:start;
+}
+
+html.v2 #recovery .recovery-intake-card{
+  padding:30px;
+  border-radius:28px;
+}
+
+html.v2 #recovery .recovery-label-lg{
+  margin-bottom:12px;
+  color:var(--pg-ink);
+  font-size:20px;
+  font-weight:600;
+  letter-spacing:-.02em;
+}
+
+/* textareas: global textarea/input rules (mono, cyan glow, 140px) are reset here */
+html.v2 #recovery #recoveryDescription,
+html.v2 #recovery #recoveryUpdateText{
+  display:block;
+  min-height:140px;
+  margin-bottom:14px;
+  padding:16px 18px;
+  border-radius:20px;
+  border:1px solid rgba(255,255,255,.11);
+  background:var(--pg-well);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+  color:var(--pg-ink);
+  font-family:var(--pg-sans);
+  font-size:16px;
+  line-height:1.55;
+  resize:vertical;
+  transition:border-color .25s ease,box-shadow .25s ease;
+}
+
+html.v2 #recovery #recoveryUpdateText{min-height:120px}
+
+html.v2 #recovery #recoveryDescription::placeholder,
+html.v2 #recovery #recoveryUpdateText::placeholder,
+html.v2 #recovery #recoveryAccounts::placeholder{
+  color:var(--pg-faint);
+  font-family:var(--pg-sans);
+}
+
+html.v2 #recovery #recoveryDescription:focus,
+html.v2 #recovery #recoveryUpdateText:focus,
+html.v2 #recovery .recovery-field-grid select:focus,
+html.v2 #recovery #recoveryAccounts:focus{
+  outline:none;
+  border-color:rgba(34,211,238,.6);
+  box-shadow:0 0 0 4px rgba(34,211,238,.15);
+}
+
+html.v2 #recovery .input-tools{margin:-6px 0 12px}
+
+html.v2 #recovery .input-clear-btn{
+  min-height:30px;
+  padding:0 13px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.06);
+  color:var(--pg-muted);
+  font-family:var(--pg-mono);
+  font-size:11px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+
+html.v2 #recovery .input-clear-btn:hover{
+  color:var(--pg-ink);
+  border-color:rgba(255,255,255,.24);
+  background:rgba(255,255,255,.1);
+}
+
+/* ---------- privacy warning (amber notice) ---------- */
+html.v2 #recovery .recovery-privacy-warning{
+  position:relative;
+  margin-bottom:24px;
+  padding:14px 16px 14px 48px;
+  border-radius:18px;
+  background:rgba(255,181,71,.07);
+  border:1px solid rgba(255,181,71,.28);
+  color:#ffd9a0;
+  font-size:14px;
+  line-height:1.55;
+}
+
+html.v2 #recovery .recovery-privacy-warning::before{
+  content:"";
+  position:absolute;
+  left:16px;
+  top:15px;
+  width:20px;
+  height:20px;
+  background:var(--pg-amber);
+  -webkit-mask:var(--pg-i-alert) center/contain no-repeat;
+  mask:var(--pg-i-alert) center/contain no-repeat;
+}
+
+html.v2 #recovery .recovery-privacy-warning strong{
+  color:#ffd9a0;
+  font-weight:560;
+}
+
+html.v2 #recovery .recovery-privacy-warning p{
+  margin-top:6px;
+  color:var(--pg-muted);
+  font-size:13.5px;
+}
+
+/* ---------- incident fields ---------- */
+html.v2 #recovery .recovery-field-grid{
+  gap:16px;
+  margin-bottom:24px;
+}
+
+html.v2 #recovery .recovery-field-grid label{
+  margin-bottom:8px;
+  color:var(--pg-muted);
+  font-family:var(--pg-mono);
+  font-size:11px;
+  font-weight:500;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+
+html.v2 #recovery .recovery-field-grid select,
+html.v2 #recovery #recoveryAccounts{
+  height:50px;
+  margin:0;
+  padding:0 16px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.11);
+  background-color:var(--pg-well);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+  color:var(--pg-ink);
+  font-family:var(--pg-sans);
+  font-size:16px;
+  text-overflow:ellipsis;
+  transition:border-color .25s ease,box-shadow .25s ease;
+}
+
+html.v2 #recovery .recovery-field-grid select{
+  -webkit-appearance:none;
+  appearance:none;
+  padding-right:44px;
+  background-image:var(--pg-chev);
+  background-repeat:no-repeat;
+  background-position:right 16px center;
+  background-size:16px;
+  cursor:pointer;
+}
+
+html.v2 #recovery .recovery-field-grid select option{
+  background:#0b1517;
+  color:#effdff;
+}
+
+/* ---------- quick answers: wrapping pills, native checkbox kept ---------- */
+html.v2 #recovery .recovery-quick-toggles{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-bottom:24px;
+}
+
+html.v2 #recovery .recovery-toggle{
+  display:inline-flex;
+  align-items:center;
+  gap:9px;
+  min-height:40px;
+  padding:7px 15px 7px 11px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.1);
+  background:rgba(255,255,255,.045);
+  color:var(--pg-muted);
+  font-family:var(--pg-sans);
+  font-size:14px;
+  line-height:1.3;
+  transition:color .25s ease,background .25s ease,border-color .25s ease;
+}
+
+html.v2 #recovery .recovery-toggle:hover{
+  color:var(--pg-ink);
+  background:rgba(255,255,255,.08);
+}
+
+html.v2 #recovery .recovery-toggle input{
+  -webkit-appearance:none;
+  appearance:none;
+  flex:none;
+  width:18px;
+  height:18px;
+  margin:0;
+  padding:0;
+  /* rounded square: these are multi-select checkboxes, not radios */
+  border-radius:6px;
+  border:1.5px solid rgba(239,253,255,.42);
+  background:transparent no-repeat center/12px;
+  box-shadow:none;
+  cursor:pointer;
+  transition:background-color .2s ease,border-color .2s ease;
+}
+
+html.v2 #recovery .recovery-toggle input:checked{
+  border-color:#fff;
+  background-color:#fff;
+  background-image:var(--pg-check-dark);
+}
+
+html.v2 #recovery .recovery-toggle input:focus-visible{
+  outline:2px solid var(--pg-g1);
+  outline-offset:2px;
+}
+
+html.v2 #recovery .recovery-toggle:has(input:checked){
+  color:var(--pg-ink);
+  border-color:rgba(34,211,238,.5);
+  background:linear-gradient(180deg,rgba(34,211,238,.2),rgba(45,212,191,.1));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12);
+}
+
+/* ---------- screenshot upload row (label keeps wrapping the file input) ---------- */
+html.v2 #recovery .recovery-upload-row{
+  gap:12px;
+  margin-bottom:18px;
+  padding:12px 16px 12px 12px;
+  border-radius:18px;
+  border:1px dashed rgba(255,255,255,.2);
+  background:rgba(255,255,255,.025);
+  box-shadow:none;
+  -webkit-backdrop-filter:none;
+  backdrop-filter:none;
+  color:var(--pg-muted);
+  font-size:14px;
+  line-height:1.4;
+  transition:border-color .25s ease,background .25s ease,color .25s ease;
+}
+
+html.v2 #recovery .recovery-upload-row:hover{
+  border-color:rgba(34,211,238,.55);
+  background:rgba(34,211,238,.06);
+  color:var(--pg-ink);
+}
+
+html.v2 #recovery .recovery-upload-row .upload-icon-sm{
+  position:relative;
+  flex:none;
+  width:38px;
+  height:38px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.15);
+  background:linear-gradient(140deg,rgba(34,211,238,.32),rgba(45,212,191,.16));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16);
+  color:transparent;
+  font-size:0;
+}
+
+html.v2 #recovery .recovery-upload-row .upload-icon-sm::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  margin:auto;
+  width:18px;
+  height:18px;
+  background:#e6fcff;
+  -webkit-mask:var(--pg-i-image) center/contain no-repeat;
+  mask:var(--pg-i-image) center/contain no-repeat;
+}
+
+/* ---------- status lines written by JS (className rewritten: style the ids) ---------- */
+html.v2 #recovery #recoveryIntakeMessage,
+html.v2 #recovery #recoveryUpdateMessage{
+  margin:10px 0 12px;
+  color:var(--pg-muted);
+  font-family:var(--pg-sans);
+  font-size:14px;
+  line-height:1.55;
+}
+
+html.v2 #recovery #recoveryIntakeMessage:empty,
+html.v2 #recovery #recoveryUpdateMessage:empty{
+  min-height:0;
+  margin:0;
+}
+
+html.v2 #recovery #recoveryIntakeMessage.warning,
+html.v2 #recovery #recoveryUpdateMessage.warning{color:#ffd9a0}
+html.v2 #recovery #recoveryIntakeMessage.success,
+html.v2 #recovery #recoveryUpdateMessage.success{color:var(--pg-safe)}
+html.v2 #recovery #recoveryIntakeMessage.error,
+html.v2 #recovery #recoveryUpdateMessage.error{color:#ffb0bd}
+
+/* ---------- Start / Update CTAs: white pill, label may wrap (no nowrap) ---------- */
+html.v2 #recovery #recoveryStartBtn,
+html.v2 #recovery #recoveryUpdateBtn{
+  min-height:54px;
+  padding:12px 26px;
+  font-size:16px;
+  font-weight:600;
+  white-space:normal;
+  text-align:center;
+}
+
+html.v2 #recovery #recoveryStartBtn::after,
+html.v2 #recovery #recoveryUpdateBtn::after{
+  content:"";
+  flex:none;
+  width:18px;
+  height:18px;
+  background:currentColor;
+  -webkit-mask:var(--pg-i-arrow) center/contain no-repeat;
+  mask:var(--pg-i-arrow) center/contain no-repeat;
+  transition:transform .35s var(--pg-ease);
+}
+
+html.v2 #recovery #recoveryStartBtn:hover::after,
+html.v2 #recovery #recoveryUpdateBtn:hover::after{transform:translateX(3px)}
+
+html.v2 #recovery #recoveryStartBtn:disabled::after,
+html.v2 #recovery #recoveryUpdateBtn:disabled::after{display:none}
+
+html.v2 #recovery .recovery-usage-note:empty{display:none}
+
+/* ---------- Your Recovery Cases ---------- */
+html.v2 #recovery .recovery-cases-card{
+  align-self:start;
+  padding:24px;
+  border-radius:28px;
+}
+
+html.v2 #recovery .recovery-cases-card h4{
+  margin-bottom:14px;
+  color:var(--pg-ink);
+  font-size:18px;
+  font-weight:600;
+  letter-spacing:-.02em;
+}
+
+html.v2 #recovery .recovery-empty-note{
+  color:var(--pg-muted);
+  font-size:14px;
+  line-height:1.6;
+}
+
+html.v2 #recovery .recovery-case-list{gap:8px}
+
+/* buttons have no global colour: set it explicitly */
+html.v2 #recovery .recovery-case-item{
+  padding:14px 16px;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.08);
+  background:var(--pg-well);
+  color:var(--pg-ink);
+  font-family:var(--pg-sans);
+  transition:border-color .25s ease,background .25s ease;
+}
+
+html.v2 #recovery .recovery-case-item:hover{
+  border-color:rgba(34,211,238,.4);
+  background:rgba(34,211,238,.08);
+}
+
+html.v2 #recovery .recovery-case-item strong{
+  margin-bottom:5px;
+  color:var(--pg-ink);
+  font-size:15px;
+  font-weight:560;
+  letter-spacing:-.01em;
+}
+
+html.v2 #recovery .recovery-case-item small{
+  color:var(--pg-muted);
+  font-family:var(--pg-mono);
+  font-size:11px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+html.v2 #recovery .recovery-case-progress{
+  height:4px;
+  margin-top:10px;
+  background:rgba(255,255,255,.08);
+}
+
+/* width is inline from JS: colour only */
+html.v2 #recovery .recovery-case-progress span{
+  background:linear-gradient(90deg,var(--pg-g1),var(--pg-g2));
+}
+
+/* ---------- result dashboard ---------- */
+html.v2 #recovery .recovery-dashboard{
+  max-width:1080px;
+  gap:16px;
+}
+
+html.v2 #recovery .recovery-back-btn{
+  min-height:40px;
+  padding:0 16px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.06);
+  color:var(--pg-ink);
+  font-family:var(--pg-sans);
+  font-size:14px;
+  font-weight:500;
+  cursor:pointer;
+  transition:background .25s ease,border-color .25s ease;
+}
+
+html.v2 #recovery .recovery-back-btn:hover{
+  color:var(--pg-ink);
+  border-color:rgba(255,255,255,.24);
+  background:rgba(255,255,255,.1);
+}
+
+html.v2 #recovery .recovery-status-row{gap:12px}
+
+html.v2 #recovery .recovery-status-card{
+  padding:18px 20px;
+  border-radius:22px;
+  text-align:left;
+}
+
+html.v2 #recovery .recovery-status-label{
+  margin-bottom:8px;
+  color:var(--pg-muted);
+  font-family:var(--pg-mono);
+  font-size:10.5px;
+  font-weight:500;
+  letter-spacing:.14em;
+}
+
+html.v2 #recovery .recovery-status-card strong:not(.recovery-risk-badge){
+  display:block;
+  color:var(--pg-ink);
+  font-size:19px;
+  font-weight:600;
+  letter-spacing:-.02em;
+  line-height:1.25;
+}
+
+html.v2 #recovery #recoveryProgressOut{
+  background:var(--pg-grad-text);
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  font-variant-numeric:tabular-nums;
+}
+
+/* risk badge: className is rewritten by JS -> keyed to the JS classes */
+html.v2 #recovery .recovery-risk-badge{
+  display:inline-block;
+  color:var(--pg-ink);
+  font-family:var(--pg-mono);
+  font-size:12px;
+  font-weight:600;
+  letter-spacing:.14em;
+  line-height:1.2;
+}
+
+html.v2 #recovery .recovery-risk-critical,
+html.v2 #recovery .recovery-risk-high,
+html.v2 #recovery .recovery-risk-medium,
+html.v2 #recovery .recovery-risk-low{
+  padding:6px 12px 5px;
+  border-radius:999px;
+  border:1px solid transparent;
+}
+
+html.v2 #recovery .recovery-risk-critical{color:#ffb0bd;background:rgba(255,92,122,.18);border-color:rgba(255,92,122,.5);box-shadow:0 0 22px rgba(255,92,122,.28)}
+html.v2 #recovery .recovery-risk-high{color:#ffb0bd;background:rgba(255,92,122,.12);border-color:rgba(255,92,122,.38)}
+html.v2 #recovery .recovery-risk-medium{color:#ffd9a0;background:rgba(255,181,71,.12);border-color:rgba(255,181,71,.38)}
+html.v2 #recovery .recovery-risk-low{color:#a8f5d0;background:rgba(108,240,176,.1);border-color:rgba(108,240,176,.35)}
+
+html.v2 #recovery .recovery-summary-card{
+  padding:26px 28px;
+  border-radius:26px;
+}
+
+html.v2 #recovery #recoverySummaryOut{
+  margin-bottom:18px;
+  color:var(--pg-ink);
+  font-size:17px;
+  line-height:1.65;
+  text-wrap:pretty;
+}
+
+html.v2 #recovery .recovery-confidence-row{
+  padding-top:14px;
+  border-top:1px solid rgba(255,255,255,.08);
+}
+
+html.v2 #recovery #recoveryConfidenceOut{
+  margin-bottom:6px;
+  color:var(--pg-g1);
+  font-family:var(--pg-mono);
+  font-size:11.5px;
+  font-weight:600;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+
+html.v2 #recovery #recoveryConfidenceReasonOut{
+  color:var(--pg-muted);
+  font-size:14px;
+  line-height:1.6;
+}
+
+html.v2 #recovery .recovery-facts-grid{gap:12px}
+
+html.v2 #recovery .recovery-fact-card{
+  padding:20px 22px;
+  border-radius:22px;
+}
+
+html.v2 #recovery .recovery-fact-card h5{
+  margin-bottom:12px;
+  color:var(--pg-g1);
+  font-family:var(--pg-mono);
+  font-size:11px;
+  font-weight:500;
+  letter-spacing:.14em;
+}
+
+html.v2 #recovery .recovery-fact-card ul{gap:9px}
+
+html.v2 #recovery .recovery-fact-card li{
+  padding-left:18px;
+  color:var(--pg-ink);
+  font-size:14.5px;
+  line-height:1.5;
+}
+
+html.v2 #recovery .recovery-fact-card li::before{
+  top:.58em;
+  width:6px;
+  height:6px;
+  background:linear-gradient(135deg,var(--pg-g1),var(--pg-g2));
+  box-shadow:0 0 8px rgba(34,211,238,.6);
+}
+
+html.v2 #recovery .recovery-fact-card:nth-child(3) li::before{
+  background:var(--pg-amber);
+  box-shadow:0 0 8px rgba(255,181,71,.5);
+}
+
+/* section cards */
+html.v2 #recovery .recovery-immediate-card,
+html.v2 #recovery .recovery-timeline-card,
+html.v2 #recovery .recovery-remaining-card,
+html.v2 #recovery .recovery-resources-card,
+html.v2 #recovery .recovery-update-card,
+html.v2 #recovery .recovery-history-card{
+  padding:26px 28px;
+  border-radius:26px;
+}
+
+html.v2 #recovery .recovery-immediate-card h3,
+html.v2 #recovery .recovery-timeline-card h3,
+html.v2 #recovery .recovery-remaining-card h3,
+html.v2 #recovery .recovery-resources-card h3,
+html.v2 #recovery .recovery-update-card h3,
+html.v2 #recovery .recovery-history-card h3{
+  margin-bottom:16px;
+  color:var(--pg-ink);
+  font-family:var(--pg-sans);
+  font-size:21px;
+  font-weight:600;
+  letter-spacing:-.025em;
+}
+
+/* "Do This Now" is the hero of the dashboard */
+html.v2 #recovery .recovery-immediate-card{
+  background:radial-gradient(90% 70% at 0% 0%,rgba(34,211,238,.16),transparent 70%),var(--pg-glass),var(--pg-navy-tint);
+  border-color:rgba(34,211,238,.28);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 34px 90px -40px rgba(81,219,242,.5);
+}
+
+html.v2 #recovery .recovery-immediate-card h3{font-size:23px}
+
+/* ---------- action rows (dynamic) ---------- */
+html.v2 #recovery .recovery-action-list{gap:10px}
+
+html.v2 #recovery .recovery-action-item{
+  gap:14px;
+  padding:16px 18px;
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,.08);
+  background:var(--pg-well);
+  transition:background .25s ease,border-color .25s ease,opacity .25s ease;
+}
+
+html.v2 #recovery .recovery-action-item.completed{opacity:.72}
+
+html.v2 #recovery .recovery-action-check{padding-top:1px}
+
+html.v2 #recovery .recovery-action-check input{
+  -webkit-appearance:none;
+  appearance:none;
+  display:block;
+  width:24px;
+  height:24px;
+  margin:0;
+  padding:0;
+  border-radius:50%;
+  border:1.5px solid rgba(239,253,255,.38);
+  background:transparent no-repeat center/14px;
+  box-shadow:none;
+  cursor:pointer;
+  transition:background-color .2s ease,border-color .2s ease,box-shadow .2s ease;
+}
+
+html.v2 #recovery .recovery-action-check input:hover{border-color:rgba(239,253,255,.7)}
+
+html.v2 #recovery .recovery-action-check input:checked{
+  border-color:var(--pg-safe);
+  background-color:var(--pg-safe);
+  background-image:var(--pg-check-safe);
+  box-shadow:0 0 14px rgba(108,240,176,.45);
+}
+
+html.v2 #recovery .recovery-action-check input:focus-visible{
+  outline:2px solid var(--pg-g1);
+  outline-offset:2px;
+}
+
+html.v2 #recovery .recovery-action-item:has(input:checked){
+  border-color:rgba(108,240,176,.22);
+  background:rgba(108,240,176,.045);
+}
+
+html.v2 #recovery .recovery-action-item:has(input:checked) .recovery-action-title-row strong{
+  color:var(--pg-muted);
+  text-decoration:line-through;
+  text-decoration-color:rgba(239,253,255,.45);
+}
+
+html.v2 #recovery .recovery-action-title-row{
+  gap:8px;
+  margin-bottom:6px;
+}
+
+html.v2 #recovery .recovery-action-title-row strong{
+  margin-right:2px;
+  color:var(--pg-ink);
+  font-size:16px;
+  font-weight:600;
+  letter-spacing:-.015em;
+}
+
+html.v2 #recovery .recovery-priority-pill{
+  padding:4px 9px 3px;
+  border-radius:999px;
+  border:1px solid transparent;
+  font-family:var(--pg-mono);
+  font-size:10.5px;
+  font-weight:600;
+  letter-spacing:.12em;
+  line-height:1.3;
+}
+
+html.v2 #recovery .recovery-priority-critical{color:#ffb0bd;background:rgba(255,92,122,.14);border-color:rgba(255,92,122,.4)}
+html.v2 #recovery .recovery-priority-high{color:#ffd9a0;background:rgba(255,181,71,.12);border-color:rgba(255,181,71,.38)}
+html.v2 #recovery .recovery-priority-normal{color:rgba(239,253,255,.78);background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12)}
+
+html.v2 #recovery .recovery-action-instruction{
+  margin-bottom:8px;
+  color:var(--pg-ink);
+  font-size:15px;
+  line-height:1.6;
+}
+
+html.v2 #recovery .recovery-action-why,
+html.v2 #recovery .recovery-action-verify{
+  margin-bottom:4px;
+  color:var(--pg-muted);
+  font-size:13.5px;
+  line-height:1.55;
+}
+
+html.v2 #recovery .recovery-action-why strong,
+html.v2 #recovery .recovery-action-verify strong{
+  margin-right:4px;
+  color:var(--pg-g1);
+  font-family:var(--pg-mono);
+  font-size:10.5px;
+  font-weight:600;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+
+/* ---------- timeline: segmented control (non-first tabs stay clickable) ---------- */
+html.v2 #recovery .recovery-timeline-tabs{
+  display:inline-flex;
+  flex-wrap:wrap;
+  gap:4px;
+  margin-bottom:16px;
+  padding:4px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.1);
+  background:var(--pg-well);
+}
+
+html.v2 #recovery .recovery-timeline-tab{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  min-height:38px;
+  padding:0 16px;
+  border-radius:999px;
+  border:0;
+  background:transparent;
+  color:var(--pg-muted);
+  font-family:var(--pg-sans);
+  font-size:14px;
+  font-weight:560;
+  cursor:pointer;
+  transition:color .25s ease,background .25s ease,box-shadow .25s ease;
+}
+
+html.v2 #recovery .recovery-timeline-tab:hover{
+  color:var(--pg-ink);
+  background:rgba(255,255,255,.07);
+}
+
+html.v2 #recovery .recovery-timeline-tab.active{
+  color:#030505;
+  background:var(--v2-white);
+  box-shadow:inset 0 1px 0 #fff,0 6px 20px -6px rgba(34,211,238,.7);
+}
+
+/* lock glyph for plans that open pricing on click (visual only) */
+html.v2 body:not([data-plan="pro"]) #recovery .recovery-timeline-tab:not([data-timeline="first10Minutes"])::after{
+  content:"";
+  flex:none;
+  width:12px;
+  height:12px;
+  background:currentColor;
+  opacity:.75;
+  -webkit-mask:var(--pg-i-lock) center/contain no-repeat;
+  mask:var(--pg-i-lock) center/contain no-repeat;
+}
+
+html.v2 #recovery .recovery-locked-note{
+  padding:22px;
+  border-radius:20px;
+  border:1px dashed rgba(34,211,238,.3);
+  background:rgba(34,211,238,.06);
+}
+
+html.v2 #recovery .recovery-locked-note p{
+  margin-bottom:14px;
+  color:var(--pg-muted);
+  font-size:14.5px;
+  line-height:1.6;
+}
+
+html.v2 #recovery .recovery-locked-note strong{color:var(--pg-ink);font-weight:600}
+html.v2 #recovery .recovery-locked-note .secondary-btn{min-height:44px}
+
+/* ---------- still at risk ---------- */
+html.v2 #recovery .recovery-remaining-card ul{gap:10px}
+
+html.v2 #recovery .recovery-remaining-card li{
+  padding-left:28px;
+  color:var(--pg-ink);
+  font-size:14.5px;
+  line-height:1.55;
+}
+
+html.v2 #recovery .recovery-remaining-card li::before{
+  content:"";
+  top:2px;
+  width:17px;
+  height:17px;
+  background:var(--pg-amber);
+  -webkit-mask:var(--pg-i-alert) center/contain no-repeat;
+  mask:var(--pg-i-alert) center/contain no-repeat;
+}
+
+/* ---------- Pro upsell (plan.pro look) ---------- */
+html.v2 #recovery .recovery-pro-upsell{
+  position:relative;
+  isolation:isolate;
+  gap:20px;
+  padding:28px;
+  border-radius:28px;
+  border:1px solid transparent;
+  background:radial-gradient(80% 120% at 0% 0%,rgba(107,224,244,.22),transparent 60%),linear-gradient(180deg,rgba(107,224,244,.16),rgba(77,206,228,.06) 55%,rgba(255,255,255,.03));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 40px 100px -40px rgba(81,219,242,.55);
+  -webkit-backdrop-filter:var(--pg-blur);
+  backdrop-filter:var(--pg-blur);
+}
+
+html.v2 #recovery .recovery-pro-upsell::before{
+  content:"";
+  position:absolute;
+  inset:-1px;
+  z-index:-1;
+  border-radius:inherit;
+  padding:1.2px;
+  background:linear-gradient(160deg,rgba(255,255,255,.9),rgba(34,211,238,.5) 30%,rgba(45,212,191,.15) 60%,rgba(255,255,255,.35));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+  mask-composite:exclude;
+  pointer-events:none;
+}
+
+html.v2 #recovery .recovery-pro-upsell-icon{
+  display:grid;
+  place-items:center;
+  width:52px;
+  height:52px;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.15);
+  background:linear-gradient(140deg,rgba(34,211,238,.32),rgba(45,212,191,.16));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 8px 24px -8px rgba(34,211,238,.5);
+  color:#e6fcff;
+}
+
+html.v2 #recovery .recovery-pro-upsell-body h4{
+  margin-bottom:8px;
+  color:var(--pg-ink);
+  font-size:21px;
+  font-weight:600;
+  letter-spacing:-.025em;
+  line-height:1.25;
+  text-wrap:balance;
+}
+
+html.v2 #recovery .recovery-pro-upsell-body p{
+  margin-bottom:18px;
+  color:var(--pg-muted);
+  font-size:15px;
+  line-height:1.6;
+}
+
+html.v2 #recovery .recovery-pro-upsell .primary-btn{min-height:46px}
+
+/* ---------- reporting resources ---------- */
+html.v2 #recovery .recovery-resources-list{gap:8px}
+
+html.v2 #recovery .recovery-resource-item{
+  gap:12px 16px;
+  padding:14px 14px 14px 18px;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.08);
+  background:var(--pg-well);
+}
+
+html.v2 #recovery .recovery-resource-info strong{
+  margin-bottom:3px;
+  color:var(--pg-ink);
+  font-size:15px;
+  font-weight:560;
+}
+
+html.v2 #recovery .recovery-resource-info span{
+  color:var(--pg-muted);
+  font-size:13px;
+}
+
+html.v2 #recovery .recovery-resource-item a{
+  display:inline-flex;
+  align-items:center;
+  min-height:36px;
+  padding:0 14px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.06);
+  color:var(--pg-ink);
+  font-size:13px;
+  font-weight:560;
+  text-decoration:none;
+  transition:background .25s ease,border-color .25s ease;
+}
+
+html.v2 #recovery .recovery-resource-item a:hover{
+  border-color:rgba(255,255,255,.28);
+  background:rgba(255,255,255,.12);
+}
+
+/* ---------- update card ---------- */
+html.v2 #recovery #recoveryUpdateQuestion{
+  margin-bottom:12px;
+  color:var(--pg-ink);
+  font-size:16px;
+  line-height:1.55;
+}
+
+/* Case History is never filled by any script: hide it while it is empty */
+html.v2 #recovery .recovery-history-card:has(#recoveryHistoryList:empty){display:none}
+
+/* ---------- download (Pro) ----------
+   ::before is the shared glass sheen, so the icon is ::after moved in front
+   of the label (the button is inline-flex; display itself is never set here,
+   [hidden] keeps controlling it). */
+html.v2 #recovery #recoveryDownloadBtn{min-height:52px}
+
+html.v2 #recovery #recoveryDownloadBtn::after{
+  content:"";
+  order:-1;
+  flex:none;
+  width:18px;
+  height:18px;
+  background:currentColor;
+  -webkit-mask:var(--pg-i-download) center/contain no-repeat;
+  mask:var(--pg-i-download) center/contain no-repeat;
+}
+
+/* ==========================================================================
+   LEARN  (section#learn)
+   ========================================================================== */
+
+/* hero becomes a bare, centred section head (no glass-in-glass) */
+html.v2 #learn .learn-hero{
+  min-height:0;
+  max-width:880px;
+  margin:0 auto;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:none;
+  box-shadow:none;
+  -webkit-backdrop-filter:none;
+  backdrop-filter:none;
+  grid-template-columns:minmax(0,1fr);
+  justify-items:center;
+  gap:34px;
+  text-align:center;
+}
+
+html.v2 #learn .learn-hero h1{
+  margin:0 0 18px;
+  color:var(--pg-ink);
+  font-family:var(--pg-sans);
+  font-size:clamp(40px,5.2vw,76px);
+  font-weight:620;
+  line-height:1;
+  letter-spacing:-.052em;
+  text-wrap:balance;
+}
+
+html.v2 #learn .learn-hero > div:first-child > p{
+  max-width:540px;
+  margin:0 auto;
+  color:var(--pg-muted);
+  font-size:18px;
+  line-height:1.6;
+  text-wrap:pretty;
+}
+
+/* search: one pill field with a white button inside (scanbox language) */
+html.v2 #learn .learn-search-card{
+  width:100%;
+  max-width:640px;
+  padding:18px;
+  border-radius:28px;
+  text-align:left;
+}
+
+html.v2 #learn .learn-search-card > label{
+  margin:2px 0 12px 6px;
+  color:var(--pg-g1);
+  font-family:var(--pg-mono);
+  font-size:11px;
+  font-weight:500;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+
+html.v2 #learn .learn-search-row{
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:8px;
+  align-items:center;
+  padding:5px 5px 5px 20px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(4,7,8,.55);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+  transition:border-color .25s ease,box-shadow .25s ease;
+}
+
+html.v2 #learn .learn-search-row:focus-within{
+  border-color:rgba(34,211,238,.55);
+  box-shadow:0 0 0 4px rgba(34,211,238,.14);
+}
+
+html.v2 #learn #learnSearch{
+  min-width:0;
+  height:46px;
+  margin:0;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+  color:var(--pg-ink);
+  font-family:var(--pg-sans);
+  font-size:16px;
+  text-overflow:ellipsis;
+}
+
+html.v2 #learn #learnSearch::placeholder{color:var(--pg-faint);font-family:var(--pg-sans)}
+
+/* the row draws the focus ring */
+html.v2 #learn #learnSearch:focus,
+html.v2 #learn #learnSearch:focus-visible{
+  outline:none;
+  border:0;
+  box-shadow:none;
+}
+
+html.v2 #learn #learnSearchBtn{
+  min-height:46px;
+  padding:0 22px;
+  font-size:15px;
+}
+
+/* results (runtime markup with inline styles) */
+html.v2 #learn .learn-search-result{
+  margin-top:12px;
+  color:var(--pg-muted);
+  font-size:14.5px;
+  line-height:1.55;
+}
+
+html.v2 #learn .learn-search-result:empty{margin-top:0}
+
+html.v2 #learn .learn-search-result .warning{color:#ffd9a0}
+
+html.v2 #learn .search-result-item{
+  margin-top:8px;
+  padding:14px 16px 16px;
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,.08);
+  background:var(--pg-well);
+}
+
+html.v2 #learn .search-result-item strong{
+  color:var(--pg-ink);
+  font-size:16px;
+  font-weight:600;
+  letter-spacing:-.015em;
+}
+
+html.v2 #learn .search-result-item span{
+  display:inline-block;
+  margin-top:4px;
+  color:var(--pg-g1)!important;
+  font-family:var(--pg-mono);
+  font-size:11px!important;
+  font-weight:500;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+
+/* stops the ".learn-hero p" 19px leak into result descriptions */
+html.v2 #learn .search-result-item p{
+  max-width:none;
+  color:var(--pg-muted);
+  font-size:14px;
+  line-height:1.5;
+}
+
+html.v2 #learn .search-result-item .secondary-btn{
+  margin-top:12px!important;
+  min-height:36px!important;
+  padding:0 16px!important;
+  font-size:13px!important;
+}
+
+/* ---------- roadmap rail ---------- */
+html.v2 #learn .roadmap{
+  --rail-pad:40px;
+  --rail-x:13px;
+  max-width:880px;
+  margin:64px auto 0;
+  padding-left:var(--rail-pad);
+  content-visibility:visible;
+  contain-intrinsic-size:none;
+}
+
+html.v2 #learn .roadmap::before{
+  left:var(--rail-x);
+  top:14px;
+  width:1.5px;
+  background:linear-gradient(180deg,var(--pg-g1),var(--pg-g2) 55%,rgba(165,243,252,.12) 92%,transparent);
+}
+
+html.v2 #learn .rm-module{margin-bottom:52px}
+html.v2 #learn .rm-module:last-child{margin-bottom:0}
+
+html.v2 #learn .rm-module-head{
+  position:relative;
+  padding:4px 0 18px;
+}
+
+html.v2 #learn .rm-module-head::before{
+  content:"";
+  position:absolute;
+  left:calc(var(--rail-x) - var(--rail-pad) - 5px);
+  top:7px;
+  width:11px;
+  height:11px;
+  border-radius:50%;
+  background:#091112;
+  border:1.5px solid var(--pg-g1);
+  box-shadow:0 0 0 4px rgba(2,4,6,.9),0 0 16px rgba(34,211,238,.65);
+}
+
+html.v2 #learn .rm-module-head span{
+  color:var(--pg-g1);
+  font-family:var(--pg-mono);
+  font-size:11.5px;
+  font-weight:500;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+
+html.v2 #learn .rm-module-head h2{
+  margin-top:8px;
+  color:var(--pg-ink);
+  font-family:var(--pg-sans);
+  font-size:clamp(24px,2.4vw,32px);
+  font-weight:600;
+  letter-spacing:-.035em;
+  line-height:1.15;
+  text-wrap:balance;
+}
+
+html.v2 #learn .rm-nodes{gap:10px}
+
+/* ---------- lesson cards (33): lighter blur than the big panels ---------- */
+html.v2 #learn .rm-node{
+  border-radius:22px;
+  border:1px solid rgba(255,255,255,.11);
+  background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.025)),var(--pg-navy-tint);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 20px 50px -30px rgba(0,0,0,.8);
+  -webkit-backdrop-filter:blur(14px) saturate(140%);
+  backdrop-filter:blur(14px) saturate(140%);
+  transform:none;
+  transition:border-color .3s ease,background-color .3s ease,box-shadow .45s var(--pg-ease);
+}
+
+html.v2 #learn .rm-node:hover{transform:none}
+
+@media (hover:hover){
+  html.v2 #learn .rm-node:hover{border-color:rgba(255,255,255,.22)}
+  html.v2 #learn .rm-node:hover .rm-node-info::after{background-color:rgba(255,255,255,.12)}
+}
+
+html.v2 #learn .rm-node.expanded{
+  border-color:rgba(34,211,238,.42);
+  background:linear-gradient(180deg,rgba(107,224,244,.14),rgba(77,206,228,.05) 45%,rgba(255,255,255,.025)),var(--pg-navy-tint);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 34px 90px -40px rgba(81,219,242,.55);
+}
+
+html.v2 #learn .rm-node-info{
+  position:relative;
+  padding:20px 66px 20px 24px;
+}
+
+html.v2 #learn .rm-node-info h3{
+  margin-bottom:4px;
+  color:var(--pg-ink);
+  font-family:var(--pg-sans);
+  font-size:18px;
+  font-weight:600;
+  letter-spacing:-.02em;
+  line-height:1.3;
+}
+
+html.v2 #learn .rm-node-info p{
+  color:var(--pg-muted);
+  font-size:15px;
+  line-height:1.5;
+}
+
+/* CSS-only chevron (no new element: the whole card is the click target) */
+html.v2 #learn .rm-node-info::after{
+  content:"";
+  position:absolute;
+  right:20px;
+  top:50%;
+  width:32px;
+  height:32px;
+  margin-top:-16px;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.06) var(--pg-chev) center/15px no-repeat;
+  transition:transform .45s var(--pg-ease),background-color .3s ease,border-color .3s ease;
+}
+
+html.v2 #learn .rm-node.expanded .rm-node-info::after{
+  transform:rotate(180deg);
+  border-color:rgba(34,211,238,.45);
+  background-color:rgba(34,211,238,.18);
+}
+
+/* Lesson panel: no height cap. Opens to auto (animated where the browser
+   supports interpolate-size, instant elsewhere). Several can be open at once. */
+html.v2 #learn .rm-node-expand{
+  max-height:none;
+  height:0;
+  overflow:hidden;
+  padding:0 24px;
+  interpolate-size:allow-keywords;
+  transition:height .5s var(--pg-ease),padding .5s var(--pg-ease);
+}
+
+html.v2 #learn .rm-node.expanded .rm-node-expand{
+  max-height:none;
+  height:auto;
+  padding:0 24px 24px;
+}
+
+html.v2 #learn .rm-node.expanded .rm-node-expand > *{
+  animation:v2-lesson-in .5s var(--pg-ease) both;
+}
+
+html.v2 #learn .rm-node.expanded .rm-node-expand > :nth-child(2){animation-delay:.06s}
+html.v2 #learn .rm-node.expanded .rm-node-expand > :nth-child(3){animation-delay:.12s}
+
+@keyframes v2-lesson-in{
+  from{opacity:0;transform:translateY(8px)}
+  to{opacity:1;transform:none}
+}
+
+html.v2 #learn .rm-lesson{
+  margin-top:2px;
+  padding:16px 0 0;
+  border:0;
+  border-top:1px solid rgba(255,255,255,.08);
+  border-radius:0;
+  background:none;
+  color:rgba(239,253,255,.86);
+  font-size:16px;
+  line-height:1.7;
+}
+
+html.v2 #learn .rm-lesson strong{
+  color:var(--pg-ink);
+  font-weight:600;
+}
+
+html.v2 #learn .rm-example,
+html.v2 #learn .rm-tip{
+  position:relative;
+  margin-top:14px;
+  padding:16px 18px;
+  border-radius:18px;
+  color:var(--pg-ink);
+  font-size:15px;
+  line-height:1.65;
+}
+
+html.v2 #learn .rm-example{
+  padding-left:52px;
+  border:1px solid rgba(255,255,255,.08);
+  background:var(--pg-well);
+}
+
+html.v2 #learn .rm-example::before{
+  content:"";
+  position:absolute;
+  left:18px;
+  top:18px;
+  width:19px;
+  height:19px;
+  background:var(--pg-amber);
+  -webkit-mask:var(--pg-i-chat) center/contain no-repeat;
+  mask:var(--pg-i-chat) center/contain no-repeat;
+}
+
+html.v2 #learn .rm-tip{
+  border:1px solid rgba(34,211,238,.24);
+  background:linear-gradient(180deg,rgba(34,211,238,.14),rgba(45,212,191,.06));
+}
+
+html.v2 #learn .rm-example strong,
+html.v2 #learn .rm-tip strong{
+  color:var(--pg-ink);
+  font-weight:600;
+}
+
+/* the first <strong> of an example/tip is its label ("Example:", "Remember:") */
+html.v2 #learn .rm-example > strong:first-child,
+html.v2 #learn .rm-tip > strong:first-child{
+  display:block;
+  margin-bottom:4px;
+  font-family:var(--pg-mono);
+  font-size:10.5px;
+  font-weight:600;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+
+html.v2 #learn .rm-example > strong:first-child{color:#ffd9a0}
+html.v2 #learn .rm-tip > strong:first-child{color:var(--pg-g1)}
+
+/* ==========================================================================
+   ABOUT  (section#about)
+   ========================================================================== */
+
+html.v2 #about .about-top{margin-bottom:52px}
+
+/* the .pill.glass eyebrow becomes a mono tag (glass reset) */
+html.v2 #about .about-top .pill{
+  display:block;
+  min-height:0;
+  border:0;
+  border-radius:0;
+  box-shadow:none;
+  -webkit-backdrop-filter:none;
+  backdrop-filter:none;
+}
+
+html.v2 #about .about-top h1{
+  max-width:900px;
+  margin:0 auto;
+  color:var(--pg-ink);
+  font-family:var(--pg-sans);
+  font-size:clamp(40px,5.6vw,80px);
+  font-weight:620;
+  line-height:1;
+  letter-spacing:-.052em;
+  text-wrap:balance;
+}
+
+/* ---------- stat counters (strong[data-count] is written by JS) ---------- */
+html.v2 #about .about-stats-row{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:0;
+  max-width:780px;
+  margin:0 auto 48px;
+}
+
+html.v2 #about .about-stats-row > div{
+  margin:0;
+  padding:4px 14px;
+  border-right:1px solid rgba(255,255,255,.1);
+  text-align:center;
+}
+
+html.v2 #about .about-stats-row > div:last-child{border-right:0}
+
+html.v2 #about .about-stats-row strong{
+  display:block;
+  min-width:0;
+  font-family:var(--pg-sans);
+  font-size:clamp(44px,5.4vw,72px);
+  font-weight:650;
+  line-height:1.02;
+  letter-spacing:-.06em;
+  background:var(--pg-grad-text);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+  -webkit-text-fill-color:transparent;
+  font-variant-numeric:tabular-nums;
+}
+
+html.v2 #about .about-stats-row span{
+  margin-top:8px;
+  color:var(--pg-muted);
+  font-size:14px;
+}
+
+/* ---------- whoami panel -> glass card with mono key/value rows ---------- */
+html.v2 #about .fetch-panel{
+  position:relative;
+  max-width:720px;
+  margin:0 auto 56px;
+  padding:14px;
+  border-radius:28px;
+  overflow:hidden;
+}
+
+html.v2 #about .fetch-panel::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:radial-gradient(70% 60% at 50% 0%,rgba(34,211,238,.14),transparent 70%);
+  pointer-events:none;
+}
+
+html.v2 #about .term-chrome{
+  position:relative;
+  gap:6px;
+  padding:4px 6px 12px 8px;
+  border-bottom:0;
+  background:none;
+}
+
+html.v2 #about .term-chrome .dot{
+  width:9px;
+  height:9px;
+  background:rgba(255,255,255,.16);
+}
+
+html.v2 #about .term-path{
+  margin-left:8px;
+  color:var(--pg-muted);
+  font-family:var(--pg-mono);
+  font-size:10.5px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+
+html.v2 #about .fetch-body{
+  position:relative;
+  gap:6px;
+  padding:0;
+  font-family:var(--pg-sans);
+  font-size:15px;
+}
+
+html.v2 #about .fetch-line{
+  display:grid;
+  grid-template-columns:130px minmax(0,1fr);
+  gap:16px;
+  align-items:baseline;
+  padding:12px 16px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.06);
+  background:rgba(4,7,8,.45);
+  color:var(--pg-ink);
+  line-height:1.5;
+  text-align:left;
+}
+
+html.v2 #about .fetch-key{
+  color:var(--pg-muted);
+  font-family:var(--pg-mono);
+  font-size:10.5px;
+  font-weight:500;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+
+html.v2 #about .safe-text{
+  display:inline-flex;
+  align-items:center;
+  width:max-content;
+  padding:3px 11px 2px;
+  border-radius:999px;
+  border:1px solid rgba(108,240,176,.32);
+  background:rgba(108,240,176,.1);
+  color:var(--pg-safe);
+  font-family:var(--pg-mono);
+  font-size:11px;
+  font-weight:500;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+
+/* ---------- 2x2 blocks (tilt cards: no CSS transforms, the JS writes them) ---------- */
+html.v2 #about .about-grid{
+  max-width:1140px;
+  gap:16px;
+  margin:0 auto 20px;
+  counter-reset:v2about;
+}
+
+html.v2 #about .about-block{
+  padding:30px;
+  border-radius:28px;
+  counter-increment:v2about;
+  transition:transform .3s,border-color .3s ease;
+}
+
+html.v2 #about .about-block:hover,
+html.v2 #about .about-value:hover{border-color:rgba(255,255,255,.22)}
+
+html.v2 #about .about-block h2{
+  margin-bottom:12px;
+  color:var(--pg-ink);
+  font-family:var(--pg-sans);
+  font-size:23px;
+  font-weight:600;
+  letter-spacing:-.03em;
+  line-height:1.2;
+}
+
+html.v2 #about .about-block h2::before{
+  content:counter(v2about,decimal-leading-zero);
+  display:block;
+  margin-bottom:14px;
+  color:var(--pg-g1);
+  font-family:var(--pg-mono);
+  font-size:11px;
+  font-weight:500;
+  letter-spacing:.14em;
+}
+
+html.v2 #about .about-block p{
+  color:var(--pg-muted);
+  font-size:15.5px;
+  line-height:1.65;
+}
+
+html.v2 #about .about-block p strong{color:var(--pg-ink);font-weight:600}
+
+/* ---------- "is and isn't" note ---------- */
+html.v2 #about .home-limits-note{
+  max-width:900px;
+  margin:20px auto 28px;
+  padding:18px 24px;
+  border-radius:20px;
+  border:1px solid rgba(255,255,255,.09);
+  background:rgba(255,255,255,.03);
+  color:var(--pg-muted);
+  font-size:14.5px;
+  line-height:1.65;
+}
+
+html.v2 #about .home-limits-note strong{color:var(--pg-ink);font-weight:600}
+
+/* ---------- value tiles ---------- */
+html.v2 #about .about-values{
+  max-width:1140px;
+  gap:16px;
+  content-visibility:visible;
+  contain-intrinsic-size:none;
+}
+
+html.v2 #about .about-value{
+  padding:28px 22px 26px;
+  border-radius:26px;
+}
+
+html.v2 #about .av-icon{
+  display:grid;
+  place-items:center;
+  width:48px;
+  height:48px;
+  margin:0 auto 16px;
+  border-radius:15px;
+  border:1px solid rgba(255,255,255,.15);
+  background:linear-gradient(140deg,rgba(34,211,238,.32),rgba(45,212,191,.16));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 8px 24px -8px rgba(34,211,238,.5);
+  color:#e6fcff;
+}
+
+html.v2 #about .av-icon svg{width:22px;height:22px}
+
+html.v2 #about .about-value h3{
+  margin-bottom:8px;
+  color:var(--pg-ink);
+  font-family:var(--pg-sans);
+  font-size:18px;
+  font-weight:600;
+  letter-spacing:-.02em;
+}
+
+html.v2 #about .about-value p{
+  color:var(--pg-muted);
+  font-size:14.5px;
+  line-height:1.55;
+}
+
+/* ==========================================================================
+   RESPONSIVE  (re-declared inside the legacy breakpoints)
+   ========================================================================== */
+
+/* wide screens: shift the roadmap by half its rail gutter so the lesson cards
+   sit centred under the hero (the rail hangs in the margin) */
+@media (min-width:1151px){
+  html.v2 #learn .roadmap{left:calc(var(--rail-pad) / -2)}
+}
+
+/* two-column intake: the short cases card follows the long form down
+   (the navbar is sticky to ~76px) */
+@media (min-width:1001px){
+  html.v2 #recovery .recovery-cases-card{position:sticky;top:104px}
+}
+
+@media (max-width:1150px){
+  /* legacy collapses .about-grid to one column here; two still fit */
+  html.v2 #about .about-grid{grid-template-columns:1fr 1fr}
+  html.v2 #learn .learn-hero{grid-template-columns:minmax(0,1fr)}
+}
+
+@media (max-width:1000px){
+  html.v2 #recovery .recovery-intake{grid-template-columns:minmax(0,1fr)}
+  html.v2 #recovery .recovery-cases-card{align-self:stretch}
+}
+
+@media (max-width:920px){
+  html.v2 #learn .roadmap{--rail-pad:30px;--rail-x:9px}
+  /* legacy drops the value tiles to one column here; two read better */
+  html.v2 #about .about-values{grid-template-columns:1fr 1fr}
+}
+
+@media (max-width:760px){
+  /* box layout comes from 00-base (block, 22px padding, wrapping pills);
+     only re-apply its pill side padding over the page button rule */
+  html.v2 #recovery .support-box-actions > *,
+  html.v2 #learn .support-box-actions > *,
+  html.v2 #about .support-box-actions > *{padding-inline:16px}
+}
+
+@media (max-width:700px){
+  /* lighter blur on phones (performance), per the v2 tokens */
+  html.v2 #recovery .recovery-intake-card,
+  html.v2 #recovery .recovery-cases-card,
+  html.v2 #recovery .recovery-status-card,
+  html.v2 #recovery .recovery-summary-card,
+  html.v2 #recovery .recovery-fact-card,
+  html.v2 #recovery .recovery-immediate-card,
+  html.v2 #recovery .recovery-timeline-card,
+  html.v2 #recovery .recovery-remaining-card,
+  html.v2 #recovery .recovery-resources-card,
+  html.v2 #recovery .recovery-update-card,
+  html.v2 #recovery .recovery-history-card,
+  html.v2 #recovery .recovery-pro-upsell,
+  html.v2 #learn .learn-search-card,
+  html.v2 #about .fetch-panel,
+  html.v2 #about .about-block,
+  html.v2 #about .about-value,
+  html.v2 #recovery .support-box,
+  html.v2 #learn .support-box,
+  html.v2 #about .support-box{
+    -webkit-backdrop-filter:blur(14px) saturate(140%);
+    backdrop-filter:blur(14px) saturate(140%);
+  }
+
+  /* 33 lesson cards: no blur at all on phones */
+  html.v2 #learn .rm-node{
+    -webkit-backdrop-filter:none;
+    backdrop-filter:none;
+    background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.03)),rgba(10,18,20,.55);
+  }
+  html.v2 #learn .rm-node.expanded{
+    background:linear-gradient(180deg,rgba(107,224,244,.16),rgba(77,206,228,.06) 45%,rgba(255,255,255,.03)),rgba(10,18,20,.6);
+  }
+
+  /* recovery */
+  html.v2 #recovery .recovery-header{margin-bottom:28px}
+  html.v2 #recovery .recovery-header > p{font-size:16px}
+  html.v2 #recovery #recoveryUsageCard{margin-top:22px}
+  html.v2 #recovery .recovery-intake{gap:14px}
+  html.v2 #recovery .recovery-intake-card{padding:20px;border-radius:24px}
+  html.v2 #recovery .recovery-cases-card{padding:20px;border-radius:24px}
+  html.v2 #recovery .recovery-label-lg{font-size:18px}
+  html.v2 #recovery .recovery-privacy-warning{padding:13px 14px 13px 44px;font-size:13.5px}
+  html.v2 #recovery .recovery-privacy-warning::before{left:14px;top:14px;width:18px;height:18px}
+  html.v2 #recovery .recovery-privacy-warning p{font-size:13px}
+  html.v2 #recovery .recovery-toggle{min-height:38px;padding:6px 13px 6px 10px;font-size:13.5px}
+  html.v2 #recovery .recovery-quick-toggles{gap:7px}
+  html.v2 #recovery .recovery-summary-card,
+  html.v2 #recovery .recovery-immediate-card,
+  html.v2 #recovery .recovery-timeline-card,
+  html.v2 #recovery .recovery-remaining-card,
+  html.v2 #recovery .recovery-resources-card,
+  html.v2 #recovery .recovery-update-card,
+  html.v2 #recovery .recovery-history-card,
+  html.v2 #recovery .recovery-pro-upsell{padding:20px;border-radius:24px}
+  html.v2 #recovery .recovery-immediate-card h3{font-size:21px}
+  html.v2 #recovery .recovery-immediate-card h3,
+  html.v2 #recovery .recovery-timeline-card h3,
+  html.v2 #recovery .recovery-remaining-card h3,
+  html.v2 #recovery .recovery-resources-card h3,
+  html.v2 #recovery .recovery-update-card h3,
+  html.v2 #recovery .recovery-history-card h3{font-size:19px}
+  html.v2 #recovery .recovery-action-item{padding:14px;gap:12px}
+  html.v2 #recovery .recovery-action-instruction{font-size:14.5px}
+  html.v2 #recovery #recoverySummaryOut{font-size:16px}
+  html.v2 #recovery .recovery-status-card{padding:16px}
+  html.v2 #recovery .recovery-status-card strong:not(.recovery-risk-badge){font-size:17px}
+
+  /* learn */
+  html.v2 #learn .learn-hero{gap:26px}
+  html.v2 #learn .learn-hero > div:first-child > p{font-size:16px}
+  html.v2 #learn .learn-search-card{padding:14px;border-radius:24px}
+  html.v2 #learn .learn-search-row{padding-left:16px}
+  html.v2 #learn #learnSearchBtn{padding:0 18px}
+  html.v2 #learn .search-result-item{padding:12px 14px 14px;border-radius:16px}
+  html.v2 #learn .search-result-item strong{font-size:15px}
+  html.v2 #learn .search-result-item p{font-size:13.5px}
+  /* 44px touch target (inline styles from script.js need !important) */
+  html.v2 #learn .search-result-item .secondary-btn{margin-top:10px!important;min-height:44px!important;padding:0 18px!important}
+  html.v2 #learn .roadmap{margin-top:48px}
+  html.v2 #learn .rm-module{margin-bottom:40px}
+  html.v2 #learn .rm-node{border-radius:20px}
+  html.v2 #learn .rm-node-info{padding:16px 56px 16px 18px}
+  html.v2 #learn .rm-node-info h3{font-size:17px}
+  html.v2 #learn .rm-node-info p{font-size:14.5px}
+  html.v2 #learn .rm-node-info::after{right:14px;width:30px;height:30px;margin-top:-15px}
+  html.v2 #learn .rm-node-expand,
+  html.v2 #learn .rm-node.expanded .rm-node-expand{padding-left:18px;padding-right:18px}
+  html.v2 #learn .rm-node.expanded .rm-node-expand{padding-bottom:18px}
+  html.v2 #learn .rm-lesson{font-size:15.5px;line-height:1.65}
+  html.v2 #learn .rm-example,
+  html.v2 #learn .rm-tip{padding:14px 15px;font-size:14.5px;border-radius:16px}
+  html.v2 #learn .rm-example{padding-left:44px}
+  html.v2 #learn .rm-example::before{left:15px;top:16px;width:17px;height:17px}
+
+  /* about */
+  html.v2 #about .about-top{margin-bottom:30px}
+  html.v2 #about .about-stats-row{margin-bottom:36px}
+  html.v2 #about .about-stats-row > div{padding:2px 8px}
+  html.v2 #about .about-stats-row span{font-size:12.5px;line-height:1.35}
+  html.v2 #about .fetch-panel{margin-bottom:36px;padding:12px;border-radius:24px}
+  html.v2 #about .about-grid{grid-template-columns:minmax(0,1fr);gap:12px}
+  html.v2 #about .about-block{padding:22px;border-radius:24px}
+  html.v2 #about .about-block h2{font-size:20px}
+  html.v2 #about .about-block h2::before{margin-bottom:10px}
+  html.v2 #about .about-block p{font-size:15px}
+  html.v2 #about .home-limits-note{padding:16px 18px;font-size:14px;text-align:left}
+  /* value tiles: compact rows (icon left) instead of tall centred tiles */
+  html.v2 #about .about-values{grid-template-columns:minmax(0,1fr);gap:10px}
+  html.v2 #about .about-value{
+    display:grid;
+    grid-template-columns:44px minmax(0,1fr);
+    column-gap:14px;
+    align-items:start;
+    padding:18px;
+    border-radius:22px;
+    text-align:left;
+  }
+  html.v2 #about .about-value .av-icon{grid-row:1 / span 2;width:44px;height:44px;margin:0;border-radius:14px}
+  html.v2 #about .about-value h3{margin:2px 0 4px;font-size:17px}
+  html.v2 #about .about-value p{font-size:14px}
+}
+
+@media (max-width:640px){
+  /* legacy stacks the 4 status cards in one tall column: keep 2 x 2 */
+  html.v2 #recovery .recovery-status-row{grid-template-columns:1fr 1fr;gap:10px}
+  html.v2 #recovery .recovery-field-grid{grid-template-columns:minmax(0,1fr);gap:14px}
+  /* timeline tabs become a 2 x 2 segmented grid */
+  html.v2 #recovery .recovery-timeline-tabs{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    width:100%;
+    border-radius:20px;
+  }
+  html.v2 #recovery .recovery-timeline-tab{padding:0 10px;border-radius:16px;font-size:13.5px}
+  html.v2 #recovery .recovery-pro-upsell{gap:14px}
+}
+
+@media (max-width:480px){
+  /* legacy sets .page padding-inline:0 with ~9px main gutters; top it up to a
+     16px gutter (adds nothing once main itself has 16px) */
+  html.v2 #recovery.page,
+  html.v2 #learn.page,
+  html.v2 #about.page{padding-inline:max(0px,calc(16px - (100vw - 100%) / 2))}
+
+  html.v2 #recovery .feature-page-header.recovery-header{padding-inline:0}
+  /* quick answers: pills don't pair up at this width, so a 2-column chip grid
+     (6 short rows instead of 12) */
+  html.v2 #recovery .recovery-quick-toggles{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:7px;
+  }
+  html.v2 #recovery .recovery-toggle{
+    align-items:center;
+    gap:8px;
+    min-height:46px;
+    padding:7px 10px 7px 9px;
+    border-radius:15px;
+    font-size:13px;
+    line-height:1.25;
+  }
+  html.v2 #recovery .recovery-toggle input{width:17px;height:17px;border-radius:5px}
+  html.v2 #recovery .recovery-intake-card,
+  html.v2 #recovery .recovery-cases-card{padding:18px}
+  html.v2 #recovery .recovery-summary-card,
+  html.v2 #recovery .recovery-immediate-card,
+  html.v2 #recovery .recovery-timeline-card,
+  html.v2 #recovery .recovery-remaining-card,
+  html.v2 #recovery .recovery-resources-card,
+  html.v2 #recovery .recovery-update-card,
+  html.v2 #recovery .recovery-pro-upsell{padding:18px}
+  html.v2 #recovery #recoveryStartBtn,
+  html.v2 #recovery #recoveryUpdateBtn{padding:12px 20px;font-size:15.5px}
+  html.v2 #recovery .recovery-resource-item{padding:14px}
+
+  html.v2 #learn .roadmap{--rail-pad:22px;--rail-x:5px}
+  html.v2 #learn .rm-module-head::before{width:10px;height:10px;left:calc(var(--rail-x) - var(--rail-pad) - 4.25px)}
+
+  /* legacy turns the counters into a left-aligned column: keep 3 across */
+  html.v2 #about .about-stats-row > div{border-right:0}
+  html.v2 #about .about-stats-row strong{font-size:44px}
+  html.v2 #about .fetch-line{grid-template-columns:minmax(0,1fr);gap:4px;padding:11px 14px}
+  html.v2 #about .about-block{padding:20px}
+}
+
+/* ==========================================================================
+   ACCESSIBILITY PREFERENCES
+   ========================================================================== */
+
+@media (prefers-reduced-motion:reduce){
+  html.v2 #learn .rm-node-expand,
+  html.v2 #learn .rm-node-info::after,
+  html.v2 #learn .rm-node,
+  html.v2 #recovery .recovery-toggle,
+  html.v2 #recovery .recovery-toggle input,
+  html.v2 #recovery .recovery-action-check input,
+  html.v2 #recovery .recovery-action-item,
+  html.v2 #recovery .recovery-timeline-tab,
+  html.v2 #recovery #recoveryStartBtn::after,
+  html.v2 #recovery #recoveryUpdateBtn::after,
+  html.v2 #recovery .primary-btn,
+  html.v2 #recovery .secondary-btn,
+  html.v2 #learn .primary-btn,
+  html.v2 #learn .secondary-btn,
+  html.v2 #about .primary-btn,
+  html.v2 #about .secondary-btn{transition:none}
+  html.v2 #learn .rm-node.expanded .rm-node-expand > *{animation:none}
+  html.v2 #recovery .primary-btn:hover,
+  html.v2 #recovery .secondary-btn:hover,
+  html.v2 #learn .primary-btn:hover,
+  html.v2 #learn .secondary-btn:hover,
+  html.v2 #about .primary-btn:hover,
+  html.v2 #about .secondary-btn:hover,
+  html.v2 #recovery #recoveryStartBtn:hover::after,
+  html.v2 #recovery #recoveryUpdateBtn:hover::after{transform:none}
+}
+
+@media (prefers-reduced-transparency:reduce){
+  html.v2 #recovery .recovery-intake-card,
+  html.v2 #recovery .recovery-cases-card,
+  html.v2 #recovery .recovery-status-card,
+  html.v2 #recovery .recovery-summary-card,
+  html.v2 #recovery .recovery-fact-card,
+  html.v2 #recovery .recovery-immediate-card,
+  html.v2 #recovery .recovery-timeline-card,
+  html.v2 #recovery .recovery-remaining-card,
+  html.v2 #recovery .recovery-resources-card,
+  html.v2 #recovery .recovery-update-card,
+  html.v2 #recovery .recovery-history-card,
+  html.v2 #recovery .recovery-pro-upsell,
+  html.v2 #recovery #recoveryUsageCard,
+  html.v2 #learn .learn-search-card,
+  html.v2 #learn .rm-node,
+  html.v2 #about .fetch-panel,
+  html.v2 #about .about-block,
+  html.v2 #about .about-value,
+  html.v2 #recovery .support-box,
+  html.v2 #learn .support-box,
+  html.v2 #about .support-box{
+    -webkit-backdrop-filter:none;
+    backdrop-filter:none;
+    background:var(--pg-solid);
+  }
+  html.v2 #recovery .recovery-pro-upsell,
+  html.v2 #learn .rm-node.expanded{background:linear-gradient(180deg,#1b92a7,#06232a 60%,#0e191c)}
+}

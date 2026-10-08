@@ -1,20 +1,45 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="v2">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CyberNet AI | AI-Powered Cybersecurity</title>
   <meta name="description" content="CyberNet AI provides on-demand threat analysis, deep evidence correlation, account-based AI access, and clear defensive next actions for suspicious messages, links, email headers, QR codes, and screenshots." />
-  <meta name="theme-color" content="#050a16" />
+  <meta name="theme-color" content="#020308" />
   <meta name="ahrefs-site-verification" content="f91bf5f9cc3131a0f67f4880e83a0f06eb6bb66a204164dc0887aaf87f37cd0a">
+  <!-- v2 deep links (/pricing, /learn, ...) load with #home as the active page, and script.js only
+       switches to the routed page ~300 ms after DOMContentLoaded. Keep Home hidden until it stops
+       being the active page (4 s fallback), so the Home hero does not flash first. Keep this above
+       every stylesheet: an inline script after a stylesheet waits for that stylesheet to load. -->
+  <style>html.v2.v2-deep #home.active-page{visibility:hidden}</style>
+  <script>
+  (function(){
+    var d=document,r=d.documentElement;
+    if(/^\/(quick-scan|analysis-ai|recovery|learn|pricing|about)\/?$/.test(location.pathname)){
+      r.classList.add("v2-deep");
+      var t=0,done=function(){clearTimeout(t);r.classList.remove("v2-deep")};
+      d.addEventListener("DOMContentLoaded",function(){
+        var h=d.getElementById("home");
+        if(!h||!h.classList.contains("active-page")||!window.MutationObserver){done();return}
+        var mo=new MutationObserver(function(){if(!h.classList.contains("active-page")){mo.disconnect();done()}});
+        mo.observe(h,{attributes:true,attributeFilter:["class"]});
+        t=setTimeout(function(){mo.disconnect();done()},4000);
+      });
+    }
+  })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <!-- Geist is display=swap anyway, so its stylesheet does not need to block the first paint. -->
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..800&family=Geist+Mono:wght@400..600&family=JetBrains+Mono:wght@700&display=swap" onload="this.onload=null;this.rel='stylesheet'" />
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..800&family=Geist+Mono:wght@400..600&family=JetBrains+Mono:wght@700&display=swap" /></noscript>
   <link rel="stylesheet" href="/style.css?v=20260930-2" />
   <link id="cybernetAccountUpgradeStylesheet" rel="stylesheet" href="/cybernet-account-api-upgrade.css?v=20261005-2" />
   <link rel="stylesheet" href="/cybernet-howto.css?v=20260905-1" />
   <link id="cybernetBusinessTeamStylesheet" rel="stylesheet" href="/cybernet-business-team.css?v=20260927-2" />
   <link rel="stylesheet" href="/cybernet-consent.css?v=20260927-2" />
+  <link rel="preload" as="image" href="/v2/shield.webp" imagesrcset="/v2/shield-400.webp 400w, /v2/shield.webp 640w" imagesizes="(max-width: 819px) 260px, 640px" type="image/webp" fetchpriority="high" />
+  <link rel="stylesheet" href="/v2/cybernet-v2.css?v=20261007-1" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=20260830-5">
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=20260830-5">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=20260830-5">
@@ -429,14 +454,14 @@
 
     <nav class="nav-tabs">
       <span class="nav-indicator" id="navIndicator"></span>
-      <button class="nav-link active" data-page="home">Home</button>
-      <button class="nav-link" data-page="cybernet">Quick Scan</button>
-      <button class="nav-link" data-page="cybernetai">Analysis AI</button>
-      <button class="nav-link" data-page="recovery">Recovery</button>
-      <button class="nav-link" data-page="learn">Learn</button>
-      <button class="nav-link" id="navManageBusinessBtn" type="button" aria-haspopup="dialog">Manage Business</button>
-      <button class="nav-link" data-page="pricing">Pricing</button>
-      <button class="nav-link" data-page="about">About</button>
+      <button data-v2-hint="Start here" class="nav-link active" data-page="home">Home</button>
+      <button data-v2-hint="Instant check of a text, email or link" class="nav-link" data-page="cybernet">Quick Scan</button>
+      <button data-v2-hint="Deeper look at texts, links and screenshots" class="nav-link" data-page="cybernetai">Analysis AI</button>
+      <button data-v2-hint="Already clicked or paid? Get a plan" class="nav-link" data-page="recovery">Recovery</button>
+      <button data-v2-hint="Short lessons on staying safe" class="nav-link" data-page="learn">Learn</button>
+      <button data-v2-hint="Seats, invites and team activity" class="nav-link" id="navManageBusinessBtn" type="button" aria-haspopup="dialog">Manage Business</button>
+      <button data-v2-hint="Free, Pro and Business" class="nav-link" data-page="pricing">Pricing</button>
+      <button data-v2-hint="How CyberNet AI works" class="nav-link" data-page="about">About</button>
     </nav>
 
     <div class="nav-actions">
@@ -459,7 +484,7 @@
       </div>
       <button class="login-btn" id="openAuth" hidden><span class="login-btn-long">Sign In or Create Account</span><span class="login-btn-short">Sign In</span></button>
     </div>
-    <button class="mobile-menu" id="mobileMenu" aria-label="Menu">☰</button>
+    <button class="mobile-menu" id="mobileMenu" aria-label="Menu" aria-expanded="false">Menu</button>
   </header>
 
   <main>
@@ -473,36 +498,54 @@
             Learn how to use each feature
             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
-          <h1 class="hero-title">Detect <span>&amp;</span><br/>Protect</h1>
-          <p>Check suspicious messages, links, and screenshots for scams — and get a clear recovery plan if something already went wrong.</p>
-          <div class="hero-buttons">
-            <button class="primary-btn big" data-page="cybernet">Start Scanning</button>
-            <button class="secondary-btn big glass" data-page="about">Learn More</button>
+          <h1 class="hero-title">Is it a scam?<br/><span>Know in seconds.</span></h1>
+          <p>Paste a message, link or screenshot. Get a clear answer, and a recovery plan if something already went wrong.</p>
+          <div class="v2-scanbox" id="v2ScanBox">
+            <label class="v2-sr" for="v2ScanInput">Paste a message or link to check</label>
+            <textarea id="v2ScanInput" rows="2" maxlength="5000" placeholder="Paste a text, email or link…" autocomplete="off" spellcheck="false"></textarea>
+            <div class="v2-scan-row">
+              <div class="v2-try" role="group" aria-label="Try an example">
+                <span class="v2-try-label">Try</span>
+                <button type="button" class="v2-chip" data-v2-try="text" title="Runs a Quick Scan on an example scam text">Text</button>
+                <button type="button" class="v2-chip" data-v2-try="link" title="Runs a Quick Scan on an example scam link">Link</button>
+                <button type="button" class="v2-chip" data-v2-try="qr" title="Runs a Quick Scan on an example QR code image">QR code</button>
+              </div>
+              <div class="hero-buttons">
+                <button class="secondary-btn big glass" data-page="about">Learn More</button>
+                <button class="primary-btn big" data-page="cybernet">Start Scanning</button>
+              </div>
+            </div>
           </div>
         </div>
 
         <div class="hero-video-buttons" role="group" aria-label="Watch how-to videos">
           <button class="hero-video-btn" type="button" data-video="protect" aria-haspopup="dialog">
             <span class="hero-video-btn-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" stroke="currentColor" stroke-width="1.5"/><path d="M10 8.5l6 3.5-6 3.5v-7Z" fill="currentColor"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.8" cy="10.8" r="6.6"/><path d="m20.5 20.5-4.9-4.9"/><path d="M11.5 7.6 9.4 11h3l-2.1 3.4"/></svg>
             </span>
             <span class="hero-video-btn-label">Quick Scan</span>
+            <span class="v2-tile-sub" aria-hidden="true">Watch how-to</span>
           </button>
           <button class="hero-video-btn" type="button" data-video="cybernetai" aria-haspopup="dialog">
             <span class="hero-video-btn-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" stroke="currentColor" stroke-width="1.5"/><path d="M10 8.5l6 3.5-6 3.5v-7Z" fill="currentColor"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 3.5c.6 4 2.6 6 6.5 6.5-3.9.6-5.9 2.6-6.5 6.5-.6-3.9-2.6-5.9-6.5-6.5 3.9-.5 5.9-2.5 6.5-6.5Z"/><path d="M18.5 15c.3 1.6 1 2.3 2.5 2.5-1.5.3-2.2 1-2.5 2.5-.3-1.5-1-2.2-2.5-2.5 1.5-.2 2.2-.9 2.5-2.5Z"/></svg>
             </span>
             <span class="hero-video-btn-label">Analysis AI</span>
+            <span class="v2-tile-sub" aria-hidden="true">Watch how-to</span>
           </button>
           <button class="hero-video-btn" type="button" data-video="recovery" aria-haspopup="dialog">
             <span class="hero-video-btn-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" stroke="currentColor" stroke-width="1.5"/><path d="M10 8.5l6 3.5-6 3.5v-7Z" fill="currentColor"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.6"/><path d="m6 6 3.4 3.4M18 6l-3.4 3.4M6 18l3.4-3.4M18 18l-3.4-3.4"/></svg>
             </span>
             <span class="hero-video-btn-label">Recovery</span>
+            <span class="v2-tile-sub" aria-hidden="true">Watch how-to</span>
           </button>
         </div>
 
         <div class="hero-visual reveal">
+          <div class="v2-hero-stage" aria-hidden="true">
+            <img class="v2-hero-static" src="/v2/shield.webp" srcset="/v2/shield-400.webp 400w, /v2/shield.webp 640w" sizes="(max-width: 819px) 260px, 640px" alt="" width="640" height="640" decoding="async" fetchpriority="high" />
+          </div>
           <div class="globe-shield-wrap">
             <div class="globe-glow"></div>
             <div class="globe-3d-pos">
@@ -526,18 +569,6 @@
                 <rect x="19" y="35" width="22" height="16" rx="4" stroke="#22d3ee" stroke-width="1.8" fill="rgba(34,211,238,0.14)"/>
                 <circle cx="30" cy="41" r="2" fill="#22d3ee"/><rect x="29" y="42.5" width="2" height="3.5" rx="0.5" fill="#22d3ee"/>
               </svg>
-            </div>
-            <div class="hero-status-badge glass badge-threat">
-              <span class="badge-icon-box"><span class="badge-icon">⚠</span></span>
-              <div><h4>Threat Detected</h4><p>Trojan.Win32</p></div>
-            </div>
-            <div class="hero-status-badge glass badge-secure">
-              <span class="badge-icon-box"><span class="badge-icon">✓</span></span>
-              <div><h4>System Secure</h4><p>No threats found</p></div>
-            </div>
-            <div class="hero-status-badge glass badge-scan">
-              <span class="badge-icon-box"><span class="badge-icon">◐</span></span>
-              <div><h4>Scan In Progress</h4><p>80%</p></div>
             </div>
           </div>
         </div>
@@ -578,6 +609,50 @@
           <button class="secondary-btn glass" data-page="about">See what makes us different</button>
         </div>
       </div>
+
+      <!-- v2: EXAMPLE SCAN (illustration only) -->
+      <section class="v2-watch" id="v2Watch" aria-labelledby="v2WatchTitle">
+        <div class="v2-watch-stage">
+          <div class="v2-watch-in">
+            <div class="v2-watch-copy">
+              <span class="v2-tag">Example scan</span>
+              <h2 id="v2WatchTitle" data-v2-split>Watch it read a scam, step by step.</h2>
+              <ol class="v2-steps" id="v2Steps">
+                <li class="v2-step"><i class="v2-step-bar"></i><b>Reading the message</b><small>Spots pressure, payment asks and odd wording.</small></li>
+                <li class="v2-step"><i class="v2-step-bar"></i><b>Checking the link</b><small>Compares the web address with who it claims to be.</small></li>
+                <li class="v2-step"><i class="v2-step-bar"></i><b>Rules + AI cross-check</b><small>Fixed scam rules first, then AI reads the context.</small></li>
+                <li class="v2-step"><i class="v2-step-bar"></i><b>A clear answer</b><small>The verdict, the reasons, and what to do next.</small></li>
+              </ol>
+            </div>
+            <div class="v2-cc" id="v2Cc">
+              <div class="v2-cc-top"><span class="v2-cc-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="v2-mono">Quick Scan</span><span class="v2-cc-status" id="v2CcStatus"><i></i><span id="v2CcStatusText">Reading</span></span><span class="v2-mono v2-cc-ex">Example · not a real scan</span></div>
+              <div class="v2-cc-grid">
+                <div class="v2-cc-cell v2-cc-msg">
+                  <div class="v2-cc-label">Incoming text <span class="v2-fake">FAKE</span></div>
+                  <div class="v2-bubble" id="v2Bubble" data-v2-msg="Your parcel is |on hold|. Pay the |$1.99 redelivery fee| |today| to avoid return: |parcel-redeliver-help.com|">Your parcel is on hold. Pay the $1.99 redelivery fee today to avoid return: parcel-redeliver-help.com</div>
+                  <dl class="v2-kv" id="v2Kv"><div><dt>Type</dt><dd>Text message</dd></div><div><dt>Links</dt><dd>1 found</dd></div><div><dt>Money asked</dt><dd>$1.99</dd></div></dl>
+                  <div class="v2-from"><span class="v2-av" aria-hidden="true">?</span><span>+1 (555) 0137 · unknown sender</span></div>
+                </div>
+                <div class="v2-cc-cell v2-cc-map"><canvas id="v2CcMap" aria-hidden="true"></canvas><span class="v2-cc-label v2-map-label">Signal map</span></div>
+                <div class="v2-cc-cell v2-cc-side">
+                  <div class="v2-cc-label">Risk score</div>
+                  <div class="v2-gauge">
+                    <svg viewBox="0 0 200 112" aria-hidden="true"><defs><linearGradient id="v2GaugeGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#6CF0B0"/><stop offset=".5" stop-color="#FFB547"/><stop offset="1" stop-color="#FF5C7A"/></linearGradient></defs><path class="v2-g-track" d="M22 100 A78 78 0 0 1 178 100"/><path class="v2-g-val" id="v2GaugeVal" d="M22 100 A78 78 0 0 1 178 100" pathLength="100" stroke-dasharray="100" stroke-dashoffset="14"/><circle class="v2-g-knob" id="v2GaugeKnob" cx="166.7" cy="59.7" r="7"/></svg>
+                    <div class="v2-g-num"><b id="v2GaugeNum">86</b><span>/100</span></div>
+                  </div>
+                  <span class="v2-stamp" id="v2Stamp">SCAM</span>
+                  <ul class="v2-sig" id="v2Sig">
+                    <li>Pressure to act today</li>
+                    <li>Small "fee" to get your card</li>
+                    <li>Link isn't a real courier</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="v2-cc-foot"><div class="v2-cc-bar"><i id="v2CcBar"></i></div><span class="v2-mono" id="v2CcFoot">Done · Don't pay. Delete the text.</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
       <!-- WHY CHOOSE -->
       <div class="why-choose reveal">
         <h2>Why Choose CyberNet AI?</h2>
@@ -601,6 +676,23 @@
         </div>
       </div>
 
+
+      <!-- v2: EVERYWHERE -->
+      <section class="v2-world" id="v2World" aria-labelledby="v2WorldTitle">
+        <div class="v2-world-in">
+          <div class="v2-globe-box"><canvas id="v2Globe" aria-hidden="true"></canvas></div>
+          <div class="v2-world-copy">
+            <span class="v2-tag">Everywhere</span>
+            <h2 id="v2WorldTitle" data-v2-split>Scams cross every border, every second.</h2>
+            <div class="v2-big-stat">
+              <span class="v2-stat-num" id="v2StatNum" data-v2-target="442">$442B</span>
+              <small>lost to scams worldwide in one year. That is about $14,000 every second.</small>
+            </div>
+            <p class="v2-src">Source: Global Anti-Scam Alliance, Global State of Scams 2025</p>
+            <p class="v2-world-lead">CyberNet AI checks what lands on your phone, wherever you are.</p>
+          </div>
+        </div>
+      </section>
       <div class="home-limits-note reveal">
         <strong>What CyberNet AI is — and isn't:</strong> a decision-support tool that helps you evaluate suspicious content and recover from incidents. It is not antivirus software, a bank, a law firm, or a guarantee against hacking, scams, or loss. Always verify anything involving money or credentials through an official channel.
       </div>
@@ -619,17 +711,17 @@
         <div class="wow-stats">
           <div class="wow-stat glass tilt-card">
             <div class="wow-ring"><svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="36" stroke="rgba(255,255,255,0.06)" stroke-width="4" fill="none"/><circle cx="40" cy="40" r="36" stroke="#22d3ee" stroke-width="4" fill="none" stroke-dasharray="180 226" stroke-linecap="round" class="wow-ring-fill"/></svg></div>
-            <div class="wow-stat-number" data-target="3">0</div>
+            <div class="wow-stat-number" data-target="3">3</div>
             <div class="wow-stat-label">Quick Scan Types</div>
           </div>
           <div class="wow-stat glass tilt-card">
             <div class="wow-ring"><svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="36" stroke="rgba(255,255,255,0.06)" stroke-width="4" fill="none"/><circle cx="40" cy="40" r="36" stroke="#22d3ee" stroke-width="4" fill="none" stroke-dasharray="200 226" stroke-linecap="round" class="wow-ring-fill"/></svg></div>
-            <div class="wow-stat-number" data-target="15">0</div>
+            <div class="wow-stat-number" data-target="15">15</div>
             <div class="wow-stat-label">Threat Categories</div>
           </div>
           <div class="wow-stat glass tilt-card">
             <div class="wow-ring"><svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="36" stroke="rgba(255,255,255,0.06)" stroke-width="4" fill="none"/><circle cx="40" cy="40" r="36" stroke="#22d3ee" stroke-width="4" fill="none" stroke-dasharray="216 226" stroke-linecap="round" class="wow-ring-fill"/></svg></div>
-            <div class="wow-stat-number" data-target="5">0</div>
+            <div class="wow-stat-number" data-target="5">5</div>
             <div class="wow-stat-label">Evidence Types</div>
           </div>
         </div>
@@ -2228,7 +2320,6 @@
             <li><strong>Email check-in reminders</strong> while an open Recovery case is idle</li>
             <li>Faster Recovery update cooldown (1 hour)</li>
             <li>Owner controls who joins and who is removed</li>
-            <li><strong>Priority, urgent-response support</strong> — direct line to our team</li>
           </ul>
           <button class="primary-btn full plan-select-btn" id="businessPlanBtn" data-plan="business" data-cycle="monthly">Upgrade to Business</button>
         </article>
@@ -2274,17 +2365,17 @@
 
       <div class="hero-stats-row about-stats-row reveal">
         <div>
-          <strong data-count="3" data-suffix="">0</strong>
+          <strong data-count="3" data-suffix="">3</strong>
           <span>Quick Scan Types</span>
         </div>
 
         <div>
-          <strong data-count="5" data-suffix="">0</strong>
+          <strong data-count="5" data-suffix="">5</strong>
           <span>Evidence Types</span>
         </div>
 
         <div>
-          <strong data-count="15" data-suffix="">0</strong>
+          <strong data-count="15" data-suffix="">15</strong>
           <span>Threat Categories</span>
         </div>
       </div>
@@ -2440,6 +2531,7 @@
 <script src="/cybernet-business-team.js?v=20260930-2" defer></script>
   <script src="/cybernet-final-ui-fix.js?v=20260930-2" defer></script>
       <script src="/cybernet-legal-upgrade.js?v=20260930-2" defer></script>
+  <script src="/v2/cybernet-v2.js?v=20261007-1" defer></script>
 </body>
 </html>
 

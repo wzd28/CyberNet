@@ -1,0 +1,311 @@
+/* v2 cyber background (owner: cyberbg). Nodes and SVG art come from
+   js/60-cyberbg.js, which inserts #v2CyberBg once.
+   Layer order inside #v2CyberBg (all behind the page, above .background):
+     hex mesh -> terminal columns -> malware glyphs -> hacker -> scan beam.
+   Performance rules kept here:
+   - Only transform and opacity animate (compositor). Every moving layer has
+     will-change; nothing that moves has a filter, blur or shadow.
+   - Masks sit on static wrappers only.
+   - Every animation is declared inside the prefers-reduced-motion:
+     no-preference block, so reduced motion gets a static composition.
+   - The layer pauses while the tab is hidden (html.v2-bg-paused) and is
+     removed for reduced transparency, forced colours and print.
+   --v2-bg-k scales the intensity: 1 on #home, lower on the denser pages
+   (html.v2-bg-calm, set by the JS when another page is active). */
+
+html.v2 #v2CyberBg{
+  --v2-bg-k:1;
+  position:fixed;
+  inset:0;
+  z-index:-4;
+  pointer-events:none;
+  overflow:hidden;
+  contain:strict;
+}
+html.v2.v2-bg-calm #v2CyberBg{--v2-bg-k:.5}
+html.v2 #v2CyberBg i{display:block;font-style:normal}
+
+/* ---------- 1. hexagon mesh (the logo is a hexagonal shield) ---------- */
+html.v2 #v2CyberBg .v2-bg-hexwrap{
+  position:absolute;
+  inset:0;
+  -webkit-mask-image:radial-gradient(ellipse 72% 78% at 50% 40%,#000 0%,rgba(0,0,0,.6) 45%,transparent 100%);
+  mask-image:radial-gradient(ellipse 72% 78% at 50% 40%,#000 0%,rgba(0,0,0,.6) 45%,transparent 100%);
+  opacity:calc(.085 * var(--v2-bg-k));
+  transition:opacity .9s ease;
+}
+html.v2 #v2CyberBg .v2-bg-hex{
+  position:absolute;
+  left:0;
+  top:0;
+  width:100%;
+  height:100%;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='52' height='90'%3E%3Cpath d='M26 0 52 15v30L26 60 0 45V15zM26 60v30' fill='none' stroke='%2322D3EE' stroke-width='1'/%3E%3Ccircle cx='26' cy='60' r='1.7' fill='%23A5F3FC'/%3E%3C/svg%3E") 0 0/52px 90px repeat;
+}
+
+/* ---------- 2. terminal columns ---------- */
+html.v2 #v2CyberBg .v2-bg-code{
+  position:absolute;
+  inset:0;
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 16%,#000 78%,transparent 100%);
+  mask-image:linear-gradient(180deg,transparent 0,#000 16%,#000 78%,transparent 100%);
+  opacity:var(--v2-bg-k);
+  transition:opacity .9s ease;
+}
+/* One element and one text node per column. Line colours come from an inline
+   hard-stop gradient clipped to the text; the text is two copies of one block,
+   so moving by -50% loops without a seam. */
+html.v2 #v2CyberBg .v2-bg-col{
+  position:absolute;
+  top:0;
+  left:calc(var(--x) * 1%);
+  width:calc(var(--w) * 1%);
+  overflow:hidden;
+  white-space:pre;
+  font-family:var(--v2-mono,ui-monospace,monospace);
+  font-size:var(--fs);
+  line-height:var(--lh);
+  font-weight:400;
+  letter-spacing:.02em;
+  font-variant-ligatures:none;
+  color:transparent;
+  -webkit-text-fill-color:transparent;
+  -webkit-background-clip:text;
+  background-clip:text;
+  background-repeat:no-repeat;
+  opacity:var(--o);
+}
+
+/* ---------- 3. malware glyphs ---------- */
+html.v2 #v2CyberBg .v2-bg-vir{position:absolute;inset:0}
+html.v2 #v2CyberBg .v2-bg-v{
+  position:absolute;
+  left:var(--x);
+  top:var(--y);
+  height:var(--h);
+  width:calc(var(--h) * var(--ar));
+  background:var(--g) center/contain no-repeat;
+  opacity:calc(var(--o) * var(--v2-bg-k));
+  transition:opacity .9s ease;
+}
+/* threat: cyan -> red blink -> red -> green (neutralised) -> cyan.
+   Three stacked pre-coloured copies (alpha baked into the SVG); only their
+   opacity animates, and the glyph itself stays at opacity 1. */
+html.v2 #v2CyberBg .v2-bg-v.v2-bg-t{background:none;opacity:1}
+html.v2 #v2CyberBg .v2-bg-t::before,
+html.v2 #v2CyberBg .v2-bg-t::after,
+html.v2 #v2CyberBg .v2-bg-t > i{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:var(--gc) center/contain no-repeat;
+}
+html.v2 #v2CyberBg .v2-bg-t::after{background-image:var(--gr);opacity:0}
+html.v2 #v2CyberBg .v2-bg-t > i{background-image:var(--gg);opacity:0}
+
+/* ---------- 4. hooded hacker ---------- */
+/* Poster duotone: a ground-coloured cut-out (the code and mesh vanish into
+   it), cyan light art above it, two band-clipped copies for the glitch. */
+html.v2 #v2CyberBg .v2-bg-hk{
+  position:absolute;
+  right:-3vw;
+  bottom:0;
+  height:min(50vh,540px);
+  aspect-ratio:400/460;
+}
+html.v2 #v2CyberBg .v2-bg-hk > i{
+  position:absolute;
+  inset:0;
+  background-position:center bottom;
+  background-size:100% 100%;
+  background-repeat:no-repeat;
+}
+/* k is applied per layer (not on the wrapper) so no offscreen group is needed */
+html.v2 #v2CyberBg .v2-bg-hk-cut{background-image:var(--v2-bg-hk-cut);opacity:calc(.8 * var(--v2-bg-k));transition:opacity .9s ease}
+html.v2 #v2CyberBg .v2-bg-hk-art{background-image:var(--v2-bg-hk-art);opacity:calc(.46 * var(--v2-bg-k));transition:opacity .9s ease}
+html.v2 #v2CyberBg .v2-bg-hk-g1,
+html.v2 #v2CyberBg .v2-bg-hk-g2{opacity:0}
+html.v2 #v2CyberBg .v2-bg-hk-g1{background-image:var(--v2-bg-hk-red);clip-path:inset(34% 0 50% 0)}
+html.v2 #v2CyberBg .v2-bg-hk-g2{background-image:var(--v2-bg-hk-ice);clip-path:inset(63% 0 19% 0)}
+html.v2.v2-bg-calm #v2CyberBg .v2-bg-hk-g1,
+html.v2.v2-bg-calm #v2CyberBg .v2-bg-hk-g2{display:none}
+
+/* ---------- 5. scan beam ---------- */
+html.v2 #v2CyberBg .v2-bg-beam{
+  position:absolute;
+  left:0;
+  right:0;
+  top:0;
+  height:200px;
+  background:
+    linear-gradient(90deg,transparent 4%,rgba(165,243,252,.5) 30%,rgba(230,253,255,.75) 50%,rgba(165,243,252,.5) 70%,transparent 96%) 0 100%/100% 1px no-repeat,
+    radial-gradient(60% 100% at 50% 100%,rgba(34,211,238,.11),rgba(34,211,238,.04) 45%,transparent 78%);
+  opacity:0;
+  transform:translate3d(0,-210px,0);
+}
+
+/* ---------- motion (only when the visitor has no reduced-motion preference) ---------- */
+@media (prefers-reduced-motion:no-preference){
+  html.v2 #v2CyberBg{animation:v2-bg-in 1.6s ease-out}
+
+  html.v2 #v2CyberBg .v2-bg-hex{
+    width:calc(100% + 104px);
+    height:calc(100% + 180px);
+    will-change:transform;
+    animation:v2-bg-hex 120s linear infinite;
+  }
+
+  html.v2 #v2CyberBg .v2-bg-col{
+    will-change:transform;
+    animation:v2-bg-up var(--d) linear var(--dl) infinite;
+  }
+  html.v2 #v2CyberBg .v2-bg-col.v2-bg-down{animation-name:v2-bg-down}
+
+  html.v2 #v2CyberBg .v2-bg-v{
+    will-change:transform;
+    animation:var(--an) var(--d) ease-in-out var(--dl) infinite alternate;
+  }
+  html.v2 #v2CyberBg .v2-bg-t::before,
+  html.v2 #v2CyberBg .v2-bg-t::after,
+  html.v2 #v2CyberBg .v2-bg-t > i{
+    will-change:opacity;
+    animation:v2-bg-flash-c 13s linear var(--fdl,0s) infinite;
+  }
+  html.v2 #v2CyberBg .v2-bg-t::after{animation-name:v2-bg-flash-r}
+  html.v2 #v2CyberBg .v2-bg-t > i{animation-name:v2-bg-flash-g}
+
+  html.v2 #v2CyberBg .v2-bg-hk-art{
+    will-change:transform;
+    animation:v2-bg-hk-jit 7.8s steps(1,end) infinite;
+  }
+  html.v2 #v2CyberBg .v2-bg-hk-g1,
+  html.v2 #v2CyberBg .v2-bg-hk-g2{
+    will-change:transform,opacity;
+    animation:v2-bg-hk-g1 7.8s steps(1,end) infinite;
+  }
+  html.v2 #v2CyberBg .v2-bg-hk-g2{animation-name:v2-bg-hk-g2}
+
+  html.v2 #v2CyberBg .v2-bg-beam{
+    will-change:transform,opacity;
+    animation:v2-bg-beam 11s cubic-bezier(.45,.05,.55,.95) .8s infinite;
+  }
+  html.v2.v2-bg-calm #v2CyberBg .v2-bg-beam{animation-name:v2-bg-beam-calm}
+}
+
+@keyframes v2-bg-in{from{opacity:0}}
+@keyframes v2-bg-hex{
+  from{transform:translate3d(0,0,0)}
+  to{transform:translate3d(-104px,-180px,0)}
+}
+@keyframes v2-bg-up{
+  from{transform:translate3d(0,0,0)}
+  to{transform:translate3d(0,-50%,0)}
+}
+@keyframes v2-bg-down{
+  from{transform:translate3d(0,-50%,0)}
+  to{transform:translate3d(0,0,0)}
+}
+@keyframes v2-bg-flash-c{
+  0%,55%{opacity:1}
+  56.5%,84%{opacity:0}
+  94%,100%{opacity:1}
+}
+@keyframes v2-bg-flash-r{
+  0%,55%{opacity:0}
+  56.5%{opacity:1}
+  58%{opacity:.2}
+  59.5%,68%{opacity:1}
+  76%,100%{opacity:0}
+}
+@keyframes v2-bg-flash-g{
+  0%,68%{opacity:0}
+  76%,84%{opacity:1}
+  94%,100%{opacity:0}
+}
+@keyframes v2-bg-drift-a{
+  0%{transform:translate3d(0,0,0) rotate(0deg)}
+  35%{transform:translate3d(38px,-30px,0) rotate(50deg)}
+  70%{transform:translate3d(-14px,-64px,0) rotate(-24deg)}
+  100%{transform:translate3d(26px,-96px,0) rotate(36deg)}
+}
+@keyframes v2-bg-drift-b{
+  0%{transform:translate3d(0,0,0) rotate(-6deg)}
+  50%{transform:translate3d(-42px,36px,0) rotate(8deg)}
+  100%{transform:translate3d(-12px,82px,0) rotate(-4deg)}
+}
+@keyframes v2-bg-drift-c{
+  0%{transform:translate3d(0,0,0) rotate(0deg)}
+  40%{transform:translate3d(52px,24px,0) rotate(-70deg)}
+  100%{transform:translate3d(96px,-18px,0) rotate(-150deg)}
+}
+/* glitch: one hard-cut burst near the end of each 7.8s cycle */
+@keyframes v2-bg-hk-jit{
+  0%{transform:translate3d(0,0,0)}
+  90.6%{transform:translate3d(-3px,0,0)}
+  91.2%{transform:translate3d(2px,1px,0)}
+  91.8%{transform:translate3d(-1px,0,0)}
+  92.4%,100%{transform:translate3d(0,0,0)}
+}
+@keyframes v2-bg-hk-g1{
+  0%{opacity:0;transform:translate3d(0,0,0)}
+  90.6%{opacity:.75;transform:translate3d(-12px,0,0)}
+  91.4%{opacity:.45;transform:translate3d(7px,0,0)}
+  92.2%,100%{opacity:0;transform:translate3d(0,0,0)}
+}
+@keyframes v2-bg-hk-g2{
+  0%{opacity:0;transform:translate3d(0,0,0)}
+  91%{opacity:.6;transform:translate3d(15px,0,0)}
+  91.8%{opacity:.35;transform:translate3d(-6px,0,0)}
+  92.6%,100%{opacity:0;transform:translate3d(0,0,0)}
+}
+@keyframes v2-bg-beam{
+  0%{transform:translate3d(0,-210px,0);opacity:0}
+  5%,48%{opacity:.9}
+  52%,100%{transform:translate3d(0,100vh,0);opacity:0}
+}
+@keyframes v2-bg-beam-calm{
+  0%{transform:translate3d(0,-210px,0);opacity:0}
+  5%,48%{opacity:.5}
+  52%,100%{transform:translate3d(0,100vh,0);opacity:0}
+}
+
+/* ---------- tablet + phone: fewer, smaller, fainter ---------- */
+/* no empty side margins below 1024px: every column sits behind copy */
+@media (max-width:1023px){
+  html.v2 #v2CyberBg .v2-bg-col:nth-child(n+6){display:none}
+  html.v2 #v2CyberBg .v2-bg-code{opacity:calc(.66 * var(--v2-bg-k))}
+  html.v2 #v2CyberBg .v2-bg-col{width:calc(var(--w) * 1.6%)}
+  html.v2 #v2CyberBg .v2-bg-hk{height:min(36vh,380px);right:-4vw}
+}
+@media (max-width:720px){
+  html.v2 #v2CyberBg{--v2-bg-k:.8}
+  html.v2.v2-bg-calm #v2CyberBg{--v2-bg-k:.5}
+  html.v2 #v2CyberBg .v2-bg-col:nth-child(n+4),
+  html.v2 #v2CyberBg .v2-bg-v:nth-child(n+7){display:none}
+  html.v2 #v2CyberBg .v2-bg-code{opacity:calc(.62 * var(--v2-bg-k))}
+  html.v2 #v2CyberBg .v2-bg-col{width:calc(var(--w) * 2.8%);font-size:calc(var(--fs) * .86)}
+  html.v2 #v2CyberBg .v2-bg-v{height:calc(var(--h) * .72);width:calc(var(--h) * var(--ar) * .72)}
+  html.v2 #v2CyberBg .v2-bg-hk{height:min(28vh,250px);right:-10vw}
+  html.v2 #v2CyberBg .v2-bg-hk-cut{opacity:calc(.5 * var(--v2-bg-k))}
+  html.v2 #v2CyberBg .v2-bg-hk-art{opacity:calc(.3 * var(--v2-bg-k))}
+  /* static mesh on phones: one less large moving layer */
+  html.v2 #v2CyberBg .v2-bg-hex{width:100%;height:100%;animation:none;will-change:auto}
+}
+
+/* ---------- state + preferences ---------- */
+/* Each selector outranks the rule that sets its animation shorthand. */
+html.v2.v2-bg-paused #v2CyberBg .v2-bg-hex,
+html.v2.v2-bg-paused #v2CyberBg .v2-bg-col,
+html.v2.v2-bg-paused #v2CyberBg .v2-bg-v,
+html.v2.v2-bg-paused #v2CyberBg .v2-bg-t::before,
+html.v2.v2-bg-paused #v2CyberBg .v2-bg-t::after,
+html.v2.v2-bg-paused #v2CyberBg .v2-bg-t > i,
+html.v2.v2-bg-paused #v2CyberBg .v2-bg-hk > i,
+html.v2.v2-bg-paused #v2CyberBg .v2-bg-beam{animation-play-state:paused}
+
+@media (prefers-reduced-transparency:reduce){
+  html.v2 #v2CyberBg{display:none}
+}
+@media (forced-colors:active),print{
+  html.v2 #v2CyberBg{display:none}
+}

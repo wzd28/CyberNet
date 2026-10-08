@@ -1,0 +1,2151 @@
+/* =====================================================================
+   CyberNet AI v2 - 30-tools.css  (owner: tools)
+   Quick Scan (section#cybernet) and Analysis AI (section#cybernetai):
+   feature heads + usage meters, detect tabs (segmented control), the
+   input panels, drop zone, scan ring + step rows, result boxes and every
+   report variant script.js renders (showReport, showDeepScanPrompt,
+   showAnalysisIncomplete, showDiagnosticReport, runDiagnosticAnimation,
+   runScan, prependScan, hydratePreviews), the Analysis AI access panel
+   (incl. the injected BYOK panel), service rows, Pro history card, chat.
+
+   Contracts kept (maps/HAZARDS.md, 06-quick):
+   - #cyberTextBtn, #cyberLinkBtn, #chatSendBtn and '#cyberDropZone h3'
+     get their text rewritten by JS: icons are ::before masks only.
+   - .report-details stays the next sibling of .details-toggle, and no
+     display value is ever forced on anything toggled with [hidden]
+     (.report-details, #chatAttachPreview, .input-clear-btn,
+     #aiUpgradeBtn, #manageBillingBtn).
+   - Scan ring: r=44 / dasharray 276 untouched; colours via stop-color.
+   - Diagnostic progress is rebuilt every 1300 ms: no entrance animation
+     on its children; the spinner turns exactly once per 1.3 s so the
+     rebuild is seamless.
+   - #chatMessages stays the scroll container; nothing decorative inside.
+   - #proHistoryCard is styled location-free (final-ui-fix.js moves it
+     into the account modal).
+   - #aiPlanBadge, #aiConnPill, #cybernetByokPill, #cybernetByokMessage:
+     className is rewritten, so only the JS class names are used.
+   - Layout changes live inside the legacy breakpoints (1150/920/700/480).
+   ===================================================================== */
+
+/* ---------------------------------------------------------------------
+   1. ICONS (stroke SVGs: --tl-i-* are masks, --tl-w-* light tiles)
+   --------------------------------------------------------------------- */
+html.v2 :is(#cybernet,#cybernetai,.pro-history-card){
+  --tl-i-scan:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='10.8' cy='10.8' r='6.6'/%3E%3Cpath d='m20.5 20.5-4.9-4.9'/%3E%3Cpath d='M11.5 7.6 9.4 11h3l-2.1 3.4'/%3E%3C/svg%3E");
+  --tl-i-alert:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.4 4.6a1.8 1.8 0 0 1 3.2 0l7 12.6a1.8 1.8 0 0 1-1.6 2.7H5a1.8 1.8 0 0 1-1.6-2.7Z'/%3E%3Cpath d='M12 9.8v4M12 16.8v.1'/%3E%3C/svg%3E");
+  --tl-i-check:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E");
+  --tl-i-info:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='8.5'/%3E%3Cpath d='M12 11v5.4M12 7.7v.1'/%3E%3C/svg%3E");
+  --tl-i-link:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.2 1.2'/%3E%3Cpath d='M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.2-1.2'/%3E%3C/svg%3E");
+  --tl-i-msg:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 3.5V17A2.5 2.5 0 0 1 4 14.5Z'/%3E%3C/svg%3E");
+  --tl-i-img:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='4.5' width='17' height='15' rx='2.5'/%3E%3Ccircle cx='9' cy='10' r='1.8'/%3E%3Cpath d='m4 17 5-4.5 4 3.5 3-2.5 4.5 3.5'/%3E%3C/svg%3E");
+  --tl-i-globe:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='8.5'/%3E%3Cpath d='M3.5 12h17M12 3.5c2.5 2.6 3.6 5.4 3.6 8.5s-1.1 5.9-3.6 8.5c-2.5-2.6-3.6-5.4-3.6-8.5S9.5 6.1 12 3.5Z'/%3E%3C/svg%3E");
+  --tl-i-lock:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='5' y='10.5' width='14' height='10' rx='2.5'/%3E%3Cpath d='M8 10.5V8a4 4 0 0 1 8 0v2.5'/%3E%3C/svg%3E");
+  --tl-i-arrow:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14M13.5 6.5 19 12l-5.5 5.5'/%3E%3C/svg%3E");
+  --tl-i-chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 6 6 6-6 6'/%3E%3C/svg%3E");
+  --tl-i-upload:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 15.5V4.5M7.5 9 12 4.5 16.5 9'/%3E%3Cpath d='M4.5 14.5v3a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-3'/%3E%3C/svg%3E");
+  --tl-i-clip:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m20 11.5-7.9 7.9a5 5 0 0 1-7.1-7.1l8.3-8.3a3.4 3.4 0 0 1 4.8 4.8l-8.2 8.2a1.7 1.7 0 0 1-2.4-2.4l7.4-7.4'/%3E%3C/svg%3E");
+  --tl-i-send:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 19V5.5M5.5 11.5 12 5l6.5 6.5'/%3E%3C/svg%3E");
+  --tl-i-hook:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 6v7.5a5.5 5.5 0 0 1-11 0V11l3.2 2.4'/%3E%3Ccircle cx='15' cy='4' r='1.6'/%3E%3C/svg%3E");
+  --tl-i-bug:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='7.5' y='8' width='9' height='11.5' rx='4.5'/%3E%3Cpath d='M12 11v8.5M9.5 5.5 10.6 8M14.5 5.5 13.4 8M4 13h3.5M16.5 13H20M5 18.5l2.8-1.6M19 18.5l-2.8-1.6M5 8.5l2.8 1.4M19 8.5l-2.8 1.4'/%3E%3C/svg%3E");
+  --tl-i-ai:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M11 3.5c.6 4 2.6 6 6.5 6.5-3.9.6-5.9 2.6-6.5 6.5-.6-3.9-2.6-5.9-6.5-6.5 3.9-.5 5.9-2.5 6.5-6.5Z'/%3E%3Cpath d='M18.5 15c.3 1.6 1 2.3 2.5 2.5-1.5.3-2.2 1-2.5 2.5-.3-1.5-1-2.2-2.5-2.5 1.5-.2 2.2-.9 2.5-2.5Z'/%3E%3C/svg%3E");
+  --tl-i-download:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 4.5v11M7.5 11 12 15.5 16.5 11'/%3E%3Cpath d='M4.5 19.5h15'/%3E%3C/svg%3E");
+  --tl-i-x:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6.5 6.5l11 11M17.5 6.5l-11 11'/%3E%3C/svg%3E");
+  --tl-i-key:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='8' cy='15' r='3.8'/%3E%3Cpath d='m10.8 12.3 8.2-8.2M16 7l2.5 2.5M13.8 9.2l2 2'/%3E%3C/svg%3E");
+  --tl-i-shield:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.5 19 6v5.5c0 4.3-2.9 7.6-7 9-4.1-1.4-7-4.7-7-9V6Z'/%3E%3Cpath d='m9 12 2.2 2.2L15.5 10'/%3E%3C/svg%3E");
+  --tl-i-help:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9.1 9.2a3 3 0 0 1 5.8 1c0 2.1-2.9 2.6-2.9 4.4'/%3E%3Cpath d='M12 17.7v.1'/%3E%3C/svg%3E");
+  --tl-i-ext:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 17 17 7M9 7h8v8'/%3E%3C/svg%3E");
+  --tl-i-refresh:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19.5 12a7.5 7.5 0 1 1-2.2-5.3'/%3E%3Cpath d='M19.5 4.5v4h-4'/%3E%3C/svg%3E");
+  --tl-i-history:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 12a7.5 7.5 0 1 0 2.2-5.3'/%3E%3Cpath d='M4.5 4.5v3.7h3.7'/%3E%3Cpath d='M12 8v4.3l3 1.7'/%3E%3C/svg%3E");
+  --tl-w-msg:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23E6ECFF' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 3.5V17A2.5 2.5 0 0 1 4 14.5Z'/%3E%3C/svg%3E");
+  --tl-w-link:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23E6ECFF' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.2 1.2'/%3E%3Cpath d='M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.2-1.2'/%3E%3C/svg%3E");
+  --tl-w-img:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23E6ECFF' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='4.5' width='17' height='15' rx='2.5'/%3E%3Ccircle cx='9' cy='10' r='1.8'/%3E%3Cpath d='m4 17 5-4.5 4 3.5 3-2.5 4.5 3.5'/%3E%3C/svg%3E");
+  --tl-w-globe:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23E6ECFF' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='8.5'/%3E%3Cpath d='M3.5 12h17M12 3.5c2.5 2.6 3.6 5.4 3.6 8.5s-1.1 5.9-3.6 8.5c-2.5-2.6-3.6-5.4-3.6-8.5S9.5 6.1 12 3.5Z'/%3E%3C/svg%3E");
+  --tl-w-hook:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23E6ECFF' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 6v7.5a5.5 5.5 0 0 1-11 0V11l3.2 2.4'/%3E%3Ccircle cx='15' cy='4' r='1.6'/%3E%3C/svg%3E");
+  --tl-w-bug:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23E6ECFF' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='7.5' y='8' width='9' height='11.5' rx='4.5'/%3E%3Cpath d='M12 11v8.5M9.5 5.5 10.6 8M14.5 5.5 13.4 8M4 13h3.5M16.5 13H20M5 18.5l2.8-1.6M19 18.5l-2.8-1.6M5 8.5l2.8 1.4M19 8.5l-2.8 1.4'/%3E%3C/svg%3E");
+  --tl-w-lock:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23E6ECFF' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='5' y='10.5' width='14' height='10' rx='2.5'/%3E%3Cpath d='M8 10.5V8a4 4 0 0 1 8 0v2.5'/%3E%3C/svg%3E");
+  --tl-w-ai:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23E6ECFF' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M11 3.5c.6 4 2.6 6 6.5 6.5-3.9.6-5.9 2.6-6.5 6.5-.6-3.9-2.6-5.9-6.5-6.5 3.9-.5 5.9-2.5 6.5-6.5Z'/%3E%3Cpath d='M18.5 15c.3 1.6 1 2.3 2.5 2.5-1.5.3-2.2 1-2.5 2.5-.3-1.5-1-2.2-2.5-2.5 1.5-.2 2.2-.9 2.5-2.5Z'/%3E%3C/svg%3E");
+  --tl-w-upload:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23E6ECFF' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 15.5V4.5M7.5 9 12 4.5 16.5 9'/%3E%3Cpath d='M4.5 14.5v3a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-3'/%3E%3C/svg%3E");
+  --tl-w-shield:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23E6ECFF' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.5 19 6v5.5c0 4.3-2.9 7.6-7 9-4.1-1.4-7-4.7-7-9V6Z'/%3E%3Cpath d='m9 12 2.2 2.2L15.5 10'/%3E%3C/svg%3E");
+  --tl-w-key:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23E6ECFF' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='8' cy='15' r='3.8'/%3E%3Cpath d='m10.8 12.3 8.2-8.2M16 7l2.5 2.5M13.8 9.2l2 2'/%3E%3C/svg%3E");
+  --tl-w-history:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23E6ECFF' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 12a7.5 7.5 0 1 0 2.2-5.3'/%3E%3Cpath d='M4.5 4.5v3.7h3.7'/%3E%3Cpath d='M12 8v4.3l3 1.7'/%3E%3C/svg%3E");
+  --tl-m-link:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238C94B8' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.2 1.2'/%3E%3Cpath d='M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.2-1.2'/%3E%3C/svg%3E");
+}
+
+/* every masked icon below sets --tl-ic and paints currentColor */
+html.v2 #cybernet .detect-tab::before,
+html.v2 #cybernet :is(#cyberTextBtn,#cyberLinkBtn)::before,
+html.v2 :is(#cybernet,#cybernetai) .inline-link-btn::after,
+html.v2 :is(#cybernet,#cybernetai) :is(.result-box,.chat-bubble-inner) > .warning::before,
+html.v2 :is(#cybernet,#cybernetai) .verdict-headline-icon::before,
+html.v2 #cybernet .scan-list li::before,
+html.v2 :is(#cybernet,#cybernetai) .plain-points li::before,
+html.v2 :is(#cybernet,#cybernetai) .details-toggle::before,
+html.v2 :is(#cybernet,#cybernetai) .verdict-note > span,
+html.v2 :is(#cybernet,#cybernetai) .diagnostic-note::before,
+html.v2 :is(#cybernet,#cybernetai) :is(.col-warn,.col-safe),
+html.v2 :is(#cybernet,#cybernetai) :is(.report-list.safe-list,.diagnostic-actions,.counter-evidence ul,.diagnostic-counter ul) li::before,
+html.v2 #cybernetai .plan-benefit-list div > span,
+html.v2 #cybernetai .chat-attach-btn::before,
+html.v2 #cybernetai #chatSendBtn:not(.send-btn-wide)::before,
+html.v2 #cybernetai .report-download-btn::before,
+html.v2 #cybernetai .cybernet-byok-title-row h5::before{
+  -webkit-mask:var(--tl-ic) center/contain no-repeat;
+  mask:var(--tl-ic) center/contain no-repeat;
+  background-color:currentColor;
+}
+
+/* ---------------------------------------------------------------------
+   2. FEATURE HEADS + USAGE METERS (both pages)
+   The two heads stay pinned visible: a detect-tab click re-runs the
+   page-wide reveal (script.js:1553), which made them blink.
+   --------------------------------------------------------------------- */
+html.v2 :is(#cybernet,#cybernetai) > .feature-page-header{
+  max-width:780px;
+  margin:0 auto 30px;
+  text-align:center;
+}
+html.v2 #cybernet > .feature-page-header.reveal{opacity:1;transform:none;transition:none}
+html.v2 :is(#cybernet,#cybernetai) > .feature-page-header h1{margin-bottom:14px}
+html.v2 :is(#cybernet,#cybernetai) > .feature-page-header > p:not(.feature-crosslink){
+  max-width:600px;
+  margin-inline:auto;
+  color:var(--v2-muted);
+  font-size:18px;
+  line-height:1.55;
+  text-wrap:balance;
+}
+/* legacy: .feature-crosslink{font-size:12.5px!important} */
+html.v2 :is(#cybernet,#cybernetai) > .feature-page-header > .feature-crosslink{
+  margin-top:10px;
+  color:var(--v2-muted);
+  font-size:14px!important;
+  line-height:1.5;
+}
+html.v2 :is(#cybernet,#cybernetai) .inline-link-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  padding:0 1px;
+  color:var(--v2-g1);
+  font:inherit;
+  font-weight:600;
+  text-decoration:none;
+  vertical-align:baseline;
+  border-radius:6px;
+  transition:color .2s ease;
+}
+html.v2 :is(#cybernet,#cybernetai) .inline-link-btn::after{
+  content:"";
+  --tl-ic:var(--tl-i-arrow);
+  width:13px;
+  height:13px;
+  flex:none;
+  transition:transform .25s var(--v2-ease);
+}
+html.v2 :is(#cybernet,#cybernetai) .inline-link-btn:hover{color:var(--v2-ink)}
+html.v2 :is(#cybernet,#cybernetai) .inline-link-btn:hover::after{transform:translateX(2px)}
+
+/* header meters (#quickScanUsageCard, #analysisAiHeaderUsageCard) */
+html.v2 :is(#cybernet,#cybernetai) > .feature-page-header .usage-meter-card{
+  max-width:420px;
+  margin:22px auto 0;
+  padding:13px 16px 12px;
+  border-radius:18px;
+  text-align:left;
+  background:linear-gradient(180deg,rgba(255,255,255,.065),rgba(255,255,255,.022));
+  border:1px solid rgba(255,255,255,.1);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 18px 40px -26px rgba(0,0,0,.8);
+}
+html.v2 :is(#cybernet,#cybernetai) .usage-meter-labels span{
+  color:var(--v2-muted);
+  font:500 13.5px/1.3 var(--v2-sans);
+  letter-spacing:-.005em;
+}
+html.v2 :is(#cybernet,#cybernetai) .usage-meter-labels strong{
+  color:var(--v2-ink);
+  font:600 13px/1.3 var(--v2-mono);
+  letter-spacing:.02em;
+  font-variant-numeric:tabular-nums;
+}
+html.v2 :is(#cybernet,#cybernetai) .usage-meter-track{
+  height:6px;
+  margin:10px 0 8px;
+  background:rgba(255,255,255,.08);
+  box-shadow:inset 0 1px 1px rgba(0,0,0,.35);
+}
+/* width is written inline by JS (script.js:461, 487, 494) */
+html.v2 :is(#cybernet,#cybernetai) .usage-meter-track span{
+  background:linear-gradient(90deg,var(--v2-g1),var(--v2-g2));
+  box-shadow:0 0 12px rgba(34,211,238,.6);
+  transition:width .6s var(--v2-ease);
+}
+html.v2 :is(#cybernet,#cybernetai) .usage-meter-card small{
+  display:block;
+  color:var(--v2-faint);
+  font:500 11px/1.3 var(--v2-mono);
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+/* The access panel repeats the header meter (same numbers; the guest
+   value even disagreed: "0 / 3" vs "- / 3"). Hidden visually only: the
+   ids stay in the DOM and every JS write is null-guarded. */
+html.v2 #cybernetai .ai-config .usage-meter-card{display:none}
+
+/* ---------------------------------------------------------------------
+   3. DETECT TABS: glass segmented control, white active pill
+   Pinned visible (no reveal blink on tab clicks). Sticky only <=700px,
+   as in legacy, tucked 2px under the 58px v2 bar (10 + 58 - 2 = 66px,
+   same value as the nav partial).
+   --------------------------------------------------------------------- */
+html.v2 #cybernet .detect-tabs{
+  max-width:476px;
+  margin:0 auto 30px;
+  padding:5px;
+  gap:4px;
+  border-radius:999px;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.026)),
+    rgba(10,18,20,.32);
+  border:1px solid rgba(255,255,255,.12);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.13),0 18px 44px -22px rgba(0,0,0,.85);
+}
+html.v2 #cybernet .detect-tabs.reveal{opacity:1;transform:none;transition:none}
+html.v2 #cybernet .detect-tab{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  min-height:42px;
+  padding:0 14px;
+  border-radius:999px;
+  color:var(--v2-muted);
+  font:560 14.5px/1.1 var(--v2-sans);
+  letter-spacing:-.01em;
+  white-space:nowrap;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  transition:color .2s ease,background-color .2s ease,box-shadow .3s var(--v2-ease);
+}
+html.v2 #cybernet .detect-tab::before{
+  content:"";
+  flex:none;
+  width:16px;
+  height:16px;
+  --tl-ic:var(--tl-i-msg);
+}
+html.v2 #cybernet .detect-tab[data-tab="link"]::before{--tl-ic:var(--tl-i-link)}
+html.v2 #cybernet .detect-tab[data-tab="image"]::before{--tl-ic:var(--tl-i-img)}
+html.v2 #cybernet .detect-tab:hover{color:var(--v2-ink);background:rgba(255,255,255,.055)}
+html.v2 #cybernet .detect-tab:focus-visible{outline-offset:1px}
+html.v2 #cybernet .detect-tab.active{
+  background:var(--v2-white);
+  color:var(--v2-on-white);
+  box-shadow:inset 0 1px 0 #fff,0 6px 22px -6px rgba(34,211,238,.75);
+}
+
+/* ---------------------------------------------------------------------
+   4. QUICK SCAN PANELS + INPUTS
+   --------------------------------------------------------------------- */
+html.v2 #cybernet .detect-panel.active{animation:v2-tl-panel-in .45s var(--v2-ease) backwards}
+html.v2 #cybernet :is(.detect-panel-grid,.recent-scans,.what-we-check){max-width:1200px}
+html.v2 #cybernet .detect-panel-grid{gap:18px}
+
+html.v2 #cybernet .detect-main{
+  padding:30px;
+  border-radius:28px;
+  background:
+    radial-gradient(80% 42% at 50% 0%,rgba(34,211,238,.11),transparent 72%),
+    var(--v2-glass);
+}
+html.v2 #cybernet .detect-side{
+  padding:28px 24px;
+  gap:14px;
+  border-radius:28px;
+  background:
+    radial-gradient(90% 46% at 50% 0%,rgba(45,212,191,.09),transparent 72%),
+    var(--v2-glass);
+}
+
+/* tool title with a gradient icon tile */
+html.v2 #cybernet .detect-main > h3{
+  display:flex;
+  align-items:center;
+  gap:13px;
+  margin-bottom:12px;
+  color:var(--v2-ink);
+  font:600 24px/1.15 var(--v2-sans);
+  letter-spacing:-.03em;
+}
+html.v2 #cybernet .detect-main > h3::before{
+  content:"";
+  flex:none;
+  width:42px;
+  height:42px;
+  border-radius:14px;
+  background:
+    var(--tl-w-msg) center/19px no-repeat,
+    linear-gradient(140deg,rgba(34,211,238,.34),rgba(45,212,191,.17));
+  border:1px solid rgba(255,255,255,.15);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 8px 24px -8px rgba(34,211,238,.55);
+}
+html.v2 #cybernet [data-panel="link"] .detect-main > h3::before{
+  background:var(--tl-w-link) center/19px no-repeat,linear-gradient(140deg,rgba(34,211,238,.34),rgba(45,212,191,.17));
+}
+html.v2 #cybernet [data-panel="image"] .detect-main > h3::before{
+  background:var(--tl-w-img) center/19px no-repeat,linear-gradient(140deg,rgba(34,211,238,.34),rgba(45,212,191,.17));
+}
+html.v2 #cybernet .detect-main > p{
+  max-width:62ch;
+  margin-bottom:20px;
+  color:var(--v2-muted);
+  font-size:15px;
+  line-height:1.55;
+}
+
+/* the paste box + link field (scoped: the global input rule stays legacy/base) */
+html.v2 #cybernet :is(#cyberTextInput,#cyberLinkInput){
+  background-color:rgba(5,8,9,.5);
+  border:1px solid rgba(255,255,255,.11);
+  border-radius:20px;
+  color:var(--v2-ink);
+  font:400 16px/1.55 var(--v2-sans);
+  letter-spacing:-.005em;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04),inset 0 12px 30px -20px rgba(0,0,0,.7);
+  caret-color:var(--v2-g1);
+}
+html.v2 #cybernet #cyberTextInput{padding:16px 18px;scrollbar-width:thin}
+html.v2 #cybernet #cyberLinkInput{
+  min-height:56px;
+  padding:0 18px 0 46px;
+  background:var(--tl-m-link) 17px 50%/18px no-repeat,rgba(5,8,9,.5);
+}
+html.v2 #cybernet :is(#cyberTextInput,#cyberLinkInput):hover{border-color:rgba(255,255,255,.18)}
+html.v2 #cybernet :is(#cyberTextInput,#cyberLinkInput):focus{
+  outline:none;
+  border-color:rgba(34,211,238,.6);
+  background-color:rgba(8,14,15,.62);
+  box-shadow:var(--v2-focus),inset 0 1px 0 rgba(255,255,255,.05);
+}
+html.v2 #cybernet :is(#cyberTextInput,#cyberLinkInput)::placeholder{color:rgba(239,253,255,.46)}
+
+/* clear button + char counter */
+html.v2 :is(#cybernet,#cybernetai) .input-tools{gap:10px}
+html.v2 #cybernet .input-tools .input-clear-btn{
+  min-height:28px;
+  padding:0 12px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.13);
+  background:linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,.03));
+  color:var(--v2-muted);
+  font:500 11px/1 var(--v2-mono);
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12);
+}
+html.v2 :is(#cybernet,#cybernetai) .input-clear-btn:is(:hover,:focus-visible){
+  color:var(--v2-ink);
+  border-color:rgba(34,211,238,.45);
+  background:rgba(34,211,238,.1);
+}
+html.v2 #cybernet .char-count{
+  color:var(--v2-faint);
+  font:500 11.5px/1 var(--v2-mono);
+  letter-spacing:.06em;
+  font-variant-numeric:tabular-nums;
+}
+html.v2 #cybernet #cyberTextCount{color:var(--v2-ink)}
+
+/* Analyze buttons: white pill; icon is a pseudo (text is rewritten) */
+html.v2 #cybernet :is(#cyberTextBtn,#cyberLinkBtn){
+  min-height:52px;
+  gap:10px;
+  font-size:15.5px;
+}
+html.v2 #cybernet :is(#cyberTextBtn,#cyberLinkBtn)::before{
+  content:"";
+  flex:none;
+  width:18px;
+  height:18px;
+  --tl-ic:var(--tl-i-scan);
+}
+/* runScan swaps in "<span class=btn-spinner></span> analyzing…" */
+html.v2 #cybernet #cyberLinkBtn:has(.btn-spinner)::before{content:none}
+html.v2 #cybernet :is(#cyberTextBtn,#cyberLinkBtn):disabled{opacity:.72}
+
+/* ---------------------------------------------------------------------
+   5. DROP ZONE (stays a <label> wrapping the hidden input)
+   --------------------------------------------------------------------- */
+html.v2 #cybernet #cyberDropZone{
+  min-height:230px;
+  padding:30px 22px;
+  border:1.5px dashed rgba(255,255,255,.2);
+  border-radius:22px;
+  background:
+    radial-gradient(60% 70% at 50% 40%,rgba(34,211,238,.09),transparent 72%),
+    rgba(5,8,9,.42);
+  -webkit-backdrop-filter:none;
+  backdrop-filter:none;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+  color:var(--v2-muted);
+  transition:border-color .25s ease,background-color .25s ease,box-shadow .35s var(--v2-ease),transform .35s var(--v2-ease);
+}
+html.v2 #cybernet #cyberDropZone:is(:hover,.drag-over){
+  border-color:rgba(34,211,238,.7);
+  background-color:rgba(10,18,20,.5);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 0 0 4px rgba(34,211,238,.1),0 18px 50px -24px rgba(34,211,238,.55);
+  transform:none;
+}
+html.v2 #cybernet #cyberDropZone.drag-over{transform:scale(1.01)}
+html.v2 #cybernet #cyberDropZone:focus-within{outline:2px solid var(--v2-g1);outline-offset:3px}
+html.v2 #cybernet #cyberDropZone .upload-icon{
+  width:56px;
+  height:56px;
+  margin:0 auto 14px;
+  border-radius:17px;
+  font-size:0;
+  color:transparent;
+  background:
+    var(--tl-w-upload) center/24px no-repeat,
+    linear-gradient(140deg,rgba(34,211,238,.38),rgba(45,212,191,.2));
+  border:1px solid rgba(255,255,255,.17);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 12px 30px -10px rgba(34,211,238,.6);
+}
+html.v2 #cybernet #cyberDropZone h3{
+  margin-bottom:6px;
+  color:var(--v2-ink);
+  font:600 17px/1.3 var(--v2-sans);
+  letter-spacing:-.02em;
+}
+html.v2 #cybernet #cyberDropZone p{color:var(--v2-muted);font-size:13.5px;line-height:1.6}
+html.v2 #cybernet #cyberDropZone .upload-preview{border-radius:20px}
+html.v2 #cybernet #cyberDropZone .upload-preview img{opacity:.38;filter:saturate(.85)}
+html.v2 #cybernet #cyberDropZone .upload-preview-label{
+  bottom:12px;
+  max-width:calc(100% - 24px);
+  overflow:hidden;
+  text-overflow:ellipsis;
+  padding:6px 12px 5px;
+  border-radius:999px;
+  background:rgba(5,8,9,.78);
+  border:1px solid rgba(255,255,255,.14);
+  color:var(--v2-ink);
+  font:500 11.5px/1.2 var(--v2-mono);
+  letter-spacing:.04em;
+  -webkit-backdrop-filter:blur(10px);
+  backdrop-filter:blur(10px);
+}
+
+/* ---------------------------------------------------------------------
+   6. SIDE PANELS: scan ring, status, step rows (the v2 loader look),
+   mini globe (kept), "We Analyze For" rows
+   --------------------------------------------------------------------- */
+html.v2 #cybernet .scan-ring-wrap-small{width:118px;height:118px;margin-top:2px}
+html.v2 #cybernet .scan-ring-wrap::before{
+  content:"";
+  position:absolute;
+  inset:-16px;
+  border-radius:50%;
+  background:radial-gradient(closest-side,rgba(34,211,238,.2),rgba(45,212,191,.07) 62%,transparent 76%);
+  pointer-events:none;
+}
+html.v2 #cybernet .scan-ring-svg{position:relative;filter:drop-shadow(0 0 10px rgba(34,211,238,.32))}
+html.v2 #cybernet .scan-ring-svg circle:first-child{stroke:rgba(255,255,255,.09)}
+/* strokeDashoffset is inline (276 -> 0); match the JS 900 ms count */
+html.v2 #cybernet .scan-ring-fill{transition:stroke-dashoffset .9s cubic-bezier(.2,.8,.2,1)}
+html.v2 #cybernet #scanGradText stop{transition:stop-color .6s ease}
+html.v2 #cybernet #scanGradText stop:first-child{stop-color:#22d3ee}
+html.v2 #cybernet #scanGradText stop:last-child{stop-color:#2dd4bf}
+html.v2 #cybernet .scan-ring-label{
+  color:var(--v2-ink);
+  font:600 22px/1 var(--v2-mono);
+  letter-spacing:-.03em;
+  font-variant-numeric:tabular-nums;
+}
+html.v2 #cybernet .scan-status-text{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  min-height:26px;
+  padding:0 11px;
+  border-radius:999px;
+  background:rgba(34,211,238,.12);
+  border:1px solid rgba(34,211,238,.28);
+  color:var(--v2-g1);
+  font:500 11px/1 var(--v2-mono);
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  transition:color .4s ease,border-color .4s ease,background-color .4s ease;
+}
+html.v2 #cybernet .scan-status-text::before{
+  content:"";
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:currentColor;
+  box-shadow:0 0 10px currentColor;
+}
+/* the ring + status take the verdict tone once a report is shown */
+html.v2 #cybernet [data-panel="text"]:has(.result-has-danger) #scanGradText stop:first-child{stop-color:#FFB547}
+html.v2 #cybernet [data-panel="text"]:has(.result-has-danger) #scanGradText stop:last-child{stop-color:#FF5C7A}
+html.v2 #cybernet [data-panel="text"]:has(.result-has-safe) #scanGradText stop:last-child{stop-color:#6CF0B0}
+html.v2 #cybernet [data-panel="text"]:has(.result-has-uncertain) #scanGradText stop:last-child{stop-color:#FFB547}
+html.v2 #cybernet [data-panel="text"]:has(.result-has-danger) .scan-status-text{color:#FF8FA5;background:rgba(255,92,122,.1);border-color:rgba(255,92,122,.34)}
+html.v2 #cybernet [data-panel="text"]:has(.result-has-safe) .scan-status-text{color:#A8F5D0;background:rgba(108,240,176,.08);border-color:rgba(108,240,176,.3)}
+html.v2 #cybernet [data-panel="text"]:has(.result-has-uncertain) .scan-status-text{color:#FFD9A0;background:rgba(255,181,71,.08);border-color:rgba(255,181,71,.32)}
+
+/* "how it works" steps -> timeline rows with a lighting rail */
+html.v2 #cybernet .hiw-steps-stacked{gap:2px;margin-top:8px}
+html.v2 #cybernet .hiw-step-sm.glass{
+  position:relative;
+  gap:12px;
+  padding:11px 4px 11px 22px;
+  border:0;
+  border-radius:0;
+  background:none;
+  -webkit-backdrop-filter:none;
+  backdrop-filter:none;
+  box-shadow:none;
+}
+html.v2 #cybernet .hiw-step-sm::before,
+html.v2 #cybernet .hiw-step-sm::after{
+  content:"";
+  position:absolute;
+  left:0;
+  top:11px;
+  bottom:11px;
+  width:2px;
+  border-radius:2px;
+  background:rgba(255,255,255,.1);
+}
+html.v2 #cybernet .hiw-step-sm::after{
+  background:linear-gradient(var(--v2-g1),var(--v2-g2));
+  box-shadow:0 0 12px rgba(34,211,238,.75);
+  transform:scaleY(0);
+  transform-origin:top;
+  transition:transform .55s var(--v2-ease);
+}
+html.v2 #cybernet .hiw-step-sm > span{
+  width:24px;
+  height:24px;
+  margin-top:0;
+  border-radius:8px;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.12);
+  color:var(--v2-muted);
+  font:600 11px/1 var(--v2-mono);
+  transition:background-color .3s ease,color .3s ease,border-color .3s ease;
+}
+html.v2 #cybernet .hiw-step-sm h4{
+  margin-bottom:2px;
+  color:var(--v2-muted);
+  font:580 15px/1.3 var(--v2-sans);
+  letter-spacing:-.015em;
+  transition:color .3s ease;
+}
+html.v2 #cybernet .hiw-step-sm p{color:var(--v2-faint);font-size:13px;line-height:1.45}
+/* lit = you are here, or done. Step 1 is lit from the start... */
+html.v2 #cybernet .hiw-step-sm:first-child::after{transform:none}
+html.v2 #cybernet .hiw-step-sm:first-child > span{
+  background:linear-gradient(140deg,rgba(34,211,238,.5),rgba(45,212,191,.32));
+  border-color:rgba(255,255,255,.22);
+  color:#fff;
+}
+html.v2 #cybernet .hiw-step-sm:first-child h4{color:var(--v2-ink)}
+html.v2 #cybernet .hiw-step-sm:first-child p{color:var(--v2-muted)}
+/* ...step 2 once there is something to scan, step 3 once a report shows
+   (kept in their own rules: a browser without :has() drops only these) */
+html.v2 #cybernet .detect-panel:has(:is(#cyberTextInput,#cyberLinkInput):not(:placeholder-shown),.upload-preview,.result-box > .scan-report) .hiw-step-sm:nth-child(2)::after,
+html.v2 #cybernet .detect-panel:has(.result-box > .scan-report) .hiw-step-sm:nth-child(3)::after{transform:none}
+html.v2 #cybernet .detect-panel:has(:is(#cyberTextInput,#cyberLinkInput):not(:placeholder-shown),.upload-preview,.result-box > .scan-report) .hiw-step-sm:nth-child(2) > span,
+html.v2 #cybernet .detect-panel:has(.result-box > .scan-report) .hiw-step-sm:nth-child(3) > span{
+  background:linear-gradient(140deg,rgba(34,211,238,.5),rgba(45,212,191,.32));
+  border-color:rgba(255,255,255,.22);
+  color:#fff;
+}
+html.v2 #cybernet .detect-panel:has(:is(#cyberTextInput,#cyberLinkInput):not(:placeholder-shown),.upload-preview,.result-box > .scan-report) .hiw-step-sm:nth-child(2) h4,
+html.v2 #cybernet .detect-panel:has(.result-box > .scan-report) .hiw-step-sm:nth-child(3) h4{color:var(--v2-ink)}
+html.v2 #cybernet .detect-panel:has(:is(#cyberTextInput,#cyberLinkInput):not(:placeholder-shown),.upload-preview,.result-box > .scan-report) .hiw-step-sm:nth-child(2) p,
+html.v2 #cybernet .detect-panel:has(.result-box > .scan-report) .hiw-step-sm:nth-child(3) p{color:var(--v2-muted)}
+/* while a scan runs, the analysis rail shimmers */
+html.v2 #cybernet .detect-panel:has(.scanning-placeholder,#cyberTextBtn:disabled,#cyberLinkBtn:disabled) .hiw-step-sm:nth-child(2)::after{
+  transform:none;
+  background:linear-gradient(var(--v2-g1),#fff,var(--v2-g2)) 0 0/100% 300%;
+  animation:v2-tl-rail 1s linear infinite;
+}
+
+/* Link panel: the mini globe stays (owner choice), recoloured */
+html.v2 #cybernet .mini-globe-wrap{width:150px;height:150px}
+html.v2 #cybernet .mini-globe-wrap::before{
+  content:"";
+  position:absolute;
+  inset:-6px;
+  border-radius:50%;
+  background:radial-gradient(closest-side,rgba(34,211,238,.24),rgba(45,212,191,.08) 60%,transparent 76%);
+  pointer-events:none;
+}
+html.v2 #cybernet .mini-globe-3d .globe-ring{
+  border-color:rgba(34,211,238,.42);
+  box-shadow:0 0 16px rgba(34,211,238,.16),inset 0 0 14px rgba(34,211,238,.1);
+}
+html.v2 #cybernet .mini-globe-icon{
+  width:52px;
+  height:52px;
+  border-radius:16px;
+  font-size:0;
+  color:transparent;
+  filter:none;
+  background:
+    var(--tl-w-link) center/22px no-repeat,
+    linear-gradient(140deg,rgba(34,211,238,.48),rgba(45,212,191,.26));
+  border:1px solid rgba(255,255,255,.2);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 0 30px rgba(34,211,238,.45);
+}
+
+/* Image panel: "We Analyze For" */
+html.v2 #cybernet [data-panel="image"] .detect-side{gap:8px}
+html.v2 #cybernet .detect-side > h4{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  align-self:stretch;
+  margin:2px 0 6px;
+  text-align:left;
+  color:var(--v2-g1);
+  font:500 11.5px/1.3 var(--v2-mono);
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+html.v2 #cybernet .detect-side > h4::before{
+  content:"";
+  width:18px;
+  height:1px;
+  background:currentColor;
+  opacity:.7;
+}
+html.v2 #cybernet .wwc-item-sm{
+  gap:12px;
+  margin-top:0;
+  padding:9px 12px;
+  border-radius:16px;
+  background:rgba(5,8,9,.45);
+  border:1px solid rgba(255,255,255,.07);
+  color:var(--v2-ink);
+  font:500 14.5px/1.3 var(--v2-sans);
+  text-align:left;
+}
+html.v2 #cybernet .wwc-item-sm .wwc-icon{
+  width:32px;
+  height:32px;
+  display:grid;
+  place-items:center;
+  flex:none;
+  border-radius:10px;
+  background:linear-gradient(140deg,rgba(34,211,238,.32),rgba(45,212,191,.17));
+  border:1px solid rgba(255,255,255,.14);
+  color:#e3fcff;
+  font-size:0;
+}
+html.v2 #cybernet .wwc-item-sm .wwc-icon svg{width:16px;height:16px}
+html.v2 #cybernet [data-panel="image"] .hiw-steps-stacked{margin-top:14px}
+
+/* ---------------------------------------------------------------------
+   7. "WHAT WE CHECK" (link panel)
+   content-visibility:auto (paint containment) would clip the card shadows.
+   --------------------------------------------------------------------- */
+html.v2 #cybernet .what-we-check{gap:14px;margin-top:18px;content-visibility:visible}
+html.v2 #cybernet .wwc-item{gap:14px;padding:18px;border-radius:22px}
+html.v2 #cybernet .wwc-item > .wwc-icon{
+  width:40px;
+  height:40px;
+  flex:none;
+  border-radius:13px;
+  font-size:0;
+  color:transparent;
+  background:var(--tl-w-globe) center/18px no-repeat,linear-gradient(140deg,rgba(34,211,238,.32),rgba(45,212,191,.17));
+  border:1px solid rgba(255,255,255,.15);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 8px 22px -10px rgba(34,211,238,.55);
+}
+html.v2 #cybernet .wwc-item:nth-child(2) > .wwc-icon{background:var(--tl-w-hook) center/18px no-repeat,linear-gradient(140deg,rgba(34,211,238,.32),rgba(45,212,191,.17))}
+html.v2 #cybernet .wwc-item:nth-child(3) > .wwc-icon{background:var(--tl-w-bug) center/18px no-repeat,linear-gradient(140deg,rgba(34,211,238,.32),rgba(45,212,191,.17))}
+html.v2 #cybernet .wwc-item:nth-child(4) > .wwc-icon{background:var(--tl-w-lock) center/18px no-repeat,linear-gradient(140deg,rgba(34,211,238,.32),rgba(45,212,191,.17))}
+html.v2 #cybernet .wwc-item h4{
+  margin-bottom:4px;
+  color:var(--v2-ink);
+  font:600 15.5px/1.3 var(--v2-sans);
+  letter-spacing:-.02em;
+}
+html.v2 #cybernet .wwc-item p{color:var(--v2-muted);font-size:13.5px;line-height:1.5}
+
+/* ---------------------------------------------------------------------
+   8. EXAMPLE / RECENT SCANS (prependScan adds real rows on top)
+   --------------------------------------------------------------------- */
+html.v2 #cybernet .recent-scans{
+  margin-top:18px;
+  padding:24px;
+  border-radius:26px;
+  content-visibility:visible;
+}
+html.v2 #cybernet .recent-scans h4{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:14px;
+  color:var(--v2-g1);
+  font:500 11.5px/1.3 var(--v2-mono);
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+html.v2 #cybernet .recent-scans h4::before{content:"";width:18px;height:1px;background:currentColor;opacity:.7}
+/* minmax(0,1fr): the nowrap row text no longer pushes the pills off-card */
+html.v2 #cybernet .scan-list{grid-template-columns:minmax(0,1fr);gap:8px}
+html.v2 #cybernet .scan-list li{
+  min-width:0;
+  gap:12px;
+  padding:11px 12px 11px 14px;
+  border-radius:16px;
+  background:rgba(5,8,9,.5);
+  border:1px solid rgba(255,255,255,.07);
+  transition:border-color .25s ease,background-color .25s ease;
+}
+html.v2 #cybernet .scan-list li:hover{border-color:rgba(255,255,255,.13);background-color:rgba(9,16,17,.55)}
+html.v2 #cybernet .scan-list li::before{
+  content:"";
+  flex:none;
+  width:17px;
+  height:17px;
+  color:var(--v2-faint);
+  --tl-ic:var(--tl-i-msg);
+}
+html.v2 #cybernet #linkScanList li::before{--tl-ic:var(--tl-i-link)}
+html.v2 #cybernet #imageScanList li::before{--tl-ic:var(--tl-i-img)}
+html.v2 #cybernet .scan-list-main{
+  color:var(--v2-ink);
+  font:400 14.5px/1.4 var(--v2-sans);
+  letter-spacing:-.005em;
+}
+html.v2 :is(#cybernet,#cybernetai) .risk-tag{
+  padding:5px 9px 4px;
+  border-radius:999px;
+  border:1px solid transparent;
+  font:600 10.5px/1.1 var(--v2-mono);
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+html.v2 :is(#cybernet,#cybernetai) .risk-tag-danger{color:#FFB0BD;background:rgba(255,92,122,.14);border-color:rgba(255,92,122,.4)}
+html.v2 :is(#cybernet,#cybernetai) .risk-tag-warning{color:#FFD9A0;background:rgba(255,181,71,.12);border-color:rgba(255,181,71,.38)}
+html.v2 :is(#cybernet,#cybernetai) .risk-tag-safe{color:#A8F5D0;background:rgba(108,240,176,.1);border-color:rgba(108,240,176,.35)}
+
+/* ---------------------------------------------------------------------
+   9. RESULT BOXES: empty, warning, scanning, verdict tones
+   Tone variables (on the box, or on the chat bubble that holds a report):
+   --tl-t rgb triplet, --tl-a/--tl-b ring gradient, --tl-pi/--tl-pc
+   reason-row icon + colour. NOT A SCAM / LOW RISK = safe green, SCAM =
+   danger, CAN'T CONFIRM = amber; "send this to Analysis AI" (the only
+   uncertain card in the image box) and "couldn't complete" (the only
+   .scan-report in chat) read violet: they redirect, they don't warn.
+   --------------------------------------------------------------------- */
+html.v2 :is(#cybernet .result-box,#cybernetai .chat-bubble-inner){
+  --tl-t:143,176,255;
+  --tl-a:#22d3ee;
+  --tl-b:#a5f3fc;
+  --tl-pi:var(--tl-i-info);
+  --tl-pc:#22d3ee;
+  --tl-vi:var(--tl-i-info);
+}
+html.v2 :is(#cybernet .result-box,#cybernetai .chat-bubble-inner).result-has-danger{
+  --tl-t:255,92,122;
+  --tl-a:#FFB547;
+  --tl-b:#FF5C7A;
+  --tl-pi:var(--tl-i-alert);
+  --tl-pc:#FFB547;
+  --tl-vi:var(--tl-i-x);
+}
+html.v2 :is(#cybernet .result-box,#cybernetai .chat-bubble-inner).result-has-safe{
+  --tl-t:108,240,176;
+  --tl-a:#22d3ee;
+  --tl-b:#6CF0B0;
+  --tl-pi:var(--tl-i-check);
+  --tl-pc:#6CF0B0;
+  --tl-vi:var(--tl-i-check);
+}
+html.v2 :is(#cybernet .result-box,#cybernetai .chat-bubble-inner).result-has-uncertain{
+  --tl-t:255,181,71;
+  --tl-a:#FFD9A0;
+  --tl-b:#FFB547;
+  --tl-pi:var(--tl-i-info);
+  --tl-pc:#FFB547;
+  --tl-vi:var(--tl-i-help);
+}
+html.v2 #cybernet #cyberImageResult.result-has-uncertain,
+html.v2 #cybernetai .chat-bubble-inner > .scan-report{
+  --tl-t:180,155,255;
+  --tl-a:#22d3ee;
+  --tl-b:#a5f3fc;
+  --tl-pi:var(--tl-i-info);
+  --tl-pc:#a5f3fc;
+  --tl-vi:var(--tl-i-ext);
+}
+html.v2 #cybernetai .chat-bubble-inner > .scan-report{--tl-vi:var(--tl-i-refresh)}
+
+html.v2 #cybernet .result-box{
+  min-height:76px;
+  margin-top:16px;
+  padding:22px;
+  border-radius:22px;
+  background:rgba(5,8,9,.42);
+  border:1px solid rgba(255,255,255,.08);
+  color:var(--v2-muted);
+  font:400 14.5px/1.55 var(--v2-sans);
+  transition:border-color .45s ease,background-color .45s ease,box-shadow .6s var(--v2-ease);
+}
+/* empty state: only the placeholder sentence */
+html.v2 #cybernet .result-box:not(:has(> *)){
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:18px 20px;
+  border-style:dashed;
+  border-color:rgba(255,255,255,.13);
+  background:rgba(5,8,9,.3);
+  color:var(--v2-faint);
+}
+html.v2 #cybernet .result-box:not(:has(> *))::before{
+  content:"";
+  flex:none;
+  width:18px;
+  height:18px;
+  -webkit-mask:var(--tl-i-shield) center/contain no-repeat;
+  mask:var(--tl-i-shield) center/contain no-repeat;
+  background-color:rgba(34,211,238,.7);
+}
+/* inline notices (no report): quota, empty input, wrong file */
+html.v2 #cybernet .result-box:has(> .warning){border-color:rgba(255,181,71,.34);background:rgba(255,181,71,.06)}
+html.v2 :is(#cybernet,#cybernetai) :is(.result-box,.chat-bubble-inner) > .warning{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  color:#FFD08A;
+  font-size:14.5px;
+  font-weight:500;
+  line-height:1.5;
+}
+html.v2 :is(#cybernet,#cybernetai) :is(.result-box,.chat-bubble-inner) > .warning::before{
+  content:"";
+  flex:none;
+  width:18px;
+  height:18px;
+  margin-top:1px;
+  color:var(--v2-amber);
+  --tl-ic:var(--tl-i-alert);
+}
+
+/* scanning placeholder (link + image): ring spinner, text, 3 sweep bars */
+html.v2 #cybernet .result-box:has(> .scanning-placeholder){
+  border-color:rgba(34,211,238,.3);
+  background:linear-gradient(180deg,rgba(12,22,24,.66),rgba(7,12,13,.7));
+  box-shadow:0 18px 50px -30px rgba(34,211,238,.7);
+}
+html.v2 :is(#cybernet,#cybernetai) .scanning-placeholder{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  padding:0;
+}
+html.v2 :is(#cybernet,#cybernetai) .scanning-placeholder::before{
+  content:"";
+  flex:none;
+  width:34px;
+  height:34px;
+  border-radius:50%;
+  background:
+    radial-gradient(closest-side,#0a1314 calc(100% - 4px),transparent calc(100% - 3px)),
+    conic-gradient(from 0deg,rgba(34,211,238,0),var(--v2-g1) 62%,var(--v2-g2));
+  box-shadow:0 0 18px -2px rgba(34,211,238,.55);
+  animation:v2-tl-spin 1.1s linear infinite;
+}
+html.v2 :is(#cybernet,#cybernetai) .scanning-placeholder-text{
+  display:block;
+  flex:1;
+  min-width:0;
+  color:var(--v2-ink);
+  font:560 16px/1.3 var(--v2-sans);
+  letter-spacing:-.015em;
+}
+html.v2 :is(#cybernet,#cybernetai) .scanning-placeholder-text::first-letter{text-transform:uppercase}
+html.v2 :is(#cybernet,#cybernetai) .scan-dots{gap:6px;flex:none}
+html.v2 :is(#cybernet,#cybernetai) .scan-dots span{
+  position:relative;
+  width:22px;
+  height:4px;
+  border-radius:4px;
+  overflow:hidden;
+  background:rgba(255,255,255,.12);
+  animation:none;
+}
+html.v2 :is(#cybernet,#cybernetai) .scan-dots span::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(90deg,var(--v2-g1),var(--v2-g2));
+  transform:scaleX(0);
+  transform-origin:left;
+  animation:v2-tl-bar 1.35s var(--v2-ease) infinite;
+}
+html.v2 :is(#cybernet,#cybernetai) .scan-dots span:nth-child(2)::after{animation-delay:.22s}
+html.v2 :is(#cybernet,#cybernetai) .scan-dots span:nth-child(3)::after{animation-delay:.44s}
+
+/* verdict tones on the box (legacy #cybernet .result-box.result-has-*
+   is (1,2,0); the uncertain border is legacy !important) */
+html.v2 #cybernet .result-box[class*="result-has-"]{
+  border-color:rgba(var(--tl-t),.36);
+  background:
+    radial-gradient(90% 55% at 0% 0%,rgba(var(--tl-t),.12),transparent 62%),
+    linear-gradient(180deg,rgba(16,27,30,.6),rgba(6,10,11,.66));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.07),
+    0 0 0 1px rgba(var(--tl-t),.05),
+    0 26px 60px -32px rgba(var(--tl-t),.5);
+}
+html.v2 #cybernet .result-box.result-has-uncertain{border-color:rgba(var(--tl-t),.36)!important}
+
+/* ---------------------------------------------------------------------
+   10. THE VERDICT CARD (.scan-report in Quick Scan + the chat's
+   "couldn't complete" card, .diagnostic-report in Analysis AI)
+   Grid: [ring][stamp / plain-lead] then full-width rows. The headline
+   and the plain summary use display:contents so their children land in
+   that grid without any markup change. Spring entrance once per new
+   report (fill: backwards, so no transform lingers).
+   --------------------------------------------------------------------- */
+html.v2 :is(#cybernet,#cybernetai) :is(.scan-report,.diagnostic-report){
+  padding:0;
+  font-family:var(--v2-sans);
+  animation:v2-verdict-in .72s cubic-bezier(.34,1.56,.64,1) backwards;
+}
+html.v2 :is(#cybernet,#cybernetai) :is(.scan-report,.diagnostic-report:not(.diagnostic-followup)){
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  column-gap:20px;
+  row-gap:0;
+  align-items:start;
+}
+html.v2 :is(#cybernet,#cybernetai) :is(.scan-report,.diagnostic-report) > *{grid-column:1/-1;min-width:0}
+html.v2 :is(#cybernet,#cybernetai) :is(.scan-report,.diagnostic-report:not(.diagnostic-followup)) > :is(.verdict-headline,.plain-summary){display:contents}
+
+/* the ring: conic arc in the tone, sweeps in once (@property; static
+   full ring where unsupported). Layers, top first: a faint tone tint,
+   the OPAQUE navy core (so the arc never bleeds into the centre), the
+   arc. Concept size: 104px desktop / 88px phone. */
+@property --v2-tl-arc{syntax:"<angle>";inherits:false;initial-value:360deg}
+html.v2 :is(#cybernet,#cybernetai) .verdict-headline-icon{
+  position:relative;
+  grid-column:1;
+  grid-row:1 / span 2;
+  align-self:center;
+  width:96px;
+  height:96px;
+  display:block;
+  border-radius:50%;
+  color:rgb(var(--tl-t));
+  font-size:0;
+  background:
+    radial-gradient(closest-side,rgba(var(--tl-t),.14),transparent 72%),
+    radial-gradient(closest-side,#091012 calc(100% - 7px),transparent calc(100% - 6px)),
+    conic-gradient(from 210deg,var(--tl-a) 0deg,var(--tl-b) calc(var(--v2-tl-arc,360deg) * .62),var(--tl-a) var(--v2-tl-arc,360deg),rgba(255,255,255,.08) var(--v2-tl-arc,360deg));
+  box-shadow:0 0 34px -6px rgba(var(--tl-t),.55);
+  animation:v2-tl-arc 1.05s var(--v2-ease) .08s backwards;
+}
+html.v2 :is(#cybernet,#cybernetai) .verdict-headline-icon::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  margin:auto;
+  width:36%;
+  height:36%;
+  --tl-ic:var(--tl-vi);
+}
+
+/* the stamp */
+html.v2 :is(#cybernet,#cybernetai) .verdict-headline-text{
+  grid-column:2;
+  grid-row:1;
+  justify-self:start;
+  align-self:end;
+  max-width:100%;
+  margin:2px 0 0;
+  padding:6px calc(13px - .16em) 5px 13px;
+  border:2px solid currentColor;
+  border-radius:10px;
+  color:rgb(var(--tl-t));
+  font:650 18px/1.2 var(--v2-mono);
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  text-wrap:balance;
+  overflow-wrap:anywhere;
+  transform:rotate(-2.5deg);
+  box-shadow:0 0 28px -4px rgba(var(--tl-t),.42),inset 0 0 16px rgba(var(--tl-t),.15);
+  text-shadow:0 0 18px rgba(var(--tl-t),.32);
+  animation:v2-stamp-pop .56s cubic-bezier(.34,1.56,.64,1) .26s backwards;
+}
+/* cards without a plain summary: stamp centred next to the ring */
+html.v2 :is(#cybernet,#cybernetai) :is(.scan-report,.diagnostic-report):not(:has(> .plain-summary)) .verdict-headline-text{
+  grid-row:1 / span 2;
+  align-self:center;
+}
+
+/* plain summary: lead = the card headline, points = reason rows,
+   action = the "What to do" block */
+html.v2 :is(#cybernet,#cybernetai) .plain-lead{
+  grid-column:2;
+  grid-row:2;
+  margin:12px 0 0;
+  color:var(--v2-ink);
+  font:600 20px/1.3 var(--v2-sans);
+  letter-spacing:-.025em;
+  text-wrap:balance;
+}
+html.v2 :is(#cybernet,#cybernetai) .plain-points{
+  grid-column:1/-1;
+  display:grid;
+  gap:8px;
+  margin:18px 0 0;
+  padding:0;
+  list-style:none;
+}
+html.v2 :is(#cybernet,#cybernetai) .plain-points li{
+  position:relative;
+  margin:0;
+  padding:11px 14px 11px 42px;
+  border-radius:16px;
+  background:rgba(4,7,8,.45);
+  border:1px solid rgba(255,255,255,.07);
+  color:var(--v2-ink);
+  font-size:15px;
+  line-height:1.45;
+}
+html.v2 :is(#cybernet,#cybernetai) .plain-points li::before{
+  content:"";
+  position:absolute;
+  left:14px;
+  top:12px;
+  width:18px;
+  height:18px;
+  color:var(--tl-pc);
+  --tl-ic:var(--tl-pi);
+}
+html.v2 :is(#cybernet,#cybernetai) .plain-action{
+  grid-column:1/-1;
+  margin:12px 0 0;
+  padding:13px 15px 14px;
+  border-radius:16px;
+  background:linear-gradient(180deg,rgba(34,211,238,.15),rgba(45,212,191,.06));
+  border:1px solid rgba(34,211,238,.24);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+  color:var(--v2-ink);
+  font-size:15px;
+  line-height:1.5;
+}
+html.v2 :is(#cybernet,#cybernetai) .plain-action strong{
+  display:block;
+  margin-bottom:3px;
+  color:var(--v2-g1);
+  font:600 11px/1.4 var(--v2-mono);
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+
+/* uncertain / redirect cards: the note leads, columns follow */
+html.v2 :is(#cybernet,#cybernetai) :is(.scan-report,.diagnostic-report) > .verdict-note{margin-top:18px}
+
+/* destination / QR / links-found previews */
+html.v2 :is(#cybernet,#cybernetai) :is(.dest-preview,.qr-preview,.links-found){
+  margin:14px 0 0;
+  padding:14px 16px;
+  border-radius:18px;
+  background:rgba(4,7,8,.45);
+  border:1px solid rgba(255,255,255,.08);
+  font-size:14px;
+}
+html.v2 :is(#cybernet,#cybernetai) :is(.links-found,.qr-preview) .dest-preview{
+  margin:12px 0 0;
+  padding:12px 14px;
+  border-radius:14px;
+  background:rgba(255,255,255,.03);
+  border-color:rgba(255,255,255,.07);
+}
+html.v2 :is(#cybernet,#cybernetai) :is(.dest-preview,.qr-preview,.links-found) > strong{
+  margin-bottom:9px;
+  color:var(--v2-g1);
+  font:500 11px/1.4 var(--v2-mono);
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+/* keep word-break / direction / unicode-bidi from legacy: the real URL */
+html.v2 :is(#cybernet,#cybernetai) :is(.dest-url,.qr-raw){
+  padding:9px 12px;
+  border-radius:11px;
+  background:rgba(0,0,0,.32);
+  border:1px solid rgba(255,255,255,.07);
+  color:var(--v2-ink);
+  font:400 12.5px/1.6 var(--v2-mono);
+}
+html.v2 :is(#cybernet,#cybernetai) .qr-kind{
+  padding:4px 9px 3px;
+  border-color:rgba(255,255,255,.14);
+  color:var(--v2-muted);
+  font:500 10.5px/1.3 var(--v2-mono);
+  letter-spacing:.1em;
+  text-transform:uppercase;
+}
+html.v2 :is(#cybernet,#cybernetai) .dest-facts{gap:6px 8px;margin-top:11px}
+html.v2 :is(#cybernet,#cybernetai) .dest-domain{color:var(--v2-muted);font-size:13px}
+html.v2 :is(#cybernet,#cybernetai) .dest-domain b{color:var(--v2-ink);font:500 12.5px var(--v2-mono)}
+html.v2 :is(#cybernet,#cybernetai) .dest-badge{
+  padding:4px 10px;
+  border-radius:999px;
+  font:500 12px/1.4 var(--v2-sans);
+  letter-spacing:0;
+}
+html.v2 :is(#cybernet,#cybernetai) .dest-badge-good{color:#A8F5D0;background:rgba(108,240,176,.1);border-color:rgba(108,240,176,.32)}
+html.v2 :is(#cybernet,#cybernetai) .dest-badge-warn{color:#FFD9A0;background:rgba(255,181,71,.11);border-color:rgba(255,181,71,.34)}
+html.v2 :is(#cybernet,#cybernetai) .dest-badge-bad{color:#FFB0BD;background:rgba(255,92,122,.13);border-color:rgba(255,92,122,.38)}
+html.v2 :is(#cybernet,#cybernetai) .dest-shot{margin-top:12px}
+html.v2 :is(#cybernet,#cybernetai) .dest-shot img{border-radius:12px;border-color:rgba(255,255,255,.1)}
+html.v2 :is(#cybernet,#cybernetai) .dest-shot strong{color:#e0fcff;font-size:13px;font-weight:500}
+html.v2 :is(#cybernet,#cybernetai) .dest-shot-note{
+  padding:10px 12px;
+  border-radius:12px;
+  background:rgba(45,212,191,.07);
+  border:1px dashed rgba(165,243,252,.28);
+  color:var(--v2-muted);
+  font-size:13px;
+  line-height:1.5;
+}
+html.v2 :is(#cybernet,#cybernetai) .screenshot-loading{color:var(--v2-muted);font-size:13px}
+html.v2 :is(#cybernet,#cybernetai) .screenshot-disclaimer{margin-top:8px;color:var(--v2-faint);font-size:12px;line-height:1.55}
+
+/* "Show more details" */
+html.v2 :is(#cybernet,#cybernetai) .details-toggle{
+  justify-self:start;
+  gap:7px;
+  margin:16px 0 0;
+  min-height:36px;
+  padding:0 15px 0 12px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.14);
+  background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.035));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16);
+  color:var(--v2-ink);
+  font:560 13.5px/1 var(--v2-sans);
+  letter-spacing:-.005em;
+}
+html.v2 :is(#cybernet,#cybernetai) .details-toggle::before{
+  content:"";
+  width:14px;
+  height:14px;
+  font-size:0;
+  --tl-ic:var(--tl-i-chev);
+  transition:transform .25s var(--v2-ease);
+}
+html.v2 :is(#cybernet,#cybernetai) .details-toggle[aria-expanded="true"]::before{content:"";transform:rotate(90deg)}
+html.v2 :is(#cybernet,#cybernetai) .details-toggle:is(:hover,:focus-visible){
+  color:#fff;
+  border-color:rgba(34,211,238,.42);
+  background:linear-gradient(180deg,rgba(255,255,255,.15),rgba(255,255,255,.05));
+}
+
+/* the details: never a display value here ([hidden] must win) */
+html.v2 :is(#cybernet,#cybernetai) .report-details{
+  margin-top:14px;
+  padding-top:16px;
+  border-top:1px solid rgba(255,255,255,.08);
+  animation:v2-tl-details .35s var(--v2-ease) backwards;
+}
+html.v2 :is(#cybernet,#cybernetai) :is(.report-top-row,.diagnostic-report-head){
+  align-items:center;
+  gap:10px;
+  margin-bottom:14px;
+}
+html.v2 :is(#cybernet,#cybernetai) :is(.scam-type-tag,.diagnostic-scam-type){
+  padding:6px 12px;
+  border-radius:999px;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.12);
+  color:var(--v2-ink);
+  font:500 13px/1.3 var(--v2-sans);
+}
+html.v2 :is(#cybernet,#cybernetai) :is(.score-display,.diagnostic-score){
+  margin-left:auto;
+  color:rgb(var(--tl-t));
+  font:600 30px/1 var(--v2-mono);
+  letter-spacing:-.03em;
+  font-variant-numeric:tabular-nums;
+  text-shadow:0 0 22px rgba(var(--tl-t),.35);
+}
+html.v2 :is(#cybernet,#cybernetai) :is(.score-display,.diagnostic-score) > span{
+  margin-left:2px;
+  color:var(--v2-faint);
+  font-size:12px;
+  font-weight:500;
+  letter-spacing:.02em;
+  text-shadow:none;
+}
+html.v2 :is(#cybernet,#cybernetai) .analysis-sources{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin:0 0 14px;
+}
+html.v2 :is(#cybernet,#cybernetai) .analysis-sources > span{
+  margin:0;
+  padding:5px 10px 4px;
+  border-radius:999px;
+  background:rgba(34,211,238,.08);
+  border:1px solid rgba(34,211,238,.22);
+  color:#cffaff;
+  font:500 10.5px/1.3 var(--v2-mono);
+  letter-spacing:.1em;
+  text-transform:uppercase;
+}
+html.v2 :is(#cybernet,#cybernetai) .analysis-sources > span:last-child{
+  background:rgba(165,243,252,.1);
+  border-color:rgba(165,243,252,.28);
+  color:#d8fbff;
+}
+html.v2 :is(#cybernet,#cybernetai) :is(.verdict-note,.diagnostic-note){
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  margin:0 0 14px;
+  padding:12px 14px;
+  border-radius:14px;
+  background:rgba(34,211,238,.07);
+  border:1px solid rgba(34,211,238,.18);
+  color:var(--v2-muted);
+  font-size:13.5px;
+  line-height:1.6;
+}
+html.v2 :is(#cybernet,#cybernetai) :is(.verdict-note,.diagnostic-note) p{margin:0;color:inherit;font-size:inherit;line-height:inherit}
+html.v2 :is(#cybernet,#cybernetai) .verdict-note > span,
+html.v2 :is(#cybernet,#cybernetai) .diagnostic-note::before{
+  content:"";
+  flex:none;
+  width:18px;
+  height:18px;
+  margin-top:1px;
+  font-size:0;
+  color:var(--v2-g1);
+  --tl-ic:var(--tl-i-info);
+}
+html.v2 :is(#cybernet,#cybernetai) :is(.counter-evidence,.diagnostic-counter){
+  margin:0 0 14px;
+  padding:12px 14px;
+  border-radius:14px;
+  background:rgba(108,240,176,.06);
+  border:1px solid rgba(108,240,176,.2);
+  color:rgba(239,253,255,.86);
+  font-size:13.5px;
+  line-height:1.55;
+}
+html.v2 :is(#cybernet,#cybernetai) :is(.counter-evidence,.diagnostic-counter) strong{
+  display:block;
+  margin-bottom:8px;
+  color:#A8F5D0;
+  font:600 11px/1.4 var(--v2-mono);
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+html.v2 :is(#cybernet,#cybernetai) :is(.counter-evidence,.diagnostic-counter) ul{
+  display:grid;
+  gap:6px;
+  margin:0;
+  padding:0;
+  list-style:none;
+}
+html.v2 :is(#cybernet,#cybernetai) :is(.counter-evidence,.diagnostic-counter) li{
+  position:relative;
+  margin:0;
+  padding-left:22px;
+  color:inherit;
+  font-size:inherit;
+}
+html.v2 :is(#cybernet,#cybernetai) :is(.counter-evidence,.diagnostic-counter) li::before{
+  content:"";
+  position:absolute;
+}
+html.v2 :is(#cybernet,#cybernetai) :is(.report-body,.diagnostic-body){gap:12px}
+html.v2 :is(#cybernet,#cybernetai) :is(.report-col,.diagnostic-col){
+  padding:14px 16px;
+  border-radius:16px;
+  background:rgba(4,7,8,.4);
+  border:1px solid rgba(255,255,255,.07);
+}
+html.v2 :is(#cybernet,#cybernetai) :is(.report-col-title,.diagnostic-col h5){
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:10px;
+  color:var(--v2-muted);
+  font:600 11px/1.4 var(--v2-mono);
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+html.v2 :is(#cybernet,#cybernetai) :is(.col-warn,.col-safe){
+  flex:none;
+  width:15px;
+  height:15px;
+  font-size:0;
+  color:var(--v2-amber);
+  --tl-ic:var(--tl-i-alert);
+}
+html.v2 :is(#cybernet,#cybernetai) .col-safe{color:var(--v2-safe);--tl-ic:var(--tl-i-arrow)}
+html.v2 :is(#cybernet,#cybernetai) :is(.report-list,.diagnostic-col ul){
+  display:grid;
+  gap:8px;
+  margin:0;
+  padding:0;
+  list-style:none;
+  color:rgba(239,253,255,.84);
+  font:400 13.5px/1.5 var(--v2-sans);
+}
+html.v2 :is(#cybernet,#cybernetai) :is(.report-list,.diagnostic-col ul) li{
+  position:relative;
+  padding-left:20px;
+  color:inherit;
+  font-size:inherit;
+  line-height:inherit;
+}
+html.v2 :is(#cybernet,#cybernetai) :is(.report-list,.diagnostic-col ul) li::before{
+  content:"";
+  position:absolute;
+  left:3px;
+  top:.55em;
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:rgb(var(--tl-t));
+  box-shadow:0 0 8px rgba(var(--tl-t),.6);
+}
+html.v2 :is(#cybernet,#cybernetai) :is(.report-list.safe-list,.diagnostic-actions,.counter-evidence ul,.diagnostic-counter ul) li::before{
+  left:0;
+  top:.18em;
+  width:15px;
+  height:15px;
+  border-radius:0;
+  box-shadow:none;
+  color:var(--v2-safe);
+  --tl-ic:var(--tl-i-check);
+}
+html.v2 :is(#cybernet,#cybernetai) :is(.report-list,.diagnostic-col ul) strong{color:var(--v2-ink);font-weight:600}
+
+/* follow-up answer (no verdict, no grid); its single column spans */
+html.v2 #cybernetai .diagnostic-followup .diagnostic-body{grid-template-columns:minmax(0,1fr)}
+html.v2 #cybernetai .diagnostic-followup-head{
+  gap:10px;
+  margin-bottom:12px;
+  color:var(--v2-ink);
+  font:600 16px/1.35 var(--v2-sans);
+  letter-spacing:-.015em;
+}
+html.v2 #cybernetai .diagnostic-followup-tag{
+  padding:4px 9px 3px;
+  border-radius:999px;
+  background:rgba(34,211,238,.1);
+  border:1px solid rgba(34,211,238,.26);
+  color:#cffaff;
+  font:500 10.5px/1.3 var(--v2-mono);
+  letter-spacing:.1em;
+  text-transform:uppercase;
+}
+
+/* ---------------------------------------------------------------------
+   11. ANALYSIS AI: layout + access panel (+ injected BYOK panel)
+   --------------------------------------------------------------------- */
+html.v2 #cybernetai .ai-layout{max-width:1200px;gap:18px}
+html.v2 #cybernetai .ai-config{
+  padding:26px;
+  border-radius:28px;
+  background:
+    radial-gradient(90% 34% at 0% 0%,rgba(34,211,238,.11),transparent 72%),
+    var(--v2-glass);
+}
+html.v2 #cybernetai .account-access-head{align-items:flex-start}
+html.v2 #cybernetai .account-access-head .account-eyebrow{margin-bottom:6px}
+html.v2 #cybernetai #aiPlanTitle{
+  margin:0;
+  color:var(--v2-ink);
+  font:600 21px/1.2 var(--v2-sans);
+  letter-spacing:-.03em;
+}
+html.v2 #cybernetai #aiPlanDescription{
+  margin:12px 0 0;
+  color:var(--v2-muted);
+  font-size:14.5px;
+  line-height:1.55;
+}
+html.v2 #cybernetai .plan-benefit-list{
+  gap:10px;
+  margin:18px 0 20px;
+  padding:14px 16px;
+  border-radius:18px;
+  background:rgba(4,7,8,.38);
+  border:1px solid rgba(255,255,255,.07);
+  color:var(--v2-ink);
+  font-size:14.5px;
+}
+html.v2 #cybernetai .plan-benefit-list div{gap:10px;line-height:1.4}
+/* ✓ / × glyph spans become icons (the list is rebuilt by JS) */
+html.v2 #cybernetai .plan-benefit-list div > span{
+  flex:none;
+  width:17px;
+  height:17px;
+  margin-top:1px;
+  font-size:0;
+  color:var(--v2-g1);
+  --tl-ic:var(--tl-i-check);
+}
+html.v2 #cybernetai .plan-benefit-list .benefit-locked{color:var(--v2-faint)}
+html.v2 #cybernetai .plan-benefit-list .benefit-locked > span{color:rgba(239,253,255,.4);--tl-ic:var(--tl-i-x)}
+html.v2 #cybernetai .ai-config > :is(#aiUpgradeBtn,#testApiKeyBtn){min-height:48px}
+html.v2 #cybernetai .ai-config > #testApiKeyBtn{margin-top:10px}
+
+/* BYOK (cybernet-account-api-upgrade.js:287-355): quiet nested card */
+html.v2 #cybernetai .cybernet-byok-panel{
+  margin:18px 0 0;
+  padding:16px;
+  border-radius:20px;
+  background:
+    radial-gradient(90% 60% at 100% 0%,rgba(45,212,191,.08),transparent 70%),
+    rgba(4,8,8,.42);
+  border:1px solid rgba(255,255,255,.09);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+}
+html.v2 #cybernetai .cybernet-byok-title-row{align-items:center;gap:10px;margin-bottom:8px}
+html.v2 #cybernetai .cybernet-byok-title-row h5{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  color:var(--v2-ink);
+  font:600 15px/1.3 var(--v2-sans);
+  letter-spacing:-.015em;
+}
+html.v2 #cybernetai .cybernet-byok-title-row h5::before{
+  content:"";
+  flex:none;
+  width:16px;
+  height:16px;
+  color:var(--v2-g2);
+  --tl-ic:var(--tl-i-key);
+}
+html.v2 #cybernetai .cybernet-byok-status-pill{
+  padding:4px 9px 3px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.04);
+  color:var(--v2-muted);
+  font:500 10px/1.3 var(--v2-mono);
+  letter-spacing:.1em;
+  white-space:nowrap;
+}
+html.v2 #cybernetai .cybernet-byok-status-pill.connected{color:#A8F5D0;background:rgba(108,240,176,.1);border-color:rgba(108,240,176,.35)}
+html.v2 #cybernetai .cybernet-byok-panel > p{color:var(--v2-muted);font-size:13px;line-height:1.55;margin-bottom:12px}
+/* legacy keeps padding-right:68px!important + margin:0!important for the Show button */
+html.v2 #cybernetai #cybernetVisitorApiKey{
+  min-height:46px;
+  padding-left:14px;
+  border-radius:14px;
+  background-color:rgba(0,0,0,.28);
+  border:1px solid rgba(255,255,255,.12);
+  color:var(--v2-ink);
+  font:400 14px/1.4 var(--v2-mono);
+  letter-spacing:.02em;
+}
+html.v2 #cybernetai #cybernetVisitorApiKey:focus{
+  outline:none;
+  border-color:rgba(34,211,238,.6);
+  box-shadow:var(--v2-focus);
+}
+html.v2 #cybernetai .cybernet-byok-show{
+  height:32px;
+  padding:0 12px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.14);
+  background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.035));
+  color:var(--v2-ink);
+  font:500 12px/1 var(--v2-sans);
+}
+html.v2 #cybernetai .cybernet-byok-show:hover{border-color:rgba(34,211,238,.45)}
+html.v2 #cybernetai .cybernet-byok-actions{gap:8px;margin-top:10px}
+html.v2 #cybernetai .cybernet-byok-actions > button{
+  flex:1 1 auto;
+  min-height:40px;
+  padding:6px 16px;
+  font-size:14px;
+  line-height:1.2;
+  white-space:normal;
+}
+html.v2 #cybernetai .cybernet-byok-actions > #cybernetValidateApiKey{flex-basis:100%}
+html.v2 #cybernetai .cybernet-byok-message{font-size:13px;color:var(--v2-muted)}
+html.v2 #cybernetai .cybernet-byok-message:empty{min-height:8px;margin-top:4px}
+html.v2 #cybernetai .cybernet-byok-message.success{color:var(--v2-safe)}
+html.v2 #cybernetai .cybernet-byok-message.error{color:#FF9CAD}
+html.v2 #cybernetai .cybernet-byok-message.warning{color:#FFD08A}
+html.v2 #cybernetai .cybernet-byok-privacy{color:var(--v2-faint);font-size:12px;line-height:1.55}
+
+/* status line (#aiApiStatus is a .result-box with span.warning|span.safe) */
+html.v2 #cybernetai #aiApiStatus{
+  min-height:0;
+  margin-top:14px;
+  padding:11px 14px;
+  border-radius:16px;
+  background:rgba(4,7,8,.4);
+  border:1px solid rgba(255,255,255,.08);
+  color:var(--v2-muted);
+  font:500 13.5px/1.5 var(--v2-sans);
+}
+html.v2 #cybernetai #aiApiStatus:has(> .warning){background:rgba(255,181,71,.06);border-color:rgba(255,181,71,.28)}
+html.v2 #cybernetai #aiApiStatus:has(> .safe){background:rgba(108,240,176,.06);border-color:rgba(108,240,176,.26)}
+html.v2 #cybernetai #aiApiStatus > .warning{color:#FFD08A}
+html.v2 #cybernetai #aiApiStatus > .warning::before{width:16px;height:16px}
+
+/* service rows -> key/value rows */
+html.v2 #cybernetai .ai-status-block{margin-top:18px;padding-top:16px;border-top:1px solid rgba(255,255,255,.08)}
+html.v2 #cybernetai .ai-status-block h5{
+  margin-bottom:10px;
+  color:var(--v2-g1);
+  font:500 11.5px/1.3 var(--v2-mono);
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+html.v2 #cybernetai .ai-status-row{
+  gap:10px;
+  margin-top:5px;
+  padding:8px 11px;
+  border-radius:11px;
+  background:rgba(255,255,255,.035);
+  border:1px solid rgba(255,255,255,.05);
+  color:var(--v2-ink);
+  font-size:13.5px;
+}
+html.v2 #cybernetai .ai-status-row > span:first-child{
+  color:var(--v2-faint);
+  font:500 11px/1.3 var(--v2-mono);
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+html.v2 #cybernetai #aiReqLeft{font-family:var(--v2-mono);font-variant-numeric:tabular-nums}
+html.v2 #cybernetai .status-pill{
+  padding:4px 9px 3px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.05);
+  color:var(--v2-muted);
+  font:600 10.5px/1.3 var(--v2-mono);
+  letter-spacing:.1em;
+  text-transform:uppercase;
+}
+html.v2 #cybernetai .status-pill-warn{color:#FFD9A0;background:rgba(255,181,71,.12);border-color:rgba(255,181,71,.38)}
+html.v2 #cybernetai .status-pill-safe{color:#A8F5D0;background:rgba(108,240,176,.1);border-color:rgba(108,240,176,.35)}
+
+/* Pro history card: wherever it lives (final-ui-fix moves it into
+   #accountDetailsModal), so not scoped to #cybernetai */
+html.v2 .pro-history-card{border-top-color:rgba(255,255,255,.08)}
+html.v2 .pro-history-head h5{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:var(--v2-ink);
+  font:600 14.5px/1.3 var(--v2-sans);
+  letter-spacing:-.015em;
+}
+html.v2 .pro-history-head h5::before{
+  content:"";
+  flex:none;
+  width:16px;
+  height:16px;
+  background:var(--tl-w-history) center/contain no-repeat;
+  opacity:.9;
+}
+html.v2 .pro-history-head span{
+  padding:3px 9px 2px;
+  border-radius:999px;
+  border:1px solid rgba(34,211,238,.24);
+  background:rgba(34,211,238,.08);
+  color:#cffaff;
+  font:500 10.5px/1.3 var(--v2-mono);
+  letter-spacing:.1em;
+  text-transform:uppercase;
+}
+html.v2 .pro-history-list{gap:6px;scrollbar-width:thin}
+html.v2 .pro-history-list p{color:var(--v2-muted);font-size:13px;line-height:1.55}
+html.v2 .history-entry{
+  padding:10px 12px;
+  border-radius:13px;
+  background:rgba(4,7,8,.42);
+  border:1px solid rgba(255,255,255,.07);
+}
+html.v2 .history-entry strong{color:var(--v2-ink);font:500 13px/1.4 var(--v2-sans)}
+html.v2 .history-entry span{margin-top:3px;color:var(--v2-faint);font:500 11.5px/1.4 var(--v2-mono);letter-spacing:.02em}
+
+/* ---------------------------------------------------------------------
+   12. ANALYSIS AI: chat
+   --------------------------------------------------------------------- */
+html.v2 #cybernetai .ai-chat{
+  border-radius:28px;
+  background:
+    radial-gradient(70% 40% at 50% 0%,rgba(34,211,238,.1),transparent 72%),
+    var(--v2-glass);
+}
+html.v2 #cybernetai .ai-chat-lead{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  column-gap:13px;
+  align-items:center;
+  padding:20px 22px 16px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+html.v2 #cybernetai .ai-chat-lead::before{
+  content:"";
+  grid-row:1 / span 2;
+  align-self:start;
+  width:40px;
+  height:40px;
+  border-radius:13px;
+  background:
+    var(--tl-w-ai) center/19px no-repeat,
+    linear-gradient(140deg,rgba(34,211,238,.36),rgba(45,212,191,.2));
+  border:1px solid rgba(255,255,255,.15);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 8px 24px -8px rgba(45,212,191,.55);
+}
+html.v2 #cybernetai .ai-chat-lead h4{
+  margin-bottom:3px;
+  color:var(--v2-ink);
+  font:600 18px/1.25 var(--v2-sans);
+  letter-spacing:-.025em;
+}
+html.v2 #cybernetai .ai-chat-lead p{color:var(--v2-muted);font-size:13.5px;line-height:1.55}
+
+html.v2 #cybernetai .chat-messages{
+  gap:12px;
+  padding:20px 22px;
+  scrollbar-width:thin;
+  overscroll-behavior:contain;
+}
+html.v2 #cybernetai .chat-bubble{animation:v2-tl-bubble-in .42s var(--v2-ease) backwards}
+html.v2 #cybernetai .chat-bubble-inner{
+  padding:12px 15px;
+  font-size:14.5px;
+  line-height:1.55;
+  overflow-wrap:anywhere;
+}
+html.v2 #cybernetai .chat-bubble-ai .chat-bubble-inner{
+  background:linear-gradient(180deg,rgba(255,255,255,.085),rgba(255,255,255,.05));
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:18px 18px 18px 6px;
+  color:rgba(239,253,255,.9);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+}
+html.v2 #cybernetai .chat-bubble-user .chat-bubble-inner{
+  background:linear-gradient(180deg,rgba(90,220,243,.34),rgba(94,221,243,.24));
+  border:1px solid rgba(34,211,238,.3);
+  border-radius:18px 18px 6px 18px;
+  color:var(--v2-ink);
+  font-weight:500;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 10px 26px -14px rgba(34,211,238,.7);
+}
+/* report bubbles take the width the card needs */
+html.v2 #cybernetai .chat-bubble-ai:has(> .chat-bubble-inner > :is(.diagnostic-report,.scan-report,.diagnostic-progress)){
+  width:min(100%,640px);
+  max-width:94%;
+}
+html.v2 #cybernetai .chat-bubble-ai:has(> .chat-bubble-inner > :is(.diagnostic-report,.scan-report,.diagnostic-progress)) > .chat-bubble-inner{
+  flex:1;
+  min-width:0;
+  padding:18px;
+  border-radius:22px 22px 22px 8px;
+}
+html.v2 #cybernetai .chat-bubble-inner[class*="result-has-"]{
+  border-color:rgba(var(--tl-t),.34);
+  background:
+    radial-gradient(90% 55% at 0% 0%,rgba(var(--tl-t),.12),transparent 62%),
+    linear-gradient(180deg,rgba(17,29,32,.66),rgba(7,12,13,.72));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 24px 56px -32px rgba(var(--tl-t),.5);
+}
+html.v2 #cybernetai .chat-bubble-inner.result-has-uncertain:has(> .scan-report){
+  border-color:rgba(165,243,252,.34);
+  background:
+    radial-gradient(90% 55% at 0% 0%,rgba(165,243,252,.12),transparent 62%),
+    linear-gradient(180deg,rgba(17,29,32,.66),rgba(7,12,13,.72));
+}
+
+/* diagnostic progress = the v2 loader (rebuilt every 1300 ms) */
+html.v2 #cybernetai .diagnostic-progress{padding:2px 0}
+html.v2 #cybernetai .diagnostic-progress-head{gap:14px;margin-bottom:14px}
+html.v2 #cybernetai .diagnostic-spinner{
+  width:40px;
+  height:40px;
+  border:0;
+  border-radius:50%;
+  background:
+    radial-gradient(closest-side,#0c1517 calc(100% - 4px),transparent calc(100% - 3px)),
+    conic-gradient(from 0deg,rgba(34,211,238,0),var(--v2-g1) 62%,var(--v2-g2));
+  box-shadow:0 0 22px -4px rgba(34,211,238,.6);
+  /* one full turn per 1.3 s: the 1300 ms rebuild lands on the same angle */
+  animation:v2-tl-spin 1.3s linear infinite;
+}
+html.v2 #cybernetai .diagnostic-progress-text{
+  color:var(--v2-ink);
+  font:560 16px/1.35 var(--v2-sans);
+  letter-spacing:-.015em;
+}
+html.v2 #cybernetai .diagnostic-progress-steps{
+  position:relative;
+  gap:9px;
+  padding-left:2px;
+}
+html.v2 #cybernetai .diagnostic-step{
+  gap:11px;
+  color:var(--v2-faint);
+  font:500 13.5px/1.4 var(--v2-sans);
+  transition:none;
+}
+html.v2 #cybernetai .diagnostic-step-dot{
+  width:18px;
+  height:18px;
+  border:1.5px solid rgba(255,255,255,.18);
+  background:#091112;
+  color:#030505;
+  font:700 10px/1 var(--v2-sans);
+}
+html.v2 #cybernetai .diagnostic-step.active{color:var(--v2-ink)}
+html.v2 #cybernetai .diagnostic-step.active .diagnostic-step-dot{
+  border-color:var(--v2-g1);
+  background:radial-gradient(circle,var(--v2-g1) 0 3px,#091112 3.5px);
+  box-shadow:0 0 12px rgba(34,211,238,.7);
+  animation:v2-tl-pulse 1.3s ease-in-out infinite;
+}
+html.v2 #cybernetai .diagnostic-step.done{color:var(--v2-muted)}
+html.v2 #cybernetai .diagnostic-step.done .diagnostic-step-dot{
+  border-color:transparent;
+  background:linear-gradient(140deg,var(--v2-g1),var(--v2-g2));
+  box-shadow:0 0 10px rgba(34,211,238,.45);
+}
+
+/* chat buttons: Download (Pro) = glass pill, upgrade = white pill */
+html.v2 #cybernetai .report-download-btn{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  width:100%;
+  min-height:42px;
+  margin-top:14px;
+  padding:0 16px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.15);
+  background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.04));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 10px 26px -14px rgba(0,0,0,.7);
+  color:var(--v2-ink);
+  font:560 14px/1.2 var(--v2-sans);
+  letter-spacing:-.01em;
+  cursor:pointer;
+  transition:border-color .2s ease,background-color .2s ease,transform .25s var(--v2-ease);
+}
+html.v2 #cybernetai .report-download-btn::before{
+  content:"";
+  flex:none;
+  width:16px;
+  height:16px;
+  --tl-ic:var(--tl-i-download);
+}
+html.v2 #cybernetai .report-download-btn:hover{border-color:rgba(34,211,238,.45);background:linear-gradient(180deg,rgba(255,255,255,.17),rgba(255,255,255,.06))}
+html.v2 #cybernetai .report-download-btn[data-upgrade-now]{
+  border:0;
+  background:var(--v2-white);
+  color:var(--v2-on-white);
+  box-shadow:inset 0 1px 0 #fff,0 0 0 1px rgba(255,255,255,.55),0 10px 30px -10px rgba(34,211,238,.6);
+}
+html.v2 #cybernetai .report-download-btn[data-upgrade-now]::before{--tl-ic:var(--tl-i-arrow);order:2}
+
+/* attachment chip (relies on [hidden]) */
+html.v2 #cybernetai .chat-attach-preview{
+  gap:10px;
+  margin:0 14px 2px;
+  padding:7px 8px 7px 7px;
+  border-radius:16px;
+  background:rgba(34,211,238,.08);
+  border:1px solid rgba(34,211,238,.24);
+}
+html.v2 #cybernetai .chat-attach-thumb{width:34px;height:34px;border-radius:10px;border:1px solid rgba(255,255,255,.12)}
+html.v2 #cybernetai .chat-attach-name{color:var(--v2-ink);font:500 12.5px/1.3 var(--v2-mono)}
+html.v2 #cybernetai .chat-attach-remove{
+  width:28px;
+  height:28px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:rgba(255,255,255,.07);
+  border:1px solid rgba(255,255,255,.1);
+  color:var(--v2-muted);
+  font-size:16px;
+}
+html.v2 #cybernetai .chat-attach-remove:hover{color:#FF9CAD;border-color:rgba(255,92,122,.4);background:rgba(255,92,122,.12)}
+
+/* composer: one glass pill holding attach / field / clear / send */
+html.v2 #cybernetai .chat-input-row{
+  align-items:center;
+  gap:6px;
+  margin:12px 14px 14px;
+  padding:6px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:999px;
+  background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.025)),rgba(5,8,9,.5);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 16px 36px -22px rgba(0,0,0,.9);
+  transition:border-color .2s ease,box-shadow .25s var(--v2-ease);
+}
+html.v2 #cybernetai .chat-input-row:focus-within{
+  border-color:rgba(34,211,238,.55);
+  box-shadow:var(--v2-focus),inset 0 1px 0 rgba(255,255,255,.08);
+}
+html.v2 #cybernetai .chat-input-row-unified.drag-active{
+  background:linear-gradient(180deg,rgba(34,211,238,.16),rgba(45,212,191,.08)),rgba(5,8,9,.5);
+  outline:1.5px dashed rgba(34,211,238,.65);
+  outline-offset:3px;
+}
+html.v2 #cybernetai #chatInput{
+  flex:1;
+  min-width:0;
+  height:44px;
+  margin:0;
+  padding:0 8px;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+  color:var(--v2-ink);
+  font:400 15.5px/1.4 var(--v2-sans);
+  text-overflow:ellipsis;
+}
+html.v2 #cybernetai #chatInput:focus{outline:none;border:0;box-shadow:none;background:transparent}
+html.v2 #cybernetai #chatInput::placeholder{color:rgba(239,253,255,.46)}
+html.v2 #cybernetai .chat-attach-btn{
+  width:44px;
+  height:44px;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,.14);
+  background:linear-gradient(180deg,rgba(255,255,255,.11),rgba(255,255,255,.035));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.2);
+  color:var(--v2-muted);
+  font-size:0;
+}
+html.v2 #cybernetai .chat-attach-btn > span{display:none}
+html.v2 #cybernetai .chat-attach-btn::before{
+  content:"";
+  width:19px;
+  height:19px;
+  --tl-ic:var(--tl-i-clip);
+}
+html.v2 #cybernetai .chat-attach-btn:hover{color:var(--v2-ink);border-color:rgba(34,211,238,.45);background:linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,.05))}
+html.v2 #cybernetai .chat-attach-btn:focus-within{outline:2px solid var(--v2-g1);outline-offset:2px}
+html.v2 #cybernetai .chat-clear-btn{
+  width:36px;
+  height:36px;
+  min-height:36px;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,.1);
+  background:rgba(255,255,255,.05);
+  color:var(--v2-muted);
+}
+/* send: round white button; innerHTML is "➤" (hidden, the arrow is a
+   mask) or "Register for Free to Scan" (.send-btn-wide, text pill) */
+html.v2 #cybernetai #chatSendBtn{
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:44px;
+  height:44px;
+  border-radius:50%;
+  background:var(--v2-white);
+  color:var(--v2-on-white);
+  font-size:0;
+  box-shadow:inset 0 1px 0 #fff,inset 0 -3px 8px rgba(67,201,224,.18),0 0 0 1px rgba(255,255,255,.55),0 8px 24px -8px rgba(34,211,238,.7);
+  transition:transform .25s var(--v2-ease),box-shadow .3s var(--v2-ease);
+}
+html.v2 #cybernetai #chatSendBtn:not(.send-btn-wide)::before{
+  content:"";
+  width:19px;
+  height:19px;
+  --tl-ic:var(--tl-i-send);
+}
+html.v2 #cybernetai #chatSendBtn:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 #fff,0 0 0 1px rgba(255,255,255,.7),0 12px 32px -8px rgba(34,211,238,.85)}
+html.v2 #cybernetai #chatSendBtn:active{transform:scale(.96)}
+html.v2 #cybernetai #chatSendBtn.send-btn-wide{
+  width:auto;
+  padding:0 18px;
+  border-radius:999px;
+  font:560 14px/1.15 var(--v2-sans);
+  letter-spacing:-.01em;
+}
+
+/* ---------------------------------------------------------------------
+   13. KEYFRAMES (all v2-*)
+   --------------------------------------------------------------------- */
+@keyframes v2-verdict-in{
+  from{opacity:0;transform:translate3d(0,22px,0) scale(.965)}
+  to{opacity:1;transform:none}
+}
+@keyframes v2-stamp-pop{
+  0%{opacity:0;transform:scale(1.85) rotate(-11deg)}
+  55%{opacity:1}
+  100%{opacity:1;transform:rotate(-2.5deg)}
+}
+@keyframes v2-tl-arc{from{--v2-tl-arc:0deg}to{--v2-tl-arc:360deg}}
+@keyframes v2-tl-panel-in{
+  from{opacity:0;transform:translate3d(0,10px,0)}
+  to{opacity:1;transform:none}
+}
+@keyframes v2-tl-details{
+  from{opacity:0;transform:translate3d(0,-6px,0)}
+  to{opacity:1;transform:none}
+}
+@keyframes v2-tl-bubble-in{
+  from{opacity:0;transform:translate3d(0,10px,0) scale(.98)}
+  to{opacity:1;transform:none}
+}
+@keyframes v2-tl-spin{to{transform:rotate(360deg)}}
+@keyframes v2-tl-bar{
+  0%{transform:scaleX(0);opacity:1}
+  45%{transform:scaleX(1);opacity:1}
+  80%{transform:scaleX(1);opacity:1}
+  100%{transform:scaleX(1);opacity:0}
+}
+@keyframes v2-tl-rail{from{background-position:0 0}to{background-position:0 150%}}
+@keyframes v2-tl-pulse{
+  0%,100%{box-shadow:0 0 6px rgba(34,211,238,.45)}
+  50%{box-shadow:0 0 16px rgba(34,211,238,.95)}
+}
+
+/* =====================================================================
+   14. RESPONSIVE (legacy breakpoints)
+   ===================================================================== */
+/* desktop: a taller chat; on screens tall enough to hold them, the chat
+   column follows the long access panel and the scan ring + steps follow
+   a long report (sticky, under the 14 + 62px v2 bar) */
+@media (min-width:921px){
+  html.v2 #cybernetai .ai-chat{
+    height:min(720px,calc(100vh - 116px));
+    min-height:560px;
+  }
+}
+@media (min-width:921px) and (min-height:700px){
+  html.v2 #cybernet .detect-side{
+    position:sticky;
+    top:96px;
+    align-self:start;
+  }
+  html.v2 #cybernetai .ai-chat{
+    position:sticky;
+    top:96px;
+  }
+}
+
+@media (max-width:1150px){
+  html.v2 :is(#cybernet,#cybernetai) .verdict-headline-icon{width:88px;height:88px}
+}
+
+@media (max-width:920px){
+  html.v2 #cybernet .detect-panel-grid{gap:14px}
+  html.v2 #cybernet .detect-side{padding:24px 20px}
+  /* the composer comes first: the access panel used to bury it */
+  html.v2 #cybernetai .ai-chat{order:-1}
+  html.v2 #cybernetai .ai-layout{gap:14px}
+}
+
+/* tablets: the side panel spans the full width, so the ring (or globe)
+   + status sit in a left column and the steps fill the right one; the
+   chat gets a reading height instead of the legacy 480px (style.css:4911) */
+@media (min-width:701px) and (max-width:920px){
+  html.v2 #cybernet :is([data-panel="text"],[data-panel="link"]) .detect-side{
+    display:grid;
+    grid-template-columns:220px minmax(0,1fr);
+    grid-template-rows:auto auto;
+    align-items:center;
+    align-content:center;
+    column-gap:28px;
+    row-gap:12px;
+    text-align:left;
+  }
+  html.v2 #cybernet [data-panel="text"] .scan-ring-wrap-small{grid-column:1;grid-row:1;justify-self:center;align-self:end;margin:0}
+  html.v2 #cybernet [data-panel="text"] .scan-status-text{grid-column:1;grid-row:2;justify-self:center;align-self:start}
+  html.v2 #cybernet [data-panel="link"] .mini-globe-wrap{grid-column:1;grid-row:1 / span 2;justify-self:center}
+  html.v2 #cybernet :is([data-panel="text"],[data-panel="link"]) .hiw-steps-stacked{grid-column:2;grid-row:1 / span 2;margin-top:0}
+
+  html.v2 #cybernetai .ai-chat{height:min(72vh,700px);min-height:580px}
+}
+
+@media (max-width:700px){
+  html.v2 :is(#cybernet,#cybernetai) > .feature-page-header{margin-bottom:20px}
+  html.v2 :is(#cybernet,#cybernetai) > .feature-page-header h1{margin-bottom:10px}
+  html.v2 :is(#cybernet,#cybernetai) > .feature-page-header > p:not(.feature-crosslink){font-size:16px}
+  html.v2 :is(#cybernet,#cybernetai) > .feature-page-header > .feature-crosslink{font-size:13.5px!important;margin-top:8px}
+  html.v2 :is(#cybernet,#cybernetai) > .feature-page-header .usage-meter-card{margin-top:14px;padding:11px 14px 10px;border-radius:16px}
+  html.v2 :is(#cybernet,#cybernetai) .usage-meter-track{margin:8px 0 7px}
+
+  /* sticky segmented control tucked 2px under the 58px v2 bar (10 + 58
+     - 2 = 66px, the value 10-nav.css pins with a 'body' selector), so no
+     strip of page content scrolls between the two glass bars */
+  html.v2 #cybernet .detect-tabs{
+    top:66px;
+    max-width:100%;
+    margin-bottom:18px;
+    overflow:visible;
+    background:
+      linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.026)),
+      rgba(8,14,15,.72);
+    -webkit-backdrop-filter:blur(14px) saturate(140%);
+    backdrop-filter:blur(14px) saturate(140%);
+  }
+  html.v2 #cybernet .detect-tab{min-width:0;padding:0 10px;font-size:14px}
+
+  html.v2 #cybernet .detect-main{padding:20px 18px;border-radius:24px}
+  html.v2 #cybernet .detect-side{padding:20px 18px;border-radius:24px}
+  html.v2 #cybernet .detect-main > h3{font-size:21px;gap:11px}
+  html.v2 #cybernet .detect-main > h3::before{width:38px;height:38px;border-radius:12px}
+  html.v2 #cybernet .detect-main > p{font-size:14.5px;margin-bottom:16px}
+  html.v2 #cybernet #cyberTextInput{padding:14px 15px;border-radius:18px}
+  html.v2 #cybernet #cyberLinkInput{min-height:54px;border-radius:18px}
+  html.v2 #cybernet .scan-ring-fill{transition-duration:.65s}
+
+  html.v2 #cybernet .result-box{padding:16px;border-radius:20px}
+  html.v2 #cybernet .result-box:not(:has(> *)){padding:15px 16px;font-size:14px}
+  /* legacy adds a second 16px inset to .scan-report here */
+  html.v2 :is(#cybernet,#cybernetai) .scan-report{padding:0}
+
+  html.v2 :is(#cybernet,#cybernetai) :is(.scan-report,.diagnostic-report:not(.diagnostic-followup)){column-gap:14px}
+  html.v2 :is(#cybernet,#cybernetai) .verdict-headline-icon{width:76px;height:76px}
+  html.v2 :is(#cybernet,#cybernetai) .verdict-headline-text{font-size:16px;padding:5px calc(11px - .16em) 4px 11px}
+  /* long stamps (no plain summary: "SEND THIS TO ANALYSIS AI",
+     "COULDN'T COMPLETE THIS ANALYSIS"): smaller, and centred when they
+     still wrap so the tilted box does not read as a banner */
+  html.v2 :is(#cybernet,#cybernetai) :is(.scan-report,.diagnostic-report):not(:has(> .plain-summary)) .verdict-headline-text{
+    font-size:13px;
+    letter-spacing:.1em;
+    padding:5px calc(9px - .1em) 4px 9px;
+    text-align:center;
+  }
+  html.v2 :is(#cybernet,#cybernetai) .plain-lead{font-size:17.5px;margin-top:10px}
+  html.v2 :is(#cybernet,#cybernetai) .plain-points{margin-top:14px}
+  html.v2 :is(#cybernet,#cybernetai) .plain-points li{padding:10px 12px 10px 38px;font-size:14.5px;border-radius:14px}
+  html.v2 :is(#cybernet,#cybernetai) .plain-points li::before{left:12px;top:11px}
+  html.v2 :is(#cybernet,#cybernetai) .plain-action{font-size:14.5px;padding:12px 13px 13px;border-radius:14px}
+  html.v2 :is(#cybernet,#cybernetai) :is(.dest-preview,.qr-preview,.links-found){padding:12px 13px;border-radius:16px}
+  html.v2 :is(#cybernet,#cybernetai) :is(.report-col,.diagnostic-col){padding:12px 13px}
+  html.v2 :is(#cybernet,#cybernetai) :is(.score-display,.diagnostic-score){font-size:26px}
+
+  /* side panel compact: ring + status side by side, steps below */
+  html.v2 #cybernet [data-panel="text"] .detect-side{
+    display:grid;
+    grid-template-columns:auto minmax(0,1fr);
+    align-items:center;
+    column-gap:16px;
+    row-gap:6px;
+    text-align:left;
+  }
+  html.v2 #cybernet [data-panel="text"] .scan-ring-wrap-small{grid-row:1;width:84px;height:84px;margin:0}
+  html.v2 #cybernet [data-panel="text"] .scan-ring-wrap-small .scan-ring-label{font-size:17px}
+  html.v2 #cybernet [data-panel="text"] .scan-status-text{grid-row:1;grid-column:2;justify-self:start}
+  html.v2 #cybernet [data-panel="text"] .hiw-steps-stacked{grid-column:1/-1;margin-top:8px}
+  html.v2 #cybernet .mini-globe-wrap{width:124px;height:124px}
+  html.v2 #cybernet .mini-globe-3d{width:106px;height:106px}
+  html.v2 #cybernet .hiw-step-sm.glass{padding:9px 2px 9px 20px}
+  html.v2 #cybernet .hiw-step-sm::before,
+  html.v2 #cybernet .hiw-step-sm::after{top:9px;bottom:9px}
+  html.v2 #cybernet .hiw-step-sm h4{font-size:14.5px}
+
+  html.v2 #cybernet .recent-scans{padding:18px 16px;border-radius:22px}
+  html.v2 #cybernet .scan-list li{padding:10px 11px 10px 12px;gap:10px;border-radius:14px}
+  html.v2 #cybernet .scan-list-main{font-size:14px}
+  html.v2 #cybernet .wwc-item{padding:15px;border-radius:20px}
+
+  html.v2 #cybernetai .ai-config{padding:20px 18px;border-radius:24px}
+  html.v2 #cybernetai .ai-chat{border-radius:24px;height:min(74vh,640px);min-height:520px}
+  html.v2 #cybernetai .ai-chat-lead{padding:16px 16px 13px;column-gap:11px}
+  html.v2 #cybernetai .ai-chat-lead::before{width:36px;height:36px;border-radius:12px}
+  html.v2 #cybernetai .ai-chat-lead h4{font-size:17px}
+  html.v2 #cybernetai .ai-chat-lead p{font-size:13px}
+  html.v2 #cybernetai .chat-messages{padding:16px 14px}
+  html.v2 #cybernetai .chat-bubble-inner{font-size:14.5px}
+  html.v2 #cybernetai .chat-bubble-ai:has(> .chat-bubble-inner > :is(.diagnostic-report,.scan-report,.diagnostic-progress)){max-width:100%}
+  html.v2 #cybernetai .chat-bubble-ai:has(> .chat-bubble-inner > :is(.diagnostic-report,.scan-report,.diagnostic-progress)) > .chat-bubble-inner{padding:15px 14px}
+  html.v2 #cybernetai .chat-input-row{margin:10px 10px 12px}
+  html.v2 #cybernetai #chatInput{font-size:16px}
+  /* >=16px or iOS Safari zooms the page on focus */
+  html.v2 #cybernetai #cybernetVisitorApiKey{font-size:16px}
+}
+
+@media (max-width:480px){
+  html.v2 #cybernet .detect-tabs{top:66px;padding:4px;gap:3px}
+  html.v2 #cybernet .detect-tab{min-height:40px;padding:0 6px;font-size:13px;gap:0}
+  html.v2 #cybernet .detect-tab::before{display:none}
+
+  html.v2 :is(#cybernet,#cybernetai) > .feature-page-header{padding-inline:0}
+  html.v2 #cybernet .detect-main{padding:18px 16px}
+  html.v2 #cybernet .detect-side{padding:18px 16px}
+  html.v2 #cybernet #cyberDropZone{min-height:200px;padding:24px 14px}
+  html.v2 #cybernet .result-box{padding:14px}
+
+  html.v2 :is(#cybernet,#cybernetai) .verdict-headline-icon{width:70px;height:70px}
+  html.v2 :is(#cybernet,#cybernetai) .verdict-headline-text{font-size:15px;letter-spacing:.14em;padding:5px calc(10px - .14em) 4px 10px}
+  html.v2 :is(#cybernet,#cybernetai) .plain-lead{font-size:17px}
+  html.v2 :is(#cybernet,#cybernetai) :is(.report-list,.diagnostic-col ul){font-size:13.5px}
+  html.v2 :is(#cybernet,#cybernetai) .scam-type-tag{font-size:12.5px}
+
+  /* guests: the wide "Register for Free to Scan" send wraps to its own row
+     (legacy); the composer becomes a rounded card for that state */
+  html.v2 #cybernetai .chat-input-row:has(> .send-btn-wide){border-radius:24px;padding:6px 6px 6px 6px}
+  html.v2 #cybernetai #chatSendBtn.send-btn-wide{width:100%;height:46px;border-radius:999px}
+  html.v2 #cybernetai .chat-bubble{max-width:92%}
+  html.v2 #cybernetai .ai-chat{height:min(76vh,660px);min-height:520px}
+  html.v2 #cybernetai .ai-chat-lead p{font-size:12.5px;line-height:1.5}
+}
+
+/* =====================================================================
+   15. ACCESSIBILITY FALLBACKS
+   ===================================================================== */
+@media (prefers-reduced-motion:reduce){
+  html.v2 :is(#cybernet,#cybernetai) :is(.scan-report,.diagnostic-report,.verdict-headline-icon,.verdict-headline-text,.report-details,.chat-bubble),
+  html.v2 #cybernet .detect-panel.active{animation:none}
+  html.v2 :is(#cybernet,#cybernetai) .scanning-placeholder::before{animation-duration:2.6s}
+  html.v2 #cybernetai .diagnostic-spinner{animation:none}
+  html.v2 :is(#cybernet,#cybernetai) .scan-dots span::after{animation:none;transform:scaleX(.6);opacity:.8}
+  html.v2 #cybernetai .diagnostic-step.active .diagnostic-step-dot{animation:none}
+  html.v2 #cybernet .detect-panel:has(.scanning-placeholder,#cyberTextBtn:disabled,#cyberLinkBtn:disabled) .hiw-step-sm:nth-child(2)::after{animation:none}
+  html.v2 #cybernet .hiw-step-sm::after,
+  html.v2 #cybernet .scan-ring-fill,
+  html.v2 #cybernet #scanGradText stop,
+  html.v2 #cybernet #cyberDropZone,
+  html.v2 :is(#cybernet,#cybernetai) .details-toggle::before,
+  html.v2 :is(#cybernet,#cybernetai) .inline-link-btn::after,
+  html.v2 #cybernetai #chatSendBtn{transition:none}
+  html.v2 #cybernet #cyberDropZone.drag-over,
+  html.v2 #cybernetai #chatSendBtn:is(:hover,:active){transform:none}
+}
+
+@media (prefers-reduced-transparency:reduce){
+  html.v2 #cybernet .detect-tabs{background:#0e191b;-webkit-backdrop-filter:none;backdrop-filter:none}
+  html.v2 #cybernet .result-box,
+  html.v2 #cybernet #cyberDropZone,
+  html.v2 :is(#cybernet,#cybernetai) :is(#cyberTextInput,#cyberLinkInput){background-color:#091011}
+  html.v2 #cybernet #cyberDropZone .upload-preview-label{background:#0a1315;-webkit-backdrop-filter:none;backdrop-filter:none}
+  html.v2 #cybernetai .chat-input-row{background:#0a1315}
+  html.v2 #cybernetai .chat-bubble-ai .chat-bubble-inner{background:#101b1e}
+  html.v2 #cybernetai .chat-bubble-user .chat-bubble-inner{background:#1b92a7}
+  html.v2 #cybernetai .cybernet-byok-panel{background:#0a1214}
+}
+
+@media (forced-colors:active){
+  html.v2 #cybernet .detect-tab.active,
+  html.v2 #cybernetai #chatSendBtn{border:1px solid ButtonText}
+  html.v2 :is(#cybernet,#cybernetai) .verdict-headline-text{border-color:CanvasText}
+}
