@@ -98,9 +98,11 @@
     function paint(withCount) {
       if (!data) return;
       state(true);
-      // Bar lengths are counts on one scale (scans = full width). Recovery cases are not a subset
-      // of scans, so the labels show counts and never a percentage.
-      var s = data.scans, shares = [1, s > 0 ? data.threats / s : 0, s > 0 ? data.recoveries / s : 0];
+      // Bar lengths are counts on one shared scale: the largest of the three is full width.
+      // Recovery cases are not a subset of scans (there can be more of them), so the scale is the
+      // maximum, never scans, and the labels show counts, never a percentage.
+      var s = data.scans, top = Math.max(data.scans, data.threats, data.recoveries);
+      var shares = KEYS.map(function (k) { return top > 0 ? data[k] / top : 0; });
 
       if (withCount) {
         counters.forEach(function (el, i) {
@@ -116,7 +118,7 @@
         var bar = row.querySelector("b");
         // A non-zero share keeps a hairline of bar so it never reads as zero; the label carries the exact value.
         if (bar) bar.style.setProperty("--v", (v > 0 ? Math.max(v, .006) : 0).toFixed(4));
-        var label = s > 0 ? nf.format(data[KEYS[i]]) : "\u2014";
+        var label = top > 0 ? nf.format(data[KEYS[i]]) : "\u2014";
         setText(row.querySelector("em"), label);
       });
 
