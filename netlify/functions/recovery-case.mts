@@ -61,26 +61,56 @@ export default async function handler(request: Request): Promise<Response> {
 
   const url = new URL(request.url);
   const caseId = url.searchParams.get("caseId");
+  // The page's AI-plan poll passes the version it already shows. While the
+  // case still points at that version, only the case row is read and returned.
+  const sinceParam = url.searchParams.get("since");
+  const since = sinceParam !== null && /^\d{1,6}$/.test(sinceParam) ? Number(sinceParam) : null;
 
   try {
     if (caseId) {
-      const caseResponse = await serviceFetch(`/rest/v1/recovery_cases?id=eq.${encodeURIComponent(caseId)}&select=*`);
-      const caseRows = await caseResponse.json().catch(() => []);
-      const caseRow = Array.isArray(caseRows) ? caseRows[0] : null;
-      if (!caseResponse.ok || !caseRow) return json({ error: "Recovery case not found." }, 404);
+      const loadCaseRow = async () => {
+        const caseResponse = await serviceFetch(`/rest/v1/recovery_cases?id=eq.${encodeURIComponent(caseId)}&select=*`);
+        const caseRows = await caseResponse.json().catch(() => []);
+        return caseResponse.ok && Array.isArray(caseRows) ? caseRows[0] || null : null;
+      };
+      const loadLatestVersion = async () => {
+        const versionResponse = await serviceFetch(`/rest/v1/recovery_versions?case_id=eq.${encodeURIComponent(caseId)}&select=*&order=version_number.desc&limit=1`);
+        const versionRows = await versionResponse.json().catch(() => []);
+        return Array.isArray(versionRows) ? versionRows[0] || null : null;
+      };
+      const loadTasks = async () => {
+        const tasksResponse = await serviceFetch(`/rest/v1/recovery_tasks?case_id=eq.${encodeURIComponent(caseId)}&select=*&order=created_at.asc`);
+        const tasks = await tasksResponse.json().catch(() => []);
+        return Array.isArray(tasks) ? tasks : [];
+      };
+
+      // A poll reads the case first: the writers store the new version before
+      // they move the case's current_version, so once the case has moved, the
+      // version read after it is guaranteed to find the new plan. A plain load
+      // reads all three at once; nothing is returned before the owner check.
+      let caseRow: any;
+      let latestVersion: any = null;
+      let tasks: any[] = [];
+      if (since !== null) {
+        caseRow = await loadCaseRow();
+      } else {
+        [caseRow, latestVersion, tasks] = await Promise.all([loadCaseRow(), loadLatestVersion(), loadTasks()]);
+      }
+      if (!caseRow) return json({ error: "Recovery case not found." }, 404);
       if (caseRow.owner_user_id !== user.id) return json({ error: "You do not have access to this Recovery case." }, 403);
 
-      const versionResponse = await serviceFetch(`/rest/v1/recovery_versions?case_id=eq.${encodeURIComponent(caseId)}&select=*&order=version_number.desc&limit=1`);
-      const versionRows = await versionResponse.json().catch(() => []);
-      const latestVersion = Array.isArray(versionRows) ? versionRows[0] : null;
-
-      const tasksResponse = await serviceFetch(`/rest/v1/recovery_tasks?case_id=eq.${encodeURIComponent(caseId)}&select=*&order=created_at.asc`);
-      const tasks = await tasksResponse.json().catch(() => []);
+      if (since !== null) {
+        if ((Number(caseRow.current_version) || 0) <= since) {
+          return json({ case: caseRow, plan: null, tasks: [], unchanged: true });
+        }
+        [latestVersion, tasks] = await Promise.all([loadLatestVersion(), loadTasks()]);
+      }
 
       return json({
         case: caseRow,
         plan: latestVersion?.structured_plan || null,
-        tasks: Array.isArray(tasks) ? tasks : [],
+        planVersion: Number(latestVersion?.version_number) || null,
+        tasks,
       });
     }
 

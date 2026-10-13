@@ -26,8 +26,11 @@ async function consumeQuota(key, windowSeconds, max) {
 }
 
 function isPrivateHost(host) {
-  const h = host.toLowerCase();
-  if (["localhost", "0.0.0.0", "::1"].includes(h)) return true;
+  // new URL() keeps IPv6 brackets ("[::1]") and a trailing root dot
+  // ("localhost."), which slipped past the plain comparisons below.
+  const h = host.toLowerCase().replace(/^\[|\]$/g, "").replace(/\.+$/, "");
+  if (["localhost", "0.0.0.0", "::1", "::"].includes(h)) return true;
+  if (h.endsWith(".localhost")) return true;
   if (/^127\./.test(h) || /^10\./.test(h) || /^192\.168\./.test(h) || /^169\.254\./.test(h)) return true;
   const match = h.match(/^172\.(\d{1,3})\./);
   if (match && Number(match[1]) >= 16 && Number(match[1]) <= 31) return true;
@@ -42,7 +45,9 @@ function normalizeUrl(value) {
     const parsed = new URL(candidate);
     if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return null;
     if (isPrivateHost(parsed.hostname)) return null;
-    if (/^\d+\.\d+\.\d+\.\d+$/.test(parsed.hostname)) {
+    // IPv6 literals (always bracketed in a URL) are refused like raw IPv4.
+    if (parsed.hostname.includes(":") || parsed.hostname.startsWith("[")) return null;
+    if (/^\d+\.\d+\.\d+\.\d+\.?$/.test(parsed.hostname)) {
       // Raw IPs are blocked outright for the screenshot preview specifically —
       // this feature only needs to preview normal public websites, so there's
       // no legitimate reason to screenshot a bare IP address.

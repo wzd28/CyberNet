@@ -1,5 +1,6 @@
 import OpenAI from "openai";
-import { triggerBackgroundJob } from "./recovery-mode.mts";
+import { triggerBackgroundJob, modelForRiskFloor } from "./recovery-mode.mts";
+import { modelParams, createResponse, autoReplaceEnabled } from "../lib/ai-models.mjs";
 import { rekeyPlan, planActions, buildTaskRows, supersededTaskKeys, taskKeyInList } from "../lib/recovery-tasks.mjs";
 
 declare const Netlify: {
@@ -8,13 +9,9 @@ declare const Netlify: {
   };
 };
 
-const MODEL = Netlify.env.get("ANALYSIS_MODEL") || "gpt-5";
-const MINI_MODEL = Netlify.env.get("ANALYSIS_MODEL_MINI") || "gpt-5-mini";
-
-// Higher-stakes cases get the full model; routine ones get the cheaper one.
-function modelForRiskFloor(riskFloor: string): string {
-  return riskFloor === "critical" || riskFloor === "high" ? MODEL : MINI_MODEL;
-}
+// The model is chosen by the same rule as a new case (recovery-mode.mts):
+// "critical" gets ANALYSIS_MODEL, everything else ANALYSIS_MODEL_MINI. This
+// used to send "high" to the full model as well, unlike the start path.
 const MAX_UPDATE_CHARS = 4_000;
 
 function env(name: string): string {
@@ -123,6 +120,10 @@ Rules:
 6. Tone: calm, clear, professional, supportive.
 7. Never invent secrets or ask the user to repeat sensitive information.
 8. If the update mentions enabling MFA, prefer noting authenticator-app or passkey-based MFA as stronger containment evidence than SMS-based MFA, which remains phishable.
+9. REGION - name only institutions, apps and authorities that belong to the case's REGION; if it is missing, say "your bank" and "your local police" rather than guessing a country.
+10. PLAN SIZE - a hard requirement: immediateActions at most 3; first10Minutes, firstHour, first24Hours and next7Days at most 2 each; whatWeKnow, inferences, unknowns, remainingRisk and limitations at most 4 each. Leave a bucket empty when nothing belongs there.
+11. LENGTH - instruction, why and verification are one sentence each; summary two or three sentences.
+12. If the update shows money left an account or card and the bank has not been told yet, the first action is calling the bank or card issuer on the number on the card or in its official app.
 
 Return only the required structured result.`;
 
@@ -131,6 +132,7 @@ async function runAiUpdate(args: {
   completedTaskTitles: string[];
   updateText: string;
   riskFloor: string;
+  region?: string;
 }, options: { timeoutMs?: number } = {}) {
   const apiKey = env("OPENAI_API_KEY");
   if (!apiKey) return null;
@@ -148,27 +150,37 @@ async function runAiUpdate(args: {
     `PREVIOUS PLAN: ${JSON.stringify(args.previousPlan)}`,
     `COMPLETED TASKS SO FAR: ${JSON.stringify(args.completedTaskTitles)}`,
     `MINIMUM RISK FLOOR (never go below unless previous plan was already lower): ${args.riskFloor}`,
+    `REGION: ${args.region || "not specified"}`,
     "<UNTRUSTED_EVIDENCE>",
     args.updateText,
     "</UNTRUSTED_EVIDENCE>",
   ].join("\n\n");
 
-  const response = await client.responses.create({
-    model: modelForRiskFloor(args.riskFloor),
+  const { response } = await createResponse(client, modelForRiskFloor(args.riskFloor), (model, effortOverride) => ({
+    ...modelParams(model, {
+      // "low" as before; every documented reasoning model accepts it.
+      preferredEfforts: ["low"],
+      effortOverride: effortOverride || env("RECOVERY_REASONING_EFFORT"),
+      // The plan-size rule keeps an update to about 11 actions; 5,000 plus the
+      // reasoning headroom for "low" (6,500 in all) leaves a wide margin.
+      baseOutputTokens: 5_000,
+      cacheKey: "cybernet-recovery-update-v1",
+      customBaseUrl: Boolean(env("OPENAI_BASE_URL")),
+    }),
     instructions: updateInstructions,
     input: [{ role: "user", content: [{ type: "input_text", text: contextText }] }],
     text: {
       format: {
         type: "json_schema",
         name: "cybernet_recovery_update",
-        strict: true,
+        // Not strict, like the start path: strict decoding is slower and
+        // sanitizeUpdate already validates every field.
+        strict: false,
         schema: updateSchema,
       },
     },
-    max_output_tokens: 8_000,
-    reasoning: { effort: "low" },
     store: false,
-  });
+  }) as any, { allowReplace: autoReplaceEnabled(env("ANALYSIS_MODEL_AUTO_REPLACE")), label: "CyberNet Recovery update" });
 
   if (response.status === "incomplete") {
     throw new Error(
@@ -212,8 +224,9 @@ function sanitizeUpdate(raw: any, previousPlan: any) {
     priority: ["critical", "high", "normal"].includes(item?.priority) ? item.priority : "normal",
     estimatedMinutes: clamp(item?.estimatedMinutes, 1, 240) || 10,
   });
-  const sanitizeActionList = (list: any, prefix: string) =>
-    (Array.isArray(list) ? list : []).slice(0, 6).map((item: any, index: number) => sanitizeAction(item, index, prefix));
+  // The same caps as a new case's plan (rule 10 above, sanitizePlan in recovery-mode.mts).
+  const sanitizeActionList = (list: any, prefix: string, limit: number) =>
+    (Array.isArray(list) ? list : []).slice(0, limit).map((item: any, index: number) => sanitizeAction(item, index, prefix));
 
   let riskLevel = riskOrder.includes(source.riskLevel) ? source.riskLevel : previousPlan.riskLevel;
   let urgency = urgencyOrder.includes(source.urgency) ? source.urgency : previousPlan.urgency;
@@ -227,18 +240,18 @@ function sanitizeUpdate(raw: any, previousPlan: any) {
     confidenceMeaning: String(source.confidenceMeaning || previousPlan.confidenceMeaning).slice(0, 500),
     summary: String(source.summary || previousPlan.summary).slice(0, 1200),
     changeSummary: String(source.changeSummary || "The plan was reviewed with your update.").slice(0, 500),
-    whatWeKnow: uniqueStrings(source.whatWeKnow?.length ? source.whatWeKnow : previousPlan.whatWeKnow, 8),
-    inferences: uniqueStrings(source.inferences, 8),
-    unknowns: uniqueStrings(source.unknowns, 8),
-    immediateActions: sanitizeActionList(source.immediateActions?.length ? source.immediateActions : previousPlan.immediateActions, "immediate"),
+    whatWeKnow: uniqueStrings(source.whatWeKnow?.length ? source.whatWeKnow : previousPlan.whatWeKnow, 4),
+    inferences: uniqueStrings(source.inferences, 4),
+    unknowns: uniqueStrings(source.unknowns, 4),
+    immediateActions: sanitizeActionList(source.immediateActions?.length ? source.immediateActions : previousPlan.immediateActions, "immediate", 3),
     timeline: {
-      first10Minutes: sanitizeActionList(source.first10Minutes, "t10"),
-      firstHour: sanitizeActionList(source.firstHour, "t1h"),
-      first24Hours: sanitizeActionList(source.first24Hours, "t24h"),
-      next7Days: sanitizeActionList(source.next7Days, "t7d"),
+      first10Minutes: sanitizeActionList(source.first10Minutes, "t10", 2),
+      firstHour: sanitizeActionList(source.firstHour, "t1h", 2),
+      first24Hours: sanitizeActionList(source.first24Hours, "t24h", 2),
+      next7Days: sanitizeActionList(source.next7Days, "t7d", 2),
     },
-    remainingRisk: uniqueStrings(source.remainingRisk?.length ? source.remainingRisk : previousPlan.remainingRisk, 6),
-    limitations: uniqueStrings(source.limitations, 6),
+    remainingRisk: uniqueStrings(source.remainingRisk?.length ? source.remainingRisk : previousPlan.remainingRisk, 4),
+    limitations: uniqueStrings(source.limitations, 4),
     updateQuestion: String(source.updateQuestion || previousPlan.updateQuestion).slice(0, 200),
     resolutionAssessment: ["active", "monitoring", "mostly_secured", "resolved"].includes(source.resolutionAssessment) ? source.resolutionAssessment : "active",
     reportingResources: previousPlan.reportingResources || [],
@@ -381,19 +394,43 @@ export default async function handler(request: Request, context: any): Promise<R
   const user = await verifySupabaseUser(request);
   if (!user) return json({ error: "Sign in before updating a Recovery case.", code: "sign_in_required" }, 401);
 
-  const caseResponse = await serviceFetch(`/rest/v1/recovery_cases?id=eq.${encodeURIComponent(caseId)}&select=*`);
-  const caseRows = await caseResponse.json().catch(() => []);
-  const caseRow = Array.isArray(caseRows) ? caseRows[0] : null;
-  if (!caseResponse.ok || !caseRow) return json({ error: "Recovery case not found." }, 404);
+  const admin = isAdminUser(user);
+  // The case row and the team check do not depend on each other. A failed team
+  // check is held until the usage step below, where it has always been reported.
+  const teamCheck = admin
+    ? Promise.resolve({ onTeam: false, error: null as unknown })
+    : getActiveTeamMembership(user.id).then((onTeam) => ({ onTeam, error: null as unknown }), (error) => ({ onTeam: false, error }));
+  const loadCaseRow = async () => {
+    const caseResponse = await serviceFetch(`/rest/v1/recovery_cases?id=eq.${encodeURIComponent(caseId)}&select=*`);
+    const caseRows = await caseResponse.json().catch(() => []);
+    return caseResponse.ok && Array.isArray(caseRows) ? caseRows[0] || null : null;
+  };
+  const [caseRow, team] = await Promise.all([loadCaseRow(), teamCheck]);
+  if (!caseRow) return json({ error: "Recovery case not found." }, 404);
   if (caseRow.owner_user_id !== user.id) return json({ error: "You do not have access to this Recovery case." }, 403);
 
+  // Reading the current plan and tasks does not depend on the usage
+  // reservation, so they load while it runs; nothing is written before it allows.
+  const loadLatestVersion = async () => {
+    const versionsResponse = await serviceFetch(`/rest/v1/recovery_versions?case_id=eq.${encodeURIComponent(caseId)}&select=*&order=version_number.desc&limit=1`);
+    const versionRows = await versionsResponse.json().catch(() => []);
+    return Array.isArray(versionRows) ? versionRows[0] || null : null;
+  };
+  const loadTaskList = async (): Promise<any[]> => {
+    const tasksResponse = await serviceFetch(`/rest/v1/recovery_tasks?case_id=eq.${encodeURIComponent(caseId)}&select=*`);
+    const existingTasks = await tasksResponse.json().catch(() => []);
+    return Array.isArray(existingTasks) ? existingTasks : [];
+  };
+  const planReads = Promise.all([loadLatestVersion(), loadTaskList()]);
+  planReads.catch(() => null); // handled where it is awaited below
+
   let usage;
-  if (isAdminUser(user)) {
+  if (admin) {
     usage = { allowed: true, used: 0, limit: 999999, plan: "business", resetAt: null, cooldownSecondsRemaining: 0 };
   } else {
     try {
-      const onTeam = await getActiveTeamMembership(user.id);
-      usage = onTeam
+      if (team.error) throw team.error;
+      usage = team.onTeam
         ? await consumeRecoveryUpdateBusiness(user.id)
         : await consumeRecoveryUpdate(user.id);
     } catch (error) {
@@ -407,15 +444,9 @@ export default async function handler(request: Request, context: any): Promise<R
     }
   }
 
-  const versionsResponse = await serviceFetch(`/rest/v1/recovery_versions?case_id=eq.${encodeURIComponent(caseId)}&select=*&order=version_number.desc&limit=1`);
-  const versionRows = await versionsResponse.json().catch(() => []);
-  const latestVersion = Array.isArray(versionRows) ? versionRows[0] : null;
+  const [latestVersion, taskList] = await planReads;
   if (!latestVersion) return json({ error: "Could not load the case's current plan." }, 500);
   const previousPlan = latestVersion.structured_plan;
-
-  const tasksResponse = await serviceFetch(`/rest/v1/recovery_tasks?case_id=eq.${encodeURIComponent(caseId)}&select=*`);
-  const existingTasks = await tasksResponse.json().catch(() => []);
-  const taskList: any[] = Array.isArray(existingTasks) ? existingTasks : [];
 
   if (safeTaskKeys.length) {
     const patchRes = await serviceFetch(`/rest/v1/recovery_tasks?case_id=eq.${encodeURIComponent(caseId)}&task_key=in.(${safeTaskKeys.map((k) => encodeURIComponent(`"${k}"`)).join(",")})`, {
@@ -445,6 +476,7 @@ export default async function handler(request: Request, context: any): Promise<R
     completedTaskTitles,
     previousPlan,
     riskFloor: caseRow.risk_level,
+    region: String(caseRow.region || ""),
   });
 
   if (!aiPending) {
@@ -483,21 +515,25 @@ async function writeUpdatedVersion(args: { caseId: string; caseRow: any; updated
 
   rekeyPlan(updatedPlan, newVersionNumber);
   const actions = planActions(updatedPlan);
+  // New rows and superseded rows never share a key (new keys carry the new
+  // version), so the insert and the delete can go together.
   const newTaskRows = buildTaskRows(caseId, newVersionNumber, actions, taskList);
-  if (newTaskRows.length) {
-    await serviceFetch("/rest/v1/recovery_tasks", {
-      method: "POST",
-      headers: { Prefer: "return=minimal" },
-      body: JSON.stringify(newTaskRows),
-    });
-  }
   const superseded = supersededTaskKeys(taskList, actions, newTaskRows);
-  if (superseded.length) {
-    await serviceFetch(
-      `/rest/v1/recovery_tasks?case_id=eq.${encodeURIComponent(caseId)}&task_key=in.(${taskKeyInList(superseded)})`,
-      { method: "DELETE", headers: { Prefer: "return=minimal" } },
-    );
-  }
+  await Promise.all([
+    newTaskRows.length
+      ? serviceFetch("/rest/v1/recovery_tasks", {
+          method: "POST",
+          headers: { Prefer: "return=minimal" },
+          body: JSON.stringify(newTaskRows),
+        })
+      : null,
+    superseded.length
+      ? serviceFetch(
+          `/rest/v1/recovery_tasks?case_id=eq.${encodeURIComponent(caseId)}&task_key=in.(${taskKeyInList(superseded)})`,
+          { method: "DELETE", headers: { Prefer: "return=minimal" } },
+        )
+      : null,
+  ]);
 
   const allCurrentTasksResponse = await serviceFetch(`/rest/v1/recovery_tasks?case_id=eq.${encodeURIComponent(caseId)}&select=priority,status`);
   const allCurrentTasks = await allCurrentTasksResponse.json().catch(() => []);
@@ -507,6 +543,21 @@ async function writeUpdatedVersion(args: { caseId: string; caseRow: any; updated
     : updatedPlan.resolutionAssessment === "mostly_secured" ? "mostly_secured"
     : updatedPlan.resolutionAssessment === "monitoring" ? "monitoring"
     : "active";
+
+  // The version row goes in before the case points at it, so a page polling
+  // the case never sees the new version number with the old plan.
+  await serviceFetch("/rest/v1/recovery_versions", {
+    method: "POST",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({
+      case_id: caseId,
+      version_number: newVersionNumber,
+      structured_plan: updatedPlan,
+      change_summary: updatedPlan.changeSummary,
+      risk_level: updatedPlan.riskLevel,
+      progress_percent: progressPercent,
+    }),
+  });
 
   await serviceFetch(`/rest/v1/recovery_cases?id=eq.${encodeURIComponent(caseId)}`, {
     method: "PATCH",
@@ -523,23 +574,10 @@ async function writeUpdatedVersion(args: { caseId: string; caseRow: any; updated
     }),
   });
 
-  await serviceFetch("/rest/v1/recovery_versions", {
-    method: "POST",
-    headers: { Prefer: "return=minimal" },
-    body: JSON.stringify({
-      case_id: caseId,
-      version_number: newVersionNumber,
-      structured_plan: updatedPlan,
-      change_summary: updatedPlan.changeSummary,
-      risk_level: updatedPlan.riskLevel,
-      progress_percent: progressPercent,
-    }),
-  });
-
   return { newVersionNumber, progressPercent, status };
 }
 
-export { runAiUpdate, sanitizeUpdate, progressFromTasks, writeUpdatedVersion };
+export { runAiUpdate, sanitizeUpdate, progressFromTasks, writeUpdatedVersion, modelForRiskFloor };
 
 export const config = {
   path: "/api/recovery-update",
