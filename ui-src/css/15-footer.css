@@ -1,0 +1,215 @@
+/* ==========================================================================
+   15-footer.css  -  The site footer: a quiet band with a hairline top.
+
+   Markup (index.html): <footer><p>© line · email · Cookie settings</p></footer>
+   cybernet-legal-upgrade.js appends nav.cn-footer-legal (four links and a
+   "Legal Center" button) to the FIRST <footer> in the document, so every rule
+   here targets body > footer only (the Legal Center dialog has its own
+   <footer class="cn-legal-dialog-foot">).
+
+   The wordmark (a.cn-footer-brand: Cyber<span>Net</span> <small>AI</small>)
+   matches the header: the shield mark, "CyberNet" as one word with "Net" in
+   cyan, and "AI" as the small outlined chip. The link is a 44px target.
+   ========================================================================== */
+
+html.cn body > footer {
+  --cn-foot-pad: max(var(--cn-gutter-l), calc((100% - var(--cn-max)) / 2));
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "brand legal"
+    "line  line";
+  align-items: center;
+  column-gap: var(--cn-8);
+  row-gap: var(--cn-4);
+  box-sizing: border-box;
+  width: auto;
+  max-width: none;
+  margin: 0; /* the page's own bottom padding sets the gap (DESIGN.md: the footer adds no margin) */
+  padding: var(--cn-10) max(var(--cn-gutter-r), calc((100% - var(--cn-max)) / 2)) calc(var(--cn-10) + env(safe-area-inset-bottom, 0px)) var(--cn-foot-pad);
+  border-top: 1px solid var(--cn-line);
+  background: var(--cn-bg);
+  color: var(--cn-text-3);
+  font-family: var(--cn-font);
+  font-size: var(--cn-step-small);
+  line-height: 1.5;
+  text-align: start;
+}
+
+/* ---------- wordmark ---------- */
+/* Plain inline flow (never flex: flex items would split "Cyber" and "Net"
+   apart). The literal space before <small> is the gap before the chip, and
+   the 44px line makes the whole link a 44px target. */
+html.cn body > footer .cn-footer-brand {
+  grid-area: brand;
+  justify-self: start;
+  display: inline-block;
+  height: 44px;
+  margin-inline-start: -6px;
+  padding: 0 6px;
+  border-radius: var(--cn-r-ctl);
+  color: var(--cn-text);
+  font-family: var(--cn-font-mono);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  line-height: 44px;
+  text-decoration: none;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* the shield mark from the header, drawn here so the markup stays a plain link */
+html.cn body > footer .cn-footer-brand::before {
+  content: "";
+  display: inline-block;
+  vertical-align: middle;
+  width: 20px;
+  height: 22px;
+  margin-inline-end: 10px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 26' fill='none'%3E%3Cpath d='M12 2 L21 6 L20 15 L12 24 L4 15 L3 6 Z' stroke='%2322D3EE' stroke-width='1.8' stroke-linejoin='round'/%3E%3Crect x='8.3' y='12.5' width='7.4' height='6.2' rx='1.2' fill='%2322D3EE'/%3E%3Cpath d='M9.6 12.5v-2.3a2.4 2.4 0 0 1 4.8 0v2.3' stroke='%2322D3EE' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='12' cy='15.2' r='1' fill='%23030406'/%3E%3Cpath d='M12 15.9v1.4' stroke='%23030406' stroke-width='1' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+html.cn body > footer .cn-footer-brand span {
+  color: var(--cn-cyan);
+}
+
+/* "AI": the header's outlined chip */
+html.cn body > footer .cn-footer-brand small {
+  display: inline-block;
+  vertical-align: middle;
+  margin: -2px 0 0;
+  padding: 3px 5px 2px;
+  border: 1px solid var(--cn-line-2);
+  border-radius: 6px;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+/* ---------- copyright line ---------- */
+html.cn body > footer > p {
+  grid-area: line;
+  margin: 0;
+  padding-top: var(--cn-4);
+  border-top: 1px solid var(--cn-line);
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: start;
+  text-wrap: pretty;
+}
+
+/* email and Cookie settings read as links: a quiet underline that brightens */
+html.cn body > footer > p a,
+html.cn body > footer > p .cn-cookie-settings {
+  display: inline;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--cn-text-2);
+  font: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--cn-line-2);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: color var(--cn-dur-1) ease, text-decoration-color var(--cn-dur-1) ease;
+}
+
+/* ---------- legal links ---------- */
+html.cn body > footer .cn-footer-legal {
+  grid-area: legal;
+  justify-self: end;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0 var(--cn-5);
+  margin: 0;
+}
+
+html.cn body > footer .cn-footer-legal a,
+html.cn body > footer .cn-footer-legal button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -.005em;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--cn-dur-1) ease;
+}
+
+html.cn body > footer a:focus-visible,
+html.cn body > footer button:focus-visible,
+html.cn body > footer .cn-footer-brand:focus-visible {
+  outline: none;
+  color: var(--cn-text);
+  box-shadow: var(--cn-focus);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  html.cn body > footer a:hover,
+  html.cn body > footer button:hover {
+    color: var(--cn-text);
+    text-decoration-color: currentColor;
+  }
+}
+
+/* ---------- tablets and phones: one column ---------- */
+@media (max-width: 899.98px) {
+  html.cn body > footer {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "brand"
+      "legal"
+      "line";
+    row-gap: var(--cn-3);
+    padding-top: var(--cn-8);
+    padding-bottom: calc(var(--cn-8) + env(safe-area-inset-bottom, 0px));
+  }
+
+  html.cn body > footer .cn-footer-legal {
+    justify-self: start;
+    justify-content: flex-start;
+    gap: 0 var(--cn-5);
+  }
+}
+
+@media (max-width: 479.98px) {
+  html.cn body > footer .cn-footer-legal {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, max-content));
+    column-gap: var(--cn-6);
+    width: 100%;
+  }
+
+  html.cn body > footer .cn-footer-legal a,
+  html.cn body > footer .cn-footer-legal button {
+    white-space: normal;
+  }
+}
+
+@media print {
+  html.cn body > footer {
+    display: none;
+  }
+}

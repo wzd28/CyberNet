@@ -1,0 +1,1143 @@
+/* Home, sections 5-9 (see DESIGN.md "Home page"):
+   5 How it decides (.why-choose + .cn-beams diagram)   JS: 40-beams.js (one run per entry, no loop)
+   6 Everywhere (#cnWorld + #cnGlobe canvas + Pause)    JS: 45-globe.js ($442B counts via 50-counters.js)
+   7 Workspace (.wow-section facts and ticker)          JS: 55-scrub.js (marquee gate, Pause, list a11y);
+                                                        legacy JS doubles the ticker and counts the numbers
+   8 Statement (.home-quote, scroll-linked words)       JS: 55-scrub.js
+   9 Limits note and the Home support box
+   Legacy traps handled here: content-visibility/contain on .why-choose, .wow-section and .home-quote
+   (they clip and shift height), the <=700px ticker cut-down, and the shared .support-box /
+   .home-limits-note classes (scoped to #home). The .tilt-card inline transform is beaten in 01-base.
+   Nothing here toggles a class to animate: legacy observers watch "class" on the whole body. */
+
+/* ---------------------------------------------------------------- shared */
+
+@property --cn-scrub {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
+/* .why-choose and .cn-world are left to 80-perf.css (content-visibility:auto with measured
+   placeholders); these two must paint in full (legacy gave them a 700px placeholder). */
+html.cn #home .wow-section,
+html.cn #home .home-quote {
+  content-visibility: visible;
+  contain-intrinsic-size: none;
+  contain: none;
+}
+
+/* ============================================================ 5. How it decides */
+
+/* outer width, gutters and rhythm come from 02-components ("Home: container and rhythm") */
+html.cn #home .why-choose {
+  container: cn-why / inline-size;
+  text-align: center;
+}
+
+/* ---- the diagram panel ---- */
+html.cn #home .cn-beams {
+  container: cn-beams / inline-size;
+  position: relative;
+  isolation: isolate;
+  max-width: 1040px;
+  margin: clamp(2rem, 1.4rem + 2.4vw, 3.5rem) auto clamp(1.5rem, 1rem + 2vw, 2.5rem);
+  padding: clamp(.75rem, .3rem + 1.6vw, 1.75rem) clamp(.75rem, .2rem + 2.6vw, 2.5rem);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-panel);
+  background: var(--cn-bg-2);
+  overflow: hidden;
+}
+
+/* faint measuring grid, like the hero stage */
+html.cn #home .cn-beams::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(rgba(255, 255, 255, .055) 1px, transparent 1.4px);
+  background-size: 24px 24px;
+  background-position: center;
+  -webkit-mask-image: radial-gradient(ellipse 70% 80% at 50% 50%, #000 30%, transparent 100%);
+  mask-image: radial-gradient(ellipse 70% 80% at 50% 50%, #000 30%, transparent 100%);
+  pointer-events: none;
+}
+
+html.cn #home .cn-beams > svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+html.cn #home .cn-beam-paths path {
+  fill: none;
+  stroke: var(--cn-line-2);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+/* nodes */
+html.cn #home .cn-beam-nodes rect {
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+/* node labels are words, not data: Mona Sans in sentence case (no uppercase mono texture) */
+html.cn #home .cn-beam-nodes text {
+  font-family: var(--cn-font);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -.005em;
+  text-transform: none;
+}
+
+html.cn #home .cn-node-in rect {
+  fill: var(--cn-surface);
+  stroke: var(--cn-line-2);
+}
+
+html.cn #home .cn-node-in text { fill: var(--cn-text-2); }
+
+html.cn #home .cn-node-engine rect {
+  fill: var(--cn-surface-2);
+  stroke: var(--cn-line-2);
+}
+
+html.cn #home .cn-node-engine text { fill: var(--cn-text); }
+
+html.cn #home .cn-node-out rect:not(.cn-node-ring):not(.cn-node-ping) {
+  fill: var(--cn-deep);
+  stroke: var(--cn-cyan-line);
+}
+
+html.cn #home .cn-node-out text {
+  fill: var(--cn-cyan-2);
+  font-weight: 600;
+}
+
+/* soft ring around the Verdict (added by 40-beams.js) */
+html.cn #home .cn-node-ring {
+  fill: rgba(34, 211, 238, .035);
+  stroke: rgba(34, 211, 238, .16);
+}
+
+html.cn #home .cn-node-ping {
+  fill: none;
+  stroke: var(--cn-cyan);
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* the AI lane: "AI context" is Analysis AI's check, so it carries iris (DESIGN: iris = AI).
+   40-beams.js tags the node, its paths, ports and pulses with .is-ai from the SVG geometry. */
+html.cn #home .cn-beams {
+  --cn-ai-line: rgba(139, 140, 255, .3);
+  --cn-ai-path: rgba(139, 140, 255, .26);
+}
+
+html.cn #home .cn-beam-paths path.is-ai { stroke: var(--cn-ai-path); }
+
+html.cn #home .cn-node-engine.is-ai rect {
+  fill: color-mix(in oklab, var(--cn-iris) 8%, var(--cn-surface-2));
+  stroke: var(--cn-ai-line);
+}
+
+html.cn #home .cn-node-engine.is-ai text { fill: var(--cn-iris-2); }
+
+/* connection ports (added by 40-beams.js) */
+html.cn #home .cn-beam-ports circle {
+  fill: var(--cn-bg-2);
+  stroke: var(--cn-text-3);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+html.cn #home .cn-beam-ports circle.is-out {
+  stroke: var(--cn-cyan-line);
+}
+
+html.cn #home .cn-beam-ports circle.is-ai {
+  stroke: var(--cn-iris-line);
+}
+
+/* Pulses (paths cloned by 40-beams.js with pathLength=100): a bright head on a comet tail.
+   The diagram plays ONE run each time it scrolls into view (40-beams.js sets data-cn-run when
+   about half of it is visible and clears it once it has left), so nothing loops: the run ends
+   in about 4 s and the diagram rests in its static state (DESIGN rule 5, WCAG 2.2.2). */
+html.cn #home .cn-beams { --cn-beam-dur: 3.6s; }
+
+html.cn #home .cn-beam-pulses path {
+  fill: none;
+  stroke: var(--cn-cyan);
+  stroke-linecap: round;
+  opacity: 0;
+}
+
+html.cn #home .cn-beam-pulses .cn-pulse-head {
+  stroke: var(--cn-ice);
+  stroke-width: 2.5;
+  stroke-dasharray: 6 200;
+  stroke-dashoffset: 7;
+}
+
+html.cn #home .cn-beam-pulses .cn-pulse-tail {
+  stroke-width: 1.75;
+  stroke-dasharray: 28 200;
+  stroke-dashoffset: 29;
+}
+
+html.cn #home .cn-beam-pulses .is-ai.cn-pulse-tail { stroke: var(--cn-iris); }
+html.cn #home .cn-beam-pulses .is-ai.cn-pulse-head { stroke: var(--cn-iris-2); }
+
+html.cn #home .cn-beam-pulses .is-in.cn-pulse-head { --cn-beam-anim: cn-beam-in-head; --cn-beam-delay: calc(var(--k, 0) * 140ms); }
+html.cn #home .cn-beam-pulses .is-in.cn-pulse-tail { --cn-beam-anim: cn-beam-in-tail; --cn-beam-delay: calc(var(--k, 0) * 140ms); }
+html.cn #home .cn-beam-pulses .is-out.cn-pulse-head { --cn-beam-anim: cn-beam-out-head; --cn-beam-delay: calc(var(--k, 0) * 90ms); }
+html.cn #home .cn-beam-pulses .is-out.cn-pulse-tail { --cn-beam-anim: cn-beam-out-tail; --cn-beam-delay: calc(var(--k, 0) * 90ms); }
+
+html.cn #home .cn-node-engine rect { --cn-node-anim: cn-beam-engine; }
+html.cn #home .cn-node-engine.is-ai rect { --cn-node-anim: cn-beam-engine-ai; }
+html.cn #home .cn-node-engine + .cn-node-engine rect { --cn-beam-delay: 140ms; }
+html.cn #home .cn-node-out rect:not(.cn-node-ring):not(.cn-node-ping) { --cn-node-anim: cn-beam-verdict; }
+
+html.cn #home .cn-beams[data-cn-run] .cn-beam-pulses path {
+  animation: var(--cn-beam-anim, none) var(--cn-beam-dur) linear var(--cn-beam-delay, 0ms) 1 both;
+}
+
+html.cn #home .cn-beams[data-cn-run] :is(.cn-node-engine rect, .cn-node-out rect:not(.cn-node-ring):not(.cn-node-ping)) {
+  animation: var(--cn-node-anim, none) var(--cn-beam-dur) linear var(--cn-beam-delay, 0ms) 1 both;
+}
+
+html.cn #home .cn-beams[data-cn-run] .cn-node-ping {
+  animation: cn-beam-ping var(--cn-beam-dur) linear 1 both;
+}
+
+/* One run: inputs travel (0-36%), the checks light (36-46%), the result travels (46-72%),
+   the Verdict rings (72-95%). Every path shares the timeline, so the flow stays in step.
+   The tail trails the head by 22 units, so both leave the path together. */
+@keyframes cn-beam-in-head {
+  0% { stroke-dashoffset: 7; opacity: 0; animation-timing-function: cubic-bezier(.45, 0, .25, 1); }
+  3% { opacity: 1; }
+  34% { stroke-dashoffset: -100; opacity: 1; }
+  37%, 100% { stroke-dashoffset: -100; opacity: 0; }
+}
+
+@keyframes cn-beam-in-tail {
+  0% { stroke-dashoffset: 29; opacity: 0; animation-timing-function: cubic-bezier(.45, 0, .25, 1); }
+  3% { opacity: .8; }
+  34% { stroke-dashoffset: -78; opacity: .8; }
+  39%, 100% { stroke-dashoffset: -78; opacity: 0; }
+}
+
+@keyframes cn-beam-out-head {
+  0% { stroke-dashoffset: 7; opacity: 0; }
+  44% { stroke-dashoffset: 7; opacity: 0; animation-timing-function: cubic-bezier(.45, 0, .25, 1); }
+  47% { opacity: 1; }
+  70% { stroke-dashoffset: -100; opacity: 1; }
+  73%, 100% { stroke-dashoffset: -100; opacity: 0; }
+}
+
+@keyframes cn-beam-out-tail {
+  0% { stroke-dashoffset: 29; opacity: 0; }
+  44% { stroke-dashoffset: 29; opacity: 0; animation-timing-function: cubic-bezier(.45, 0, .25, 1); }
+  47% { opacity: .8; }
+  70% { stroke-dashoffset: -78; opacity: .8; }
+  75%, 100% { stroke-dashoffset: -78; opacity: 0; }
+}
+
+@keyframes cn-beam-engine {
+  0%, 33% { stroke: var(--cn-line-2); }
+  38% { stroke: var(--cn-cyan-line); }
+  52%, 100% { stroke: var(--cn-line-2); }
+}
+
+@keyframes cn-beam-engine-ai {
+  0%, 33% { stroke: var(--cn-ai-line); }
+  38% { stroke: var(--cn-iris); }
+  52%, 100% { stroke: var(--cn-ai-line); }
+}
+
+@keyframes cn-beam-verdict {
+  0%, 69% { stroke: var(--cn-cyan-line); }
+  73% { stroke: var(--cn-cyan-2); }
+  90%, 100% { stroke: var(--cn-cyan-line); }
+}
+
+@keyframes cn-beam-ping {
+  0%, 70% { opacity: 0; transform: scale(1); }
+  72% { opacity: .55; transform: scale(1); animation-timing-function: cubic-bezier(.22, 1, .36, 1); }
+  96%, 100% { opacity: 0; transform: scale(1.22); }
+}
+
+/* labels stay readable when the diagram scales down (text >= 11px) */
+@container cn-beams (max-width: 860px) {
+  html.cn #home .cn-beam-nodes text { font-size: 17px; letter-spacing: 0; }
+}
+
+/* ---- vertical version (built by 40-beams.js from the SVG labels) ---- */
+html.cn #home .cn-bv {
+  display: none;
+  justify-items: center;
+  max-width: 420px;
+  margin-inline: auto;
+}
+
+@container cn-beams (max-width: 639.98px) {
+  html.cn #home .cn-beams:has(> .cn-bv) > svg { display: none; }
+  html.cn #home .cn-beams > .cn-bv { display: grid; }
+}
+
+html.cn #home .cn-bv-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+html.cn #home .cn-bv-node {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--cn-line-2);
+  border-radius: var(--cn-r-pill);
+  background: var(--cn-surface);
+  color: var(--cn-text-2);
+  /* the same words as the SVG nodes, so the same type: Mona Sans, sentence case */
+  font: 500 14px/1.2 var(--cn-font);
+  letter-spacing: -.005em;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+/* the two checks share one box; the wire runs into its divider */
+html.cn #home .cn-bv-eng {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  width: 100%;
+  border: 1px solid var(--cn-line-2);
+  border-radius: var(--cn-r-ctl);
+  background: var(--cn-surface-2);
+  overflow: hidden;
+}
+
+html.cn #home .cn-bv-eng .cn-bv-node {
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--cn-text);
+}
+
+html.cn #home .cn-bv-eng .cn-bv-node + .cn-bv-node { border-inline-start: 1px solid var(--cn-line-2); }
+
+/* the AI half of the checks box (tagged by 40-beams.js) */
+html.cn #home .cn-bv-eng .cn-bv-node.is-ai {
+  background: color-mix(in oklab, var(--cn-iris) 8%, transparent);
+  color: var(--cn-iris-2);
+}
+
+html.cn #home .cn-bv-out .cn-bv-node {
+  position: relative;
+  min-height: 44px;
+  padding: 0 26px;
+  border-color: var(--cn-cyan-line);
+  background: var(--cn-deep);
+  color: var(--cn-cyan-2);
+  font-weight: 600;
+  box-shadow: 0 0 0 6px var(--cn-bg-2), 0 0 0 7px rgba(34, 211, 238, .16);
+}
+
+html.cn #home .cn-bv-out .cn-bv-node::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border: 1px solid var(--cn-cyan);
+  border-radius: inherit;
+  opacity: 0;
+}
+
+html.cn #home .cn-bv-wire {
+  position: relative;
+  display: block;
+  width: 1px;
+  height: 36px;
+  background: var(--cn-line-2);
+  overflow: hidden;
+}
+
+html.cn #home .cn-bv-wire::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 0;
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+  background: linear-gradient(to bottom, transparent, var(--cn-cyan) 70%, var(--cn-ice));
+  opacity: 0;
+  transform: translateY(-14px);
+}
+
+/* the result leaves the checks box: it starts iris (AI) and lands cyan (the Verdict) */
+html.cn #home .cn-bv-wire + .cn-bv-eng + .cn-bv-wire::before {
+  background: linear-gradient(to bottom, transparent, var(--cn-iris) 35%, var(--cn-cyan) 75%, var(--cn-ice));
+}
+
+/* one run per entry, in step with the SVG version (see the pulses above) */
+html.cn #home .cn-beams[data-cn-run] .cn-bv-wire::before { animation: cn-bv-wire-a var(--cn-beam-dur) linear 1 both; }
+html.cn #home .cn-beams[data-cn-run] .cn-bv-wire + .cn-bv-eng + .cn-bv-wire::before { animation-name: cn-bv-wire-b; }
+html.cn #home .cn-beams[data-cn-run] .cn-bv-eng { animation: cn-bv-eng var(--cn-beam-dur) linear 1 both; }
+html.cn #home .cn-beams[data-cn-run] .cn-bv-out .cn-bv-node::after { animation: cn-bv-ping var(--cn-beam-dur) linear 1 both; }
+
+@keyframes cn-bv-wire-a {
+  0% { opacity: 0; transform: translateY(-14px); animation-timing-function: cubic-bezier(.45, 0, .25, 1); }
+  4% { opacity: 1; }
+  30% { opacity: 1; transform: translateY(36px); }
+  31%, 100% { opacity: 0; transform: translateY(36px); }
+}
+
+@keyframes cn-bv-wire-b {
+  0% { opacity: 0; transform: translateY(-14px); }
+  46% { opacity: 0; transform: translateY(-14px); animation-timing-function: cubic-bezier(.45, 0, .25, 1); }
+  50% { opacity: 1; }
+  70% { opacity: 1; transform: translateY(36px); }
+  71%, 100% { opacity: 0; transform: translateY(36px); }
+}
+
+@keyframes cn-bv-eng {
+  0%, 29% { border-color: var(--cn-line-2); }
+  34% { border-color: var(--cn-cyan-line); }
+  48%, 100% { border-color: var(--cn-line-2); }
+}
+
+@keyframes cn-bv-ping {
+  0%, 70% { opacity: 0; transform: scale(1); }
+  72% { opacity: .6; transform: scale(1); animation-timing-function: cubic-bezier(.22, 1, .36, 1); }
+  96%, 100% { opacity: 0; transform: scale(1.18, 1.5); }
+}
+
+/* ---- the four cards: 4 -> 2 -> 1 ---- */
+html.cn #home .why-choose-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--cn-3);
+  max-width: 1040px;
+  margin-inline: auto;
+  text-align: start;
+}
+
+@container cn-why (min-width: 560px) {
+  html.cn #home .why-choose-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@container cn-why (min-width: 980px) {
+  html.cn #home .why-choose-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+html.cn #home .why-choose-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--cn-5);
+  padding: clamp(20px, 1rem + 1vw, 28px);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-card);
+  background: var(--cn-surface);
+}
+
+/* the four points are not a sequence, so they carry no 01-04 numbers */
+html.cn #home .why-choose-item::after { content: none; }
+
+html.cn #home .wc-icon-box {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--cn-line-2);
+  border-radius: 12px;
+  background: var(--cn-surface-2);
+  color: var(--cn-cyan-2);
+}
+
+html.cn #home .wc-icon-box svg { width: 20px; height: 20px; }
+
+/* the AI card shares the AI lane's colour in the diagram above */
+html.cn #home .why-choose-item:first-child .wc-icon-box { color: var(--cn-iris-2); }
+
+html.cn #home .why-choose-item h4 {
+  margin: 0 0 var(--cn-2);
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: var(--cn-track-body);
+}
+
+html.cn #home .why-choose-item p {
+  margin: 0;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: .9375rem;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+/* narrow: icon beside the text keeps four cards short on a phone */
+@container cn-why (max-width: 559.98px) {
+  html.cn #home .why-choose-item {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: var(--cn-4);
+    padding: var(--cn-5) var(--cn-5) var(--cn-5) var(--cn-4);
+  }
+  html.cn #home .why-choose-item > div { min-width: 0; }
+  html.cn #home .why-choose-item h4 { margin-top: 9px; }
+}
+
+/* folded phones: back to icon above text, so the copy keeps a readable measure */
+@container cn-why (max-width: 329.98px) {
+  html.cn #home .why-choose-item { flex-direction: column; gap: var(--cn-4); padding: var(--cn-5) var(--cn-4); }
+  html.cn #home .why-choose-item h4 { margin-top: 0; }
+}
+
+/* quiet hairline rows, not four boxed icon cards (markup#3): a top hairline, no fill, no box
+   around the icon. After the container rules on purpose, so it holds at every width. The AI
+   point keeps its iris icon (the :first-child rule above outranks this one). */
+html.cn #home .why-choose-item {
+  padding: 20px 4px 0;
+  border: 0;
+  border-block-start: 1px solid var(--cn-line);
+  border-radius: 0;
+  background: none;
+}
+html.cn #home .why-choose-item .wc-icon-box {
+  border: 0;
+  background: none;
+  color: var(--cn-text-2);
+}
+/* stacked layouts (icon above the text): without its box the icon lines up with the text edge */
+@container cn-why (min-width: 560px) {
+  html.cn #home .why-choose-item .wc-icon-box { width: auto; height: 24px; place-items: center start; }
+}
+@container cn-why (max-width: 329.98px) {
+  html.cn #home .why-choose-item .wc-icon-box { width: auto; height: 24px; place-items: center start; }
+}
+
+/* ============================================================ 6. Everywhere */
+
+html.cn #home .cn-world {
+  container: cn-world / inline-size;
+}
+
+html.cn #home .cn-world-in {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  gap: clamp(1.5rem, 1rem + 2vw, 2.5rem);
+}
+
+html.cn #home .cn-globe-box {
+  position: relative;
+  width: min(100%, 440px, 78svh);
+  aspect-ratio: 1;
+}
+
+/* the sphere's soft limb, drawn in CSS so the box is never empty (no JS, before init) */
+html.cn #home .cn-globe-box::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle closest-side at 50% 50%,
+      rgba(8, 51, 68, .26) 0%,
+      rgba(8, 51, 68, .10) 66%,
+      rgba(8, 51, 68, .04) 79.5%,
+      rgba(34, 211, 238, .11) 80%,
+      rgba(34, 211, 238, .035) 84%,
+      rgba(34, 211, 238, 0) 92%);
+  pointer-events: none;
+}
+
+html.cn #home #cnGlobe {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Pause for the globe (it turns for as long as it is on screen). Same look as the hero's
+   .cn-stage-pause: a 36px circle (44px hit area) in the box's empty bottom corner.
+   45-globe.js wires it (and adds it if the markup lacks it); no JS, no button. */
+html.cn #home .cn-globe-pause {
+  position: absolute;
+  z-index: 1;
+  inset-block-end: 4%;
+  inset-inline-end: 4%;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 36px;
+  height: 36px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--cn-line-2);
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--cn-bg) 55%, transparent);
+  box-shadow: none;
+  color: var(--cn-text-2);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: color var(--cn-dur-1) ease, border-color var(--cn-dur-1) ease, background-color var(--cn-dur-1) ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html.cn #home .cn-globe-pause::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+}
+
+/* two bars (pause); a triangle once pressed (play) */
+html.cn #home .cn-globe-pause > span {
+  display: block;
+  box-sizing: border-box;
+  width: 10px;
+  height: 11px;
+  border-inline: 3px solid currentColor;
+}
+
+html.cn #home .cn-globe-pause[aria-pressed="true"] > span {
+  width: 0;
+  height: 0;
+  margin-inline-start: 3px;
+  border-block: 6px solid transparent;
+  border-inline-start: 10px solid currentColor;
+  border-inline-end: 0;
+}
+
+html.cn[dir="rtl"] #home .cn-globe-pause[aria-pressed="true"] > span { scale: -1 1; margin-inline: 0 3px; }
+
+html.cn #home .cn-globe-pause:focus-visible { outline: 0; box-shadow: var(--cn-focus); }
+
+html.cn:not(.cn-js) #home .cn-globe-pause { display: none; }
+
+@media (hover: hover) and (pointer: fine) {
+  html.cn #home .cn-globe-pause:hover {
+    border-color: color-mix(in oklab, var(--cn-text) 26%, transparent);
+    background: var(--cn-surface-2);
+    color: var(--cn-text);
+  }
+}
+
+html.cn #home .cn-world-copy {
+  max-width: 34rem;
+  text-align: center;
+}
+
+html.cn #home .cn-world-copy .cn-eyebrow { margin-inline: auto; }
+
+html.cn #home .cn-world-copy h2 {
+  margin: var(--cn-4) 0 0;
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: var(--cn-step-h2);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: var(--cn-track-h2);
+  text-wrap: balance;
+}
+
+html.cn #home .cn-world-copy h2 span { color: var(--cn-text-2); }
+
+html.cn #home .cn-big-stat {
+  display: grid;
+  gap: var(--cn-3);
+  margin-block-start: clamp(1.75rem, 1.2rem + 2vw, 2.75rem);
+  padding-block-start: clamp(1.25rem, 1rem + 1vw, 1.75rem);
+  border-block-start: 1px solid var(--cn-line);
+}
+
+html.cn #home .cn-stat-num {
+  display: block;
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: clamp(4rem, 2.6rem + 6.2vw, 7.75rem);
+  font-weight: 600;
+  line-height: .9;
+  letter-spacing: -.045em;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+html.cn #home .cn-big-stat small {
+  display: block;
+  max-width: 34ch;
+  margin-inline: auto;
+  color: var(--cn-text-2);
+  font-size: var(--cn-step-lead);
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+html.cn #home .cn-src {
+  margin: var(--cn-4) 0 0;
+  color: var(--cn-text-3);
+  font: 400 var(--cn-step-label)/1.5 var(--cn-font-mono);
+  letter-spacing: .02em;
+}
+
+html.cn #home .cn-world-lead {
+  max-width: var(--cn-measure);
+  margin: var(--cn-6) auto 0;
+  color: var(--cn-text-2);
+  font-size: var(--cn-step-body);
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+@container cn-world (min-width: 840px) {
+  html.cn #home .cn-world-in {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr);
+    align-items: center;
+    justify-items: stretch;
+    gap: clamp(2rem, -1rem + 5vw, 5rem);
+  }
+  html.cn #home .cn-globe-box { width: min(100%, 600px, 86svh); justify-self: center; }
+  html.cn #home .cn-world-copy { text-align: start; }
+  html.cn #home .cn-world-copy .cn-eyebrow { margin-inline: 0; }
+  html.cn #home .cn-big-stat small,
+  html.cn #home .cn-world-lead { margin-inline: 0; }
+}
+
+/* ============================================================ 7. Workspace */
+
+/* A quiet interlude between the $442B moment and the statement: no panel and no rings. A centred
+   head, the three facts as one line of text, then a slow marquee of scam types.
+   Legacy JS counts the numbers (.wow-stat-number, so they stay in the DOM) and doubles the ticker
+   items once; 55-scrub.js runs the marquee only while it is on screen and wires the Pause. */
+html.cn #home .wow-section.glass,
+html.cn #home .wow-section {
+  container: cn-wow / inline-size;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+html.cn #home .wow-header {
+  max-width: 40rem;
+  margin: 0 auto clamp(1.5rem, 1.1rem + 1.6vw, 2.25rem);
+  text-align: center;
+}
+
+html.cn #home .wow-header h2 {
+  margin: 0;
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: clamp(1.5rem, 1.15rem + 1.6vw, 2.5rem);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: var(--cn-track-h2);
+  text-wrap: balance;
+}
+
+html.cn #home .wow-header h2 span {
+  color: var(--cn-text-2);
+  background: none;
+  -webkit-text-fill-color: currentColor;
+  text-shadow: none;
+}
+
+html.cn #home .wow-header p {
+  max-width: var(--cn-measure, 62ch);
+  margin: var(--cn-3) auto 0;
+  color: var(--cn-text-2);
+  font-size: var(--cn-step-body);
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+/* the three facts as one line: "3 Quick Scan types | 15 Threat categories | 5 Evidence types".
+   Narrow: a short centred column with the numbers right-aligned, so the labels line up. */
+html.cn #home .wow-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--cn-2);
+  width: max-content;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+html.cn #home .wow-stat.glass,
+html.cn #home .wow-stat {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: var(--cn-2);
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+  text-align: start;
+}
+
+html.cn #home .wow-ring { display: none; }
+
+html.cn #home .wow-stat-number {
+  flex: none;
+  min-inline-size: 1.3em;
+  margin: 0;
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+html.cn #home .wow-stat-label {
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: .9375rem;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: -.005em;
+  text-transform: none;
+}
+
+/* wide enough for one line: hairlines between the facts */
+@container cn-wow (min-width: 600px) {
+  html.cn #home .wow-stats { flex-direction: row; justify-content: center; align-items: center; gap: 0; width: auto; }
+  html.cn #home .wow-stat-number { min-inline-size: 0; }
+  html.cn #home .wow-stat.glass,
+  html.cn #home .wow-stat { padding-inline: clamp(1rem, .4rem + 2.4cqi, 2rem); }
+  html.cn #home .wow-stat + .wow-stat { border-inline-start: 1px solid var(--cn-line-2); }
+}
+
+/* ---- ticker: a calm marquee of scam types (legacy JS doubles the items once) ---- */
+html.cn #home .wow-ticker.glass,
+html.cn #home .wow-ticker {
+  height: auto;
+  margin-top: clamp(1.75rem, 1.2rem + 2vw, 2.75rem);
+  padding: 2px 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent);
+}
+
+/* Paused unless 55-scrub.js says it is on screen and not paused (--cn-ticker-play on
+   #wowTicker), so the 40s loop never runs off screen or without JS. */
+html.cn #home .ticker-track {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  width: max-content;
+  height: auto;
+  padding: 0;
+  overflow: visible;
+  white-space: nowrap;
+  animation: cn-marquee 40s linear infinite;
+  animation-play-state: var(--cn-ticker-play, paused);
+}
+
+html.cn[dir="rtl"] #home .ticker-track { animation-name: cn-marquee-rtl; }
+
+html.cn #home .ticker-track .ticker-item,
+html.cn #home .ticker-track .ticker-item:nth-child(n+4) {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  gap: 10px;
+  height: 36px;
+  margin-inline-end: 10px;
+  padding: 0 16px 0 14px;
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-pill);
+  background: var(--cn-surface-2);
+  color: var(--cn-text-2);
+  font: 400 var(--cn-step-small)/1 var(--cn-font);
+  letter-spacing: var(--cn-track-body);
+  white-space: nowrap;
+}
+
+/* one neutral dot: these are scam types, not verdicts, so no safe/warn/danger colours */
+html.cn #home .ticker-item::before {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cn-text-3);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  html.cn #home .wow-ticker:hover .ticker-track { animation-play-state: paused; }
+}
+
+/* Pause (markup: label.cn-ticker-pause > input[type=checkbox]); 55-scrub.js reads the checkbox.
+   Same type as the demo and reel Pause (.cn-ghost-btn): sans, sentence case, bar icon. */
+html.cn #home .cn-ticker-pause {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--cn-2);
+  width: max-content;
+  min-height: 44px;
+  margin: var(--cn-3) auto 0;
+  padding: 0 var(--cn-3);
+  border-radius: var(--cn-r-pill);
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: .875rem;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -.005em;
+  text-transform: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: color var(--cn-dur-1) ease, background-color var(--cn-dur-1) ease;
+}
+
+html.cn #home .cn-ticker-pause span {
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: transparent;
+  text-underline-offset: .3em;
+  transition: text-decoration-color var(--cn-dur-1) ease;
+}
+
+html.cn #home .cn-ticker-pause input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+html.cn #home .cn-ticker-pause::before {
+  content: "";
+  flex: none;
+  box-sizing: border-box;
+  width: 9px;
+  height: 10px;
+  border-inline: 3px solid currentColor;
+}
+
+/* checked = paused: shown as a pressed toggle (the subject is the small label, never a section) */
+html.cn #home .cn-ticker-pause:has(input:checked) {
+  background: var(--cn-surface-3);
+  color: var(--cn-text);
+  box-shadow: inset 0 0 0 1px var(--cn-line-2);
+}
+
+html.cn #home .cn-ticker-pause:has(input:focus-visible) { box-shadow: var(--cn-focus); }
+html.cn #home .cn-ticker-pause:has(input:checked:focus-visible) { box-shadow: inset 0 0 0 1px var(--cn-line-2), var(--cn-focus); }
+
+@media (hover: hover) and (pointer: fine) {
+  html.cn #home .cn-ticker-pause:hover { color: var(--cn-text); }
+  html.cn #home .cn-ticker-pause:hover span { text-decoration-color: currentColor; }
+}
+
+/* without JS the marquee can neither run nor pause: show the list as a static cloud */
+html.cn:not(.cn-js) #home .wow-ticker { -webkit-mask-image: none; mask-image: none; }
+html.cn:not(.cn-js) #home .ticker-track { flex-wrap: wrap; justify-content: center; gap: var(--cn-2); width: auto; white-space: normal; }
+html.cn:not(.cn-js) #home .ticker-track .ticker-item { margin: 0; }
+html.cn:not(.cn-js) #home .cn-ticker-pause { display: none; }
+
+@keyframes cn-marquee {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+
+@keyframes cn-marquee-rtl {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(50%, 0, 0); }
+}
+
+/* ============================================================ 8. Statement */
+
+html.cn #home .home-quote.glass,
+html.cn #home .home-quote {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+  text-align: center;
+}
+
+html.cn #home .home-quote p {
+  max-width: 21em;
+  margin: 0 auto;
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: var(--cn-step-h2);
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: var(--cn-track-h2);
+  text-wrap: balance;
+}
+
+/* 55-scrub.js splits the words (with a visually hidden full copy for screen readers) */
+html.cn #home .home-quote .cn-scrub-line {
+  display: block;
+  text-wrap: balance;
+}
+
+html.cn #home .home-quote .cn-scrub-line + .cn-scrub-line { margin-top: .12em; }
+
+html.cn #home .home-quote .cn-w {
+  --cn-t: clamp(0, (var(--cn-scrub) * (var(--n, 16) + 3) - var(--i, 0)) / 3, 1);
+  color: color-mix(in oklab, var(--cn-text) calc(var(--cn-t) * 100%), var(--cn-text-3));
+}
+
+@supports not (color: color-mix(in oklab, red 50%, blue)) {
+  html.cn #home .home-quote .cn-w {
+    color: var(--cn-text);
+    opacity: calc(.38 + .62 * var(--cn-t));
+  }
+}
+
+html.cn .cn-scrub-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+@keyframes cn-scrub {
+  from { --cn-scrub: 0; }
+  to { --cn-scrub: 1; }
+}
+
+@supports (animation-timeline: view()) and (animation-range: cover 10% cover 50%) {
+  html.cn #home .home-quote [data-cn="scrub"] {
+    animation: cn-scrub linear both;
+    animation-duration: auto;
+    animation-timeline: view();
+    animation-range: cover 14% cover 50%;
+  }
+}
+
+/* ============================================================ 9. Limits note + support box */
+
+/* The limits note is fine print, not a card: a centred footnote at the end of Home (the markup
+   places it after the support box). 02-components keeps its gutters; --cn-block-max narrows it
+   to a readable measure. Text stays --cn-text-2 (AA on the ground). */
+html.cn #home .home-limits-note {
+  --cn-block-max: 68ch;
+  position: relative;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: .8125rem;
+  line-height: 1.65;
+  text-align: center;
+  text-wrap: pretty;
+}
+
+html.cn #home .home-limits-note::before { content: none; }
+
+html.cn #home .home-limits-note strong {
+  color: var(--cn-text);
+  font-weight: 600;
+}
+
+/* support box, then the note: one short step between them instead of a section step */
+html.cn #home > .support-box:not(:last-child) { margin-block-end: clamp(1.5rem, 1rem + 1.5vw, 2.5rem); }
+html.cn #home > .support-box + .home-limits-note { margin-block-start: clamp(1.5rem, 1rem + 1.5vw, 2.5rem); }
+
+/* ---- closing actions under the statement (markup: .home-quote > .cn-close) ---- */
+html.cn #home .cn-close {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--cn-3) var(--cn-6);
+  margin: clamp(2rem, 1.2rem + 2.4vw, 3.25rem) auto 0;
+  padding: 0;
+}
+
+html.cn #home .cn-close .cn-ghost-btn { text-align: center; }
+
+/* narrow phones: the main action takes the full row, the Recovery route sits under it */
+@media (max-width: 480px) {
+  html.cn #home .cn-close { flex-direction: column; gap: var(--cn-2); }
+  html.cn #home .cn-close .primary-btn { width: 100%; max-width: 22rem; justify-content: center; }
+}
+
+/* The support box itself is the one component in 02-components.css (no Home copy here). */
+
+/* ============================================================ reduced motion */
+
+@media (prefers-reduced-motion: reduce) {
+  /* the diagram rests in its static state (40-beams.js never starts a run; if the setting
+     changes mid-run, the 90-a11y catch-all jumps to the end, which is that same state) */
+  html.cn #home .cn-beam-pulses,
+  html.cn #home .cn-node-ping,
+  html.cn #home .cn-bv-wire::before,
+  html.cn #home .cn-bv-out .cn-bv-node::after { display: none; }
+
+  /* the globe is one still frame, so it needs no Pause */
+  html.cn #home .cn-globe-pause { display: none; }
+
+  /* the ticker wraps as a static cloud; the copy legacy JS adds is hidden */
+  html.cn #home .wow-ticker.glass,
+  html.cn #home .wow-ticker { -webkit-mask-image: none; mask-image: none; }
+  html.cn #home .ticker-track {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--cn-2);
+    width: auto;
+    white-space: normal;
+    animation: none;
+    transform: none;
+  }
+  html.cn #home .ticker-track .ticker-item,
+  html.cn #home .ticker-track .ticker-item:nth-child(n+4) { margin: 0; }
+  html.cn #home .ticker-track .ticker-item:nth-child(n+9) { display: none; }
+  html.cn #home .cn-ticker-pause { display: none; }
+
+  html.cn #home .home-quote [data-cn="scrub"] { animation: none; }
+  html.cn #home .home-quote .cn-w { color: var(--cn-text); opacity: 1; }
+}

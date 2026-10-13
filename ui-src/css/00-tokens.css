@@ -1,0 +1,166 @@
+/* CyberNet AI design tokens. The single source for colour, type, space, shape and motion.
+   See ui-src/DESIGN.md. Change values here; components only read these variables. */
+
+/* Metric-matched fallbacks. The web fonts load without blocking first paint, so the first frame
+   is set in a local font. These faces stretch a local font to Mona Sans / JetBrains Mono
+   metrics (measured: CLS on a cold load fell from 0.07-0.09 to under 0.006), so the late swap
+   no longer re-wraps the hero H1, the nav or the operator line. Roboto stands in on Android,
+   which has no Arial. The hero H1 (600, 110% wide) has its own face; see --cn-font-hero. */
+@font-face {
+  font-family: "Mona Sans Fallback";
+  src: local("Arial"), local("ArialMT"), local("Helvetica"), local("Roboto"), local("Roboto-Regular");
+  font-weight: 100 549;
+  size-adjust: 102.7%;
+  ascent-override: 106%;
+  descent-override: 31%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Mona Sans Fallback";
+  src: local("Arial Bold"), local("Arial-BoldMT"), local("Helvetica Bold"), local("Helvetica-Bold"), local("Roboto Bold"), local("Roboto-Bold");
+  font-weight: 550 900;
+  size-adjust: 99%;
+  ascent-override: 110%;
+  descent-override: 32%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Mona Sans Hero Fallback";
+  src: local("Arial Bold"), local("Arial-BoldMT"), local("Helvetica Bold"), local("Helvetica-Bold"), local("Roboto Bold"), local("Roboto-Bold");
+  font-weight: 100 900;
+  size-adjust: 101.8%;
+  ascent-override: 107%;
+  descent-override: 31%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "JetBrains Mono Fallback";
+  src: local("Courier New"), local("CourierNewPSMT"), local("Cousine"), local("Liberation Mono");
+  size-adjust: 100%;
+  ascent-override: 102%;
+  descent-override: 30%;
+  line-gap-override: 0%;
+}
+
+html.cn {
+  /* Colour: ground and surfaces */
+  --cn-bg: #030406;
+  --cn-bg-2: #07090c;
+  --cn-surface: #0b0f13;
+  --cn-surface-2: #11161b;
+  --cn-surface-3: #171d23;
+  --cn-line: rgba(255, 255, 255, .08);
+  --cn-line-2: rgba(255, 255, 255, .14);
+  --cn-line-ctl: rgba(255, 255, 255, .34);   /* form-field edges: >= 3:1 against cards (WCAG 1.4.11) */
+
+  /* Colour: text */
+  --cn-text: #f3f6f7;
+  --cn-text-2: #9aa5ad;
+  --cn-text-3: #7a8690;   /* labels, meta, counters: 4.56:1 even on surface-3 */
+
+  /* Colour: brand signal */
+  --cn-cyan: #22d3ee;
+  --cn-cyan-2: #67e8f9;
+  --cn-ice: #e6fbff;
+  --cn-teal: #0e7490;
+  --cn-deep: #083344;
+  --cn-cyan-tint: rgba(34, 211, 238, .10);
+  --cn-cyan-line: rgba(34, 211, 238, .35);
+  --cn-on-cyan: #001018;
+
+  /* Colour: second accent "iris" (AI). Owner asked for more colour: cyan stays the brand signal,
+     iris marks AI moments (Analysis AI, the AI half of the engine, gradient ends). Never on verdicts. */
+  --cn-iris: #8b8cff;
+  --cn-iris-2: #b9baff;
+  --cn-iris-deep: #2b2a6b;
+  --cn-iris-tint: rgba(139, 140, 255, .12);
+  --cn-iris-line: rgba(139, 140, 255, .38);
+  --cn-grad-brand: linear-gradient(100deg, var(--cn-cyan) 0%, #7fb8ff 50%, var(--cn-iris) 100%);
+  /* Recovery identity colour (progress and marks only, never a verdict) */
+  --cn-mint: #5eead4;
+  --cn-mint-2: #99f6e4;
+  --cn-mint-deep: #115e59;
+  --cn-mint-tint: rgba(94, 234, 212, .12);
+  --cn-mint-line: rgba(94, 234, 212, .38);
+
+  /* Tool identity. Each tool page sets these to its own accent (Quick Scan cyan, Analysis AI
+     iris, Recovery mint); identity marks read them, so a mark never hard-codes a tool colour.
+     Buttons, focus rings and verdicts never use them. */
+  --cn-id: var(--cn-cyan);
+  --cn-id-2: var(--cn-cyan-2);
+  --cn-id-tint: var(--cn-cyan-tint);
+  --cn-id-line: var(--cn-cyan-line);
+
+  /* Colour: verdicts (only inside results and examples, always with a word) */
+  --cn-safe: #34d399;
+  --cn-safe-tint: rgba(52, 211, 153, .12);
+  --cn-warn: #fbbf24;
+  --cn-warn-tint: rgba(251, 191, 36, .12);
+  --cn-danger: #fb7185;
+  --cn-danger-tint: rgba(251, 113, 133, .12);
+
+  /* Gradients */
+  --cn-grad-signal: linear-gradient(90deg, var(--cn-teal) 0%, var(--cn-cyan) 45%, var(--cn-ice) 100%);
+  /* The hero sweep travels cyan -> ice -> iris: the brand gradient, passing through the word once. */
+  --cn-grad-sweep: linear-gradient(100deg, var(--cn-text) 0%, var(--cn-text) 34%, var(--cn-cyan) 44%, var(--cn-ice) 50%, #7fb8ff 56%, var(--cn-iris) 62%, var(--cn-text) 74%, var(--cn-text) 100%);
+
+  /* Type */
+  --cn-font: "Mona Sans", "Mona Sans Fallback", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --cn-font-hero: "Mona Sans", "Mona Sans Hero Fallback", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --cn-font-mono: "JetBrains Mono", "JetBrains Mono Fallback", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --cn-font-ar: "IBM Plex Sans Arabic", var(--cn-font);
+  --cn-step-hero: clamp(2.5rem, 1.6rem + 4.4vw, 5.5rem);
+  --cn-step-h1: clamp(2.125rem, 1.5rem + 2.8vw, 4rem);
+  --cn-step-h2: clamp(1.75rem, 1.3rem + 2vw, 3.25rem);
+  --cn-step-h3: clamp(1.25rem, 1.1rem + .6vw, 1.625rem);
+  --cn-step-lead: clamp(1.0625rem, 1rem + .35vw, 1.3125rem);
+  --cn-step-body: 1rem;
+  --cn-step-small: .875rem;
+  --cn-step-label: .75rem;
+  --cn-track-hero: -.035em;
+  --cn-track-h2: -.025em;
+  --cn-track-body: -.01em;
+  --cn-track-label: .08em;
+
+  /* Space (4px base) */
+  --cn-1: 4px; --cn-2: 8px; --cn-3: 12px; --cn-4: 16px; --cn-5: 20px; --cn-6: 24px;
+  --cn-8: 32px; --cn-10: 40px; --cn-12: 48px; --cn-16: 64px; --cn-20: 80px; --cn-24: 96px;
+  --cn-gutter: clamp(1rem, .55rem + 2vw, 2.5rem);
+  --cn-gutter-l: max(var(--cn-gutter), env(safe-area-inset-left));
+  --cn-gutter-r: max(var(--cn-gutter), env(safe-area-inset-right));
+  --cn-section: clamp(4.5rem, 2.8rem + 7vw, 9rem);
+  --cn-max: 1200px;
+  --cn-max-wide: 1360px;
+  --cn-measure: 62ch;
+
+  /* Shape and depth */
+  --cn-r-panel: 28px;
+  --cn-r-card: 20px;
+  --cn-r-ctl: 14px;
+  --cn-r-pill: 999px;
+  --cn-shadow: 0 30px 60px -30px rgba(0, 0, 0, .7);
+  --cn-focus: 0 0 0 3px var(--cn-bg), 0 0 0 5px var(--cn-cyan);
+
+  /* Motion */
+  --cn-ease-out: cubic-bezier(.22, 1, .36, 1);
+  --cn-ease-in-out: cubic-bezier(.65, 0, .35, 1);
+  --cn-ease-emph: cubic-bezier(.2, 0, 0, 1);
+  --cn-dur-1: 150ms;
+  --cn-dur-2: 300ms;
+  --cn-dur-3: 500ms;
+  --cn-dur-4: 900ms;
+  --cn-loop-a: 61s;
+  --cn-loop-b: 43s;
+  --cn-loop-c: 29s;
+
+  /* Layers (legacy auth modal sits at 1600) */
+  --cn-z-raised: 10;
+  --cn-z-header: 100;
+  --cn-z-sheet: 1000;
+  --cn-z-toast: 1100;
+
+  color-scheme: dark;
+}
+
+/* Reserved for the app: a light theme is not designed yet. Keep the dark values until it is. */
+html.cn[data-theme="light"] { color-scheme: dark; }

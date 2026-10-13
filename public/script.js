@@ -7,8 +7,8 @@
   const connection=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
   const saveData=Boolean(connection?.saveData);
   if(reduceMotion||saveData){canvas.style.display="none";return}
-  // The v2 design has its own background layer, so the old particle network stays off.
-  if(document.documentElement.classList.contains("v2")){canvas.style.display="none";return}
+  // The redesigned UI layer has its own background, so the old particle network stays off.
+  if(document.documentElement.classList.contains("v2")||document.documentElement.classList.contains("cn")){canvas.style.display="none";return}
 
   const ctx=canvas.getContext("2d",{alpha:true,desynchronized:true});
   if(!ctx)return;
@@ -817,7 +817,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 
 
   /* ─── CyberNet support and Netlify feedback survey ─── */
-  const SUPPORT_EMAIL="cybernetai.26@gmail.com";
+  const SUPPORT_EMAIL="support@cybernetai.app";
   const feedbackModal=document.getElementById("feedbackModal");
   const openFeedbackButtons=document.querySelectorAll(".open-feedback-btn");
   const closeFeedback=document.getElementById("closeFeedback");
@@ -1918,7 +1918,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       }
     });
     if(!matches.length){learnSearchResult.innerHTML=`<strong class="warning">Nothing found for "${escapeHTML(query)}".</strong><br>Try: password, phishing, malware, scam, ransomware, wifi, VPN, OTP.`;return}
-    learnSearchResult.innerHTML=matches.slice(0,5).map((m,i)=>`<div class="search-result-item"><strong>${escapeHTML(m.nodeTitle)}</strong><br><span style="color:var(--green);font-size:12px">${escapeHTML(m.modTitle)}</span><p style="margin-top:6px;margin-bottom:0">${escapeHTML(m.nodeDesc)}</p><button class="secondary-btn" style="margin-top:9px;min-height:34px;padding:0 14px;font-size:12px" data-search-idx="${i}">open_lesson →</button></div>`).join("");
+    learnSearchResult.innerHTML=matches.slice(0,5).map((m,i)=>`<div class="search-result-item"><strong>${escapeHTML(m.nodeTitle)}</strong><br><span style="color:var(--green);font-size:12px">${escapeHTML(m.modTitle)}</span><p style="margin-top:6px;margin-bottom:0">${escapeHTML(m.nodeDesc)}</p><button class="secondary-btn" style="margin-top:9px;min-height:34px;padding:0 14px;font-size:12px" data-search-idx="${i}">Open lesson</button></div>`).join("");
     learnSearchResult.querySelectorAll("[data-search-idx]").forEach((btn,i)=>{
       btn.addEventListener("click",()=>{matches[i].nodeEl.classList.add("expanded");matches[i].nodeEl.scrollIntoView({behavior:"smooth",block:"center"});if(matches[i].nodeEl.id)history.replaceState(null,"",`#${matches[i].nodeEl.id}`)});
     });

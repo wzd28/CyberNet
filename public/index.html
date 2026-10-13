@@ -1,23 +1,23 @@
 <!DOCTYPE html>
-<html lang="en" class="v2">
+<html lang="en" class="cn">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>CyberNet AI | AI-Powered Cybersecurity</title>
   <meta name="description" content="CyberNet AI provides on-demand threat analysis, deep evidence correlation, account-based AI access, and clear defensive next actions for suspicious messages, links, email headers, QR codes, and screenshots." />
-  <meta name="theme-color" content="#020308" />
+  <meta name="theme-color" content="#030406" />
   <meta name="ahrefs-site-verification" content="f91bf5f9cc3131a0f67f4880e83a0f06eb6bb66a204164dc0887aaf87f37cd0a">
-  <!-- v2 deep links (/pricing, /learn, ...) load with #home as the active page, and script.js only
+  <!-- Deep links (/pricing, /learn, ...) load with #home as the active page, and script.js only
        switches to the routed page ~300 ms after DOMContentLoaded. Keep Home hidden until it stops
        being the active page (4 s fallback), so the Home hero does not flash first. Keep this above
        every stylesheet: an inline script after a stylesheet waits for that stylesheet to load. -->
-  <style>html.v2.v2-deep #home.active-page{visibility:hidden}</style>
+  <style>html.cn.cn-deep #home.active-page{visibility:hidden}</style>
   <script>
   (function(){
     var d=document,r=d.documentElement;
     if(/^\/(quick-scan|analysis-ai|recovery|learn|pricing|about)\/?$/.test(location.pathname)){
-      r.classList.add("v2-deep");
-      var t=0,done=function(){clearTimeout(t);r.classList.remove("v2-deep")};
+      r.classList.add("cn-deep");
+      var t=0,done=function(){clearTimeout(t);r.classList.remove("cn-deep")};
       d.addEventListener("DOMContentLoaded",function(){
         var h=d.getElementById("home");
         if(!h||!h.classList.contains("active-page")||!window.MutationObserver){done();return}
@@ -30,16 +30,15 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <!-- Geist is display=swap anyway, so its stylesheet does not need to block the first paint. -->
-  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..800&family=Geist+Mono:wght@400..600&family=JetBrains+Mono:wght@700&display=swap" onload="this.onload=null;this.rel='stylesheet'" />
-  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..800&family=Geist+Mono:wght@400..600&family=JetBrains+Mono:wght@700&display=swap" /></noscript>
+  <!-- Fonts use display=swap, so the stylesheet does not need to block the first paint. -->
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Mona+Sans:wdth,wght@75..125,300..800&amp;family=JetBrains+Mono:wght@400..700&amp;display=swap" onload="this.onload=null;this.rel='stylesheet'" />
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mona+Sans:wdth,wght@75..125,300..800&amp;family=JetBrains+Mono:wght@400..700&amp;display=swap" /></noscript>
   <link rel="stylesheet" href="/style.css?v=20260930-2" />
   <link id="cybernetAccountUpgradeStylesheet" rel="stylesheet" href="/cybernet-account-api-upgrade.css?v=20261005-2" />
   <link rel="stylesheet" href="/cybernet-howto.css?v=20260905-1" />
   <link id="cybernetBusinessTeamStylesheet" rel="stylesheet" href="/cybernet-business-team.css?v=20260927-2" />
   <link rel="stylesheet" href="/cybernet-consent.css?v=20260927-2" />
-  <link rel="preload" as="image" href="/v2/shield.webp" imagesrcset="/v2/shield-400.webp 400w, /v2/shield.webp 640w" imagesizes="(max-width: 819px) 260px, 640px" type="image/webp" fetchpriority="high" />
-  <link rel="stylesheet" href="/v2/cybernet-v2.css?v=20261007-1" />
+  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261013-2" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=20260830-5">
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=20260830-5">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=20260830-5">
@@ -84,7 +83,7 @@
       "@id": "https://cybernetai.app/#organization",
       "name": "CyberNet AI",
       "url": "https://cybernetai.app/",
-      "email": "cybernetai.26@gmail.com"
+      "email": "support@cybernetai.app"
     },
     {
       "@type": "Course",
@@ -277,15 +276,16 @@
       <link rel="stylesheet" href="/cybernet-legal.css?v=20260930-2" />
 </head>
 <body>
+  <a class="cn-skip" href="#cnMain">Skip to content</a>
   <!-- ═══ LOGIN / SIGNUP MODAL ═══ -->
   <div id="authModal" class="modal">
     <div class="modal-card glass reveal" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
       <button class="close-modal" id="closeAuth" aria-label="Close">&times;</button>
       <div class="auth-logo">
-        <svg class="auth-logo-icon" viewBox="0 0 24 26" fill="none" aria-label="CyberNet AI" width="64" height="64"><path d="M12 2 L21 6 L20 15 L12 24 L4 15 L3 6 Z" stroke="#22D3EE" stroke-width="1.8" stroke-linejoin="round"/><rect x="8.3" y="12.5" width="7.4" height="6.2" rx="1.2" fill="#22D3EE"/><path d="M9.6 12.5v-2.3a2.4 2.4 0 0 1 4.8 0v2.3" stroke="#22D3EE" stroke-width="1.6" fill="none" stroke-linecap="round"/><circle cx="12" cy="15.2" r="1" fill="#08152a"/><path d="M12 15.9v1.4" stroke="#08152a" stroke-width="1" stroke-linecap="round"/></svg>
+        <svg class="auth-logo-icon" viewBox="0 0 24 26" fill="none" aria-hidden="true" width="64" height="64"><path d="M12 2 L21 6 L20 15 L12 24 L4 15 L3 6 Z" stroke="#22D3EE" stroke-width="1.8" stroke-linejoin="round"/><rect x="8.3" y="12.5" width="7.4" height="6.2" rx="1.2" fill="#22D3EE"/><path d="M9.6 12.5v-2.3a2.4 2.4 0 0 1 4.8 0v2.3" stroke="#22D3EE" stroke-width="1.6" fill="none" stroke-linecap="round"/><circle cx="12" cy="15.2" r="1" fill="#08152a"/><path d="M12 15.9v1.4" stroke="#08152a" stroke-width="1" stroke-linecap="round"/></svg>
       </div>
       <div class="auth-heading">
-        <h2 id="authModalTitle">Sign In or Create Account</h2>
+        <h2 id="authModalTitle">Sign in or create an account</h2>
         <p>Use an existing CyberNet account, or create a free account in seconds.</p>
       </div>
       <div class="auth-tabs">
@@ -303,7 +303,7 @@
         <label for="loginEmail">Email</label>
         <input type="email" id="loginEmail" autocomplete="email" placeholder="you@example.com" />
         <label for="loginPassword">Password</label>
-        <input type="password" id="loginPassword" autocomplete="current-password" placeholder="••••••••" />
+        <input type="password" id="loginPassword" autocomplete="current-password" placeholder="Your password" />
         <button type="button" class="primary-btn full" id="loginBtn">Sign In</button>
         <button type="button" class="auth-text-btn" id="resendConfirmBtn" hidden>Resend confirmation email</button>
         <div class="auth-helper-row">
@@ -314,11 +314,11 @@
       <div id="authSignupForm" class="auth-form">
         <div class="auth-name-grid">
           <div>
-            <label for="signupFirstName">First Name</label>
+            <label for="signupFirstName">First name</label>
             <input type="text" id="signupFirstName" autocomplete="given-name" maxlength="60" placeholder="First name" />
           </div>
           <div>
-            <label for="signupLastName">Last Name</label>
+            <label for="signupLastName">Last name</label>
             <input type="text" id="signupLastName" autocomplete="family-name" maxlength="60" placeholder="Last name" />
           </div>
         </div>
@@ -335,9 +335,9 @@
   </div>
   <!-- HOW-TO VIDEO MODAL -->
   <div id="howtoVideoModal" class="modal video-modal video-modal-fullscreen" aria-hidden="true">
-    <div class="video-player-shell">
+    <div class="video-player-shell" role="dialog" aria-modal="true" aria-labelledby="howtoVideoTitle">
       <div class="video-player-topbar">
-        <h3 id="howtoVideoTitle">How To Use Quick Scan</h3>
+        <h3 id="howtoVideoTitle">How to use Quick Scan</h3>
         <button class="video-exit-btn" id="closeHowtoVideo" type="button" aria-label="Exit video">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           Exit
@@ -346,7 +346,7 @@
       <div class="video-modal-tabs" id="howtoVideoTabs">
         <button class="video-modal-tab active" type="button" data-video="protect">Quick Scan</button>
         <button class="video-modal-tab" type="button" data-video="cybernetai">Analysis AI</button>
-        <button class="video-modal-tab" type="button" data-video="recovery">Recovery Mode</button>
+        <button class="video-modal-tab" type="button" data-video="recovery">Recovery</button>
       </div>
       <div class="video-modal-player" id="howtoVideoPlayer">
         <div class="video-modal-placeholder">
@@ -372,7 +372,7 @@
     <div class="modal-card feedback-card glass reveal" role="dialog" aria-modal="true" aria-labelledby="feedbackTitle">
       <button class="close-modal" id="closeFeedback" type="button" aria-label="Close">&times;</button>
       <div class="feedback-heading">
-        <span class="account-eyebrow">CYBERNET SUPPORT</span>
+        <span class="account-eyebrow">CyberNet support</span>
         <h2 id="feedbackTitle">Report a problem or send feedback</h2>
         <p>Tell us what happened. Please never include passwords, OTP codes, API keys, card details, recovery phrases, or identity documents.</p>
       </div>
@@ -385,16 +385,16 @@
 
         <div class="feedback-name-grid">
           <div>
-            <label for="feedbackFirstName">First Name</label>
+            <label for="feedbackFirstName">First name</label>
             <input id="feedbackFirstName" name="first_name" type="text" autocomplete="given-name" maxlength="80" required />
           </div>
           <div>
-            <label for="feedbackLastName">Last Name</label>
+            <label for="feedbackLastName">Last name</label>
             <input id="feedbackLastName" name="last_name" type="text" autocomplete="family-name" maxlength="80" required />
           </div>
         </div>
 
-        <label for="feedbackEmail">Contact Email</label>
+        <label for="feedbackEmail">Contact email</label>
         <input id="feedbackEmail" name="email" type="email" autocomplete="email" maxlength="200" placeholder="you@example.com" required />
 
         <label for="feedbackType">What is this about?</label>
@@ -447,21 +447,21 @@
 
   <!-- ═══ NAVBAR ═══ -->
   <header class="navbar glass">
-    <a href="#" class="brand" data-page="home">
-      <svg class="brand-mark-icon" viewBox="0 0 24 26" fill="none" aria-label="CyberNet AI" width="34" height="34"><path d="M12 2 L21 6 L20 15 L12 24 L4 15 L3 6 Z" stroke="#22D3EE" stroke-width="1.8" stroke-linejoin="round"/><rect x="8.3" y="12.5" width="7.4" height="6.2" rx="1.2" fill="#22D3EE"/><path d="M9.6 12.5v-2.3a2.4 2.4 0 0 1 4.8 0v2.3" stroke="#22D3EE" stroke-width="1.6" fill="none" stroke-linecap="round"/><circle cx="12" cy="15.2" r="1" fill="#08152a"/><path d="M12 15.9v1.4" stroke="#08152a" stroke-width="1" stroke-linecap="round"/></svg>
+    <a href="#" class="brand" data-page="home" aria-label="CyberNet AI home">
+      <svg class="brand-mark-icon" viewBox="0 0 24 26" fill="none" aria-hidden="true" width="34" height="34"><path d="M12 2 L21 6 L20 15 L12 24 L4 15 L3 6 Z" stroke="#22D3EE" stroke-width="1.8" stroke-linejoin="round"/><rect x="8.3" y="12.5" width="7.4" height="6.2" rx="1.2" fill="#22D3EE"/><path d="M9.6 12.5v-2.3a2.4 2.4 0 0 1 4.8 0v2.3" stroke="#22D3EE" stroke-width="1.6" fill="none" stroke-linecap="round"/><circle cx="12" cy="15.2" r="1" fill="#08152a"/><path d="M12 15.9v1.4" stroke="#08152a" stroke-width="1" stroke-linecap="round"/></svg>
       <span class="brand-text">Cyber<span>Net</span><small>AI</small></span>
     </a>
 
     <nav class="nav-tabs">
       <span class="nav-indicator" id="navIndicator"></span>
-      <button data-v2-hint="Start here" class="nav-link active" data-page="home">Home</button>
-      <button data-v2-hint="Instant check of a text, email or link" class="nav-link" data-page="cybernet">Quick Scan</button>
-      <button data-v2-hint="Deeper look at texts, links and screenshots" class="nav-link" data-page="cybernetai">Analysis AI</button>
-      <button data-v2-hint="Already clicked or paid? Get a plan" class="nav-link" data-page="recovery">Recovery</button>
-      <button data-v2-hint="Short lessons on staying safe" class="nav-link" data-page="learn">Learn</button>
-      <button data-v2-hint="Seats, invites and team activity" class="nav-link" id="navManageBusinessBtn" type="button" aria-haspopup="dialog">Manage Business</button>
-      <button data-v2-hint="Free, Pro and Business" class="nav-link" data-page="pricing">Pricing</button>
-      <button data-v2-hint="How CyberNet AI works" class="nav-link" data-page="about">About</button>
+      <button class="nav-link active" data-page="home">Home</button>
+      <button class="nav-link" data-page="cybernet">Quick Scan</button>
+      <button class="nav-link" data-page="cybernetai">Analysis AI</button>
+      <button class="nav-link" data-page="recovery">Recovery</button>
+      <button class="nav-link" data-page="learn">Learn</button>
+      <button class="nav-link" id="navManageBusinessBtn" type="button" aria-haspopup="dialog">Manage Business</button>
+      <button class="nav-link" data-page="pricing">Pricing</button>
+      <button class="nav-link" data-page="about">About</button>
     </nav>
 
     <div class="nav-actions">
@@ -487,65 +487,66 @@
     <button class="mobile-menu" id="mobileMenu" aria-label="Menu" aria-expanded="false">Menu</button>
   </header>
 
-  <main>
+  <main id="cnMain" tabindex="-1">
 
     <!-- ═══════════ HOME ═══════════ -->
     <section id="home" class="page active-page">
       <div class="hero" id="heroSection">
-        <span class="cursor-glow" id="cursorGlow"></span>
-        <div class="hero-content reveal">
-          <button class="pill hero-learn-pill hero-learn-pill-filled" id="heroLearnFeaturesBtn" type="button">
-            Learn how to use each feature
-            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </button>
-          <h1 class="hero-title">Is it a scam?<br/><span>Know in seconds.</span></h1>
-          <p>Paste a message, link or screenshot. Get a clear answer, and a recovery plan if something already went wrong.</p>
-          <div class="v2-scanbox" id="v2ScanBox">
-            <label class="v2-sr" for="v2ScanInput">Paste a message or link to check</label>
-            <textarea id="v2ScanInput" rows="2" maxlength="5000" placeholder="Paste a text, email or link…" autocomplete="off" spellcheck="false"></textarea>
-            <div class="v2-scan-row">
-              <div class="v2-try" role="group" aria-label="Try an example">
-                <span class="v2-try-label">Try</span>
-                <button type="button" class="v2-chip" data-v2-try="text" title="Runs a Quick Scan on an example scam text">Text</button>
-                <button type="button" class="v2-chip" data-v2-try="link" title="Runs a Quick Scan on an example scam link">Link</button>
-                <button type="button" class="v2-chip" data-v2-try="qr" title="Runs a Quick Scan on an example QR code image">QR code</button>
-              </div>
-              <div class="hero-buttons">
-                <button class="secondary-btn big glass" data-page="about">Learn More</button>
-                <button class="primary-btn big" data-page="cybernet">Start Scanning</button>
+        <div class="cn-stage">
+          <canvas class="cn-stage-canvas" data-cn="shader" aria-hidden="true"></canvas>
+          <div class="cn-stage-grid" aria-hidden="true"></div>
+          <div class="hero-content reveal cn-hero">
+            <button class="pill hero-learn-pill hero-learn-pill-filled" id="heroLearnFeaturesBtn" type="button">
+              Learn how to use each feature
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <h1 class="hero-title">Is it a scam?<br/><span>Know in <em class="cn-sweep">seconds</em>.</span></h1>
+            <p class="cn-hero-sub">Paste a message or link below. Get a clear answer, and a recovery plan if something already went wrong.</p>
+            <div class="cn-scanbox" id="cnScanBox">
+              <label class="cn-sr" for="cnScanInput">Paste a message or link to check</label>
+              <textarea id="cnScanInput" rows="2" maxlength="5000" placeholder="Paste a text, email or link…" data-cn-placeholders="Paste a text from your bank…|Paste a link you weren’t expecting…|Paste a job offer from WhatsApp…|Paste a “parcel on hold” message…" autocomplete="off" spellcheck="false"></textarea>
+              <div class="cn-scan-row">
+                <div class="cn-try" role="group" aria-label="Try an example">
+                  <span class="cn-try-label">Try</span>
+                  <button type="button" class="cn-chip" data-cn-try="text" title="Runs a real Quick Scan on an example scam text. Needs a free account.">Text</button>
+                  <button type="button" class="cn-chip" data-cn-try="link" title="Runs a real Quick Scan on an example scam link. Needs a free account.">Link</button>
+                  <button type="button" class="cn-chip" data-cn-try="qr" title="Runs a real Quick Scan on an example QR code image. Needs a free account.">QR code</button>
+                </div>
+                <div class="hero-buttons">
+                  <button class="primary-btn big" data-page="cybernet">Start scanning</button>
+                </div>
               </div>
             </div>
+            <p class="cn-hero-recovery">Already clicked, paid or shared&nbsp;a&nbsp;code? <button type="button" class="inline-link-btn cn-hero-recovery-btn" data-page="recovery">Get a recovery plan</button></p>
           </div>
+          <button class="cn-stage-pause" type="button" aria-pressed="false" aria-label="Pause background motion" title="Pause background motion"><span aria-hidden="true"></span></button>
         </div>
 
-        <div class="hero-video-buttons" role="group" aria-label="Watch how-to videos">
+        <div class="hero-video-buttons" role="group" aria-label="Step-by-step guides for each tool">
           <button class="hero-video-btn" type="button" data-video="protect" aria-haspopup="dialog">
             <span class="hero-video-btn-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.8" cy="10.8" r="6.6"/><path d="m20.5 20.5-4.9-4.9"/><path d="M11.5 7.6 9.4 11h3l-2.1 3.4"/></svg>
             </span>
             <span class="hero-video-btn-label">Quick Scan</span>
-            <span class="v2-tile-sub" aria-hidden="true">Watch how-to</span>
+            <span class="cn-tile-sub">How it works</span>
           </button>
           <button class="hero-video-btn" type="button" data-video="cybernetai" aria-haspopup="dialog">
             <span class="hero-video-btn-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 3.5c.6 4 2.6 6 6.5 6.5-3.9.6-5.9 2.6-6.5 6.5-.6-3.9-2.6-5.9-6.5-6.5 3.9-.5 5.9-2.5 6.5-6.5Z"/><path d="M18.5 15c.3 1.6 1 2.3 2.5 2.5-1.5.3-2.2 1-2.5 2.5-.3-1.5-1-2.2-2.5-2.5 1.5-.2 2.2-.9 2.5-2.5Z"/></svg>
             </span>
             <span class="hero-video-btn-label">Analysis AI</span>
-            <span class="v2-tile-sub" aria-hidden="true">Watch how-to</span>
+            <span class="cn-tile-sub">How it works</span>
           </button>
           <button class="hero-video-btn" type="button" data-video="recovery" aria-haspopup="dialog">
             <span class="hero-video-btn-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.6"/><path d="m6 6 3.4 3.4M18 6l-3.4 3.4M6 18l3.4-3.4M18 18l-3.4-3.4"/></svg>
             </span>
             <span class="hero-video-btn-label">Recovery</span>
-            <span class="v2-tile-sub" aria-hidden="true">Watch how-to</span>
+            <span class="cn-tile-sub">How it works</span>
           </button>
         </div>
 
-        <div class="hero-visual reveal">
-          <div class="v2-hero-stage" aria-hidden="true">
-            <img class="v2-hero-static" src="/v2/shield.webp" srcset="/v2/shield-400.webp 400w, /v2/shield.webp 640w" sizes="(max-width: 819px) 260px, 640px" alt="" width="640" height="640" decoding="async" fetchpriority="high" />
-          </div>
+        <div class="hero-visual" hidden aria-hidden="true">
           <div class="globe-shield-wrap">
             <div class="globe-glow"></div>
             <div class="globe-3d-pos">
@@ -574,187 +575,279 @@
         </div>
       </div>
 
-
-      <!-- LIVE STATS + WHY CHOOSE -->
-      <div class="hero-info-row reveal">
-        <div class="hero-stats-panel glass">
-          <div class="hero-stats-panel-head">
-            <h4>Activity</h4>
-          </div>
-          <div class="hero-live-stats">
-            <div class="hero-live-stat">
-              <strong id="liveScansCount">—</strong>
-              <span>Scans Completed</span>
+      <!-- LIVE ACTIVITY: real numbers from /api/public-stats -->
+      <section class="cn-live" aria-labelledby="cnLiveTitle">
+        <header class="cn-head reveal">
+          <span class="cn-eyebrow"><i class="cn-live-dot" aria-hidden="true"></i><span data-cn-live-label>Activity</span></span>
+          <h2 id="cnLiveTitle">Real activity. <span>Real numbers.</span></h2>
+          <p>Counted from CyberNet AI’s own records. While this section is on screen, the numbers refresh every minute.</p>
+        </header>
+        <div class="hero-info-row reveal">
+          <div class="hero-stats-panel glass">
+            <div class="hero-stats-panel-head">
+              <h4>All-time totals</h4>
+              <span class="cn-live-time" data-cn-live-time></span>
             </div>
-            <div class="hero-live-stat">
-              <strong id="liveThreatsCount">—</strong>
-              <span>Threats Flagged</span>
-            </div>
-            <div class="hero-live-stat">
-              <strong id="liveRecoveriesCount">—</strong>
-              <span>Recoveries Guided</span>
-            </div>
-          </div>
-          <p class="hero-stats-note" id="heroStatsNote"><strong>Loading…</strong></p>
-        </div>
-
-        <div class="hero-why-panel glass">
-          <h4>At A Glance</h4>
-          <ul>
-            <li><span class="why-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" aria-hidden="true"><path d="M13 2 L4 14 H11 L10 22 L20 9 H13 Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></span> Instant, expert-level threat analysis — no prompting required</li>
-            <li><span class="why-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="3.4" stroke="currentColor" stroke-width="1.7"/></svg></span> Layered detection: deterministic rules + advanced AI</li>
-            <li><span class="why-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M8 11V7.5a4 4 0 0 1 7-2.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span> Use our managed AI or connect your own key</li>
-            <li><span class="why-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" aria-hidden="true"><path d="M12 2 L21 6 L20 15 L12 22 L4 15 L3 6 Z" stroke="currentColor" stroke-width="1.7"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span> Guided step-by-step recovery if you have already been hit</li>
-          </ul>
-          <button class="secondary-btn glass" data-page="about">See what makes us different</button>
-        </div>
-      </div>
-
-      <!-- v2: EXAMPLE SCAN (illustration only) -->
-      <section class="v2-watch" id="v2Watch" aria-labelledby="v2WatchTitle">
-        <div class="v2-watch-stage">
-          <div class="v2-watch-in">
-            <div class="v2-watch-copy">
-              <span class="v2-tag">Example scan</span>
-              <h2 id="v2WatchTitle" data-v2-split>Watch it read a scam, step by step.</h2>
-              <ol class="v2-steps" id="v2Steps">
-                <li class="v2-step"><i class="v2-step-bar"></i><b>Reading the message</b><small>Spots pressure, payment asks and odd wording.</small></li>
-                <li class="v2-step"><i class="v2-step-bar"></i><b>Checking the link</b><small>Compares the web address with who it claims to be.</small></li>
-                <li class="v2-step"><i class="v2-step-bar"></i><b>Rules + AI cross-check</b><small>Fixed scam rules first, then AI reads the context.</small></li>
-                <li class="v2-step"><i class="v2-step-bar"></i><b>A clear answer</b><small>The verdict, the reasons, and what to do next.</small></li>
-              </ol>
-            </div>
-            <div class="v2-cc" id="v2Cc">
-              <div class="v2-cc-top"><span class="v2-cc-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="v2-mono">Quick Scan</span><span class="v2-cc-status" id="v2CcStatus"><i></i><span id="v2CcStatusText">Reading</span></span><span class="v2-mono v2-cc-ex">Example · not a real scan</span></div>
-              <div class="v2-cc-grid">
-                <div class="v2-cc-cell v2-cc-msg">
-                  <div class="v2-cc-label">Incoming text <span class="v2-fake">FAKE</span></div>
-                  <div class="v2-bubble" id="v2Bubble" data-v2-msg="Your parcel is |on hold|. Pay the |$1.99 redelivery fee| |today| to avoid return: |parcel-redeliver-help.com|">Your parcel is on hold. Pay the $1.99 redelivery fee today to avoid return: parcel-redeliver-help.com</div>
-                  <dl class="v2-kv" id="v2Kv"><div><dt>Type</dt><dd>Text message</dd></div><div><dt>Links</dt><dd>1 found</dd></div><div><dt>Money asked</dt><dd>$1.99</dd></div></dl>
-                  <div class="v2-from"><span class="v2-av" aria-hidden="true">?</span><span>+1 (555) 0137 · unknown sender</span></div>
-                </div>
-                <div class="v2-cc-cell v2-cc-map"><canvas id="v2CcMap" aria-hidden="true"></canvas><span class="v2-cc-label v2-map-label">Signal map</span></div>
-                <div class="v2-cc-cell v2-cc-side">
-                  <div class="v2-cc-label">Risk score</div>
-                  <div class="v2-gauge">
-                    <svg viewBox="0 0 200 112" aria-hidden="true"><defs><linearGradient id="v2GaugeGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#6CF0B0"/><stop offset=".5" stop-color="#FFB547"/><stop offset="1" stop-color="#FF5C7A"/></linearGradient></defs><path class="v2-g-track" d="M22 100 A78 78 0 0 1 178 100"/><path class="v2-g-val" id="v2GaugeVal" d="M22 100 A78 78 0 0 1 178 100" pathLength="100" stroke-dasharray="100" stroke-dashoffset="14"/><circle class="v2-g-knob" id="v2GaugeKnob" cx="166.7" cy="59.7" r="7"/></svg>
-                    <div class="v2-g-num"><b id="v2GaugeNum">86</b><span>/100</span></div>
-                  </div>
-                  <span class="v2-stamp" id="v2Stamp">SCAM</span>
-                  <ul class="v2-sig" id="v2Sig">
-                    <li>Pressure to act today</li>
-                    <li>Small "fee" to get your card</li>
-                    <li>Link isn't a real courier</li>
-                  </ul>
-                </div>
+            <div class="hero-live-stats">
+              <div class="hero-live-stat">
+                <strong id="liveScansCount">—</strong>
+                <span>Scans completed</span>
               </div>
-              <div class="v2-cc-foot"><div class="v2-cc-bar"><i id="v2CcBar"></i></div><span class="v2-mono" id="v2CcFoot">Done · Don't pay. Delete the text.</span></div>
+              <div class="hero-live-stat">
+                <strong id="liveThreatsCount">—</strong>
+                <span>Threats flagged</span>
+              </div>
+              <div class="hero-live-stat">
+                <strong id="liveRecoveriesCount">—</strong>
+                <span>Recovery cases</span>
+              </div>
             </div>
+            <div class="cn-funnel" data-cn="funnel" data-mode="live" aria-hidden="true">
+              <div class="cn-funnel-row" data-key="scans"><span>Scans</span><i><b></b></i><em>—</em></div>
+              <div class="cn-funnel-row" data-key="threats"><span>Threats flagged</span><i><b></b></i><em>—</em></div>
+              <div class="cn-funnel-row" data-key="recoveries"><span>Recovery cases</span><i><b></b></i><em>—</em></div>
+            </div>
+            <p class="hero-stats-note" id="heroStatsNote"><strong>Loading…</strong></p>
           </div>
+
+          <div class="cn-ring-card glass" data-cn="threat-ring" data-mode="live">
+            <span class="cn-label">Threats flagged per 100 scans</span>
+            <div class="cn-ring">
+              <svg viewBox="0 0 120 120" aria-hidden="true"><circle class="cn-ring-track" cx="60" cy="60" r="52"/><circle class="cn-ring-val" cx="60" cy="60" r="52" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/></svg>
+              <b data-cn-ring-num>—</b>
+            </div>
+            <p class="cn-ring-note">Only saved Pro and Business analyses count as flagged. Free results and Quick Scans are never saved.</p>
+          </div>
+
+          <div class="hero-why-panel glass">
+          <h4>At a glance</h4>
+          <ul>
+            <li><span class="why-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" aria-hidden="true"><path d="M13 2 L4 14 H11 L10 22 L20 9 H13 Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></span> Answers in seconds, with no prompts to write</li>
+            <li><span class="why-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="3.4" stroke="currentColor" stroke-width="1.7"/></svg></span> Scam rules first, then AI for the context</li>
+            <li><span class="why-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span> Reasons in plain language, not jargon</li>
+            <li><span class="why-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" aria-hidden="true"><path d="M12 2 L21 6 L20 15 L12 22 L4 15 L3 6 Z" stroke="currentColor" stroke-width="1.7"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span> Step-by-step help if you already clicked or paid</li>
+          </ul>
+          <button class="secondary-btn glass" data-page="about">About CyberNet AI</button>
+        </div>
         </div>
       </section>
-      <!-- WHY CHOOSE -->
+
+      <!-- EXAMPLE SCAN: an illustration, not a real scan -->
+      <section class="cn-demo" id="cnDemo" aria-labelledby="cnDemoTitle">
+        <div class="cn-demo-in">
+          <div class="cn-demo-copy reveal">
+            <span class="cn-eyebrow">Example scan</span>
+            <h2 id="cnDemoTitle">Watch Quick&nbsp;Scan <span>read a scam.</span></h2>
+            <ol class="cn-steps">
+              <li class="cn-step"><i class="cn-step-bar"></i><b>Reading the message</b><small>Spots pressure, payment asks and odd wording.</small></li>
+              <li class="cn-step"><i class="cn-step-bar"></i><b>Checking the link</b><small>Compares the web address with who it claims to be.</small></li>
+              <li class="cn-step"><i class="cn-step-bar"></i><b>Scoring the risk</b><small>Adds up the warning signs with CyberNet AI’s scam rules.</small></li>
+              <li class="cn-step"><i class="cn-step-bar"></i><b>A clear answer</b><small>The verdict, the reasons, and what to do next.</small></li>
+            </ol>
+            <button type="button" class="cn-ghost-btn" data-cn-demo-toggle>Pause<span class="cn-sr"> the example scan</span></button>
+          </div>
+          <figure class="cn-console" data-cn="demo" aria-label="Example of a scam text being checked. This is an illustration, not a real scan.">
+            <figcaption class="cn-console-top">
+              <span class="cn-mono">Quick Scan</span>
+              <span class="cn-status" data-cn-status><i aria-hidden="true"></i><span data-cn-status-text>Reading</span></span>
+              <span class="cn-ex">Example · not a real scan</span>
+            </figcaption>
+            <div class="cn-console-grid">
+              <div class="cn-msg">
+                <span class="cn-label">Incoming text</span>
+                <p class="cn-bubble" data-cn-msg="Your parcel is |on hold|. Pay the |$1.99 redelivery fee| today to avoid return: |parcel-redeliver-help.invalid/pay|">Your parcel is on hold. Pay the $1.99 redelivery fee today to avoid return: parcel-redeliver-help.invalid/pay</p>
+                <span class="cn-from"><i aria-hidden="true">?</i>+1 (202) 555-0137 · unknown sender</span>
+              </div>
+              <div class="cn-meter">
+                <span class="cn-label">Risk score</span>
+                <svg class="cn-arc" viewBox="0 0 200 116" aria-hidden="true"><path class="cn-arc-track" d="M20 100 A80 80 0 0 1 180 100"/><path class="cn-arc-val" d="M20 100 A80 80 0 0 1 180 100" pathLength="100" stroke-dasharray="100" stroke-dashoffset="20"/></svg>
+                <div class="cn-meter-num"><b data-cn-score>80</b><span>/100</span></div>
+                <span class="cn-verdict" data-cn-verdict>Scam</span>
+              </div>
+              <ul class="cn-reasons">
+                <li>A parcel problem used as bait</li>
+                <li>Asks for a small redelivery fee</li>
+                <li>Pushes you to pay through a link</li>
+              </ul>
+            </div>
+            <div class="cn-console-foot">
+              <div class="cn-progress" aria-hidden="true"><i data-cn-progress></i></div>
+              <span data-cn-foot>Don’t pay or tap the link. Block the sender.</span>
+            </div>
+          </figure>
+        </div>
+      </section>
+
+      <!-- THREE TOOLS, ONE FLOW -->
+      <section class="cn-flow" id="cnFlow" aria-labelledby="cnFlowTitle">
+        <header class="cn-head reveal">
+          <h2 id="cnFlowTitle">Check it. Understand it. <span>Fix it.</span></h2>
+          <p>Start with a quick verdict, ask Analysis AI what it means, and get a step-by-step plan if something already went wrong.</p>
+        </header>
+        <div class="cn-reel reveal" data-cn="reel" data-interval="6500">
+          <div class="cn-reel-tabs" role="tablist" aria-label="CyberNet AI tools">
+            <button type="button" role="tab" class="cn-reel-tab" id="cnTabScan" aria-controls="cnPanelScan" aria-selected="true"><b>Quick Scan</b><small>An instant verdict on a text, link or QR code.</small><i class="cn-reel-line" aria-hidden="true"></i></button>
+            <button type="button" role="tab" class="cn-reel-tab" id="cnTabAi" aria-controls="cnPanelAi" aria-selected="false"><b>Analysis AI</b><small>Ask follow-up questions in plain language.</small><i class="cn-reel-line" aria-hidden="true"></i></button>
+            <button type="button" role="tab" class="cn-reel-tab" id="cnTabRec" aria-controls="cnPanelRec" aria-selected="false"><b>Recovery</b><small>Already clicked or paid? Get a step-by-step plan.</small><i class="cn-reel-line" aria-hidden="true"></i></button>
+          </div>
+          <div class="cn-reel-panels">
+            <div class="cn-reel-panel" role="tabpanel" id="cnPanelScan" aria-labelledby="cnTabScan">
+              <div class="cn-mini cn-mini-scan">
+                <div class="cn-mini-top"><span class="cn-mono">Quick Scan · Link</span><span class="cn-ex">Example</span></div>
+                <div class="cn-mini-url">secure-acct-verify.invalid/login</div>
+                <div class="cn-mini-verdict"><span class="cn-verdict">Scam</span><b>42</b></div>
+                <ul class="cn-mini-list"><li>The link asks you to sign in</li><li>Uses “secure” and “verify” in its name to look official</li></ul>
+              </div>
+              <button type="button" class="primary-btn" data-page="cybernet">Open Quick Scan</button>
+            </div>
+            <div class="cn-reel-panel" role="tabpanel" id="cnPanelAi" aria-labelledby="cnTabAi">
+              <div class="cn-mini cn-mini-chat">
+                <div class="cn-mini-top"><span class="cn-mono">Analysis AI</span><span class="cn-ex">Example</span></div>
+                <p class="cn-msg-user">My “bank” says my card is blocked and wants me to confirm a code. Is that real?</p>
+                <p class="cn-msg-ai" data-cn-stream>No. Your bank will never ask you to read out a code it just sent you. That code lets someone else sign in as you. Don’t reply, and call the number on the back of your card.</p>
+                <span class="cn-verdict">Scam</span>
+              </div>
+              <button type="button" class="primary-btn" data-page="cybernetai">Open Analysis AI</button>
+            </div>
+            <div class="cn-reel-panel" role="tabpanel" id="cnPanelRec" aria-labelledby="cnTabRec">
+              <div class="cn-mini cn-mini-rec">
+                <div class="cn-mini-top"><span class="cn-mono">Recovery plan</span><span class="cn-ex">Example</span></div>
+                <div class="cn-mini-progress"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="20"/><circle class="cn-mini-ring" cx="24" cy="24" r="20" pathLength="100" stroke-dasharray="100" stroke-dashoffset="25"/></svg><span><b>3 of 4</b> steps done</span></div>
+                <ul class="cn-checklist"><li class="is-done">Freeze your card in your banking app</li><li class="is-done">Call your bank on the number on your card</li><li class="is-done">Change your passwords and turn on two-factor (2FA)</li><li>Report it to the police cybercrime unit</li></ul>
+              </div>
+              <button type="button" class="primary-btn" data-page="recovery">Open Recovery</button>
+            </div>
+          </div>
+          <button type="button" class="cn-ghost-btn cn-reel-pause" data-cn-reel-pause>Pause<span class="cn-sr"> the tool tour</span></button>
+        </div>
+      </section>
+
+      <!-- HOW IT DECIDES -->
       <div class="why-choose reveal">
-        <h2>Why Choose CyberNet AI?</h2>
-        <div class="why-choose-grid">
+        <header class="cn-head">
+          <h2>Rules first, <span>then AI.</span></h2>
+          <p>Quick Scan checks CyberNet AI’s own scam rules and answers in under a second. Analysis AI adds an AI reading of the context on top.</p>
+        </header>
+        <div class="cn-beams" data-cn="beams" aria-hidden="true">
+          <svg viewBox="0 0 960 300" preserveAspectRatio="xMidYMid meet">
+            <g class="cn-beam-paths">
+              <path d="M160 60 C 300 60, 330 110, 460 110"/>
+              <path d="M160 150 C 300 150, 330 110, 460 110"/>
+              <path class="is-ai" d="M160 150 C 300 150, 330 190, 460 190"/>
+              <path class="is-ai" d="M160 240 C 300 240, 330 190, 460 190"/>
+              <path d="M600 110 C 690 110, 700 150, 808 150"/>
+              <path class="is-ai" d="M600 190 C 690 190, 700 150, 808 150"/>
+            </g>
+            <g class="cn-beam-nodes">
+              <g class="cn-node-in" transform="translate(90 60)"><rect x="-70" y="-20" width="140" height="40" rx="20"/><text text-anchor="middle" dy="5">Message</text></g>
+              <g class="cn-node-in" transform="translate(90 150)"><rect x="-70" y="-20" width="140" height="40" rx="20"/><text text-anchor="middle" dy="5">Link</text></g>
+              <g class="cn-node-in" transform="translate(90 240)"><rect x="-70" y="-20" width="140" height="40" rx="20"/><text text-anchor="middle" dy="5">Screenshot</text></g>
+              <g class="cn-node-engine" transform="translate(530 110)"><rect x="-70" y="-22" width="140" height="44" rx="12"/><text text-anchor="middle" dy="5">Scam rules</text></g>
+              <g class="cn-node-engine is-ai" transform="translate(530 190)"><rect x="-70" y="-22" width="140" height="44" rx="12"/><text text-anchor="middle" dy="5">AI context</text></g>
+              <g class="cn-node-out" transform="translate(870 150)"><rect x="-62" y="-26" width="124" height="52" rx="26"/><text text-anchor="middle" dy="5">Verdict</text></g>
+            </g>
+          </svg>
+        </div>
+        <div class="why-choose-grid" data-cn-stagger>
           <div class="why-choose-item">
-            <span class="wc-icon-box"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4.5" stroke="currentColor" stroke-width="1.6"/><path d="M8 11.5V14a4 4 0 0 0 8 0v-2.5" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="8" r="1.4" fill="currentColor"/><path d="M12 3.5V2M12 19v2M4 8H2M22 8h-2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span>
-            <div><h4>AI-Assisted</h4><p>Secure AI helps explain suspicious evidence, risk, uncertainty, and next actions.</p></div>
+            <span class="wc-icon-box"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="4.5" stroke="currentColor" stroke-width="1.6"/><path d="M8 11.5V14a4 4 0 0 0 8 0v-2.5" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="8" r="1.4" fill="currentColor"/><path d="M12 3.5V2M12 19v2M4 8H2M22 8h-2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span>
+            <div><h4>Explains the why</h4><p>Analysis AI tells you the warning signs, how sure it is and what to do next.</p></div>
           </div>
           <div class="why-choose-item">
-            <span class="wc-icon-box"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2.5L20 6v6c0 5-3.5 8-8 9.5C7.5 20 4 17 4 12V6l8-3.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 12l2 2 4-4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            <div><h4>On-Demand Analysis</h4><p>Submit content whenever you need a careful, detailed second opinion.</p></div>
+            <span class="wc-icon-box"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2.5L20 6v6c0 5-3.5 8-8 9.5C7.5 20 4 17 4 12V6l8-3.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 12l2 2 4-4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <div><h4>Ready when you are</h4><p>Check something before you reply, click or pay.</p></div>
           </div>
           <div class="why-choose-item">
-            <span class="wc-icon-box"><svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="15" r="1.4" fill="currentColor"/></svg></span>
-            <div><h4>Privacy Focused</h4><p>Secrets stay server-side, Free scans are not saved, and saved case images are removed from browser history.</p></div>
+            <span class="wc-icon-box"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="15" r="1.4" fill="currentColor"/></svg></span>
+            <div><h4>Private by default</h4><p>Free scans aren’t saved. Pro history is visible only to you; on a Business team, the owner sees team activity.</p></div>
           </div>
           <div class="why-choose-item">
-            <span class="wc-icon-box"><svg viewBox="0 0 24 24" fill="none"><path d="M4 12l5 5L20 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            <div><h4>Layered Detection</h4><p>Deterministic rules and AI analysis work together — the AI can't return a lower risk than the rules already found.</p></div>
+            <span class="wc-icon-box"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12l5 5L20 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <div><h4>Rules set the floor</h4><p>The AI can add warnings, but it can never lower the risk the rules found.</p></div>
           </div>
         </div>
       </div>
 
-
-      <!-- v2: EVERYWHERE -->
-      <section class="v2-world" id="v2World" aria-labelledby="v2WorldTitle">
-        <div class="v2-world-in">
-          <div class="v2-globe-box"><canvas id="v2Globe" aria-hidden="true"></canvas></div>
-          <div class="v2-world-copy">
-            <span class="v2-tag">Everywhere</span>
-            <h2 id="v2WorldTitle" data-v2-split>Scams cross every border, every second.</h2>
-            <div class="v2-big-stat">
-              <span class="v2-stat-num" id="v2StatNum" data-v2-target="442">$442B</span>
-              <small>lost to scams worldwide in one year. That is about $14,000 every second.</small>
+      <!-- EVERYWHERE -->
+      <section class="cn-world" id="cnWorld" aria-labelledby="cnWorldTitle">
+        <div class="cn-world-in">
+          <div class="cn-globe-box"><canvas id="cnGlobe" aria-hidden="true"></canvas><button class="cn-globe-pause" type="button" aria-pressed="false" aria-label="Pause the globe animation" title="Pause the globe animation"><span aria-hidden="true"></span></button></div>
+          <div class="cn-world-copy reveal">
+            <h2 id="cnWorldTitle">Scams cross every border, <span>every second.</span></h2>
+            <div class="cn-big-stat">
+              <span class="cn-stat-num" data-cn-count="442" data-prefix="$" data-suffix="B">$442B</span>
+              <small>lost to scams in one year, by one estimate. That is about $14,000 every second.</small>
             </div>
-            <p class="v2-src">Source: Global Anti-Scam Alliance, Global State of Scams 2025</p>
-            <p class="v2-world-lead">CyberNet AI checks what lands on your phone, wherever you are.</p>
+            <p class="cn-src">Source: Global Anti-Scam Alliance, Global State of Scams 2025 (42 countries surveyed). The globe is an illustration, not live data.</p>
+            <p class="cn-world-lead">CyberNet AI checks what lands on your phone, wherever you are.</p>
           </div>
         </div>
       </section>
-      <div class="home-limits-note reveal">
-        <strong>What CyberNet AI is — and isn't:</strong> a decision-support tool that helps you evaluate suspicious content and recover from incidents. It is not antivirus software, a bank, a law firm, or a guarantee against hacking, scams, or loss. Always verify anything involving money or credentials through an official channel.
-      </div>
 
-      <!-- QUOTE -->
-      <div class="home-quote glass reveal">
-        <p>Keep your network safe. Stay one step ahead of every threat.</p>
-      </div>
-
-      <!-- WOW SECTION -->
       <div class="wow-section glass reveal">
         <div class="wow-header">
-          <h2>CyberNet AI <span>Analysis Workspace</span></h2>
-          <p>Illustrative examples of the evidence and threat categories CyberNet can analyze.</p>
+          <h2>Built for the scams <span>people actually get.</span></h2>
+          <p>A few of the scam types CyberNet AI looks for.</p>
         </div>
         <div class="wow-stats">
           <div class="wow-stat glass tilt-card">
-            <div class="wow-ring"><svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="36" stroke="rgba(255,255,255,0.06)" stroke-width="4" fill="none"/><circle cx="40" cy="40" r="36" stroke="#22d3ee" stroke-width="4" fill="none" stroke-dasharray="180 226" stroke-linecap="round" class="wow-ring-fill"/></svg></div>
             <div class="wow-stat-number" data-target="3">3</div>
-            <div class="wow-stat-label">Quick Scan Types</div>
+            <div class="wow-stat-label">Quick Scan types</div>
           </div>
           <div class="wow-stat glass tilt-card">
-            <div class="wow-ring"><svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="36" stroke="rgba(255,255,255,0.06)" stroke-width="4" fill="none"/><circle cx="40" cy="40" r="36" stroke="#22d3ee" stroke-width="4" fill="none" stroke-dasharray="200 226" stroke-linecap="round" class="wow-ring-fill"/></svg></div>
             <div class="wow-stat-number" data-target="15">15</div>
-            <div class="wow-stat-label">Threat Categories</div>
+            <div class="wow-stat-label">Threat categories</div>
           </div>
           <div class="wow-stat glass tilt-card">
-            <div class="wow-ring"><svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="36" stroke="rgba(255,255,255,0.06)" stroke-width="4" fill="none"/><circle cx="40" cy="40" r="36" stroke="#22d3ee" stroke-width="4" fill="none" stroke-dasharray="216 226" stroke-linecap="round" class="wow-ring-fill"/></svg></div>
             <div class="wow-stat-number" data-target="5">5</div>
-            <div class="wow-stat-label">Evidence Types</div>
+            <div class="wow-stat-label">Evidence types</div>
           </div>
         </div>
         <div class="wow-ticker glass" id="wowTicker">
           <div class="ticker-track">
-            <span class="ticker-item danger">[ANALYSIS] phishing indicators detected in a lookalike domain</span>
-            <span class="ticker-item warn">[REVIEW] suspicious attachment requires independent verification</span>
-            <span class="ticker-item safe">[QR] destination extracted and structurally analyzed</span>
-            <span class="ticker-item danger">[ALERT] credential-harvesting indicators found</span>
-            <span class="ticker-item warn">[EVIDENCE] executable-download request flagged</span>
-            <span class="ticker-item safe">[REPORT] containment and recovery steps generated</span>
-            <span class="ticker-item warn">[LIMITATION] HTTPS alone does not prove a site is trustworthy</span>
-            <span class="ticker-item danger">[ALERT] malware-delivery behavior requires immediate caution</span>
+            <span class="ticker-item">Lookalike web addresses</span>
+            <span class="ticker-item">“Parcel on hold” fee texts</span>
+            <span class="ticker-item">QR codes that redirect</span>
+            <span class="ticker-item">“Account locked” bank alerts</span>
+            <span class="ticker-item">Crypto “investment” offers</span>
+            <span class="ticker-item">Fake job offers</span>
+            <span class="ticker-item">Prize and refund scams</span>
+            <span class="ticker-item">“Wrong number” chats that turn to money</span>
           </div>
+        </div>
+        <label class="cn-ticker-pause"><input type="checkbox" aria-label="Pause the moving list of scam types"><span>Pause</span></label>
+      </div>
+
+      <!-- STATEMENT -->
+      <div class="home-quote glass reveal">
+        <p data-cn="scrub">Scammers count on you acting fast. CyberNet AI gives you a second opinion just as fast.</p>
+        <div class="cn-close">
+          <a class="primary-btn big" href="#cnScanInput">Check a message or link</a>
+          <button type="button" class="cn-ghost-btn" data-page="recovery">Already clicked or paid? Get&nbsp;a&nbsp;recovery&nbsp;plan</button>
         </div>
       </div>
 
       <div class="support-box glass reveal">
         <div class="support-box-copy">
-          <span class="account-eyebrow">NEW HERE?</span>
           <h2>Not sure where to start?</h2>
-          <p>Have a question about how CyberNet AI works, or just want a hand getting started? Contact <a href="mailto:cybernetai.26@gmail.com">cybernetai.26@gmail.com</a> or send us a message.</p>
+          <p>Have a question about how CyberNet AI works, or just want a hand getting started? Contact <a href="mailto:support@cybernetai.app">support@cybernetai.app</a> or send us a message.</p>
         </div>
         <div class="support-box-actions">
-          <a class="secondary-btn" href="mailto:cybernetai.26@gmail.com?subject=CyberNet%20AI%20Support">Email CyberNet</a>
-          <button type="button" class="primary-btn open-feedback-btn">Send Feedback</button>
+          <a class="secondary-btn" href="mailto:support@cybernetai.app?subject=CyberNet%20AI%20Support">Email support</a>
+          <button type="button" class="secondary-btn open-feedback-btn">Ask a question</button>
         </div>
       </div>
-    </section>    <!-- ═══════════ CYBERNET ═══════════ -->
+
+      <div class="home-limits-note reveal">
+        <strong>What CyberNet AI is, and isn’t:</strong> a decision-support tool that helps you evaluate suspicious content and recover from incidents. It is not antivirus software, a bank, a law firm, or a guarantee against hacking, scams, or loss. Always verify anything involving money or credentials through an official channel.
+      </div>
+    </section>
+
+    <!-- ═══════════ CYBERNET ═══════════ -->
     <section id="cybernet" class="page">
       <div class="feature-page-header reveal">
         <h1>Quick Scan</h1>
-        <p>Paste a message, link, or screenshot — get an instant scam verdict.</p>
+        <p>Paste a message or link, or upload a QR code, and get an instant scam verdict.</p>
         <p class="feature-crosslink">Prefer a conversational back-and-forth instead of picking a tab? Try <button class="inline-link-btn" data-page="cybernetai" type="button">Analysis AI</button>.</p>
 
         <div class="usage-meter-card" id="quickScanUsageCard">
@@ -768,16 +861,16 @@
       </div>
 
       <div class="detect-tabs glass reveal">
-        <button class="detect-tab active" data-tab="text">Text Detection</button>
-        <button class="detect-tab" data-tab="link">Link Detection</button>
-        <button class="detect-tab" data-tab="image">Image Detection</button>
+        <button class="detect-tab active" data-tab="text">Text detection</button>
+        <button class="detect-tab" data-tab="link">Link detection</button>
+        <button class="detect-tab" data-tab="image">Image detection</button>
       </div>
 
       <!-- TEXT DETECTION -->
       <div class="detect-panel active" data-panel="text">
         <div class="detect-panel-grid reveal">
           <div class="detect-main glass">
-            <h3>Text Detection</h3>
+            <h3>Text detection</h3>
             <p>Analyze suspicious text, emails, or messages for potential threats and scams.</p>
             <textarea id="cyberTextInput" class="feature-textarea" aria-label="Suspicious message to scan" placeholder="Paste your text here..." maxlength="5000"></textarea>
             <div class="input-tools"><button type="button" class="input-clear-btn" data-clear="cyberTextInput" hidden>Clear</button><div class="char-count"><span id="cyberTextCount">0</span>/5000</div></div>
@@ -806,39 +899,39 @@
             <div class="hiw-steps-stacked">
               <div class="hiw-step-sm glass">
                 <span>1</span>
-                <div><h4>Paste Text</h4><p>Insert the text you want to analyze.</p></div>
+                <div><h4>Paste text</h4><p>Insert the text you want to analyze.</p></div>
               </div>
 
               <div class="hiw-step-sm glass">
                 <span>2</span>
-                <div><h4>Run Analysis</h4><p>Our rules engine scans for threat patterns.</p></div>
+                <div><h4>Run analysis</h4><p>Our rules engine scans for threat patterns.</p></div>
               </div>
 
               <div class="hiw-step-sm glass">
                 <span>3</span>
-                <div><h4>Get Report</h4><p>Receive a detailed risk assessment.</p></div>
+                <div><h4>Get report</h4><p>Receive a detailed risk assessment.</p></div>
               </div>
             </div>
           </div>
         </div>
 
         <div class="recent-scans glass reveal">
-          <h4>Example Results</h4>
+          <h4>Example results</h4>
 
           <ul class="scan-list" id="textScanList">
             <li>
-              <span class="scan-list-main">"Your account will be suspended..."</span>
-              <span class="risk-tag risk-tag-danger">High Risk</span>
+              <span class="scan-list-main">"Your parcel is on hold. Pay the $1.99 fee…"</span>
+              <span class="risk-tag risk-tag-danger">Scam</span>
             </li>
 
             <li>
-              <span class="scan-list-main">"You've won a $500 gift card!"</span>
-              <span class="risk-tag risk-tag-warning">Medium Risk</span>
+              <span class="scan-list-main">"Your account will be suspended. Click the link…"</span>
+              <span class="risk-tag risk-tag-warning">Scam</span>
             </li>
 
             <li>
               <span class="scan-list-main">"Your order has shipped"</span>
-              <span class="risk-tag risk-tag-safe">Low Risk</span>
+              <span class="risk-tag risk-tag-safe">Low Visible Risk</span>
             </li>
           </ul>
         </div>
@@ -848,7 +941,7 @@
       <div class="detect-panel" data-panel="link">
         <div class="detect-panel-grid reveal">
           <div class="detect-main glass">
-            <h3>Link Detection</h3>
+            <h3>Link detection</h3>
             <p>Check URLs for phishing, malware, and other malicious activity.</p>
             <input id="cyberLinkInput" type="text" aria-label="Link to scan" placeholder="Enter URL to analyze..."/>
             <div class="input-tools"><button type="button" class="input-clear-btn" data-clear="cyberLinkInput" hidden>Clear</button></div>
@@ -870,17 +963,17 @@
             <div class="hiw-steps-stacked">
               <div class="hiw-step-sm glass">
                 <span>1</span>
-                <div><h4>Paste Link</h4><p>Enter the URL you want to check.</p></div>
+                <div><h4>Paste link</h4><p>Enter the URL you want to check.</p></div>
               </div>
 
               <div class="hiw-step-sm glass">
                 <span>2</span>
-                <div><h4>Run Analysis</h4><p>We inspect the link's structure, domain, and redirect clues.</p></div>
+                <div><h4>Run analysis</h4><p>We inspect the link's structure, domain, and redirect clues.</p></div>
               </div>
 
               <div class="hiw-step-sm glass">
                 <span>3</span>
-                <div><h4>Get Report</h4><p>Receive a detailed risk assessment.</p></div>
+                <div><h4>Get report</h4><p>Receive a detailed risk assessment.</p></div>
               </div>
             </div>
           </div>
@@ -888,50 +981,50 @@
 
         <div class="what-we-check reveal">
           <div class="wwc-item glass">
-            <span class="wwc-icon">🌐</span>
+            <span class="wwc-icon" aria-hidden="true">🌐</span>
             <div>
-              <h4>Lookalike Domains</h4>
+              <h4>Lookalike domains</h4>
               <p>Spot brand impersonation and risky domain endings.</p>
             </div>
           </div>
 
           <div class="wwc-item glass">
-            <span class="wwc-icon">🎣</span>
+            <span class="wwc-icon" aria-hidden="true">🎣</span>
             <div>
-              <h4>Phishing Detection</h4>
+              <h4>Phishing pages</h4>
               <p>Identify phishing and scam pages.</p>
             </div>
           </div>
 
           <div class="wwc-item glass">
-            <span class="wwc-icon">🦠</span>
+            <span class="wwc-icon" aria-hidden="true">🦠</span>
             <div>
-              <h4>Malware Scan</h4>
+              <h4>Malware clues</h4>
               <p>Detect malicious-download and unsafe-link indicators.</p>
             </div>
           </div>
 
           <div class="wwc-item glass">
-            <span class="wwc-icon">🔒</span>
+            <span class="wwc-icon" aria-hidden="true">🔒</span>
             <div>
-              <h4>Address Checks</h4>
+              <h4>Address checks</h4>
               <p>Inspect HTTPS, domain structure, and redirect clues.</p>
             </div>
           </div>
         </div>
 
         <div class="recent-scans glass reveal">
-          <h4>Example Results</h4>
+          <h4>Example results</h4>
 
           <ul class="scan-list" id="linkScanList">
             <li>
-              <span class="scan-list-main">Shortened link promising a “free gift card”</span>
-              <span class="risk-tag risk-tag-danger">High Risk</span>
+              <span class="scan-list-main">Lookalike PayPal sign-in link</span>
+              <span class="risk-tag risk-tag-danger">Scam</span>
             </li>
 
             <li>
-              <span class="scan-list-main">“Claim your reward” sign-in page</span>
-              <span class="risk-tag risk-tag-danger">High Risk</span>
+              <span class="scan-list-main">Shortened link that hides where it goes</span>
+              <span class="risk-tag risk-tag-warning">Scam</span>
             </li>
 
             <li>
@@ -946,13 +1039,13 @@
       <div class="detect-panel" data-panel="image">
         <div class="detect-panel-grid reveal">
           <div class="detect-main glass">
-            <h3>Image Detection</h3>
+            <h3>Image detection</h3>
             <p>Upload a screenshot or photo that contains a QR code. Quick Scan decodes it and checks where it leads. For the words and logos in a screenshot, use Analysis AI.</p>
 
             <label class="real-upload-box glass" id="cyberDropZone">
               <input type="file" id="cyberImageInput" accept="image/*"/>
 
-              <div class="upload-icon">⇧</div>
+              <div class="upload-icon" aria-hidden="true">⇧</div>
 
               <h3>Drag &amp; Drop Your Image Here</h3>
 
@@ -966,59 +1059,59 @@
           </div>
 
           <div class="detect-side glass">
-            <h4>We Analyze For</h4>
+            <h4>What we check</h4>
 
             <div class="wwc-item-sm">
               <span class="wwc-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3 L22 20 H2 Z" stroke="currentColor" stroke-width="1.6"/><path d="M12 10v4M12 17h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
-              <span>QR Destination</span>
+              <span>QR destination</span>
             </div>
 
             <div class="wwc-item-sm">
               <span class="wwc-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.6"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.6"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="1.6"/><path d="M14 14h3v3h-3zM19 14h2v2h-2zM14 19h2v2h-2zM19 19h2v2h-2z" fill="currentColor"/></svg></span>
-              <span>QR Codes</span>
+              <span>QR codes</span>
             </div>
 
             <div class="wwc-item-sm">
               <span class="wwc-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
-              <span>File Checks</span>
+              <span>File checks</span>
             </div>
 
             <div class="hiw-steps-stacked">
               <div class="hiw-step-sm glass">
                 <span>1</span>
-                <div><h4>Upload Image</h4><p>Drag in or browse for a screenshot.</p></div>
+                <div><h4>Upload image</h4><p>Drag in or browse for a screenshot.</p></div>
               </div>
 
               <div class="hiw-step-sm glass">
                 <span>2</span>
-                <div><h4>Run Analysis</h4><p>We decode any QR code and check where it leads.</p></div>
+                <div><h4>Run analysis</h4><p>We decode any QR code and check where it leads.</p></div>
               </div>
 
               <div class="hiw-step-sm glass">
                 <span>3</span>
-                <div><h4>Get Report</h4><p>Receive a detailed risk assessment.</p></div>
+                <div><h4>Get report</h4><p>Receive a detailed risk assessment.</p></div>
               </div>
             </div>
           </div>
         </div>
 
         <div class="recent-scans glass reveal">
-          <h4>Example Results</h4>
+          <h4>Example results</h4>
 
           <ul class="scan-list" id="imageScanList">
             <li>
-              <span class="scan-list-main">QR code on a parking meter sticker</span>
-              <span class="risk-tag risk-tag-danger">High Risk</span>
+              <span class="scan-list-main">QR code that opens a lookalike PayPal sign-in</span>
+              <span class="risk-tag risk-tag-danger">Scam</span>
             </li>
 
             <li>
-              <span class="scan-list-main">QR code linking to a lookalike bank site</span>
-              <span class="risk-tag risk-tag-warning">Medium Risk</span>
+              <span class="scan-list-main">QR sticker that opens a shortened link</span>
+              <span class="risk-tag risk-tag-warning">Scam</span>
             </li>
 
             <li>
-              <span class="scan-list-main">QR code on a “claim your prize” flyer</span>
-              <span class="risk-tag risk-tag-danger">High Risk</span>
+              <span class="scan-list-main">QR code on a “claim your reward” flyer</span>
+              <span class="risk-tag risk-tag-warning">Scam</span>
             </li>
           </ul>
         </div>
@@ -1026,13 +1119,13 @@
 
       <div class="support-box glass reveal">
         <div class="support-box-copy">
-          <span class="account-eyebrow">CYBERNET SUPPORT &amp; FEEDBACK</span>
+          <span class="account-eyebrow">Support and feedback</span>
           <h2>Think a Quick Scan result was wrong?</h2>
-          <p>If a scan called something safe that wasn't (or the other way around), tell us — it helps us improve. Contact <a href="mailto:cybernetai.26@gmail.com">cybernetai.26@gmail.com</a> or send a structured report through the survey.</p>
+          <p>If a scan called something safe that wasn't (or the other way around), tell us. It helps us improve. Contact <a href="mailto:support@cybernetai.app">support@cybernetai.app</a> or send a structured report through the survey.</p>
         </div>
         <div class="support-box-actions">
-          <a class="secondary-btn" href="mailto:cybernetai.26@gmail.com?subject=CyberNet%20AI%20Support">Email CyberNet</a>
-          <button type="button" class="primary-btn open-feedback-btn">Send Feedback</button>
+          <a class="secondary-btn" href="mailto:support@cybernetai.app?subject=CyberNet%20AI%20Support">Email CyberNet</a>
+          <button type="button" class="primary-btn open-feedback-btn">Send feedback</button>
         </div>
       </div>
     </section>
@@ -1041,7 +1134,7 @@
     <section id="cybernetai" class="page">
       <div class="feature-page-header reveal">
         <h1>Analysis AI</h1>
-        <p>A deeper, multi-stage AI diagnostic — see what a link or QR code leads to before you open it.</p>
+        <p>A deeper AI check of messages, links and screenshots, explained in plain language. On Pro, see where a link or QR code leads before you open it.</p>
         <p class="feature-crosslink">Just want a fast, instant verdict without chatting? Try <button class="inline-link-btn" data-page="cybernet" type="button">Quick Scan</button>.</p>
 
         <div class="usage-meter-card" id="analysisAiHeaderUsageCard">
@@ -1058,7 +1151,7 @@
         <div class="ai-config glass account-access-panel">
           <div class="account-access-head">
             <div>
-              <span class="account-eyebrow">YOUR ACCESS</span>
+              <span class="account-eyebrow">Your access</span>
               <h4 id="aiPlanTitle">CyberNet AI Free</h4>
             </div>
             <span class="plan-badge plan-badge-free" id="aiPlanBadge">FREE</span>
@@ -1089,7 +1182,7 @@
           <div id="aiApiStatus" class="result-box">Sign in to use Analysis AI.</div>
 
           <div class="ai-status-block">
-            <h5>Service Status</h5>
+            <h5>Service status</h5>
 
             <div class="ai-status-row">
               <span>Model</span>
@@ -1109,7 +1202,7 @@
 
           <div class="pro-history-card" id="proHistoryCard">
             <div class="pro-history-head">
-              <h5>Scan History</h5>
+              <h5>Scan history</h5>
               <span id="historyPlanLabel">Pro feature</span>
             </div>
             <div id="proHistoryList" class="pro-history-list">
@@ -1121,13 +1214,13 @@
         <div class="ai-chat glass">
           <div class="ai-chat-lead">
             <h4>Ask Analysis AI</h4>
-            <p>Paste a message, drop a link, or attach a screenshot — Analysis AI automatically detects what it is looking at and runs the right analysis. No prompting needed.</p>
+            <p>Paste a message, drop a link or attach a screenshot. Analysis AI works out what it is looking at and runs the right analysis. No prompts to write.</p>
           </div>
 
           <div class="chat-messages" id="chatMessages">
             <div class="chat-bubble chat-bubble-ai">
               <div class="chat-bubble-inner">
-                Sign in, then paste or drop anything suspicious below — a message, a link, or a screenshot. Analysis AI automatically figures out what it is looking at and runs the right analysis. Free accounts receive 3 accurate AI analyses per day; Pro accounts receive 15 advanced analyses, saved history, and reports.
+                Sign in, then paste or drop anything suspicious below: a message, a link or a screenshot. Analysis AI works out what it is looking at and runs the right analysis. Free accounts receive 3 accurate AI analyses per day; Pro accounts receive 15 advanced analyses, saved history, and reports.
               </div>
             </div>
           </div>
@@ -1140,7 +1233,7 @@
 
           <div class="chat-input-row chat-input-row-unified" id="chatInputRowUnified">
             <label class="chat-attach-btn" id="chatAttachBtn" aria-label="Attach an image">
-              <input type="file" id="aiImageInput" accept="image/*" hidden />
+              <input type="file" id="aiImageInput" accept="image/*" />
               <span aria-hidden="true">📎</span>
             </label>
             <input id="chatInput" type="text" aria-label="Message for Analysis AI" placeholder="Paste a message, link, or describe what happened..."/>
@@ -1152,20 +1245,20 @@
 
       <div class="support-box glass reveal">
         <div class="support-box-copy">
-          <span class="account-eyebrow">CYBERNET SUPPORT &amp; FEEDBACK</span>
+          <span class="account-eyebrow">Support and feedback</span>
           <h2>Question about an Analysis AI result?</h2>
-          <p>Confused by a verdict, or think the AI got something wrong? Contact <a href="mailto:cybernetai.26@gmail.com">cybernetai.26@gmail.com</a> or send a structured report through the survey.</p>
+          <p>Confused by a verdict, or think the AI got something wrong? Contact <a href="mailto:support@cybernetai.app">support@cybernetai.app</a> or send a structured report through the survey.</p>
         </div>
         <div class="support-box-actions">
-          <a class="secondary-btn" href="mailto:cybernetai.26@gmail.com?subject=CyberNet%20AI%20Support">Email CyberNet</a>
-          <button type="button" class="primary-btn open-feedback-btn">Send Feedback</button>
+          <a class="secondary-btn" href="mailto:support@cybernetai.app?subject=CyberNet%20AI%20Support">Email CyberNet</a>
+          <button type="button" class="primary-btn open-feedback-btn">Send feedback</button>
         </div>
       </div>
     </section>    <!-- ═══════════ RECOVERY ═══════════ -->
     <section id="recovery" class="page recovery-page">
       <div class="feature-page-header reveal recovery-header">
-        <h1>You're Safe Now. Let's Fix What Happened.</h1>
-        <p>CyberNet AI turns a cybersecurity incident into a clear recovery plan — showing what to do now, what to secure next, and what risks remain.</p>
+        <h1>Take a breath. <span>Let’s fix what happened.</span></h1>
+        <p>CyberNet AI turns what happened into a clear recovery plan: what to do now, what to secure next, and what risks remain.</p>
 
         <div class="usage-meter-card" id="recoveryUsageCard">
           <div class="usage-meter-labels">
@@ -1186,7 +1279,7 @@
 
           <div class="recovery-privacy-warning">
             <strong>Never send CyberNet AI your password, OTP, MFA code, recovery code, full card number, crypto seed phrase, or private key.</strong>
-            <p>If you upload a screenshot, cover any sensitive information before uploading — CyberNet AI cannot guarantee automatic redaction of images.</p>
+            <p>If you upload a screenshot, cover any sensitive information before uploading. CyberNet AI cannot guarantee automatic redaction of images.</p>
           </div>
 
           <div class="recovery-field-grid">
@@ -1255,8 +1348,8 @@
           </div>
 
           <label class="recovery-upload-row glass" id="recoveryUploadRow">
-            <input type="file" id="recoveryImageInput" accept="image/*" hidden/>
-            <span class="upload-icon-sm">⇧</span>
+            <input type="file" id="recoveryImageInput" accept="image/*"/>
+            <span class="upload-icon-sm" aria-hidden="true">⇧</span>
             <span id="recoveryUploadLabel">Optional: attach a screenshot (cover sensitive info first)</span>
           </label>
 
@@ -1267,7 +1360,7 @@
         </div>
 
         <div class="recovery-cases-card glass">
-          <h4>Your Recovery Cases</h4>
+          <h4>Your Recovery cases</h4>
           <div id="recoveryCaseList" class="recovery-case-list">
             <p class="recovery-empty-note">Sign in to see your saved Recovery cases.</p>
           </div>
@@ -1276,15 +1369,15 @@
 
       <!-- RESULT DASHBOARD -->
       <div id="recoveryDashboard" class="recovery-dashboard reveal" hidden>
-        <button class="recovery-back-btn" id="recoveryBackBtn" type="button">&larr; Back to Recovery Cases</button>
+        <button class="recovery-back-btn" id="recoveryBackBtn" type="button">&larr; Back to your Recovery cases</button>
 
         <div class="recovery-status-row">
           <div class="recovery-status-card glass">
-            <span class="recovery-status-label">Incident Type</span>
+            <span class="recovery-status-label">Incident type</span>
             <strong id="recoveryIncidentTypeOut">—</strong>
           </div>
           <div class="recovery-status-card glass">
-            <span class="recovery-status-label">Risk Level</span>
+            <span class="recovery-status-label">Risk level</span>
             <strong id="recoveryRiskOut" class="recovery-risk-badge">—</strong>
           </div>
           <div class="recovery-status-card glass">
@@ -1307,11 +1400,11 @@
 
         <div class="recovery-facts-grid">
           <div class="recovery-fact-card glass">
-            <h5>What We Know</h5>
+            <h5>What we know</h5>
             <ul id="recoveryKnowList"></ul>
           </div>
           <div class="recovery-fact-card glass">
-            <h5>Reasonable Inferences</h5>
+            <h5>Reasonable inferences</h5>
             <ul id="recoveryInferList"></ul>
           </div>
           <div class="recovery-fact-card glass">
@@ -1321,17 +1414,17 @@
         </div>
 
         <div class="recovery-immediate-card glass">
-          <h3>Do This Now</h3>
+          <h3>Do this now</h3>
           <div id="recoveryImmediateActions" class="recovery-action-list"></div>
         </div>
 
         <div class="recovery-timeline-card glass">
-          <h3>Recovery Timeline</h3>
+          <h3>Recovery timeline</h3>
           <div class="recovery-timeline-tabs">
-            <button class="recovery-timeline-tab active" data-timeline="first10Minutes">First 10 Minutes</button>
-            <button class="recovery-timeline-tab" data-timeline="firstHour">First Hour</button>
-            <button class="recovery-timeline-tab" data-timeline="first24Hours">First 24 Hours</button>
-            <button class="recovery-timeline-tab" data-timeline="next7Days">Next 7 Days</button>
+            <button class="recovery-timeline-tab active" data-timeline="first10Minutes">First 10 minutes</button>
+            <button class="recovery-timeline-tab" data-timeline="firstHour">First hour</button>
+            <button class="recovery-timeline-tab" data-timeline="first24Hours">First 24 hours</button>
+            <button class="recovery-timeline-tab" data-timeline="next7Days">Next 7 days</button>
           </div>
           <div id="recoveryTimelineActions" class="recovery-action-list"></div>
           <div id="recoveryTimelineLocked" class="recovery-locked-note" hidden>
@@ -1341,7 +1434,7 @@
         </div>
 
         <div class="recovery-remaining-card glass">
-          <h3>What's Still At Risk?</h3>
+          <h3>What’s still at risk?</h3>
           <ul id="recoveryRemainingList"></ul>
         </div>
 
@@ -1355,7 +1448,7 @@
         </div>
 
         <div class="recovery-resources-card glass">
-          <h3>Official Reporting Resources</h3>
+          <h3>Official reporting resources</h3>
           <div id="recoveryResourcesList" class="recovery-resources-list"></div>
         </div>
 
@@ -1369,7 +1462,7 @@
         </div>
 
         <div class="recovery-history-card glass">
-          <h3>Case History</h3>
+          <h3>Case history</h3>
           <div id="recoveryHistoryList" class="recovery-history-list"></div>
         </div>
 
@@ -1378,13 +1471,13 @@
 
       <div class="support-box glass reveal">
         <div class="support-box-copy">
-          <span class="account-eyebrow">CYBERNET SUPPORT &amp; FEEDBACK</span>
+          <span class="account-eyebrow">Support and feedback</span>
           <h2>Need help with your recovery case?</h2>
-          <p>If something in your recovery plan doesn't feel right, or you're not sure what to do next, reach out — we're here to help. Contact <a href="mailto:cybernetai.26@gmail.com">cybernetai.26@gmail.com</a> or send a structured report through the survey.</p>
+          <p>If something in your recovery plan doesn't feel right, or you're not sure what to do next, reach out. We’re here to help. Contact <a href="mailto:support@cybernetai.app">support@cybernetai.app</a> or send a structured report through the survey.</p>
         </div>
         <div class="support-box-actions">
-          <a class="secondary-btn" href="mailto:cybernetai.26@gmail.com?subject=CyberNet%20AI%20Support">Email CyberNet</a>
-          <button type="button" class="primary-btn open-feedback-btn">Send Feedback</button>
+          <a class="secondary-btn" href="mailto:support@cybernetai.app?subject=CyberNet%20AI%20Support">Email CyberNet</a>
+          <button type="button" class="primary-btn open-feedback-btn">Send feedback</button>
         </div>
       </div>
     </section>    <!-- ═══════════ LEARN ═══════════ -->
@@ -1392,11 +1485,11 @@
       <div class="learn-hero glass reveal">
         <div>
           <h1>Master cyber safety<br/><span>step by step.</span></h1>
-          <p>Follow the roadmap below. Click any topic to expand its full lesson with examples and tips.</p>
+          <p>Follow the roadmap below. Open any topic to read the full lesson, with examples and tips.</p>
         </div>
 
         <div class="learn-search-card glass">
-          <label>Find Something Specific</label>
+          <label>Find something specific</label>
 
           <div class="learn-search-row">
             <input id="learnSearch" type="text" aria-label="Search lessons" placeholder="Password, HTTPS, phishing, Wi-Fi..."/>
@@ -1405,12 +1498,21 @@
 
           <div id="learnSearchResult" class="learn-search-result"></div>
         </div>
+          <nav class="cn-learn-chips" aria-label="Jump to a module">
+            <a class="cn-chip" href="#cn-module-1">Fundamentals</a>
+            <a class="cn-chip" href="#cn-module-2">Scams</a>
+            <a class="cn-chip" href="#cn-module-3">Malware</a>
+            <a class="cn-chip" href="#cn-module-4">Passwords</a>
+            <a class="cn-chip" href="#cn-module-5">Browsing &amp; networks</a>
+            <a class="cn-chip" href="#cn-module-6">Privacy</a>
+            <a class="cn-chip" href="#cn-module-7">Response</a>
+          </nav>
       </div>
 
       <div class="roadmap reveal">
 
         <!-- MODULE 01 -->
-        <div class="rm-module">
+        <div class="rm-module" id="cn-module-1">
           <div class="rm-module-head">
             <span>// Module 01</span>
             <h2>Cybersecurity Fundamentals</h2>
@@ -1419,7 +1521,7 @@
           <div class="rm-nodes">
             <div class="rm-node glass" data-keywords="cybersecurity basics protection what is definition meaning cyber security information security infosec" id="learn-what-is-cybersecurity">
               <div class="rm-node-info">
-                <h3>What is Cybersecurity?</h3>
+                <h3><button type="button" class="cn-lesson-toggle" aria-expanded="false">What is Cybersecurity?</button></h3>
                 <p>Protecting devices, accounts, networks, and data from digital attacks.</p>
               </div>
 
@@ -1448,7 +1550,7 @@
 
             <div class="rm-node glass" data-keywords="threats types attacks cyber threat malware phishing ransomware ddos man in the middle zero day list of cyber threats" id="learn-types-of-cyber-threats">
               <div class="rm-node-info">
-                <h3>Types of Cyber Threats</h3>
+                <h3><button type="button" class="cn-lesson-toggle" aria-expanded="false">Types of Cyber Threats</button></h3>
                 <p>Malware, phishing, ransomware, social engineering, and more.</p>
               </div>
 
@@ -1480,7 +1582,7 @@
 
             <div class="rm-node glass" data-keywords="hacked why people get hacked mistakes human error common causes of hacking how do hackers get in" id="learn-why-people-get-hacked">
               <div class="rm-node-info">
-                <h3>Why People Get Hacked</h3>
+                <h3><button type="button" class="cn-lesson-toggle" aria-expanded="false">Why People Get Hacked</button></h3>
                 <p>Weak passwords, clicking bad links, reusing credentials, trusting strangers.</p>
               </div>
 
@@ -1512,7 +1614,7 @@
 
             <div class="rm-node glass" data-keywords="CIA triad confidentiality integrity availability cybersecurity principles security model" id="learn-the-cia-triad">
               <div class="rm-node-info">
-                <h3>The CIA Triad</h3>
+                <h3><button type="button" class="cn-lesson-toggle" aria-expanded="false">The CIA Triad</button></h3>
                 <p>Confidentiality, Integrity, and Availability — the foundation of security.</p>
               </div>
 
@@ -1539,7 +1641,7 @@
         </div>
 
         <!-- MODULE 02 -->
-        <div class="rm-module">
+        <div class="rm-module" id="cn-module-2">
           <div class="rm-module-head">
             <span>// Module 02</span>
             <h2>Scams &amp; Social Engineering</h2>
@@ -1548,7 +1650,7 @@
           <div class="rm-nodes">
             <div class="rm-node glass" data-keywords="social engineering manipulation psychology trick definition what is human hacking" id="learn-what-is-social-engineering">
               <div class="rm-node-info">
-                <h3>What is Social Engineering?</h3>
+                <h3><button type="button" class="cn-lesson-toggle" aria-expanded="false">What is Social Engineering?</button></h3>
                 <p>Manipulating people using psychology instead of hacking technology.</p>
               </div>
 
@@ -1577,7 +1679,7 @@
 
             <div class="rm-node glass" data-keywords="phishing email fake message login credential spear phishing whaling" id="learn-phishing-attacks">
               <div class="rm-node-info">
-                <h3>Phishing Attacks</h3>
+                <h3><button type="button" class="cn-lesson-toggle" aria-expanded="false">Phishing Attacks</button></h3>
                 <p>Fake emails and messages that steal your login credentials.</p>
               </div>
 
@@ -1601,7 +1703,7 @@
 
             <div class="rm-node glass" data-keywords="vishing smishing phone sms text call quishing qr" id="learn-vishing-and-smishing">
               <div class="rm-node-info">
-                <h3>Vishing &amp; Smishing</h3>
+                <h3><button type="button" class="cn-lesson-toggle" aria-expanded="false">Vishing &amp; Smishing</button></h3>
                 <p>Phone call scams and SMS text message scams.</p>
               </div>
 
@@ -1623,7 +1725,7 @@
 
             <div class="rm-node glass" data-keywords="romance scam dating love fake relationship pig butchering" id="learn-romance-and-dating-scams">
               <div class="rm-node-info">
-                <h3>Romance &amp; Dating Scams</h3>
+                <h3><button type="button" class="cn-lesson-toggle" aria-expanded="false">Romance &amp; Dating Scams</button></h3>
                 <p>Fake relationships built online to steal money.</p>
               </div>
 
@@ -1643,7 +1745,7 @@
 
             <div class="rm-node glass" data-keywords="tech support scam fake warning popup virus alert" id="learn-tech-support-scams">
               <div class="rm-node-info">
-                <h3>Tech Support Scams</h3>
+                <h3><button type="button" class="cn-lesson-toggle" aria-expanded="false">Tech Support Scams</button></h3>
                 <p>Fake virus warnings that trick you into paying for "fixes."</p>
               </div>
 
@@ -1663,7 +1765,7 @@
 
             <div class="rm-node glass" data-keywords="investment crypto scam money pyramid ponzi guaranteed returns" id="learn-investment-and-crypto-scams">
               <div class="rm-node-info">
-                <h3>Investment &amp; Crypto Scams</h3>
+                <h3><button type="button" class="cn-lesson-toggle" aria-expanded="false">Investment &amp; Crypto Scams</button></h3>
                 <p>Fake investment platforms that promise guaranteed high returns.</p>
               </div>
 
@@ -1681,7 +1783,7 @@
 
             <div class="rm-node glass" data-keywords="otp bank code never share personal information sensitive data" id="learn-what-you-should-never-share">
               <div class="rm-node-info">
-                <h3>What You Should Never Share</h3>
+                <h3><button type="button" class="cn-lesson-toggle" aria-expanded="false">What You Should Never Share</button></h3>
                 <p>OTPs, passwords, PINs, banking details, and ID numbers.</p>
               </div>
 
@@ -1702,7 +1804,7 @@
         </div>
 
         <!-- MODULE 03 -->
-        <div class="rm-module">
+        <div class="rm-module" id="cn-module-3">
           <div class="rm-module-head">
             <span>// Module 03</span>
             <h2>Malware Deep Dive</h2>
@@ -1711,7 +1813,7 @@
           <div class="rm-nodes">
             <div class="rm-node glass" data-keywords="malware what is harmful software definition meaning types" id="learn-what-is-malware">
               <div class="rm-node-info">
-                <h3>What is Malware?</h3>
+                <h3><button type="button" class="cn-lesson-toggle" aria-expanded="false">What is Malware?</button></h3>
                 <p>Malicious software designed to damage, spy, or steal.</p>
               </div>
 
@@ -1731,7 +1833,7 @@
 
             <div class="rm-node glass" data-keywords="virus worm spread replicate infect self replicating" id="learn-viruses-and-worms">
               <div class="rm-node-info">
-                <h3>Viruses &amp; Worms</h3>
+                <h3><button type="button" class="cn-lesson-toggle" aria-expanded="false">Viruses &amp; Worms</button></h3>
                 <p>Self-replicating programs that spread across devices.</p>
               </div>
 
@@ -1753,7 +1855,7 @@
 
             <div class="rm-node glass" data-keywords="trojan RAT remote access backdoor disguised" id="learn-trojans-and-rats">
               <div class="rm-node-info">
-                <h3>Trojans &amp; RATs</h3>
+                <h3><button type="button" class="cn-lesson-toggle" aria-expanded="false">Trojans &amp; RATs</button></h3>
                 <p>Malware disguised as legitimate software that opens backdoors.</p>
               </div>
 
@@ -1773,7 +1875,7 @@
 
             <div class="rm-node glass" data-keywords="ransomware encrypt files pay locked bitcoin cryptocurrency demand" id="learn-ransomware">
               <div class="rm-node-info">
-                <h3>Ransomware</h3>
+                <h3><button type="button" class="cn-lesson-toggle" aria-expanded="false">Ransomware</button></h3>
                 <p>Encrypts your files and demands payment to unlock them.</p>
               </div>
 
@@ -1793,7 +1895,7 @@
 
             <div class="rm-node glass" data-keywords="spyware keylogger monitor track steal signs of infection" id="learn-spyware-and-keyloggers">
               <div class="rm-node-info">
-                <h3>Spyware &amp; Keyloggers</h3>
+                <h3><button type="button" class="cn-lesson-toggle" aria-expanded="false">Spyware &amp; Keyloggers</button></h3>
                 <p>Silently monitors everything you do and type.</p>
               </div>
 
@@ -1815,7 +1917,7 @@
 
             <div class="rm-node glass" data-keywords="remove malware antivirus clean infected disconnect safe mode steps" id="learn-how-to-remove-malware">
               <div class="rm-node-info">
-                <h3>How to Remove Malware</h3>
+                <h3><button type="button" class="cn-lesson-toggle" aria-expanded="false">How to Remove Malware</button></h3>
                 <p>Step-by-step: disconnect, scan, remove, recover.</p>
               </div>
 
@@ -1843,7 +1945,7 @@
         </div>
 
         <!-- MODULE 04 -->
-        <div class="rm-module">
+        <div class="rm-module" id="cn-module-4">
           <div class="rm-module-head">
             <span>// Module 04</span>
             <h2>Passwords &amp; Authentication</h2>
@@ -1852,7 +1954,7 @@
           <div class="rm-nodes">
             <div class="rm-node glass" data-keywords="strong password length symbols uppercase passphrase entropy" id="learn-creating-strong-passwords">
               <div class="rm-node-info">
-                <h3>Creating Strong Passwords</h3>
+                <h3><button type="button" class="cn-lesson-toggle" aria-expanded="false">Creating Strong Passwords</button></h3>
                 <p>Long, random, unique for every account.</p>
               </div>
 
@@ -1874,7 +1976,7 @@
 
             <div class="rm-node glass" data-keywords="password manager vault store generate encrypted bitwarden" id="learn-password-managers">
               <div class="rm-node-info">
-                <h3>Password Managers</h3>
+                <h3><button type="button" class="cn-lesson-toggle" aria-expanded="false">Password Managers</button></h3>
                 <p>Securely store and generate unique passwords for every account.</p>
               </div>
 
@@ -1894,7 +1996,7 @@
 
             <div class="rm-node glass" data-keywords="2fa mfa authentication authenticator app sms two factor multi factor" id="learn-two-factor-authentication">
               <div class="rm-node-info">
-                <h3>Two-Factor Authentication</h3>
+                <h3><button type="button" class="cn-lesson-toggle" aria-expanded="false">Two-Factor Authentication</button></h3>
                 <p>A second verification step that blocks unauthorized access.</p>
               </div>
 
@@ -1914,7 +2016,7 @@
 
             <div class="rm-node glass" data-keywords="password attack brute force dictionary credential stuffing keylogging" id="learn-common-password-attacks">
               <div class="rm-node-info">
-                <h3>Common Password Attacks</h3>
+                <h3><button type="button" class="cn-lesson-toggle" aria-expanded="false">Common Password Attacks</button></h3>
                 <p>How attackers crack and steal passwords.</p>
               </div>
 
@@ -1941,7 +2043,7 @@
         </div>
 
         <!-- MODULE 05 -->
-        <div class="rm-module">
+        <div class="rm-module" id="cn-module-5">
           <div class="rm-module-head">
             <span>// Module 05</span>
             <h2>Safe Browsing &amp; Networks</h2>
@@ -1950,7 +2052,7 @@
           <div class="rm-nodes">
             <div class="rm-node glass" data-keywords="https ssl tls encryption secure website padlock certificate" id="learn-https-and-encryption">
               <div class="rm-node-info">
-                <h3>HTTPS &amp; Encryption</h3>
+                <h3><button type="button" class="cn-lesson-toggle" aria-expanded="false">HTTPS &amp; Encryption</button></h3>
                 <p>The padlock icon and what it actually means.</p>
               </div>
 
@@ -1971,7 +2073,7 @@
 
             <div class="rm-node glass" data-keywords="public wifi danger airport cafe hotel network unsecured" id="learn-public-wi-fi-dangers">
               <div class="rm-node-info">
-                <h3>Public Wi-Fi Dangers</h3>
+                <h3><button type="button" class="cn-lesson-toggle" aria-expanded="false">Public Wi-Fi Dangers</button></h3>
                 <p>Why coffee shop Wi-Fi can be a trap.</p>
               </div>
 
@@ -1991,7 +2093,7 @@
 
             <div class="rm-node glass" data-keywords="vpn virtual private network tunnel encrypted what is" id="learn-vpns-explained">
               <div class="rm-node-info">
-                <h3>VPNs Explained</h3>
+                <h3><button type="button" class="cn-lesson-toggle" aria-expanded="false">VPNs Explained</button></h3>
                 <p>An encrypted tunnel that protects your internet traffic.</p>
               </div>
 
@@ -2007,7 +2109,7 @@
 
             <div class="rm-node glass" data-keywords="evil twin fake wifi hotspot network spoofed" id="learn-evil-twin-attacks">
               <div class="rm-node-info">
-                <h3>Evil Twin Attacks</h3>
+                <h3><button type="button" class="cn-lesson-toggle" aria-expanded="false">Evil Twin Attacks</button></h3>
                 <p>Fake Wi-Fi networks that look like the real thing.</p>
               </div>
 
@@ -2026,7 +2128,7 @@
         </div>
 
         <!-- MODULE 06 -->
-        <div class="rm-module">
+        <div class="rm-module" id="cn-module-6">
           <div class="rm-module-head">
             <span>// Module 06</span>
             <h2>Privacy &amp; Data Protection</h2>
@@ -2035,7 +2137,7 @@
           <div class="rm-nodes">
             <div class="rm-node glass" data-keywords="personal data information name phone location photos definition pii" id="learn-what-is-personal-data">
               <div class="rm-node-info">
-                <h3>What is Personal Data?</h3>
+                <h3><button type="button" class="cn-lesson-toggle" aria-expanded="false">What is Personal Data?</button></h3>
                 <p>Name, phone, email, location, photos, passwords, and more.</p>
               </div>
 
@@ -2050,7 +2152,7 @@
 
             <div class="rm-node glass" data-keywords="app permissions camera microphone contacts location review" id="learn-app-permissions">
               <div class="rm-node-info">
-                <h3>App Permissions</h3>
+                <h3><button type="button" class="cn-lesson-toggle" aria-expanded="false">App Permissions</button></h3>
                 <p>Why a calculator shouldn't need your microphone.</p>
               </div>
 
@@ -2070,7 +2172,7 @@
 
             <div class="rm-node glass" data-keywords="data breach leaked exposed password email check" id="learn-data-breaches">
               <div class="rm-node-info">
-                <h3>Data Breaches</h3>
+                <h3><button type="button" class="cn-lesson-toggle" aria-expanded="false">Data Breaches</button></h3>
                 <p>When companies lose your data to hackers.</p>
               </div>
 
@@ -2090,7 +2192,7 @@
 
             <div class="rm-node glass" data-keywords="digital footprint social media posting online trace privacy settings" id="learn-your-digital-footprint">
               <div class="rm-node-info">
-                <h3>Your Digital Footprint</h3>
+                <h3><button type="button" class="cn-lesson-toggle" aria-expanded="false">Your Digital Footprint</button></h3>
                 <p>Everything you do online leaves a trace.</p>
               </div>
 
@@ -2111,7 +2213,7 @@
         </div>
 
         <!-- MODULE 07 -->
-        <div class="rm-module">
+        <div class="rm-module" id="cn-module-7">
           <div class="rm-module-head">
             <span>// Module 07</span>
             <h2>Prevention &amp; Response</h2>
@@ -2120,7 +2222,7 @@
           <div class="rm-nodes">
             <div class="rm-node glass" data-keywords="checklist daily safe habits routine security weekly monthly" id="learn-daily-security-checklist">
               <div class="rm-node-info">
-                <h3>Daily Security Checklist</h3>
+                <h3><button type="button" class="cn-lesson-toggle" aria-expanded="false">Daily Security Checklist</button></h3>
                 <p>Simple habits that prevent most attacks.</p>
               </div>
 
@@ -2141,7 +2243,7 @@
 
             <div class="rm-node glass" data-keywords="hacked what to do account compromised stolen steps" id="learn-what-to-do-if-hacked">
               <div class="rm-node-info">
-                <h3>What To Do If Hacked</h3>
+                <h3><button type="button" class="cn-lesson-toggle" aria-expanded="false">What To Do If Hacked</button></h3>
                 <p>Immediate steps to contain the damage.</p>
               </div>
 
@@ -2170,7 +2272,7 @@
 
             <div class="rm-node glass" data-keywords="report cyber crime police authorities evidence" id="learn-reporting-cyber-crime">
               <div class="rm-node-info">
-                <h3>Reporting Cyber Crime</h3>
+                <h3><button type="button" class="cn-lesson-toggle" aria-expanded="false">Reporting Cyber Crime</button></h3>
                 <p>Where and how to report attacks and fraud.</p>
               </div>
 
@@ -2185,7 +2287,7 @@
 
             <div class="rm-node glass" data-keywords="updates software patch vulnerability safe automatic" id="learn-staying-updated-and-safe">
               <div class="rm-node-info">
-                <h3>Staying Updated &amp; Safe</h3>
+                <h3><button type="button" class="cn-lesson-toggle" aria-expanded="false">Staying Updated &amp; Safe</button></h3>
                 <p>Software updates close the doors that hackers use.</p>
               </div>
 
@@ -2204,19 +2306,20 @@
 
       <div class="support-box glass reveal">
         <div class="support-box-copy">
-          <span class="account-eyebrow">CYBERNET SUPPORT &amp; FEEDBACK</span>
+          <span class="account-eyebrow">Support and feedback</span>
           <h2>Spot a mistake, or want a topic added?</h2>
-          <p>See something incorrect in a lesson, or want us to cover a topic we haven't yet? Contact <a href="mailto:cybernetai.26@gmail.com">cybernetai.26@gmail.com</a> or send a structured report through the survey.</p>
+          <p>See something incorrect in a lesson, or want us to cover a topic we haven't yet? Contact <a href="mailto:support@cybernetai.app">support@cybernetai.app</a> or send a structured report through the survey.</p>
         </div>
         <div class="support-box-actions">
-          <a class="secondary-btn" href="mailto:cybernetai.26@gmail.com?subject=CyberNet%20AI%20Support">Email CyberNet</a>
-          <button type="button" class="primary-btn open-feedback-btn">Send Feedback</button>
+          <a class="secondary-btn" href="mailto:support@cybernetai.app?subject=CyberNet%20AI%20Support">Email CyberNet</a>
+          <button type="button" class="primary-btn open-feedback-btn">Send feedback</button>
         </div>
       </div>
     </section>    <!-- ═══════════ PRICING ═══════════ -->
     <section id="pricing" class="page">
+      <p class="cn-operator">CyberNet AI is operated under <strong>Marks Events FZ LLE</strong></p>
       <div class="section-head reveal pricing-head">
-        <div class="pill glass center">Simple, Transparent Pricing</div>
+        <div class="pill glass center">Simple, transparent pricing</div>
         <h1>Choose the protection that <span>fits you</span></h1>
         <p>Start free with accurate protection. Upgrade when you need deeper analysis, saved history, and reports.</p>
 
@@ -2245,7 +2348,7 @@
             <li>Accurate AI-powered threat detection</li>
             <li>Basic threat explanations</li>
             <li>Cybersecurity learning center</li>
-            <li><strong>1 Recovery Mode case per day</strong>, 1 update/day</li>
+            <li><strong>1 Recovery case per day</strong>, 1 update/day</li>
             <li class="feature-unavailable">No saved scan history</li>
             <li class="feature-unavailable">No downloadable reports</li>
             <li class="feature-unavailable">Recovery timeline limited to immediate actions</li>
@@ -2254,7 +2357,7 @@
         </article>
 
         <article class="price-card featured-price glass reveal pro-price-card">
-          <span class="popular-ribbon">Most Popular</span>
+          <span class="popular-ribbon" aria-hidden="true">Recommended</span>
           <div class="price-card-topline">
             <span class="price-plan-label">TOP-LEVEL PROTECTION</span>
             <span class="plan-badge plan-badge-pro">PRO</span>
@@ -2274,7 +2377,7 @@
             <li>Downloadable security reports</li>
             <li>Saved scan history</li>
             <li>Faster AI responses</li>
-            <li><strong>3 Recovery Mode cases per day</strong>, with a reminder email if a case sits idle for a day</li>
+            <li><strong>3 Recovery cases per day</strong>, with a reminder email if a case sits idle for a day</li>
             <li>Full recovery timeline: first hour, 24 hours, and 7 days</li>
             <li>Verification steps and remaining-risk analysis</li>
             <li>Downloadable Recovery case report</li>
@@ -2307,16 +2410,16 @@
                 <b>20 seats</b>$160/mo
               </button>
             </div>
-            <small class="cn-seat-custom">Need more than 20 seats, or something custom? Email <a href="mailto:cybernetai.26@gmail.com">cybernetai.26@gmail.com</a>.</small>
+            <small class="cn-seat-custom">Need more than 20 seats, or something custom? Email <a href="mailto:support@cybernetai.app">support@cybernetai.app</a>.</small>
           </div>
 
           <p class="business-email-note">One subscription covers your whole team. Every teammate signs in with their own named account, so any scan, analysis, or recovery case can be traced back to the person who ran it. Any email address works, including personal ones.</p>
           <ul>
             <li>Everything in CyberNet AI Pro, plus:</li>
-            <li><strong>Named seats for your team</strong> — invite teammates by email, each with their own login</li>
-            <li><strong>Full team activity log</strong> — see who ran what, and the full result of every analysis</li>
-            <li><strong>Shared daily pool</strong> — 50 analyses/day on 5 seats, 90 on 10, 160 on 20</li>
-            <li><strong>Shared Recovery Mode pool</strong> — 20 cases/day on 5 seats, 36 on 10, 64 on 20</li>
+            <li><strong>Named seats for your team:</strong> invite teammates by email, each with their own login</li>
+            <li><strong>Full team activity log:</strong> see who ran what, and the full result of every analysis</li>
+            <li><strong>Shared daily pool:</strong> 50 analyses/day on 5 seats, 90 on 10, 160 on 20</li>
+            <li><strong>Shared Recovery pool:</strong> 20 cases/day on 5 seats, 36 on 10, 64 on 20</li>
             <li><strong>Email check-in reminders</strong> while an open Recovery case is idle</li>
             <li>Faster Recovery update cooldown (1 hour)</li>
             <li>Owner controls who joins and who is removed</li>
@@ -2327,9 +2430,37 @@
 
       <div id="pricingNotice" class="pricing-notice glass" aria-live="polite"></div>
 
+      <section class="cn-faq reveal" aria-labelledby="cnPricingFaqTitle">
+        <div class="cn-faq-inner">
+          <div class="cn-faq-head">
+            <span class="cn-faq-eyebrow">Questions</span>
+            <h2 id="cnPricingFaqTitle">Before you choose <span>a plan</span></h2>
+            <p>Straight answers about plans, limits and teams. For anything else, email <a href="mailto:support@cybernetai.app">support@cybernetai.app</a>.</p>
+          </div>
+          <div class="cn-faq-list">
+            <details class="cn-faq-item">
+              <summary>What does the Free plan include?</summary>
+              <p>Free costs $0. Every day you get 5 Quick Scans, 3 AI analyses (text, link or image, in any mix) and 1 Recovery case with 1 update.</p>
+            </details>
+            <details class="cn-faq-item">
+              <summary>Can I cancel at any time?</summary>
+              <p>Yes. Pro and Business renew at the end of each billing period until you cancel. To cancel or change your plan, go to <strong>Account → Manage Billing</strong> before your next renewal date.</p>
+            </details>
+            <details class="cn-faq-item">
+              <summary>When do my daily limits reset?</summary>
+              <p>Quick Scans and AI analyses reset at midnight UTC. Recovery limits reset at 12:00 noon Gulf Standard Time (08:00 UTC).</p>
+            </details>
+            <details class="cn-faq-item">
+              <summary>How do Business seats work?</summary>
+              <p>One subscription covers your team. Each teammate signs in with their own named account, and the team shares a daily pool: 50 analyses a day on 5 seats, 90 on 10 and 160 on 20.</p>
+            </details>
+          </div>
+        </div>
+      </section>
+
       <div class="pricing-footnote reveal">
         <span>Yearly Pro is billed once at <strong>$95.90</strong>, equal to about <strong>$7.99/month</strong>.</span>
-        <span>Text/Link/Image AI limits reset daily at UTC midnight. Recovery Mode limits reset daily at 12:00 PM Gulf Standard Time (Asia/Dubai).</span>
+        <span>Quick Scan and AI analysis limits reset daily at midnight UTC. Recovery limits reset daily at 12:00 noon Gulf Standard Time (Asia/Dubai).</span>
       </div>
 
       <div class="pricing-renewal-note reveal">
@@ -2337,24 +2468,25 @@
       </div>
 
       <div class="pricing-legal-operator-note reveal">
-        CyberNet AI is operated under <strong>Marks Events LLC FZE</strong>. All billing, subscriptions, and payment processing for CyberNet AI are conducted by this entity.
+        CyberNet AI is operated under <strong>Marks Events FZ LLE</strong>. All billing, subscriptions, and payment processing for CyberNet AI are conducted by this entity.
       </div>
 
       <div class="support-box glass reveal">
         <div class="support-box-copy">
-          <span class="account-eyebrow">CYBERNET SUPPORT &amp; FEEDBACK</span>
+          <span class="account-eyebrow">Support and feedback</span>
           <h2>Billing question, or not sure which plan is right?</h2>
-          <p>Questions about a charge, cancelling, or which plan fits your needs? Contact <a href="mailto:cybernetai.26@gmail.com">cybernetai.26@gmail.com</a> or send a structured report through the survey.</p>
+          <p>Questions about a charge, cancelling, or which plan fits your needs? Contact <a href="mailto:support@cybernetai.app">support@cybernetai.app</a> or send a structured report through the survey.</p>
         </div>
         <div class="support-box-actions">
-          <a class="secondary-btn" href="mailto:cybernetai.26@gmail.com?subject=CyberNet%20AI%20Support">Email CyberNet</a>
-          <button type="button" class="primary-btn open-feedback-btn">Send Feedback</button>
+          <a class="secondary-btn" href="mailto:support@cybernetai.app?subject=CyberNet%20AI%20Support">Email CyberNet</a>
+          <button type="button" class="primary-btn open-feedback-btn">Send feedback</button>
         </div>
       </div>
     </section>
 
     <!-- ═══════════ ABOUT ═══════════ -->
     <section id="about" class="page">
+      <p class="cn-operator">CyberNet AI is operated under <strong>Marks Events FZ LLE</strong></p>
       <div class="about-top reveal">
         <div class="pill glass">
           About CyberNet AI
@@ -2366,27 +2498,21 @@
       <div class="hero-stats-row about-stats-row reveal">
         <div>
           <strong data-count="3" data-suffix="">3</strong>
-          <span>Quick Scan Types</span>
+          <span>Quick Scan types</span>
         </div>
 
         <div>
           <strong data-count="5" data-suffix="">5</strong>
-          <span>Evidence Types</span>
+          <span>Evidence types</span>
         </div>
 
         <div>
           <strong data-count="15" data-suffix="">15</strong>
-          <span>Threat Categories</span>
+          <span>Threat categories</span>
         </div>
       </div>
 
       <div class="fetch-panel glass reveal">
-        <div class="term-chrome">
-          <span class="dot r"></span>
-          <span class="dot y"></span>
-          <span class="dot g"></span>
-          <span class="term-path">whoami</span>
-        </div>
 
         <div class="fetch-body">
           <div class="fetch-line">
@@ -2408,56 +2534,51 @@
             <span class="fetch-key">data policy</span>
             <span>secure processing; Free scans are not saved; Pro history is private to you; Business owners see team activity</span>
           </div>
-
-          <div class="fetch-line">
-            <span class="fetch-key">status</span>
-            <span class="safe-text">● online</span>
-          </div>
         </div>
       </div>
 
       <div class="about-grid reveal">
         <div class="about-block glass tilt-card">
-          <h2>What Is CyberNet AI</h2>
+          <h2>What is CyberNet AI</h2>
 
           <p>
             CyberNet AI is a cybersecurity platform built around three tools: Quick Scan,
-            Analysis AI, and Recovery Mode. Together they help you check whether something
-            suspicious is a scam, understand why, and know exactly what to do next — before
+            Analysis AI, and Recovery. Together they help you check whether something
+            suspicious is a scam, understand why, and know exactly what to do next, before
             or after something goes wrong. An account is required to use any of the three,
             so your usage and history stay tied securely to you.
           </p>
         </div>
 
         <div class="about-block glass tilt-card">
-          <h2>Our Mission</h2>
+          <h2>Our mission</h2>
 
           <p>
             Protect people before threats become real damage. We believe
             cybersecurity shouldn't be complicated or expensive. CyberNet AI puts
             professional-grade protection in everyone's hands through simple tools,
-            clear explanations, and clear defensive next actions — explained in plain
+            clear explanations, and clear defensive next actions, explained in plain
             language, not jargon.
           </p>
         </div>
 
         <div class="about-block glass tilt-card">
-          <h2>What It Does</h2>
+          <h2>What it does</h2>
 
           <p>
-            <strong>Quick Scan</strong> gives an instant verdict on suspicious text, links, or
-            screenshots using CyberNet's own detection rules — no AI needed, results in under
-            a second. <strong>Analysis AI</strong> goes deeper: it combines those same rules with
+            <strong>Quick Scan</strong> gives an instant verdict on suspicious text, links or
+            QR codes using CyberNet AI’s own detection rules, with no AI needed and results in
+            under a second. <strong>Analysis AI</strong> goes deeper: it combines those same rules with
             real AI reasoning for a more thorough, detailed explanation, and Pro users can see a
             preview of what a link or QR code actually leads to before ever opening it.
-            <strong>Recovery Mode</strong> is for after something's already happened — it turns
+            <strong>Recovery</strong> is for after something has already happened. It turns
             "I think I got scammed" into a real, trackable recovery plan with immediate actions
             that are always free.
           </p>
         </div>
 
         <div class="about-block glass tilt-card">
-          <h2>Who It Helps</h2>
+          <h2>Who it helps</h2>
 
           <p>
             Students learning about online safety. Parents protecting their
@@ -2470,10 +2591,10 @@
       </div>
 
       <div class="home-limits-note reveal">
-        <strong>What CyberNet AI is — and isn't:</strong> a decision-support tool that helps you evaluate suspicious content and recover from incidents. It is not antivirus software, a bank, a law firm, or a guarantee against hacking, scams, or loss. No scanner — including ours — can promise something is 100% safe. Always verify anything involving money or credentials through an official channel.
+        <strong>What CyberNet AI is, and isn’t:</strong> a decision-support tool that helps you evaluate suspicious content and recover from incidents. It is not antivirus software, a bank, a law firm, or a guarantee against hacking, scams, or loss. No scanner, including ours, can promise something is 100% safe. Always verify anything involving money or credentials through an official channel.
       </div>
 
-      <div class="about-values reveal">
+      <div class="about-values reveal" data-cn-stagger>
         <div class="about-value glass tilt-card">
           <div class="av-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2 L21 6 L20 15 L12 22 L4 15 L3 6 Z" stroke="currentColor" stroke-width="1.7"/><path d="M8.5 12l2.5 2.5L16 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
           <h3>Accuracy</h3>
@@ -2496,7 +2617,7 @@
           <div class="av-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 6c3-1.5 6-1.5 9 0v13c-3-1.5-6-1.5-9 0V6Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M21 6c-3-1.5-6-1.5-9 0v13c3-1.5 6-1.5 9 0V6Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></div>
           <h3>Education</h3>
           <p>
-            Not just detection — we teach you why something is dangerous and
+            Not just detection: we teach you why something is dangerous and
             how to stay safe.
           </p>
         </div>
@@ -2504,13 +2625,13 @@
 
       <div class="support-box glass reveal" id="cybernetAboutSupport">
         <div class="support-box-copy">
-          <span class="account-eyebrow">CYBERNET SUPPORT &amp; FEEDBACK</span>
+          <span class="account-eyebrow">Support and feedback</span>
           <h2>Help us make CyberNet better.</h2>
-          <p>For feedback, an incorrect result, an account question, or a problem with the website, contact <a href="mailto:cybernetai.26@gmail.com">cybernetai.26@gmail.com</a> or send a structured report through the survey.</p>
+          <p>For feedback, an incorrect result, an account question, or a problem with the website, contact <a href="mailto:support@cybernetai.app">support@cybernetai.app</a> or send a structured report through the survey.</p>
         </div>
         <div class="support-box-actions">
-          <a class="secondary-btn" href="mailto:cybernetai.26@gmail.com?subject=CyberNet%20AI%20Support">Email CyberNet</a>
-          <button type="button" class="primary-btn open-feedback-btn">Send Feedback</button>
+          <a class="secondary-btn" href="mailto:support@cybernetai.app?subject=CyberNet%20AI%20Support">Email CyberNet</a>
+          <button type="button" class="primary-btn open-feedback-btn">Send feedback</button>
         </div>
       </div>
     </section>
@@ -2518,7 +2639,8 @@
   </main>
 
   <footer>
-    <p>&copy; 2026 CyberNet AI. Secure today. Safer tomorrow. &nbsp;·&nbsp; <a href="mailto:cybernetai.26@gmail.com">cybernetai.26@gmail.com</a> &nbsp;·&nbsp; <button type="button" class="cn-cookie-settings" data-cn-consent-open>Cookie settings</button></p>
+    <a class="cn-footer-brand" href="/" data-page="home" aria-label="CyberNet AI home">Cyber<span>Net</span> <small>AI</small></a>
+    <p>&copy; 2026 CyberNet AI. Secure today. Safer tomorrow. &nbsp;·&nbsp; <a href="mailto:support@cybernetai.app">support@cybernetai.app</a> &nbsp;·&nbsp; <button type="button" class="cn-cookie-settings" data-cn-consent-open>Cookie settings</button></p>
   </footer>
 
   <script src="/cybernet-consent.js?v=20260927-2" defer></script>
@@ -2531,7 +2653,7 @@
 <script src="/cybernet-business-team.js?v=20260930-2" defer></script>
   <script src="/cybernet-final-ui-fix.js?v=20260930-2" defer></script>
       <script src="/cybernet-legal-upgrade.js?v=20260930-2" defer></script>
-  <script src="/v2/cybernet-v2.js?v=20261007-1" defer></script>
+  <script src="/ui/cybernet-ui.js?v=20261013-2" defer></script>
 </body>
 </html>
 

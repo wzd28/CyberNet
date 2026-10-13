@@ -1,0 +1,2331 @@
+/* ==========================================================================
+   60-overlays.css  -  Modals, the how-to walkthrough, the account / API key /
+   business dialogs, the Legal Center shell and the cookie bar.
+
+   Shape: a --cn-surface sheet with a hairline, --cn-r-panel corners and the
+   one soft shadow over a rgba(3,4,6,.72) scrim blurred 8px. Desktop shows a
+   centred sheet; phones get a bottom sheet (top corners only, 92dvh, inner
+   scroll, safe-area padding).
+
+   Contracts kept (maps/HAZARDS.md):
+   - Modals open and close only through .modal / .modal.show (display). No
+     display rule here touches .modal, .auth-form, panes or [hidden] items.
+   - Backdrop-click close needs event.target === the .modal itself, so the
+     card is never wrapped and the scrim stays the .modal element.
+   - z-index stack untouched: cookie bar 150, .modal 200, account 1300,
+     team 1350, API key how-to 1400, invite 1500, sign-in 1600, Legal 100000.
+   - Inline widths and transforms written by JS (usage fills, how-to meters)
+     are never overridden.
+   - cybernetFinalUiFixStyles is injected after this sheet: account rules use
+     #accountDetailsModal-level specificity. cybernet-legal.css loads after
+     this sheet too, so legal pieces are scoped under html.cn plus a parent.
+   - Every add-on card carries .reveal and never gets .show; the entry
+     animation here ends at opacity 1 / transform none (the legacy failsafe).
+   - Buttons, fields and checkboxes take their look from 01-base.css; this
+     file only sizes and places them inside the sheets.
+   ========================================================================== */
+
+/* ---------- 1. Scrim ---------- */
+html.cn .modal {
+  padding:
+    max(var(--cn-6), env(safe-area-inset-top, 0px))
+    max(var(--cn-6), env(safe-area-inset-right, 0px))
+    max(var(--cn-6), env(safe-area-inset-bottom, 0px))
+    max(var(--cn-6), env(safe-area-inset-left, 0px));
+  background: rgba(3, 4, 6, .72);
+  background: color-mix(in srgb, var(--cn-bg) 72%, transparent);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  overscroll-behavior: contain;
+}
+
+html.cn .modal.show {
+  animation: cn-ov-fade var(--cn-dur-2) var(--cn-ease-out) both;
+}
+
+/* ---------- 2. The sheet ---------- */
+html.cn :is(#authModal, #feedbackModal, #accountDetailsModal, #cybernetHowToGetKeyModal, #businessTeamModal, #acceptInviteModal, .modal) > .modal-card {
+  --cn-card-pad: clamp(24px, 1.2rem + 1.4vw, 34px);
+  --cn-card-pb: var(--cn-card-pad);
+  box-sizing: border-box;
+  position: relative;
+  width: min(520px, 100%);
+  max-height: 90vh;
+  max-height: min(90dvh, 900px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--cn-card-pad) var(--cn-card-pad) var(--cn-card-pb);
+  border: 1px solid var(--cn-line-2);
+  border-radius: var(--cn-r-panel);
+  background: var(--cn-surface);
+  box-shadow: var(--cn-shadow);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  text-align: start;
+  scrollbar-width: thin;
+  scrollbar-color: var(--cn-line-2) transparent;
+  animation: cn-ov-in var(--cn-dur-3) var(--cn-ease-out) both;
+}
+
+/* When a sheet scrolls, its last visible line fades into the surface instead of being cut.
+   The fade sits in the bottom padding, so at rest and at the end of the scroll it covers nothing. */
+html.cn :is(#authModal, #feedbackModal, #accountDetailsModal, #cybernetHowToGetKeyModal, #businessTeamModal, #acceptInviteModal, .modal) > .modal-card::after {
+  content: "";
+  position: sticky;
+  bottom: calc(var(--cn-card-pb) * -1);
+  z-index: 2;
+  display: block;
+  height: var(--cn-card-pb);
+  margin: 0 calc(var(--cn-card-pad) * -1) calc(var(--cn-card-pb) * -1);
+  background: linear-gradient(to bottom, transparent, var(--cn-surface) 85%);
+  pointer-events: none;
+}
+
+html.cn #authModal > .modal-card { width: min(440px, 100%); }
+html.cn #feedbackModal > .modal-card { width: min(620px, 100%); }
+html.cn #accountDetailsModal > .modal-card { width: min(880px, 100%); }
+html.cn #cybernetHowToGetKeyModal > .modal-card { width: min(620px, 100%); }
+html.cn #businessTeamModal > .modal-card { width: min(900px, 100%); max-height: min(90dvh, 960px); }
+html.cn #acceptInviteModal > .modal-card { width: min(560px, 100%); }
+
+/* ---------- 3. Close button (the × glyph is replaced by a drawn cross) ---------- */
+html.cn .modal .close-modal {
+  position: absolute;
+  top: 16px;
+  inset-inline-end: 16px;
+  inset-inline-start: auto;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--cn-line);
+  border-radius: 50%;
+  background: var(--cn-surface-2);
+  color: var(--cn-text-2);
+  font-size: 0;
+  line-height: 0;
+  cursor: pointer;
+  transition: background-color var(--cn-dur-1) ease, color var(--cn-dur-1) ease;
+}
+
+html.cn .modal .close-modal::before {
+  content: "";
+  width: 14px;
+  height: 14px;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M2.5 2.5l9 9M11.5 2.5l-9 9'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M2.5 2.5l9 9M11.5 2.5l-9 9'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+/* 44px hit area */
+html.cn .modal .close-modal::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+}
+
+html.cn .modal .close-modal:focus-visible {
+  outline: none;
+  color: var(--cn-text);
+  box-shadow: var(--cn-focus);
+}
+
+/* ---------- 4. Type inside sheets ---------- */
+html.cn .modal .modal-card h2 {
+  margin: 0 0 var(--cn-2);
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: clamp(1.5rem, 1.3rem + .8vw, 1.875rem);
+  font-weight: 600;
+  letter-spacing: var(--cn-track-h2);
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+html.cn .modal .modal-card h3 {
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-weight: 600;
+  letter-spacing: -.015em;
+}
+
+/* the mono eyebrow becomes a small tint pill (inside sheets only; it is shared with page panels) */
+html.cn .modal .account-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  margin: 0 0 var(--cn-3);
+  padding: 0 10px;
+  border-radius: var(--cn-r-pill);
+  background: var(--cn-cyan-tint);
+  color: var(--cn-cyan-2);
+  font-family: var(--cn-font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: var(--cn-track-label);
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+/* .modal-card small (style.css) sets every <small> in mono and centres it */
+html.cn .modal .modal-card small {
+  font-family: var(--cn-font);
+  letter-spacing: 0;
+}
+
+/* live regions collapse until JS writes into them (legacy left a ~34px hole) */
+html.cn .modal :is(#authMessage, #feedbackMessage, #accountDetailsMessage, #cnInviteMessage, #cnTeamMessage):empty {
+  min-height: 0;
+  margin-top: 0;
+}
+
+html.cn .modal :is(.auth-message, .cybernet-account-message, .cn-team-message) {
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+html.cn .modal :is(.auth-message, .cybernet-account-message, .cn-team-message).error { color: var(--cn-danger); }
+html.cn .modal :is(.auth-message, .cybernet-account-message, .cn-team-message).success { color: var(--cn-safe); }
+html.cn .modal :is(.auth-message, .cybernet-account-message, .cn-team-message).warning { color: var(--cn-warn); }
+
+/* ---------- 5. Fields inside sheets (look from 01-base; size and rhythm here) ---------- */
+html.cn .modal .modal-card :is(input[type="text"], input[type="email"], input[type="password"], select) {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 48px;
+  margin: 0 0 var(--cn-4);
+  padding: 0 16px;
+  font-size: 16px;
+}
+
+html.cn .modal .modal-card select {
+  padding-inline-end: 42px;
+}
+
+html.cn .modal .modal-card textarea {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0 0 var(--cn-4);
+  padding: 12px 16px;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+html.cn .modal :is(.auth-form, .feedback-card form) > label,
+html.cn .modal :is(.auth-name-grid, .feedback-name-grid) label {
+  display: block;
+  margin: 0 0 var(--cn-2);
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -.005em;
+  line-height: 1.3;
+  text-transform: none;
+}
+
+html.cn .modal :is(.auth-name-grid, .feedback-name-grid) {
+  gap: 0 var(--cn-3);
+}
+
+html.cn .modal .modal-card .primary-btn.full {
+  width: 100%;
+  min-height: 48px;
+}
+
+/* ---------- 6. Sign in / create account ---------- */
+html.cn #authModal .auth-logo {
+  display: flex;
+  justify-content: center;
+  margin: 0 0 var(--cn-4);
+}
+
+html.cn #authModal .auth-logo-icon {
+  box-sizing: border-box;
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  max-width: 48px;
+  max-height: 48px;
+  padding: 10px 11px;
+  border: 1px solid var(--cn-line);
+  border-radius: 14px;
+  background: var(--cn-surface-2);
+  filter: none;
+}
+
+html.cn #authModal .auth-heading {
+  margin: 0 0 var(--cn-5);
+  text-align: center;
+}
+
+html.cn #authModal .auth-heading h2 {
+  margin-bottom: var(--cn-2);
+  font-size: 1.5rem;
+}
+
+html.cn #authModal .auth-heading p {
+  max-width: 34ch;
+  margin: 0 auto;
+  color: var(--cn-text-2);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* segmented control: a surface track, the active item raised with a cyan dot */
+html.cn #authModal .auth-tabs {
+  gap: 4px;
+  margin: 0 0 var(--cn-5);
+  padding: 4px;
+  overflow: visible;
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-pill);
+  background: var(--cn-surface-2);
+}
+
+html.cn #authModal .auth-tab {
+  position: relative;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: var(--cn-r-pill);
+  background: transparent;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -.01em;
+  cursor: pointer;
+  transition: background-color var(--cn-dur-2) var(--cn-ease-out), color var(--cn-dur-1) ease;
+}
+
+html.cn #authModal .auth-tab.active {
+  border-color: var(--cn-line);
+  background: var(--cn-surface-3);
+  color: var(--cn-text);
+}
+
+html.cn #authModal .auth-tab.active::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 5px;
+  width: 4px;
+  height: 4px;
+  margin-inline: auto;
+  border-radius: 50%;
+  background: var(--cn-cyan);
+}
+
+html.cn #authModal .auth-tab:focus-visible {
+  outline: none;
+  box-shadow: var(--cn-focus);
+}
+
+/* Google keeps a light button with its four-colour mark */
+html.cn #authModal .google-auth-btn {
+  min-height: 48px;
+  margin: 0;
+  padding: 0 20px;
+  gap: 10px;
+  border: 0;
+  border-radius: var(--cn-r-pill);
+  background: var(--cn-text);
+  color: var(--cn-bg);
+  font-family: var(--cn-font);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  box-shadow: none;
+  transform: none;
+  transition: background-color var(--cn-dur-1) ease;
+}
+
+html.cn #authModal .google-auth-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--cn-focus);
+}
+
+html.cn #authModal .google-auth-btn:active {
+  scale: .98;
+}
+
+html.cn #authModal .google-auth-btn:disabled {
+  opacity: .55;
+}
+
+html.cn #authModal .auth-divider {
+  gap: var(--cn-3);
+  margin: var(--cn-4) 0;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: 12px;
+  letter-spacing: 0;
+}
+
+html.cn #authModal .auth-divider::before,
+html.cn #authModal .auth-divider::after {
+  background: var(--cn-line);
+}
+
+html.cn #authModal .auth-form .primary-btn {
+  margin-top: var(--cn-1);
+}
+
+html.cn #authModal .auth-helper-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 var(--cn-4);
+  margin-top: var(--cn-1);
+}
+
+html.cn #authModal .auth-text-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 2px;
+  border: 0;
+  background: none;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -.005em;
+  cursor: pointer;
+  transition: color var(--cn-dur-1) ease;
+}
+
+/* style.css:5972 colours these with !important */
+html.cn #authModal :is(.auth-create-link, .auth-login-link) {
+  color: var(--cn-cyan-2) !important;
+}
+
+html.cn #authModal .auth-login-link {
+  justify-content: center;
+  width: 100%;
+  margin-top: var(--cn-2);
+}
+
+html.cn #authModal #resendConfirmBtn {
+  justify-content: center;
+  width: 100%;
+}
+
+html.cn #authModal .auth-text-btn:focus-visible {
+  outline: none;
+  border-radius: 8px;
+  color: var(--cn-text);
+  box-shadow: var(--cn-focus);
+}
+
+html.cn #authModal #authMessage:not(:empty) {
+  margin-top: var(--cn-4);
+}
+
+html.cn #authModal .modal-card > small {
+  margin-top: var(--cn-4);
+  padding-top: var(--cn-4);
+  border-top: 1px solid var(--cn-line);
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: 12.5px;
+  line-height: 1.5;
+  text-align: center;
+  text-wrap: pretty;
+}
+
+html.cn #authModal .auth-inapp-note {
+  color: var(--cn-text-2);
+  font-size: 13px;
+}
+
+/* the dimmed Create button until the terms box is ticked (it stays clickable) */
+html.cn #authModal #signupBtn.cn-consent-pending {
+  opacity: .6;
+}
+
+/* ---------- 7. Legal pieces inside sheets (cybernet-legal-upgrade.js) ---------- */
+html.cn :is(#authModal, #accountDetailsModal, .cn-legal-modal) {
+  --cn-legal-bg: var(--cn-surface);
+  --cn-legal-panel: var(--cn-surface);
+  --cn-legal-panel-soft: var(--cn-surface-2);
+  --cn-legal-border: var(--cn-line);
+  --cn-legal-border-strong: var(--cn-line-2);
+  --cn-legal-text: var(--cn-text);
+  --cn-legal-muted: var(--cn-text-2);
+  --cn-legal-soft: var(--cn-text-2);
+  --cn-legal-accent: var(--cn-cyan-2);
+  --cn-legal-accent-2: var(--cn-teal);
+  --cn-legal-safe: var(--cn-safe);
+  --cn-legal-warn: var(--cn-warn);
+  --cn-legal-danger: var(--cn-danger);
+  --cn-legal-shadow: var(--cn-shadow);
+}
+
+html.cn #authModal .cn-google-legal-note {
+  margin: var(--cn-3) 0 0;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: 12.5px;
+  line-height: 1.55;
+  text-align: center;
+  text-wrap: pretty;
+}
+
+html.cn .modal :is(.cn-google-legal-note, .cn-signup-legal) .cn-legal-link-btn {
+  display: inline;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--cn-cyan-2);
+  font: inherit;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-decoration: underline;
+  text-decoration-color: var(--cn-cyan-line);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+html.cn #authModal #cnSignupLegalBox {
+  margin: var(--cn-1) 0 var(--cn-4);
+  padding: 14px;
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-ctl);
+  background: var(--cn-surface-2);
+}
+
+html.cn #authModal #cnSignupLegalBox .cn-signup-legal-row {
+  gap: var(--cn-3);
+}
+
+html.cn #authModal #cnSignupLegalBox input[type="checkbox"] {
+  margin-top: 1px;
+}
+
+html.cn #authModal #cnSignupLegalBox label {
+  margin: 0;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.55;
+  text-transform: none;
+}
+
+html.cn #authModal #cnSignupLegalBox strong {
+  color: var(--cn-text);
+  font-weight: 600;
+}
+
+html.cn #authModal #cnSignupLegalBox .cn-legal-inline-actions {
+  gap: 0 var(--cn-4);
+  margin-top: var(--cn-1);
+  padding-inline-start: 32px;
+}
+
+/* stand-alone buttons (not inline in a sentence), so each is a 44px target */
+html.cn #authModal #cnSignupLegalBox .cn-legal-inline-actions .cn-legal-link-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 13px;
+}
+
+/* .modal-card small (style.css) centres this in mono */
+html.cn #authModal #cnSignupLegalBox .cn-legal-required {
+  display: block;
+  margin: var(--cn-1) 0 0;
+  padding-inline-start: 32px;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.45;
+  text-align: start;
+  text-wrap: balance;
+}
+
+html.cn #authModal #cnSignupLegalBox.cn-legal-error {
+  border-color: var(--cn-danger) !important;
+  box-shadow: 0 0 0 3px var(--cn-danger-tint);
+}
+
+/* ---------- 8. Feedback ---------- */
+html.cn #feedbackModal .feedback-heading {
+  margin: 0 0 var(--cn-6);
+  padding-inline-end: 48px;
+}
+
+html.cn #feedbackModal .feedback-heading p {
+  margin: 0;
+  color: var(--cn-text-2);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+html.cn #feedbackModal textarea {
+  height: 150px;
+  min-height: 150px;
+  resize: vertical;
+}
+
+/* "Choose one" reads as a placeholder until a topic is picked (required + empty value) */
+html.cn #feedbackModal select:invalid {
+  color: var(--cn-text-2);
+}
+
+html.cn #feedbackModal #feedbackSubmitBtn {
+  margin-top: var(--cn-1);
+}
+
+html.cn #feedbackModal .feedback-message:not(:empty) {
+  margin-top: var(--cn-3);
+  text-align: start;
+}
+
+/* ---------- 9. How-to walkthrough (#howtoVideoModal): a large centred sheet ---------- */
+html.cn #howtoVideoModal.video-modal-fullscreen {
+  align-items: center;
+  justify-content: center;
+  padding:
+    max(var(--cn-6), env(safe-area-inset-top, 0px))
+    max(var(--cn-6), env(safe-area-inset-right, 0px))
+    max(var(--cn-6), env(safe-area-inset-bottom, 0px))
+    max(var(--cn-6), env(safe-area-inset-left, 0px));
+}
+
+/* a fixed height, so stepping through the walkthrough never makes the sheet jump */
+html.cn #howtoVideoModal .video-player-shell {
+  box-sizing: border-box;
+  width: min(1120px, 100%);
+  height: calc(100vh - 48px);
+  height: min(760px, calc(100dvh - 48px));
+  max-height: none;
+  padding: var(--cn-5) clamp(20px, 1rem + 1.4vw, 32px) clamp(20px, 1rem + 1vw, 28px);
+  border: 1px solid var(--cn-line-2);
+  border-radius: var(--cn-r-panel);
+  background: var(--cn-surface);
+  box-shadow: var(--cn-shadow);
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  animation: cn-ov-in var(--cn-dur-3) var(--cn-ease-out) both;
+}
+
+/* the shell is a fixed-height flex column: only the player may shrink */
+html.cn #howtoVideoModal :is(.video-player-topbar, .video-modal-tabs, .video-player-controls) {
+  flex: none;
+}
+
+html.cn #howtoVideoModal .video-player-topbar {
+  gap: var(--cn-4);
+  min-height: 44px;
+  margin: 0 0 var(--cn-4);
+}
+
+html.cn #howtoVideoModal .video-player-topbar h3 {
+  min-width: 0;
+  margin: 0;
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: clamp(1.125rem, 1rem + .5vw, 1.375rem);
+  font-weight: 600;
+  letter-spacing: -.02em;
+  line-height: 1.2;
+}
+
+html.cn #howtoVideoModal :is(.video-exit-btn, .video-control-btn) {
+  min-height: 40px;
+  padding: 0 16px;
+  gap: 8px;
+  border: 1px solid var(--cn-line-2);
+  border-radius: var(--cn-r-pill);
+  background: transparent;
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -.005em;
+  cursor: pointer;
+  transition: background-color var(--cn-dur-1) ease, border-color var(--cn-dur-1) ease;
+}
+
+html.cn #howtoVideoModal .video-exit-btn {
+  position: relative;
+  padding-inline-start: 13px;
+}
+
+html.cn #howtoVideoModal .video-exit-btn::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+}
+
+html.cn #howtoVideoModal :is(.video-exit-btn, .video-control-btn, .video-modal-tab):focus-visible {
+  outline: none;
+  box-shadow: var(--cn-focus);
+}
+
+/* tabs: a segmented control that scrolls sideways on narrow sheets */
+html.cn #howtoVideoModal .video-modal-tabs {
+  flex-wrap: nowrap;
+  align-self: flex-start;
+  gap: 4px;
+  max-width: 100%;
+  margin: 0 0 var(--cn-5);
+  padding: 4px;
+  overflow-x: auto;
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-pill);
+  background: var(--cn-surface-2);
+  scrollbar-width: none;
+}
+
+html.cn #howtoVideoModal .video-modal-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+html.cn #howtoVideoModal .video-modal-tab {
+  position: relative;
+  flex: none;
+  min-height: 36px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: var(--cn-r-pill);
+  background: transparent;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -.01em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--cn-dur-2) var(--cn-ease-out), color var(--cn-dur-1) ease;
+}
+
+html.cn #howtoVideoModal .video-modal-tab.active {
+  border-color: var(--cn-line);
+  background: var(--cn-surface-3);
+  color: var(--cn-text);
+}
+
+html.cn #howtoVideoModal .video-modal-player {
+  display: block;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0 2px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  scrollbar-width: thin;
+  scrollbar-color: var(--cn-line-2) transparent;
+}
+
+html.cn #howtoVideoModal .video-modal-placeholder {
+  min-height: 240px;
+  justify-content: center;
+  color: var(--cn-text-2);
+}
+
+html.cn #howtoVideoModal .video-modal-placeholder svg {
+  color: var(--cn-text-3);
+}
+
+html.cn #howtoVideoModal .video-player-controls {
+  gap: var(--cn-2);
+  margin-top: var(--cn-4);
+}
+
+html.cn #howtoVideoModal #videoPlayPauseBtn {
+  border-color: transparent;
+  background: var(--cn-cyan);
+  color: var(--cn-on-cyan);
+}
+
+html.cn #howtoVideoModal .video-speed-btn {
+  font-family: var(--cn-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* walkthrough content (.hw-*, rendered by cybernet-howto.js on every step). Colours the
+   legacy sheet reads through --muted, --soft, --green and --glass come from the 01-base remap;
+   only shape, rhythm and the verdict tints are set here. */
+html.cn #howtoVideoModal .hw {
+  gap: var(--cn-6);
+  max-width: none;
+}
+
+html.cn #howtoVideoModal .hw-summary {
+  max-width: 68ch;
+  color: var(--cn-text-2);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+html.cn #howtoVideoModal .hw-step {
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  gap: clamp(24px, 1rem + 2.4vw, 48px);
+  animation: cn-hw-in var(--cn-dur-3) var(--cn-ease-out) both;
+}
+
+html.cn #howtoVideoModal .hw-step-count {
+  margin-bottom: var(--cn-3);
+  color: var(--cn-cyan-2);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: var(--cn-track-label);
+}
+
+html.cn #howtoVideoModal .hw-heading {
+  margin: 0 0 var(--cn-3);
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: clamp(1.375rem, 1.2rem + .6vw, 1.625rem);
+  font-weight: 600;
+  letter-spacing: -.02em;
+  line-height: 1.2;
+}
+
+html.cn #howtoVideoModal .hw-body {
+  margin: 0 0 var(--cn-5);
+  color: var(--cn-text-2);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+html.cn #howtoVideoModal .hw-callout {
+  padding: var(--cn-4) var(--cn-5);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-ctl);
+  background: var(--cn-surface-2);
+}
+
+html.cn #howtoVideoModal .hw-callout-label {
+  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: var(--cn-track-label);
+}
+
+html.cn #howtoVideoModal .hw-callout b {
+  margin-bottom: 4px;
+  color: var(--cn-text);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+html.cn #howtoVideoModal .hw-callout p {
+  color: var(--cn-text-2);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+html.cn #howtoVideoModal .hw-callout-info { border-color: var(--cn-line); }
+html.cn #howtoVideoModal .hw-callout-info .hw-callout-label { color: var(--cn-cyan-2); }
+html.cn #howtoVideoModal .hw-callout-warn { border-color: var(--cn-line); }
+html.cn #howtoVideoModal .hw-callout-warn .hw-callout-label { color: var(--cn-warn); }
+html.cn #howtoVideoModal .hw-callout-ok { border-color: var(--cn-line); }
+html.cn #howtoVideoModal .hw-callout-ok .hw-callout-label { color: var(--cn-safe); }
+
+html.cn #howtoVideoModal .hw-visual {
+  gap: var(--cn-4);
+  padding: clamp(18px, 1rem + 1vw, 28px);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-card);
+  background: var(--cn-bg-2);
+}
+
+html.cn #howtoVideoModal .hw-tabs {
+  gap: 6px;
+}
+
+html.cn #howtoVideoModal .hw-tab {
+  padding: 7px 12px;
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-pill);
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: 13px;
+}
+
+html.cn #howtoVideoModal .hw-tab.is-active {
+  border-color: var(--cn-line-2);
+  background: var(--cn-surface-3);
+  color: var(--cn-text);
+}
+
+html.cn #howtoVideoModal .hw-field-label,
+html.cn #howtoVideoModal .hw-meter-label {
+  color: var(--cn-text-2);
+  font-family: var(--cn-font-mono);
+  font-size: 11px;
+  letter-spacing: var(--cn-track-label);
+}
+
+html.cn #howtoVideoModal .hw-field-box {
+  border: 1px solid var(--cn-line-2);
+  border-radius: var(--cn-r-ctl);
+  background: var(--cn-surface-2);
+  color: var(--cn-text);
+}
+
+/* verdict examples follow the product's verdict system: a tint, a strong colour and a word */
+html.cn #howtoVideoModal .hw-verdict {
+  border-radius: var(--cn-r-ctl);
+  font-family: var(--cn-font);
+}
+
+html.cn #howtoVideoModal .hw-verdict-icon {
+  border-radius: 8px;
+}
+
+html.cn #howtoVideoModal .hw-verdict-text {
+  font-family: var(--cn-font-mono);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: var(--cn-track-label);
+}
+
+html.cn #howtoVideoModal .hw-verdict-danger { border: 1px solid transparent; background: var(--cn-danger-tint); }
+html.cn #howtoVideoModal .hw-verdict-danger :is(.hw-verdict-icon, .hw-verdict-text) { color: var(--cn-danger); }
+html.cn #howtoVideoModal .hw-verdict-danger .hw-verdict-icon { background: var(--cn-danger-tint); }
+html.cn #howtoVideoModal .hw-verdict-safe { border: 1px solid transparent; background: var(--cn-safe-tint); }
+html.cn #howtoVideoModal .hw-verdict-safe :is(.hw-verdict-icon, .hw-verdict-text) { color: var(--cn-safe); }
+html.cn #howtoVideoModal .hw-verdict-safe .hw-verdict-icon { background: var(--cn-safe-tint); }
+html.cn #howtoVideoModal .hw-verdict-info { border: 1px solid transparent; background: var(--cn-cyan-tint); }
+html.cn #howtoVideoModal .hw-verdict-info :is(.hw-verdict-icon, .hw-verdict-text) { color: var(--cn-cyan-2); }
+html.cn #howtoVideoModal .hw-verdict-info .hw-verdict-icon { background: var(--cn-cyan-tint); }
+
+html.cn #howtoVideoModal .hw-list:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+html.cn #howtoVideoModal .hw-list-title {
+  color: var(--cn-text-2);
+  font-family: var(--cn-font-mono);
+  letter-spacing: var(--cn-track-label);
+}
+
+html.cn #howtoVideoModal .hw-list-safe .hw-list-title span { color: var(--cn-safe); }
+
+html.cn #howtoVideoModal .hw-quote {
+  border-inline-start-color: var(--cn-line-2);
+}
+
+/* step navigation: Back / dots / Next, pinned to the bottom of the sheet while the step scrolls */
+html.cn #howtoVideoModal .hw {
+  min-height: 100%;
+}
+
+html.cn #howtoVideoModal .hw-nav {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  gap: var(--cn-4);
+  margin-top: auto;
+  padding-top: var(--cn-4);
+  border-top: 1px solid var(--cn-line);
+  background: var(--cn-surface);
+}
+
+html.cn #howtoVideoModal .hw-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 104px;
+  min-height: 44px;
+  padding: 0 22px;
+  border: 1px solid var(--cn-line-2);
+  border-radius: var(--cn-r-pill);
+  background: transparent;
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  transition: background-color var(--cn-dur-1) ease, border-color var(--cn-dur-1) ease, opacity var(--cn-dur-1) ease;
+}
+
+html.cn #howtoVideoModal .hw-btn-primary {
+  border-color: transparent;
+  background: var(--cn-cyan);
+  color: var(--cn-on-cyan);
+}
+
+html.cn #howtoVideoModal .hw-btn:disabled {
+  opacity: .4;
+}
+
+html.cn #howtoVideoModal .hw-btn:not(:disabled):active {
+  scale: .98;
+}
+
+html.cn #howtoVideoModal :is(.hw-btn, .hw-dot):focus-visible {
+  outline: none;
+  box-shadow: var(--cn-focus);
+}
+
+/* each dot is a 28px target holding an 8px mark; the current one stretches into a pill */
+html.cn #howtoVideoModal .hw-dots {
+  gap: 0;
+}
+
+html.cn #howtoVideoModal .hw-dot {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--cn-r-pill);
+  background: transparent;
+  transform: none;
+}
+
+html.cn #howtoVideoModal .hw-dot::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: var(--cn-r-pill);
+  background: var(--cn-line-2);
+}
+
+html.cn #howtoVideoModal .hw-dot.is-active {
+  background: transparent;
+  transform: none;
+}
+
+html.cn #howtoVideoModal .hw-dot.is-active::before {
+  width: 20px;
+  background: var(--cn-cyan);
+}
+
+/* ---------- 10. Account panel (#accountDetailsModal) ---------- */
+html.cn #accountDetailsModal .cybernet-account-head {
+  gap: var(--cn-4);
+  margin: 0 0 var(--cn-5);
+  padding-inline-end: 52px;
+  padding-right: 52px;
+}
+
+html.cn #accountDetailsModal .cn-account-title-row {
+  gap: var(--cn-4);
+}
+
+html.cn #accountDetailsModal .cn-account-title-icon {
+  box-sizing: border-box;
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  margin-top: 2px;
+  padding: 10px 11px;
+  border: 1px solid var(--cn-line);
+  border-radius: 14px;
+  background: var(--cn-surface-2);
+}
+
+html.cn #accountDetailsModal .cybernet-account-head p,
+html.cn #cybernetHowToGetKeyModal .cybernet-account-head p {
+  margin: 6px 0 0;
+  color: var(--cn-text-2);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+html.cn #accountDetailsModal .cybernet-account-live-badge {
+  align-self: flex-start;
+  min-height: 28px;
+  padding: 0 11px;
+  border: 1px solid var(--cn-line-2);
+  border-radius: var(--cn-r-pill);
+  background: transparent;
+  color: var(--cn-text-2);
+  font-size: 11px;
+  letter-spacing: var(--cn-track-label);
+  white-space: nowrap;
+}
+
+html.cn #accountDetailsModal .cybernet-account-live-badge::before {
+  width: 6px;
+  height: 6px;
+  background: var(--cn-safe);
+  box-shadow: none;
+}
+
+/* Account Info / Saved Reports: the same segmented control (beats the injected rules) */
+html.cn #accountDetailsModal .cn-account-tabs {
+  position: static;
+  gap: 4px;
+  margin: 0 0 var(--cn-5);
+  padding: 4px;
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-pill);
+  background: var(--cn-surface-2);
+}
+
+html.cn #accountDetailsModal .cn-account-tab {
+  position: relative;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: var(--cn-r-pill);
+  background: transparent;
+  box-shadow: none;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -.01em;
+  text-transform: none;
+}
+
+html.cn #accountDetailsModal .cn-account-tab.active {
+  border-color: var(--cn-line);
+  background: var(--cn-surface-3);
+  box-shadow: none;
+  color: var(--cn-text);
+}
+
+html.cn #accountDetailsModal .cn-account-tab:focus-visible {
+  outline: none;
+  box-shadow: var(--cn-focus);
+}
+
+html.cn #accountDetailsModal .cybernet-account-grid {
+  gap: var(--cn-3);
+}
+
+html.cn :is(#accountDetailsModal, #businessTeamModal) :is(.cybernet-account-item, .cn-team-stat) {
+  padding: var(--cn-4);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-ctl);
+  background: var(--cn-surface-2);
+}
+
+html.cn #accountDetailsModal .cybernet-account-item > span,
+html.cn #businessTeamModal .cn-team-stat > span {
+  margin-bottom: var(--cn-2);
+  color: var(--cn-text-2);
+  font-family: var(--cn-font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: var(--cn-track-label);
+}
+
+html.cn #accountDetailsModal .cybernet-account-item strong {
+  color: var(--cn-text);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+html.cn #accountDetailsModal .cybernet-account-plan b {
+  font-weight: 600;
+}
+
+html.cn #accountDetailsModal .cybernet-account-plan-badge {
+  min-height: 22px;
+  align-items: center;
+  padding: 0 9px;
+  border: 1px solid var(--cn-cyan-line);
+  border-radius: var(--cn-r-pill);
+  background: var(--cn-cyan-tint);
+  color: var(--cn-cyan-2);
+  font-size: 11px;
+  letter-spacing: var(--cn-track-label);
+}
+
+/* usage bars: JS scales the fill; only paint changes here */
+html.cn :is(#accountDetailsModal, #businessTeamModal) :is(.cybernet-account-usage-track, .cn-team-track) {
+  height: 6px;
+  background: var(--cn-surface-3);
+}
+
+html.cn :is(#accountDetailsModal, #businessTeamModal) :is(.cybernet-account-usage-track, .cn-team-track) > span {
+  background: var(--cn-cyan);
+  box-shadow: none;
+}
+
+html.cn #businessTeamModal .cn-team-track.is-high > span {
+  background: var(--cn-warn);
+}
+
+/* Recovery-emails switch: the invisible input stays on top (z 1, 46x26) */
+html.cn #accountDetailsModal .cybernet-notify-copy label {
+  margin: 0;
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: 15px;
+  font-weight: 600;
+  text-transform: none;
+}
+
+html.cn #accountDetailsModal .cybernet-notify-copy p,
+html.cn #accountDetailsModal .cybernet-notify-status {
+  color: var(--cn-text-2);
+  font-size: 13px;
+}
+
+html.cn #accountDetailsModal .cybernet-notify-warning {
+  color: var(--cn-text-2);
+  font-size: 12.5px;
+}
+
+html.cn #accountDetailsModal .cybernet-switch-track {
+  border-color: var(--cn-line-2);
+  background: var(--cn-surface-3);
+}
+
+html.cn #accountDetailsModal .cybernet-switch-track::after {
+  background: var(--cn-text-2);
+}
+
+html.cn #accountDetailsModal .cybernet-switch input:checked + .cybernet-switch-track {
+  border-color: transparent;
+  background: var(--cn-cyan);
+}
+
+html.cn #accountDetailsModal .cybernet-switch input:checked + .cybernet-switch-track::after {
+  background: var(--cn-on-cyan);
+  box-shadow: none;
+}
+
+html.cn #accountDetailsModal .cybernet-switch input:focus-visible + .cybernet-switch-track {
+  outline: none;
+  box-shadow: var(--cn-focus);
+}
+
+html.cn #accountDetailsModal .cybernet-account-actions {
+  gap: var(--cn-2);
+  margin-top: var(--cn-5);
+}
+
+html.cn #accountDetailsModal .cybernet-account-actions :is(.primary-btn, .secondary-btn) {
+  flex: 1 1 170px;
+  min-height: 48px;
+}
+
+html.cn #accountDetailsModal #accountDetailsMessage:not(:empty) {
+  margin-top: var(--cn-3);
+}
+
+/* Legal & Billing panel (cybernet-legal-upgrade.js) */
+html.cn #accountDetailsModal .cn-account-legal-panel {
+  margin-top: var(--cn-5);
+  padding: var(--cn-4);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-ctl);
+  background: var(--cn-surface-2);
+}
+
+html.cn #accountDetailsModal .cn-account-legal-panel h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+
+html.cn #accountDetailsModal .cn-account-legal-panel p {
+  color: var(--cn-text-2);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+html.cn #accountDetailsModal .cn-account-legal-links {
+  gap: var(--cn-2);
+}
+
+html.cn #accountDetailsModal .cn-account-legal-links :is(button, a) {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--cn-line-2);
+  border-radius: var(--cn-r-pill);
+  background: transparent;
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -.005em;
+}
+
+html.cn #accountDetailsModal .cn-account-legal-links :is(button, a):focus-visible {
+  outline: none;
+  box-shadow: var(--cn-focus);
+}
+
+/* Saved reports pane (moved in by final-ui-fix.js) */
+html.cn #accountDetailsModal .cn-account-reports-pane {
+  gap: var(--cn-4);
+}
+
+html.cn #accountDetailsModal .cn-account-report-section {
+  padding: var(--cn-5);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-card);
+  background: var(--cn-surface-2);
+}
+
+html.cn #accountDetailsModal .cn-account-report-heading h3 {
+  margin: 0 0 4px;
+  font-size: 17px;
+}
+
+html.cn #accountDetailsModal .cn-account-report-heading p {
+  color: var(--cn-text-2);
+  font-size: 13px;
+}
+
+html.cn #accountDetailsModal .cn-account-report-heading span {
+  border-color: var(--cn-line-2);
+  background: transparent;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: var(--cn-track-label);
+}
+
+html.cn #accountDetailsModal .protect-no-cases {
+  border-color: var(--cn-line-2);
+  border-radius: var(--cn-r-ctl);
+  color: var(--cn-text-2);
+  font-size: 14px;
+}
+
+html.cn #accountDetailsModal .protect-saved-case {
+  border-color: var(--cn-line);
+  border-radius: var(--cn-r-ctl);
+  background: var(--cn-surface);
+}
+
+html.cn #accountDetailsModal :is(.protect-primary, .protect-secondary, .protect-danger-btn) {
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: var(--cn-r-pill);
+  font-family: var(--cn-font);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+html.cn #accountDetailsModal .protect-primary {
+  border: 1px solid transparent;
+  background: var(--cn-cyan);
+  color: var(--cn-on-cyan);
+}
+
+html.cn #accountDetailsModal .protect-secondary {
+  border: 1px solid var(--cn-line-2);
+  background: transparent;
+  color: var(--cn-text);
+}
+
+html.cn #accountDetailsModal .protect-danger-btn {
+  border: 1px solid transparent;
+  background: var(--cn-danger-tint);
+  color: var(--cn-danger);
+}
+
+/* ---------- 11. "How to get a personal API key" ---------- */
+html.cn #cybernetHowToGetKeyModal .cybernet-account-head {
+  margin-bottom: var(--cn-5);
+  padding-inline-end: 52px;
+  padding-right: 52px;
+}
+
+html.cn #cybernetHowToGetKeyModal .cybernet-howto-provider {
+  margin-top: var(--cn-5);
+  padding-top: var(--cn-5);
+  border-top: 1px solid var(--cn-line);
+}
+
+html.cn #cybernetHowToGetKeyModal .cybernet-howto-provider:first-of-type {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+html.cn #cybernetHowToGetKeyModal .cybernet-howto-provider h4 {
+  margin: 0 0 var(--cn-2);
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+html.cn #cybernetHowToGetKeyModal .cybernet-howto-provider ol {
+  padding-inline-start: 20px;
+  padding-left: 20px;
+  color: var(--cn-text-2);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+html.cn #cybernetHowToGetKeyModal .cybernet-howto-provider li strong {
+  color: var(--cn-text);
+  font-weight: 600;
+}
+
+html.cn #cybernetHowToGetKeyModal .cybernet-howto-note {
+  margin-top: var(--cn-5);
+  padding-top: var(--cn-4);
+  border-top: 1px solid var(--cn-line);
+  color: var(--cn-text-2);
+  font-size: 13px;
+}
+
+/* ---------- 12. Manage Business and the team invite ---------- */
+html.cn #businessTeamModal .cn-team-head {
+  gap: var(--cn-4);
+  margin: 0 0 var(--cn-6);
+  padding-inline-end: 52px;
+  padding-right: 52px;
+}
+
+html.cn #businessTeamModal .cn-team-head p {
+  color: var(--cn-text-2);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+html.cn #businessTeamModal :is(.cn-team-tier-badge, .cn-team-pending-badge) {
+  min-height: 28px;
+  padding: 0 11px;
+  border: 1px solid var(--cn-line-2);
+  border-radius: var(--cn-r-pill);
+  background: transparent;
+  color: var(--cn-text-2);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: var(--cn-track-label);
+}
+
+html.cn #businessTeamModal .cn-team-stats {
+  gap: var(--cn-3);
+  margin-bottom: var(--cn-5);
+}
+
+html.cn #businessTeamModal .cn-team-stat strong {
+  color: var(--cn-text);
+  font-family: var(--cn-font-mono);
+  font-size: 22px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+html.cn #businessTeamModal .cn-team-stat small {
+  margin-top: var(--cn-2);
+  color: var(--cn-text-2);
+  font-size: 12.5px;
+  line-height: 1.5;
+  text-align: start;
+}
+
+html.cn #businessTeamModal .cn-team-section-head {
+  display: block;
+  margin-bottom: var(--cn-4);
+}
+
+html.cn #businessTeamModal .cn-team-section {
+  margin-top: var(--cn-6);
+  padding-top: var(--cn-6);
+  border-top: 1px solid var(--cn-line);
+}
+
+html.cn #businessTeamModal .cn-team-section-head h3 {
+  margin: 0 0 4px;
+  font-size: 17px;
+}
+
+html.cn #businessTeamModal .cn-team-section-head p,
+html.cn #businessTeamModal .cn-team-invite-note {
+  color: var(--cn-text-2);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+html.cn #businessTeamModal .cn-team-invite-row {
+  gap: var(--cn-2);
+}
+
+html.cn #businessTeamModal .cn-team-invite-row input {
+  margin: 0;
+}
+
+html.cn #businessTeamModal .cn-team-invite-row .primary-btn {
+  min-height: 48px;
+}
+
+html.cn #businessTeamModal :is(.cn-team-member, .cn-team-pending-item, .cn-activity-item) {
+  border-color: var(--cn-line);
+  border-radius: var(--cn-r-ctl);
+  background: var(--cn-surface-2);
+}
+
+html.cn #businessTeamModal .cn-team-member {
+  padding: 12px 14px;
+}
+
+html.cn #businessTeamModal :is(.cn-team-member-usage small, .cn-team-member-email, .cn-activity-meta) {
+  color: var(--cn-text-2);
+}
+
+html.cn #businessTeamModal .cn-team-member-usage {
+  font-family: var(--cn-font-mono);
+}
+
+html.cn #businessTeamModal .cn-team-member-usage small {
+  font-family: var(--cn-font);
+  text-align: end;
+}
+
+/* chips: neutral by default; colour only where it carries meaning, always with a word */
+html.cn #businessTeamModal :is(.cn-role-badge, .cn-activity-kind, .cn-activity-verdict) {
+  align-items: center;
+  min-height: 22px;
+  padding: 0 9px;
+  border: 1px solid transparent;
+  border-radius: var(--cn-r-pill);
+  background: var(--cn-surface-3);
+  color: var(--cn-text-2);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: var(--cn-track-label);
+}
+
+html.cn #businessTeamModal .cn-role-badge:not(.is-member):not(.is-you),
+html.cn #businessTeamModal .cn-activity-kind.is-scan {
+  background: var(--cn-cyan-tint);
+  color: var(--cn-cyan-2);
+}
+
+html.cn #businessTeamModal :is(.cn-role-badge.is-you, .cn-activity-kind.is-recovery, .cn-activity-verdict.is-safe) {
+  background: var(--cn-safe-tint);
+  color: var(--cn-safe);
+}
+
+html.cn #businessTeamModal .cn-activity-kind.is-quick {
+  border-color: var(--cn-line-2);
+  background: transparent;
+  color: var(--cn-text);
+}
+
+html.cn #businessTeamModal .cn-activity-verdict.is-danger {
+  background: var(--cn-danger-tint);
+  color: var(--cn-danger);
+}
+
+html.cn #businessTeamModal .cn-activity-summary {
+  min-height: 56px;
+  padding: 10px 14px;
+  transition: background-color var(--cn-dur-1) ease;
+}
+
+html.cn #businessTeamModal .cn-activity-summary:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--cn-cyan);
+}
+
+html.cn #businessTeamModal .cn-activity-title {
+  font-size: 14px;
+}
+
+html.cn #businessTeamModal .cn-activity-body {
+  border-top-color: var(--cn-line);
+  color: var(--cn-text-2);
+  font-size: 13px;
+}
+
+html.cn #businessTeamModal .cn-activity-body strong {
+  color: var(--cn-text);
+  font-family: var(--cn-font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: var(--cn-track-label);
+}
+
+html.cn #businessTeamModal .cn-team-remove {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: var(--cn-r-pill);
+  background: var(--cn-danger-tint);
+  color: var(--cn-danger);
+  font-family: var(--cn-font);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+html.cn #businessTeamModal .cn-team-remove:focus-visible {
+  outline: none;
+  box-shadow: var(--cn-focus);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  html.cn #businessTeamModal .cn-activity-summary:hover {
+    background: var(--cn-surface-3);
+  }
+
+  html.cn #businessTeamModal .cn-team-remove:hover:not(:disabled) {
+    border-color: transparent;
+    background: var(--cn-danger-tint);
+    color: var(--cn-text);
+  }
+}
+
+html.cn #businessTeamModal .cn-team-empty {
+  border-color: var(--cn-line-2);
+  border-radius: var(--cn-r-ctl);
+  color: var(--cn-text-2);
+}
+
+html.cn #acceptInviteModal .cn-invite-card > p {
+  color: var(--cn-text-2);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+html.cn #acceptInviteModal .cn-invite-terms {
+  margin: var(--cn-5) 0;
+  padding: var(--cn-4) var(--cn-5);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-ctl);
+  background: var(--cn-surface-2);
+}
+
+html.cn #acceptInviteModal .cn-invite-terms li {
+  color: var(--cn-text-2);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+html.cn #acceptInviteModal .cn-invite-actions {
+  gap: var(--cn-2);
+}
+
+html.cn #acceptInviteModal .cn-invite-actions > button {
+  min-height: 48px;
+}
+
+/* ---------- 13. Legal Center (shell only; the document inside follows the legal tokens above) ---------- */
+html.cn .cn-legal-modal {
+  padding:
+    max(var(--cn-6), env(safe-area-inset-top, 0px))
+    max(var(--cn-6), env(safe-area-inset-right, 0px))
+    max(var(--cn-6), env(safe-area-inset-bottom, 0px))
+    max(var(--cn-6), env(safe-area-inset-left, 0px));
+  background: rgba(3, 4, 6, .72);
+  background: color-mix(in srgb, var(--cn-bg) 72%, transparent);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+html.cn .cn-legal-modal .cn-legal-dialog {
+  height: min(860px, calc(100dvh - 48px));
+  border: 1px solid var(--cn-line-2);
+  border-radius: var(--cn-r-panel);
+  background: var(--cn-surface);
+  box-shadow: var(--cn-shadow);
+  font-family: var(--cn-font);
+  animation: cn-ov-in var(--cn-dur-3) var(--cn-ease-out) both;
+}
+
+html.cn .cn-legal-modal .cn-legal-dialog-head {
+  padding: var(--cn-4) var(--cn-4) var(--cn-4) var(--cn-6);
+  border-bottom: 1px solid var(--cn-line);
+}
+
+html.cn .cn-legal-modal .cn-legal-brand img {
+  width: 36px;
+  height: 36px;
+  filter: none;
+}
+
+html.cn .cn-legal-modal .cn-legal-brand strong {
+  color: var(--cn-text);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -.015em;
+}
+
+html.cn .cn-legal-modal .cn-legal-brand small {
+  color: var(--cn-text-2);
+  font-family: var(--cn-font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: var(--cn-track-label);
+}
+
+html.cn .cn-legal-modal .cn-legal-close {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--cn-line);
+  border-radius: 50%;
+  background: var(--cn-surface-2);
+  color: var(--cn-text-2);
+  font-size: 20px;
+  line-height: 1;
+}
+
+html.cn .cn-legal-modal .cn-legal-tabs {
+  gap: 4px;
+  padding: var(--cn-2) var(--cn-4);
+  border-bottom: 1px solid var(--cn-line);
+  background: var(--cn-surface);
+  scrollbar-width: none;
+}
+
+html.cn .cn-legal-modal .cn-legal-tab {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: var(--cn-r-pill);
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -.01em;
+  text-transform: none;
+}
+
+html.cn .cn-legal-modal .cn-legal-tab.active {
+  border-color: var(--cn-line);
+  background: var(--cn-surface-3);
+  color: var(--cn-text);
+}
+
+html.cn .cn-legal-modal .cn-legal-viewer {
+  background: var(--cn-bg-2);
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  scrollbar-color: var(--cn-line-2) transparent;
+}
+
+/* a <footer> element: undo the legacy site-footer rule (width, auto margins, centred mono) */
+html.cn .cn-legal-modal .cn-legal-dialog-foot {
+  width: auto;
+  max-width: none;
+  margin: 0;
+  padding: var(--cn-3) var(--cn-4) var(--cn-3) var(--cn-6);
+  border-top: 1px solid var(--cn-line);
+  background: var(--cn-surface);
+  font-family: var(--cn-font);
+  font-size: inherit;
+  text-align: start;
+}
+
+html.cn .cn-legal-modal .cn-legal-dialog-foot p {
+  color: var(--cn-text-2);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: start;
+}
+
+/* the document inside the viewer: flat surfaces, hairlines, no navy gradients */
+html.cn .cn-legal-modal .cn-legal-viewer .cn-legal-hero {
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-card);
+  background: var(--cn-surface);
+  box-shadow: none;
+}
+
+html.cn .cn-legal-modal .cn-legal-viewer :is(.cn-legal-toc, .cn-legal-section) {
+  border: 1px solid var(--cn-line);
+  background: var(--cn-surface);
+}
+
+html.cn .cn-legal-modal .cn-legal-viewer .cn-legal-eyebrow {
+  border-color: transparent;
+  background: var(--cn-cyan-tint);
+  color: var(--cn-cyan-2);
+  font-weight: 500;
+}
+
+html.cn .cn-legal-modal .cn-legal-viewer .cn-legal-section h3 {
+  color: var(--cn-text);
+}
+
+html.cn .cn-legal-modal .cn-legal-viewer .cn-legal-callout {
+  border-color: var(--cn-line-2);
+  background: var(--cn-surface-2);
+  font-size: 13px;
+}
+
+html.cn .cn-legal-modal .cn-legal-viewer .cn-legal-data-table :is(th, td) {
+  border-color: var(--cn-line);
+}
+
+html.cn .cn-legal-modal .cn-legal-viewer .cn-legal-data-table th {
+  background: var(--cn-surface-2);
+  color: var(--cn-text);
+}
+
+html.cn .cn-legal-modal .cn-legal-viewer .cn-legal-data-table td:first-child {
+  color: var(--cn-text);
+}
+
+html.cn .cn-legal-modal .cn-legal-done {
+  min-height: 44px;
+  padding: 0 22px;
+  border: 1px solid transparent;
+  border-radius: var(--cn-r-pill);
+  background: var(--cn-cyan);
+  color: var(--cn-on-cyan);
+  font-family: var(--cn-font);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  text-transform: none;
+}
+
+html.cn .cn-legal-modal :is(.cn-legal-close, .cn-legal-tab, .cn-legal-done):focus-visible {
+  outline: none;
+  box-shadow: var(--cn-focus);
+}
+
+/* ---------- 14. Cookie bar (#cnConsentBar). Fixed, z 150, [hidden] and the body padding stay legacy ---------- */
+html.cn .cn-consent {
+  --cn-consent-accent: var(--cn-cyan-2);
+  --cn-consent-text: var(--cn-text);
+  --cn-consent-muted: var(--cn-text-2);
+  --cn-consent-border: var(--cn-line-2);
+  left: max(var(--cn-4), env(safe-area-inset-left, 0px));
+  right: max(var(--cn-4), env(safe-area-inset-right, 0px));
+  bottom: calc(var(--cn-3) + env(safe-area-inset-bottom, 0px));
+  max-width: 720px;
+  gap: var(--cn-5);
+  padding: var(--cn-4) var(--cn-4) var(--cn-4) var(--cn-5);
+  border: 1px solid var(--cn-line-2);
+  border-radius: var(--cn-r-card);
+  background: rgba(11, 15, 19, .9);
+  background: color-mix(in srgb, var(--cn-surface) 90%, transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+  box-shadow: var(--cn-shadow);
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  animation: cn-consent-in var(--cn-dur-3) var(--cn-ease-out) both;
+}
+
+html.cn .cn-consent-title {
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -.015em;
+}
+
+html.cn .cn-consent-text {
+  color: var(--cn-text-2);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+html.cn .cn-consent-text a {
+  color: var(--cn-cyan-2);
+  font-weight: 500;
+  text-decoration-color: var(--cn-cyan-line);
+  text-underline-offset: 3px;
+}
+
+html.cn .cn-consent-current {
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+/* Decline and Accept: one style and one size, so declining is exactly as easy */
+html.cn .cn-consent-actions {
+  gap: var(--cn-2);
+  width: 228px;
+}
+
+html.cn .cn-consent-btn {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--cn-line-2);
+  border-radius: var(--cn-r-pill);
+  background: var(--cn-surface-2);
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  transition: background-color var(--cn-dur-1) ease, border-color var(--cn-dur-1) ease;
+}
+
+html.cn .cn-consent-btn[aria-pressed="true"] {
+  border-color: var(--cn-cyan-line);
+  background: var(--cn-surface-3);
+}
+
+html.cn .cn-consent-btn:active {
+  scale: .98;
+}
+
+html.cn .cn-consent-btn:focus-visible,
+html.cn .cn-consent-text a:focus-visible {
+  outline: none;
+  box-shadow: var(--cn-focus);
+}
+
+/* ---------- 15. Hover (fine pointers only) ---------- */
+@media (hover: hover) and (pointer: fine) {
+  html.cn .modal .close-modal:hover,
+  html.cn .cn-legal-modal .cn-legal-close:hover {
+    background: var(--cn-surface-3);
+    color: var(--cn-text);
+  }
+
+  html.cn #authModal .auth-tab:not(.active):hover,
+  html.cn #accountDetailsModal .cn-account-tab:not(.active):hover,
+  html.cn #howtoVideoModal .video-modal-tab:not(.active):hover,
+  html.cn .cn-legal-modal .cn-legal-tab:not(.active):hover {
+    background: transparent;
+    color: var(--cn-text);
+  }
+
+  html.cn #authModal .google-auth-btn:hover {
+    background: var(--cn-ice);
+    box-shadow: none;
+    transform: none;
+  }
+
+  html.cn #authModal .auth-text-btn:hover {
+    color: var(--cn-text);
+  }
+
+  html.cn #authModal :is(.auth-create-link, .auth-login-link):hover {
+    color: var(--cn-ice) !important;
+  }
+
+  html.cn .modal :is(.cn-google-legal-note, .cn-signup-legal) .cn-legal-link-btn:hover {
+    color: var(--cn-ice);
+  }
+
+  html.cn #howtoVideoModal :is(.video-exit-btn, .video-control-btn):hover {
+    border-color: var(--cn-line-2);
+    background: var(--cn-surface-2);
+    color: var(--cn-text);
+  }
+
+  html.cn #howtoVideoModal #videoPlayPauseBtn:hover {
+    background: var(--cn-cyan-2);
+    color: var(--cn-on-cyan);
+  }
+
+  html.cn #howtoVideoModal .hw-btn:not(:disabled):hover {
+    border-color: var(--cn-line-2);
+    background: var(--cn-surface-2);
+  }
+
+  html.cn #howtoVideoModal .hw-btn-primary:not(:disabled):hover {
+    border-color: transparent;
+    background: var(--cn-cyan-2);
+  }
+
+  html.cn #howtoVideoModal .hw-dot:not(.is-active):hover::before {
+    background: var(--cn-text-2);
+  }
+
+  html.cn #accountDetailsModal .cn-account-legal-links :is(button, a):hover,
+  html.cn #accountDetailsModal .protect-secondary:hover {
+    border-color: var(--cn-line-2);
+    background: var(--cn-surface-3);
+  }
+
+  html.cn .cn-legal-modal .cn-legal-done:hover {
+    background: var(--cn-cyan-2);
+  }
+
+  html.cn .cn-consent-btn:hover {
+    border-color: var(--cn-line-2);
+    background: var(--cn-surface-3);
+  }
+
+  html.cn .cn-consent-text a:hover {
+    color: var(--cn-ice);
+  }
+}
+
+/* ---------- 16. Tablets: stacked walkthrough, single-column panels ---------- */
+@media (max-width: 899.98px) {
+  html.cn #howtoVideoModal .hw-step {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* stacked steps are taller: give the sheet the room portrait tablets have */
+  html.cn #howtoVideoModal .video-player-shell {
+    height: min(920px, calc(100dvh - 48px));
+  }
+}
+
+@media (max-width: 819.98px) {
+  html.cn #accountDetailsModal .cybernet-account-head,
+  html.cn #businessTeamModal .cn-team-head {
+    display: block;
+  }
+
+  html.cn #accountDetailsModal .cybernet-account-live-badge,
+  html.cn #businessTeamModal .cn-team-tier-badge {
+    margin-top: var(--cn-3);
+  }
+}
+
+/* ---------- 17. Phones: bottom sheets ---------- */
+@media (max-width: 639.98px) {
+  html.cn .modal,
+  html.cn #howtoVideoModal.video-modal-fullscreen,
+  html.cn .cn-legal-modal {
+    align-items: flex-end;
+    justify-content: center;
+    padding: env(safe-area-inset-top, 0px) 0 0;
+  }
+
+  html.cn .cn-legal-modal {
+    align-content: end;
+    place-items: end center;
+  }
+
+  html.cn :is(#authModal, #feedbackModal, #accountDetailsModal, #cybernetHowToGetKeyModal, #businessTeamModal, #acceptInviteModal, .modal) > .modal-card,
+  html.cn #howtoVideoModal .video-player-shell,
+  html.cn .cn-legal-modal .cn-legal-dialog {
+    width: 100%;
+    max-width: none;
+    max-height: 92vh;
+    max-height: 92dvh;
+    margin: 0;
+    border-bottom: 0;
+    border-radius: var(--cn-r-panel) var(--cn-r-panel) 0 0;
+    animation: cn-ov-sheet var(--cn-dur-3) var(--cn-ease-out) both;
+  }
+
+  html.cn :is(#authModal, #feedbackModal, #accountDetailsModal, #cybernetHowToGetKeyModal, #businessTeamModal, #acceptInviteModal, .modal) > .modal-card {
+    --cn-card-pad: var(--cn-5);
+    --cn-card-pb: calc(var(--cn-6) + env(safe-area-inset-bottom, 0px));
+    padding: var(--cn-6) var(--cn-card-pad) var(--cn-card-pb);
+  }
+
+  html.cn #howtoVideoModal .video-player-shell {
+    padding:
+      var(--cn-4)
+      max(var(--cn-4), env(safe-area-inset-right, 0px))
+      calc(var(--cn-4) + env(safe-area-inset-bottom, 0px))
+      max(var(--cn-4), env(safe-area-inset-left, 0px));
+  }
+
+  html.cn .cn-legal-modal .cn-legal-dialog {
+    height: 92dvh;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  html.cn .modal .close-modal {
+    top: 12px;
+    inset-inline-end: 12px;
+  }
+
+  html.cn #authModal .auth-logo {
+    margin-bottom: var(--cn-3);
+  }
+
+  html.cn #authModal .auth-helper-row {
+    justify-content: center;
+  }
+
+  html.cn #accountDetailsModal .cn-account-title-icon {
+    display: none;
+  }
+
+  html.cn #authModal .auth-logo-icon {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    max-width: 48px;
+    max-height: 48px;
+    padding: 10px 11px;
+    border-radius: 14px;
+  }
+
+  html.cn .modal :is(.auth-name-grid, .feedback-name-grid) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  html.cn #accountDetailsModal .cybernet-account-actions :is(.primary-btn, .secondary-btn),
+  html.cn #acceptInviteModal .cn-invite-actions > button {
+    flex: 1 1 100%;
+  }
+
+  html.cn #businessTeamModal .cn-team-invite-row {
+    flex-wrap: wrap;
+  }
+
+  html.cn #businessTeamModal .cn-team-invite-row > * {
+    flex: 1 1 100%;
+  }
+
+  html.cn #howtoVideoModal .video-player-topbar {
+    margin-bottom: var(--cn-3);
+  }
+
+  html.cn #howtoVideoModal .video-modal-tabs {
+    align-self: stretch;
+    margin-bottom: var(--cn-4);
+  }
+
+  html.cn #howtoVideoModal .video-modal-tab {
+    flex: 1 0 auto;
+    padding: 0 12px;
+  }
+
+  html.cn #howtoVideoModal .hw {
+    gap: var(--cn-5);
+  }
+
+  html.cn #howtoVideoModal .hw-nav {
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    gap: var(--cn-2);
+  }
+
+  html.cn #howtoVideoModal .hw-dots {
+    order: 0;
+    width: auto;
+    margin: 0;
+  }
+
+  html.cn #howtoVideoModal .hw-btn {
+    flex: 0 1 auto;
+    min-width: 0;
+    padding: 0 18px;
+  }
+
+  /* the cookie bar: a compact card, buttons side by side */
+  html.cn .cn-consent {
+    left: max(var(--cn-3), env(safe-area-inset-left, 0px));
+    right: max(var(--cn-3), env(safe-area-inset-right, 0px));
+    bottom: calc(var(--cn-2) + env(safe-area-inset-bottom, 0px));
+    gap: var(--cn-3);
+    padding: var(--cn-4);
+  }
+
+  html.cn .cn-consent-actions {
+    width: 100%;
+  }
+}
+
+@media (max-width: 359.98px) {
+  html.cn #howtoVideoModal .hw-nav {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  html.cn #howtoVideoModal .hw-dots {
+    order: -1;
+    width: 100%;
+    justify-content: center;
+  }
+
+  html.cn #howtoVideoModal .hw-btn {
+    flex: 1 1 0;
+  }
+
+  /* Decline and Accept stay side by side (each ~108px at 280), so the bar stays compact */
+  html.cn .cn-consent-btn {
+    padding: 0 10px;
+  }
+}
+
+/* short landscape screens: the sheet uses the full height */
+@media (max-height: 520px) and (min-width: 640px) {
+  html.cn :is(#authModal, #feedbackModal, #accountDetailsModal, #cybernetHowToGetKeyModal, #businessTeamModal, #acceptInviteModal, .modal) > .modal-card {
+    max-height: calc(100dvh - 24px);
+  }
+
+  html.cn #howtoVideoModal .video-player-shell {
+    height: calc(100dvh - 24px);
+  }
+
+  html.cn .modal,
+  html.cn #howtoVideoModal.video-modal-fullscreen {
+    padding-top: max(var(--cn-3), env(safe-area-inset-top, 0px));
+    padding-bottom: max(var(--cn-3), env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Short screens (landscape phones): the walkthrough's chrome collapses to one row
+   (title, tabs, Exit), so the step itself gets the height. Markup and
+   cybernet-howto.js are unchanged. */
+@media (max-height: 520px) and (min-width: 480px) {
+  html.cn #howtoVideoModal .video-player-shell {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: var(--cn-4);
+    row-gap: var(--cn-3);
+    padding-top: var(--cn-3);
+    padding-bottom: var(--cn-4);
+  }
+
+  html.cn #howtoVideoModal .video-player-topbar {
+    display: contents;
+  }
+
+  html.cn #howtoVideoModal #howtoVideoTitle {
+    grid-area: 1 / 1;
+    font-size: 1rem;
+    white-space: nowrap;
+  }
+
+  html.cn #howtoVideoModal .video-modal-tabs {
+    grid-area: 1 / 2;
+    justify-self: center;
+    align-self: center;
+    margin: 0;
+  }
+
+  html.cn #howtoVideoModal #closeHowtoVideo {
+    grid-area: 1 / 3;
+  }
+
+  html.cn #howtoVideoModal .video-modal-player {
+    grid-column: 1 / -1;
+    align-self: stretch;
+  }
+
+  html.cn #howtoVideoModal .video-player-controls {
+    grid-column: 1 / -1;
+    margin-top: 0;
+  }
+
+  html.cn #howtoVideoModal .hw {
+    gap: var(--cn-4);
+  }
+
+  /* the tool summary is the same on every step: keep it on step 1 only */
+  html.cn #howtoVideoModal .hw:has(.hw-dot.is-active:not(:first-child)) .hw-summary {
+    display: none;
+  }
+
+  html.cn #howtoVideoModal .hw-summary {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  html.cn #howtoVideoModal .hw-nav {
+    padding-top: var(--cn-3);
+  }
+}
+
+/* narrower landscape sheets: the active tab already names the tool, so the
+   title steps out visually (it still names the dialog) and the tabs get the room */
+@media (max-height: 520px) and (min-width: 480px) and (max-width: 759.98px) {
+  html.cn #howtoVideoModal .video-player-shell {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  html.cn #howtoVideoModal #howtoVideoTitle {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  html.cn #howtoVideoModal .video-modal-tabs {
+    grid-area: 1 / 1;
+    justify-self: start;
+  }
+
+  html.cn #howtoVideoModal #closeHowtoVideo {
+    grid-area: 1 / 2;
+  }
+}
+
+/* short phones still in the bottom-sheet range: the sheet takes its full 92dvh */
+@media (max-height: 520px) and (min-width: 480px) and (max-width: 639.98px) {
+  html.cn #howtoVideoModal .video-player-shell {
+    height: 92dvh;
+    padding-bottom: calc(var(--cn-4) + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* ---------- 18. Motion ---------- */
+@keyframes cn-ov-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes cn-ov-in {
+  from { opacity: 0; transform: translateY(14px) scale(.98); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes cn-ov-sheet {
+  from { opacity: .6; transform: translateY(100%); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes cn-hw-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes cn-consent-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.cn .modal.show,
+  html.cn .modal .modal-card,
+  html.cn :is(#authModal, #feedbackModal, #accountDetailsModal, #cybernetHowToGetKeyModal, #businessTeamModal, #acceptInviteModal, .modal) > .modal-card,
+  html.cn #howtoVideoModal .video-player-shell,
+  html.cn #howtoVideoModal .hw-step,
+  html.cn .cn-legal-modal .cn-legal-dialog,
+  html.cn .cn-consent {
+    animation: none;
+  }
+
+  html.cn .modal .close-modal,
+  html.cn #authModal .auth-tab,
+  html.cn #authModal .google-auth-btn,
+  html.cn #authModal .auth-text-btn,
+  html.cn #howtoVideoModal :is(.video-exit-btn, .video-control-btn, .video-modal-tab, .hw-btn),
+  html.cn .cn-consent-btn {
+    transition: none;
+  }
+}
+
+/* reduced transparency: solid scrim and bar, no blur */
+@media (prefers-reduced-transparency: reduce) {
+  html.cn .modal,
+  html.cn .cn-legal-modal {
+    background: rgba(3, 4, 6, .9);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  html.cn .cn-consent {
+    background: var(--cn-surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}

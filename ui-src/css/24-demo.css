@@ -1,0 +1,587 @@
+/* Home 3 - Example scan (#cnDemo)
+   Copy and steps on the left (5/12), the console on the right (7/12), stacked below 880px.
+   The console is a calm product miniature, never a terminal: graphite surfaces, mono labels,
+   verdict colours only inside the result. 30-demo.js drives it with a class per typed character
+   (.is-on, .is-caret) and custom properties set on the one element that reads each of them
+   (--cn-hp on each highlight, --cn-arc on the arc, --cn-score on the number, --cn-prog on the bar,
+   --cn-fade on the body and footer, --p on each step bar). The static markup is the finished state. */
+
+/* Registered and not inherited: a frame that moves a highlight or the loop fade restyles that
+   one element, not every character inside it. */
+@property --cn-hp { syntax: "<number>"; inherits: false; initial-value: 1; }
+@property --cn-fade { syntax: "<number>"; inherits: false; initial-value: 1; }
+
+html.cn #home .cn-demo {
+  /* Width, gutters and the section rhythm come from 02-components.css (home container). */
+  container: cn-demo / inline-size;
+  font-family: var(--cn-font);
+  color: var(--cn-text);
+}
+
+html.cn #home .cn-demo-in {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(28px, 6cqi, 48px);
+  align-items: center;
+}
+@container cn-demo (min-width: 880px) {
+  html.cn #home .cn-demo-in {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: 24px;
+  }
+  html.cn #home .cn-demo-copy { grid-column: 1 / span 5; padding-inline-end: clamp(0px, 3cqi, 40px); }
+  html.cn #home .cn-console { grid-column: 6 / span 7; }
+}
+
+/* ---------- Copy ---------- */
+html.cn #home .cn-demo-copy { min-inline-size: 0; }
+html.cn #home .cn-demo-copy h2 {
+  margin: 12px 0 0;
+  max-inline-size: 15ch;
+  font-family: var(--cn-font);
+  font-size: var(--cn-step-h2);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: var(--cn-track-h2);
+  color: var(--cn-text);
+  text-wrap: balance;
+}
+html.cn #home .cn-demo-copy h2 span { color: var(--cn-text-2); }
+
+/* Steps: a rail per step on the inline start that fills while the console works on it. */
+html.cn #home .cn-steps {
+  counter-reset: cn-step;
+  display: grid;
+  gap: 2px;
+  margin: clamp(28px, 4cqi, 44px) 0 0;
+  padding: 0;
+  list-style: none;
+}
+html.cn #home .cn-step {
+  counter-increment: cn-step;
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+  padding-block: 14px;
+  padding-inline: 22px 0;
+}
+html.cn #home .cn-step-bar {
+  position: absolute;
+  inset-block: 6px;
+  inset-inline-start: 0;
+  inline-size: 2px;
+  border-radius: 2px;
+  background: var(--cn-line-2);
+  overflow: hidden;
+}
+html.cn #home .cn-step-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--cn-cyan);
+  transform: scaleY(var(--p, 0));
+  transform-origin: 50% 0;
+}
+html.cn #home .cn-step.is-done .cn-step-bar::after { background: var(--cn-teal); }
+html.cn #home .cn-step b {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: var(--cn-track-body);
+  color: var(--cn-text-2);
+  transition: color var(--cn-dur-2) ease;
+}
+html.cn #home .cn-step b::before {
+  content: counter(cn-step, decimal-leading-zero);
+  flex: none;
+  inline-size: 18px;
+  font-family: var(--cn-font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: .06em;
+  font-variant-numeric: tabular-nums;
+  color: var(--cn-text-3);
+  transition: color var(--cn-dur-2) ease;
+}
+html.cn #home .cn-step small {
+  display: block;
+  padding-inline-start: 30px;
+  font-size: var(--cn-step-small);
+  line-height: 1.5;
+  letter-spacing: var(--cn-track-body);
+  color: var(--cn-text-2);
+  text-wrap: pretty;
+}
+html.cn #home .cn-step.is-active b,
+html.cn #home .cn-step.is-done b { color: var(--cn-text); }
+html.cn #home .cn-step.is-active b::before { color: var(--cn-cyan-2); }
+html.cn #home .cn-step.is-done b::before { color: var(--cn-text-2); }
+
+/* Stacked layout: the steps become a 2 x 2 grid with a bar on top of each. */
+@container cn-demo (max-width: 879px) {
+  html.cn #home .cn-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px clamp(16px, 4cqi, 32px);
+  }
+  html.cn #home .cn-step { padding-block: 16px 8px; padding-inline: 0; }
+  html.cn #home .cn-step-bar { inset-block: 0 auto; inset-inline: 0; inline-size: auto; block-size: 2px; }
+  html.cn #home .cn-step-bar::after { transform: scaleX(var(--p, 0)); transform-origin: 0 50%; }
+  html.cn #home .cn-step b { font-size: 1rem; }
+}
+@container cn-demo (max-width: 559px) {
+  html.cn #home .cn-step b { font-size: .9375rem; }
+  html.cn #home .cn-step small { display: none; }
+}
+
+/* Pause / Play uses the shared ghost button (02-components.css). Its word carries the state, so it
+   is not an aria-pressed toggle: the glyph follows .is-paused (set by 30-demo.js) instead. The
+   play triangle always points right, as media controls do in RTL too. */
+html.cn #home .cn-demo [data-cn-demo-toggle] { margin-block-start: clamp(16px, 3cqi, 24px); }
+html.cn:not(.cn-js) #home .cn-demo [data-cn-demo-toggle] { display: none; }
+html.cn #home .cn-demo [data-cn-demo-toggle]::before {
+  content: "";
+  flex: none;
+  box-sizing: border-box;
+  inline-size: 9px;
+  block-size: 10px;
+  border: 0;
+  border-inline: 3px solid currentColor;
+  scale: none;
+}
+html.cn #home .cn-demo [data-cn-demo-toggle].is-paused::before {
+  inline-size: 0;
+  block-size: 0;
+  border: 0;
+  border-block: 5px solid transparent;
+  border-left: 9px solid currentColor;
+}
+
+/* ---------- Console ---------- */
+html.cn #home .cn-console {
+  container: cn-console / inline-size;
+  min-inline-size: 0;
+  margin: 0;
+  overflow: hidden;
+  background: var(--cn-surface);
+  border: 1px solid var(--cn-line-2);
+  border-radius: var(--cn-r-panel);
+}
+
+/* Top bar: app name, status (centred), example pill. It wraps instead of overlapping, so large
+   browser text moves items onto a new line. The status reserves room for its longest word
+   ("Checking link"), so the row never re-wraps while the status text changes. */
+html.cn #home .cn-console-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  padding: 14px clamp(16px, 4cqi, 24px);
+  border-block-end: 1px solid var(--cn-line);
+}
+html.cn #home .cn-console-top .cn-mono {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: var(--cn-track-label);
+  text-transform: uppercase;
+  color: var(--cn-text);
+  white-space: nowrap;
+}
+/* A small product mark: a magnifier drawn in CSS. */
+html.cn #home .cn-console-top .cn-mono::before {
+  content: "";
+  inline-size: 22px;
+  block-size: 22px;
+  flex: none;
+  border-radius: 7px;
+  background:
+    radial-gradient(circle at 45% 45%, transparent 3.2px, var(--cn-cyan-2) 3.4px 4.8px, transparent 5px),
+    linear-gradient(45deg, transparent 47%, var(--cn-cyan-2) 47% 60%, transparent 60%) 13px 13px / 5px 5px no-repeat,
+    var(--cn-cyan-tint);
+}
+html.cn #home .cn-status {
+  order: 1;
+  flex: 1 0 calc(13ch + 14px);
+  justify-content: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-inline-size: 0;
+  font-family: var(--cn-font-mono);
+  font-size: 11px;
+  line-height: 1.3;
+  letter-spacing: .04em;
+  color: var(--cn-text-2);
+  white-space: nowrap;
+}
+html.cn #home .cn-status i {
+  flex: none;
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: 50%;
+  background: var(--cn-cyan);
+}
+html.cn #home .cn-console.is-running .cn-status i { animation: cn-demo-blink 1.1s ease-in-out infinite; }
+html.cn #home .cn-console.is-paused .cn-status i { animation-play-state: paused; }
+@keyframes cn-demo-blink { 50% { opacity: .25; } }
+/* Without JS the markup's status word would contradict the finished result, so hide it. */
+html.cn:not(.cn-js) #home .cn-status { visibility: hidden; }
+
+html.cn #home .cn-console .cn-ex {
+  order: 2;
+  flex: none;
+  max-inline-size: 100%;
+  margin-inline-start: auto;
+  white-space: nowrap;
+}
+/* Phones: app and status on the first row, the Example pill on its own row (its text may wrap
+   with very large browser text). The app column is sized to its content, so nothing overlaps. */
+@container cn-console (max-width: 559px) {
+  html.cn #home .cn-console-top {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas: "app status" "ex ex";
+  }
+  html.cn #home .cn-console-top .cn-mono { grid-area: app; }
+  html.cn #home .cn-status { grid-area: status; justify-self: end; }
+  html.cn #home .cn-console .cn-ex { grid-area: ex; justify-self: start; margin-inline-start: 0; white-space: normal; }
+}
+@container cn-console (max-width: 300px) {
+  html.cn #home .cn-console-top { grid-template-columns: minmax(0, 1fr); grid-template-areas: "app" "ex" "status"; }
+  html.cn #home .cn-status { justify-self: start; }
+  /* Folded phones: tighter tracking keeps the Example pill on one line. */
+  html.cn #home .cn-console .cn-ex { padding-inline: 8px; letter-spacing: .01em; }
+}
+
+/* Body: message on top, then meter and reasons. */
+html.cn #home .cn-console-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "msg" "meter" "reasons";
+  gap: clamp(18px, 4cqi, 24px);
+  padding: clamp(18px, 4.5cqi, 28px) clamp(16px, 4.5cqi, 28px) clamp(14px, 3cqi, 20px);
+}
+@container cn-console (min-width: 500px) {
+  html.cn #home .cn-console-grid {
+    grid-template-columns: minmax(0, 13.5rem) minmax(0, 1fr);
+    grid-template-areas: "msg msg" "meter reasons";
+    column-gap: clamp(20px, 4cqi, 32px);
+  }
+}
+
+html.cn #home .cn-msg { grid-area: msg; display: grid; gap: 10px; justify-items: stretch; min-inline-size: 0; }
+html.cn #home .cn-msg > .cn-label,
+html.cn #home .cn-from { justify-self: start; }
+html.cn #home .cn-bubble {
+  position: relative;
+  margin: 0;
+  max-inline-size: none;
+  padding: 13px 16px 14px;
+  background: var(--cn-surface-2);
+  border: 1px solid var(--cn-line);
+  border-radius: 18px;
+  border-end-start-radius: 6px;
+  font-size: clamp(.9375rem, .85rem + .9cqi, 1.0625rem);
+  line-height: 1.55;
+  letter-spacing: var(--cn-track-body);
+  color: var(--cn-text);
+  overflow-wrap: anywhere;
+}
+html.cn #home .cn-from {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--cn-font-mono);
+  font-size: 11px;
+  line-height: 1.3;
+  letter-spacing: .02em;
+  color: var(--cn-text-2);
+}
+html.cn #home .cn-from i {
+  display: grid;
+  place-items: center;
+  inline-size: 18px;
+  block-size: 18px;
+  border-radius: 50%;
+  background: var(--cn-surface-3);
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--cn-text-2);
+}
+
+/* Typing: each character fades in when 30-demo.js gives it .is-on; .is-caret marks the newest.
+   Colour and visibility, not opacity: an inline box with opacity below 1 gets its own paint
+   layer, and creating or dropping one per character forced a layout every frame. */
+html.cn #home .cn-console .cn-demo-sr {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+html.cn #home .cn-console .cn-c {
+  position: relative;
+  color: transparent;
+  transition: color 90ms linear;
+}
+html.cn #home .cn-console .cn-c.is-on { color: inherit; }
+html.cn #home .cn-console .cn-c::after {
+  content: "";
+  position: absolute;
+  inset-block: .1em;
+  inset-inline-end: -2px;
+  inline-size: 2px;
+  border-radius: 1px;
+  background: var(--cn-cyan);
+  visibility: hidden;
+}
+html.cn #home .cn-console .cn-c.is-caret::after { visibility: visible; }
+/* Highlights: an amber underline sweeps under each phrase in turn (--cn-hp 0 to 1), with a faint tint. */
+html.cn #home .cn-console .cn-hl {
+  margin-inline: -2px;
+  padding-inline: 2px;
+  border-radius: 4px;
+  color: inherit;
+  background-color: transparent;
+  background-image: linear-gradient(var(--cn-warn), var(--cn-warn));
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: calc(var(--cn-hp, 1) * 100%) 2px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+/* Meter: the arc fills to the score while the number counts (CSS counter, no DOM text churn). */
+html.cn #home .cn-meter {
+  grid-area: meter;
+  display: grid;
+  grid-template-areas: "label" "arc" "verdict";
+  justify-items: center;
+  align-content: start;
+  row-gap: 12px;
+  min-inline-size: 0;
+  padding: 16px 16px 18px;
+  background: var(--cn-bg-2);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-card);
+}
+html.cn #home .cn-meter > .cn-label { grid-area: label; justify-self: start; }
+html.cn #home .cn-arc {
+  grid-area: arc;
+  display: block;
+  inline-size: min(100%, 12.5rem);
+  block-size: auto;
+  overflow: visible;
+}
+html.cn #home .cn-arc-track,
+html.cn #home .cn-arc-val {
+  fill: none;
+  stroke-width: 12;
+  stroke-linecap: round;
+}
+html.cn #home .cn-arc-track { stroke: rgba(255, 255, 255, .07); }
+html.cn #home .cn-arc-val {
+  stroke: var(--cn-danger);
+  /* Gap longer than the path, so an empty arc leaves no round-cap dot at its end. */
+  stroke-dasharray: 100 200;
+}
+/* Once 30-demo.js drives the meter the arc follows --cn-arc; without JS the markup's own offset shows. */
+html.cn.cn-js #home .cn-console.is-ready .cn-arc-val { stroke-dashoffset: calc(100 - var(--cn-arc, 0)); }
+html.cn #home .cn-meter-num {
+  grid-area: arc;
+  align-self: end;
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  margin-block-end: -2px;
+}
+html.cn #home .cn-meter-num b {
+  min-inline-size: 2ch;
+  font-family: var(--cn-font);
+  font-size: clamp(2.25rem, 1.6rem + 3cqi, 2.75rem);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -.04em;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+  color: var(--cn-text);
+}
+html.cn #home .cn-meter-num span {
+  font-family: var(--cn-font-mono);
+  font-size: 12px;
+  color: var(--cn-text-2);
+}
+/* With JS the visible number is a counter fed by --cn-score; the DOM keeps the final value for readers. */
+html.cn.cn-js #home .cn-console.is-ready .cn-meter-num b { font-size: 0; }
+html.cn.cn-js #home .cn-console.is-ready .cn-meter-num b::before {
+  counter-reset: cn-score var(--cn-score, 0);
+  content: counter(cn-score);
+  font-size: clamp(2.25rem, 1.6rem + 3cqi, 2.75rem);
+}
+
+/* Where color-mix() exists, the highlight gains a faint tint and the arc warms from amber to rose
+   as it fills (older browsers keep the plain underline and a rose arc). */
+@supports (color: color-mix(in srgb, red, blue)) {
+  html.cn #home .cn-console .cn-hl { background-color: color-mix(in srgb, var(--cn-warn) calc(var(--cn-hp, 1) * 14%), transparent); }
+  html.cn #home .cn-arc-val { stroke: color-mix(in oklab, var(--cn-warn), var(--cn-danger) calc(var(--cn-arc, 80) * 1%)); }
+}
+
+/* Verdict badge: the shared look (02-components.css), placed under the meter. */
+html.cn #home .cn-console .cn-verdict { grid-area: verdict; }
+
+/* Reasons */
+html.cn #home .cn-reasons {
+  grid-area: reasons;
+  align-self: center;
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+html.cn #home .cn-reasons li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding-block: 13px;
+  border-block-end: 1px solid var(--cn-line);
+  font-size: .9375rem;
+  line-height: 1.45;
+  letter-spacing: var(--cn-track-body);
+  color: var(--cn-text);
+}
+html.cn #home .cn-reasons li:first-child { padding-block-start: 4px; }
+html.cn #home .cn-reasons li:last-child { border-block-end: 0; padding-block-end: 0; }
+html.cn #home .cn-reasons li::before {
+  content: "";
+  flex: none;
+  inline-size: 6px;
+  block-size: 6px;
+  margin-block-start: .55em;
+  border-radius: 50%;
+  background: var(--cn-danger);
+}
+
+/* Footer: progress bar and the advice line. */
+html.cn #home .cn-console-foot {
+  display: grid;
+  gap: 12px;
+  padding: 0 clamp(16px, 4.5cqi, 28px) clamp(16px, 3.5cqi, 22px);
+}
+html.cn #home .cn-progress {
+  block-size: 3px;
+  border-radius: var(--cn-r-pill);
+  background: rgba(255, 255, 255, .06);
+  overflow: hidden;
+}
+html.cn #home .cn-progress i {
+  display: block;
+  block-size: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--cn-teal), var(--cn-cyan));
+  transform: scaleX(var(--cn-prog, 1));
+  transform-origin: 0 50%;
+}
+/* The advice is the payoff of the scan, so it reads as text, not as a mono caption. */
+html.cn #home [data-cn-foot] {
+  min-block-size: 1.45em;
+  font-family: var(--cn-font);
+  font-size: .9375rem;
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: var(--cn-track-body);
+  color: var(--cn-text);
+  text-wrap: pretty;
+}
+
+/* ---------- JS-driven states (only once 30-demo.js has taken over) ---------- */
+html.cn.cn-js #home .cn-console.is-ready .cn-console-grid,
+html.cn.cn-js #home .cn-console.is-ready .cn-console-foot { opacity: var(--cn-fade, 1); }
+html.cn.cn-js #home .cn-console.is-ready .cn-verdict {
+  opacity: 0;
+  transform: scale(.96);
+  transition: opacity var(--cn-dur-2) var(--cn-ease-out), transform 420ms cubic-bezier(.34, 1.56, .64, 1);
+}
+html.cn.cn-js #home .cn-console.is-ready.is-verdict .cn-verdict { opacity: 1; transform: none; }
+/* Reasons wait as skeleton lines while the scan runs, then the words fade in over them. */
+html.cn.cn-js #home .cn-console.is-ready .cn-reasons li {
+  --cn-pt: 13px;
+  position: relative;
+  transition: color 450ms var(--cn-ease-out);
+}
+html.cn.cn-js #home .cn-console.is-ready .cn-reasons li:first-child { --cn-pt: 4px; }
+html.cn.cn-js #home .cn-console.is-ready .cn-reasons li::before { transition: background-color 450ms var(--cn-ease-out); }
+html.cn.cn-js #home .cn-console.is-ready .cn-reasons li::after {
+  content: "";
+  position: absolute;
+  inset-block-start: calc(var(--cn-pt) + .36em);
+  inset-inline-start: 18px;
+  inline-size: min(var(--cn-sk, 70%), calc(100% - 18px));
+  block-size: .62em;
+  border-radius: 4px;
+  background: var(--cn-surface-3);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 300ms ease;
+}
+html.cn.cn-js #home .cn-console.is-ready .cn-reasons li:nth-child(2) { --cn-sk: 84%; }
+html.cn.cn-js #home .cn-console.is-ready .cn-reasons li:nth-child(3) { --cn-sk: 58%; }
+html.cn.cn-js #home .cn-console.is-ready:not(.is-reasons) .cn-reasons li { color: transparent; }
+html.cn.cn-js #home .cn-console.is-ready:not(.is-reasons) .cn-reasons li::before { background-color: var(--cn-surface-3); }
+html.cn.cn-js #home .cn-console.is-ready:not(.is-reasons) .cn-reasons li::after { opacity: 1; }
+html.cn.cn-js #home .cn-console.is-ready.is-running:not(.is-reasons) .cn-reasons li::after { animation: cn-demo-wait 1.6s ease-in-out infinite; }
+html.cn.cn-js #home .cn-console.is-ready.is-paused .cn-reasons li::after { animation-play-state: paused; }
+html.cn.cn-js #home .cn-console.is-ready .cn-reasons li:nth-child(2)::after { animation-delay: 160ms; }
+html.cn.cn-js #home .cn-console.is-ready .cn-reasons li:nth-child(3)::after { animation-delay: 320ms; }
+html.cn.cn-js #home .cn-console.is-ready.is-reasons .cn-reasons li:nth-child(2),
+html.cn.cn-js #home .cn-console.is-ready.is-reasons .cn-reasons li:nth-child(2)::before,
+html.cn.cn-js #home .cn-console.is-ready.is-reasons .cn-reasons li:nth-child(2)::after { transition-delay: 130ms; }
+html.cn.cn-js #home .cn-console.is-ready.is-reasons .cn-reasons li:nth-child(3),
+html.cn.cn-js #home .cn-console.is-ready.is-reasons .cn-reasons li:nth-child(3)::before,
+html.cn.cn-js #home .cn-console.is-ready.is-reasons .cn-reasons li:nth-child(3)::after { transition-delay: 260ms; }
+@keyframes cn-demo-wait { 50% { opacity: .45; } }
+html.cn.cn-js #home .cn-console.is-ready [data-cn-foot] { opacity: 0; transition: opacity 400ms ease; }
+html.cn.cn-js #home .cn-console.is-ready.is-done [data-cn-foot] { opacity: 1; }
+/* Loop restarts jump without transitions. */
+html.cn.cn-js #home .cn-console.is-ready.is-snap .cn-verdict,
+html.cn.cn-js #home .cn-console.is-ready.is-snap .cn-reasons li,
+html.cn.cn-js #home .cn-console.is-ready.is-snap .cn-reasons li::before,
+html.cn.cn-js #home .cn-console.is-ready.is-snap .cn-reasons li::after,
+html.cn.cn-js #home .cn-console.is-ready.is-snap [data-cn-foot],
+html.cn.cn-js #home .cn-console.is-ready.is-snap .cn-c,
+html.cn.cn-js #home .cn-demo.is-snap .cn-step b,
+html.cn.cn-js #home .cn-demo.is-snap .cn-step b::before { transition: none; }
+
+/* Reduced motion: 30-demo.js renders the finished state once (with transitions snapped off). */
+@media (prefers-reduced-motion: reduce) {
+  html.cn #home .cn-console .cn-c { transition: none; }
+  html.cn #home .cn-console .cn-c::after { display: none; }
+  html.cn.cn-js #home .cn-console.is-ready .cn-reasons li::after { animation: none; }
+}
+
+/* Forced colours: the amber tint would turn into an unreadable block, so use the system highlight pair. */
+@media (forced-colors: active) {
+  html.cn #home .cn-console .cn-hl {
+    forced-color-adjust: none;
+    background: Mark;
+    color: MarkText;
+  }
+  html.cn #home .cn-console .cn-hl .cn-c { color: MarkText; }
+}
+
+/* Label floor: no text under --cn-step-label (12px), phones included (DESIGN.md rule 6). */
+html.cn #home :is(.cn-console-top .cn-mono, .cn-status, .cn-from) { font-size: var(--cn-step-label); }

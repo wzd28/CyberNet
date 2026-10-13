@@ -1,0 +1,627 @@
+/* CyberNet AI "Signal": base layer (owner: foundation).
+   The ground every other partial stands on: legacy token remap, page ground, type, links,
+   focus, selection, scrollbars, the two-tone headline rule, the page container, the legacy
+   decoration switch-off and the calm restyle of the legacy shared controls (buttons, pills,
+   cards, form fields).
+   House rules: every selector starts with html.cn. Specificity stays at (0,2,x) or lower, and
+   :where() wraps context, so the later page partials win any tie by source order.
+   No display:!important on anything JS shows or hides (see maps/HAZARDS.md). */
+
+/* ------------------------------------------------------------------------------------------
+   1. Legacy token remap
+   style.css, the add-on sheets and some JS template strings read these variables. Pointing
+   them at the Signal tokens recolours every untouched legacy rule at once. --font-mono is
+   the big one: legacy used it for headings, nav, buttons and inputs, so it now maps to the
+   sans; real labels get JetBrains Mono back explicitly in section 4.
+   ------------------------------------------------------------------------------------------ */
+html.cn {
+  --bg: var(--cn-bg);
+  --bg-alt: var(--cn-bg-2);
+  --glass: var(--cn-surface);
+  --glass-strong: var(--cn-surface-2);
+  --glass-border: var(--cn-line);
+  --glass-border-strong: var(--cn-line-2);
+  --glass-border-quiet: var(--cn-line);
+  --green: var(--cn-cyan);
+  --green-dim: var(--cn-teal);
+  --green-bright: var(--cn-cyan-2);
+  --text: var(--cn-text);
+  --muted: var(--cn-text-2);
+  --soft: var(--cn-text-2);
+  --danger: var(--cn-danger);
+  --warning: var(--cn-warn);
+  --safe: var(--cn-safe);
+  --font-body: var(--cn-font);
+  --font-mono: var(--cn-font);
+  --radius-card: var(--cn-r-card);
+  --weight-display: 600;
+  --weight-heading: 600;
+
+  accent-color: var(--cn-cyan);
+  scrollbar-color: var(--cn-line-2) transparent;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ------------------------------------------------------------------------------------------
+   2. Ground
+   One flat background, on body only (it propagates to the canvas, so overscroll areas match).
+   overflow-x:clip (not hidden) keeps position:sticky working.
+   ------------------------------------------------------------------------------------------ */
+html.cn body {
+  background: var(--cn-bg);
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: var(--cn-step-body);
+  line-height: 1.55;
+  letter-spacing: var(--cn-track-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-optical-sizing: auto;
+  font-synthesis-weight: none;
+  overflow-wrap: break-word;
+  overflow-x: clip;
+}
+
+/* Legacy decoration off: the scanline overlay and animated top bar (body pseudo-elements),
+   the orbs / aurora / grid / shield watermark / wave layer and the particle canvas (script.js
+   only ever writes display:none and sizes inline). The hero cursor glow is gone from the
+   markup (script.js returns early without #cursorGlow). */
+html.cn body::before,
+html.cn body::after {
+  content: none;
+  animation: none;
+}
+html.cn .background,
+html.cn #particleCanvas {
+  display: none;
+}
+
+/* Tilt is gone: the legacy mousemove handler writes an inline perspective transform. */
+html.cn .tilt-card {
+  transform: none !important;
+  transform-style: flat;
+  will-change: auto;
+}
+
+/* ------------------------------------------------------------------------------------------
+   3. Type
+   ------------------------------------------------------------------------------------------ */
+:where(html.cn) :where(button, input, select, textarea) {
+  font-family: inherit;
+  letter-spacing: inherit;
+}
+/* Without this, buttons that set no colour use the UA buttontext colour. */
+:where(html.cn) button { color: inherit; }
+
+html.cn :where(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--cn-font);
+  font-weight: 600;
+  letter-spacing: var(--cn-track-h2);
+  text-wrap: balance;
+}
+html.cn :where(h3, h4, h5, h6) { letter-spacing: -.015em; }
+html.cn :where(p, li, dd, blockquote, figcaption) { text-wrap: pretty; }
+html.cn :where(strong, b) { font-weight: 600; }
+
+/* Two-tone headlines: the lead phrase in --cn-text, the continuation (the plain <span> inside
+   a page h1/h2) in --cn-text-2. Legacy painted these spans cyan with a glow; this also clears
+   any gradient-text treatment. Spans with a class (prices, the sweep word) are left alone. */
+html.cn :where(main) :is(h1, h2) > span:where(:not([class])) {
+  color: var(--cn-text-2);
+  background: none;
+  -webkit-background-clip: border-box;
+  background-clip: border-box;
+  text-shadow: none;
+}
+
+/* Page titles on every page except Home (the hero has its own scale). */
+html.cn :where(.page) :is(.feature-page-header, .section-head, .about-top, .learn-hero) h1 {
+  font-family: var(--cn-font);
+  font-size: var(--cn-step-h1);
+  font-weight: 600;
+  line-height: 1.04;
+  letter-spacing: -.032em;
+  color: var(--cn-text);
+  text-shadow: none;
+  text-wrap: balance;
+}
+html.cn :where(.page) :is(.feature-page-header, .section-head) > p:where(:not(.feature-crosslink)) {
+  max-width: var(--cn-measure);
+  margin-inline: auto;
+  color: var(--cn-text-2);
+  font-size: var(--cn-step-lead);
+  line-height: 1.45;
+  letter-spacing: -.012em;
+}
+
+/* Labels and numbers keep JetBrains Mono (the legacy mono token now maps to the sans).
+   (0,1,1): beats the legacy single-class rules, loses to any component rule. */
+html.cn :where(code, kbd, samp, pre,
+  .account-eyebrow, .price-plan-label, .plan-badge, .usage-chip, .save-tag, .char-count,
+  .api-key-label, .term-path, .term-body, .fetch-body, .qr-raw, .qr-kind, .dest-url, .dest-badge,
+  .diagnostic-followup-tag, .cybernet-account-live-badge, .cybernet-account-plan-badge,
+  .cybernet-byok-status-pill, .cn-team-tier-badge, .cn-role-badge, .cn-team-pending-badge,
+  .cn-team-pending-countdown, .cn-activity-kind, .cn-activity-verdict, .cn-activity-url,
+  .hw-step-count, .hw-callout-label, .hw-tag, .hw-score, .hw-meter-label, .hw-tl-when,
+  .brand-text) {
+  font-family: var(--cn-font-mono);
+}
+
+/* Text links (classed anchors keep their component styles). */
+html.cn :where(a:not([class])) {
+  color: var(--cn-cyan-2);
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--cn-cyan-line);
+  text-underline-offset: .22em;
+  transition: color var(--cn-dur-1) ease, text-decoration-color var(--cn-dur-1) ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  html.cn :where(a:not([class])):hover {
+    color: var(--cn-text);
+    text-decoration-color: currentColor;
+  }
+}
+
+/* ------------------------------------------------------------------------------------------
+   4. Selection, focus, scrollbars
+   ------------------------------------------------------------------------------------------ */
+html.cn ::selection {
+  background: var(--cn-deep);
+  background: color-mix(in srgb, var(--cn-cyan) 34%, transparent);
+  color: var(--cn-text);
+}
+
+/* One focus ring everywhere: 2px cyan, 3px off the edge (outline follows border-radius and
+   survives forced-colours mode, unlike a box-shadow ring). (0,2,1) beats the legacy
+   outline:none on inputs and small buttons. */
+html.cn :focus-visible {
+  outline: 2px solid var(--cn-cyan);
+  outline-offset: 3px;
+}
+html.cn :focus:not(:focus-visible) { outline: none; }
+
+html.cn ::-webkit-scrollbar { width: 10px; height: 10px; }
+html.cn ::-webkit-scrollbar-track { background: transparent; }
+html.cn ::-webkit-scrollbar-thumb {
+  background: var(--cn-line-2);
+  border: 3px solid transparent;
+  border-radius: var(--cn-r-pill);
+  background-clip: padding-box;
+}
+html.cn ::-webkit-scrollbar-thumb:hover { background-color: var(--cn-text-3); }
+html.cn ::-webkit-scrollbar-corner { background: transparent; }
+
+/* ------------------------------------------------------------------------------------------
+   5. Page container
+   main and every page span the full viewport, so a section can run edge to edge. The page
+   padding holds content to the hero-stage width (--cn-max-wide) and never lets it get closer
+   to the edge than the shared gutter, safe-area insets included (viewport-fit=cover).
+   Home sets its gutters per section (02-components.css).
+   Vertically, every page except Home (its hero owns the top) starts one short step under the
+   header, so each tool's input sits above a 1280x720 laptop fold (legacy padded 128px on top
+   and 96px below). :where() keeps this at (0,2,1): the About/Pricing operator rule in
+   02-components.css and any page partial still win.
+   ------------------------------------------------------------------------------------------ */
+html.cn main {
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
+}
+html.cn .page {
+  padding-inline:
+    max(var(--cn-gutter-l), calc((100% - var(--cn-max-wide)) / 2))
+    max(var(--cn-gutter-r), calc((100% - var(--cn-max-wide)) / 2));
+}
+html.cn .page:where(:not(#home)) {
+  padding-block-start: clamp(40px, 1rem + 3vw, 72px);
+  padding-block-end: clamp(48px, 1.5rem + 3vw, 80px);
+}
+
+/* Identity glow: every inner page opens on a faint, static wash of its accent behind the
+   title (Quick Scan cyan, Analysis AI iris, Recovery mint; Learn, Pricing and About a softer
+   cyan), a quiet echo of the Home stage. The ellipse is centred 14rem down with a 20rem
+   radius that fades out by 70%, so it has gone to nothing at the page's top edge (no seam
+   under the header). No blur, no animation, nothing to do for reduced motion. */
+html.cn :is(#cybernet, #cybernetai, #recovery, #learn, #pricing, #about).page {
+  background-image: radial-gradient(56rem 20rem at var(--cn-glow-x, 50%) 14rem, var(--cn-id-glow, rgba(34, 211, 238, .06)), transparent 70%);
+  background-repeat: no-repeat;
+}
+html.cn #cybernet.page { --cn-id-glow: rgba(34, 211, 238, .07); --cn-glow-x: 28%; }
+html.cn #cybernetai.page { --cn-id-glow: rgba(139, 140, 255, .12); --cn-glow-x: 28%; }
+html.cn #recovery.page { --cn-id-glow: rgba(94, 234, 212, .08); }
+html.cn[dir="rtl"] :is(#cybernet, #cybernetai).page { --cn-glow-x: 72%; }
+
+/* ------------------------------------------------------------------------------------------
+   6. Legacy reveal, retimed
+   script.js adds .show (page switch, scroll, tab clicks); only the motion curve changes here.
+   Scoped to .page: the modal cards carry .reveal and never get .show. The rest state is
+   transform:none so no containing block lingers for fixed children.
+   ------------------------------------------------------------------------------------------ */
+html.cn :where(.page) .reveal {
+  transform: translate3d(0, 18px, 0);
+  transition: opacity .7s var(--cn-ease-out), transform .7s var(--cn-ease-out);
+}
+html.cn :where(.page) .reveal.show {
+  opacity: 1;
+  transform: none;
+}
+
+/* Opt-in reveals driven by 05-reveal.js. The hidden state exists only once the UI script has
+   run (html.cn-js) and only until the element is in view (.is-in), so nothing can get stuck.
+   Children of [data-cn-stagger] rise in one after another (--cn-i is set per child, 70ms). */
+html.cn.cn-js [data-cn-reveal]:not(.is-in),
+html.cn.cn-js [data-cn-stagger]:not(.is-in) > * {
+  opacity: 0;
+}
+html.cn [data-cn-reveal].is-in {
+  animation: cn-rise .7s var(--cn-ease-out) backwards;
+}
+html.cn [data-cn-stagger].is-in > * {
+  animation: cn-rise .7s var(--cn-ease-out) backwards;
+  animation-delay: calc(var(--cn-i, 0) * 70ms);
+}
+/* Already on screen when the script arrived: shown as is, no replay. */
+html.cn [data-cn-reveal].is-done,
+html.cn [data-cn-stagger].is-done > * {
+  animation: none;
+}
+@keyframes cn-rise {
+  from { opacity: 0; translate: 0 18px; }
+  to { opacity: 1; translate: none; }
+}
+
+/* ------------------------------------------------------------------------------------------
+   7. Buttons (legacy .primary-btn / .secondary-btn; .cn-btn shares the primary look)
+   Lift and press use the independent translate/scale properties, so no legacy transform rule
+   and no JS-set transform is fought. Buttons never move toward the pointer.
+   ------------------------------------------------------------------------------------------ */
+html.cn :is(.primary-btn, .secondary-btn, .cn-btn) {
+  align-items: center;
+  justify-content: center;
+  gap: var(--cn-2);
+  min-height: 44px;
+  padding: 0 22px;
+  border-radius: var(--cn-r-pill);
+  font-family: var(--cn-font);
+  font-size: .9375rem;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  text-transform: none;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+  transform: none;
+  transition:
+    background-color var(--cn-dur-1) ease,
+    border-color var(--cn-dur-1) ease,
+    color var(--cn-dur-1) ease,
+    opacity var(--cn-dur-1) ease,
+    translate var(--cn-dur-2) var(--cn-ease-out),
+    scale var(--cn-dur-1) var(--cn-ease-out);
+}
+html.cn .cn-btn { display: inline-flex; }
+
+html.cn :is(.primary-btn, .cn-btn) {
+  background: var(--cn-cyan);
+  color: var(--cn-on-cyan);
+  border: 1px solid transparent;
+  box-shadow: none;
+}
+html.cn .secondary-btn {
+  background: transparent;
+  color: var(--cn-text);
+  border: 1px solid var(--cn-line-2);
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+html.cn :is(.primary-btn, .secondary-btn, .cn-btn).big {
+  min-height: 48px;
+  padding-inline: 26px;
+  font-size: 1rem;
+}
+
+/* Legacy hover lifts with transform; that is replaced by the 1px translate below. */
+html.cn :is(.primary-btn, .secondary-btn, .cn-btn):hover { transform: none; }
+@media (hover: hover) and (pointer: fine) {
+  html.cn :is(.primary-btn, .cn-btn):not(:disabled):hover {
+    background: var(--cn-cyan-2);
+    box-shadow: none;
+    translate: 0 -1px;
+  }
+  html.cn .secondary-btn:not(:disabled):hover {
+    background: var(--cn-surface-2);
+    border-color: var(--cn-line-2);
+    color: var(--cn-text);
+    translate: 0 -1px;
+  }
+}
+html.cn :is(.primary-btn, .secondary-btn, .cn-btn):not(:disabled):active {
+  scale: .98;
+  translate: none;
+}
+html.cn :is(.primary-btn, .secondary-btn, .cn-btn):disabled,
+html.cn :is(.primary-btn, .secondary-btn, .cn-btn)[aria-disabled="true"] {
+  opacity: .45;
+  cursor: not-allowed;
+  translate: none;
+  scale: none;
+}
+/* A button that is busy (script.js puts a spinner inside and disables it) reads as working,
+   not as unavailable. */
+html.cn :is(.primary-btn, .secondary-btn, .cn-btn):disabled:has(.btn-spinner) {
+  opacity: .85;
+  cursor: progress;
+}
+
+/* Spinner: a ring in the button's own text colour, so it shows on the cyan pill (dark arc)
+   and on dark buttons and panels (light arc). Legacy drew it dark only. */
+html.cn .btn-spinner {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(127, 127, 127, .35);
+  border-color: color-mix(in srgb, currentColor 28%, transparent);
+  border-top-color: currentColor;
+  border-radius: 50%;
+}
+
+/* Inline text buttons ("Try Analysis AI") read as links. */
+html.cn .inline-link-btn {
+  color: var(--cn-cyan-2);
+  font: inherit;
+  font-weight: 500;
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--cn-cyan-line);
+  text-underline-offset: .22em;
+  text-shadow: none;
+  cursor: pointer;
+  transition: color var(--cn-dur-1) ease, text-decoration-color var(--cn-dur-1) ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  html.cn .inline-link-btn:hover { color: var(--cn-text); text-decoration-color: currentColor; }
+}
+
+/* ------------------------------------------------------------------------------------------
+   8. Pills and eyebrows
+   Every legacy .pill is a section eyebrow (pricing and about heads; the hero button is
+   restyled by the hero partial).
+   ------------------------------------------------------------------------------------------ */
+html.cn .pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cn-2);
+  min-height: 28px;
+  margin-bottom: var(--cn-5);
+  padding: 4px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--cn-r-pill);
+  background: var(--cn-cyan-tint);
+  color: var(--cn-cyan-2);
+  font-family: var(--cn-font-mono);
+  font-size: var(--cn-step-label);
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: var(--cn-track-label);
+  text-transform: uppercase;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+html.cn .account-eyebrow {
+  color: var(--cn-cyan-2);
+  font-family: var(--cn-font-mono);
+  font-size: var(--cn-step-label);
+  font-weight: 500;
+  letter-spacing: var(--cn-track-label);
+  text-transform: uppercase;
+}
+
+/* ------------------------------------------------------------------------------------------
+   9. Cards
+   Inside <main>, legacy .glass becomes a calm card: surface fill, one hairline, no blur,
+   no glow. Controls that carry .glass (buttons, pills, segmented tracks) are left out.
+   ------------------------------------------------------------------------------------------ */
+html.cn :where(main) .glass:where(:not(.primary-btn, .secondary-btn, .pill, .detect-tabs, .pricing-toggle)) {
+  background: var(--cn-surface);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-card);
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+html.cn :where(main) :is(.detect-tabs, .pricing-toggle).glass {
+  background: var(--cn-surface-2);
+  border: 1px solid var(--cn-line);
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* Shared blocks that end most pages. The support box is one component in 02-components.css. */
+html.cn .home-limits-note {
+  background: var(--cn-surface);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-card);
+  color: var(--cn-text-2);
+  font-size: var(--cn-step-small);
+  line-height: 1.6;
+}
+html.cn .home-limits-note strong { color: var(--cn-text); }
+
+/* ------------------------------------------------------------------------------------------
+   10. Form fields
+   Visual properties only: the heights, widths and margins that script.js and the legacy
+   layouts rely on stay as they are. 16px text stops iOS from zooming on focus. The mono
+   font and the cyan glow are gone. The edge uses --cn-line-ctl (at least 3:1 against the card), the
+   one non-text contrast a field needs, since its fill barely differs from the card.
+   (0,1,1)/(0,2,1): any component rule wins.
+   ------------------------------------------------------------------------------------------ */
+html.cn :where(textarea, select,
+  input:is([type="text"], [type="email"], [type="password"], [type="search"], [type="url"],
+    [type="tel"], [type="number"], [type="date"], :not([type]))) {
+  background-color: var(--cn-surface-2);
+  border: 1px solid var(--cn-line-ctl);
+  border-radius: var(--cn-r-ctl);
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: 1rem;
+  line-height: 1.45;
+  letter-spacing: -.005em;
+  caret-color: var(--cn-cyan);
+  box-shadow: none;
+  transition: border-color var(--cn-dur-1) ease, background-color var(--cn-dur-1) ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  html.cn :where(textarea, select,
+    input:is([type="text"], [type="email"], [type="password"], [type="search"], [type="url"],
+      [type="tel"], [type="number"], [type="date"], :not([type]))):hover {
+    border-color: color-mix(in srgb, var(--cn-text) 50%, transparent);
+  }
+}
+html.cn :where(textarea, select,
+  input:is([type="text"], [type="email"], [type="password"], [type="search"], [type="url"],
+    [type="tel"], [type="number"], [type="date"], :not([type]))):focus {
+  background-color: var(--cn-surface-2);
+  border-color: var(--cn-line-ctl);
+  box-shadow: none;
+  outline: 2px solid var(--cn-cyan);
+  outline-offset: 2px;
+}
+html.cn :where(textarea, input)::placeholder {
+  color: var(--cn-text-3);
+  color: color-mix(in srgb, var(--cn-text-2) 62%, var(--cn-text-3));
+  font-family: var(--cn-font);
+  opacity: 1;
+}
+html.cn :where(textarea, select, input):disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+/* Native select with a quiet chevron; the open list is dark (color-scheme on html.cn). */
+html.cn :where(select) {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-inline-end: 42px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239aa5ad' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 16px 16px;
+  cursor: pointer;
+}
+html.cn[dir="rtl"] :where(select) { background-position: left 14px center; }
+html.cn :where(select) option {
+  background-color: var(--cn-surface-2);
+  color: var(--cn-text);
+}
+
+/* Checkbox and radio fallback skin. Zero specificity on purpose: every component skin (the
+   recovery checklist, the legal consent boxes) wins without a fight. The native input stays
+   in place (JS reads .checked); only its paint changes. Switches keep their own skin. */
+:where(html.cn input[type="checkbox"]:not([role="switch"]), html.cn input[type="radio"]) {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: none;
+  display: inline-grid;
+  place-content: center;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  vertical-align: -4px;
+  border: 1.5px solid color-mix(in srgb, var(--cn-text) 44%, transparent); /* about 4:1 ring (WCAG 1.4.11) */
+  border-radius: 6px;
+  background: var(--cn-surface-2) center / 14px 14px no-repeat;
+  box-shadow: none;
+  cursor: pointer;
+  transition: background-color var(--cn-dur-1) ease, border-color var(--cn-dur-1) ease;
+}
+:where(html.cn input[type="radio"]) { border-radius: 50%; }
+:where(html.cn input[type="checkbox"]:not([role="switch"]):checked) {
+  border-color: var(--cn-cyan);
+  background-color: var(--cn-cyan);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23001018' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E");
+}
+:where(html.cn input[type="radio"]:checked) {
+  border-color: var(--cn-cyan);
+  background-image: radial-gradient(circle, var(--cn-cyan) 0 4.5px, transparent 5px);
+  background-size: 100% 100%;
+}
+/* legacy input:focus paints a cyan glow on every input, boxes included */
+html.cn :where(input[type="checkbox"]:not([role="switch"]), input[type="radio"]):focus {
+  box-shadow: none;
+}
+:where(html.cn input[type="checkbox"], html.cn input[type="radio"]):disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+/* ------------------------------------------------------------------------------------------
+   11. Section heads, rules, tables, code
+   ------------------------------------------------------------------------------------------ */
+html.cn .section-head {
+  max-width: 900px;
+  margin-inline: auto;
+}
+html.cn .section-head h1 { margin-bottom: var(--cn-4); }
+
+html.cn :where(hr) {
+  height: 1px;
+  margin-block: var(--cn-8);
+  border: 0;
+  background: var(--cn-line);
+}
+
+html.cn :where(table) {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--cn-step-small);
+  font-variant-numeric: tabular-nums;
+}
+html.cn :where(th, td) {
+  padding: var(--cn-3) var(--cn-4);
+  border-bottom: 1px solid var(--cn-line);
+  text-align: start;
+  vertical-align: top;
+}
+html.cn :where(th) {
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: var(--cn-step-label);
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+html.cn :where(code, kbd, samp) {
+  padding: .12em .4em;
+  border: 1px solid var(--cn-line);
+  border-radius: 6px;
+  background: var(--cn-surface-2);
+  color: var(--cn-text);
+  font-size: .875em;
+  letter-spacing: 0;
+}
+html.cn :where(kbd) {
+  border-bottom-width: 2px;
+}
+html.cn :where(pre) {
+  overflow-x: auto;
+  padding: var(--cn-4);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-ctl);
+  background: var(--cn-surface-2);
+  font-size: var(--cn-step-small);
+  line-height: 1.6;
+}
+html.cn :where(pre) code { padding: 0; border: 0; background: none; }

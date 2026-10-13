@@ -1,0 +1,59 @@
+/* Typewriter titles (driven by ui-src/js/60-typewriter.js) for the Quick Scan, Analysis AI
+   and Recovery H1s. The script reveals the real title with an inline clip-path (one
+   rectangle per line, growing a character at a time) and places the caret through
+   --cn-tw-x/-y/-w/-h. Nothing here changes layout: the H1 keeps its size from the first
+   frame, and the caret is absolutely positioned.
+   .cn-tw-on  = typing (clip-path set inline)
+   .cn-tw-done = typed; the clip is gone and the caret blinks twice, then fades */
+
+/* While the title types, its header is not part of the page-switch reveal: the
+   characters must be seen as they arrive, not under a fade. */
+html.cn .feature-page-header.reveal:has(> h1.cn-tw-on) {
+  opacity: 1;
+  transform: none;
+  transition: none;
+  animation: none;
+}
+
+html.cn h1.cn-tw-on {
+  position: relative;
+}
+
+html.cn h1.cn-tw-on::after {
+  content: "";
+  position: absolute;
+  left: var(--cn-tw-x, 0);
+  top: var(--cn-tw-y, 0);
+  width: var(--cn-tw-w, 2px);
+  height: var(--cn-tw-h, .8em);
+  margin: 0;
+  border-radius: 2px;
+  /* Each tool page sets its identity colour (--cn-id): Quick Scan cyan, Analysis AI iris,
+     Recovery mint. */
+  background: var(--cn-id, var(--cn-cyan));
+  pointer-events: none;
+}
+
+html.cn h1.cn-tw-on.cn-tw-done::after {
+  animation: cn-tw-caret 1200ms linear forwards;
+}
+
+@keyframes cn-tw-caret {
+  0%, 26% { opacity: 1; }
+  32%, 48% { opacity: 0; }
+  54%, 74% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Reduced motion: the script never starts; this only guards a stale class. */
+@media (prefers-reduced-motion: reduce) {
+  html.cn h1.cn-tw-on { clip-path: none !important; }
+  html.cn h1.cn-tw-on::after { content: none; }
+}
+
+@media (forced-colors: active) {
+  html.cn h1.cn-tw-on::after {
+    background: Highlight;
+    forced-color-adjust: none;
+  }
+}

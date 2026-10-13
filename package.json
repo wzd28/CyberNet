@@ -6,6 +6,8 @@
   "type": "module",
   "scripts": {
     "dev": "netlify dev",
+    "build:ui": "node scripts/build-ui.mjs",
+    "check:ui": "node scripts/build-ui.mjs --check",
     "deploy": "netlify deploy --prod --dir=public --functions=netlify/functions",
     "test:engine": "node tests/run-engine.mjs"
   },

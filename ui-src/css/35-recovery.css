@@ -1,0 +1,1715 @@
+/* ==========================================================================
+   35-recovery: Recovery page (section#recovery.recovery-page). Restyle only.
+   A calm page for someone who has just been scammed: one clear form, then a
+   plan that reads like a well-organised document. Buttons, focus rings, cards
+   (.glass), the spinner, field basics and the page title come from 01-base;
+   this partial only adds what is specific to Recovery.
+
+   Hazards handled (maps/HAZARDS.md "00-recovery"):
+   - [hidden]{display:none!important} drives #recoveryIntake, #recoveryDashboard,
+     #recoveryTimelineLocked, #recoveryProUpsell, #recoveryDownloadBtn,
+     #recoveryImageInput and the clear button: none of them gets a display value
+     with !important (the plain grid/flex values below lose to [hidden]).
+   - JS inline styles are never fought: #recoveryTimelineActions display,
+     #recoveryUsageCaseBar width, .recovery-case-progress span width (colour only).
+   - className rewrites (#recoveryRiskOut, #recoveryIntakeMessage,
+     #recoveryUpdateMessage): styled through the ids and the JS-set classes.
+   - innerHTML/textContent rewrites (#recoveryStartBtn, #recoveryUpdateBtn,
+     #recoveryUploadLabel, every list): icons only from pseudo-elements.
+   - #recoveryStartBtn wraps (white-space:normal, never nowrap).
+   - Legacy id rules on the textareas (green focus border, 13.5px mono, the
+     global height:140px and margins) are reset here.
+   - Timeline tabs stay clickable on every plan (the lock glyph is visual only).
+   - Native checkboxes stay in place (appearance:none + a drawn tick).
+   - The upload <label> keeps wrapping the hidden file input.
+   - .reveal blocks (.recovery-header, #recoveryIntake, #recoveryDashboard,
+     .support-box) get no opacity/transform here.
+   - Shared classes (.usage-meter-card, .auth-message, .support-box,
+     .input-clear-btn, .feature-page-header) are only touched under #recovery.
+   ========================================================================== */
+
+html.cn #recovery {
+  /* Identity (DESIGN.md): Recovery is mint, for its progress and identity marks only
+     (eyebrow, typing caret, usage bar, ticks, the timeline fill, plan progress). Buttons and
+     focus rings stay cyan; mint is never a verdict. --cn-id* also colour the title caret. */
+  --cn-id: var(--cn-mint);
+  --cn-id-2: var(--cn-mint-2, #99f6e4);
+  --cn-id-tint: var(--cn-mint-tint);
+  --cn-id-line: color-mix(in srgb, var(--cn-mint) 36%, transparent);
+  /* local values, all derived from the tokens */
+  --cn-rec-pad: clamp(20px, 3.5cqi, 32px);                               /* card padding */
+  --cn-rec-gap: clamp(24px, 5cqi, 32px);                                 /* groups in the form */
+  --cn-rec-hover: color-mix(in srgb, var(--cn-text) 22%, transparent);    /* hover hairline */
+  --cn-rec-box: color-mix(in srgb, var(--cn-text) 42%, transparent);      /* unticked ring, 3.8:1 */
+  --cn-rec-warn-line: color-mix(in srgb, var(--cn-warn) 30%, transparent);
+  --cn-rec-safe-line: color-mix(in srgb, var(--cn-safe) 30%, transparent);
+  --cn-rec-danger-line: color-mix(in srgb, var(--cn-danger) 36%, transparent);
+  --cn-rec-i-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14M13 6l6 6-6 6'/%3E%3C/svg%3E");
+  --cn-rec-i-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
+  --cn-rec-i-lock: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4.5' y='10.5' width='15' height='10' rx='2.5'/%3E%3Cpath d='M8 10.5V7.5a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E");
+  --cn-rec-i-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='16' rx='3'/%3E%3Ccircle cx='9' cy='10' r='1.8'/%3E%3Cpath d='m21 16-5-5-9 9'/%3E%3C/svg%3E");
+  --cn-rec-i-alert: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z'/%3E%3Cpath d='M12 9v4M12 17h.01'/%3E%3C/svg%3E");
+  --cn-rec-i-info: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 11v5M12 8h.01'/%3E%3C/svg%3E");
+  --cn-rec-i-ok: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='m8 12.5 2.7 2.7L16 9.8'/%3E%3C/svg%3E");
+  --cn-rec-i-x: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M6 6l12 12M18 6 6 18'/%3E%3C/svg%3E");
+  --cn-rec-i-download: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 4v11M7 10l5 5 5-5M5 20h14'/%3E%3C/svg%3E");
+  --cn-rec-i-chev: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 6 6 6-6 6'/%3E%3C/svg%3E");
+  --cn-rec-i-clock: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='8.5'/%3E%3Cpath d='M12 7.5V12l3 2'/%3E%3C/svg%3E");
+  --cn-rec-i-folder: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 7.5a2 2 0 0 1 2-2h4l2 2.5h7a2 2 0 0 1 2 2v8.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2Z'/%3E%3Cpath d='M3.5 11h17'/%3E%3C/svg%3E");
+  /* the drawn tick on mint: ink colour baked in, because it is a background, not a mask */
+  --cn-rec-tick: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23001018' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
+}
+
+/* ==========================================================================
+   1. HEADER: eyebrow, title (typography from 01-base; typed by 60-typewriter),
+      lead, and the daily usage meter
+   ========================================================================== */
+
+html.cn #recovery .recovery-header {
+  max-width: 880px;
+  margin: 0 auto clamp(32px, 4vw, 56px);
+  padding-inline: 0;
+  text-align: center;
+}
+
+/* eyebrow pill, the same as Learn's and Pricing's (there is no markup for it) */
+html.cn #recovery .recovery-header::before {
+  content: "Recovery";
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  margin-block-end: var(--cn-5);
+  padding: 0 var(--cn-3);
+  border-radius: var(--cn-r-pill);
+  background: var(--cn-id-tint);
+  color: var(--cn-id-2);
+  font: 500 var(--cn-step-label)/1 var(--cn-font-mono);
+  letter-spacing: var(--cn-track-label);
+  text-transform: uppercase;
+}
+
+html.cn #recovery .recovery-header h1 {
+  max-width: 15em;
+  margin: 0 auto var(--cn-5);
+}
+
+/* the two-tone continuation always starts its own line, so the title never breaks
+   mid-phrase on phones: "You're Safe Now." / "Let's Fix What Happened." (60-typewriter
+   measures lines from layout, so the caret follows) */
+html.cn #recovery .recovery-header h1 > span { display: block; }
+
+html.cn #recovery .recovery-header > p { margin: 0 auto; }
+
+/* daily usage meter: a slim bar card (only this one; the account panel keeps its own) */
+html.cn #recovery #recoveryUsageCard {
+  max-width: 380px;
+  margin: var(--cn-8) auto 0;
+  padding: 14px 16px 12px;
+  border: 1px solid var(--cn-line);
+  border-radius: 16px;
+  background: var(--cn-surface);
+  box-shadow: none;
+  text-align: start;
+}
+
+html.cn #recovery #recoveryUsageCard .usage-meter-labels { gap: var(--cn-3); }
+
+html.cn #recovery #recoveryUsageCard .usage-meter-labels span {
+  color: var(--cn-text-2);
+  font-size: var(--cn-step-small);
+  font-weight: 500;
+}
+
+html.cn #recovery #recoveryUsageCaseText {
+  color: var(--cn-text);
+  font: 500 var(--cn-step-small)/1.2 var(--cn-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+html.cn #recovery #recoveryUsageCard .usage-meter-track {
+  height: 4px;
+  margin: 12px 0 10px;
+  border-radius: var(--cn-r-pill);
+  background: var(--cn-line);
+}
+
+/* width is set inline by script.js: colour only */
+html.cn #recovery #recoveryUsageCaseBar {
+  background: var(--cn-id);
+  box-shadow: none;
+}
+
+html.cn #recovery #recoveryUsageCaseReset {
+  display: block;
+  color: var(--cn-text-2);
+  font-size: .8125rem;
+  line-height: 1.4;
+}
+
+/* ==========================================================================
+   2. SHARED PIECES
+   ========================================================================== */
+
+/* cards: the look comes from the shared .glass card; Recovery adds padding and makes
+   each card a size container so its insides respond to its own width */
+html.cn #recovery :is(.recovery-intake-card, .recovery-cases-card, .recovery-summary-card,
+  .recovery-immediate-card, .recovery-timeline-card, .recovery-remaining-card,
+  .recovery-resources-card, .recovery-update-card, .recovery-history-card, .recovery-pro-upsell) {
+  position: relative;
+  container-type: inline-size;
+  padding: var(--cn-rec-pad);
+  border-radius: var(--cn-r-card);
+}
+
+html.cn #recovery :is(.recovery-immediate-card, .recovery-timeline-card, .recovery-remaining-card,
+  .recovery-resources-card, .recovery-update-card, .recovery-history-card) h3 {
+  margin: 0 0 var(--cn-5);
+  color: var(--cn-text);
+  font-size: var(--cn-step-h3);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -.02em;
+}
+
+/* the legacy green identity is gone; the shared cyan button shows through */
+html.cn #recovery .recovery-primary-btn,
+html.cn #recovery .recovery-primary-btn:hover { filter: none; }
+
+/* text fields: legacy id rules (green focus, 13.5px, margins, height:140px) reset;
+   focus is the same 2px outline as every other field on the site */
+html.cn #recovery :is(#recoveryDescription, #recoveryUpdateText, #recoveryAccounts, .recovery-field-grid select) {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  border: 1px solid var(--cn-line-2);
+  border-radius: var(--cn-r-ctl);
+  background-color: var(--cn-surface-2);
+  box-shadow: none;
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: 1rem;
+  letter-spacing: -.005em;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  html.cn #recovery :is(#recoveryDescription, #recoveryUpdateText, #recoveryAccounts, .recovery-field-grid select):hover {
+    border-color: var(--cn-rec-hover);
+  }
+}
+
+html.cn #recovery :is(#recoveryDescription, #recoveryUpdateText, #recoveryAccounts, .recovery-field-grid select):focus {
+  border-color: var(--cn-line-2);
+  background-color: var(--cn-surface-2);
+  box-shadow: none;
+  outline: 2px solid var(--cn-cyan);
+  outline-offset: 2px;
+}
+
+html.cn #recovery :is(#recoveryDescription, #recoveryUpdateText) {
+  display: block;
+  height: auto;
+  min-height: 9.5rem;
+  max-height: 26rem;
+  padding: 14px 16px;
+  line-height: 1.55;
+  resize: vertical;
+  field-sizing: content;
+}
+
+/* where the field grows with its text, the resize grip is not needed */
+@supports (field-sizing: content) {
+  html.cn #recovery :is(#recoveryDescription, #recoveryUpdateText) { resize: none; }
+}
+
+/* room for the Clear pill in the bottom corner */
+html.cn #recovery #recoveryDescription { padding-block-end: 52px; }
+html.cn #recovery #recoveryUpdateText { min-height: 7.5rem; }
+
+/* ==========================================================================
+   3. INTAKE
+   ========================================================================== */
+
+/* Recovery is the one centred tool page (an intake form, not a workspace): one 860px
+   column under the centred header, the saved-cases card after the form. A side column
+   beside a 1200px-tall form left about 980px of empty space. */
+html.cn #recovery .recovery-intake {
+  max-width: 860px;
+  margin-inline: auto;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(16px, 2vw, 24px);
+  align-items: start;
+}
+
+html.cn #recovery .recovery-intake-card { container-name: cn-rec-form; }
+
+html.cn #recovery .recovery-label-lg {
+  display: block;
+  margin: 0;
+  color: var(--cn-text);
+  font-size: var(--cn-step-h3);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -.02em;
+}
+
+/* a quiet helper line under the question (the placeholder holds the example) */
+html.cn #recovery .recovery-label-lg::after {
+  content: "In your own words: what you clicked, shared or paid, and where.";
+  display: block;
+  margin-block-start: 6px;
+  color: var(--cn-text-2);
+  font-size: var(--cn-step-small);
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+
+html.cn #recovery .recovery-intake-card #recoveryDescription { margin-block-start: var(--cn-4); }
+
+/* Clear pill, laid over the textarea's bottom corner, so nothing shifts when it appears */
+html.cn #recovery .recovery-intake-card .input-tools {
+  position: relative;
+  z-index: 1;
+  height: 0;
+  margin: 0;
+}
+
+html.cn #recovery .recovery-intake-card .input-clear-btn {
+  position: absolute;
+  inset-inline-end: 10px;
+  bottom: 10px;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 12px 0 10px;
+  border: 1px solid var(--cn-line-2);
+  border-radius: var(--cn-r-pill);
+  background: var(--cn-surface-3);
+  color: var(--cn-text-2);
+  font: 500 .8125rem/1 var(--cn-font);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+html.cn #recovery .recovery-intake-card .input-clear-btn::before {
+  content: "";
+  width: 12px;
+  height: 12px;
+  background: currentColor;
+  -webkit-mask: var(--cn-rec-i-x) center / contain no-repeat;
+  mask: var(--cn-rec-i-x) center / contain no-repeat;
+}
+
+/* 44px hit area around the 32px pill */
+html.cn #recovery .recovery-intake-card .input-clear-btn::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+}
+
+html.cn #recovery .recovery-intake-card .input-clear-btn:is(:hover, :focus-visible) {
+  border-color: var(--cn-rec-hover);
+  background: var(--cn-surface-3);
+  color: var(--cn-text);
+}
+
+/* privacy note: plain text with one amber lock, so it reads as care, not alarm */
+html.cn #recovery .recovery-privacy-warning {
+  position: relative;
+  margin: var(--cn-4) 0 0;
+  padding: 14px 16px 14px 60px;
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-ctl);
+  background: transparent;
+  color: var(--cn-text);
+  font-size: var(--cn-step-small);
+  line-height: 1.55;
+}
+
+html.cn #recovery .recovery-privacy-warning::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 14px;
+  top: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--cn-warn-tint);
+}
+
+html.cn #recovery .recovery-privacy-warning::after {
+  content: "";
+  position: absolute;
+  inset-inline-start: 21px;
+  top: 21px;
+  width: 18px;
+  height: 18px;
+  background: var(--cn-warn);
+  -webkit-mask: var(--cn-rec-i-lock) center / contain no-repeat;
+  mask: var(--cn-rec-i-lock) center / contain no-repeat;
+}
+
+html.cn #recovery .recovery-privacy-warning strong {
+  display: block;
+  color: var(--cn-text);
+  font-weight: 500;
+}
+
+html.cn #recovery .recovery-privacy-warning p {
+  margin: 4px 0 0;
+  color: var(--cn-text-2);
+  font-size: var(--cn-step-small);
+  line-height: 1.55;
+}
+
+@container cn-rec-form (max-width: 420px) {
+  html.cn #recovery .recovery-privacy-warning { padding: 14px 14px 14px 44px; }
+  html.cn #recovery .recovery-privacy-warning::before { content: none; }
+  html.cn #recovery .recovery-privacy-warning::after { inset-inline-start: 15px; top: 16px; }
+}
+
+/* ---------- incident details ---------- */
+html.cn #recovery .recovery-field-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--cn-4);
+  margin: var(--cn-rec-gap) 0 0;
+  padding-block-start: var(--cn-rec-gap);
+  border-top: 1px solid var(--cn-line);
+}
+
+html.cn #recovery .recovery-field-grid > div { min-width: 0; }
+
+html.cn #recovery .recovery-field-grid label {
+  display: block;
+  margin: 0 0 var(--cn-2);
+  color: var(--cn-text-2);
+  font-size: var(--cn-step-small);
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+html.cn #recovery :is(#recoveryAccounts, .recovery-field-grid select) {
+  height: 48px;
+  min-height: 48px;
+  padding: 0 14px;
+  line-height: normal;
+  text-overflow: ellipsis;
+}
+
+/* the chevron comes from 01-base */
+html.cn #recovery .recovery-field-grid select { padding-inline-end: 42px; }
+html.cn[dir="rtl"] #recovery .recovery-field-grid select { background-position: left 14px center; }
+
+html.cn #recovery #recoveryAccounts::placeholder { font-size: .9375rem; }
+
+@container cn-rec-form (max-width: 520px) {
+  html.cn #recovery .recovery-field-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ---------- quick answers: wrapping chips, the native checkbox kept inside ---------- */
+/* an even grid of equal one-line tiles (2 across in the 860px form and on tablets, 1 on
+   phones) instead of ragged rows of different-width pills; at 3 across the longer answers
+   wrapped and the rows lost their rhythm */
+html.cn #recovery .recovery-quick-toggles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  gap: var(--cn-2);
+  margin: var(--cn-rec-gap) 0 0;
+}
+
+html.cn #recovery .recovery-quick-toggles::before {
+  content: "Tick anything that happened";
+  grid-column: 1 / -1;
+  margin-block-end: 4px;
+  color: var(--cn-text-2);
+  font-size: var(--cn-step-small);
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+html.cn #recovery .recovery-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: auto;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 9px 14px 9px 12px;
+  border: 1px solid var(--cn-line-2);
+  border-radius: var(--cn-r-ctl);
+  background: transparent;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: .9375rem;
+  line-height: 1.3;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: color var(--cn-dur-1) ease, background-color var(--cn-dur-1) ease,
+    border-color var(--cn-dur-1) ease, scale var(--cn-dur-1) var(--cn-ease-out);
+}
+
+html.cn #recovery .recovery-toggle input {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: none;
+  display: block;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  padding: 0;
+  border: 1.5px solid var(--cn-rec-box);
+  border-radius: 6px;
+  background: transparent var(--cn-rec-tick) center / 0 0 no-repeat;
+  box-shadow: none;
+  cursor: pointer;
+  transition: background-color var(--cn-dur-1) ease, border-color var(--cn-dur-1) ease,
+    background-size var(--cn-dur-2) var(--cn-ease-out);
+}
+
+/* the tick grows in from the centre */
+html.cn #recovery .recovery-toggle input:checked {
+  border-color: var(--cn-id);
+  background-color: var(--cn-id);
+  background-size: 13px 13px;
+}
+
+html.cn #recovery .recovery-toggle:has(input:checked) {
+  border-color: var(--cn-id-line);
+  background: var(--cn-id-tint);
+  color: var(--cn-text);
+}
+
+/* keyboard focus rings the whole chip, not the little box */
+html.cn #recovery .recovery-toggle:has(input:focus-visible) {
+  outline: 2px solid var(--cn-cyan);
+  outline-offset: 3px;
+}
+html.cn #recovery .recovery-toggle:has(input:focus-visible) input { outline: none; }
+
+@media (hover: hover) and (pointer: fine) {
+  html.cn #recovery .recovery-toggle:hover {
+    border-color: var(--cn-rec-hover);
+    color: var(--cn-text);
+  }
+  html.cn #recovery .recovery-toggle:hover input:not(:checked) { border-color: var(--cn-rec-hover); }
+}
+
+html.cn #recovery .recovery-toggle:active { scale: .98; }
+
+/* the narrowest cards: full-width rows read better than ragged two-line pills */
+@container cn-rec-form (max-width: 290px) {
+  html.cn #recovery .recovery-toggle {
+    flex: 1 1 100%;
+    border-radius: var(--cn-r-ctl);
+  }
+}
+
+/* ---------- screenshot upload (the label keeps wrapping the hidden file input) ---------- */
+html.cn #recovery .recovery-upload-row {
+  position: relative;
+  gap: 14px;
+  min-height: 64px;
+  margin: var(--cn-rec-gap) 0 0;
+  padding: 11px 16px 11px 11px;
+  border: 1px dashed var(--cn-line-2);
+  border-radius: var(--cn-r-ctl);
+  background: transparent;
+  box-shadow: none;
+  color: var(--cn-text-2);
+  font-size: .9375rem;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: border-color var(--cn-dur-1) ease, background-color var(--cn-dur-1) ease, color var(--cn-dur-1) ease;
+}
+
+html.cn #recovery .recovery-upload-row .upload-icon-sm {
+  position: relative;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--cn-line);
+  border-radius: 12px;
+  background: var(--cn-surface-2);
+  color: transparent;
+  font-size: 0;
+  transition: background-color var(--cn-dur-1) ease;
+}
+
+html.cn #recovery .recovery-upload-row .upload-icon-sm::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 20px;
+  height: 20px;
+  margin: auto;
+  background: var(--cn-text-2);
+  -webkit-mask: var(--cn-rec-i-image) center / contain no-repeat;
+  mask: var(--cn-rec-i-image) center / contain no-repeat;
+  transition: background-color var(--cn-dur-1) ease;
+}
+
+html.cn #recovery #recoveryUploadLabel { min-width: 0; overflow-wrap: anywhere; }
+
+@media (hover: hover) and (pointer: fine) {
+  html.cn #recovery .recovery-upload-row:hover {
+    border-color: var(--cn-cyan-line);
+    background: var(--cn-cyan-tint);
+    color: var(--cn-text);
+  }
+  html.cn #recovery .recovery-upload-row:hover .upload-icon-sm::before { background: var(--cn-cyan-2); }
+}
+
+/* keyboard ring and a visually-hidden input, for when the input is made focusable
+   (see markupRequests); today it carries [hidden] and these do not apply */
+html.cn #recovery .recovery-upload-row:has(input:focus-visible) {
+  outline: 2px solid var(--cn-cyan);
+  outline-offset: 3px;
+}
+html.cn #recovery #recoveryImageInput:not([hidden]) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---------- messages from script.js (className is rewritten, so style the ids) ---------- */
+html.cn #recovery :is(#recoveryIntakeMessage, #recoveryUpdateMessage) {
+  position: relative;
+  min-height: 0;
+  margin: var(--cn-5) 0 0;
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: var(--cn-step-small);
+  line-height: 1.5;
+  text-align: start;
+}
+
+html.cn #recovery :is(#recoveryIntakeMessage, #recoveryUpdateMessage):empty { margin: 0; }
+
+html.cn #recovery :is(#recoveryIntakeMessage, #recoveryUpdateMessage):not(:empty) {
+  padding: 12px 14px 12px 42px;
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-ctl);
+  background: var(--cn-surface-2);
+  animation: cn-rec-note var(--cn-dur-2) var(--cn-ease-out) both;
+}
+
+html.cn #recovery :is(#recoveryIntakeMessage, #recoveryUpdateMessage):not(:empty)::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 14px;
+  top: 13px;
+  width: 18px;
+  height: 18px;
+  background: var(--cn-text-2);
+  -webkit-mask: var(--cn-rec-i-info) center / contain no-repeat;
+  mask: var(--cn-rec-i-info) center / contain no-repeat;
+}
+
+html.cn #recovery :is(#recoveryIntakeMessage, #recoveryUpdateMessage).warning:not(:empty) {
+  border-color: var(--cn-rec-warn-line);
+  background: var(--cn-warn-tint);
+}
+html.cn #recovery :is(#recoveryIntakeMessage, #recoveryUpdateMessage).warning:not(:empty)::before {
+  background: var(--cn-warn);
+  -webkit-mask-image: var(--cn-rec-i-alert);
+  mask-image: var(--cn-rec-i-alert);
+}
+
+html.cn #recovery :is(#recoveryIntakeMessage, #recoveryUpdateMessage).success:not(:empty) {
+  border-color: var(--cn-rec-safe-line);
+  background: var(--cn-safe-tint);
+}
+html.cn #recovery :is(#recoveryIntakeMessage, #recoveryUpdateMessage).success:not(:empty)::before {
+  background: var(--cn-safe);
+  -webkit-mask-image: var(--cn-rec-i-ok);
+  mask-image: var(--cn-rec-i-ok);
+}
+
+html.cn #recovery :is(#recoveryIntakeMessage, #recoveryUpdateMessage).error:not(:empty) {
+  border-color: var(--cn-rec-danger-line);
+  background: var(--cn-danger-tint);
+}
+html.cn #recovery :is(#recoveryIntakeMessage, #recoveryUpdateMessage).error:not(:empty)::before {
+  background: var(--cn-danger);
+  -webkit-mask-image: var(--cn-rec-i-alert);
+  mask-image: var(--cn-rec-i-alert);
+}
+
+@keyframes cn-rec-note {
+  from { opacity: 0; translate: 0 -4px; }
+  to { opacity: 1; translate: none; }
+}
+
+/* ---------- Start / Update: the big cyan pill; the guest label wraps ---------- */
+html.cn #recovery :is(#recoveryStartBtn, #recoveryUpdateBtn) {
+  width: 100%;
+  min-height: 52px;
+  padding: 12px 24px;
+  font-size: 1rem;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+html.cn #recovery #recoveryStartBtn { margin-block-start: var(--cn-6); }
+html.cn #recovery #recoveryUpdateBtn { margin-block-start: var(--cn-4); }
+
+html.cn #recovery :is(#recoveryStartBtn, #recoveryUpdateBtn)::after {
+  content: "";
+  flex: none;
+  width: 18px;
+  height: 18px;
+  background: currentColor;
+  -webkit-mask: var(--cn-rec-i-arrow) center / contain no-repeat;
+  mask: var(--cn-rec-i-arrow) center / contain no-repeat;
+  transition: translate var(--cn-dur-2) var(--cn-ease-out);
+}
+
+html.cn[dir="rtl"] #recovery :is(#recoveryStartBtn, #recoveryUpdateBtn)::after { scale: -1 1; }
+
+@media (hover: hover) and (pointer: fine) {
+  html.cn #recovery :is(#recoveryStartBtn, #recoveryUpdateBtn):hover:not(:disabled)::after { translate: 2px 0; }
+  html.cn[dir="rtl"] #recovery :is(#recoveryStartBtn, #recoveryUpdateBtn):hover:not(:disabled)::after { translate: -2px 0; }
+}
+
+/* busy (spinner inside) or narrow (the long guest label wraps and the arrow would drift) */
+html.cn #recovery :is(#recoveryStartBtn, #recoveryUpdateBtn):disabled::after { content: none; }
+
+@container (max-width: 420px) {
+  html.cn #recovery :is(#recoveryStartBtn, #recoveryUpdateBtn)::after { content: none; }
+}
+
+html.cn #recovery .recovery-usage-note:empty { display: none; }
+html.cn #recovery .recovery-usage-note {
+  margin: var(--cn-3) 0 0;
+  color: var(--cn-text-2);
+  font-size: .8125rem;
+  text-align: center;
+}
+
+/* ---------- Your Recovery Cases ---------- */
+html.cn #recovery .recovery-cases-card { align-self: start; }
+
+html.cn #recovery .recovery-cases-card h4 {
+  margin: 0 0 var(--cn-4);
+  color: var(--cn-text);
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+html.cn #recovery .recovery-empty-note {
+  margin: 0;
+  color: var(--cn-text-2);
+  font-size: var(--cn-step-small);
+  line-height: 1.55;
+}
+
+/* empty state: a dashed tray with a folder tile (::before) and its icon (::after) */
+html.cn #recovery #recoveryCaseList > .recovery-empty-note:only-child {
+  position: relative;
+  padding: var(--cn-4);
+  border: 1px dashed var(--cn-line-2);
+  border-radius: var(--cn-r-ctl);
+}
+
+html.cn #recovery #recoveryCaseList > .recovery-empty-note:only-child::before {
+  content: "";
+  display: block;
+  box-sizing: border-box;
+  width: 40px;
+  height: 40px;
+  margin-block-end: var(--cn-3);
+  border: 1px solid var(--cn-line);
+  border-radius: 12px;
+  background: var(--cn-surface-2);
+}
+
+html.cn #recovery #recoveryCaseList > .recovery-empty-note:only-child::after {
+  content: "";
+  position: absolute;
+  inset-inline-start: calc(var(--cn-4) + 10px);
+  top: calc(var(--cn-4) + 10px);
+  width: 20px;
+  height: 20px;
+  background: var(--cn-text-2);
+  -webkit-mask: var(--cn-rec-i-folder) center / contain no-repeat;
+  mask: var(--cn-rec-i-folder) center / contain no-repeat;
+}
+
+html.cn #recovery .recovery-case-list { gap: var(--cn-2); }
+
+/* rows are <button>s: the text colour is set explicitly */
+html.cn #recovery .recovery-case-item {
+  position: relative;
+  width: 100%;
+  min-height: 44px;
+  padding: 14px 44px 14px 16px;
+  padding-inline: 16px 44px;
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-ctl);
+  background: var(--cn-surface-2);
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  text-align: start;
+  cursor: pointer;
+  transition: background-color var(--cn-dur-1) ease, border-color var(--cn-dur-1) ease;
+}
+
+html.cn #recovery .recovery-case-item::after {
+  content: "";
+  position: absolute;
+  inset-inline-end: 16px;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  margin-top: -8px;
+  background: var(--cn-text-2);
+  -webkit-mask: var(--cn-rec-i-chev) center / contain no-repeat;
+  mask: var(--cn-rec-i-chev) center / contain no-repeat;
+}
+
+html.cn[dir="rtl"] #recovery .recovery-case-item::after { scale: -1 1; }
+
+@media (hover: hover) and (pointer: fine) {
+  html.cn #recovery .recovery-case-item:hover {
+    border-color: var(--cn-line-2);
+    background: var(--cn-surface-3);
+  }
+  html.cn #recovery .recovery-case-item:hover::after { background: var(--cn-text); }
+}
+
+html.cn #recovery .recovery-case-item strong {
+  display: block;
+  margin: 0 0 4px;
+  color: var(--cn-text);
+  font-size: .9375rem;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -.01em;
+}
+
+html.cn #recovery .recovery-case-item small {
+  display: block;
+  color: var(--cn-text-2);
+  font: 400 .75rem/1.4 var(--cn-font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .02em;
+}
+
+html.cn #recovery .recovery-case-progress {
+  height: 4px;
+  margin-block-start: 12px;
+  border-radius: var(--cn-r-pill);
+  background: var(--cn-line);
+  overflow: hidden;
+}
+
+/* width is set inline by script.js: colour only */
+html.cn #recovery .recovery-case-progress span {
+  border-radius: inherit;
+  background: var(--cn-id);
+}
+
+/* ==========================================================================
+   4. DASHBOARD (the plan)
+   ========================================================================== */
+
+html.cn #recovery .recovery-dashboard {
+  container: cn-rec-dash / inline-size;
+  max-width: 960px;
+  margin-inline: auto;
+  gap: var(--cn-4);
+}
+
+html.cn #recovery .recovery-back-btn {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  margin-block-end: var(--cn-1);
+  padding: 0 18px 0 14px;
+  border: 1px solid var(--cn-line-2);
+  border-radius: var(--cn-r-pill);
+  background: transparent;
+  color: var(--cn-text-2);
+  font: 500 var(--cn-step-small)/1.2 var(--cn-font);
+  cursor: pointer;
+  transition: color var(--cn-dur-1) ease, background-color var(--cn-dur-1) ease, border-color var(--cn-dur-1) ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  html.cn #recovery .recovery-back-btn:hover {
+    border-color: var(--cn-rec-hover);
+    background: var(--cn-surface-2);
+    color: var(--cn-text);
+  }
+}
+
+/* ---------- status strip: one panel, four cells split by hairlines ---------- */
+html.cn #recovery .recovery-status-row {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-card);
+  background: var(--cn-line);
+  overflow: hidden;
+}
+
+html.cn #recovery .recovery-status-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--cn-3);
+  min-width: 0;
+  padding: 18px 20px 20px;
+  border: 0;
+  border-radius: 0;
+  background: var(--cn-surface);
+  text-align: start;
+}
+
+html.cn #recovery .recovery-status-label,
+html.cn #recovery .recovery-summary-card::before {
+  margin: 0;
+  color: var(--cn-text-2);
+  font: 500 var(--cn-step-label)/1.2 var(--cn-font-mono);
+  letter-spacing: var(--cn-track-label);
+  text-transform: uppercase;
+}
+
+html.cn #recovery .recovery-status-card strong:not(.recovery-risk-badge) {
+  display: block;
+  max-width: 100%;
+  color: var(--cn-text);
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -.015em;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+html.cn #recovery #recoveryProgressOut {
+  font-family: var(--cn-font-mono);
+  font-size: 1.25rem;
+  font-weight: 500;
+  letter-spacing: -.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* risk badge: className is rewritten by script.js, so the colours key to its classes;
+   a dot and the word, never colour alone */
+html.cn #recovery .recovery-risk-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: var(--cn-r-pill);
+  background: transparent;
+  color: var(--cn-text);
+  font: 600 .8125rem/1.2 var(--cn-font-mono);
+  letter-spacing: .06em;
+}
+
+html.cn #recovery .recovery-risk-badge:is(.recovery-risk-critical, .recovery-risk-high, .recovery-risk-medium, .recovery-risk-low) {
+  padding-inline-start: 10px;
+}
+
+html.cn #recovery .recovery-risk-badge:is(.recovery-risk-critical, .recovery-risk-high, .recovery-risk-medium, .recovery-risk-low)::before {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+html.cn #recovery .recovery-risk-critical { border-color: var(--cn-rec-danger-line); background: var(--cn-danger-tint); color: var(--cn-danger); }
+html.cn #recovery .recovery-risk-high { background: var(--cn-danger-tint); color: var(--cn-danger); }
+html.cn #recovery .recovery-risk-medium { background: var(--cn-warn-tint); color: var(--cn-warn); }
+html.cn #recovery .recovery-risk-low { background: var(--cn-safe-tint); color: var(--cn-safe); }
+
+@container cn-rec-dash (max-width: 680px) {
+  html.cn #recovery .recovery-status-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@container cn-rec-dash (max-width: 300px) {
+  html.cn #recovery .recovery-status-row { grid-template-columns: minmax(0, 1fr); }
+  html.cn #recovery .recovery-status-card { padding: 14px 16px 16px; }
+}
+
+/* ---------- summary ---------- */
+html.cn #recovery .recovery-summary-card::before {
+  content: "Summary";
+  display: block;
+  margin-block-end: var(--cn-3);
+}
+
+html.cn #recovery #recoverySummaryOut {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--cn-text);
+  font-size: var(--cn-step-lead);
+  line-height: 1.5;
+  letter-spacing: var(--cn-track-body);
+}
+
+html.cn #recovery .recovery-confidence-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 20px;
+  margin-block-start: var(--cn-6);
+  padding-block-start: var(--cn-4);
+  border-top: 1px solid var(--cn-line);
+}
+
+html.cn #recovery #recoveryConfidenceOut {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  margin: 0;
+  color: var(--cn-text);
+  font: 500 .8125rem/1.4 var(--cn-font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+html.cn #recovery #recoveryConfidenceOut::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cn-cyan);
+}
+
+html.cn #recovery #recoveryConfidenceReasonOut {
+  flex: 1 1 280px;
+  min-width: 0;
+  margin: 0;
+  color: var(--cn-text-2);
+  font-size: var(--cn-step-small);
+  line-height: 1.55;
+}
+
+html.cn #recovery #recoveryConfidenceReasonOut:empty { display: none; }
+
+/* ---------- facts: one panel, three columns split by hairlines ---------- */
+html.cn #recovery .recovery-facts-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-card);
+  background: var(--cn-line);
+  overflow: hidden;
+}
+
+html.cn #recovery .recovery-fact-card {
+  min-width: 0;
+  padding: 20px 22px 22px;
+  border: 0;
+  border-radius: 0;
+  background: var(--cn-surface);
+}
+
+html.cn #recovery .recovery-fact-card h5 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 var(--cn-4);
+  color: var(--cn-text-2);
+  font: 500 var(--cn-step-label)/1.3 var(--cn-font-mono);
+  letter-spacing: var(--cn-track-label);
+  text-transform: uppercase;
+}
+
+html.cn #recovery .recovery-fact-card ul {
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+}
+
+html.cn #recovery .recovery-fact-card li {
+  padding-inline-start: 20px;
+  color: var(--cn-text);
+  font-size: .9375rem;
+  line-height: 1.5;
+}
+
+/* the markers say what kind of statement it is: solid = known, ring = inferred,
+   grey ring = unknown (the heading carries the same mark as a legend) */
+html.cn #recovery .recovery-fact-card :is(h5, li)::before {
+  content: "";
+  box-sizing: border-box;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cn-id);
+}
+
+html.cn #recovery .recovery-fact-card li::before {
+  position: absolute;
+  inset-inline-start: 0;
+  top: .55em;
+}
+
+html.cn #recovery .recovery-fact-card:nth-child(2) :is(h5, li)::before {
+  border: 1.5px solid var(--cn-id-2);
+  background: transparent;
+}
+
+html.cn #recovery .recovery-fact-card:nth-child(3) :is(h5, li)::before {
+  border: 1.5px solid var(--cn-text-2);
+  background: transparent;
+}
+
+@container cn-rec-dash (max-width: 760px) {
+  html.cn #recovery .recovery-facts-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+@container cn-rec-dash (max-width: 520px) {
+  html.cn #recovery .recovery-fact-card { padding: 18px 18px 20px; }
+}
+
+/* ---------- action checklists (rows from renderActionItem) ---------- */
+html.cn #recovery .recovery-immediate-card { border-color: var(--cn-line-2); }
+
+html.cn #recovery .recovery-action-list {
+  counter-reset: cn-rec-total cn-rec-done;
+  gap: 0;
+}
+
+html.cn #recovery .recovery-action-item {
+  counter-increment: cn-rec-total;
+  gap: 14px;
+  padding: 18px 0;
+  border: 0;
+  border-top: 1px solid var(--cn-line);
+  border-radius: 0;
+  background: none;
+  opacity: 1;
+}
+
+html.cn #recovery .recovery-action-item:last-child { padding-block-end: 4px; }
+
+html.cn #recovery .recovery-action-item:has(input:checked) { counter-increment: cn-rec-total cn-rec-done; }
+
+/* .completed is only set at render time; :has(input:checked) gives live feedback instead */
+html.cn #recovery .recovery-action-item.completed { opacity: 1; }
+
+html.cn #recovery .recovery-action-list > .recovery-empty-note {
+  padding: 18px 0 2px;
+  border-top: 1px solid var(--cn-line);
+  font-size: .9375rem;
+}
+
+/* the tick: a 44px label around a 24px circle; the mark draws in left to right */
+html.cn #recovery .recovery-action-check {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-block: -10px;
+  margin-inline: -10px 0;
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html.cn #recovery .recovery-action-check input {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  padding: 0;
+  border: 1.5px solid var(--cn-rec-box);
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+  transition: background-color var(--cn-dur-2) var(--cn-ease-out), border-color var(--cn-dur-2) var(--cn-ease-out),
+    scale var(--cn-dur-1) var(--cn-ease-out);
+}
+
+html.cn #recovery .recovery-action-check input:checked {
+  border-color: var(--cn-id);
+  background-color: var(--cn-id);
+}
+
+html.cn #recovery .recovery-action-check::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 14px;
+  height: 14px;
+  margin: auto;
+  background: var(--cn-on-cyan);
+  -webkit-mask: var(--cn-rec-i-check) center / contain no-repeat;
+  mask: var(--cn-rec-i-check) center / contain no-repeat;
+  clip-path: inset(0 100% 0 0);
+  pointer-events: none;
+  transition: clip-path var(--cn-dur-2) var(--cn-ease-out) 80ms;
+}
+
+html.cn #recovery .recovery-action-check:has(input:checked)::after { clip-path: inset(0); }
+
+/* browsers without :has(): paint the tick on the input itself */
+@supports not selector(:has(a)) {
+  html.cn #recovery .recovery-action-check input:checked { background: var(--cn-id) var(--cn-rec-tick) center / 14px no-repeat; }
+  html.cn #recovery .recovery-action-check::after { content: none; }
+}
+
+html.cn #recovery .recovery-action-check input:active { scale: .9; }
+
+@media (hover: hover) and (pointer: fine) {
+  html.cn #recovery .recovery-action-check:hover input:not(:checked) { border-color: var(--cn-rec-hover); }
+}
+
+html.cn #recovery .recovery-action-body { flex: 1 1 auto; min-width: 0; }
+
+html.cn #recovery .recovery-action-title-row {
+  gap: 6px 8px;
+  margin: 0 0 6px;
+}
+
+/* ticked rows are crossed off and quieten (the line fades in, it does not jump) */
+html.cn #recovery .recovery-action-title-row strong {
+  margin-inline-end: 4px;
+  color: var(--cn-text);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -.01em;
+  text-decoration: line-through 1.5px transparent;
+  transition: color var(--cn-dur-2) ease, text-decoration-color var(--cn-dur-2) ease;
+}
+
+html.cn #recovery .recovery-action-item:has(input:checked) .recovery-action-title-row strong {
+  color: var(--cn-text-2);
+  text-decoration-color: var(--cn-text-3);
+}
+
+html.cn #recovery .recovery-action-item:has(input:checked) .recovery-action-instruction { color: var(--cn-text-2); }
+
+/* priority is risk content: critical red, high amber, normal neutral (always with the word) */
+html.cn #recovery .recovery-priority-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 22px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: var(--cn-r-pill);
+  font: 500 .6875rem/1 var(--cn-font-mono);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+html.cn #recovery .recovery-priority-critical { border-color: var(--cn-rec-danger-line); background: var(--cn-danger-tint); color: var(--cn-danger); }
+html.cn #recovery .recovery-priority-high { background: var(--cn-warn-tint); color: var(--cn-warn); }
+html.cn #recovery .recovery-priority-normal { border-color: var(--cn-line-2); background: transparent; color: var(--cn-text-2); }
+
+/* the last pill is always the time estimate ("10 min"): a clock, no frame */
+html.cn #recovery .recovery-action-title-row .recovery-priority-pill:last-child {
+  padding-inline: 2px;
+  border-color: transparent;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+html.cn #recovery .recovery-action-title-row .recovery-priority-pill:last-child::before {
+  content: "";
+  width: 12px;
+  height: 12px;
+  background: currentColor;
+  -webkit-mask: var(--cn-rec-i-clock) center / contain no-repeat;
+  mask: var(--cn-rec-i-clock) center / contain no-repeat;
+}
+
+html.cn #recovery .recovery-action-instruction {
+  max-width: 64ch;
+  margin: 0;
+  color: var(--cn-text);
+  font-size: .9375rem;
+  line-height: 1.55;
+  transition: color var(--cn-dur-2) ease;
+}
+
+html.cn #recovery :is(.recovery-action-why, .recovery-action-verify) {
+  max-width: 64ch;
+  margin: 8px 0 0;
+  color: var(--cn-text-2);
+  font-size: var(--cn-step-small);
+  line-height: 1.5;
+}
+
+html.cn #recovery :is(.recovery-action-why, .recovery-action-verify) strong {
+  margin-inline-end: 4px;
+  color: var(--cn-text);
+  font: 500 .6875rem/1 var(--cn-font-mono);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+/* "2 of 4 done": a live count of the ticks, in CSS (counters from the rows above) */
+html.cn #recovery .recovery-action-list:has(.recovery-action-item)::after {
+  content: counter(cn-rec-done) " of " counter(cn-rec-total) " done";
+  position: absolute;
+  inset-inline-end: var(--cn-rec-pad);
+  top: var(--cn-rec-pad);
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-pill);
+  background: var(--cn-surface-2);
+  color: var(--cn-text-2);
+  font: 500 .75rem/1 var(--cn-font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .02em;
+  transition: color var(--cn-dur-2) ease, background-color var(--cn-dur-2) ease, border-color var(--cn-dur-2) ease;
+}
+
+/* every step ticked */
+html.cn #recovery .recovery-action-list:has(.recovery-action-item):not(:has(.recovery-action-item input:not(:checked)))::after {
+  border-color: var(--cn-id-line);
+  background: var(--cn-id-tint);
+  color: var(--cn-id-2);
+}
+
+/* the heading leaves room for the count */
+html.cn #recovery :is(.recovery-immediate-card, .recovery-timeline-card):has(.recovery-action-item) h3 { padding-inline-end: 120px; }
+
+/* narrow cards: the count sits under the heading and titles take their own line */
+@container (max-width: 360px) {
+  html.cn #recovery .recovery-action-list:has(.recovery-action-item)::after {
+    position: static;
+    order: -1;
+    align-self: flex-start;
+    margin-block-end: var(--cn-3);
+  }
+  html.cn #recovery :is(.recovery-immediate-card, .recovery-timeline-card):has(.recovery-action-item) h3 { padding-inline-end: 0; }
+  html.cn #recovery .recovery-action-title-row strong { flex: 1 1 100%; }
+  html.cn #recovery .recovery-action-item { gap: 10px; }
+}
+
+/* ---------- timeline: segmented tabs + a vertical progress line ---------- */
+html.cn #recovery .recovery-timeline-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  margin: 0 0 var(--cn-5);
+  padding: 4px;
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-ctl);
+  background: var(--cn-surface-2);
+}
+
+/* every tab stays clickable: for free plans script.js routes the click to Pricing */
+html.cn #recovery .recovery-timeline-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--cn-text-2);
+  font: 500 var(--cn-step-small)/1.25 var(--cn-font);
+  text-align: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color var(--cn-dur-1) ease, background-color var(--cn-dur-2) var(--cn-ease-out), box-shadow var(--cn-dur-2) ease;
+}
+
+html.cn #recovery .recovery-timeline-tab:focus-visible { outline-offset: 1px; }
+
+html.cn #recovery .recovery-timeline-tab.active {
+  border: 0;
+  background: var(--cn-surface-3);
+  box-shadow: inset 0 0 0 1px var(--cn-line-2), 0 1px 2px var(--cn-bg);
+  color: var(--cn-text);
+}
+
+/* the mint dot marks the active stage only */
+html.cn #recovery .recovery-timeline-tab.active::before {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cn-id);
+}
+
+/* lock glyph on the stages a free plan opens on Pricing (visual only) */
+html.cn body:not([data-plan="pro"]) #recovery .recovery-timeline-tab:not([data-timeline="first10Minutes"])::after {
+  content: "";
+  flex: none;
+  width: 12px;
+  height: 12px;
+  background: currentColor;
+  opacity: .8;
+  -webkit-mask: var(--cn-rec-i-lock) center / contain no-repeat;
+  mask: var(--cn-rec-i-lock) center / contain no-repeat;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  html.cn #recovery .recovery-timeline-tab:not(.active):hover { background: var(--cn-surface-3); color: var(--cn-text); }
+}
+
+@container (max-width: 560px) {
+  html.cn #recovery .recovery-timeline-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* stepper: each step owns the line down to the next one; the line fills when ticked */
+html.cn #recovery #recoveryTimelineActions .recovery-action-item {
+  position: relative;
+  padding: 0 0 26px;
+  border: 0;
+}
+
+html.cn #recovery #recoveryTimelineActions .recovery-action-item:last-of-type { padding-block-end: 2px; }
+
+html.cn #recovery #recoveryTimelineActions .recovery-action-item::before,
+html.cn #recovery #recoveryTimelineActions .recovery-action-item::after {
+  content: "";
+  position: absolute;
+  inset-inline-start: 11px;
+  top: 30px;
+  bottom: 6px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--cn-line-2);
+}
+
+html.cn #recovery #recoveryTimelineActions .recovery-action-item::after {
+  background: var(--cn-id);
+  scale: 1 0;
+  transform-origin: 50% 0;
+  transition: scale var(--cn-dur-3) var(--cn-ease-out);
+}
+
+html.cn #recovery #recoveryTimelineActions .recovery-action-item:has(input:checked)::after { scale: 1 1; }
+
+html.cn #recovery #recoveryTimelineActions .recovery-action-item:last-of-type::before,
+html.cn #recovery #recoveryTimelineActions .recovery-action-item:last-of-type::after { content: none; }
+
+html.cn #recovery #recoveryTimelineActions > .recovery-empty-note { border-top: 0; padding-block-start: 4px; }
+
+/* a new stage settles in (script.js rebuilds the list on every tab switch) */
+@media (prefers-reduced-motion: no-preference) {
+  html.cn #recovery #recoveryTimelineActions > * { animation: cn-rec-in var(--cn-dur-3) var(--cn-ease-out) both; }
+  html.cn #recovery #recoveryTimelineActions > :nth-child(2) { animation-delay: 60ms; }
+  html.cn #recovery #recoveryTimelineActions > :nth-child(3) { animation-delay: 120ms; }
+  html.cn #recovery #recoveryTimelineActions > :nth-child(4) { animation-delay: 180ms; }
+  html.cn #recovery #recoveryTimelineActions > :nth-child(n+5) { animation-delay: 240ms; }
+}
+
+@keyframes cn-rec-in {
+  from { opacity: 0; translate: 0 8px; }
+  to { opacity: 1; translate: none; }
+}
+
+/* locked stages: a dashed tray with a lock tile (::before) and its icon (::after) */
+html.cn #recovery .recovery-locked-note {
+  position: relative;
+  padding: var(--cn-6) var(--cn-5);
+  border: 1px dashed var(--cn-line-2);
+  border-radius: var(--cn-r-ctl);
+  background: transparent;
+  text-align: center;
+}
+
+html.cn #recovery .recovery-locked-note::before {
+  content: "";
+  display: block;
+  width: 40px;
+  height: 40px;
+  margin: 0 auto var(--cn-4);
+  border-radius: 12px;
+  background: var(--cn-cyan-tint);
+}
+
+html.cn #recovery .recovery-locked-note::after {
+  content: "";
+  position: absolute;
+  top: calc(var(--cn-6) + 10px);
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  margin-left: -10px;
+  background: var(--cn-cyan-2);
+  -webkit-mask: var(--cn-rec-i-lock) center / contain no-repeat;
+  mask: var(--cn-rec-i-lock) center / contain no-repeat;
+}
+
+html.cn #recovery .recovery-locked-note p {
+  max-width: 46ch;
+  margin: 0 auto var(--cn-5);
+  color: var(--cn-text-2);
+  font-size: .9375rem;
+  line-height: 1.55;
+}
+
+html.cn #recovery .recovery-locked-note strong { color: var(--cn-text); }
+
+/* ---------- still at risk (risk content: amber marks) ---------- */
+html.cn #recovery .recovery-remaining-card ul {
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+}
+
+html.cn #recovery .recovery-remaining-card li {
+  padding-inline-start: 30px;
+  color: var(--cn-text);
+  font-size: .9375rem;
+  line-height: 1.55;
+}
+
+html.cn #recovery .recovery-remaining-card li::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  top: .2em;
+  width: 18px;
+  height: 18px;
+  background: var(--cn-warn);
+  -webkit-mask: var(--cn-rec-i-alert) center / contain no-repeat;
+  mask: var(--cn-rec-i-alert) center / contain no-repeat;
+}
+
+/* ---------- Pro upsell: a quiet bordered card ---------- */
+html.cn #recovery .recovery-pro-upsell {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: var(--cn-5);
+  border-color: var(--cn-line-2);
+  background: var(--cn-surface);
+}
+
+html.cn #recovery .recovery-pro-upsell-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: var(--cn-cyan-tint);
+  color: var(--cn-cyan-2);
+}
+
+html.cn #recovery .recovery-pro-upsell-icon svg { width: 24px; height: 24px; }
+
+html.cn #recovery .recovery-pro-upsell-body { flex: 1 1 auto; min-width: 0; }
+
+html.cn #recovery .recovery-pro-upsell-body::before {
+  content: "Pro";
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  margin-block-end: var(--cn-3);
+  padding: 0 9px;
+  border: 1px solid var(--cn-line-2);
+  border-radius: var(--cn-r-pill);
+  color: var(--cn-text-2);
+  font: 500 .6875rem/1 var(--cn-font-mono);
+  letter-spacing: var(--cn-track-label);
+  text-transform: uppercase;
+}
+
+html.cn #recovery .recovery-pro-upsell-body h4 {
+  margin: 0 0 var(--cn-2);
+  color: var(--cn-text);
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -.02em;
+  text-wrap: balance;
+}
+
+html.cn #recovery .recovery-pro-upsell-body p {
+  max-width: 62ch;
+  margin: 0 0 var(--cn-5);
+  color: var(--cn-text-2);
+  font-size: .9375rem;
+  line-height: 1.6;
+}
+
+@container cn-rec-dash (max-width: 520px) {
+  html.cn #recovery .recovery-pro-upsell { flex-direction: column; gap: var(--cn-4); }
+  html.cn #recovery .recovery-pro-upsell-icon { width: 40px; height: 40px; border-radius: 12px; }
+  html.cn #recovery .recovery-pro-upsell-icon svg { width: 22px; height: 22px; }
+  html.cn #recovery .recovery-pro-upsell .primary-btn { width: 100%; }
+}
+
+/* ---------- official reporting resources ---------- */
+html.cn #recovery .recovery-resources-list { gap: 0; }
+
+html.cn #recovery .recovery-resource-item {
+  gap: 12px 20px;
+  padding: 16px 0;
+  border: 0;
+  border-top: 1px solid var(--cn-line);
+  border-radius: 0;
+  background: none;
+}
+
+html.cn #recovery .recovery-resource-item:last-child { padding-block-end: 2px; }
+
+html.cn #recovery .recovery-resource-info { flex: 1 1 220px; min-width: 0; }
+
+html.cn #recovery .recovery-resource-info strong {
+  margin: 0 0 2px;
+  color: var(--cn-text);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -.01em;
+}
+
+html.cn #recovery .recovery-resource-info span {
+  color: var(--cn-text-2);
+  font-size: var(--cn-step-small);
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+
+html.cn #recovery .recovery-resource-item a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--cn-line-2);
+  border-radius: var(--cn-r-pill);
+  color: var(--cn-text);
+  font: 500 var(--cn-step-small)/1.2 var(--cn-font);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color var(--cn-dur-1) ease, border-color var(--cn-dur-1) ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  html.cn #recovery .recovery-resource-item a:hover {
+    border-color: var(--cn-rec-hover);
+    background: var(--cn-surface-2);
+    text-decoration: none;
+  }
+}
+
+@container (max-width: 420px) {
+  html.cn #recovery .recovery-resource-item a { flex: 1 1 100%; }
+}
+
+html.cn #recovery .recovery-resources-list > .recovery-empty-note {
+  padding-block-start: 16px;
+  border-top: 1px solid var(--cn-line);
+  font-size: .9375rem;
+}
+
+/* ---------- update the case: the question reads as CyberNet AI asking ----------
+   (the 2px iris start rule is the AI's voice, as on Analysis AI's bubbles) */
+html.cn #recovery #recoveryUpdateQuestion {
+  box-sizing: border-box;
+  width: fit-content;
+  max-width: min(100%, 62ch);
+  margin: 0 0 var(--cn-4);
+  padding: 12px 16px;
+  border-inline-start: 2px solid var(--cn-iris);
+  border-start-start-radius: 4px;
+  border-end-start-radius: 4px;
+  border-start-end-radius: var(--cn-r-ctl);
+  border-end-end-radius: var(--cn-r-ctl);
+  background: var(--cn-surface-2);
+  color: var(--cn-text);
+  font-size: .9375rem;
+  line-height: 1.55;
+  text-wrap: wrap; /* "pretty" rewraps after sizing and leaves a gap inside the hugging bubble */
+}
+
+/* on roomy cards the button sits under the field, end-aligned, like a Send button */
+@container (min-width: 560px) {
+  html.cn #recovery #recoveryUpdateBtn {
+    display: flex;
+    width: fit-content;
+    min-width: 240px;
+    margin-inline-start: auto;
+  }
+}
+
+/* ---------- case history: script.js never fills it today, so it hides while empty ---------- */
+html.cn #recovery .recovery-history-card:has(.recovery-history-list:empty) { display: none; }
+
+/* ---------- download (Pro): a secondary pill with an icon ---------- */
+html.cn #recovery #recoveryDownloadBtn {
+  min-height: 52px;
+  margin-block-start: var(--cn-1);
+  gap: 10px;
+}
+
+html.cn #recovery #recoveryDownloadBtn::before {
+  content: "";
+  flex: none;
+  width: 18px;
+  height: 18px;
+  background: currentColor;
+  -webkit-mask: var(--cn-rec-i-download) center / contain no-repeat;
+  mask: var(--cn-rec-i-download) center / contain no-repeat;
+}
+
+@container cn-rec-dash (min-width: 560px) {
+  html.cn #recovery #recoveryDownloadBtn {
+    align-self: center;
+    width: auto;
+    min-width: 300px;
+    padding-inline: 28px;
+  }
+}
+
+/* ==========================================================================
+   5. SUPPORT BOX: the one component in 02-components.css. Recovery only sets
+   the space above it (the step it had before).
+   ========================================================================== */
+
+html.cn #recovery { --cn-support-mt: clamp(48px, 6vw, 96px); }
+
+/* ==========================================================================
+   6. SMALL SCREENS AND REDUCED MOTION
+   (90-a11y already collapses every animation and transition to its end state)
+   ========================================================================== */
+
+@media (max-width: 480px) {
+  html.cn #recovery .recovery-header { margin-block-end: var(--cn-8); }
+  html.cn #recovery #recoveryUsageCard { margin-block-start: var(--cn-6); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.cn #recovery .recovery-toggle:active,
+  html.cn #recovery .recovery-action-check input:active { scale: none; }
+  html.cn #recovery :is(#recoveryStartBtn, #recoveryUpdateBtn):hover::after { translate: none; }
+}

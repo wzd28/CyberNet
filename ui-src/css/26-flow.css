@@ -1,0 +1,527 @@
+/* Home 4 - Three tools, one flow (#cnFlow)
+   A tabbed reel in a different layout family from the Example scan above it (copy column + frame):
+   a centred segmented control above one wide stage on tablets and desktops, a horizontal
+   scroll-snap chip row above the stage on phones. Panels share one grid cell and cross-fade.
+   Each tool wears its identity colour (Quick Scan cyan, Analysis AI iris, Recovery mint) on its
+   tab dot, progress line, miniature label and the stage floor; primary buttons stay cyan.
+   35-reel.js adds .is-ready (single-cell layout), .is-shown (first time on screen), .is-auto and
+   .is-playing (progress line runs), and copies each tab's description into its panel as
+   .cn-reel-cap. Before that, and without JS, every panel shows, stacked. */
+
+/* The stage floor colour cross-fades between tools (a registered colour can transition). */
+@property --cn-floor { syntax: "<color>"; inherits: false; initial-value: #083344; }
+
+html.cn #home .cn-flow {
+  /* Width, gutters and the section rhythm come from 02-components.css (home container). */
+  container: cn-flow / inline-size;
+  font-family: var(--cn-font);
+  color: var(--cn-text);
+}
+
+/* Tool identity (the shared --cn-id tokens, 00-tokens.css), set per tab and panel. */
+html.cn #home #cnTabScan,
+html.cn #home #cnPanelScan { --cn-id: var(--cn-cyan); --cn-id-2: var(--cn-cyan-2); --cn-id-tint: var(--cn-cyan-tint); --cn-id-line: var(--cn-cyan-line); }
+html.cn #home #cnTabAi,
+html.cn #home #cnPanelAi { --cn-id: var(--cn-iris); --cn-id-2: var(--cn-iris-2); --cn-id-tint: var(--cn-iris-tint); --cn-id-line: var(--cn-iris-line); }
+html.cn #home #cnTabRec,
+html.cn #home #cnPanelRec { --cn-id: var(--cn-mint); --cn-id-2: var(--cn-mint-2); --cn-id-tint: var(--cn-mint-tint); --cn-id-line: var(--cn-mint-line); }
+
+/* ---------- Stacked (no JS yet) ---------- */
+html.cn #home .cn-reel { min-inline-size: 0; }
+html.cn #home .cn-reel:not(.is-ready) .cn-reel-tabs,
+html.cn #home .cn-reel:not(.is-ready) .cn-reel-pause { display: none; }
+html.cn #home .cn-reel:not(.is-ready) .cn-reel-panels {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(12px, 2cqi, 24px);
+}
+@container cn-flow (min-width: 900px) {
+  html.cn #home .cn-reel:not(.is-ready) .cn-reel-panels { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+html.cn #home .cn-reel:not(.is-ready) .cn-reel-panel {
+  padding: clamp(16px, 2.5cqi, 28px);
+  background: var(--cn-surface);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-card);
+}
+
+/* ---------- Reel layout ---------- */
+html.cn #home .cn-reel.is-ready {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "tabs" "panels" "pause";
+  gap: 14px;
+}
+html.cn #home .cn-reel.is-ready .cn-reel-tabs { grid-area: tabs; }
+html.cn #home .cn-reel.is-ready .cn-reel-panels { grid-area: panels; }
+html.cn #home .cn-reel.is-ready .cn-reel-pause { grid-area: pause; justify-self: start; }
+/* Tablet and up: everything on one centred axis, the stage at a comfortable reading width. */
+@container cn-flow (min-width: 740px) {
+  html.cn #home .cn-reel.is-ready {
+    justify-items: center;
+    row-gap: 20px;
+    max-inline-size: 960px;
+    margin-inline: auto;
+  }
+  html.cn #home .cn-reel.is-ready .cn-reel-panels { justify-self: stretch; }
+  html.cn #home .cn-reel.is-ready .cn-reel-pause { justify-self: center; }
+}
+
+/* ---------- Tabs: a segmented control (tablet and up) ---------- */
+html.cn #home .cn-reel-tabs {
+  position: relative;
+  display: flex;
+  gap: 4px;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  padding: 4px;
+  background: var(--cn-surface);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-pill);
+}
+html.cn #home .cn-reel-tab {
+  -webkit-appearance: none;
+  appearance: none;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-block-size: 44px;
+  margin: 0;
+  padding: 0 22px 0 18px;
+  background: none;
+  border: 0;
+  border-radius: var(--cn-r-pill);
+  font: inherit;
+  text-align: start;
+  white-space: nowrap;
+  color: var(--cn-text-2);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--cn-dur-2) ease, color var(--cn-dur-2) ease, border-color var(--cn-dur-2) ease;
+}
+/* The tool's colour dot: dim until its tab is active. */
+html.cn #home .cn-reel-tab::before {
+  content: "";
+  flex: none;
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: 50%;
+  background: var(--cn-id, var(--cn-cyan));
+  opacity: .5;
+  transition: opacity var(--cn-dur-2) ease;
+}
+html.cn #home .cn-reel-tab.is-active::before { opacity: 1; }
+/* Numbers stay in the Example scan, the one real sequence on the page. */
+html.cn #home .cn-reel-k { display: none; }
+html.cn #home .cn-reel-tab b {
+  font-size: .9375rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -.01em;
+  color: inherit;
+}
+/* The description is shown in the panel as a caption (35-reel.js); the tab keeps the name. */
+html.cn #home .cn-reel-tab small {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+html.cn #home .cn-reel-tab.is-active {
+  background: var(--cn-surface-3);
+  color: var(--cn-text);
+}
+
+/* Progress line inside the active pill: grows over data-interval while auto-advancing, full
+   when chosen by hand. It takes the tool's colour. */
+html.cn #home .cn-reel-line {
+  position: absolute;
+  inset-inline: 18px;
+  inset-block-end: 5px;
+  block-size: 2px;
+  border-radius: 2px;
+  overflow: hidden;
+  pointer-events: none;
+}
+html.cn #home .cn-reel-line::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--cn-id, var(--cn-cyan));
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+}
+html.cn[dir="rtl"] #home .cn-reel-line::after { transform-origin: 100% 50%; }
+html.cn #home .cn-reel.is-ready .cn-reel-tab.is-active .cn-reel-line::after { transform: scaleX(1); }
+html.cn #home .cn-reel.is-ready.is-auto .cn-reel-tab.is-active .cn-reel-line::after {
+  animation: cn-reel-fill var(--cn-reel-int, 6500ms) linear both;
+  animation-play-state: paused;
+}
+html.cn #home .cn-reel.is-ready.is-auto.is-playing .cn-reel-tab.is-active .cn-reel-line::after { animation-play-state: running; }
+@keyframes cn-reel-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+html.cn #home .cn-reel-tab:focus-visible {
+  outline: none;
+  box-shadow: var(--cn-focus);
+}
+@media (hover: hover) and (pointer: fine) {
+  html.cn #home .cn-reel-tab:not(.is-active):hover { color: var(--cn-text); background: var(--cn-surface-2); }
+  html.cn #home .cn-reel-tab:not(.is-active):hover::before { opacity: .75; }
+}
+
+/* ---------- Tabs: a scroll-snap chip row (phones) ---------- */
+@container cn-flow (max-width: 739px) {
+  html.cn #home .cn-reel-tabs {
+    gap: 8px;
+    max-inline-size: none;
+    margin-inline: calc(var(--cn-gutter-l) * -1) calc(var(--cn-gutter-r) * -1);
+    padding: 6px var(--cn-gutter-r) 6px var(--cn-gutter-l);
+    background: none;
+    border: 0;
+    border-radius: 0;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: var(--cn-gutter-l) var(--cn-gutter-r);
+    scrollbar-width: none;
+  }
+  html.cn #home .cn-reel-tabs::-webkit-scrollbar { display: none; }
+  html.cn #home .cn-reel-tab {
+    flex: none;
+    gap: 8px;
+    padding: 0 16px 0 14px;
+    border: 1px solid var(--cn-line-2);
+    overflow: hidden;
+    scroll-snap-align: start;
+  }
+  html.cn #home .cn-reel-tab::before { inline-size: 7px; block-size: 7px; }
+  html.cn #home .cn-reel-tab.is-active { border-color: var(--cn-line-2); }
+  html.cn #home .cn-reel-line { inset-inline: 14px; inset-block-end: 6px; }
+}
+
+/* ---------- Stage and panels ---------- */
+html.cn #home .cn-reel.is-ready .cn-reel-panels {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  min-inline-size: 0;
+  padding: clamp(20px, 4.5cqi, 48px) clamp(18px, 4.5cqi, 48px);
+  background: var(--cn-surface);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-panel);
+  overflow: hidden;
+}
+/* A faint floor under the miniature in the active tool's deep colour: depth, not glow. */
+html.cn #home .cn-reel.is-ready .cn-reel-panels::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  --cn-floor: var(--cn-deep);
+  background: radial-gradient(90% 60% at 50% 112%, var(--cn-floor), transparent 70%);
+  opacity: .6;
+  pointer-events: none;
+  transition: --cn-floor 700ms var(--cn-ease-out);
+}
+html.cn #home .cn-reel.is-ready .cn-reel-panels:has(#cnPanelAi.is-active)::before { --cn-floor: var(--cn-iris-deep); }
+html.cn #home .cn-reel.is-ready .cn-reel-panels:has(#cnPanelRec.is-active)::before { --cn-floor: var(--cn-mint-deep); }
+
+html.cn #home .cn-reel-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(20px, 3cqi, 28px);
+  min-inline-size: 0;
+}
+/* Caption at the top and button at the bottom stay put when panels of different heights swap;
+   the miniature centres in the space between, so any slack splits evenly. */
+html.cn #home .cn-reel-panel > .cn-mini { margin-block: auto; }
+html.cn #home .cn-reel-panel > .primary-btn { flex: none; }
+/* Caption: the tool's one line, the panel's headline. */
+html.cn #home .cn-reel-cap {
+  flex: none;
+  max-inline-size: min(100%, 34rem);
+  margin: 0;
+  font-size: clamp(1.0625rem, .98rem + .5cqi, 1.3125rem);
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: -.012em;
+  text-align: center;
+  color: var(--cn-text);
+  text-wrap: balance;
+}
+html.cn #home .cn-reel:not(.is-ready) .cn-reel-cap { display: none; }
+
+html.cn #home .cn-reel.is-ready .cn-reel-panel {
+  grid-area: 1 / 1;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
+  transition: opacity 260ms ease, transform 320ms ease, visibility 0s linear 320ms;
+}
+html.cn #home .cn-reel.is-ready .cn-reel-panel.is-active {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition: opacity 450ms var(--cn-ease-out) 120ms, transform 450ms var(--cn-ease-out) 120ms, visibility 0s linear 0s;
+}
+
+/* ---------- Product miniatures (examples) ---------- */
+html.cn #home .cn-mini {
+  box-sizing: border-box;
+  display: grid;
+  gap: 14px;
+  inline-size: min(100%, 27rem);
+  padding: clamp(14px, 3.5cqi, 20px);
+  background: var(--cn-surface-2);
+  border: 1px solid var(--cn-line-2);
+  border-radius: var(--cn-r-card);
+  text-align: start;
+}
+html.cn #home .cn-mini-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+html.cn #home .cn-mini-top .cn-mono {
+  font-family: var(--cn-font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: var(--cn-track-label);
+  text-transform: uppercase;
+  color: var(--cn-id-2, var(--cn-text-2));
+}
+
+/* Quick Scan miniature */
+html.cn #home .cn-mini-url {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  background: var(--cn-bg-2);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-ctl);
+  font-family: var(--cn-font-mono);
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--cn-text);
+  overflow-wrap: anywhere;
+}
+/* Folded and small phones: a size that keeps "verify.help/login" whole, breaking at the hyphen. */
+@media (max-width: 359.98px) {
+  html.cn #home .cn-mini-url { gap: 8px; padding-inline: 12px; font-size: 12px; overflow-wrap: break-word; }
+}
+html.cn #home .cn-mini-url::before {
+  content: "";
+  flex: none;
+  inline-size: 14px;
+  block-size: 14px;
+  background: var(--cn-text-2);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1'/%3E%3Cpath d='M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1'/%3E%3Cpath d='M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+html.cn #home .cn-mini-verdict {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+html.cn #home .cn-mini-verdict b {
+  font-size: clamp(2rem, 1.6rem + 2cqi, 2.5rem);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--cn-text);
+}
+html.cn #home .cn-mini-verdict b::after {
+  content: "/100";
+  margin-inline-start: 3px;
+  font-family: var(--cn-font-mono);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--cn-text-2);
+}
+html.cn #home .cn-mini-list,
+html.cn #home .cn-checklist {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+html.cn #home .cn-mini-list li,
+html.cn #home .cn-checklist li {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding-block: 11px;
+  border-block-start: 1px solid var(--cn-line);
+  font-size: var(--cn-step-small);
+  line-height: 1.45;
+  letter-spacing: var(--cn-track-body);
+  color: var(--cn-text);
+}
+html.cn #home .cn-mini-list li:last-child,
+html.cn #home .cn-checklist li:last-child { padding-block-end: 2px; }
+html.cn #home .cn-mini-list li::before {
+  content: "";
+  flex: none;
+  inline-size: 6px;
+  block-size: 6px;
+  margin-block-start: .55em;
+  border-radius: 50%;
+  background: var(--cn-danger);
+}
+
+/* Analysis AI miniature */
+html.cn #home .cn-mini-chat { gap: 12px; }
+html.cn #home .cn-msg-user,
+html.cn #home .cn-msg-ai {
+  margin: 0;
+  font-size: var(--cn-step-small);
+  line-height: 1.5;
+  letter-spacing: var(--cn-track-body);
+  color: var(--cn-text);
+}
+html.cn #home .cn-msg-user {
+  justify-self: end;
+  max-inline-size: 88%;
+  padding: 10px 14px;
+  background: var(--cn-surface-3);
+  border-radius: 16px;
+  border-end-end-radius: 4px;
+}
+html.cn #home .cn-msg-ai {
+  justify-self: start;
+  max-inline-size: 95%;
+  padding: 11px 14px 12px;
+  background: var(--cn-bg-2);
+  border-inline-start: 2px solid var(--cn-iris);
+  border-start-start-radius: 4px;
+  border-start-end-radius: 16px;
+  border-end-end-radius: 16px;
+  border-end-start-radius: 16px;
+}
+/* Streaming (35-reel.js): words without .is-on wait hidden; each fades in as it gets .is-on.
+   Hiding is instant (no transition) so a restart never flashes the old text. Colour, not
+   opacity, so no word gets its own paint layer (that forces a layout per frame). */
+html.cn #home .cn-msg-ai.is-streaming .cn-w:not(.is-on) { color: transparent; }
+html.cn #home .cn-msg-ai.is-streaming .cn-w.is-on { transition: color 220ms ease; }
+html.cn #home .cn-mini-chat .cn-verdict { justify-self: start; }
+
+/* Recovery miniature */
+html.cn #home .cn-mini-progress {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: var(--cn-step-small);
+  color: var(--cn-text-2);
+}
+html.cn #home .cn-mini-progress svg {
+  flex: none;
+  inline-size: 48px;
+  block-size: 48px;
+  overflow: visible;
+  transform: rotate(-90deg);
+}
+html.cn #home .cn-mini-progress circle {
+  fill: none;
+  stroke: rgba(255, 255, 255, .08);
+  stroke-width: 4;
+}
+html.cn #home .cn-mini-progress .cn-mini-ring {
+  stroke: var(--cn-mint);
+  stroke-linecap: round;
+  stroke-dasharray: 100 200;
+}
+html.cn #home .cn-mini-progress b { font-weight: 600; color: var(--cn-text); }
+html.cn #home .cn-checklist li::before {
+  content: "";
+  flex: none;
+  box-sizing: border-box;
+  inline-size: 18px;
+  block-size: 18px;
+  margin-block-start: 1px;
+  border: 1.5px solid var(--cn-line-2);
+  border-radius: 50%;
+}
+html.cn #home .cn-checklist li.is-done { color: var(--cn-text-2); }
+html.cn #home .cn-checklist li.is-done::before { background: var(--cn-mint); border-color: var(--cn-mint); }
+html.cn #home .cn-checklist li.is-done::after {
+  content: "";
+  position: absolute;
+  inset-block-start: 15px;
+  inset-inline-start: 6.5px;
+  inline-size: 5px;
+  block-size: 9px;
+  box-sizing: border-box;
+  border: solid var(--cn-on-cyan);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* ---------- Entrances inside the active panel (JS only) ----------
+   Keyframe animations, not transitions: they restart every time a panel becomes active and
+   need nothing from the hidden panels (browsers do not advance transitions on unpainted
+   elements). The rest state is fully visible, so a panel that fades out keeps its content. */
+html.cn #home .cn-reel.is-ready:not(.is-shown) .cn-reel-panel.is-active .cn-mini > * { opacity: 0; }
+html.cn #home .cn-reel.is-ready.is-shown .cn-reel-panel.is-active .cn-mini > * {
+  animation: cn-reel-in 520ms var(--cn-ease-out) var(--cn-d, 0ms) both;
+}
+html.cn #home .cn-reel .cn-mini > :nth-child(1) { --cn-d: 150ms; }
+html.cn #home .cn-reel .cn-mini > :nth-child(2) { --cn-d: 230ms; }
+html.cn #home .cn-reel .cn-mini > :nth-child(3) { --cn-d: 310ms; }
+html.cn #home .cn-reel .cn-mini > :nth-child(4) { --cn-d: 390ms; }
+html.cn #home .cn-reel .cn-mini-chat > .cn-verdict { --cn-d: var(--cn-stream-ms, 2600ms); }
+html.cn #home .cn-reel.is-ready.is-shown .cn-reel-panel.is-active .cn-mini .cn-verdict { animation-name: cn-reel-pop; }
+html.cn #home .cn-reel.is-ready .cn-mini-ring { stroke-dashoffset: var(--cn-ring-to, 0); }
+html.cn #home .cn-reel.is-ready.is-shown .cn-reel-panel.is-active .cn-mini-ring {
+  animation: cn-reel-ring 1.2s var(--cn-ease-out) 450ms both;
+}
+@keyframes cn-reel-in { from { opacity: 0; transform: translateY(8px); } }
+@keyframes cn-reel-pop { from { opacity: 0; transform: scale(.96); } }
+@keyframes cn-reel-ring { from { stroke-dashoffset: 100; } }
+
+/* Pause / Play: the word carries the state (no aria-pressed), the glyph follows .is-paused.
+   The play triangle always points right, as media controls do in RTL too. */
+html.cn #home .cn-reel-pause::before {
+  content: "";
+  flex: none;
+  box-sizing: border-box;
+  inline-size: 9px;
+  block-size: 10px;
+  border: 0;
+  border-inline: 3px solid currentColor;
+  scale: none;
+}
+html.cn #home .cn-reel-pause.is-paused::before {
+  inline-size: 0;
+  block-size: 0;
+  border: 0;
+  border-block: 5px solid transparent;
+  border-left: 9px solid currentColor;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.cn #home .cn-reel.is-ready .cn-reel-panel,
+  html.cn #home .cn-reel.is-ready .cn-reel-panel.is-active,
+  html.cn #home .cn-reel-tab,
+  html.cn #home .cn-reel-tab::before,
+  html.cn #home .cn-reel.is-ready .cn-reel-panels::before,
+  html.cn #home .cn-msg-ai.is-streaming .cn-w.is-on { transition: none; }
+  html.cn #home .cn-reel.is-ready .cn-reel-panel { transform: none; }
+  html.cn #home .cn-reel.is-ready.is-shown .cn-reel-panel.is-active .cn-mini > *,
+  html.cn #home .cn-reel.is-ready.is-shown .cn-reel-panel.is-active .cn-mini-ring { animation: none; }
+}
+
+/* Label floor: no text under --cn-step-label (12px), phones included (DESIGN.md rule 6). */
+html.cn #home .cn-mini-top .cn-mono { font-size: var(--cn-step-label); }

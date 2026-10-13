@@ -1,0 +1,423 @@
+/* 45-about: the About page (section#about). Restyle only; see ui-src/DESIGN.md "About".
+   An editorial page in the spirit of an Apple "About": the operator line, a big quiet headline
+   (one cyan word), a row of large numbers, a fact sheet, four numbered story blocks on a clean
+   2-column grid, the "is and isn't" note, the value cards and the support box.
+
+   Legacy traps handled here (maps/HAZARDS.md "04-pricing" covers About):
+   - .hero-stats-row strong[data-count] is animated by script.js (textContent per frame): the row
+     keeps its class and tag; numbers are tabular so nothing shifts while counting.
+   - .about-block / .about-value are .tilt-card: script.js writes an inline transform on
+     mousemove. 01-base.css neutralises it site-wide (transform:none!important); nothing here
+     sets a transform on them.
+   - .about-values had content-visibility:auto with a 700px placeholder (left a blank block in
+     phone captures): set visible.
+   - .about-top, the stats row, .fetch-panel, .about-grid, .home-limits-note, .about-values and
+     .support-box are .reveal elements: no opacity/transform here.
+   - .pill, .home-limits-note and .support-box are shared with other pages: scoped to #about.
+   - The fetch panel's terminal chrome (traffic-light dots and "whoami") is decorative and has no
+     JS; it is hidden and the panel reads as a plain fact sheet. */
+
+html.cn #about { counter-reset: cn-about; }
+
+/* ---------- operator line: base style and the page's top padding come from 02-components;
+   the head below keeps the same distance from it as the Pricing head ---------- */
+
+/* ---------- header ---------- */
+html.cn #about .about-top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--cn-6);
+  max-width: 1040px;
+  margin: clamp(32px, 4vw, 56px) auto clamp(64px, 8vw, 120px);
+  text-align: center;
+}
+
+html.cn #about .about-top .pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  margin: 0;
+  padding: 0 var(--cn-3);
+  border: 0;
+  border-radius: var(--cn-r-pill);
+  background: var(--cn-cyan-tint);
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  color: var(--cn-cyan-2);
+  font: 500 var(--cn-step-label)/1 var(--cn-font-mono);
+  letter-spacing: var(--cn-track-label);
+  text-transform: uppercase;
+}
+
+html.cn #about .about-top h1 {
+  max-width: 15ch;
+  margin: 0;
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: min(var(--cn-step-hero), 12vw);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: var(--cn-track-hero);
+  text-wrap: balance;
+  overflow-wrap: break-word;
+}
+
+/* the page's one cyan word: a static cyan-to-ice fill, with a single sweep when the page opens */
+html.cn #about .about-top h1 span {
+  color: var(--cn-cyan-2);
+  text-shadow: none;
+  background: linear-gradient(100deg, var(--cn-cyan) 0%, var(--cn-cyan-2) 30%, var(--cn-ice) 50%, var(--cn-cyan-2) 70%, var(--cn-cyan) 100%) 0 0 / 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html.cn #about .about-top h1 span { animation: cn-about-sweep 2.8s var(--cn-ease-in-out) .6s both; }
+}
+
+@keyframes cn-about-sweep {
+  from { background-position: 100% 0; }
+  to { background-position: 0 0; }
+}
+
+/* ---------- stats row: three large numbers on hairlines ---------- */
+html.cn #about .about-stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  max-width: var(--cn-max);
+  margin: 0 auto clamp(72px, 9vw, 136px);
+  border-top: 1px solid var(--cn-line);
+  border-bottom: 1px solid var(--cn-line);
+}
+
+html.cn #about .about-stats-row > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  margin: 0;
+  padding: clamp(28px, 4vw, 56px) var(--cn-4);
+  border: 0;
+  border-inline-start: 1px solid var(--cn-line);
+  text-align: center;
+}
+
+html.cn #about .about-stats-row > div:first-child { border-inline-start: 0; }
+
+html.cn #about .about-stats-row strong {
+  display: block;
+  min-width: 0;
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: clamp(3rem, 2rem + 4.6vw, 6rem);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -.045em;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+html.cn #about .about-stats-row span {
+  display: block;
+  margin-top: var(--cn-4);
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: .9375rem;
+  line-height: 1.35;
+  text-wrap: balance;
+}
+
+/* narrow phones: one number per row, the label beside it */
+@media (max-width: 380px) {
+  html.cn #about .about-stats-row { grid-template-columns: minmax(0, 1fr); }
+  html.cn #about .about-stats-row > div {
+    display: grid;
+    grid-template-columns: 4.5rem minmax(0, 1fr);
+    align-items: center;
+    gap: var(--cn-3);
+    padding: var(--cn-4) 0;
+    border-inline-start: 0;
+    border-top: 1px solid var(--cn-line);
+    text-align: start;
+  }
+  html.cn #about .about-stats-row > div:first-child { border-top: 0; }
+  html.cn #about .about-stats-row strong { font-size: 2.5rem; }
+  html.cn #about .about-stats-row span { margin-top: 0; font-size: 1rem; }
+}
+
+/* ---------- fact sheet (legacy "whoami" panel) ---------- */
+/* 860px: every standalone card on About (fact sheet, limits note, support) shares one
+   measure, and every grid (stats, story, values) shares the 1200px column. */
+html.cn #about .fetch-panel {
+  max-width: 860px;
+  margin: 0 auto clamp(72px, 9vw, 136px);
+  padding: clamp(24px, 4vw, 44px);
+  overflow: visible;
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-panel);
+  background: var(--cn-surface);
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+html.cn #about .fetch-panel .term-chrome { display: none; }
+
+html.cn #about .fetch-body {
+  display: block;
+  padding: 0;
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: 1rem;
+}
+
+html.cn #about .fetch-body::before {
+  content: "At a glance";
+  display: block;
+  margin-bottom: var(--cn-4);
+  color: var(--cn-text-2);
+  font: 500 var(--cn-step-label)/1.3 var(--cn-font-mono);
+  letter-spacing: var(--cn-track-label);
+  text-transform: uppercase;
+}
+
+html.cn #about .fetch-line {
+  display: grid;
+  grid-template-columns: minmax(0, 11rem) minmax(0, 1fr);
+  align-items: baseline;
+  gap: var(--cn-2) var(--cn-6);
+  padding: var(--cn-5) 0;
+  border-top: 1px solid var(--cn-line);
+  color: var(--cn-text);
+  line-height: 1.5;
+  text-align: start;
+}
+
+html.cn #about .fetch-line:last-child { padding-bottom: 0; }
+
+html.cn #about .fetch-key {
+  color: var(--cn-text-2);
+  font: 500 var(--cn-step-label)/1.5 var(--cn-font-mono);
+  letter-spacing: var(--cn-track-label);
+  text-transform: uppercase;
+}
+
+html.cn #about .fetch-line > span:last-child {
+  min-width: 0;
+  font-size: 1.0625rem;
+  letter-spacing: var(--cn-track-body);
+  text-wrap: pretty;
+}
+
+/* the values are written in lower case ("rule-based + ..."): sentence case on screen */
+html.cn #about .fetch-line > span:last-child::first-letter { text-transform: uppercase; }
+
+html.cn #about .fetch-line .safe-text {
+  color: var(--cn-safe);
+  font: 500 var(--cn-step-small)/1.5 var(--cn-font-mono);
+  letter-spacing: .02em;
+}
+
+@media (max-width: 560px) {
+  html.cn #about .fetch-line {
+    grid-template-columns: minmax(0, 1fr);
+    padding: var(--cn-4) 0;
+  }
+  html.cn #about .fetch-line > span:last-child { font-size: 1rem; }
+}
+
+/* ---------- story: four numbered blocks on a quiet grid ---------- */
+html.cn #about .about-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(48px, 6vw, 88px) clamp(32px, 6vw, 96px);
+  max-width: var(--cn-max);
+  margin: 0 auto clamp(72px, 9vw, 136px);
+}
+
+html.cn #about .about-block {
+  counter-increment: cn-about;
+  min-width: 0;
+  padding: var(--cn-6) 0 0;
+  border: 0;
+  border-top: 1px solid var(--cn-line);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+html.cn #about .about-block h2 {
+  margin: 0 0 var(--cn-4);
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: calc(var(--cn-step-h2) * .66);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: var(--cn-track-h2);
+  text-wrap: balance;
+}
+
+/* decorative index (hidden from assistive tech where the alt syntax is supported) */
+html.cn #about .about-block h2::before {
+  content: counter(cn-about, decimal-leading-zero);
+  content: counter(cn-about, decimal-leading-zero) / "";
+  display: block;
+  margin-bottom: var(--cn-6);
+  color: var(--cn-text-2);
+  font: 500 var(--cn-step-label)/1.3 var(--cn-font-mono);
+  letter-spacing: var(--cn-track-label);
+}
+
+html.cn #about .about-block p {
+  max-width: 58ch;
+  margin: 0;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  letter-spacing: var(--cn-track-body);
+  text-wrap: pretty;
+}
+
+html.cn #about .about-block p strong {
+  color: var(--cn-text);
+  font-weight: 600;
+}
+
+/* ---------- "what it is and isn't" ---------- */
+html.cn #about .home-limits-note {
+  max-width: 860px;
+  margin: 0 auto clamp(72px, 9vw, 136px);
+  padding: clamp(20px, 3vw, 32px) clamp(20px, 4vw, 40px);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-card);
+  background: transparent;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: .9375rem;
+  line-height: 1.65;
+  text-align: start;
+  text-wrap: pretty;
+}
+
+/* the lead-in stays inline: the sentence continues in lower case after it */
+html.cn #about .home-limits-note strong {
+  color: var(--cn-text);
+  font-weight: 600;
+}
+
+/* ---------- values: 2 x 2 cards, icon beside the copy (the Privacy text is four times longer
+   than the others, so four narrow columns left three mostly empty cards) ---------- */
+html.cn #about .about-values {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--cn-4);
+  max-width: var(--cn-max);
+  margin: 0 auto clamp(72px, 9vw, 136px);
+  content-visibility: visible;
+  contain-intrinsic-size: none;
+}
+
+html.cn #about .about-values::before {
+  content: "What we value";
+  grid-column: 1 / -1;
+  margin-bottom: var(--cn-2);
+  color: var(--cn-text-2);
+  font: 500 var(--cn-step-label)/1.3 var(--cn-font-mono);
+  letter-spacing: var(--cn-track-label);
+  text-transform: uppercase;
+}
+
+html.cn #about .about-value {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  align-content: start;
+  column-gap: clamp(16px, 2vw, 24px);
+  row-gap: var(--cn-2);
+  min-width: 0;
+  padding: clamp(20px, 2.6vw, 32px);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-card);
+  background: var(--cn-surface);
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  text-align: start;
+}
+
+html.cn #about .av-icon {
+  grid-row: 1 / span 2;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-ctl);
+  background: var(--cn-surface-2);
+  color: var(--cn-cyan-2);
+}
+
+html.cn #about .av-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+html.cn #about .about-value h3 {
+  grid-column: 2;
+  align-self: center;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  margin: 0;
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: 1.1875rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -.015em;
+}
+
+html.cn #about .about-value p {
+  grid-column: 2;
+  margin: 0;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: .9375rem;
+  line-height: 1.55;
+  letter-spacing: var(--cn-track-body);
+  text-wrap: pretty;
+}
+
+/* ---------- support box: the one component in 02-components.css ---------- */
+
+/* ---------- responsive (page-level grids) ---------- */
+@media (max-width: 760px) {
+  /* story: one column */
+  html.cn #about .about-grid { grid-template-columns: minmax(0, 1fr); }
+  html.cn #about .about-block h2 { font-size: var(--cn-step-h3); }
+  html.cn #about .about-block h2::before { margin-bottom: var(--cn-4); }
+  html.cn #about .about-block p { font-size: 1rem; }
+}
+
+@media (max-width: 720px) {
+  html.cn #about .about-values { grid-template-columns: minmax(0, 1fr); gap: var(--cn-3); }
+}
+
+/* narrow phones: icon beside the title, the text below at full width */
+@media (max-width: 420px) {
+  html.cn #about .about-value {
+    grid-template-rows: auto auto;
+    column-gap: var(--cn-4);
+    padding: var(--cn-5);
+  }
+  html.cn #about .av-icon { grid-row: 1; }
+  html.cn #about .about-value p { grid-column: 1 / -1; margin-top: var(--cn-2); }
+}
