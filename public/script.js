@@ -1116,12 +1116,6 @@ document.addEventListener("DOMContentLoaded",()=>{
   /* The detection rules live in cybernet-engine.js (shared with the server and
      the tests). These names stay so the page code reads as before. */
   if(!window.CyberNetEngine)console.error("CyberNet AI: cybernet-engine.js did not load; scans cannot run.");
-  function normalizeText(...args){return window.CyberNetEngine.normalizeText(...args)}
-  function deobfuscate(...args){return window.CyberNetEngine.deobfuscate(...args)}
-  function hasTerm(...args){return window.CyberNetEngine.hasTerm(...args)}
-  function createState(...args){return window.CyberNetEngine.createState(...args)}
-  function addSignal(...args){return window.CyberNetEngine.addSignal(...args)}
-  function nonlinearScore(...args){return window.CyberNetEngine.nonlinearScore(...args)}
   const KNOWN_BRANDS=window.CyberNetEngine.KNOWN_BRANDS;
   const SHORTENERS=window.CyberNetEngine.SHORTENERS;
   const LURE_WORDS=window.CyberNetEngine.LURE_WORDS;
@@ -1132,9 +1126,6 @@ document.addEventListener("DOMContentLoaded",()=>{
   function analyzeQrPayload(...args){return window.CyberNetEngine.analyzeQr(...args)}
   function analyzeTextRules(...args){return window.CyberNetEngine.analyzeText(...args)}
   function analyzeTextRulesCore(...args){return window.CyberNetEngine.analyzeTextRulesCore(...args)}
-  function levenshtein(...args){return window.CyberNetEngine.levenshtein(...args)}
-  function hostnameEntropy(...args){return window.CyberNetEngine.hostnameEntropy(...args)}
-  function isPrivateHost(...args){return window.CyberNetEngine.isPrivateHost(...args)}
   function registrableDomain(...args){return window.CyberNetEngine.registrableDomain(...args)}
   function looksLikeWebAddress(...args){return window.CyberNetEngine.looksLikeWebAddress(...args)}
   function analyzeLinkRules(...args){return window.CyberNetEngine.analyzeLink(...args)}
@@ -1243,10 +1234,20 @@ document.addEventListener("DOMContentLoaded",()=>{
     hydratePreviews(resultBox);
   }
 
-  function runScan(btn,resultBox,cb,delay=420){
+  // The local engine answers in a few milliseconds; the short delay only keeps
+  // the "analyzing" state from flashing. A gate (the Quick Scan quota check)
+  // runs at the same time instead of before it, and when it refuses, its
+  // message replaces the result, so the quota is enforced exactly as before.
+  function runScan(btn,resultBox,cb,delay=300,gate=null){
     const orig=btn.innerHTML;btn.innerHTML=`<span class="btn-spinner"></span> analyzing…`;btn.disabled=true;
     resultBox.innerHTML=`<div class="scanning-placeholder"><span class="scanning-placeholder-text">analyzing</span><div class="scan-dots"><span></span><span></span><span></span></div></div>`;
-    setTimeout(async()=>{try{await cb()}finally{btn.innerHTML=orig;btn.disabled=false}},delay);
+    const wait=new Promise(resolve=>setTimeout(resolve,delay));
+    Promise.all([gate||{allowed:true},wait]).then(async([quota])=>{
+      try{
+        if(quota&&quota.allowed===false){resultBox.innerHTML=`<span class="warning">${escapeHTML(quota.message)}</span>`;return}
+        await cb();
+      }finally{btn.innerHTML=orig;btn.disabled=false}
+    });
   }
 
   /* ─── Known brands, lure words, link facts and the preview cards ─── */
@@ -1379,7 +1380,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 
   function animateScanRing(ringEl,labelEl,statusEl,duration,onDone){
     if(!ringEl||!labelEl)return onDone?.();
-    const circumference=276;if(statusEl)statusEl.textContent="Scanning…";ringEl.style.strokeDashoffset=circumference;
+    const circumference=276;if(statusEl)statusEl.textContent="Scanning…";ringEl.style.transitionDuration=`${duration}ms`;ringEl.style.strokeDashoffset=circumference;
     requestAnimationFrame(()=>{ringEl.style.strokeDashoffset=0});
     const started=performance.now();
     function tick(now){const pct=Math.min(100,((now-started)/duration)*100);labelEl.textContent=Math.round(pct)+"%";if(pct<100)requestAnimationFrame(tick);else{if(statusEl)statusEl.textContent="Deep analysis…";onDone?.()}}
@@ -1424,16 +1425,23 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(!isSignedIn()){openAuthModal("signup");return}
     const text=cyberTextInput.value.trim();if(!text){cyberTextResult.innerHTML=`<span class="warning">Paste a suspicious message first.</span>`;return}
     cyberTextBtn.disabled=true;
-    const quota=await checkQuickScanQuota();
-    if(!quota.allowed){
-      cyberTextResult.innerHTML=`<span class="warning">${escapeHTML(quota.message)}</span>`;
-      cyberTextBtn.disabled=false;
-      return;
-    }
+    // The quota check and the ring run together; the result (computed locally
+    // in a few ms) is only shown once the server has allowed this scan.
+    const quotaCheck=checkQuickScanQuota();
     const ring=document.getElementById("textScanRing"),label=document.getElementById("textScanLabel"),status=document.getElementById("textScanStatus");
-    const duration=window.matchMedia?.("(pointer: coarse)").matches?650:900;
+    // On a refused scan the ring and its labels go back to how they were.
+    const statusBefore=status?status.textContent:"",labelBefore=label?label.textContent:"",ringBefore=ring?ring.style.strokeDashoffset:"";
     const isBareLink=detectChatContentType(text)==="link";
-    animateScanRing(ring,label,status,duration,async()=>{
+    animateScanRing(ring,label,status,400,async()=>{
+      const quota=await quotaCheck;
+      if(!quota.allowed){
+        cyberTextResult.innerHTML=`<span class="warning">${escapeHTML(quota.message)}</span>`;
+        if(ring)ring.style.strokeDashoffset=ringBefore||276;
+        if(label)label.textContent=labelBefore||"0%";
+        if(status)status.textContent=statusBefore||"Ready to scan";
+        cyberTextBtn.disabled=false;
+        return;
+      }
       const result=isBareLink?analyzeLinkRules(text):analyzeTextRules(text);
       const note=isBareLink
         ?"This looked like a link rather than a message, so CyberNet AI analyzed it with the link engine for a more accurate result. Use Link Detection directly next time for the same result."
@@ -1454,20 +1462,12 @@ document.addEventListener("DOMContentLoaded",()=>{
     // Plain sentences used to be parsed as an "encoded URL" and scored, which
     // read as a verdict on nothing. Only web addresses get a report.
     if(!looksLikeWebAddress(link)){cyberLinkResult.innerHTML=`<span class="warning">That doesn't look like a web address. Paste the full link, for example https://example.com/page.</span>`;return}
-    cyberLinkBtn.disabled=true;
-    const quota=await checkQuickScanQuota();
-    if(!quota.allowed){
-      cyberLinkResult.innerHTML=`<span class="warning">${escapeHTML(quota.message)}</span>`;
-      cyberLinkBtn.disabled=false;
-      return;
-    }
-    cyberLinkBtn.disabled=false;
     runScan(cyberLinkBtn,cyberLinkResult,async()=>{
       const result=analyzeLinkRules(link);
       showReport(cyberLinkResult,result.score,result.scamType,result.reasons,result.advice,{...result,note:"Local structural URL scan complete. Use Analysis AI for a deeper, AI-assisted check.",previewHtml:renderLinkPreview(link,result)});
       prependScan("linkScanList",link.slice(0,52),result);
       reportTeamActivity({kind:"quick_scan",scanType:"link",content:link,result:quickScanLogResult(result)});
-    });
+    },300,checkQuickScanQuota());
   });
 
   /* ─── CyberNet Image (efficient QR + secure vision analysis) ─── */
@@ -1476,8 +1476,17 @@ document.addEventListener("DOMContentLoaded",()=>{
   function ensureJsQR(){
     if(typeof window.jsQR==="function")return Promise.resolve(window.jsQR);
     if(jsQRLoader)return jsQRLoader;
-    jsQRLoader=new Promise((resolve,reject)=>{const script=document.createElement("script");script.src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js";script.async=true;script.onload=()=>resolve(window.jsQR);script.onerror=reject;document.head.appendChild(script)});
+    // A failed load is forgotten so the next image tries again instead of
+    // reusing the rejected promise for the rest of the visit.
+    jsQRLoader=new Promise((resolve,reject)=>{const script=document.createElement("script");script.src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js";script.async=true;script.onload=()=>resolve(window.jsQR);script.onerror=()=>{script.remove();jsQRLoader=null;reject(new Error("QR decoder failed to load"))};document.head.appendChild(script)});
     return jsQRLoader;
+  }
+  // Fetch the QR decoder as soon as someone heads for an image upload, so the
+  // CDN round trip is not added to the scan itself.
+  function warmJsQR(){ensureJsQR().catch(()=>{})}
+  for(const id of ["cyberDropZone","chatAttachBtn"]){
+    const el=document.getElementById(id);
+    if(el)["pointerenter","focusin","touchstart"].forEach(type=>el.addEventListener(type,warmJsQR,{once:true,passive:true}));
   }
   async function imageToCanvas(file,maxSide=1400){
     let source,width,height,cleanup=()=>{};
@@ -1516,14 +1525,15 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(!file||!cyberImageResult)return;
     if(!file.type.startsWith("image/")){cyberImageResult.innerHTML=`<span class="warning">Please upload a JPG, PNG, or WEBP image.</span>`;return}
     if(file.size>10*1024*1024){cyberImageResult.innerHTML=`<span class="warning">The image must be smaller than 10 MB.</span>`;return}
-    const quota=await checkQuickScanQuota();
+    // The QR decode runs while the quota check is in flight; nothing is shown
+    // (preview, result, scan list, team log) unless the server allows the scan.
+    cyberImageResult.innerHTML=`<div class="scanning-placeholder"><span class="scanning-placeholder-text">Inspecting QR and visual signals</span><div class="scan-dots"><span></span><span></span><span></span></div></div>`;
+    const [quota,decoded]=await Promise.all([checkQuickScanQuota(),decodeQRFromFile(file)]);
     if(!quota.allowed){
       cyberImageResult.innerHTML=`<span class="warning">${escapeHTML(quota.message)}</span>`;
       return;
     }
     if(cyberDropZone){const old=cyberDropZone.querySelector(".upload-preview");old?.remove();const preview=document.createElement("div");preview.className="upload-preview";const url=URL.createObjectURL(file);preview.innerHTML=`<img src="${url}" alt="Uploaded preview" decoding="async"><span class="upload-preview-label">${escapeHTML(file.name)}</span>`;preview.querySelector("img").onload=()=>URL.revokeObjectURL(url);cyberDropZone.appendChild(preview)}
-    cyberImageResult.innerHTML=`<div class="scanning-placeholder"><span class="scanning-placeholder-text">Inspecting QR and visual signals</span><div class="scan-dots"><span></span><span></span><span></span></div></div>`;
-    const decoded=await decodeQRFromFile(file);
     let qrResult=null,qrKind="";
     if(decoded.qrData)({kind:qrKind,result:qrResult}=analyzeQrPayload(decoded.qrData));
     const result=analyzeImageRules(file,{...decoded,qrResult});
@@ -1759,8 +1769,12 @@ document.addEventListener("DOMContentLoaded",()=>{
     chatHistory.length=0;
     if(chatMessages)[...chatMessages.children].slice(1).forEach(node=>node.remove());
   }
+  // The server reads at most 14,000 characters; the local engine gets the same
+  // slice, since a huge paste could otherwise stall the page in its link scan.
+  const MAX_ANALYSIS_CHARS=14000;
   async function analyzeChat(type,content,imageData=""){
     if(!canStartAiAnalysis())return;
+    content=String(content||"").slice(0,MAX_ANALYSIS_CHARS);
     let local;
     let serverContent=content;
     let decodedQrForDisplay="";
@@ -1779,7 +1793,10 @@ document.addEventListener("DOMContentLoaded",()=>{
     const thinking=addChatBubble("ai",`<div class="diagnostic-progress"></div>`);
     const inner=thinking?.querySelector(".chat-bubble-inner");
     const stopDiagnostic=inner?runDiagnosticAnimation(inner,type):null;
-    const minWait=new Promise(resolve=>setTimeout(resolve,3400));
+    // Only long enough for the first progress step to register. When the
+    // server answers from its rules without the AI (well under a second),
+    // the result no longer waits for the full three-step animation.
+    const minWait=new Promise(resolve=>setTimeout(resolve,400));
     try{
       const [deep]=await Promise.all([requestDeepAnalysis(type,serverContent,local,imageData,chatHistory.slice(-6)),minWait]);
       if(stopDiagnostic)stopDiagnostic();
@@ -2425,14 +2442,22 @@ document.addEventListener("DOMContentLoaded",()=>{
       const token={};aiWatch=token;
       const started=Date.now();
       setUpdateMessage(kind==="update"?"Updating your plan with CyberNet AI… the plan below stays current until then.":"Your essential actions are ready. CyberNet AI is preparing your full plan…","");
+      // The AI plan takes roughly 20-40 s, so the first poll waits 8 s, then
+      // polls run every 2.5 s through the window where it usually lands and
+      // back off to 5 s after a minute; a hidden tab polls every 10 s.
+      // "since" lets the server answer an unchanged case with the case row alone.
+      const nextDelay=elapsed=>document.hidden?10000:elapsed<8000?8000-elapsed:elapsed<60000?2500:5000;
       while(aiWatch===token&&currentCaseId===caseId&&Date.now()-started<180000){
-        await new Promise(r=>setTimeout(r,4000));
+        await new Promise(r=>setTimeout(r,nextDelay(Date.now()-started)));
         if(aiWatch!==token||currentCaseId!==caseId)return;
         try{
-          const res=await fetch(`${RECOVERY_CASE_ENDPOINT}?caseId=${encodeURIComponent(caseId)}`,{headers:authHeaders({Accept:"application/json"}),cache:"no-store"});
+          const res=await fetch(`${RECOVERY_CASE_ENDPOINT}?caseId=${encodeURIComponent(caseId)}&since=${encodeURIComponent(seenVersion)}`,{headers:authHeaders({Accept:"application/json"}),cache:"no-store"});
           const data=await res.json().catch(()=>({}));
           const version=Number(data.case?.current_version)||0;
-          if(res.ok&&data.plan&&version>seenVersion){
+          // The plan must come from the version the case now points at, never
+          // an older one read a moment before the new version landed.
+          const planVersion=Number(data.planVersion)||version;
+          if(res.ok&&data.plan&&version>seenVersion&&planVersion>=version){
             currentPlan={...data.plan,progressPercent:Number(data.case?.progress_percent)||0};
             currentTasks=Array.isArray(data.tasks)?data.tasks:[];
             renderDashboard();

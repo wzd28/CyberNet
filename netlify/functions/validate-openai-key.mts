@@ -51,9 +51,11 @@ function chooseModel(modelIds) {
   const exact = preferred.find(model => available.has(model));
   if (exact) return exact;
 
+  // Never a pro, codex, cyber or deep-research variant: those cost far more
+  // per call and are billed to the visitor's own key.
   return modelIds.find(model =>
     /^(gpt-5|gpt-4\.1|gpt-4o)(?:[.-]|$)/i.test(model) &&
-    !/(audio|realtime|search|transcribe|tts|embedding|image)/i.test(model)
+    !/(audio|realtime|search|transcribe|tts|embedding|image|pro|codex|cyber|deep-research|chat-latest)/i.test(model)
   ) || "";
 }
 

@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { redactForTeamLog } from "../lib/team-log.mjs";
+import { DEFAULT_MODEL, DEFAULT_MINI_MODEL, modelParams, createResponse, autoReplaceEnabled, retirementOf } from "../lib/ai-models.mjs";
 // The rule set Quick Scan runs in the browser. It registers itself on
 // globalThis, so the page, this function and the tests all read one copy.
 import "../../public/cybernet-engine.js";
@@ -48,8 +49,10 @@ type LocalEvidence = {
   observedFacts: string[];
 };
 
-const MODEL = Netlify.env.get("ANALYSIS_MODEL") || "gpt-5";
-const MINI_MODEL = Netlify.env.get("ANALYSIS_MODEL_MINI") || "gpt-5-mini";
+// The models are chosen in the Netlify environment; see netlify/lib/ai-models.mjs
+// for the defaults, their removal dates and the parameters each model accepts.
+const MODEL = (Netlify.env.get("ANALYSIS_MODEL") || "").trim() || DEFAULT_MODEL;
+const MINI_MODEL = (Netlify.env.get("ANALYSIS_MODEL_MINI") || "").trim() || DEFAULT_MINI_MODEL;
 const AI_CONFIDENCE_SKIP_THRESHOLD = 70;
 const MAX_TEXT_CHARS = 14_000;
 const MAX_CASE_CHARS = 55_000;
@@ -256,7 +259,7 @@ Investigation rules:
 16. Do not promise that the investigation is solved. State limitations and missing evidence clearly.
 17. Do not flag a domain as malicious merely because it is unfamiliar to you. Lack of brand recognition is not evidence. Require concrete structural or behavioral indicators (typosquatting, homoglyph/Punycode, suspicious TLD, credential-harvesting path, redirect chains, mismatched brand-vs-domain, known-bad pattern) before raising risk based on a domain.
 18. When recommending account recovery or MFA, prefer phishing-resistant methods (authenticator apps, passkeys/FIDO2) over SMS one-time codes, which remain phishable via real-time relay attacks.
-19. Stay current on prevalent 2025-2026 scam patterns and weigh them when evidence matches: QR-code phishing ("quishing"); toll-road and package-delivery smishing ("unpaid toll", "redelivery fee"); job/task scams promising easy remote income; government or law-enforcement impersonation demanding immediate payment or secrecy ("arrest warrant", "stay on the line"); AI voice-cloning or deepfake family-emergency requests for urgent money; romance-investment ("pig butchering") scams blending relationship language with crypto/trading pitches; and business-email-compromise wire-transfer redirection requests.
+19. Weigh current (2025-2026) scam patterns when the evidence matches: QR-code phishing; toll, fine and parcel smishing ("unpaid toll", "address incomplete", "release fee", "reply Y to activate the link"); "Hi Mum/Dad, this is my new number" money requests and voice-cloned family emergencies; cold "I trade crypto, let me show you" openers, fake trading apps and Telegram/WhatsApp task jobs paid in USDT; fake purchase alerts that say "press 1" or "call us" (callback phishing); requests to pass on a code that was just received, including AI voice agents asking for 2FA codes; fake CAPTCHAs that say to paste a command (ClickFix); "enter this code at microsoft.com/devicelogin" (device-code phishing); WhatsApp "see your photo"/"link a device" lures; government or police impersonation demanding payment or secrecy; recovery scams; and business-email-compromise payment redirection. Gulf lures: Salik, Darb, RTA/Mawaqif, Nol, Emirates Post or Aramex fees, UAE PASS, Emirates ID, Absher, card-blocked texts and fake eCrime/Aman/police contacts. Real Gulf bank and service alerts carry official hotlines ("if this was not you, call 800..."), so a hotline alone is not evidence.
 20. Write every user-facing field — summary, evidence, and actions — in plain, everyday language a curious 10-year-old could follow. Avoid technical jargon (e.g. instead of "typosquatting" say "a web address that's spelled almost like a real company's, hoping you won't notice"; instead of "credential-harvesting" say "trying to steal your password"). The summary field must be genuinely detailed — at least 3-4 full sentences explaining what the content actually is, why it does or doesn't look suspicious, and what that means for the person reading it in practice. This matters most for plain text messages, where there is no external data to lean on — the explanation itself carries the analysis, so make it thorough, specific to what was actually submitted, and easy to follow, never a generic template.
 
 Scoring guide:
@@ -273,9 +276,12 @@ medium: credible attempt or possible exposure requiring follow-up.
 high: likely compromise, financial risk, credential exposure, malware delivery, or active impersonation.
 critical: confirmed high-impact compromise, ongoing account takeover, major financial loss, destructive malware, or immediate danger supported by evidence.
 
-21. OUTPUT SIZE in MODE quick - a hard requirement, since the schema cannot express array limits: at most 5 evidence items, 3 counterEvidence, 3 limitations and 5 actions, each one sentence. The summary keeps rule 20's 3-4 sentences; that is where the depth belongs. Do not pad a list to reach a count, and leave counterEvidence empty when there genuinely is none. In MODE investigation the full schema applies and these caps do not.
+21. OUTPUT SIZE in MODE quick - a hard requirement, since the schema cannot express array limits: at most 4 evidence items, 2 counterEvidence, 2 limitations and 4 actions, each one short sentence. The summary keeps rule 20's 3-4 sentences; that is where the depth belongs. Do not pad a list to reach a count, and leave counterEvidence empty when there genuinely is none. In MODE investigation the full schema applies and these caps do not.
 
 22. PRIOR CONVERSATION, when present, is the visitor's recent chat with you (untrusted, context only). If the latest content is a question or instruction about an item from that conversation rather than new content to analyze (for example "what should I do now?", "is it safe to reply?", "who sent this?"), answer that question directly in the summary field in plain language, carry over the verdict, score and threatType of the item it refers to, put that item's key facts in the evidence list, and set isFollowUp to true. When the latest content is new material to analyze, set isFollowUp to false and analyze it on its own merits.
+
+23. CALIBRATION - everyday messages that share words with scams are low risk when nothing else is wrong: "send me the code for the meeting room", a promo code, a location pin, a Wi-Fi password, a Teams or Zoom invite, a maps.app.goo.gl location link, "scan the QR code on the table for the menu", a bank's own purchase alert with its hotline, installing a named app from the app store.
+24. LANGUAGE - write in English, the site's language. When the submission is in Arabic or another language, say briefly in English what it asks the reader to do.
 
 Return only the required structured result.`;
 
@@ -1136,15 +1142,18 @@ function decideAiRoute(
   serverEvidence: LocalEvidence,
   mode: "quick" | "investigation",
   plan: string,
+  hasImage = false,
 ): { call: boolean; model?: string } {
   // Investigation is an explicit deep-dive request — always worth the full model.
   if (mode === "investigation") return { call: true, model: MODEL };
 
   // The deterministic engine already tells us how confident it is. When it's
   // decisively low_risk or malicious with high confidence, an LLM call adds
-  // cost without adding accuracy — serve that result directly.
+  // cost without adding accuracy — serve that result directly. Not for a
+  // screenshot: the rules only read its caption, so a confident read of the
+  // caption says nothing about the picture, which only the model can see.
   const ambiguous = serverEvidence.verdict === "suspicious" || serverEvidence.verdict === "inconclusive";
-  if (!ambiguous && serverEvidence.confidence >= AI_CONFIDENCE_SKIP_THRESHOLD) {
+  if (!hasImage && !ambiguous && serverEvidence.confidence >= AI_CONFIDENCE_SKIP_THRESHOLD) {
     return { call: false };
   }
 
@@ -1212,8 +1221,21 @@ async function runAiAnalysis(args: {
     inputContent.push({ type: "input_image", image_url: args.imageData, detail: "high" });
   }
 
-  const response = await client.responses.create({
-    model: args.model,
+  // The static instructions go first and never change between requests, so
+  // OpenAI's prompt cache can reuse them; everything per-request comes after.
+  const { response, model: answeredModel } = await createResponse(client, args.model, (model, effortOverride) => ({
+    ...modelParams(model, {
+      // gpt-5 keeps "minimal" (unchanged); a model without it gets "none",
+      // the closest in speed, and failing that "low". The quick call has a
+      // 24 s budget, so it never asks for more thinking than that.
+      preferredEfforts: ["minimal", "none", "low"],
+      effortOverride: effortOverride || env("ANALYSIS_REASONING_EFFORT"),
+      // Quick mode writes nine fields under explicit caps, so 2,500 is ample
+      // and stops the sprawl that was pushing the call past the request budget.
+      baseOutputTokens: args.mode === "investigation" ? 8_000 : 2_500,
+      cacheKey: args.mode === "investigation" ? "cybernet-analyze-investigation-v1" : "cybernet-analyze-quick-v1",
+      customBaseUrl: Boolean(env("OPENAI_BASE_URL")),
+    }),
     instructions: analystInstructions,
     input: [{ role: "user", content: inputContent }],
     text: {
@@ -1229,12 +1251,8 @@ async function runAiAnalysis(args: {
         schema: args.mode === "investigation" ? analysisSchema : quickAnalysisSchema,
       },
     },
-    // Quick mode now writes nine fields under explicit caps, so 2,500 is ample
-    // and stops the sprawl that was pushing the call past the request budget.
-    max_output_tokens: args.mode === "investigation" ? 8_000 : 2_500,
-    reasoning: { effort: "minimal" },
     store: false,
-  });
+  }) as any, { allowReplace: autoReplaceEnabled(env("ANALYSIS_MODEL_AUTO_REPLACE")), label: "CyberNet Analysis AI" });
 
   if (response.status === "incomplete") {
     throw new Error(
@@ -1253,7 +1271,33 @@ async function runAiAnalysis(args: {
     throw new Error("OpenAI returned an empty response.");
   }
 
-  return JSON.parse(response.output_text);
+  return { result: JSON.parse(response.output_text), model: answeredModel as string };
+}
+
+function buildServerEvidence(
+  mode: "quick" | "investigation",
+  type: string,
+  content: string,
+  caseData: { title: string; context: string; artifacts: Artifact[] },
+): LocalEvidence {
+  let serverEvidence: LocalEvidence;
+  if (mode === "investigation") {
+    serverEvidence = combineEvidence(caseData.artifacts.map(analyzeArtifact));
+    if (caseData.context) serverEvidence = combineEvidence([serverEvidence, analyzeTextServer(caseData.context, "Case context")]);
+  } else if (type === "link") {
+    serverEvidence = analyzeLinkServer(content);
+  } else if (type === "email_headers") {
+    serverEvidence = analyzeEmailHeadersServer(content);
+  } else {
+    serverEvidence = analyzeTextServer(content || "Image supplied without accompanying text", type === "image" ? "Image metadata or description" : "Submitted text");
+    if (type === "image") {
+      serverEvidence.limitations = uniqueStrings([
+        ...serverEvidence.limitations,
+        "Server-side deterministic checks cannot read all screenshot text, logos, layout, or visual deception without AI vision.",
+      ], 10);
+    }
+  }
+  return serverEvidence;
 }
 
 export default async function handler(request: Request, context: any): Promise<Response> {
@@ -1263,6 +1307,8 @@ export default async function handler(request: Request, context: any): Promise<R
       online: true,
       aiEnabled,
       model: aiEnabled ? MODEL : "Server deterministic engine",
+      // For the owner: when the configured model's snapshot is removed by OpenAI.
+      ...(aiEnabled && retirementOf(MODEL) ? { modelRetiresOn: retirementOf(MODEL).retiresOn } : {}),
       secureAccountLimitsEnabled: Boolean(env("SUPABASE_URL") && (env("SUPABASE_SERVICE_ROLE_KEY") || env("SUPABASE_SECRET_KEY"))),
       investigationMode: true,
       supportedTypes: ["text", "link", "image", "email_headers", "investigation"],
@@ -1300,26 +1346,41 @@ export default async function handler(request: Request, context: any): Promise<R
 
   // Durable per-account limiter shared across function instances (the IP one
   // above lives in one warm instance only). Fails open if the RPC is down.
-  if (!isAdminUser(user)) {
-    const withinLimit = await serviceFetch("/rest/v1/rpc/check_protect_rate_limit", {
-      method: "POST",
-      body: JSON.stringify({ p_key: `analyze:${mode}:${user.id}`, p_window_seconds: 600, p_max_requests: mode === "investigation" ? 12 : 40 }),
-    }).then((r) => (r.ok ? r.json() : true)).catch(() => true);
+  // The team-membership read does not depend on it, so the two run together;
+  // nothing is reserved until both have answered.
+  const admin = isAdminUser(user);
+  let usage: UsageReservation;
+  let team: { businessAccountId: string; dailyPoolLimit: number; role: string } | null = null;
+  let usagePromise: Promise<UsageReservation> | null = null;
+  if (!admin) {
+    const [withinLimit, teamResult] = await Promise.all([
+      serviceFetch("/rest/v1/rpc/check_protect_rate_limit", {
+        method: "POST",
+        body: JSON.stringify({ p_key: `analyze:${mode}:${user.id}`, p_window_seconds: 600, p_max_requests: mode === "investigation" ? 12 : 40 }),
+      }).then((r) => (r.ok ? r.json() : true)).catch(() => true),
+      getActiveTeamMembership(user.id).then((value) => ({ value, error: null as unknown }), (error) => ({ value: null, error })),
+    ]);
     if (withinLimit === false) {
       return json({ error: "Too many requests. Please try again later.", code: "rate_limited" }, 429);
     }
+    team = teamResult.value;
+    // The reservation round trip starts here; the deterministic evidence below
+    // is computed while it is in flight and only used once it has allowed.
+    usagePromise = teamResult.error
+      ? Promise.reject(teamResult.error)
+      : team
+        ? consumeAnalysisBusiness(team.businessAccountId)
+        : consumeAnalysis(user.id);
+    usagePromise.catch(() => null); // awaited below; never left unhandled
   }
 
-  let usage: UsageReservation;
-  let team: { businessAccountId: string; dailyPoolLimit: number; role: string } | null = null;
-  if (isAdminUser(user)) {
+  const serverEvidence = buildServerEvidence(mode, type, content, caseData);
+
+  if (admin) {
     usage = { allowed: true, used: 0, limit: 999999, remaining: 999999, plan: "business", resetDate: nextUtcReset() };
   } else {
     try {
-      team = await getActiveTeamMembership(user.id);
-      usage = team
-        ? await consumeAnalysisBusiness(team.businessAccountId)
-        : await consumeAnalysis(user.id);
+      usage = await usagePromise!;
     } catch (error) {
       console.error("CyberNet usage reservation failed", error);
       return json({ error: "We couldn't check your daily allowance just now. Please try again in a minute. This attempt was not counted.", code: "usage_service_unavailable" }, 503);
@@ -1334,24 +1395,6 @@ export default async function handler(request: Request, context: any): Promise<R
       if (team) await refundAnalysisBusiness(team.businessAccountId);
       else await refundAnalysis(user.id);
       return json({ error: "Investigation mode is available on Pro and Business plans.", code: "plan_required" }, 403);
-    }
-  }
-
-  let serverEvidence: LocalEvidence;
-  if (mode === "investigation") {
-    serverEvidence = combineEvidence(caseData.artifacts.map(analyzeArtifact));
-    if (caseData.context) serverEvidence = combineEvidence([serverEvidence, analyzeTextServer(caseData.context, "Case context")]);
-  } else if (type === "link") {
-    serverEvidence = analyzeLinkServer(content);
-  } else if (type === "email_headers") {
-    serverEvidence = analyzeEmailHeadersServer(content);
-  } else {
-    serverEvidence = analyzeTextServer(content || "Image supplied without accompanying text", type === "image" ? "Image metadata or description" : "Submitted text");
-    if (type === "image") {
-      serverEvidence.limitations = uniqueStrings([
-        ...serverEvidence.limitations,
-        "Server-side deterministic checks cannot read all screenshot text, logos, layout, or visual deception without AI vision.",
-      ], 10);
     }
   }
 
@@ -1381,14 +1424,17 @@ export default async function handler(request: Request, context: any): Promise<R
   const fallback = fallbackAnalysis(serverEvidence, reputation, mode, mode === "investigation" ? caseData.artifacts.length : 1, mode === "investigation" ? caseData.title : "CyberNet Protect Quick Analysis");
   let rawAnalysis: any = null;
   let aiUsed = false;
+  let answeredModel = "";
   let aiAttempted = false;
 
-  const aiRoute = decideAiRoute(serverEvidence, mode, usage.plan);
+  const aiRoute = decideAiRoute(serverEvidence, mode, usage.plan, type === "image" && imageData.startsWith("data:image/"));
 
   try {
     if (aiRoute.call && aiRoute.model) {
       aiAttempted = Boolean(env("OPENAI_API_KEY"));
-      rawAnalysis = await runAiAnalysis({ mode, type, content, imageData, browserHint, history: chatContext, serverEvidence, caseData, model: aiRoute.model });
+      const ai = await runAiAnalysis({ mode, type, content, imageData, browserHint, history: chatContext, serverEvidence, caseData, model: aiRoute.model });
+      rawAnalysis = ai?.result ?? null;
+      answeredModel = ai?.model || "";
     }
     aiUsed = Boolean(rawAnalysis);
   } catch (error) {
@@ -1424,12 +1470,11 @@ export default async function handler(request: Request, context: any): Promise<R
   }
   // No AI result means no charge - except an investigation call that reached
   // OpenAI (a timeout, "incomplete" or refusal is still billed upstream).
-  if (!aiUsed && !isAdminUser(user) && !(mode === "investigation" && aiAttempted)) {
-    if (team) {
-      await refundAnalysisBusiness(team.businessAccountId);
-    } else {
-      await refundAnalysis(user.id);
-    }
+  // The refund never throws and nothing below depends on it, so it runs
+  // alongside the history write and is awaited before the response.
+  let refundPromise: Promise<void> | null = null;
+  if (!aiUsed && !admin && !(mode === "investigation" && aiAttempted)) {
+    refundPromise = team ? refundAnalysisBusiness(team.businessAccountId) : refundAnalysis(user.id);
     usage.used = Math.max(0, usage.used - 1);
     usage.remaining = Math.max(0, usage.limit - usage.used);
   }
@@ -1443,7 +1488,7 @@ export default async function handler(request: Request, context: any): Promise<R
     analysis.evidence = uniqueStrings([`Live reputation match: ${reputation.threatTypes.join(", ") || "known unsafe resource"}.`, ...analysis.evidence], 14);
   }
 
-  const modelLabel = aiUsed ? (aiRoute.model || MODEL) : "Server deterministic engine";
+  const modelLabel = aiUsed ? (answeredModel || aiRoute.model || MODEL) : "Server deterministic engine";
 
   // A team member's analysis goes in the owner's activity log whether or not
   // the AI was needed for it, along with what they submitted. The owner's own
@@ -1467,6 +1512,7 @@ export default async function handler(request: Request, context: any): Promise<R
       console.warn("CyberNet history save failed", error instanceof Error ? error.message : error);
     }
   }
+  if (refundPromise) await refundPromise;
 
   return json({
     analysis,
