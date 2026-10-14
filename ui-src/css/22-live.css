@@ -1,16 +1,17 @@
 /* Home 3 - Live activity (.cn-live), plus the panel shell shared by the three home panels this
    partial family owns (22-live, 23-threats, 24-demo).
 
-   v4 "Aurora": Home alternates luminous panels. Live and the Example scan are LIGHT lavender
-   panels (#F6F4FF ground, white cards, ink #1B1340); "Scams don't look like scams" between them is
-   a deep-violet stage. Each panel is an inset rounded sheet whose edges line up with the hero stage
-   (--cn-max-wide, gutter margins), so the aurora ground shows around it.
+   v4.1 "Midnight": Home alternates light bands and navy stages. Live and the Example scan are
+   LIGHT panels (#F5F7FA ground, white cards, ink #0B1220, slate greys); "Scams don't look like
+   scams" between them is a navy stage. Each panel is an inset rounded sheet whose edges line up
+   with the hero stage (--cn-max-wide, gutter margins), so the navy ground shows around it.
 
    The light tokens come from 00-tokens.css (its light scope lists #home > .cn-live and
    #home > .cn-demo), so shared components (head, eyebrow, label, ghost button) read correctly
    without new markup, and cyan is never text here. This file paints the panels themselves: the
-   lavender ground and its light, the edge and the corners (--cn-r-band, as 03-aurora.css bands).
-   Every text colour set below was measured at 4.5:1 or more against white and #F6F4FF.
+   pale ground with one faint cyan light at the top, the edge and the corners (--cn-r-band, as
+   03-aurora.css bands). Neutral shadows only. Every text colour set below was measured at 4.5:1
+   or more against white and #F5F7FA.
 
    Live: real numbers only. 25-live.js reads /api/public-stats (through the legacy fill, then its own
    polls), counts the totals up when they come into view, grows the gradient bars, draws the
@@ -40,71 +41,32 @@ html.cn #home > :is(.cn-live, .cn-threats, .cn-demo) {
 /* The first panel after the hero keeps the hero's breathing room. */
 html.cn #home > .hero + .cn-live { margin-block-start: clamp(28px, 1rem + 3vw, 64px); }
 
-/* Light panels: ground and edge (tokens: 00-tokens.css light scope). */
+/* Light panels: ground and edge (tokens: 00-tokens.css light scope). One faint cyan light at the
+   top, a white top edge and a slate hairline. No outer shadow: on the navy ground it would only
+   cost raster memory. No dot grid and no floating sprite: the band stays quiet. */
 html.cn #home > :is(.cn-live, .cn-demo) {
-  --cn-l-shadow: 0 1px 2px rgba(27, 19, 64, .06), 0 18px 40px -22px rgba(43, 15, 110, .28);
+  --cn-l-shadow: 0 1px 2px rgba(15, 23, 42, .05), 0 16px 32px -24px rgba(15, 23, 42, .22);
   color-scheme: light;
   color: var(--cn-text);
-  background-color: #f6f4ff;
+  background-color: #f5f7fa;
   background-image:
-    radial-gradient(48% 42% at 0% 0%, rgba(34, 211, 238, .26), transparent 72%),
-    radial-gradient(44% 46% at 100% 4%, rgba(139, 92, 246, .24), transparent 72%),
-    radial-gradient(56% 40% at 70% 104%, rgba(232, 121, 249, .2), transparent 72%),
-    radial-gradient(40% 36% at 8% 100%, rgba(96, 165, 250, .17), transparent 72%),
-    linear-gradient(180deg, #fbfaff 0%, #f4f1ff 100%);
+    radial-gradient(60% 46% at 50% 0%, rgba(34, 211, 238, .08), transparent 72%),
+    linear-gradient(180deg, #fafbfc 0%, #f5f7fa 46%);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, .9),
-    0 0 0 1px rgba(196, 181, 253, .22),
-    0 40px 90px -50px rgba(10, 4, 40, .55);
-}
-/* A faint dot grid that fades out toward the edges (static, painted once). */
-html.cn #home > :is(.cn-live, .cn-demo)::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-image: radial-gradient(rgba(91, 43, 224, .16) 1px, transparent 1.4px);
-  background-size: 26px 26px;
-  background-position: 50% 0;
-  -webkit-mask-image: radial-gradient(70% 60% at 50% 40%, #000 0%, transparent 100%);
-  mask-image: radial-gradient(70% 60% at 50% 40%, #000 0%, transparent 100%);
-  opacity: .55;
+    0 0 0 1px rgba(148, 163, 184, .14);
 }
 
-/* Live: a glowing 3D orb rests in the panel's top-end corner, partly cropped by the panel, and
-   drifts a little with the scroll. Decorative; 27-bento.js adds .is-near so it loads only when the
-   panel is about a screen away. */
-html.cn #home > .cn-live::after {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  inset-block-start: clamp(-44px, -2.6vw, -20px);
-  inset-inline-end: clamp(-60px, -3.4vw, -30px);
-  inline-size: clamp(120px, 15vw, 250px);
-  aspect-ratio: 1;
-  pointer-events: none;
-  background: no-repeat center / contain;
-  opacity: 0;
-  transition: opacity .9s ease;
-}
-html.cn #home > .cn-live.is-near::after { background-image: url("/ui/3d/orb.webp?v=20261014-1"); opacity: 1; }
-@media (max-width: 600px) {
-  html.cn #home > .cn-live::after { inline-size: 104px; inset-block-start: -30px; inset-inline-end: -34px; }
-}
-
-/* Light heads: ink lead phrase, and the continuation in the violet voice (6.7:1 on #F6F4FF). */
+/* Light heads: ink lead phrase, the continuation in slate (the two-tone rule, 7.3:1). */
 html.cn #home > :is(.cn-live, .cn-demo) :is(.cn-head h2, .cn-demo-copy h2) > span {
-  color: #5b2be0;
+  color: var(--cn-text-2);
 }
-/* Eyebrow on light: white pill, a gradient hairline, teal text (6:1). */
+/* Eyebrow on light: a white pill with a cyan hairline and deep teal text (7.1:1). */
 html.cn #home > :is(.cn-live, .cn-demo) .cn-eyebrow {
-  border: 1px solid transparent;
-  background:
-    linear-gradient(#ffffff, #ffffff) padding-box,
-    linear-gradient(100deg, rgba(34, 211, 238, .7), rgba(139, 92, 246, .6), rgba(232, 121, 249, .55)) border-box;
+  border: 1px solid rgba(14, 116, 144, .28);
+  background: #ffffff;
   color: #0b5f77;
-  box-shadow: 0 6px 18px -10px rgba(91, 43, 224, .45);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .05);
 }
 
 /* ---------- Live: section ---------- */
@@ -161,7 +123,7 @@ html.cn #home .cn-live .hero-info-row > * {
   html.cn.cn-js #home .cn-live.is-down .hero-info-row > .hero-why-panel { grid-column: span 5; }
 }
 
-/* ---------- Cards: white, soft violet shadow, a lit top edge ---------- */
+/* ---------- Cards: white, a soft neutral shadow, a lit top edge ---------- */
 html.cn #home .cn-live .hero-stats-panel,
 html.cn #home .cn-live .cn-ring-card,
 html.cn #home .cn-live .hero-why-panel {
@@ -180,13 +142,12 @@ html.cn #home .cn-live .hero-why-panel {
   backdrop-filter: none;
   color: var(--cn-text);
 }
-/* The ring card carries the section's one gradient hairline. */
+/* The ring card carries the section's one gradient hairline: a cyan pass fading into slate. */
 html.cn #home .cn-live .cn-ring-card {
   border-color: transparent;
   background:
-    radial-gradient(90% 60% at 50% 46%, rgba(139, 92, 246, .10), transparent 70%) padding-box,
     linear-gradient(#ffffff, #ffffff) padding-box,
-    linear-gradient(140deg, rgba(34, 211, 238, .75), rgba(139, 92, 246, .55) 50%, rgba(232, 121, 249, .6)) border-box;
+    linear-gradient(150deg, rgba(34, 211, 238, .6), rgba(15, 23, 42, .08) 46%, rgba(15, 23, 42, .08) 70%, rgba(59, 130, 246, .3)) border-box;
 }
 
 /* Card titles share the system label (Mona Sans caps); mono is kept for numbers. */
@@ -245,7 +206,8 @@ html.cn #home .cn-live.is-live .cn-live-time::before {
   background: #06b6d4;
 }
 
-/* Counters: big tabular numbers, each in its tool colour (teal 5.4:1, violet 7.1:1, green 5.5:1 on white). */
+/* Counters: big tabular numbers in ink (17:1). Each carries a small key in its series colour
+   (scans cyan -> blue, threats blue, recoveries mint), the same colours as its bar below. */
 html.cn #home .cn-live .hero-live-stats {
   --cn-stat-gap: clamp(12px, 4cqi, 28px);
   display: grid;
@@ -254,15 +216,14 @@ html.cn #home .cn-live .hero-live-stats {
   margin: 0;
 }
 html.cn #home .cn-live .hero-live-stat {
-  --cn-g1: #0e7490;
-  --cn-gt: linear-gradient(100deg, #0e7490 10%, #1d4ed8 95%);
+  --cn-g1: var(--cn-text);
   --cn-dot: linear-gradient(135deg, #22d3ee, #3b82f6);
   min-inline-size: 0;
   padding-block-start: 16px;
   border-block-start: 1px solid var(--cn-line);
 }
-html.cn #home .cn-live .hero-live-stat:nth-child(2) { --cn-g1: #6d28d9; --cn-gt: linear-gradient(100deg, #5b2be0 10%, #a21caf 95%); --cn-dot: linear-gradient(135deg, #8b5cf6, #e879f9); }
-html.cn #home .cn-live .hero-live-stat:nth-child(3) { --cn-g1: #047857; --cn-gt: linear-gradient(100deg, #047857 10%, #0e7490 95%); --cn-dot: linear-gradient(135deg, #2dd4bf, #10b981); }
+html.cn #home .cn-live .hero-live-stat:nth-child(2) { --cn-dot: #3b82f6; }
+html.cn #home .cn-live .hero-live-stat:nth-child(3) { --cn-dot: linear-gradient(135deg, #2dd4bf, #14b8a6); }
 html.cn #home .cn-live .hero-live-stat strong {
   display: block;
   /* Sized so a 7-character count ("123,456") still fits a third of the panel. */
@@ -276,29 +237,8 @@ html.cn #home .cn-live .hero-live-stat strong {
   color: var(--cn-g1);
   white-space: nowrap;
 }
-/* Before data the dash stays quiet. */
-html.cn #home .cn-live:not(.is-live) .hero-live-stat strong { --cn-g1: #5f5d80; }
-/* Live numbers carry a two-stop gradient in their tool colour. Both ends were measured on white
-   and on #F6F4FF (teal 5.4 / blue 6.7, violet 6.9 / plum 6.0, green 5.5 / teal 5.4), so every
-   glyph stays above 4.5:1; forced colours fall back to the system text colour.
-   The fill is a gradient in every state (a flat grey one before data), so going live only swaps
-   the gradient: the glyphs never switch between a solid and a clipped fill mid-paint. */
-@supports ((-webkit-background-clip: text) or (background-clip: text)) {
-  html.cn #home .cn-live .hero-live-stat strong,
-  html.cn #home .cn-live .cn-ring b {
-    background: var(--cn-gt);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-  html.cn #home .cn-live .cn-ring b { --cn-gt: linear-gradient(110deg, #0b6a84 34%, #5b2be0 50%, #a21caf 66%); }
-  html.cn #home .cn-live:not(.is-live) .hero-live-stat strong { --cn-gt: linear-gradient(#5f5d80, #5f5d80); }
-  html.cn #home .cn-live:not(.is-live) .cn-ring b { --cn-gt: linear-gradient(#4b4a6b, #4b4a6b); }
-}
-@media (forced-colors: active) {
-  html.cn #home .cn-live .hero-live-stat strong,
-  html.cn #home .cn-live .cn-ring b { background: none; -webkit-text-fill-color: currentColor; }
-}
+/* Before data the dash stays quiet (5.5:1). No gradient text: the numbers are plain ink. */
+html.cn #home .cn-live:not(.is-live) .hero-live-stat strong { --cn-g1: #5b6576; }
 html.cn #home .cn-live .hero-live-stat span {
   display: flex;
   align-items: center;
@@ -354,8 +294,8 @@ html.cn #home .cn-live .cn-funnel {
   margin-block: clamp(24px, 6cqi, 34px) 26px;
   padding: clamp(16px, 3cqi, 22px);
   border-radius: 18px;
-  background: #f8f6ff;
-  border: 1px solid #eeeaff;
+  background: #f7f9fb;
+  border: 1px solid rgba(15, 23, 42, .06);
 }
 html.cn #home .cn-live .cn-funnel-row { display: contents; }
 html.cn #home .cn-live .cn-funnel-row > span {
@@ -372,8 +312,8 @@ html.cn #home .cn-live .cn-funnel-row > i {
   display: block;
   block-size: 12px;
   border-radius: var(--cn-r-pill);
-  background: #ebe7fd;
-  box-shadow: inset 0 1px 2px rgba(43, 15, 110, .08);
+  background: #e7ecf2;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, .06);
   overflow: hidden;
 }
 html.cn #home .cn-live .cn-funnel-row > i > b {
@@ -381,12 +321,12 @@ html.cn #home .cn-live .cn-funnel-row > i > b {
   block-size: 100%;
   inline-size: calc(var(--v, 0) * 100%);
   border-radius: inherit;
-  background: linear-gradient(90deg, #22d3ee, #3b82f6 60%, #6366f1);
+  background: linear-gradient(90deg, #22d3ee, #3b82f6);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .45);
   transition: inline-size 1.4s var(--cn-ease-out);
 }
-html.cn #home .cn-live .cn-funnel-row[data-key="threats"] > i > b { background: linear-gradient(90deg, #8b5cf6, #c084fc 55%, #e879f9); }
-html.cn #home .cn-live .cn-funnel-row[data-key="recoveries"] > i > b { background: linear-gradient(90deg, #2dd4bf, #10b981); }
+html.cn #home .cn-live .cn-funnel-row[data-key="threats"] > i > b { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+html.cn #home .cn-live .cn-funnel-row[data-key="recoveries"] > i > b { background: linear-gradient(90deg, #2dd4bf, #14b8a6); }
 html.cn #home .cn-live .cn-funnel-row:nth-child(2) > i > b { transition-delay: 140ms; }
 html.cn #home .cn-live .cn-funnel-row:nth-child(3) > i > b { transition-delay: 280ms; }
 html.cn #home .cn-live .cn-funnel-row > em {
@@ -441,14 +381,14 @@ html.cn #home .cn-live .cn-ring {
   aspect-ratio: 1;
   margin: auto;
 }
-/* A soft violet halo behind the ring (static gradient, no blur filter). */
+/* A faint cyan wash behind the ring (static gradient, no blur filter). */
 html.cn #home .cn-live .cn-ring::before {
   content: "";
   position: absolute;
-  inset: -14%;
+  inset: -10%;
   z-index: 0;
   border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(139, 92, 246, .16), rgba(34, 211, 238, .08) 60%, transparent 100%);
+  background: radial-gradient(closest-side, rgba(34, 211, 238, .07), transparent 100%);
   pointer-events: none;
 }
 html.cn #home .cn-live .cn-ring svg {
@@ -461,13 +401,13 @@ html.cn #home .cn-live .cn-ring svg {
 }
 html.cn #home .cn-live .cn-ring-track {
   fill: none;
-  stroke: #ede9fe;
+  stroke: #e7ecf2;
   stroke-width: 9;
 }
 html.cn #home .cn-live .cn-ring-val {
   fill: none;
-  /* 25-live.js adds the gradient (#cnRingGrad); without it the stroke is solid violet. */
-  stroke: url(#cnRingGrad) #6d28d9;
+  /* 25-live.js adds the gradient (#cnRingGrad, cyan -> blue); without it the stroke is teal. */
+  stroke: url(#cnRingGrad) #0e7490;
   stroke-width: 9;
   stroke-linecap: round;
   stroke-dasharray: 100 200; /* no round-cap dot when the share is zero */
@@ -485,7 +425,7 @@ html.cn #home .cn-live .cn-ring b {
   line-height: 1;
   letter-spacing: -.04em;
   font-variant-numeric: tabular-nums;
-  color: #5b2be0;
+  color: var(--cn-text);
 }
 html.cn #home .cn-live:not(.is-live) .cn-ring b { color: var(--cn-text-2); }
 html.cn #home .cn-live .cn-ring-note {
@@ -533,29 +473,21 @@ html.cn #home .cn-live .hero-why-panel li {
   color: var(--cn-text);
   text-wrap: pretty;
 }
+/* One quiet icon tile for every point (deep teal on a pale slate tile); the recovery point
+   carries Recovery's mint. */
 html.cn #home .cn-live .hero-why-panel .why-icon {
-  --cn-chip: linear-gradient(135deg, rgba(34, 211, 238, .22), rgba(59, 130, 246, .16));
   flex: none;
   display: grid;
   place-items: center;
   inline-size: 40px;
   block-size: 40px;
   margin: 0;
-  border-radius: 13px;
-  background: var(--cn-chip);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .7);
-  color: #0e7490;
+  border-radius: 12px;
+  background: #f1f5f9;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, .06);
+  color: #0b6a84;
 }
-/* Identity colours: rules-and-AI and plain-language answers are the AI's (violet), recovery is mint. */
-html.cn #home .cn-live .hero-why-panel li:nth-child(2) .why-icon,
-html.cn #home .cn-live .hero-why-panel li:nth-child(3) .why-icon {
-  --cn-chip: linear-gradient(135deg, rgba(139, 92, 246, .22), rgba(232, 121, 249, .16));
-  color: #5b2be0;
-}
-html.cn #home .cn-live .hero-why-panel li:nth-child(4) .why-icon {
-  --cn-chip: linear-gradient(135deg, rgba(45, 212, 191, .26), rgba(16, 185, 129, .14));
-  color: #0f766e;
-}
+html.cn #home .cn-live .hero-why-panel li:nth-child(4) .why-icon { color: #0d6b64; }
 html.cn #home .cn-live .hero-why-panel .why-icon svg {
   display: block;
   inline-size: 18px;
@@ -571,7 +503,7 @@ html.cn #home .cn-live .hero-why-panel .secondary-btn {
   min-block-size: 44px;
   margin-block-start: auto;
   padding: 0 16px;
-  background: #f6f4ff;
+  background: #f5f7fa;
   border: 1px solid var(--cn-line);
   border-radius: var(--cn-r-pill);
   box-shadow: none;
@@ -601,8 +533,8 @@ html.cn #home .cn-live .hero-why-panel .secondary-btn:focus-visible { outline: 2
 @media (hover: hover) and (pointer: fine) {
   html.cn #home .cn-live .hero-why-panel .secondary-btn:hover {
     background: #ffffff;
-    border-color: #c9c0f5;
-    color: #5b2be0;
+    border-color: rgba(15, 23, 42, .2);
+    color: #0b6a84;
     transform: none;
   }
   html.cn #home .cn-live .hero-why-panel .secondary-btn:hover::after { transform: translateX(2px) rotate(45deg); }
@@ -636,11 +568,14 @@ html.cn #home .cn-live .hero-why-panel .secondary-btn:focus-visible { outline: 2
   html.cn #home .cn-live:not(.is-down) .hero-why-panel li:first-child { padding-inline-start: 0; border-inline-start: 0; }
 }
 
-/* ---------- Scroll motion: the cards settle in as the panel scrolls up (transform only) ---------- */
+/* ---------- Scroll motion: the cards settle in as the panel scrolls up ----------
+   translate only: a compositor animation on a scroll timeline, so no main-thread work per
+   frame. Fill "forwards": below the viewport a card shows its resting state (find-in-page and
+   full-page captures see it). */
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
     html.cn:not(.cn-still) #home .cn-live .hero-info-row > * {
-      animation: cn-live-rise linear both;
+      animation: cn-live-rise linear forwards;
       animation-timeline: view();
       animation-range: entry 0% entry 70%;
     }
@@ -648,22 +583,9 @@ html.cn #home .cn-live .hero-why-panel .secondary-btn:focus-visible { outline: 2
     html.cn:not(.cn-still) #home .cn-live .hero-info-row > .hero-why-panel { animation-range: entry 10% entry 90%; }
   }
 }
-@supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    html.cn:not(.cn-still) #home > .cn-live::after {
-      animation: cn-live-orb linear both;
-      animation-timeline: view();
-      animation-range: cover 0% cover 100%;
-    }
-  }
-}
-@keyframes cn-live-orb {
-  from { translate: 0 40px; rotate: -10deg; }
-  to { translate: 0 -40px; rotate: 14deg; }
-}
 @keyframes cn-live-rise {
-  from { translate: 0 56px; scale: .97; }
-  to { translate: none; scale: none; }
+  from { translate: 0 40px; }
+  to { translate: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -679,7 +601,3 @@ html.cn #home .cn-live .hero-why-panel .secondary-btn:focus-visible { outline: 2
 /* Label floor: no text under --cn-step-label (12px), phones included (DESIGN.md rule 6). */
 html.cn #home .cn-live :is(.hero-live-stat span, .cn-funnel-row > span) { font-size: var(--cn-step-label); }
 
-/* Decorative sprites are not drawn in forced colours. */
-@media (forced-colors: active) {
-  html.cn #home > .cn-live::after { display: none; }
-}

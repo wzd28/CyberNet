@@ -1,4 +1,4 @@
-/* CyberNet AI v4 "Aurora": accessibility and output modes (owner: aurora).
+/* CyberNet AI v4.1 "Midnight": accessibility and output modes (owner: aurora).
    Loads last, so these fallbacks apply on top of every partial. */
 
 /* ------------------------------------------------------------------------------------------
@@ -51,8 +51,8 @@ html.cn #cnMain:focus {
    loops stop, scroll-linked effects rest at their end. The catch-all covers any animation a
    partial forgot; spinners keep turning (slowly), because a frozen spinner reads as a hang.
    Pause motion keeps hover and press transitions (the visitor asked for a still page, not a
-   different one); the aurora layers on html and body are paused in place by 03-aurora.css, so
-   the catch-all for the pause starts below body.
+   different one); the section canvases show one still frame (09-bgfx.js), and the catch-all
+   for the pause starts below body.
    ------------------------------------------------------------------------------------------ */
 @media (prefers-reduced-motion: reduce) {
   html.cn { scroll-behavior: auto; }

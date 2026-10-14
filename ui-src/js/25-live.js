@@ -56,8 +56,8 @@
 
   function valid(n) { return typeof n === "number" && isFinite(n) && n >= 0; }
 
-  /* The ring stroke is a cyan -> violet -> magenta gradient. The SVG ships without <defs>, so one
-     <linearGradient id="cnRingGrad"> is added once (the CSS falls back to solid violet without it). */
+  /* The ring stroke is a cyan -> blue gradient. The SVG ships without <defs>, so one
+     <linearGradient id="cnRingGrad"> is added once (the CSS falls back to solid teal without it). */
   function addRingGradient(circle) {
     var svg = circle && circle.ownerSVGElement;
     if (!svg || document.getElementById("cnRingGrad")) return;
@@ -67,9 +67,9 @@
     g.setAttribute("id", "cnRingGrad");
     // The circle is drawn rotated -90deg, so in its own box the stroke starts at the right edge and
     // runs clockwise through the bottom. A diagonal from top-right to bottom-left therefore starts
-    // the visible arc in cyan, turns violet through the first half and ends in magenta.
+    // the visible arc in cyan and turns to the supporting blue (the brand gradient, cyan -> blue).
     g.setAttribute("x1", "1"); g.setAttribute("y1", "0"); g.setAttribute("x2", "0"); g.setAttribute("y2", "1");
-    [[".2", "#22d3ee"], [".55", "#8b5cf6"], [".9", "#e879f9"]].forEach(function (st) {
+    [[".2", "#22d3ee"], [".9", "#3b82f6"]].forEach(function (st) {
       var stop = document.createElementNS(NS, "stop");
       stop.setAttribute("offset", st[0]);
       stop.setAttribute("stop-color", st[1]);

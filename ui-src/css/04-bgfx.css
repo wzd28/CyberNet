@@ -1,0 +1,57 @@
+/* CyberNet AI v4.1 "Midnight": section background motion (owner: aurora; 09-bgfx.js draws it).
+   Each dark section gets one canvas of slowly flowing cyan and blue light lines with a few
+   travelling pulses. The layer is a <div class="cn-bgfx cn-bgfx--{name}"> + <canvas> added by
+   09-bgfx.js; nothing exists without JS.
+
+   Stacking:
+   - Home stages (#cnThreats, #cnFlow, .home-quote): the sections are positioned, isolated and
+     clipped by their own shells (22-live.css, 26-flow.css, 28-home-more.css), so the layer sits
+     at z-index -1 inside each one: over the section's ground and its ::before light, under all
+     of its content. The section's own rounded clip trims it (the layer itself only has the
+     rectangular clip of paint containment, so it adds no mask layer).
+   - Other pages (.cn-bgfx--page, a child of <body>): a band at the top of the document, at
+     z-index -1 in the root stacking context, so it paints over the ground (body's background,
+     on the root canvas) and under every page, header and card. It fades out downwards and is
+     hidden on Home (inline display, set by 09-bgfx.js on a page switch).
+
+   Cost: the layers are positioned boxes with contain:strict (their size never depends on the
+   page, and their paint never leaks out). No blend modes, filters or backdrop blur: the canvas
+   is composited as a plain layer. The page band's mask is a static gradient. The canvas fades in
+   once, on its first drawn frame (an opacity transition on the compositor). The copy stays clean
+   because 09-bgfx.js dims the lines behind each headline and paragraph inside the canvas itself
+   (quiet zones), so no mask has to know the layout. */
+
+html.cn .cn-bgfx {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  contain: strict;
+}
+html.cn .cn-bgfx > canvas {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  opacity: 0;
+  transition: opacity 1.2s var(--cn-ease-out);
+}
+
+/* Inner pages: a band behind the top of the page, softer than Home, fading out downwards. */
+html.cn .cn-bgfx--page {
+  inset: 0 0 auto;
+  block-size: clamp(520px, 78vh, 860px);
+  block-size: clamp(520px, 78svh, 860px); /* svh: the mobile URL bar never resizes the canvas */
+  -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, .2) 0, #000 18%, #000 52%, transparent 100%);
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, .2) 0, #000 18%, #000 52%, transparent 100%);
+}
+@media (max-width: 760px) {
+  html.cn .cn-bgfx--page { block-size: clamp(440px, 70svh, 640px); }
+}
+
+/* Under reduced motion the canvas still shows its one static frame: appear without a fade. */
+@media (prefers-reduced-motion: reduce) {
+  html.cn .cn-bgfx > canvas { transition: none; }
+}
+@media (forced-colors: active), print {
+  html.cn .cn-bgfx { display: none; }
+}

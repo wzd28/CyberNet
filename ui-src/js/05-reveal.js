@@ -1,6 +1,7 @@
-/* CyberNet UI: scroll reveals, page-switch motion and the live-dot pulse (owner: aurora).
-   - [data-cn-reveal]: the element rises in once, out of a soft blur (wide screens), when it
-     scrolls into view. Variants: "fade", "scale", "clip" (01-base.css); "off" opts out.
+/* CyberNet UI: scroll reveals, page-switch motion and the live-dot pulse (owner: aurora). v4.1.
+   - [data-cn-reveal]: the element fades and rises in once when it scrolls into view (opacity
+     and translate only; v4.1 dropped the blur). Variants: "fade", "scale", "clip" (01-base.css);
+     "off" opts out.
    - [data-cn-stagger]: its children rise in one after another (70 ms apart).
    - Home: legacy .reveal is a page-load cascade (script.js adds .show to every reveal of the
      page at once), so below the hero nothing was revealed on scroll. At start-up this module

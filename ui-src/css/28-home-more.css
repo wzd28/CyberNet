@@ -1,14 +1,16 @@
-/* Home 7-10, v4 "Aurora" (see DESIGN.md, v4 section):
-   7  Rules first, then AI (.why-choose + .wow-section)  one LIGHT lavender sheet in two parts:
-      the head, the four points and an AI picture, the engine diagram glowing in cyan and violet
-      (JS: 40-beams.js, one run per entry, no loop), then the facts strip (legacy JS counts the
-      numbers). The ticker stays in the markup for legacy script.js but is [hidden]; no CSS here.
-   8  Closing (.home-quote)  a violet stage: a big 3D shield turns above the statement and the
-      actions, with light rays behind it (JS: 55-scrub.js builds the shield's depth layers, the
-      Pause button, and splits the statement for its scroll-linked brightening).
+/* Home 7-10, v4.1 "Midnight" (see DESIGN.md, v4.1 section):
+   7  Rules first, then AI (.why-choose + .wow-section)  one LIGHT sheet in two parts: the head,
+      the four points and an AI picture, the engine diagram (cyan lanes, the AI lane in the
+      supporting blue; JS: 40-beams.js, one run per entry, no loop), then the facts strip (legacy
+      JS counts the numbers). The ticker stays in the markup for legacy script.js but is
+      [hidden]; no CSS here.
+   8  Closing (.home-quote)  a navy stage: the chrome CyberNet shield rests above the statement
+      and the actions as a quiet metallic emblem (a slow float, never a spin; JS: 55-scrub.js
+      wraps it, adds the Pause button, and splits the statement for its scroll-linked
+      brightening). The section motion canvas (09-bgfx.js) draws its light lines behind it.
    9  Support box and 10 limits note: compact, on the ground.
    Every block here is an inset rounded sheet whose edges line up with the hero stage and the
-   other home panels (--cn-max-wide, gutter margins), so the aurora ground shows around it.
+   other home panels (--cn-max-wide, gutter margins), so the navy ground shows around it.
    The legacy whole-block reveal (opacity 0 until script.js adds .show) is switched off on these
    sheets, so a band never flashes in; the content inside rises in on a scroll timeline instead.
    Legacy traps handled here: content-visibility/contain on .why-choose, .wow-section and
@@ -70,24 +72,24 @@ html.cn #home > .home-quote {
 
 /* The light scope for both parts of the sheet: the same values 00-tokens.css gives its light
    bands (.cn-light), so every shared component inside reads ink text, white cards and deep
-   cyan / violet marks. Every pair is at least 4.5:1 (ratios in 00-tokens.css). */
+   cyan marks (the AI mark in indigo). Every pair is at least 4.5:1 (ratios in 00-tokens.css). */
 html.cn #home > :is(.why-choose, .wow-section) {
-  --cn-bg: #f6f4ff;
-  --cn-bg-2: #efebff;
+  --cn-bg: #f5f7fa;
+  --cn-bg-2: #eef2f6;
   --cn-surface: #ffffff;
-  --cn-surface-2: #f5f2ff;
-  --cn-surface-3: #ece7ff;
-  --cn-glass: rgba(255, 255, 255, .82);
+  --cn-surface-2: #f5f7fa;
+  --cn-surface-3: #ebeff5;
+  --cn-glass: rgba(255, 255, 255, .86);
   --cn-glass-2: #ffffff;
   --cn-hi: rgba(255, 255, 255, .95);
   --cn-fill-1: #ffffff;
-  --cn-fill-2: #f5f2ff;
-  --cn-line: rgba(43, 15, 110, .11);
-  --cn-line-2: rgba(43, 15, 110, .19);
-  --cn-line-ctl: rgba(27, 19, 64, .54);
-  --cn-text: #1b1340;
-  --cn-text-2: #4b4a6b;
-  --cn-text-3: #5f5c85;
+  --cn-fill-2: #f5f7fa;
+  --cn-line: rgba(15, 23, 42, .08);
+  --cn-line-2: rgba(15, 23, 42, .14);
+  --cn-line-ctl: rgba(15, 23, 42, .5);
+  --cn-text: #0b1220;
+  --cn-text-2: #475569;
+  --cn-text-3: #5b6576;
   --cn-cyan: #0e7490;
   --cn-cyan-2: #0b6a84;
   --cn-ice: #0b6a84;
@@ -97,24 +99,24 @@ html.cn #home > :is(.why-choose, .wow-section) {
   --cn-cyan-line: rgba(14, 116, 144, .36);
   --cn-on-cyan: #ffffff;
   --cn-ring: #0b6a84;
-  --cn-violet: #7c3aed;
-  --cn-violet-2: #5b21b6;
-  --cn-purple: #5b2be0;
-  --cn-magenta: #a21caf;
-  --cn-iris: #6d28d9;
-  --cn-iris-2: #5b21b6;
-  --cn-iris-tint: rgba(109, 40, 217, .09);
-  --cn-iris-line: rgba(109, 40, 217, .3);
+  --cn-violet: #4f46e5;
+  --cn-violet-2: #4338ca;
+  --cn-purple: #2563eb;
+  --cn-magenta: #2563eb;
+  --cn-iris: #4f46e5;
+  --cn-iris-2: #4338ca;
+  --cn-iris-tint: rgba(79, 70, 229, .07);
+  --cn-iris-line: rgba(79, 70, 229, .26);
   --cn-mint: #0d6b64;
   --cn-mint-2: #0b5f58;
-  --cn-shadow: 0 30px 60px -32px rgba(43, 15, 110, .32);
-  --cn-shadow-card: 0 1px 2px rgba(43, 15, 110, .06), 0 22px 44px -28px rgba(43, 15, 110, .3);
+  --cn-shadow: 0 30px 60px -32px rgba(15, 23, 42, .28);
+  --cn-shadow-card: 0 1px 2px rgba(15, 23, 42, .05), 0 16px 32px -24px rgba(15, 23, 42, .22);
   --cn-id: var(--cn-cyan);
   --cn-id-2: var(--cn-cyan-2);
-  --cn-focus: 0 0 0 3px #f6f4ff, 0 0 0 5px #0b6a84;
-  --text: #1b1340;
-  --muted: #4b4a6b;
-  --soft: #4b4a6b;
+  --cn-focus: 0 0 0 3px #f5f7fa, 0 0 0 5px #0b6a84;
+  --text: #0b1220;
+  --muted: #475569;
+  --soft: #475569;
   color-scheme: light;
   color: var(--cn-text);
 }
@@ -129,11 +131,10 @@ html.cn #home > .why-choose {
   margin-block: clamp(14px, .5rem + 1vw, 24px) 0;
   padding: var(--cn-panel-py) var(--cn-panel-px) clamp(40px, 1.5rem + 2vw, 56px);
   border-radius: var(--cn-panel-r) var(--cn-panel-r) 0 0;
-  background-color: #f6f4ff;
+  background-color: #f5f7fa;
   background-image:
-    radial-gradient(46% 40% at 0% 0%, rgba(34, 211, 238, .17), transparent 72%),
-    radial-gradient(50% 44% at 100% 0%, rgba(139, 92, 246, .19), transparent 72%),
-    linear-gradient(180deg, #fbfaff 0%, #f6f4ff 38%);
+    radial-gradient(60% 40% at 50% 0%, rgba(34, 211, 238, .07), transparent 72%),
+    linear-gradient(180deg, #fafbfc 0%, #f5f7fa 38%);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9);
   color: var(--cn-text);
   text-align: start;
@@ -155,7 +156,7 @@ html.cn #home > .why-choose > .cn-head {
   grid-area: head;
   margin: 0 auto;
 }
-html.cn #home > .why-choose > .cn-head h2 > span { color: #5b2be0; }   /* 6.7:1 on #f6f4ff */
+html.cn #home > .why-choose > .cn-head h2 > span { color: var(--cn-text-2); }   /* 7.3:1 on #f5f7fa */
 @media (min-width: 1100px) {
   html.cn #home > .why-choose > .cn-head {
     align-items: flex-start;
@@ -166,7 +167,8 @@ html.cn #home > .why-choose > .cn-head h2 > span { color: #5b2be0; }   /* 6.7:1 
 }
 
 /* The AI picture: a graded photo of a board with glowing rings (no people), drawn as the band's
-   own pseudo-element so no markup is needed. Phones and tablets get the 800w file. */
+   own pseudo-element so no markup is needed. Phones and tablets get the 800w file. It does not
+   move on scroll (no scroll-timeline motion on large images). */
 html.cn #home > .why-choose::before {
   content: "";
   grid-area: visual;
@@ -174,17 +176,16 @@ html.cn #home > .why-choose::before {
   inline-size: 100%;
   aspect-ratio: 16 / 10;
   border-radius: clamp(20px, 1rem + 1vw, 28px);
-  background: #2b0f6e url("/ui/img/ai-800.webp?v=20261014-1") 50% 50% / cover no-repeat;
+  background: #0c1220 url("/ui/img/ai-800.webp?v=20261014-5") 50% 50% / cover no-repeat;
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, .28),
-    0 2px 4px rgba(43, 15, 110, .12),
-    0 40px 80px -40px rgba(43, 15, 110, .6),
-    0 24px 60px -36px rgba(91, 43, 224, .55);
+    inset 0 0 0 1px rgba(255, 255, 255, .12),
+    0 2px 4px rgba(15, 23, 42, .08),
+    0 32px 60px -36px rgba(15, 23, 42, .45);
 }
 @media (min-width: 760px) and (max-width: 1099.98px) {
   html.cn #home > .why-choose::before {
     aspect-ratio: 21 / 9;
-    background-image: image-set(url("/ui/img/ai-800.webp?v=20261014-1") 1x, url("/ui/img/ai-1600.webp?v=20261014-1") 2x);
+    background-image: image-set(url("/ui/img/ai-800.webp?v=20261014-5") 1x, url("/ui/img/ai-1600.webp?v=20261014-5") 2x);
     background-position: 50% 42%;
   }
 }
@@ -194,31 +195,12 @@ html.cn #home > .why-choose::before {
     block-size: 100%;
     min-block-size: 420px;
     aspect-ratio: auto;
-    background-image: url("/ui/img/ai-4x5-800.webp?v=20261014-1");
-    background-image: image-set(url("/ui/img/ai-4x5-800.webp?v=20261014-1") 1x, url("/ui/img/ai-4x5-1200.webp?v=20261014-1") 2x);
+    background-image: url("/ui/img/ai-4x5-800.webp?v=20261014-5");
+    background-image: image-set(url("/ui/img/ai-4x5-800.webp?v=20261014-5") 1x, url("/ui/img/ai-4x5-1200.webp?v=20261014-5") 2x);
     background-position: 56% 50%;
   }
 }
-/* A glass orb resting on the picture's corner (the AI motif), drifting with the scroll. */
-html.cn #home > .why-choose::after {
-  content: "";
-  grid-area: visual;
-  z-index: 1;
-  align-self: start;
-  justify-self: end;
-  inline-size: clamp(84px, 6vw + 44px, 150px);
-  aspect-ratio: 1;
-  margin: calc(clamp(84px, 6vw + 44px, 150px) * -.36) calc(clamp(84px, 6vw + 44px, 150px) * -.26) 0 0;
-  background: url("/ui/3d/orb.webp?v=20261014-1") center / contain no-repeat;
-  filter: drop-shadow(0 16px 22px rgba(91, 43, 224, .45));
-  pointer-events: none;
-}
-html.cn[dir="rtl"] #home > .why-choose::after { margin: calc(clamp(84px, 6vw + 44px, 150px) * -.36) 0 0 calc(clamp(84px, 6vw + 44px, 150px) * -.26); }
-@media (max-width: 1099.98px) {
-  html.cn #home > .why-choose::after { margin-inline-end: 4px; }
-}
-
-/* ---- the four points: white cards, a tinted icon tile (the AI point in violet) ---- */
+/* ---- the four points: white cards, a quiet icon tile (the AI point carries the indigo mark) ---- */
 html.cn #home .why-choose-grid {
   grid-area: grid;
   display: grid;
@@ -250,17 +232,17 @@ html.cn #home .wc-icon-box {
   place-items: center;
   inline-size: 44px;
   block-size: 44px;
-  border: 1px solid rgba(14, 116, 144, .16);
-  border-radius: 14px;
-  background: linear-gradient(140deg, #e3f9fd, #eef0ff);
+  border: 1px solid rgba(15, 23, 42, .07);
+  border-radius: 13px;
+  background: #f1f5f9;
   color: #0b6a84;
 }
 html.cn #home .wc-icon-box svg { inline-size: 22px; block-size: 22px; }
-/* the AI point shares the AI lane's colour in the diagram */
+/* the AI point shares the AI lane's small indigo mark in the diagram (6.3:1 on its tile) */
 html.cn #home .why-choose-item:first-child .wc-icon-box {
-  border-color: rgba(109, 40, 217, .18);
-  background: linear-gradient(140deg, #f3e8ff, #ede9fe);
-  color: #6d28d9;
+  border-color: rgba(79, 70, 229, .16);
+  background: #eef2ff;
+  color: #4f46e5;
 }
 html.cn #home .why-choose-item h4 {
   margin: 0 0 6px;
@@ -288,11 +270,12 @@ html.cn #home .why-choose-item p {
   html.cn #home .why-choose-item { transition: translate var(--cn-dur-2) var(--cn-ease-out), box-shadow var(--cn-dur-2) ease; }
   html.cn #home .why-choose-item:hover {
     translate: 0 -2px;
-    box-shadow: 0 1px 2px rgba(43, 15, 110, .06), 0 28px 50px -28px rgba(43, 15, 110, .4);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .05), 0 22px 40px -26px rgba(15, 23, 42, .3);
   }
 }
 
-/* ---- the engine diagram: a white panel where the lines glow ---- */
+/* ---- the engine diagram: a white panel with fine lanes (no glow filters: a filter on the
+   SVG would repaint it on every frame of the pulse run) ---- */
 html.cn #home .cn-beams {
   grid-area: beams;
   container: cn-beams / inline-size;
@@ -301,15 +284,13 @@ html.cn #home .cn-beams {
   max-width: none;
   margin: clamp(4px, 1vw, 12px) 0 0;
   padding: clamp(.75rem, .3rem + 1.6vw, 2rem) clamp(.75rem, .2rem + 2.6vw, 2.75rem);
-  border: 1px solid #e4e0ff;
+  border: 1px solid rgba(15, 23, 42, .08);
   border-radius: clamp(20px, 1rem + 1vw, 28px);
   background:
-    radial-gradient(34% 70% at 92% 50%, rgba(34, 211, 238, .16), transparent 72%),
-    radial-gradient(40% 60% at 55% 72%, rgba(139, 92, 246, .11), transparent 72%),
-    radial-gradient(30% 60% at 6% 50%, rgba(165, 180, 252, .14), transparent 72%),
+    radial-gradient(34% 70% at 92% 50%, rgba(34, 211, 238, .08), transparent 72%),
     #ffffff;
   /* the shadow stays inside the sheet's bottom padding (the sheet clips its paint) */
-  box-shadow: 0 1px 2px rgba(43, 15, 110, .06), 0 20px 44px -28px rgba(43, 15, 110, .42);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .05), 0 18px 36px -26px rgba(15, 23, 42, .26);
   overflow: hidden;
 }
 /* faint measuring grid */
@@ -318,7 +299,7 @@ html.cn #home .cn-beams::before {
   position: absolute;
   inset: 0;
   z-index: -1;
-  background-image: radial-gradient(rgba(91, 43, 224, .16) 1px, transparent 1.4px);
+  background-image: radial-gradient(rgba(15, 23, 42, .1) 1px, transparent 1.4px);
   background-size: 24px 24px;
   background-position: center;
   -webkit-mask-image: radial-gradient(ellipse 70% 80% at 50% 50%, #000 30%, transparent 100%);
@@ -332,11 +313,9 @@ html.cn #home .cn-beams > svg {
   overflow: visible;
 }
 
-/* Lines: gradient strokes (40-beams.js adds the gradients; a flat colour first, as fallback)
-   with a soft static glow. */
-html.cn #home .cn-beam-paths {
-  filter: drop-shadow(0 0 3px rgba(34, 211, 238, .45));
-}
+/* Lines: gradient strokes (40-beams.js adds the gradients; a flat colour first, as fallback).
+   Inputs run from slate into cyan; the AI lane is the supporting blue (a chart colour), so the
+   diagram stays in the one cyan -> blue family. */
 html.cn #home .cn-beam-paths path {
   fill: none;
   stroke: #67e8f9;
@@ -345,9 +324,9 @@ html.cn #home .cn-beam-paths path {
   vector-effect: non-scaling-stroke;
 }
 html.cn #home .cn-beam-paths path.is-in { stroke: url(#cnBeamIn) #67e8f9; }
-html.cn #home .cn-beam-paths path.is-in.is-ai { stroke: url(#cnBeamInAi) #a78bfa; }
+html.cn #home .cn-beam-paths path.is-in.is-ai { stroke: url(#cnBeamInAi) #60a5fa; }
 html.cn #home .cn-beam-paths path.is-out { stroke: url(#cnBeamOut) #22d3ee; }
-html.cn #home .cn-beam-paths path.is-out.is-ai { stroke: url(#cnBeamOutAi) #8b5cf6; }
+html.cn #home .cn-beam-paths path.is-out.is-ai { stroke: url(#cnBeamOutAi) #3b82f6; }
 
 /* nodes */
 html.cn #home .cn-beam-nodes rect {
@@ -362,21 +341,18 @@ html.cn #home .cn-beam-nodes text {
   letter-spacing: -.005em;
   text-transform: none;
 }
-html.cn #home .cn-node-in rect { fill: #ffffff; stroke: #d6cff7; }
-html.cn #home .cn-node-in text { fill: #4b4a6b; }
+html.cn #home .cn-node-in rect { fill: #ffffff; stroke: #d3dae4; }
+html.cn #home .cn-node-in text { fill: #475569; }
 html.cn #home .cn-node-engine rect { fill: #f0fbfd; stroke: rgba(14, 116, 144, .5); }
-html.cn #home .cn-node-engine text { fill: #1b1340; font-weight: 600; }
-html.cn #home .cn-node-engine.is-ai rect { fill: #f5f0ff; stroke: rgba(124, 58, 237, .5); }
-html.cn #home .cn-node-engine.is-ai text { fill: #5b21b6; }
-/* the Verdict: a cyan pill with ink text (10.9:1), glowing */
-html.cn #home .cn-node-out {
-  filter: drop-shadow(0 6px 16px rgba(34, 211, 238, .55));
-}
+html.cn #home .cn-node-engine text { fill: #0b1220; font-weight: 600; }
+html.cn #home .cn-node-engine.is-ai rect { fill: #f2f7ff; stroke: rgba(37, 99, 235, .45); }
+html.cn #home .cn-node-engine.is-ai text { fill: #1d4ed8; }
+/* the Verdict: a cyan pill with ink text (10.6:1) and a soft ring (no glow filter) */
 html.cn #home .cn-node-out rect:not(.cn-node-ring):not(.cn-node-ping) {
   fill: #22d3ee;
   stroke: #0e7490;
 }
-html.cn #home .cn-node-out text { fill: #0b0720; font-weight: 650; }
+html.cn #home .cn-node-out text { fill: #061018; font-weight: 650; }
 html.cn #home .cn-node-ring { fill: rgba(34, 211, 238, .12); stroke: rgba(34, 211, 238, .4); }
 html.cn #home .cn-node-ping {
   fill: none;
@@ -388,17 +364,16 @@ html.cn #home .cn-node-ping {
 /* connection ports (added by 40-beams.js) */
 html.cn #home .cn-beam-ports circle {
   fill: #ffffff;
-  stroke: #8b8fd8;
+  stroke: #94a3b8;
   stroke-width: 1.5;
   vector-effect: non-scaling-stroke;
 }
 html.cn #home .cn-beam-ports circle.is-out { stroke: #0e7490; }
-html.cn #home .cn-beam-ports circle.is-ai { stroke: #7c3aed; }
+html.cn #home .cn-beam-ports circle.is-ai { stroke: #2563eb; }
 
 /* Pulses (paths cloned by 40-beams.js with pathLength=100): a bright head on a comet tail.
    ONE run each time the diagram scrolls into view (data-cn-run), about 4 s, then it rests. */
 html.cn #home .cn-beams { --cn-beam-dur: 3.6s; }
-html.cn #home .cn-beam-pulses { filter: drop-shadow(0 0 4px rgba(34, 211, 238, .9)); }
 html.cn #home .cn-beam-pulses path {
   fill: none;
   stroke: #22d3ee;
@@ -416,8 +391,8 @@ html.cn #home .cn-beam-pulses .cn-pulse-tail {
   stroke-dasharray: 28 200;
   stroke-dashoffset: 29;
 }
-html.cn #home .cn-beam-pulses .is-ai.cn-pulse-tail { stroke: #a78bfa; }
-html.cn #home .cn-beam-pulses .is-ai.cn-pulse-head { stroke: #7c3aed; }
+html.cn #home .cn-beam-pulses .is-ai.cn-pulse-tail { stroke: #60a5fa; }
+html.cn #home .cn-beam-pulses .is-ai.cn-pulse-head { stroke: #2563eb; }
 
 html.cn #home .cn-beam-pulses .is-in.cn-pulse-head { --cn-beam-anim: cn-beam-in-head; --cn-beam-delay: calc(var(--k, 0) * 140ms); }
 html.cn #home .cn-beam-pulses .is-in.cn-pulse-tail { --cn-beam-anim: cn-beam-in-tail; --cn-beam-delay: calc(var(--k, 0) * 140ms); }
@@ -473,9 +448,9 @@ html.cn #home .cn-beams[data-cn-run] .cn-node-ping {
   52%, 100% { stroke: rgba(14, 116, 144, .5); fill: #f0fbfd; }
 }
 @keyframes cn-beam-engine-ai {
-  0%, 33% { stroke: rgba(124, 58, 237, .5); fill: #f5f0ff; }
-  38% { stroke: #7c3aed; fill: #e9ddff; }
-  52%, 100% { stroke: rgba(124, 58, 237, .5); fill: #f5f0ff; }
+  0%, 33% { stroke: rgba(37, 99, 235, .45); fill: #f2f7ff; }
+  38% { stroke: #2563eb; fill: #dbeafe; }
+  52%, 100% { stroke: rgba(37, 99, 235, .45); fill: #f2f7ff; }
 }
 @keyframes cn-beam-verdict {
   0%, 69% { fill: #22d3ee; }
@@ -517,10 +492,10 @@ html.cn #home .cn-bv-node {
   justify-content: center;
   min-height: 36px;
   padding: 0 14px;
-  border: 1px solid #d6cff7;
+  border: 1px solid #d3dae4;
   border-radius: var(--cn-r-pill);
   background: #ffffff;
-  color: #4b4a6b;
+  color: #475569;
   font: 500 14px/1.2 var(--cn-font);
   letter-spacing: -.005em;
   text-transform: none;
@@ -536,7 +511,7 @@ html.cn #home .cn-bv-eng {
   border-radius: var(--cn-r-ctl);
   background: #f0fbfd;
   overflow: hidden;
-  box-shadow: 0 10px 24px -16px rgba(14, 116, 144, .6);
+  box-shadow: 0 10px 22px -18px rgba(15, 23, 42, .35);
 }
 html.cn #home .cn-bv-eng .cn-bv-node {
   min-height: 44px;
@@ -544,15 +519,15 @@ html.cn #home .cn-bv-eng .cn-bv-node {
   border: 0;
   border-radius: 0;
   background: none;
-  color: #1b1340;
+  color: #0b1220;
   font-weight: 600;
   white-space: normal;
   text-align: center;
 }
 html.cn #home .cn-bv-eng .cn-bv-node + .cn-bv-node { border-inline-start: 1px solid rgba(14, 116, 144, .3); }
 html.cn #home .cn-bv-eng .cn-bv-node.is-ai {
-  background: #f5f0ff;
-  color: #5b21b6;
+  background: #f2f7ff;
+  color: #1d4ed8;
 }
 html.cn #home .cn-bv-out .cn-bv-node {
   position: relative;
@@ -560,9 +535,9 @@ html.cn #home .cn-bv-out .cn-bv-node {
   padding: 0 28px;
   border-color: #0e7490;
   background: #22d3ee;
-  color: #0b0720;
+  color: #061018;
   font-weight: 650;
-  box-shadow: 0 0 0 6px rgba(34, 211, 238, .14), 0 10px 26px -8px rgba(34, 211, 238, .8);
+  box-shadow: 0 0 0 6px rgba(34, 211, 238, .12), 0 8px 18px -10px rgba(14, 116, 144, .5);
 }
 html.cn #home .cn-bv-out .cn-bv-node::after {
   content: "";
@@ -577,11 +552,10 @@ html.cn #home .cn-bv-wire {
   display: block;
   width: 2px;
   height: 36px;
-  background: linear-gradient(to bottom, #a5b4fc, #22d3ee);
-  box-shadow: 0 0 6px rgba(34, 211, 238, .5);
+  background: linear-gradient(to bottom, #cbd5e1, #22d3ee);
   overflow: hidden;
 }
-html.cn #home .cn-bv-wire + .cn-bv-eng + .cn-bv-wire { background: linear-gradient(to bottom, #8b5cf6, #22d3ee); }
+html.cn #home .cn-bv-wire + .cn-bv-eng + .cn-bv-wire { background: linear-gradient(to bottom, #60a5fa, #22d3ee); }
 html.cn #home .cn-bv-wire::before {
   content: "";
   position: absolute;
@@ -595,7 +569,7 @@ html.cn #home .cn-bv-wire::before {
   transform: translateY(-14px);
 }
 html.cn #home .cn-bv-wire + .cn-bv-eng + .cn-bv-wire::before {
-  background: linear-gradient(to bottom, transparent, #a78bfa 35%, #22d3ee 75%, #ffffff);
+  background: linear-gradient(to bottom, transparent, #60a5fa 35%, #22d3ee 75%, #ffffff);
 }
 /* one run per entry, in step with the SVG version */
 html.cn #home .cn-beams[data-cn-run] .cn-bv-wire::before { animation: cn-bv-wire-a var(--cn-beam-dur) linear 1 both; }
@@ -638,11 +612,9 @@ html.cn #home > .wow-section {
   padding: 0 var(--cn-panel-px) clamp(40px, 1.25rem + 3vw, 72px);
   border: 0;
   border-radius: 0 0 var(--cn-panel-r) var(--cn-panel-r);
-  background-color: #f6f4ff;
-  background-image:
-    radial-gradient(42% 70% at 100% 100%, rgba(232, 121, 249, .14), transparent 72%),
-    radial-gradient(40% 70% at 0% 100%, rgba(34, 211, 238, .13), transparent 72%);
-  box-shadow: 0 40px 90px -50px rgba(10, 4, 40, .55);
+  background-color: #f5f7fa;
+  background-image: none;
+  box-shadow: none;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   color: var(--cn-text);
@@ -657,8 +629,8 @@ html.cn #home > .wow-section::before {
   border-radius: clamp(20px, 1rem + 1vw, 28px);
   background:
     linear-gradient(#ffffff, #ffffff) padding-box,
-    linear-gradient(120deg, rgba(34, 211, 238, .55), rgba(139, 92, 246, .45) 50%, rgba(232, 121, 249, .5)) border-box;
-  box-shadow: 0 1px 2px rgba(43, 15, 110, .06), 0 20px 40px -26px rgba(43, 15, 110, .4);
+    linear-gradient(120deg, rgba(34, 211, 238, .5), rgba(15, 23, 42, .08) 36%, rgba(15, 23, 42, .08) 70%, rgba(59, 130, 246, .28)) border-box;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .05), 0 16px 32px -24px rgba(15, 23, 42, .24);
 }
 @media (min-width: 1000px) {
   html.cn #home > .wow-section {
@@ -689,7 +661,7 @@ html.cn #home .wow-header h2 {
   text-wrap: balance;
 }
 html.cn #home .wow-header h2 span {
-  color: #5b2be0;
+  color: var(--cn-text-2);
   background: none;
   -webkit-text-fill-color: currentColor;
   text-shadow: none;
@@ -703,7 +675,7 @@ html.cn #home .wow-header p {
   text-wrap: pretty;
 }
 
-/* three facts side by side; a short accent bar in its own colour above each number */
+/* three facts side by side: ink numbers, each under a short cyan -> blue rule */
 html.cn #home .wow-stats {
   grid-area: stats;
   display: grid;
@@ -716,7 +688,7 @@ html.cn #home .wow-stats {
 }
 html.cn #home .wow-stat.glass,
 html.cn #home .wow-stat {
-  --cn-fact: #0b6a84;
+  --cn-fact: #0b1220;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   justify-items: start;
@@ -735,16 +707,13 @@ html.cn #home .wow-stat {
   text-align: start;
 }
 html.cn #home .wow-stat + .wow-stat { border-inline-start: 1px solid var(--cn-line); }
-html.cn #home .wow-stat:nth-child(2) { --cn-fact: #6d28d9; }
-html.cn #home .wow-stat:nth-child(3) { --cn-fact: #a21caf; }
 html.cn #home .wow-stat::before {
   content: "";
   inline-size: 28px;
-  block-size: 4px;
+  block-size: 3px;
   margin-block-end: 6px;
-  border-radius: 4px;
-  background: var(--cn-fact);
-  box-shadow: 0 4px 12px -2px var(--cn-fact);
+  border-radius: 3px;
+  background: linear-gradient(90deg, #22d3ee, #3b82f6);
 }
 html.cn #home .wow-ring { display: none; }
 html.cn #home .wow-stat-number {
@@ -790,185 +759,111 @@ html.cn #home .wow-stat-label {
       animation-timeline: view();
       animation-range: entry 0% entry 70%;
     }
-    html.cn #home > .why-choose {
-      view-timeline: --cn-why block;
-    }
-    /* the picture eases from a slight zoom to rest, and the orb drifts against the scroll */
-    html.cn #home > .why-choose::before {
-      animation: cn-sheet-zoom linear forwards;
-      animation-timeline: --cn-why;
-      animation-range: entry 0% cover 45%;
-    }
-    html.cn #home > .why-choose::after {
-      animation: cn-orb-drift linear both;
-      animation-timeline: --cn-why;
-      animation-range: cover 0% cover 100%;
-    }
   }
 }
 @keyframes cn-sheet-rise {
-  from { opacity: 0; transform: translate3d(0, 40px, 0); }
+  from { opacity: 0; transform: translate3d(0, 32px, 0); }
   to { opacity: 1; transform: none; }
-}
-@keyframes cn-sheet-zoom {
-  from { opacity: .2; transform: translate3d(0, 48px, 0) scale(.94); }
-  to { opacity: 1; transform: none; }
-}
-@keyframes cn-orb-drift {
-  from { transform: translate3d(0, 60px, 0) rotate(-20deg); }
-  to { transform: translate3d(0, -50px, 0) rotate(25deg); }
 }
 
 /* ============================================================ 8. Closing */
 
-/* The violet stage: a bright core of light behind the shield, then the statement and actions. */
+/* The navy stage: one soft cyan light behind the shield, then the statement and actions. */
 html.cn #home > .home-quote,
 html.cn #home > :is(.wow-section) + .home-quote {
+  --cn-text: #f5f7fa;
+  --cn-text-2: #aab4c3;
+  --cn-text-3: #8a95a7;
+  --cn-line: rgba(148, 163, 184, .14);
+  --cn-line-2: rgba(148, 163, 184, .24);
   margin-block: clamp(14px, .5rem + 1vw, 24px);
   padding: clamp(40px, 1.5rem + 3.6vw, 88px) var(--cn-panel-px) var(--cn-panel-py);
   border: 0;
   border-radius: var(--cn-panel-r);
-  background:
-    radial-gradient(34% 30% at 50% 22%, rgba(103, 232, 249, .32), transparent 72%),
-    radial-gradient(60% 46% at 50% 26%, rgba(139, 92, 246, .62), transparent 76%),
-    radial-gradient(44% 40% at 0% 100%, rgba(34, 211, 238, .2), transparent 72%),
-    radial-gradient(48% 42% at 100% 100%, rgba(232, 121, 249, .3), transparent 72%),
-    radial-gradient(60% 40% at 0% 0%, rgba(91, 43, 224, .7), transparent 72%),
-    #2b0f6e;
+  background-color: #080d18;
+  background-image:
+    radial-gradient(40% 34% at 50% 20%, rgba(34, 211, 238, .08), transparent 72%),
+    radial-gradient(70% 50% at 50% 0%, rgba(148, 163, 184, .06), transparent 74%),
+    linear-gradient(180deg, #0b1120 0%, #070b15 100%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, .16),
-    inset 0 0 0 1px rgba(196, 181, 253, .16),
-    0 40px 100px -50px rgba(91, 43, 224, .7);
+    inset 0 1px 0 rgba(255, 255, 255, .06),
+    inset 0 0 0 1px rgba(148, 163, 184, .1);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   color: var(--cn-text);
   text-align: center;
 }
-/* dot grid, fading out from the centre (static) */
-html.cn #home > .home-quote::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-image: radial-gradient(rgba(255, 255, 255, .08) 1px, transparent 1.4px);
-  background-size: 28px 28px;
-  background-position: 50% 0;
-  -webkit-mask-image: radial-gradient(60% 55% at 50% 40%, #000 0%, transparent 100%);
-  mask-image: radial-gradient(60% 55% at 50% 40%, #000 0%, transparent 100%);
-}
-/* lit top edge */
+/* lit top edge: a faint cyan hairline fading out at both ends */
 html.cn #home > .home-quote::after {
   content: "";
   position: absolute;
-  inset: 0 14% auto;
+  inset: 0 18% auto;
   block-size: 1px;
   pointer-events: none;
-  background: linear-gradient(90deg, transparent, rgba(103, 232, 249, .7) 30%, rgba(196, 181, 253, .7) 60%, rgba(232, 121, 249, .55) 80%, transparent);
+  background: linear-gradient(90deg, transparent, rgba(103, 232, 249, .42) 40%, rgba(148, 163, 184, .28) 70%, transparent);
 }
 
 /* ---- the shield ----
-   Markup: .cn-close-shield > img. 55-scrub.js wraps the image as
-   .cn-cs-float > .cn-cs-spin > (img + depth layers), so the turn shows a solid edge, and sets
+   Markup: .cn-close-shield > img. 55-scrub.js wraps the image in .cn-cs-float and sets
    data-cn-play on .cn-close-shield while it may move (on screen, tab visible, motion allowed,
    not paused). Without JS the image simply rests. */
 html.cn #home .cn-close-shield {
   position: relative;
   z-index: 0;
-  --cn-cs-size: clamp(200px, 11rem + 13vw, 420px);
+  --cn-cs-size: clamp(150px, 7rem + 9vw, 280px);
   inline-size: var(--cn-cs-size);
   aspect-ratio: 1;
-  margin: calc(var(--cn-cs-size) * -.08) auto clamp(4px, 1vw, 16px);
-  perspective: 900px;
+  margin: calc(var(--cn-cs-size) * -.04) auto clamp(12px, 1.5vw, 24px);
   pointer-events: none;
 }
 /* never taller than about half a landscape phone's screen, so the statement follows it */
 @supports (height: 1svh) {
-  html.cn #home .cn-close-shield { --cn-cs-size: min(clamp(200px, 11rem + 13vw, 420px), 56svh); }
+  html.cn #home .cn-close-shield { --cn-cs-size: min(clamp(150px, 7rem + 9vw, 280px), 48svh); }
 }
-/* light rays behind the shield: soft shafts of cyan, violet and white that turn slowly */
+/* a faint cool light behind the emblem (static: no rays, no turning) */
 html.cn #home .cn-close-shield::before {
   content: "";
   position: absolute;
-  inset: -95%;
+  inset: -40%;
   z-index: -2;
   border-radius: 50%;
-  background: conic-gradient(from 10deg,
-    transparent 0deg, rgba(255, 255, 255, .34) 6deg, transparent 15deg,
-    transparent 34deg, rgba(103, 232, 249, .55) 44deg, transparent 56deg,
-    transparent 80deg, rgba(196, 181, 253, .42) 87deg, transparent 97deg,
-    transparent 124deg, rgba(255, 255, 255, .28) 130deg, transparent 139deg,
-    transparent 160deg, rgba(232, 121, 249, .5) 170deg, transparent 182deg,
-    transparent 206deg, rgba(103, 232, 249, .46) 214deg, transparent 225deg,
-    transparent 250deg, rgba(255, 255, 255, .3) 256deg, transparent 266deg,
-    transparent 290deg, rgba(196, 181, 253, .45) 298deg, transparent 309deg,
-    transparent 330deg, rgba(103, 232, 249, .38) 338deg, transparent 348deg, transparent 360deg);
-  -webkit-mask: radial-gradient(closest-side, #000 4%, rgba(0, 0, 0, .7) 22%, rgba(0, 0, 0, .25) 48%, transparent 72%);
-  mask: radial-gradient(closest-side, #000 4%, rgba(0, 0, 0, .7) 22%, rgba(0, 0, 0, .25) 48%, transparent 72%);
-  animation: cn-cs-rays 80s linear infinite;
+  background: radial-gradient(closest-side, rgba(165, 243, 252, .1), rgba(34, 211, 238, .05) 46%, transparent 76%);
 }
-/* a halo and the floor light under the shield */
+/* the contact shadow under the emblem, with a thin cyan rim of light */
 html.cn #home .cn-close-shield::after {
   content: "";
   position: absolute;
-  inset: 0 -10% -14%;
+  inset: 0 -6% -10%;
   z-index: -1;
   background:
-    radial-gradient(40% 6% at 50% 84%, rgba(103, 232, 249, .5), transparent 100%),
-    radial-gradient(closest-side, rgba(255, 255, 255, .26), rgba(167, 139, 250, .2) 38%, rgba(139, 92, 246, .08) 62%, transparent 86%);
+    radial-gradient(34% 5% at 50% 90%, rgba(0, 0, 0, .55), transparent 100%),
+    radial-gradient(38% 4% at 50% 89%, rgba(103, 232, 249, .16), transparent 100%);
 }
 html.cn #home .cn-close-shield img {
   display: block;
   inline-size: 100%;
   block-size: 100%;
   object-fit: contain;
-  filter: drop-shadow(0 24px 40px rgba(11, 7, 32, .55)) drop-shadow(0 0 30px rgba(34, 211, 238, .35));
+  filter: drop-shadow(0 22px 30px rgba(0, 0, 0, .55));
 }
-html.cn #home .cn-cs-float,
-html.cn #home .cn-cs-spin {
+html.cn #home .cn-cs-float {
   position: absolute;
   inset: 0;
-  transform-style: preserve-3d;
+  animation: cn-cs-float 8s ease-in-out infinite;
 }
-html.cn #home .cn-cs-float { animation: cn-cs-float 6.5s ease-in-out infinite; }
-html.cn #home .cn-cs-spin { animation: cn-cs-turn 13s linear infinite; }
-html.cn #home .cn-cs-spin > img {
+html.cn #home .cn-cs-float > img {
   position: absolute;
   inset: 0;
-  backface-visibility: visible;
 }
-/* depth layers: the same render, darker, stacked behind the face and cut to the shield's
-   outline (the render's soft halo stays on the face only) */
-html.cn #home .cn-cs-spin > img.cn-cs-layer {
-  clip-path: polygon(18% 25%, 46% 9%, 80% 21%, 78% 64%, 51% 91%, 24% 62%);
-  transform: translateZ(calc(var(--z, 1) * -1.6px));
-  filter: brightness(.42) saturate(1.3) hue-rotate(12deg);
-}
-html.cn #home .cn-cs-spin > img.cn-cs-back {
-  transform: translateZ(calc(var(--z, 1) * -1.6px)) rotateY(180deg);
-  filter: brightness(.5) saturate(1.2);
-}
-/* loops run only while 55-scrub.js says so, and never under the global pause */
-html.cn #home .cn-close-shield:not([data-cn-play])::before,
-html.cn #home .cn-close-shield:not([data-cn-play]) :is(.cn-cs-float, .cn-cs-spin),
-html.cn.cn-still #home .cn-close-shield::before,
-html.cn.cn-still #home .cn-close-shield :is(.cn-cs-float, .cn-cs-spin) {
+/* the loop runs only while 55-scrub.js says so, and never under the global pause */
+html.cn #home .cn-close-shield:not([data-cn-play]) .cn-cs-float,
+html.cn.cn-still #home .cn-close-shield .cn-cs-float {
   animation-play-state: paused;
 }
 
-@keyframes cn-cs-rays { to { transform: rotate(360deg); } }
 @keyframes cn-cs-float {
   0%, 100% { transform: translate3d(0, 0, 0); }
-  50% { transform: translate3d(0, -5%, 0); }
-}
-/* sway right, sway left, settle, rest, then one full turn: never a constant spin */
-@keyframes cn-cs-turn {
-  0% { transform: rotateY(0deg); animation-timing-function: cubic-bezier(.45, 0, .55, 1); }
-  20% { transform: rotateY(26deg); animation-timing-function: cubic-bezier(.45, 0, .55, 1); }
-  44% { transform: rotateY(-26deg); animation-timing-function: cubic-bezier(.45, 0, .55, 1); }
-  60% { transform: rotateY(0deg); }
-  74% { transform: rotateY(0deg); animation-timing-function: cubic-bezier(.65, 0, .35, 1); }
-  92%, 100% { transform: rotateY(360deg); }
+  50% { transform: translate3d(0, -3%, 0); }
 }
 
 /* Scroll-linked entrance: the shield rises and grows into place as the stage scrolls up. */
@@ -1007,7 +902,7 @@ html.cn #home .cn-close-pause {
   padding: 0;
   border: 1px solid var(--cn-line-2);
   border-radius: 50%;
-  background: rgba(11, 7, 32, .32);
+  background: rgba(2, 6, 14, .4);
   box-shadow: none;
   color: var(--cn-text-2);
   cursor: pointer;
@@ -1040,8 +935,8 @@ html.cn[dir="rtl"] #home .cn-close-pause[aria-pressed="true"] > span { scale: -1
 html.cn #home .cn-close-pause:focus-visible { outline: 2px solid var(--cn-ring, #22d3ee); outline-offset: 3px; }
 @media (hover: hover) and (pointer: fine) {
   html.cn #home .cn-close-pause:hover {
-    border-color: rgba(247, 245, 255, .4);
-    background: rgba(255, 255, 255, .1);
+    border-color: rgba(245, 247, 250, .4);
+    background: rgba(255, 255, 255, .08);
     color: var(--cn-text);
   }
 }
@@ -1062,14 +957,14 @@ html.cn #home .home-quote p {
 html.cn #home .home-quote .cn-scrub-line {
   display: block;
   text-wrap: balance;
-  --cn-on: #ffffff;
+  --cn-on: #f5f7fa;
 }
-html.cn #home .home-quote .cn-scrub-line + .cn-scrub-line { margin-top: .14em; --cn-on: #67e8f9; }  /* cyan on the stage: 10.4:1 */
-/* Each word brightens from a soft lilac (5.5:1 on the stage, so every state stays readable)
+html.cn #home .home-quote .cn-scrub-line + .cn-scrub-line { margin-top: .14em; --cn-on: #67e8f9; }  /* the section's one cyan highlight: 13:1 on the stage */
+/* Each word brightens from slate (#7d889a, 5.3:1 on the stage, so every state stays readable)
    to its line's colour as the block scrolls up. */
 html.cn #home .home-quote .cn-w {
   --cn-t: clamp(0, (var(--cn-scrub) * (var(--n, 16) + 3) - var(--i, 0)) / 3, 1);
-  color: color-mix(in oklab, var(--cn-on, #fff) calc(var(--cn-t) * 100%), #9b8fd8);
+  color: color-mix(in oklab, var(--cn-on, #fff) calc(var(--cn-t) * 100%), #7d889a);
 }
 @supports not (color: color-mix(in oklab, red 50%, blue)) {
   html.cn #home .home-quote .cn-w {
@@ -1113,7 +1008,7 @@ html.cn #home .cn-close {
   margin: clamp(28px, 1.2rem + 2.4vw, 48px) auto 0;
   padding: 0;
 }
-/* the page's one glowing CTA */
+/* the page's closing CTA (a hairline and a soft lift, 00-tokens.css) */
 html.cn #home .cn-close .primary-btn { box-shadow: var(--cn-glow-cta, 0 8px 26px -8px rgba(34, 211, 238, .6)); }
 @media (hover: hover) and (pointer: fine) {
   html.cn #home .cn-close .primary-btn:hover { box-shadow: var(--cn-glow-cta-hover, 0 10px 32px -8px rgba(34, 211, 238, .75)); }
@@ -1186,7 +1081,7 @@ html.cn #home > div.why-choose { contain-intrinsic-size: auto 955px; }
 }
 
 /* the global "Pause motion" (html.cn-still) also holds the tools stage (26-flow.css) */
-html.cn.cn-still #home .cn-flow-stage :is(.cn-fs-rays, .cn-fs-floor, .cn-fs-arm, .cn-fs-sat, .cn-fs-shield),
+html.cn.cn-still #home .cn-flow-stage .cn-fs-shield,
 html.cn.cn-still #home .cn-reel.is-auto .cn-reel-tab.is-active .cn-reel-line::after {
   animation-play-state: paused;
 }
@@ -1197,9 +1092,7 @@ html.cn.cn-still #home .cn-reel.is-auto .cn-reel-tab.is-active .cn-reel-line::af
   html.cn #home .cn-node-ping,
   html.cn #home .cn-bv-wire::before,
   html.cn #home .cn-bv-out .cn-bv-node::after { display: none; }
-  html.cn #home .cn-close-shield::before,
-  html.cn #home .cn-cs-float,
-  html.cn #home .cn-cs-spin { animation: none; }
+  html.cn #home .cn-cs-float { animation: none; }
   html.cn #home .home-quote [data-cn="scrub"] { animation: none; }
   html.cn #home .home-quote .cn-w { color: var(--cn-on, #fff); opacity: 1; }
   html.cn #home .why-choose-item { transition: none; }
@@ -1207,7 +1100,6 @@ html.cn.cn-still #home .cn-reel.is-auto .cn-reel-tab.is-active .cn-reel-line::af
 
 @media (forced-colors: active) {
   html.cn #home > .why-choose::before,
-  html.cn #home > .why-choose::after,
   html.cn #home .cn-close-shield::before { display: none; }
   html.cn #home .why-choose-item,
   html.cn #home > .wow-section::before { border: 1px solid CanvasText; }

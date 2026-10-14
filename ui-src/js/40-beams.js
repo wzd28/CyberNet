@@ -4,8 +4,9 @@
    The whole box is aria-hidden (the four points next to it carry the meaning). Animation is CSS.
    This file builds the extra shapes, tags each path with its lane (.is-in / .is-out, plus .is-ai
    for the AI lane, read from the SVG geometry), adds the gradients the light band strokes them
-   with (rules lane into cyan, AI lane into violet, the result lane landing in cyan), and plays ONE
-   run each time the diagram scrolls into view: data-cn-run is set once about half of it is visible
+   with (the rules lane from slate into cyan, the AI lane into the supporting blue, the result
+   lane landing in cyan), and plays ONE run each time the diagram scrolls into view: data-cn-run
+   is set once about half of it is visible
    and cleared after it has fully left, so the next visit replays it. Nothing loops (a run is about
    4 s), and reduced motion never starts a run. A data attribute, not a class, because legacy
    observers re-scan the page on every class change. */
@@ -67,8 +68,8 @@
   function gradients(svg, span) {
     if (doc.getElementById("cnBeamIn")) return;
     var defs = svgEl("defs", {});
-    [["cnBeamIn", span.inn, "#a5b4fc", "#22d3ee"], ["cnBeamInAi", span.inn, "#d8b4fe", "#8b5cf6"],
-     ["cnBeamOut", span.out, "#22d3ee", "#06b6d4"], ["cnBeamOutAi", span.out, "#8b5cf6", "#22d3ee"]].forEach(function (g) {
+    [["cnBeamIn", span.inn, "#cbd5e1", "#22d3ee"], ["cnBeamInAi", span.inn, "#cbd5e1", "#3b82f6"],
+     ["cnBeamOut", span.out, "#22d3ee", "#06b6d4"], ["cnBeamOutAi", span.out, "#3b82f6", "#22d3ee"]].forEach(function (g) {
       if (!isFinite(g[1][0]) || !isFinite(g[1][1])) return;
       var lg = svgEl("linearGradient", { id: g[0], gradientUnits: "userSpaceOnUse", x1: g[1][0], y1: 0, x2: g[1][1], y2: 0 });
       lg.appendChild(svgEl("stop", { offset: "0", "stop-color": g[2] }));

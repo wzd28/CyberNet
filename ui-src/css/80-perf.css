@@ -1,4 +1,4 @@
-/* CyberNet AI v4 "Aurora": performance (owner: aurora).
+/* CyberNet AI v4.1 "Midnight": performance (owner: aurora).
    Loads after the page partials on purpose: these rules settle paint and compositing costs
    for everything above them. */
 
@@ -59,10 +59,10 @@ html.cn.cn-navigated .page.leaving {
 
 /* ------------------------------------------------------------------------------------------
    3. No frosted glass inside <main>
-   backdrop-filter re-blurs everything behind a card on every scroll frame, and over the moving
-   aurora it would have to re-blur on every animation frame too. Cards get their glass look from
-   a translucent indigo tint instead (--cn-glass), which costs nothing per frame. The header
-   sheet, modals and the cookie bar live outside <main> and keep theirs (DESIGN.md).
+   backdrop-filter re-blurs everything behind a card on every scroll frame, and over a moving
+   section canvas it would have to re-blur on every animation frame too. Cards get their glass
+   look from a translucent navy tint instead (--cn-glass), which costs nothing per frame. The
+   header sheet, modals and the cookie bar live outside <main> and keep theirs (DESIGN.md).
    ------------------------------------------------------------------------------------------ */
 html.cn main *,
 html.cn main *::before,
@@ -117,12 +117,26 @@ html.cn #home > .why-choose { contain-intrinsic-size: auto 1100px; }
 }
 
 /* ------------------------------------------------------------------------------------------
-   6. The aurora's budget (03-aurora.css)
-   Four pseudo-element layers, all below the content: two drifting light layers and a beam
-   (transform-only compositor animations: no main-thread work, no repaint per frame) and a
-   static grain. Each is contain:strict and sized to the viewport (the drift is a base scale,
-   not an oversized box), so the GPU holds about 1.25 screens of texture per moving layer.
-   Phones keep one drift layer and the grain. Measured with the page parked at the footer: the
-   main thread stays idle while the aurora moves (0.4 to 1.4% main-thread task time in quiet
-   samples at 1440px, headless Edge; the compositor does the work).
+   6. Background motion: the section canvases live in 04-bgfx.css / 09-bgfx.js (one per dark
+   section, 30 fps on desktop and 20 on touch, drawn only while on screen). Nothing fixed covers
+   the page while it scrolls.
    ------------------------------------------------------------------------------------------ */
+
+/* ------------------------------------------------------------------------------------------
+   7. Smooth scrolling (v4.1, owner feedback: "not smooth when you scroll")
+   - The scroll position is the browser's own (compositor-threaded) on every device; desktop
+     with a fine pointer may add Lenis inertia (06-scroll.js), which only moves that same native
+     position. Lenis needs html's smooth scroll-behavior off while it is driving, and must never
+     try to drive inside an overlay or a nested scroller (the data-lenis-prevent hook).
+   - Large photos never move on a scroll timeline; reveals use opacity and transforms only (no
+     blur filter); no backdrop-filter, blend mode or filter layer is fixed over the page.
+   ------------------------------------------------------------------------------------------ */
+html.cn.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+html.cn.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+html.cn.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}

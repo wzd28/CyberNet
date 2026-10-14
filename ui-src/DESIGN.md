@@ -5,6 +5,56 @@ Sources live in `ui-src/` and are built into `public/ui/cybernet-ui.css`, `publi
 
 The design replaces the rejected v2 look. v2 used hacker imagery, code rain, virus sprites, a red "threat field" and glow everywhere, and the owner called it "suspicious and weird". The replacement is calm, precise and expensive. Motion shows the product working; it is never decoration for its own sake. References: Apple product pages (quiet type, one big moment per section), Linear and Socket (real product UI in place of metaphors), Lovable and Higgsfield (a prompt-box hero, rails of cards), Google Safety Center (security explained calmly).
 
+## v4.1 "Midnight" (14 Oct 2026, owner feedback on the v4 preview): overrides v4 where they conflict
+
+The owner's verdict on v4:
+1. "Too much purple and colours; it needs to be simpler and look expensive."
+2. "It's not smooth when you scroll; it needs to be smoother and faster."
+3. "Make the hacker picture a full picture showing him actually hacking."
+4. "The lookalike links and QR codes tile: show a QR code and links that open cybernetai.app."
+5. "There's no background animation or motion graphics."
+6. "The world spinning with the shields looks too childish; make it look expensive."
+
+Rules from here:
+- **Palette: restraint.** The ground is midnight navy, not purple:
+  - Dark sections: ground `#060A14`, surfaces `#0C1220` / `#121A2B` / `#18223A`, hairlines `rgba(148,163,184,.14)` / `.24`, text `#F5F7FA` / `#AAB4C3` / `#8A95A7`.
+  - Light sections stay for rhythm and brightness: ground `#F5F7FA`, white cards, ink `#0B1220`, `#475569` / `#5B6576`.
+  - One accent, cyan `#22D3EE`, for actions, focus, live and one highlight per section.
+  - One supporting tone, blue `#3B82F6` → `#60A5FA`. It appears only inside gradients next to cyan (the brand gradient is cyan → blue) and in charts.
+  - Violet survives only as a faint tint in the hero light and as the Analysis AI identity mark (small marks, never fills or big glows). Magenta is gone.
+  - Mint marks Recovery only. Verdict colours keep their meaning.
+  - No gradient text except the one hero word. No coloured glows behind text. Shadows are neutral and soft.
+- **Expensive 3D.** The hero globe is a dark glass sphere:
+  - Fine white/cyan dot continents, a thin cyan-to-blue rim light and a faint latitude/longitude grid.
+  - Elegant arcs with travelling light pulses between real cities (Stripe/GitHub-globe quality), slow rotation, drag to rotate on desktop, and a gentle scroll-linked tilt.
+  - No cartoon shields, cubes, chips or padlocks orbiting it. The CyberNet shield may appear once as a subtle engraved or metallic emblem, not a toy.
+  - The same restraint applies to the 3D sprites used elsewhere: chrome or glass, neutral, not candy-coloured.
+- **Visible background motion graphics, cheap to run.**
+  - The hero and the dark sections get a clearly visible but calm animated layer: flowing light lines or a slow network of points and links, drawn in cyan/blue at low opacity on navy.
+  - It is one canvas per section at most, rendered at 30 fps at low resolution, paused off-screen, while the tab is hidden, under Pause motion and under reduced motion.
+  - The motion has to be noticeable within 2 seconds of looking at the page.
+- **Smooth scrolling is a hard requirement.**
+  - Scrolling must hold 60 fps on desktop and stay smooth on a mid-range phone.
+  - No fixed full-screen layers with blend modes, filters or noise over the page while scrolling.
+  - No scroll-timeline parallax on large images. No `backdrop-filter` on anything that scrolls.
+  - No huge blurred box-shadows on many elements. No layout-affecting work during scroll.
+  - WebGL pauses while its section is off-screen.
+  - Desktop (fine pointer) may use inertial smooth scrolling (Lenis) if it keeps every legacy scroll call working (`window.scrollTo`, `scrollIntoView`, anchors, the SPA page switch). Touch devices keep native scrolling.
+- **Pictures.**
+  - The hacker tile shows the full scene: a person from behind at a desk, typing, with screens of code. No visible face, and wide rather than a cropped head.
+  - The lookalike-links tile is a real QR code that opens https://cybernetai.app (`/ui/img/qr-cybernetai.svg`), with a real link next to a lookalike one.
+  - Photos are graded to navy and cyan, not purple.
+
+### v4.1 as built (14 Oct 2026)
+- **Tokens.** `00-tokens.css` holds the Midnight values above. `.cn-grad` is plain cyan and `--cn-grad-text` is flat. The old violet/purple/magenta token names are aliases to blue/navy; the one AI mark is indigo (`#A5B4FC` on dark, `#4F46E5` on light). Keep `--cn-violet`, `--cn-iris`, `--cn-iris-tint` and `--cn-iris-line` defined: 30-tools.css and 35-recovery.css read them for the small AI mark. Reveals no longer blur in.
+- **3D sprites.** Analysis AI uses `ai-globe` (an AI chip inside the dark glass globe). Recovery uses `recovery` (the shield ringed by a mint counter-clockwise restore arrow); the lifebuoy is retired and `ring.webp` is unused. Learn keeps `orb.webp`. Page-header sprites are static and settle in once (`cn-pg-in`): no float, no scroll-timeline. The inner-page kit variables are `--cn-pg-inset`, `--cn-pg-lift` and `--cn-pg-sprite-glow` (30-tools.css section 17).
+- **Home.** Threats bento: the hacker photo spans two-thirds at 3:2 with its caption bottom-right (full width on tablets, caption under the photo on phones); the QR tile is a white QR card with a real row and a lookalike row, caption inside the card. No sprites on Threats, Live, Example scan or Rules. The Tools stage is the chrome shield in two orbit hairlines with one float loop; the closing shield is a smaller 2D float. The engine diagram's AI lane is blue.
+- **Chrome and overlays.** The header is a solid navy capsule with a hairline; the menu sheet is a flat midnight panel; the footer is a flat band under a hairline with a thin cyan highlight (no footer glow, no `chrome-fx`). Dialog scrims are flat with no backdrop blur; sheets are navy with a 1px hairline and a thin cyan top highlight. Every dialog close button draws its X as a centred 14px mask on `::before` (60-overlays.css section 3) with a 44px hit area; the "×" text in the markup is kept for older scripts but takes no space.
+- **Inner pages.** H1s are plain text. Learn modules and About blocks all use cyan (no per-module colours). The Pro card has a static cyan hairline (no conic beam). The price swap `:has()` lives on `.pricing-head` and `.business-price-card`.
+- **Operator note (Marks Events FZ LLE).** Pricing keeps it as the banner at the very top (`#pricing > .cn-operator`, 50-pricing.css). About carries it as a quiet footnote at the end of the page, under a hairline (45-about.css).
+- **Pause controls.** By owner decision, the hero pause (`.cn-stage-pause`), the closing shield's pause (`.cn-close-pause`) and the footer Pause motion (`.cn-motion-toggle`) are visually hidden and appear only on keyboard focus (end of 20-hero.css). Motion still stops under the OS reduced-motion setting.
+- **Smooth scrolling (`06-scroll.js`).** Loads Lenis 1.3.26 from cdn.jsdelivr.net with SRI after load, desktop only (fine pointer, motion allowed, no Save-Data, 4+ cores). `prevent` covers overlays, nested scrollers scroll natively, and a click, key press or native jump stops an inertia run. The rAF loop runs only during a wheel run, and it switches itself off for the session after two slow 90-frame windows. Off switches: localStorage `cn-native-scroll`='1' and Pause motion. API: `CN.smooth()`, `CN.smoothStats()`. CSS in 80-perf.css section 7. This SRI-pinned script is the one exception to "no third-party network calls".
+
 ## v4 "Aurora" (14 Oct 2026): this section overrides anything below that conflicts
 
 The owner saw v3 and said it is good but "too basic, depressing and dark". v4 keeps v3's structure, safety rules and components, and adds light, colour, depth and motion. The target sits between the two rejected extremes: alive, colourful and 3D like a launch page, but organised, clean and premium, never neon-cheap or "hacker theatre".

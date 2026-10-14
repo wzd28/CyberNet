@@ -1,19 +1,29 @@
 /* ==========================================================================
-   20-hero.css  -  Home hero v4 "Aurora" (#heroSection > .cn-stage.cn-hero4)
-   A luminous violet stage (the --cn-grad-stage mesh, drifting light, slow
-   beams, a faint dot grid and grain) holding the 3D scene
-   (.cn-hero4-scene: the poster image, then the live canvas from
-   10-hero3d.js crossfading over it) and the copy: eyebrow, two-tone H1 with
-   the gradient word, lead, the scan box (#cnScanBox), the Recovery route.
+   20-hero.css  -  Home hero v4.1 "Midnight" (#heroSection > .cn-stage.cn-hero4)
+   A midnight navy stage holding one full-stage scene layer (.cn-hero4-scene):
+   the poster image of the dark glass globe, then the live canvas from
+   10-hero3d.js crossfading over it. The canvas draws the globe exactly over
+   the poster and, behind the copy, the calm motion layer (hairline light
+   lines flowing into the globe). Then the copy: eyebrow, two-tone H1 with
+   the one gradient word, lead, the scan box (#cnScanBox), the Recovery route.
    Then the three how-to tiles under the stage.
 
+   Palette (DESIGN.md v4.1): navy ground, cyan for actions and focus, blue
+   only next to cyan, a faint violet tint in the stage light at most. Stage
+   colours are local (--h4-*), so the hero never depends on token changes.
+
    Layout
+   - The scene is an absolute layer over the whole stage. The poster sits
+     where the globe belongs; in the stacked layouts an in-flow spacer
+     (.cn-hero4::before) keeps that place in the flow.
    - Desktop (60rem and up): copy and scan box on the inline start (first in
-     reading order), the scene large on the inline end, bleeding off the
-     stage edge.
-   - Phones and portrait tablets: the scene on top (about 62-80vw tall
-     visible), the H1 overlapping its faded lower part, then the scan box.
-   - Landscape phones: side by side again, a small scene, a one-line H1.
+     reading order), the globe large on the inline end, its box bleeding off
+     the stage edge.
+   - Phones and portrait tablets: the globe on top, the eyebrow overlapping
+     its lower edge, then the H1 and the scan box.
+   - Landscape phones: side by side again, a small globe, a one-line H1.
+   - Sizes come from the stage's own width (container units, cqi), so the
+     spacer and the poster (in different boxes) always agree.
 
    Contracts kept (maps/HAZARDS.md):
    - Legacy .hero is a 2-column grid with translateZ(0) and opacity:1!important;
@@ -31,9 +41,9 @@
    - The scan box never becomes a stacking context (no z-index, transform,
      filter, opacity, isolation or containment), so its focus glow
      (::after, z-index:-1) paints behind its own surface.
-   - Loops: the beams and the drifting light run only while the stage is on
-     screen (.is-on from 10-hero3d.js), and stop for the hero's Pause
-     (.is-paused), the global Pause motion (html.cn-still) and reduced motion.
+   - No CSS loops here: the only motion is the canvas, which pauses off
+     screen, for the hero's Pause (.is-paused), the global Pause motion
+     (html.cn-still) and reduced motion (10-hero3d.js).
    ========================================================================== */
 
 /* ---------- section shell ---------- */
@@ -59,17 +69,22 @@ html.cn #home .hero > .hero-visual { display: none; }
 
 /* ---------- the stage ---------- */
 html.cn #home .cn-hero4 {
-  /* stage-local colours (white text 15:1 on #2b0f6e; the lightest mesh
-     light, #5b2be0, still gives white 7.3:1 and --h4-text-2 5.0:1) */
-  --h4-text: #ffffff;
-  --h4-text-2: #e4dcff;
-  --h4-text-3: #cfc4ff;
+  /* stage-local colours: text 17.6 / 9.2 / 6.3:1 on the ground */
+  --h4-ground: #070c18;
+  --h4-text: #f5f7fa;
+  --h4-text-2: #aab4c3;
+  --h4-text-3: #8a95a7;
+  --h4-line: rgba(148, 163, 184, .14);
+  --h4-line-2: rgba(148, 163, 184, .24);
+  --h4-cyan: #22d3ee;
+  --h4-cyan-2: #67e8f9;
   --h4-pad-x: clamp(16px, 4.4vw, 76px);
-  --h4-pill-fill: rgba(36, 12, 96, .62);
-  /* scene size: stacked (phones, portrait tablets). The copy starts just under
-     the globe's lower limb (overlap), so the eyebrow clears the orbits' busiest part */
-  --h4-scene: min(112%, 640px);
+  --h4-pill-fill: rgba(7, 12, 24, .78);
+  /* globe box, stacked (phones, portrait tablets): the copy starts just under
+     the globe's lower limb (overlap) */
+  --h4-scene: min(112cqi, 640px);
   --h4-overlap: .2;
+  container: cn-stage / inline-size;
   position: relative;
   isolation: isolate;
   overflow: hidden;
@@ -88,93 +103,68 @@ html.cn #home .cn-hero4 {
   border: 0;
   border-radius: var(--cn-r-panel);
   color: var(--h4-text);
-  /* the mesh: grain, a faint dot grid, then the stage light (tokens) */
-  background-color: var(--cn-p-stage, #2b0f6e);
+  /* the stage light: deep blue behind the globe, a faint cyan low on the copy
+     side, a faint violet tint in the far corner; a whisper of grain against banding */
+  background-color: var(--h4-ground);
   background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .045 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, .07) 1px, transparent 1.6px),
-    radial-gradient(60% 55% at 18% 12%, rgba(91, 43, 224, .9), transparent 70%),
-    radial-gradient(45% 45% at 86% 22%, rgba(34, 211, 238, .34), transparent 72%),
-    radial-gradient(50% 45% at 62% 100%, rgba(232, 121, 249, .3), transparent 72%),
-    radial-gradient(70% 60% at 50% 60%, rgba(58, 18, 168, .55), transparent 80%);
-  background-size: 160px 160px, 28px 28px, auto, auto, auto, auto;
-  background-repeat: repeat, repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .03 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    radial-gradient(52% 44% at 50% 22%, rgba(37, 99, 235, .16), transparent 72%),
+    radial-gradient(45% 40% at 8% 0%, rgba(99, 102, 241, .07), transparent 70%),
+    radial-gradient(60% 50% at 30% 100%, rgba(34, 211, 238, .05), transparent 72%),
+    linear-gradient(180deg, #0a1120, #070c18 60%);
+  background-size: 160px 160px, auto, auto, auto, auto;
+  background-repeat: repeat, no-repeat, no-repeat, no-repeat, no-repeat;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, .2),
-    inset 0 0 0 1px rgba(196, 181, 253, .2),
-    0 40px 90px -50px rgba(91, 43, 224, .75);
+    inset 0 0 0 1px var(--h4-line),
+    inset 0 1px 0 rgba(255, 255, 255, .06),
+    0 40px 80px -50px rgba(0, 0, 0, .8);
 }
 
-/* drifting light: three soft blobs moving as one layer (transform only) */
+/* the globe's place in the stacked flow (the scene itself is a full-stage layer) */
 html.cn #home .cn-hero4::before {
   content: "";
-  position: absolute;
-  inset: -20%;
-  z-index: -1;
-  background:
-    radial-gradient(28% 26% at 30% 72%, rgba(34, 211, 238, .2), transparent 70%),
-    radial-gradient(24% 28% at 76% 18%, rgba(232, 121, 249, .2), transparent 70%),
-    radial-gradient(34% 30% at 56% 52%, rgba(139, 92, 246, .26), transparent 72%);
-  pointer-events: none;
-  animation: cn-h4-drift var(--cn-loop-b, 43s) ease-in-out infinite alternate;
-  animation-play-state: paused;
-}
-/* slow light beams, Raycast-style diagonals (screen blend, transform only) */
-html.cn #home .cn-hero4::after {
-  content: "";
-  position: absolute;
-  inset: -10% -30%;
-  z-index: -1;
-  background:
-    linear-gradient(104deg, transparent 30%, rgba(103, 232, 249, .11) 36%, transparent 42%),
-    linear-gradient(104deg, transparent 52%, rgba(196, 181, 253, .12) 57%, transparent 62%),
-    linear-gradient(104deg, transparent 70%, rgba(240, 171, 252, .08) 73.5%, transparent 77%);
-  mix-blend-mode: screen;
-  pointer-events: none;
-  animation: cn-h4-beams var(--cn-loop-c, 29s) var(--cn-ease-in-out) infinite alternate;
-  animation-play-state: paused;
-}
-html.cn #home .cn-hero4.is-on::before,
-html.cn #home .cn-hero4.is-on::after { animation-play-state: running; }
-html.cn #home .cn-hero4.is-on.is-paused::before,
-html.cn #home .cn-hero4.is-on.is-paused::after,
-html.cn.cn-still #home .cn-hero4::before,
-html.cn.cn-still #home .cn-hero4::after { animation-play-state: paused; }
-@keyframes cn-h4-drift {
-  from { transform: translate3d(-4%, 2%, 0) rotate(0deg) scale(1); }
-  to { transform: translate3d(4%, -3%, 0) rotate(7deg) scale(1.08); }
-}
-@keyframes cn-h4-beams {
-  from { transform: translate3d(-9%, 0, 0); }
-  to { transform: translate3d(9%, 0, 0); }
-}
-
-/* ---------- the 3D scene: poster first, the live canvas over it ---------- */
-html.cn #home .cn-hero4-scene {
-  position: relative;
-  z-index: 0;
   flex: none;
+  display: block;
   box-sizing: border-box;
   width: var(--h4-scene);
   aspect-ratio: 1 / 1;
   margin-block: calc(var(--h4-scene) * -.075) calc(var(--h4-scene) * var(--h4-overlap) * -1);
   pointer-events: none;
-  /* phones: the lower part fades into the stage under the H1 */
-  -webkit-mask-image: linear-gradient(180deg, #000 66%, rgba(0, 0, 0, .5) 82%, transparent 98%);
-  mask-image: linear-gradient(180deg, #000 66%, rgba(0, 0, 0, .5) 82%, transparent 98%);
 }
 @supports not (aspect-ratio: 1 / 1) {
-  html.cn #home .cn-hero4-scene { height: 0; padding-bottom: var(--h4-scene); }
+  html.cn #home .cn-hero4::before { height: var(--h4-scene); }
 }
-/* the globe's own light on the stage, under the poster */
-html.cn #home .cn-hero4-scene::before {
-  content: "";
+
+/* ---------- the scene: poster first, the live canvas over it ---------- */
+html.cn #home .cn-hero4-scene {
   position: absolute;
-  inset: 14%;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(124, 77, 255, .5), rgba(91, 43, 224, .22) 55%, transparent 100%);
+  inset: 0;
+  z-index: 0;
+  margin: 0;
+  pointer-events: none;
 }
-html.cn #home .cn-hero4-scene > .cn-hero4-poster,
+html.cn #home .cn-hero4-scene > .cn-hero4-poster {
+  position: absolute;
+  inset: auto;
+  top: calc(var(--h4-scene) * -.075);
+  left: 50%;
+  display: block;
+  box-sizing: border-box;
+  width: var(--h4-scene);
+  height: auto;
+  aspect-ratio: 1 / 1;
+  max-width: none;
+  margin: 0;
+  border: 0;
+  object-fit: contain;
+  translate: -50% 0;
+  opacity: 1;
+  pointer-events: none;
+  transition: opacity 1.2s var(--cn-ease-out);
+}
+@supports not (aspect-ratio: 1 / 1) {
+  html.cn #home .cn-hero4-scene > .cn-hero4-poster { height: var(--h4-scene); }
+}
 html.cn #home .cn-hero4-scene > .cn-hero4-canvas {
   position: absolute;
   inset: 0;
@@ -185,15 +175,14 @@ html.cn #home .cn-hero4-scene > .cn-hero4-canvas {
   max-width: none;
   margin: 0;
   border: 0;
+  opacity: 0;
   pointer-events: none;
   transition: opacity 1.2s var(--cn-ease-out);
 }
-html.cn #home .cn-hero4-scene > .cn-hero4-poster { object-fit: contain; opacity: 1; }
-html.cn #home .cn-hero4-scene > .cn-hero4-canvas { opacity: 0; }
 html.cn #home .cn-hero4-scene.is-live > .cn-hero4-canvas { opacity: 1; }
 html.cn #home .cn-hero4-scene.is-live > .cn-hero4-poster { opacity: 0; }
 
-/* Pause for the hero's motion (the scene, the light, the placeholder typer).
+/* Pause for the hero's motion (the scene and the placeholder typer).
    It sits in the stage's corner and scrolls with it (never fixed). */
 html.cn #home .cn-stage .cn-stage-pause {
   position: absolute;
@@ -207,10 +196,10 @@ html.cn #home .cn-stage .cn-stage-pause {
   height: 36px;
   margin: 0;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, .26);
+  border: 1px solid rgba(148, 163, 184, .3);
   border-radius: 50%;
-  background: rgba(23, 10, 69, .42);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .16);
+  background: rgba(7, 12, 24, .6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08);
   color: var(--h4-text);
   cursor: pointer;
   touch-action: manipulation;
@@ -241,8 +230,8 @@ html.cn #home .cn-stage .cn-stage-pause[aria-pressed="true"] > span {
 }
 @media (hover: hover) and (pointer: fine) {
   html.cn #home .cn-stage .cn-stage-pause:hover {
-    border-color: rgba(255, 255, 255, .5);
-    background: rgba(255, 255, 255, .14);
+    border-color: rgba(148, 163, 184, .55);
+    background: rgba(255, 255, 255, .08);
   }
 }
 
@@ -275,8 +264,8 @@ html.cn #home .hero .hero-content.reveal.show {
 }
 
 /* ---------- eyebrow pill (opens the how-to walkthrough) ---------- */
-/* A glass pill on the stage: sentence case, a cyan chevron, a 44px hit area,
-   the shared lift and press (translate and scale, never transform). */
+/* A quiet glass pill: sentence case, a cyan chevron, a 44px hit area, the
+   shared lift and press (translate and scale, never transform). */
 html.cn #home #heroLearnFeaturesBtn {
   position: relative;
   display: inline-flex;
@@ -288,13 +277,13 @@ html.cn #home #heroLearnFeaturesBtn {
   margin: 0 0 clamp(16px, .8rem + 1vw, 26px);
   padding: 7px 13px 7px 16px;
   box-sizing: border-box;
-  border: 1px solid rgba(255, 255, 255, .24);
+  border: 1px solid var(--h4-line-2);
   border-radius: var(--cn-r-pill);
-  /* stacked, the pill sits on the scene's lower edge where a bright shield can pass
-     behind it: a deep violet fill under the sheen keeps white text at 4.7:1 or more
-     even over white chrome (--h4-pill-fill; desktop and landscape go back to clear glass) */
-  background: linear-gradient(180deg, rgba(255, 255, 255, .14), rgba(255, 255, 255, .05)), var(--h4-pill-fill);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2), 0 8px 24px -14px rgba(11, 7, 32, .6);
+  /* stacked, the pill sits on the globe's lower limb: a navy fill under the
+     sheen keeps the text at 12:1 or more over the bright dots
+     (--h4-pill-fill; desktop and landscape go back to clear glass) */
+  background: linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .02)), var(--h4-pill-fill);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .07);
   color: var(--h4-text);
   font-family: var(--cn-font);
   font-size: var(--cn-step-small);
@@ -319,16 +308,16 @@ html.cn #home #heroLearnFeaturesBtn svg {
   flex: none;
   width: 13px;
   height: 13px;
-  color: var(--cn-p-cyan-light, #67e8f9);
+  color: var(--h4-cyan-2);
   transition: translate var(--cn-dur-2) var(--cn-ease-out);
 }
 html.cn[dir="rtl"] #home #heroLearnFeaturesBtn svg { scale: -1 1; }
-html.cn #home #heroLearnFeaturesBtn:hover { transform: none; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2), 0 8px 24px -14px rgba(11, 7, 32, .6); }
+html.cn #home #heroLearnFeaturesBtn:hover { transform: none; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .07); }
 html.cn #home #heroLearnFeaturesBtn:active { scale: .98; }
 @media (hover: hover) and (pointer: fine) {
   html.cn #home #heroLearnFeaturesBtn:hover {
-    border-color: rgba(255, 255, 255, .42);
-    background: linear-gradient(180deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, .1)), var(--h4-pill-fill);
+    border-color: rgba(148, 163, 184, .42);
+    background: linear-gradient(180deg, rgba(255, 255, 255, .1), rgba(255, 255, 255, .05)), var(--h4-pill-fill);
     color: var(--h4-text);
     translate: 0 -1px;
   }
@@ -337,7 +326,7 @@ html.cn #home #heroLearnFeaturesBtn:active { scale: .98; }
   html.cn[dir="rtl"] #home #heroLearnFeaturesBtn:hover svg { translate: -2px 0; }
 }
 
-/* ---------- headline: two-tone, the gradient word ---------- */
+/* ---------- headline: two-tone, the one gradient word ---------- */
 html.cn #home .hero-content .hero-title {
   max-width: 100%;
   margin: 0;
@@ -350,8 +339,8 @@ html.cn #home .hero-content .hero-title {
   font-stretch: 110%;
   line-height: 1.02;
   letter-spacing: var(--cn-track-hero);
-  /* a soft violet shadow keeps the words clear where they cross the globe's light */
-  text-shadow: 0 2px 30px rgba(23, 10, 69, .55);
+  /* a soft navy shadow keeps the words clear where they cross a light line */
+  text-shadow: 0 2px 24px rgba(3, 6, 13, .6);
   text-wrap: balance;
   overflow-wrap: break-word;
 }
@@ -360,25 +349,22 @@ html.cn #home .hero-content .hero-title {
 }
 html.cn #home .hero-content .hero-title span {
   color: var(--h4-text-2);
-  text-shadow: 0 2px 30px rgba(23, 10, 69, .55);
+  text-shadow: 0 2px 24px rgba(3, 6, 13, .6);
 }
-/* "seconds": the brand gradient (cyan -> lilac -> pink, oklch where supported;
-   every stop is at least 5:1 on the stage). One light sweep passes through it
-   after load (20-scanbox.js adds .is-playing). */
+/* "seconds": the brand gradient, cyan to blue (every stop 7:1 or more on the
+   ground). One light sweep passes through it after load (20-scanbox.js adds
+   .is-playing). */
 html.cn #home .hero-content .hero-title .cn-sweep {
   font-style: normal;
-  color: var(--cn-p-cyan-light, #67e8f9);
+  color: var(--h4-cyan-2);
 }
 @supports ((-webkit-background-clip: text) or (background-clip: text)) {
   html.cn #home .hero-content .hero-title .cn-sweep {
     padding-inline: .04em;
     margin-inline: -.04em;
     background-image:
-      linear-gradient(100deg, transparent 0 40%, rgba(255, 255, 255, .95) 50%, transparent 60% 100%),
-      linear-gradient(100deg, #67e8f9 0%, #a5b4fc 42%, #d8b4fe 72%, #f0abfc 100%);
-    background-image:
-      linear-gradient(100deg, transparent 0 40%, rgba(255, 255, 255, .95) 50%, transparent 60% 100%),
-      var(--cn-grad-text, linear-gradient(100deg, #67e8f9 0%, #a5b4fc 42%, #d8b4fe 72%, #f0abfc 100%));
+      linear-gradient(100deg, transparent 0 40%, rgba(255, 255, 255, .9) 50%, transparent 60% 100%),
+      linear-gradient(100deg, #67e8f9 0%, #38bdf8 48%, #60a5fa 100%);
     background-size: 300% 100%, 100% 100%;
     background-position: 100% 0, 0 0;
     background-repeat: no-repeat;
@@ -387,8 +373,6 @@ html.cn #home .hero-content .hero-title .cn-sweep {
     color: transparent;
     -webkit-text-fill-color: transparent;
     text-shadow: none;
-    /* the shadow, behind the clipped gradient */
-    filter: drop-shadow(0 2px 18px rgba(23, 10, 69, .45));
   }
   html.cn #home .hero-content .hero-title .cn-sweep.is-playing {
     animation: cn-hero-sweep 2.4s var(--cn-ease-in-out) both;
@@ -413,41 +397,40 @@ html.cn #home .hero-content .cn-hero-sub {
 }
 
 /* ---------- scan box ---------- */
-/* A bright frosted card on the violet stage: ink text on near-white (15.9:1),
-   a lit double bezel (box-shadow only, so ::before/::after stay free for the
-   focus ring), one soft violet shadow. */
+/* Dark glass on the navy stage: white text, a lit top edge, a machined
+   double bezel (box-shadow only, so ::before/::after stay free for the focus
+   ring) and one soft neutral shadow. */
 html.cn #home #cnScanBox {
   --cn-bezel: 6px;
-  --sb-text: #1b1340;
-  --sb-text-2: #4b4a6b;
+  --sb-text: #f5f7fa;
+  --sb-text-2: #9aa5b5;
   position: relative;
   box-sizing: border-box;
   width: 100%;
   max-width: 640px;
   margin: clamp(22px, 1rem + 1.6vw, 36px) auto 0;
   padding: 10px 12px 12px;
-  border: 1px solid rgba(255, 255, 255, .9);
+  border: 1px solid rgba(148, 163, 184, .26);
   border-radius: var(--cn-r-panel);
-  background: #fbfaff;
-  background: linear-gradient(180deg, rgba(255, 255, 255, .98), rgba(244, 241, 255, .96));
+  background: #0f1626;
+  background: linear-gradient(180deg, rgba(21, 30, 49, .97), rgba(12, 18, 32, .97));
   box-shadow:
-    0 0 0 var(--cn-bezel) rgba(255, 255, 255, .1),
-    0 0 0 calc(var(--cn-bezel) + 1px) rgba(255, 255, 255, .16),
-    inset 0 -1px 0 rgba(43, 15, 110, .08),
-    0 30px 60px -26px rgba(11, 7, 32, .7),
-    0 0 80px -30px rgba(103, 232, 249, .45);
+    0 0 0 var(--cn-bezel) rgba(255, 255, 255, .025),
+    0 0 0 calc(var(--cn-bezel) + 1px) rgba(148, 163, 184, .1),
+    inset 0 1px 0 rgba(255, 255, 255, .08),
+    0 30px 60px -30px rgba(0, 0, 0, .85);
   color: var(--sb-text);
   text-align: start;
   transition: border-color var(--cn-dur-3) var(--cn-ease-out);
 }
-/* focus: a 1px conic ring (cyan, ice, violet) plus a soft 18px glow */
+/* focus: a 1px conic ring (cyan, ice, blue) plus a soft 18px glow */
 html.cn #home #cnScanBox::before,
 html.cn #home #cnScanBox::after {
   content: "";
   position: absolute;
   inset: -2px;
   border-radius: inherit;
-  background: conic-gradient(from 210deg at 50% 50%, #22d3ee, #67e8f9 18%, #e6fbff 30%, #a78bfa 48%, #e879f9 62%, #67e8f9 82%, #22d3ee);
+  background: conic-gradient(from 210deg at 50% 50%, #22d3ee, #67e8f9 18%, #e6fbff 30%, #60a5fa 52%, #3b82f6 66%, #67e8f9 84%, #22d3ee);
   opacity: 0;
   transition: opacity var(--cn-dur-3) var(--cn-ease-out);
   pointer-events: none;
@@ -464,7 +447,7 @@ html.cn #home #cnScanBox::after {
 }
 html.cn #home #cnScanBox:focus-within { border-color: transparent; }
 html.cn #home #cnScanBox:focus-within::before { opacity: 1; }
-html.cn #home #cnScanBox:focus-within::after { opacity: .55; }
+html.cn #home #cnScanBox:focus-within::after { opacity: .35; }
 
 html.cn #home #cnScanBox .cn-sr {
   position: absolute;
@@ -496,7 +479,7 @@ html.cn #home #cnScanInput {
   background: transparent;
   box-shadow: none;
   color: var(--sb-text);
-  caret-color: #0e7490;
+  caret-color: var(--h4-cyan);
   font-family: var(--cn-font);
   font-size: 1.0625rem;
   font-weight: 400;
@@ -505,7 +488,7 @@ html.cn #home #cnScanInput {
   resize: none;
   overflow-y: hidden;
   scrollbar-width: thin;
-  scrollbar-color: rgba(43, 15, 110, .25) transparent;
+  scrollbar-color: rgba(148, 163, 184, .3) transparent;
   transition: none;
 }
 /* a jump to the box (the closing CTA, the skip link) keeps the H1 and the whole box in view */
@@ -516,6 +499,7 @@ html.cn #home #cnScanInput:focus-visible {
   outline: none;
   box-shadow: none;
 }
+/* the placeholder: 6.3:1 on the box */
 html.cn #home #cnScanInput::placeholder {
   color: var(--sb-text-2);
   font-family: var(--cn-font);
@@ -526,7 +510,7 @@ html.cn #home #cnScanInput::-webkit-input-placeholder {
   font-family: var(--cn-font);
   opacity: 1;
 }
-html.cn #home #cnScanInput::selection { background: rgba(34, 211, 238, .3); color: var(--sb-text); }
+html.cn #home #cnScanInput::selection { background: rgba(34, 211, 238, .32); color: #ffffff; }
 
 /* chips on the inline start, the button on the inline end */
 html.cn #home #cnScanBox .cn-scan-row {
@@ -555,27 +539,26 @@ html.cn #home #cnScanBox .cn-try-label {
   text-transform: uppercase;
 }
 /* the shared .cn-chip at the small 30px size (its hit area reaches 44px),
-   in the light card's colours: deep violet text on a lavender tint (10:1) */
+   in the box's colours: light grey text on a faint white tint (12:1) */
 html.cn #home #cnScanBox .cn-chip {
   height: 30px;
   min-height: 30px;
   margin: 0;
   padding: 0 12px;
-  border-color: rgba(91, 43, 224, .2);
-  background: #f0ecff;
-  color: #3b1d9e;
+  border-color: rgba(148, 163, 184, .26);
+  background: rgba(255, 255, 255, .04);
+  color: #d6dde7;
 }
 @media (hover: hover) and (pointer: fine) {
   html.cn #home #cnScanBox .cn-chip:hover {
-    border-color: rgba(91, 43, 224, .45);
-    background: #e7e0ff;
-    color: #2b0f6e;
+    border-color: rgba(148, 163, 184, .46);
+    background: rgba(255, 255, 255, .08);
+    color: #ffffff;
   }
 }
 
 /* the box's button keeps the shared primary look (01-base.css: the cyan pill,
-   ink text, lift and press); inside the box it is 44px tall, with a teal edge
-   so the pill reads on the light card */
+   ink text, lift and press); inside the box it is 44px tall */
 html.cn #home #cnScanBox .hero-buttons {
   display: flex;
   flex-wrap: wrap;
@@ -596,7 +579,7 @@ html.cn #home #cnScanBox .hero-buttons :is(.primary-btn, .secondary-btn) {
 html.cn #home #cnScanBox .hero-buttons .primary-btn {
   gap: 10px;
   padding-inline: 20px 7px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), 0 0 0 1px rgba(14, 116, 144, .38), 0 10px 24px -10px rgba(14, 116, 144, .65);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 10px 26px -14px rgba(34, 211, 238, .6);
 }
 /* Start scanning: a button-in-button, the arrow in its own still disc */
 html.cn #home #cnScanBox .hero-buttons .primary-btn::after {
@@ -605,19 +588,18 @@ html.cn #home #cnScanBox .hero-buttons .primary-btn::after {
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: rgba(11, 7, 32, .12) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8h9M8.5 4.5 12 8l-3.5 3.5' fill='none' stroke='%230b0720' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 14px no-repeat;
+  background: rgba(3, 6, 13, .14) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8h9M8.5 4.5 12 8l-3.5 3.5' fill='none' stroke='%23051018' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 14px no-repeat;
 }
 html.cn[dir="rtl"] #home #cnScanBox .hero-buttons .primary-btn::after { transform: scaleX(-1); }
-/* the focus ring on the light card: the deep cyan (5.4:1 on white) */
 html.cn #home #cnScanBox :is(.cn-chip, .primary-btn, .secondary-btn):focus-visible {
-  outline: 2px solid #0b6a84;
+  outline: 2px solid var(--h4-cyan);
   outline-offset: 3px;
 }
 
 /* ---------- route to Recovery ----------
    p.cn-hero-recovery > text + button.inline-link-btn.cn-hero-recovery-btn
    [data-page="recovery"] (a static data-page hook, wired by script.js).
-   One quiet line under the box, the action in mint (10:1 on the stage). */
+   One quiet line under the box, the action in mint (Recovery's identity). */
 html.cn #home .hero-content .cn-hero-recovery {
   max-width: min(100%, 36em);
   margin: clamp(14px, .5rem + 1vw, 22px) auto 0;
@@ -645,7 +627,7 @@ html.cn #home .hero-content .cn-hero-recovery-btn {
   font-weight: 600;
   white-space: nowrap;
   text-decoration-line: underline;
-  text-decoration-color: rgba(94, 234, 212, .5);
+  text-decoration-color: rgba(94, 234, 212, .45);
   text-decoration-thickness: 1px;
   text-underline-offset: 4px;
   transform: none;
@@ -664,10 +646,10 @@ html.cn #home .hero-content .cn-hero-recovery-btn::after {
   }
 }
 
-/* ---------- desktop: copy on the inline start, the scene large on the inline end ---------- */
+/* ---------- desktop: copy on the inline start, the globe large on the inline end ---------- */
 @media (min-width: 60rem) and (min-height: 521px) {
   html.cn #home .cn-hero4 {
-    --h4-scene: clamp(520px, 58%, 820px);
+    --h4-scene: clamp(520px, 60cqi, 820px);
     --h4-pill-fill: transparent;
     flex-direction: row;
     align-items: center;
@@ -677,16 +659,29 @@ html.cn #home .hero-content .cn-hero-recovery-btn::after {
     padding-block: clamp(40px, 6vh, 88px) clamp(48px, 7vh, 96px);
     padding-block: clamp(40px, 6svh, 88px) clamp(48px, 7svh, 96px);
     padding-inline: var(--h4-pad-x) 0;
+    /* the globe's light sits on the inline end */
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .03 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+      radial-gradient(42% 60% at 74% 50%, rgba(37, 99, 235, .15), transparent 72%),
+      radial-gradient(38% 40% at 4% 0%, rgba(99, 102, 241, .07), transparent 70%),
+      radial-gradient(50% 50% at 18% 100%, rgba(34, 211, 238, .05), transparent 72%),
+      linear-gradient(180deg, #0a1120, #070c18 60%);
   }
-  html.cn #home .cn-hero4-scene {
-    position: absolute;
-    inset-block-start: 50%;
+  html.cn[dir="rtl"] #home .cn-hero4 {
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .03 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+      radial-gradient(42% 60% at 26% 50%, rgba(37, 99, 235, .15), transparent 72%),
+      radial-gradient(38% 40% at 96% 0%, rgba(99, 102, 241, .07), transparent 70%),
+      radial-gradient(50% 50% at 82% 100%, rgba(34, 211, 238, .05), transparent 72%),
+      linear-gradient(180deg, #0a1120, #070c18 60%);
+  }
+  html.cn #home .cn-hero4::before { display: none; }
+  html.cn #home .cn-hero4-scene > .cn-hero4-poster {
+    top: 50%;
+    left: auto;
+    right: auto;
     inset-inline-end: calc(var(--h4-scene) * -.1);
-    margin: 0;
     translate: 0 -50%;
-    /* soft edges where the square meets the stage */
-    -webkit-mask-image: radial-gradient(closest-side, #000 86%, transparent 100%);
-    mask-image: radial-gradient(closest-side, #000 86%, transparent 100%);
   }
   html.cn #home .hero .hero-content,
   html.cn #home .hero .hero-content.reveal,
@@ -709,8 +704,8 @@ html.cn #home .hero-content .cn-hero-recovery-btn::after {
   html.cn #home .hero-content .cn-hero-recovery { margin-inline: 0; text-align: start; }
 }
 @media (min-width: 60rem) and (min-height: 521px) and (max-width: 74.99rem) {
-  html.cn #home .cn-hero4 { --h4-scene: clamp(500px, 64%, 700px); }
-  html.cn #home .cn-hero4-scene { inset-inline-end: calc(var(--h4-scene) * -.2); }
+  html.cn #home .cn-hero4 { --h4-scene: clamp(500px, 66cqi, 700px); }
+  html.cn #home .cn-hero4-scene > .cn-hero4-poster { inset-inline-end: calc(var(--h4-scene) * -.2); }
   html.cn #home .hero .hero-content,
   html.cn #home .hero .hero-content.reveal,
   html.cn #home .hero .hero-content.reveal.show { width: min(54%, 540px); }
@@ -726,14 +721,13 @@ html.cn #home .hero-content .cn-hero-recovery-btn::after {
     min-height: 0;
     padding: 16px var(--h4-pad-x) 22px;
   }
-  html.cn #home .cn-hero4-scene {
-    position: absolute;
-    inset-block-start: 50%;
+  html.cn #home .cn-hero4::before { display: none; }
+  html.cn #home .cn-hero4-scene > .cn-hero4-poster {
+    top: 50%;
+    left: auto;
+    right: auto;
     inset-inline-end: calc(var(--h4-scene) * -.12);
-    margin: 0;
     translate: 0 -50%;
-    -webkit-mask-image: radial-gradient(closest-side, #000 84%, transparent 100%);
-    mask-image: radial-gradient(closest-side, #000 84%, transparent 100%);
   }
   html.cn #home .hero .hero-content,
   html.cn #home .hero .hero-content.reveal,
@@ -755,15 +749,15 @@ html.cn #home .hero-content .cn-hero-recovery-btn::after {
 
 /* ---------- stacked sizes ---------- */
 @media (max-width: 59.99rem) and (min-width: 600px) and (min-height: 521px) {
-  html.cn #home .cn-hero4 { --h4-scene: min(84%, 600px); --h4-overlap: .24; }
+  html.cn #home .cn-hero4 { --h4-scene: min(84cqi, 600px); --h4-overlap: .24; }
 }
 @media (max-width: 700px) {
   html.cn #home .cn-hero4 { border-radius: 24px; }
 }
-/* short phones (320x640, 280x653): a smaller scene, so Start scanning stays
+/* short phones (320x640, 280x653): a smaller globe, so Start scanning stays
    inside the first screen */
 @media (max-width: 599.98px) and (max-height: 700px) {
-  html.cn #home .cn-hero4 { --h4-scene: min(90%, 41vh); --h4-overlap: .26; }
+  html.cn #home .cn-hero4 { --h4-scene: min(90cqi, 41vh); --h4-overlap: .26; }
   html.cn #home #heroLearnFeaturesBtn { margin-bottom: 10px; }
   html.cn #home .hero-content .hero-title { font-size: 2.125rem; }
   html.cn #home .hero-content .cn-hero-sub { margin-top: 10px; font-size: .875rem; line-height: 1.4; }
@@ -771,7 +765,7 @@ html.cn #home .hero-content .cn-hero-recovery-btn::after {
 }
 @supports (height: 1svh) {
   @media (max-width: 599.98px) and (max-height: 700px) {
-    html.cn #home .cn-hero4 { --h4-scene: min(90%, 41svh); }
+    html.cn #home .cn-hero4 { --h4-scene: min(90cqi, 41svh); }
   }
 }
 
@@ -816,10 +810,11 @@ html.cn #home .hero-content .cn-hero-recovery-btn::after {
 }
 
 /* ---------- how-to tiles under the stage ---------- */
-/* Luminous glass cards on the page ground, each in its tool's identity
-   colour: Quick Scan cyan, Analysis AI violet, Recovery mint. The columns
-   follow the tiles' own width in rem, so larger text drops columns instead
-   of clipping: 3 in a row, 2 + 1 on phones, 1 per row on the narrowest. */
+/* Quiet cards on the page ground, each with a small mark in its tool's
+   identity colour: Quick Scan cyan, Analysis AI violet (its identity mark),
+   Recovery mint. No coloured glows. The columns follow the tiles' own width
+   in rem, so larger text drops columns instead of clipping: 3 in a row,
+   2 + 1 on phones, 1 per row on the narrowest. */
 html.cn #home .hero .hero-video-buttons {
   position: relative;
   inset: auto;
@@ -836,9 +831,8 @@ html.cn #home .hero .hero-video-buttons {
 }
 html.cn #home .hero .hero-video-btn {
   --cn-tile: var(--cn-cyan-2);
-  --cn-tile-tint: rgba(34, 211, 238, .14);
-  --cn-tile-line: rgba(34, 211, 238, .3);
-  --cn-tile-glow: rgba(34, 211, 238, .45);
+  --cn-tile-tint: rgba(34, 211, 238, .1);
+  --cn-tile-line: rgba(34, 211, 238, .28);
   position: relative;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -854,29 +848,27 @@ html.cn #home .hero .hero-video-btn {
   padding: 11px 14px 11px 11px;
   border: 1px solid var(--cn-line-2);
   border-radius: var(--cn-r-card);
-  background: var(--cn-sheen), var(--cn-glass-2, var(--cn-surface));
-  box-shadow: inset 0 1px 0 var(--cn-hi), var(--cn-shadow-card);
+  background: var(--cn-surface);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05);
   color: var(--cn-text);
   font-family: var(--cn-font);
   text-align: start;
   cursor: pointer;
   transform: none;
   touch-action: manipulation;
-  transition: background-color var(--cn-dur-1) ease, border-color var(--cn-dur-1) ease, box-shadow var(--cn-dur-2) var(--cn-ease-out),
+  transition: background-color var(--cn-dur-1) ease, border-color var(--cn-dur-1) ease,
     translate var(--cn-dur-2) var(--cn-ease-out), scale var(--cn-dur-1) var(--cn-ease-out);
   -webkit-tap-highlight-color: transparent;
 }
 html.cn #home .hero .hero-video-btn[data-video="cybernetai"] {
-  --cn-tile: var(--cn-violet-2, #c4b5fd);
-  --cn-tile-tint: rgba(139, 92, 246, .2);
-  --cn-tile-line: rgba(167, 139, 250, .36);
-  --cn-tile-glow: rgba(139, 92, 246, .5);
+  --cn-tile: var(--cn-iris-2, #b9baff);
+  --cn-tile-tint: rgba(139, 140, 255, .12);
+  --cn-tile-line: rgba(139, 140, 255, .32);
 }
 html.cn #home .hero .hero-video-btn[data-video="recovery"] {
   --cn-tile: var(--cn-mint);
-  --cn-tile-tint: rgba(94, 234, 212, .14);
-  --cn-tile-line: rgba(94, 234, 212, .32);
-  --cn-tile-glow: rgba(94, 234, 212, .4);
+  --cn-tile-tint: rgba(94, 234, 212, .1);
+  --cn-tile-line: rgba(94, 234, 212, .3);
 }
 html.cn #home .hero .hero-video-btn-icon {
   grid-row: 1 / 3;
@@ -886,8 +878,7 @@ html.cn #home .hero .hero-video-btn-icon {
   height: 42px;
   border: 1px solid var(--cn-tile-line);
   border-radius: 13px;
-  background: radial-gradient(120% 100% at 30% 0%, rgba(255, 255, 255, .14), transparent 60%), var(--cn-tile-tint);
-  box-shadow: 0 6px 18px -8px var(--cn-tile-glow);
+  background: var(--cn-tile-tint);
   color: var(--cn-tile);
   transition: border-color var(--cn-dur-1) ease;
 }
@@ -934,7 +925,7 @@ html.cn #home .hero .hero-video-btn:active { scale: .98; }
 @media (hover: hover) and (pointer: fine) {
   html.cn #home .hero .hero-video-btn:hover {
     border-color: var(--cn-tile-line);
-    box-shadow: inset 0 1px 0 var(--cn-hi), var(--cn-shadow-card), 0 0 0 1px var(--cn-tile-line), 0 14px 34px -18px var(--cn-tile-glow);
+    background: var(--cn-surface-2, var(--cn-surface));
     translate: 0 -1px;
   }
   html.cn #home .hero .hero-video-btn:hover .cn-tile-sub::after { translate: 2px 0; }
@@ -958,8 +949,6 @@ html.cn #home .hero .hero-video-btn:active { scale: .98; }
 /* ---------- preferences ---------- */
 /* 90-a11y.css also ends every animation and transition under reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  html.cn #home .cn-hero4::before,
-  html.cn #home .cn-hero4::after { animation: none; }
   html.cn #home .cn-hero4-scene > .cn-hero4-canvas { display: none; }
   html.cn #home .cn-hero4-scene > .cn-hero4-poster { opacity: 1; }
   html.cn #home .cn-stage .cn-stage-pause { display: none; }
@@ -971,12 +960,10 @@ html.cn #home .hero .hero-video-btn:active { scale: .98; }
   html.cn[dir="rtl"] #home #heroLearnFeaturesBtn svg { scale: -1 1; }
 }
 @media (prefers-reduced-transparency: reduce) {
-  html.cn #home #cnScanBox { background: #ffffff; }
-  html.cn #home #heroLearnFeaturesBtn { background: #3a12a8; }
+  html.cn #home #cnScanBox { background: #111a2b; }
+  html.cn #home #heroLearnFeaturesBtn { background: #0c1220; }
 }
 @media (forced-colors: active) {
-  html.cn #home .cn-hero4::before,
-  html.cn #home .cn-hero4::after,
   html.cn #home .cn-hero4-scene { display: none; }
   html.cn #home .hero-content .hero-title .cn-sweep {
     background: none;
@@ -987,4 +974,20 @@ html.cn #home .hero .hero-video-btn:active { scale: .98; }
   html.cn #home #cnScanBox:focus-within { outline: 2px solid Highlight; }
   html.cn #home #cnScanBox .hero-buttons .primary-btn::after { display: none; }
   html.cn #home #cnScanBox .hero-buttons .primary-btn { padding-inline: 20px; }
+}
+
+/* Owner request (14 Oct): no visible pause controls. The hero pause, the closing shield's pause (the
+   same round button, added by 55-scrub.js) and the footer "Pause motion" stay in the page for keyboard
+   users and appear only while focused; visitors with the system "reduce motion" setting are still
+   stilled automatically (90-a11y.css, 07-aurora.js). */
+html.cn :is(.cn-stage-pause, .cn-close-pause, .cn-motion-toggle):not(:focus-visible) {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+  clip-path: inset(50%) !important;
+  white-space: nowrap !important;
 }

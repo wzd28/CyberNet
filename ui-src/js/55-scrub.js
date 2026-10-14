@@ -1,15 +1,15 @@
-/* Closing (.home-quote): the statement and the big turning shield.
-   Statement ([data-cn="scrub"]): the words brighten from a soft lilac to their line's colour as the
+/* Closing (.home-quote): the statement and the chrome shield emblem.
+   Statement ([data-cn="scrub"]): the words brighten from slate to their line's colour as the
    block scrolls through the viewport. Not pinned. This file splits the text into word spans once
    (each sentence on its own line) and keeps the full sentence in a visually hidden copy for screen
    readers. CSS drives the brightness from --cn-scrub (0..1):
    - where animation-timeline: view() is supported, a CSS animation on the paragraph sets it;
    - otherwise this file sets it from the paragraph's position, only while it is on screen.
-   Shield (.cn-close-shield > img): wrapped as .cn-cs-float > .cn-cs-spin with a few darker copies
-   of the render stacked behind it, so the turn shows a solid edge instead of a paper-thin card
-   (fewer copies on touch devices). The sway-and-turn loop and the light rays run only while the
-   shield is on screen, the tab is visible, motion is allowed and nothing paused them: this file
-   sets data-cn-play on .cn-close-shield (a data attribute: legacy observers watch "class").
+   Shield (.cn-close-shield > img): wrapped once in .cn-cs-float, which floats the emblem a few
+   pixels up and down (v4.1: a quiet metallic emblem; no turn, no sway, no rays, no depth stack,
+   so it is one 2D transform on the compositor). The float runs only while the shield is on
+   screen, the tab is visible, motion is allowed and nothing paused it: this file sets
+   data-cn-play on .cn-close-shield (a data attribute: legacy observers watch "class").
    A Pause button (the hero's round control) is added to the stage; CN.pause() / CN.resume() (the
    page-wide motion control) reach it through the "scrub" controller.
    Reduced motion: every word is bright, the shield rests, no Pause button. */
@@ -89,32 +89,17 @@
   }
 
   /* ---------- the closing shield ---------- */
-  var DEPTH_FINE = 7, DEPTH_COARSE = 4;
-
-  /* Build the depth stack once, at start-up (it only adds absolutely placed layers inside the
-     shield's own fixed-size box, so the page never shifts). */
+  /* Wrap the emblem once, at start-up (an absolutely placed wrapper inside the shield's own
+     fixed-size box, so the page never shifts). */
   function buildShield(box) {
     if (!box || box.__cnShield) return box && box.__cnShield;
     var img = CN.qs("img", box);
     if (!img) return null;
     var fl = doc.createElement("span");
     fl.className = "cn-cs-float";
-    var spin = doc.createElement("span");
-    spin.className = "cn-cs-spin";
-    fl.appendChild(spin);
     img.parentNode.insertBefore(fl, img);
-    var depth = CN.finePointer() ? DEPTH_FINE : DEPTH_COARSE;
-    /* back to front: the turned-around back, the edge layers, then the original face on top */
-    for (var z = depth; z >= 1; z--) {
-      var c = img.cloneNode(false);
-      c.removeAttribute("id");
-      c.setAttribute("alt", "");
-      c.className = z === depth ? "cn-cs-layer cn-cs-back" : "cn-cs-layer";
-      c.style.setProperty("--z", z);
-      spin.appendChild(c);
-    }
-    spin.appendChild(img);
-    box.__cnShield = { box: box, spin: spin };
+    fl.appendChild(img);
+    box.__cnShield = { box: box, float: fl };
     return box.__cnShield;
   }
 

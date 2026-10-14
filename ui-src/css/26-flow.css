@@ -1,20 +1,22 @@
-/* Home 6 - Three tools (#cnFlow), v4 "Aurora": a luminous violet stage.
-   An inset rounded sheet (the same shell and edges as the other home panels) on the violet mesh.
-   Inside, a tabbed reel in three columns on desktop: the tools as cards (each with its 3D object:
-   the shield, a glass orb, a ring), a 3D stage in the middle where the big shield floats in a
-   tilted orbit and takes the active tool's colour, and the active tool's example card with its
-   button. Tablets: tool cards in a row, then stage and card side by side. Phones: the stage on top,
-   three icon tabs in one row (no sideways scrolling), then the card.
+/* Home 6 - Three tools (#cnFlow), v4.1 "Midnight": a navy stage.
+   An inset rounded sheet (the same shell and edges as the other home panels) on navy, with the
+   section motion canvas (09-bgfx.js) drawing its light lines behind the content.
+   Inside, a tabbed reel in three columns on desktop: the tools as cards (each with its chrome 3D
+   object: the shield, a glass globe, a shield with a restore arrow), a quiet stage in the middle where the chrome shield
+   floats inside one thin orbit with a single travelling light, and the active tool's example card
+   with its button. Tablets: tool cards in a row, then stage and card side by side. Phones: the
+   stage on top, three icon tabs in one row (no sideways scrolling), then the card.
+   Restraint (owner feedback: simpler, expensive): the stage keeps one neutral light whatever
+   the tool, there are no coloured rays or glows, and one small loop runs (the shield's slow
+   float, a 2D translate on the compositor), paused off screen. The travelling light along the
+   orbit comes from the section's motion canvas (09-bgfx.js), not from extra DOM loops.
    35-reel.js adds .is-ready (the tabbed layout), .is-shown (first time on screen), .is-auto and
    .is-playing (the progress line runs), data-cn-tool on the reel (scan | ai | rec), builds the
    stage (.cn-flow-stage, aria-hidden) and sets data-cn-play on it while its loops may run (on
    screen, tab visible, motion allowed, not paused). Before that, and without JS, every panel
-   shows, stacked, with no stage. Primary buttons stay cyan; tool colours mark the tabs, the stage
-   and the example cards only. Every text pair was checked at 4.5:1 or more. */
-
-/* Registered so a colour can cross-fade between tools. Not inherited: each glow leaf transitions
-   its own value, so a tool change restyles three small elements, not the section. */
-@property --cn-fs-c { syntax: "<color>"; inherits: false; initial-value: #22d3ee; }
+   shows, stacked, with no stage. Primary buttons stay cyan; tool colours mark only the tab's
+   progress line and the example card's small dot (Analysis AI's indigo is one of those small
+   marks). Every text pair was checked at 4.5:1 or more. */
 
 /* ---------- The stage sheet ---------- */
 html.cn #home > .cn-flow {
@@ -34,54 +36,44 @@ html.cn #home > .cn-flow {
   border-radius: var(--cn-panel-r);
   overflow: hidden;
   overflow: clip;
-  background:
-    radial-gradient(58% 46% at 8% 0%, rgba(91, 43, 224, .92), transparent 72%),
-    radial-gradient(40% 38% at 100% 0%, rgba(34, 211, 238, .26), transparent 72%),
-    radial-gradient(46% 40% at 96% 100%, rgba(232, 121, 249, .26), transparent 72%),
-    radial-gradient(50% 44% at 0% 100%, rgba(96, 165, 250, .18), transparent 72%),
-    radial-gradient(70% 60% at 50% 62%, rgba(58, 18, 168, .62), transparent 80%),
-    #2b0f6e;
+  background-color: #080d18;
+  background-image:
+    radial-gradient(60% 44% at 50% 0%, rgba(34, 211, 238, .06), transparent 72%),
+    radial-gradient(44% 40% at 50% 62%, rgba(148, 163, 184, .05), transparent 76%),
+    linear-gradient(180deg, #0b1120 0%, #070b15 100%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, .16),
-    inset 0 0 0 1px rgba(196, 181, 253, .14),
-    0 40px 90px -50px rgba(10, 4, 40, .7);
+    inset 0 1px 0 rgba(255, 255, 255, .06),
+    inset 0 0 0 1px rgba(148, 163, 184, .1);
+  --cn-text: #f5f7fa;
+  --cn-text-2: #aab4c3;
+  --cn-text-3: #8a95a7;
+  --cn-line: rgba(148, 163, 184, .14);
+  --cn-line-2: rgba(148, 163, 184, .24);
   color: var(--cn-text);
   font-family: var(--cn-font);
 }
-/* A faint dot grid that fades toward the edges, and a lit top edge (static, painted once). */
-html.cn #home > .cn-flow::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-image: radial-gradient(rgba(255, 255, 255, .085) 1px, transparent 1.4px);
-  background-size: 28px 28px;
-  background-position: 50% 0;
-  -webkit-mask-image: radial-gradient(64% 58% at 50% 48%, #000 0%, transparent 100%);
-  mask-image: radial-gradient(64% 58% at 50% 48%, #000 0%, transparent 100%);
-}
+/* A lit top edge: a faint cyan hairline that fades out at both ends (static). */
 html.cn #home > .cn-flow::after {
   content: "";
   position: absolute;
-  inset: 0 12% auto;
+  inset: 0 16% auto;
   block-size: 1px;
   pointer-events: none;
-  background: linear-gradient(90deg, transparent, rgba(103, 232, 249, .7) 30%, rgba(196, 181, 253, .7) 60%, rgba(232, 121, 249, .55) 80%, transparent);
+  background: linear-gradient(90deg, transparent, rgba(103, 232, 249, .42) 40%, rgba(148, 163, 184, .28) 70%, transparent);
 }
 
-/* Head on violet: white lead phrase, the continuation in the violet voice (lilac, 8.2:1). */
+/* Head on navy: white lead phrase, the continuation in slate (the two-tone rule, 9.6:1). */
 html.cn #home .cn-flow .cn-head { margin-block-end: clamp(28px, 1.25rem + 2.4vw, 56px); }
-html.cn #home .cn-flow .cn-head h2 > span { color: var(--cn-violet-2, #c4b5fd); }
+html.cn #home .cn-flow .cn-head h2 > span { color: var(--cn-text-2); }
 
 /* Tool identity (the shared --cn-id tokens), set per tab and panel. --cn-tool is the bright
-   colour for light and glows on the violet stage. */
+   mark colour on navy (the progress line, the card's dot); --cn-tool-ink the same on white. */
 html.cn #home #cnTabScan,
 html.cn #home #cnPanelScan { --cn-id: var(--cn-cyan); --cn-id-2: var(--cn-cyan-2); --cn-id-tint: var(--cn-cyan-tint); --cn-id-line: var(--cn-cyan-line); --cn-tool: #22d3ee; --cn-tool-ink: #0b6a84; }
 html.cn #home #cnTabAi,
-html.cn #home #cnPanelAi { --cn-id: var(--cn-iris); --cn-id-2: var(--cn-iris-2); --cn-id-tint: var(--cn-iris-tint); --cn-id-line: var(--cn-iris-line); --cn-tool: #a78bfa; --cn-tool-ink: #6d28d9; }
+html.cn #home #cnPanelAi { --cn-id: var(--cn-iris); --cn-id-2: var(--cn-iris-2); --cn-id-tint: var(--cn-iris-tint); --cn-id-line: var(--cn-iris-line); --cn-tool: #a5b4fc; --cn-tool-ink: #4f46e5; }
 html.cn #home #cnTabRec,
-html.cn #home #cnPanelRec { --cn-id: var(--cn-mint); --cn-id-2: var(--cn-mint-2); --cn-id-tint: var(--cn-mint-tint); --cn-id-line: var(--cn-mint-line); --cn-tool: #5eead4; --cn-tool-ink: #0f766e; }
+html.cn #home #cnPanelRec { --cn-id: var(--cn-mint); --cn-id-2: var(--cn-mint-2); --cn-id-tint: var(--cn-mint-tint); --cn-id-line: var(--cn-mint-line); --cn-tool: #5eead4; --cn-tool-ink: #0d6b64; }
 
 /* ---------- Stacked (no JS yet) ---------- */
 html.cn #home .cn-reel { min-inline-size: 0; }
@@ -97,7 +89,7 @@ html.cn #home .cn-reel:not(.is-ready) .cn-reel-panels {
 }
 html.cn #home .cn-reel:not(.is-ready) .cn-reel-panel {
   padding: clamp(16px, 2.5cqi, 28px);
-  background: rgba(255, 255, 255, .06);
+  background: rgba(255, 255, 255, .04);
   border: 1px solid var(--cn-line-2);
   border-radius: var(--cn-r-card);
 }
@@ -150,10 +142,10 @@ html.cn #home .cn-reel-tabs {
   min-inline-size: 0;
   margin: 0;
   padding: 6px;
-  background: rgba(11, 7, 32, .26);
-  border: 1px solid rgba(196, 181, 253, .18);
+  background: rgba(2, 6, 14, .3);
+  border: 1px solid rgba(148, 163, 184, .16);
   border-radius: 22px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05);
 }
 html.cn #home .cn-reel-tab {
   -webkit-appearance: none;
@@ -180,23 +172,26 @@ html.cn #home .cn-reel-tab {
   -webkit-tap-highlight-color: transparent;
   transition: background-color var(--cn-dur-2) ease, color var(--cn-dur-2) ease, border-color var(--cn-dur-2) ease, box-shadow var(--cn-dur-3) ease, translate var(--cn-dur-2) var(--cn-ease-out);
 }
-/* The tool's 3D object (renders in /ui/3d): the shield, the AI orb and the Recovery ring. The
-   renders carry a soft halo, so they are drawn a little larger than their box. */
+/* The tool's chrome 3D object (renders in /ui/3d): the shield, the AI globe and the Recovery shield.
+   The renders carry a soft halo, so they are drawn a little larger than their box. */
 html.cn #home .cn-reel-tab::before {
+  /* the render on a faint slate disc, so the dark glass globe still reads on navy */
+  --cn-tab-disc: radial-gradient(closest-side, rgba(203, 213, 225, .16), rgba(203, 213, 225, .05) 62%, transparent 100%);
   content: "";
   flex: none;
   inline-size: 34px;
   block-size: 34px;
   margin: -2px;
-  background: center / contain no-repeat;
-  transition: scale var(--cn-dur-3) var(--cn-ease-out), opacity var(--cn-dur-2) ease, filter var(--cn-dur-3) ease;
-  opacity: .8;
-  filter: saturate(.75);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain, 100% 100%;
+  transition: scale var(--cn-dur-3) var(--cn-ease-out), opacity var(--cn-dur-2) ease;
+  opacity: .78;
 }
-html.cn #home .cn-reel-tab.is-active::before { opacity: 1; scale: 1.1; filter: saturate(1) drop-shadow(0 4px 12px var(--cn-tool, #22d3ee)); }
-html.cn #home #cnTabScan::before { background-image: url("/ui/3d/shield-320.webp?v=20261014-1"); }
-html.cn #home #cnTabAi::before { background-image: url("/ui/3d/orb.webp?v=20261014-1"); }
-html.cn #home #cnTabRec::before { background-image: url("/ui/3d/ring.webp?v=20261014-1"); }
+html.cn #home .cn-reel-tab.is-active::before { opacity: 1; scale: 1.06; }
+html.cn #home #cnTabScan::before { background-image: url("/ui/3d/shield-320.webp?v=20261014-5"), var(--cn-tab-disc); }
+html.cn #home #cnTabAi::before { background-image: url("/ui/3d/ai-globe-320.webp?v=20261014-5"), var(--cn-tab-disc); }
+html.cn #home #cnTabRec::before { background-image: url("/ui/3d/recovery-320.webp?v=20261014-5"), var(--cn-tab-disc); }
 /* Numbers stay in the Example scan, the one real sequence on the page. */
 html.cn #home .cn-reel-k { display: none; }
 html.cn #home .cn-reel-tab b {
@@ -218,19 +213,19 @@ html.cn #home .cn-reel-tab small {
   white-space: nowrap;
 }
 html.cn #home .cn-reel-tab.is-active {
-  background: linear-gradient(180deg, rgba(255, 255, 255, .15), rgba(255, 255, 255, .07));
+  background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .035));
   color: var(--cn-text);
-  box-shadow: 0 18px 40px -22px var(--cn-tool, #22d3ee), inset 0 1px 0 rgba(255, 255, 255, .14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 16px 32px -24px rgba(0, 0, 0, .8);
 }
-/* the active card's gradient hairline in the tool's colour (a masked ring, so the glass stays
-   see-through) */
+/* the active card's hairline: a short pass of the tool's colour fading into slate (a masked
+   ring, so the glass stays see-through) */
 html.cn #home .cn-reel-tab::after {
   content: "";
   position: absolute;
   inset: -1px;
   padding: 1px;
   border-radius: inherit;
-  background: linear-gradient(150deg, var(--cn-tool, #22d3ee), rgba(196, 181, 253, .34) 46%, rgba(196, 181, 253, .06));
+  background: linear-gradient(150deg, color-mix(in srgb, var(--cn-tool, #22d3ee) 70%, transparent), rgba(148, 163, 184, .24) 40%, rgba(148, 163, 184, .08));
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
@@ -250,13 +245,12 @@ html.cn #home .cn-reel-line {
   overflow: hidden;
   pointer-events: none;
 }
-html.cn #home .cn-reel-tab.is-active .cn-reel-line { background: rgba(255, 255, 255, .12); }
+html.cn #home .cn-reel-tab.is-active .cn-reel-line { background: rgba(255, 255, 255, .1); }
 html.cn #home .cn-reel-line::after {
   content: "";
   position: absolute;
   inset: 0;
   background: var(--cn-tool, var(--cn-cyan));
-  box-shadow: 0 0 10px var(--cn-tool, var(--cn-cyan));
   transform: scaleX(0);
   transform-origin: 0 50%;
 }
@@ -276,8 +270,8 @@ html.cn #home .cn-reel-tab:focus-visible {
 @media (hover: hover) and (pointer: fine) {
   html.cn #home .cn-reel-tab:not(.is-active):hover {
     color: var(--cn-text);
-    background: rgba(255, 255, 255, .07);
-    border-color: rgba(196, 181, 253, .2);
+    background: rgba(255, 255, 255, .05);
+    border-color: rgba(148, 163, 184, .24);
     translate: 0 -1px;
   }
   html.cn #home .cn-reel-tab:not(.is-active):hover::before { opacity: 1; }
@@ -310,8 +304,8 @@ html.cn #home .cn-reel-tab:focus-visible {
     row-gap: 3px;
     min-block-size: 92px;
     padding: 16px 16px 20px 14px;
-    background: rgba(255, 255, 255, .035);
-    border-color: rgba(196, 181, 253, .16);
+    background: rgba(255, 255, 255, .025);
+    border-color: rgba(148, 163, 184, .14);
     border-radius: 20px;
     text-align: start;
   }
@@ -367,48 +361,27 @@ html.cn #home .cn-flow-stage {
   html.cn #home .cn-flow-stage { inline-size: min(100%, 470px, 78svh); }
 }
 
-/* glow, light shafts and the floor light take the tool's colour */
+/* One neutral light behind the shield (a soft white core in a faint cyan haze), and a dark
+   contact shadow with a thin cyan rim under it. Static, the same for every tool. */
 html.cn #home .cn-fs-glow,
-html.cn #home .cn-fs-rays,
 html.cn #home .cn-fs-floor {
   position: absolute;
-  --cn-fs-c: #22d3ee;
-  transition: --cn-fs-c 900ms var(--cn-ease-out);
 }
-html.cn #home .cn-reel[data-cn-tool="ai"] :is(.cn-fs-glow, .cn-fs-rays, .cn-fs-floor) { --cn-fs-c: #8b5cf6; }
-html.cn #home .cn-reel[data-cn-tool="rec"] :is(.cn-fs-glow, .cn-fs-rays, .cn-fs-floor) { --cn-fs-c: #2dd4bf; }
-
 html.cn #home .cn-fs-glow {
-  inset: 2%;
+  inset: 6%;
   border-radius: 50%;
   background:
-    radial-gradient(closest-side, rgba(255, 255, 255, .34), transparent 34%),
-    radial-gradient(closest-side, var(--cn-fs-c), transparent 74%);
-  opacity: .62;
-}
-html.cn #home .cn-fs-rays {
-  inset: -22%;
-  border-radius: 50%;
-  background: conic-gradient(from 0deg,
-    transparent 0deg, rgba(255, 255, 255, .16) 9deg, transparent 22deg,
-    transparent 58deg, var(--cn-fs-c) 66deg, transparent 80deg,
-    transparent 118deg, rgba(255, 255, 255, .12) 126deg, transparent 140deg,
-    transparent 182deg, rgba(232, 121, 249, .5) 190deg, transparent 204deg,
-    transparent 244deg, rgba(255, 255, 255, .14) 252deg, transparent 266deg,
-    transparent 300deg, var(--cn-fs-c) 309deg, transparent 322deg, transparent 360deg);
-  -webkit-mask: radial-gradient(closest-side, rgba(0, 0, 0, .9) 12%, rgba(0, 0, 0, .35) 46%, transparent 74%);
-  mask: radial-gradient(closest-side, rgba(0, 0, 0, .9) 12%, rgba(0, 0, 0, .35) 46%, transparent 74%);
-  opacity: .5;
-  animation: cn-fs-turn 96s linear infinite;
+    radial-gradient(closest-side, rgba(255, 255, 255, .12), transparent 46%),
+    radial-gradient(closest-side, rgba(34, 211, 238, .12), transparent 78%);
 }
 html.cn #home .cn-fs-floor {
-  inset-inline: 22%;
-  inset-block-end: 6%;
-  block-size: 13%;
+  inset-inline: 26%;
+  inset-block-end: 7%;
+  block-size: 10%;
   border-radius: 50%;
-  background: radial-gradient(closest-side, var(--cn-fs-c), transparent);
-  opacity: .5;
-  animation: cn-fs-floor 7s ease-in-out infinite;
+  background:
+    radial-gradient(closest-side, rgba(0, 0, 0, .55), transparent),
+    radial-gradient(closest-side, rgba(103, 232, 249, .14), transparent 90%);
 }
 
 /* the 3D layer: one rendering context, so the orbit passes in front of and behind the shield */
@@ -429,57 +402,18 @@ html.cn #home .cn-fs-orbit {
   transform-style: preserve-3d;
 }
 html.cn[dir="rtl"] #home .cn-fs-orbit { translate: 50% -46%; }
+/* the orbit: two thin hairlines, slate and a fainter cyan, no glow */
 html.cn #home .cn-fs-path {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 1.5px solid rgba(196, 181, 253, .42);
-  box-shadow: 0 0 22px rgba(139, 92, 246, .45), inset 0 0 22px rgba(139, 92, 246, .3);
+  border: 1px solid rgba(203, 213, 225, .28);
 }
 html.cn #home .cn-fs-path--b {
   inset: -11%;
-  border-width: 1px;
-  border-color: rgba(103, 232, 249, .26);
-  box-shadow: none;
+  border-color: rgba(103, 232, 249, .16);
 }
-html.cn #home .cn-fs-arm {
-  position: absolute;
-  inset: 0;
-  transform-style: preserve-3d;
-  transform: rotateZ(var(--a0, 0deg));
-  animation: cn-fs-orbit var(--dur, 20s) linear infinite;
-}
-html.cn #home .cn-fs-arm--a { --a0: 30deg; --dur: 19s; }
-html.cn #home .cn-fs-arm--b { --a0: 200deg; --dur: 27s; }
-html.cn #home .cn-fs-arm--c { --a0: 120deg; --dur: 14s; inset: -11%; }
-html.cn #home .cn-fs-sat {
-  position: absolute;
-  inset-block-start: 50%;
-  inset-inline-start: 100%;
-  inline-size: 14%;
-  aspect-ratio: 1;
-  translate: -50% -50%;
-  border-radius: 50%;
-  transform: rotateZ(calc(var(--a0, 0deg) * -1)) rotateX(-74deg) rotateZ(14deg);
-  animation: cn-fs-face var(--dur, 20s) linear infinite;
-}
-html.cn #home .cn-fs-orb {
-  inline-size: 19%;
-  border-radius: 0;
-  background: url("/ui/3d/orb.webp?v=20261014-1") center / contain no-repeat;
-}
-html.cn #home .cn-fs-ring {
-  inline-size: 15%;
-  border-radius: 0;
-  background: url("/ui/3d/ring.webp?v=20261014-1") center / contain no-repeat;
-}
-html.cn #home .cn-fs-spark {
-  inline-size: 6%;
-  background: radial-gradient(circle at 38% 34%, #ffffff 0 14%, #a5f3fc 34%, #22d3ee 62%, #0e7490 100%);
-  box-shadow: 0 0 18px 2px rgba(34, 211, 238, .9);
-}
-
-/* the shield: floats and sways; its sprite (::before) takes the tool's tint and spins in on a
+/* the chrome shield: floats slowly (a 2D translate); its sprite (::before) settles in on a tool
    change (a different keyframes name per tool restarts the animation) */
 html.cn #home .cn-fs-shield {
   position: absolute;
@@ -495,53 +429,35 @@ html.cn #home .cn-fs-shield::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: url("/ui/3d/shield.webp?v=20261014-1") center / contain no-repeat;
-  filter: hue-rotate(0deg) saturate(1) brightness(1) drop-shadow(0 18px 34px rgba(34, 211, 238, .5));
-  transition: filter 900ms var(--cn-ease-out);
-  animation: cn-fs-swap-a 1.15s cubic-bezier(.2, .7, .2, 1) both;
+  background: url("/ui/3d/shield.webp?v=20261014-5") center / contain no-repeat;
+  filter: drop-shadow(0 22px 26px rgba(0, 0, 0, .55));
+  animation: cn-fs-swap-a .9s var(--cn-ease-out) both;
 }
-html.cn #home .cn-reel[data-cn-tool="ai"] .cn-fs-shield::before {
-  filter: hue-rotate(30deg) saturate(1.15) brightness(1.04) drop-shadow(0 18px 34px rgba(139, 92, 246, .62));
-  animation-name: cn-fs-swap-b;
-}
-html.cn #home .cn-reel[data-cn-tool="rec"] .cn-fs-shield::before {
-  filter: hue-rotate(-24deg) saturate(1.05) brightness(1.02) drop-shadow(0 18px 34px rgba(45, 212, 191, .55));
-  animation-name: cn-fs-swap-c;
-}
+html.cn #home .cn-reel[data-cn-tool="ai"] .cn-fs-shield::before { animation-name: cn-fs-swap-b; }
+html.cn #home .cn-reel[data-cn-tool="rec"] .cn-fs-shield::before { animation-name: cn-fs-swap-c; }
 
-/* loops run only while 35-reel.js says so (on screen, tab visible, not paused) */
-html.cn #home .cn-flow-stage:not([data-cn-play]) :is(.cn-fs-rays, .cn-fs-floor, .cn-fs-arm, .cn-fs-sat, .cn-fs-shield) {
+/* the loop runs only while 35-reel.js says so (on screen, tab visible, not paused) */
+html.cn #home .cn-flow-stage:not([data-cn-play]) .cn-fs-shield {
   animation-play-state: paused;
 }
 
-@keyframes cn-fs-turn { to { transform: rotate(360deg); } }
-@keyframes cn-fs-floor {
-  0%, 100% { transform: scale(1); opacity: .5; }
-  50% { transform: scale(.84); opacity: .32; }
-}
 @keyframes cn-fs-float {
-  0%, 100% { transform: translate3d(0, 0, 0) rotateY(-9deg) rotateZ(-1.5deg); }
-  50% { transform: translate3d(0, -4%, 0) rotateY(9deg) rotateZ(1.5deg); }
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -2.5%, 0); }
 }
-@keyframes cn-fs-orbit {
-  from { transform: rotateZ(var(--a0, 0deg)); }
-  to { transform: rotateZ(calc(var(--a0, 0deg) + 360deg)); }
-}
-@keyframes cn-fs-face {
-  from { transform: rotateZ(calc(var(--a0, 0deg) * -1)) rotateX(-74deg) rotateZ(14deg); }
-  to { transform: rotateZ(calc(var(--a0, 0deg) * -1 - 360deg)) rotateX(-74deg) rotateZ(14deg); }
-}
+/* A tool change: the shield settles in (a short fade and scale, no spin). Three identical
+   keyframes under different names, so each change restarts it. */
 @keyframes cn-fs-swap-a {
-  from { transform: perspective(700px) rotateY(-360deg) scale(.84); }
-  to { transform: perspective(700px) rotateY(0deg) scale(1); }
+  from { opacity: .4; transform: scale(.94); }
+  to { opacity: 1; transform: none; }
 }
 @keyframes cn-fs-swap-b {
-  from { transform: perspective(700px) rotateY(-360deg) scale(.84); }
-  to { transform: perspective(700px) rotateY(0deg) scale(1); }
+  from { opacity: .4; transform: scale(.94); }
+  to { opacity: 1; transform: none; }
 }
 @keyframes cn-fs-swap-c {
-  from { transform: perspective(700px) rotateY(-360deg) scale(.84); }
-  to { transform: perspective(700px) rotateY(0deg) scale(1); }
+  from { opacity: .4; transform: scale(.94); }
+  to { opacity: 1; transform: none; }
 }
 
 /* Scroll-linked entrance: the stage rises and grows in as the section scrolls up (transform
@@ -624,20 +540,20 @@ html.cn #home .cn-reel.is-ready:not(.is-auto) .cn-reel-panel.is-active {
   transition: none;
 }
 
-/* ---------- Example cards: white, luminous, floating on the violet stage ----------
+/* ---------- Example cards: white, floating on the navy stage ----------
    Light tokens inside the card, so the shared parts (Example tag, verdict badge) read correctly. */
 html.cn #home .cn-flow .cn-mini {
-  --cn-text: #1b1340;
-  --cn-text-2: #4b4a6b;
-  --cn-text-3: #5f5d80;
-  --cn-line: #ebe7ff;
-  --cn-line-2: #d6cff7;
+  --cn-text: #0b1220;
+  --cn-text-2: #475569;
+  --cn-text-3: #5b6576;
+  --cn-line: #e6ebf1;
+  --cn-line-2: #d3dae4;
   --cn-surface: #ffffff;
-  --cn-surface-2: #f6f4ff;
-  --cn-surface-3: #ede9fe;
-  --cn-bg-2: #f4f1ff;
-  --cn-iris: #6d28d9;
-  --cn-mint: #0f766e;
+  --cn-surface-2: #f5f7fa;
+  --cn-surface-3: #ebeff5;
+  --cn-bg-2: #f5f7fa;
+  --cn-iris: #4f46e5;
+  --cn-mint: #0d6b64;
   --cn-danger: #be123c;
   --cn-danger-tint: rgba(190, 18, 60, .09);
   --cn-safe: #04704f;
@@ -652,21 +568,15 @@ html.cn #home .cn-flow .cn-mini {
   gap: 14px;
   inline-size: min(100%, 28rem);
   padding: clamp(16px, 3.5cqi, 22px);
-  background:
-    radial-gradient(120% 60% at 100% 0%, color-mix(in srgb, var(--cn-tool, #22d3ee) 14%, transparent), transparent 70%),
-    linear-gradient(180deg, #ffffff, #fbfaff);
+  background: linear-gradient(180deg, #ffffff, #fbfcfd);
   border: 1px solid rgba(255, 255, 255, .9);
   border-radius: 22px;
   box-shadow:
-    0 0 0 6px rgba(255, 255, 255, .07),
-    0 2px 4px rgba(11, 7, 32, .12),
-    0 34px 70px -30px rgba(8, 3, 34, .8),
-    0 24px 60px -36px var(--cn-tool, #22d3ee);
+    0 0 0 6px rgba(255, 255, 255, .05),
+    0 2px 4px rgba(0, 0, 0, .2),
+    0 30px 60px -30px rgba(0, 0, 0, .75);
   color: var(--cn-text);
   text-align: start;
-}
-@supports not (color: color-mix(in srgb, red, blue)) {
-  html.cn #home .cn-flow .cn-mini { background: #ffffff; }
 }
 html.cn #home .cn-mini-top {
   display: flex;
@@ -692,8 +602,8 @@ html.cn #home .cn-mini-top .cn-mono::before {
   inline-size: 8px;
   block-size: 8px;
   border-radius: 50%;
-  background: var(--cn-tool, #22d3ee);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cn-tool, #22d3ee) 22%, transparent);
+  background: var(--cn-tool-ink, #0b6a84);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cn-tool-ink, #0b6a84) 14%, transparent);
 }
 
 /* Quick Scan miniature */
@@ -835,7 +745,7 @@ html.cn #home .cn-mini-progress circle {
   stroke-width: 4;
 }
 html.cn #home .cn-mini-progress .cn-mini-ring {
-  stroke: #0d9488;
+  stroke: #0d9488; /* Recovery's mint, deepened for white (3.8:1 as a graphic) */
   stroke-linecap: round;
   stroke-dasharray: 100 200;
 }
@@ -912,13 +822,11 @@ html.cn #home .cn-reel-pause.is-paused::before {
   html.cn #home .cn-reel.is-ready .cn-reel-panel.is-active,
   html.cn #home .cn-reel-tab,
   html.cn #home .cn-reel-tab::before,
-  html.cn #home :is(.cn-fs-glow, .cn-fs-rays, .cn-fs-floor),
-  html.cn #home .cn-fs-shield::before,
   html.cn #home .cn-msg-ai.is-streaming .cn-w.is-on { transition: none; }
   html.cn #home .cn-reel.is-ready .cn-reel-panel { transform: none; }
   html.cn #home .cn-reel.is-ready.is-shown .cn-reel-panel.is-active .cn-mini > *,
   html.cn #home .cn-reel.is-ready.is-shown .cn-reel-panel.is-active .cn-mini-ring,
-  html.cn #home :is(.cn-fs-rays, .cn-fs-floor, .cn-fs-arm, .cn-fs-sat, .cn-fs-shield),
+  html.cn #home .cn-fs-shield,
   html.cn #home .cn-fs-shield::before { animation: none; }
 }
 

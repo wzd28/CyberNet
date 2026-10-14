@@ -182,34 +182,3 @@
     if (PAGES.indexOf(id) >= 0) play(titleOf(id));
   });
 })();
-
-/* Page-header sprites (v4): each inner page opens on a decorative 3D render (a CSS
-   pseudo-element, see 30-tools.css section 17). Its slow float is an infinite CSS animation,
-   so it must not run off screen: this writes --cn-pg-play (running | paused) on the header as
-   an inline style (not a class: the legacy body observers watch class changes) while the
-   header is in view and the tab is visible. Without this script, or under reduced motion, the
-   sprite is simply still. */
-(function () {
-  "use strict";
-  var CN = window.CN;
-  if (!CN || !CN.inView) return;
-  var HOSTS = [
-    "#cybernet > .feature-page-header", "#cybernetai > .feature-page-header",
-    "#recovery > .recovery-header", "#learn > .learn-hero", "#about > .about-top"
-  ];
-  CN.onReady(function () {
-    var seen = [];
-    HOSTS.forEach(function (sel) {
-      var el = CN.qs(sel);
-      if (!el) return;
-      var rec = { el: el, on: false };
-      seen.push(rec);
-      CN.inView(el, function (v) { rec.on = v; apply(rec); }, { margin: "60px" });
-    });
-    function apply(rec) {
-      rec.el.style.setProperty("--cn-pg-play", rec.on && !CN.hidden() && !CN.reduced() ? "running" : "paused");
-    }
-    CN.onVisibility(function () { seen.forEach(apply); });
-    CN.onMotion(function () { seen.forEach(apply); });
-  });
-})();

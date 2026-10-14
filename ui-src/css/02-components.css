@@ -1,8 +1,8 @@
-/* CyberNet AI v4 "Aurora": shared components (owner: aurora).
+/* CyberNet AI v4.1 "Midnight": shared components (owner: aurora).
    The small cn-* building blocks every section uses (DESIGN.md, Components), plus the home
    section container and rhythm. Every colour comes from a token, so each component reads right
-   on the violet ground, on a deep-violet stage and on a light band (00-tokens.css flips the
-   tokens there). Section layouts live in the home partials, which load after this file and win
+   on the navy ground, on a dark stage and on a light band (00-tokens.css flips the tokens
+   there). Section layouts live in the home partials, which load after this file and win
    any tie. */
 
 /* The angle of the gradient hairline on glass panels: registered so it can sweep (one lap). */
@@ -53,8 +53,8 @@ html.cn #home .cn-head {
 html.cn #home .cn-head h2 { max-width: 22ch; }
 
 /* ------------------------------------------------------------------------------------------
-   Eyebrow: a lit pill. A cyan-to-violet wash, a cyan hairline, a lit top edge and mono caps in
-   cyan text (8:1+ on dark; #0b6a84 on light bands). At most three per page.
+   Eyebrow: a quiet pill. A faint cyan tint, a cyan hairline, a lit top edge and mono caps in
+   cyan text (10:1+ on dark; #0b6a84 on light bands). At most three per page.
    ------------------------------------------------------------------------------------------ */
 html.cn .cn-eyebrow {
   display: inline-flex;
@@ -65,7 +65,7 @@ html.cn .cn-eyebrow {
   padding: 4px 12px;
   border: 1px solid var(--cn-cyan-line);
   border-radius: var(--cn-r-pill);
-  background: linear-gradient(100deg, var(--cn-cyan-tint), var(--cn-iris-tint));
+  background: var(--cn-cyan-tint);
   box-shadow: inset 0 1px 0 var(--cn-hi);
   color: var(--cn-cyan-2);
   font-family: var(--cn-font-mono);
@@ -75,10 +75,10 @@ html.cn .cn-eyebrow {
   letter-spacing: var(--cn-track-label);
   text-transform: uppercase;
 }
-/* The AI voice: the same pill in violet. */
+/* The AI voice: the same pill carrying the small indigo AI mark. */
 html.cn .cn-eyebrow.is-ai {
   border-color: var(--cn-iris-line);
-  background: linear-gradient(100deg, var(--cn-iris-tint), color-mix(in srgb, var(--cn-magenta) 10%, transparent));
+  background: var(--cn-iris-tint);
   color: var(--cn-iris-2);
 }
 
@@ -211,7 +211,8 @@ html.cn[dir="rtl"] .cn-ghost-btn[aria-pressed="true"]::before { scale: -1 1; }
 
 /* ------------------------------------------------------------------------------------------
    Pause motion (button[data-cn-motion], the footer; 07-aurora.js). One switch for every loop on
-   the site: the aurora, the hero scene, the example scan, the tool tour and the scroll effects.
+   the site: the section motion canvases, the hero scene, the example scan, the tool tour and the
+   scroll effects.
    The word carries the state ("Pause motion" / "Play motion"); the glyph follows .is-paused.
    A small glass pill: 44px tall to the finger, 32px to the eye.
    ------------------------------------------------------------------------------------------ */
@@ -296,13 +297,12 @@ html.cn .cn-verdict::before {
   height: 6px;
   border-radius: 50%;
   background: currentColor;
-  box-shadow: 0 0 8px currentColor;
 }
 html.cn .cn-verdict.is-safe { --cn-v: var(--cn-safe); --cn-v-tint: var(--cn-safe-tint); }
 html.cn .cn-verdict.is-warn { --cn-v: var(--cn-warn); --cn-v-tint: var(--cn-warn-tint); }
 
 /* ------------------------------------------------------------------------------------------
-   Live dot: 8px cyan with a soft glow. Its slow ring (transform + opacity only) runs twice
+   Live dot: 8px cyan with a faint ring. Its slow ring (transform + opacity only) runs twice
    (4.8 s, inside the 5 s rule) each time the dot comes into view: 05-reveal.js toggles .is-on
    with an observer. Off screen, before the script, under reduced motion and while paused it is
    a still dot, so it never costs a style recalc on frames where nobody can see it.
@@ -315,7 +315,7 @@ html.cn .cn-live-dot {
   height: 8px;
   border-radius: 50%;
   background: var(--cn-cyan);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cn-cyan) 18%, transparent), 0 0 10px color-mix(in srgb, var(--cn-cyan) 70%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cn-cyan) 18%, transparent);
   vertical-align: middle;
   font-style: normal;
 }
@@ -338,11 +338,11 @@ html.cn.cn-still .cn-live-dot.is-on::after { animation: none; }
 }
 
 /* ------------------------------------------------------------------------------------------
-   Card: luminous glass (.cn-card, alias .cn-glass). An indigo glass the aurora glows through,
-   a sheen from above and a gradient hairline (cyan at the top-left, magenta at the bottom-right)
-   drawn by a masked ::before (a 1px ring over the border only, so it never covers content and
-   the fill stays translucent). On a light band the same tokens
-   make it a white card with a soft violet shadow. .is-lit raises the hairline for a featured
+   Card: navy glass (.cn-card, alias .cn-glass). A navy tint, a faint sheen from above and a
+   gradient hairline (a cyan pass at the top-left, slate between, a faint blue pass) drawn by a
+   masked ::before (a 1px ring over the border only, so it never covers content and the fill
+   stays translucent). On a light band the same tokens make it a white card with a soft
+   neutral shadow. .is-lit raises the hairline for a featured
    card. Containers that clip (content-visibility, overflow) never clip it: the ring sits inside
    the border box.
    ------------------------------------------------------------------------------------------ */
@@ -394,9 +394,10 @@ html.cn .cn-sr {
 }
 
 /* ------------------------------------------------------------------------------------------
-   Operator line: the first child of #about and #pricing ("CyberNet AI is operated under Marks
-   Events FZ LLE"). The base look is a readable banner: 14-15px sans text in a pill with a
-   cyan-to-violet gradient edge; 50-pricing.css adds the shield mark for both pages.
+   Operator line ("CyberNet AI is operated under Marks Events FZ LLE"): the first child of #pricing
+   and the last child of #about. The base look is a readable banner: 14-15px sans text in a navy
+   pill with a cyan hairline. 50-pricing.css adds the shield mark on Pricing; 45-about.css turns it
+   into a quiet footnote at the end of About.
    ------------------------------------------------------------------------------------------ */
 html.cn .cn-operator {
   display: block;
@@ -405,12 +406,9 @@ html.cn .cn-operator {
   max-width: min(100%, 700px);
   margin: 0 auto var(--cn-8);
   padding: 12px 22px;
-  border: 1px solid transparent;
+  border: 1px solid var(--cn-cyan-line);
   border-radius: var(--cn-r-pill);
-  background:
-    linear-gradient(100deg, var(--cn-cyan-tint), var(--cn-iris-tint)) padding-box,
-    linear-gradient(var(--cn-surface), var(--cn-surface)) padding-box,
-    var(--cn-grad-brand) border-box;
+  background: var(--cn-surface);
   color: var(--cn-text-2);
   font-family: var(--cn-font);
   font-size: clamp(.875rem, .82rem + .25vw, .9375rem);
@@ -431,16 +429,16 @@ html.cn .cn-operator strong {
   html.cn .cn-operator { border-radius: 22px; }
   html.cn .cn-operator strong { display: block; }
 }
-/* It is the page's top line (About and Pricing), so it sits closer under the header than a
-   page title would; the head below then lands where the other pages' titles do. Selected by
-   id, not by :has() on .page (no :has() on page-sized subjects; DESIGN.md, Performance). */
-html.cn :is(#about, #pricing).page {
+/* It is Pricing's top line, so that page sits closer under the header than a page title would;
+   the head below then lands where the other pages' titles do. Selected by id, not by :has() on
+   .page (no :has() on page-sized subjects; DESIGN.md, Performance). About opens on its headline. */
+html.cn #pricing.page {
   padding-block-start: clamp(16px, .5rem + 1vw, 24px);
 }
 
 /* ------------------------------------------------------------------------------------------
    Support box: the help card that ends Home and every tool and info page. One component,
-   one look: an 860px luminous glass panel with a gradient hairline (a masked ::before, like
+   one look: an 860px navy glass panel with a gradient hairline (a masked ::before, like
    .cn-card), eyebrow pill, H3-size title, copy, then the two actions (they take the full row
    under 760px). Pages only change the space above it (--cn-support-mt) or its width
    (--cn-support-max); nothing else is restyled per page.
@@ -460,8 +458,8 @@ html.cn .page > .support-box {
   border: 1px solid var(--cn-line);
   border-radius: var(--cn-r-panel);
   background:
-    radial-gradient(80% 120% at 0% 0%, color-mix(in srgb, var(--cn-cyan) 9%, transparent), transparent 60%),
-    radial-gradient(70% 120% at 100% 100%, color-mix(in srgb, var(--cn-violet) 16%, transparent), transparent 62%),
+    radial-gradient(80% 120% at 0% 0%, color-mix(in srgb, var(--cn-cyan) 6%, transparent), transparent 60%),
+    radial-gradient(70% 120% at 100% 100%, color-mix(in srgb, var(--cn-blue-2, #3b82f6) 6%, transparent), transparent 62%),
     var(--cn-sheen),
     var(--cn-glass);
   box-shadow: inset 0 1px 0 var(--cn-hi), var(--cn-shadow-card);
@@ -499,7 +497,7 @@ html.cn .page > .support-box .account-eyebrow {
   padding: 0 10px;
   border: 1px solid var(--cn-cyan-line);
   border-radius: var(--cn-r-pill);
-  background: linear-gradient(100deg, var(--cn-cyan-tint), var(--cn-iris-tint));
+  background: var(--cn-cyan-tint);
   color: var(--cn-cyan-2);
   font: 500 var(--cn-step-label)/1.2 var(--cn-font-mono);
   letter-spacing: var(--cn-track-label);

@@ -1,7 +1,7 @@
 /* ==========================================================================
-   10-nav.css  -  v4 "Aurora" header (.navbar): a floating glass capsule over
-   the violet stage, desktop links, account area, the white "Menu" pill and
-   the luminous violet menu sheet (phones and tablets).
+   10-nav.css  -  v4.1 "Midnight" header (.navbar): a calm navy capsule with a hairline,
+   desktop links, account area, the white "Menu" pill and the midnight menu sheet (phones and
+   tablets).
 
    Contracts kept (maps/HAZARDS.md):
    - The header is in normal flow (legacy made it sticky with top:16px).
@@ -15,38 +15,37 @@
    - No display:...!important on anything JS shows or hides: #openAuth,
      #accountSummary and #authCheckingSkeleton stay driven by [hidden].
    - The header itself has no backdrop-filter, filter or resting transform
-     (the glass is a tint on ::before, and has no blur: see the note there),
-     so the fixed sheet layers (open state) use the viewport as their
-     containing block.
+     (the capsule is a tint on ::before: no blur, nothing to repaint while the
+     page scrolls under it), so the fixed sheet layers (open state) use the
+     viewport as their containing block.
    - Stack: page < header (100) < cookie bar (150) < modals (200..1600).
 
-   The chrome palette (--cn-ch-*) is defined here and read by 15-footer.css
-   and 60-overlays.css. It is deliberately self-contained (literal values),
-   so the header, footer and dialogs look right whatever the page tokens say.
+   The chrome palette (--cn-ch-*) is defined here and read by 15-footer.css. It is
+   deliberately self-contained (literal values), so the header and the footer look right
+   whatever the page tokens say. Midnight: navy ground, slate text, cyan the only accent.
    ========================================================================== */
 
 html.cn {
-  --cn-ch-ink: var(--cn-p-ink, #0b0720);
-  --cn-ch-lav: var(--cn-p-lilac, #c4b5fd);
-  --cn-ch-magenta: var(--cn-p-magenta, #e879f9);
-  --cn-ch-text: #f8f6ff;
-  --cn-ch-text-2: #d6cffd;   /* 10.2:1 on the stage violet */
-  --cn-ch-text-3: #b8adf2;   /* 7.4:1 on the stage violet */
-  --cn-ch-line: rgba(196, 181, 253, .20);
-  --cn-ch-line-2: rgba(196, 181, 253, .36);
-  --cn-ch-rim: linear-gradient(110deg, #67e8f9 0%, rgba(167, 139, 250, .85) 34%, rgba(232, 121, 249, .8) 68%, #67e8f9 100%);
+  --cn-ch-ink: #060a14;
+  --cn-ch-mute: #8a95a7;
+  --cn-ch-text: #f5f7fa;
+  --cn-ch-text-2: #b3bccb;   /* 9.4:1 on the capsule */
+  --cn-ch-text-3: #8f9aab;   /* 5.6:1 on the footer ground */
+  --cn-ch-line: rgba(148, 163, 184, .18);
+  --cn-ch-line-2: rgba(148, 163, 184, .32);
+  --cn-ch-cap: rgba(12, 18, 32, .94);       /* the capsule and the sheet's bottom bar */
 }
 
 /* The skip link (.cn-skip) is styled in 90-a11y.css, so it also reaches the legal bundle. */
 
-/* ---------- bar: a glass capsule ---------- */
+/* ---------- bar: a navy capsule ---------- */
 html.cn header.navbar,
 html.cn header.navbar.glass {
   --cn-nav-h: 64px;
   --cn-nav-top: 12px;
   --cn-hd-ps: 18px;   /* the capsule's inline padding: the open sheet aligns its rows to it */
   --cn-hd-pe: 10px;
-  --cn-focus: 0 0 0 3px #1d0b57, 0 0 0 5px var(--cn-cyan);
+  --cn-focus: 0 0 0 3px #060a14, 0 0 0 5px var(--cn-cyan);
   position: relative;
   inset: auto;
   z-index: var(--cn-z-header);
@@ -71,49 +70,23 @@ html.cn header.navbar.glass {
   color: var(--cn-ch-text);
   font-family: var(--cn-font);
   -webkit-font-smoothing: antialiased;
-  animation: cn-nav-drop .75s var(--cn-ease-out) backwards;
+  animation: cn-nav-in .5s var(--cn-ease-out) backwards;
 }
 
-/* the glass: a violet tint and a soft sheen on a layer behind the content. No backdrop blur: the
-   backdrop is the slowly moving aurora, a smooth glow that a blur would not change, and a blur over
-   a moving backdrop costs the compositor a pass on every frame (DESIGN.md: frosted glass only on
-   the open sheet, dialogs and the cookie bar). */
+/* the capsule: solid navy, a hairline and a lit top edge, on a layer behind the content. No
+   backdrop blur (DESIGN.md: frosted glass only on dialogs and the cookie bar). */
 html.cn header.navbar::before {
   content: "";
   position: absolute;
   inset: 0;
   z-index: -1;
   border-radius: inherit;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, .16) 0%, rgba(255, 255, 255, .05) 52%, rgba(255, 255, 255, .08) 100%),
-    rgba(38, 14, 104, .70);
+  background: var(--cn-ch-cap);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, .30),
-    inset 0 -1px 0 rgba(8, 3, 28, .30),
-    0 22px 46px -24px rgba(91, 43, 224, .85),
-    0 10px 24px -18px rgba(8, 3, 28, .7);
+    inset 0 0 0 1px var(--cn-ch-line),
+    inset 0 1px 0 rgba(255, 255, 255, .06),
+    0 14px 28px -20px rgba(0, 0, 0, .75);
   pointer-events: none;
-}
-
-/* the rim: a 1px gradient hairline (cyan, violet, magenta) that sweeps across once */
-html.cn header.navbar::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  box-sizing: border-box;
-  padding: 1px;
-  border-radius: inherit;
-  background: var(--cn-ch-rim);
-  background-size: 240% 100%;
-  background-position: 0 0;
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  mask-composite: exclude;
-  opacity: .78;
-  pointer-events: none;
-  animation: cn-rim-sweep 2.8s var(--cn-ease-in-out) .45s 1 backwards;
 }
 
 /* ---------- brand ---------- */
@@ -141,15 +114,13 @@ html.cn header.navbar .brand:focus-visible {
   box-shadow: var(--cn-focus);
 }
 
-/* the shield mark: a soft cyan glow, and one slow quarter-turn on load */
+/* the shield mark */
 html.cn header.navbar .brand-mark-icon {
   width: 26px;
   height: 28px;
   min-width: 26px;
   max-width: 26px;
   max-height: 28px;
-  filter: drop-shadow(0 0 7px rgba(34, 211, 238, .55));
-  animation: cn-mark-turn 1.3s var(--cn-ease-out) .35s backwards;
 }
 
 html.cn header.navbar .brand-text {
@@ -169,10 +140,10 @@ html.cn header.navbar .brand-text small {
   align-items: center;
   margin-inline-start: 8px;
   padding: 3px 6px 2px;
-  border: 1px solid rgba(103, 232, 249, .42);
+  border: 1px solid var(--cn-cyan-line, rgba(34, 211, 238, .38));
   border-radius: 6px;
-  background: linear-gradient(135deg, rgba(34, 211, 238, .22), rgba(139, 92, 246, .34));
-  color: #eafcff;
+  background: rgba(34, 211, 238, .1);
+  color: #d9f7fc;
   font-family: var(--cn-font-mono);
   font-size: 11px;
   font-weight: 600;
@@ -232,7 +203,7 @@ html.cn header.navbar #openAuth.login-btn {
   border: 0;
   border-radius: var(--cn-r-pill);
   background: var(--cn-brand, #22d3ee);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), 0 6px 16px -10px rgba(8, 3, 28, .8);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5);
   color: var(--cn-ch-ink);
   font-family: var(--cn-font);
   font-size: 14px;
@@ -261,8 +232,7 @@ html.cn header.navbar .auth-checking-skeleton {
   height: 44px;
   border: 1px solid var(--cn-ch-line);
   border-radius: var(--cn-r-pill);
-  background: linear-gradient(90deg, transparent 25%, rgba(255, 255, 255, .10) 50%, transparent 75%);
-  background-size: 200% 100%;
+  background: rgba(255, 255, 255, .04);
 }
 
 html.cn header.navbar #openAuth.login-btn:not([hidden]) {
@@ -304,15 +274,24 @@ html.cn header.navbar .plan-badge {
 }
 
 html.cn header.navbar .plan-badge.plan-badge-pro {
-  border-color: rgba(103, 232, 249, .5);
-  background: linear-gradient(135deg, rgba(34, 211, 238, .22), rgba(139, 92, 246, .30));
-  color: #eafcff;
+  border-color: rgba(34, 211, 238, .45);
+  background: rgba(34, 211, 238, .12);
+  color: #d9f7fc;
 }
 
 html.cn header.navbar .plan-badge.plan-badge-business {
   border-color: transparent;
-  background: linear-gradient(135deg, #ffffff, #e9e2ff);
+  background: #f5f7fa;
   color: var(--cn-ch-ink);
+}
+
+/* style.css gives every Business badge a violet gradient and a violet glow: any badge that has no
+   rule of its own (the header, Analysis AI and the account dialog all do) is a white chip instead */
+html.cn .plan-badge.plan-badge-business {
+  border-color: transparent;
+  background: #f5f7fa;
+  box-shadow: none;
+  color: #060a14;
 }
 
 html.cn header.navbar .account-action-btn {
@@ -357,7 +336,7 @@ html.cn header.navbar #mobileMenu.mobile-menu {
   border-radius: var(--cn-r-pill) !important;
   background: #fff !important;
   color: var(--cn-ch-ink) !important;
-  box-shadow: 0 8px 22px -10px rgba(8, 3, 28, .7);
+  box-shadow: 0 6px 16px -10px rgba(0, 0, 0, .7);
   font-family: var(--cn-font) !important;
   font-size: 14px !important;
   font-weight: 600 !important;
@@ -376,7 +355,7 @@ html.cn header.navbar #mobileMenu.mobile-menu::before {
   flex: none;
   width: 16px;
   height: 16px;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%230B0720' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M2.5 5.5h11M2.5 10.5h11'/%3E%3C/svg%3E") center / 16px 16px no-repeat;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23060A14' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M2.5 5.5h11M2.5 10.5h11'/%3E%3C/svg%3E") center / 16px 16px no-repeat;
 }
 
 /* the 42px pill gets a 44px hit area */
@@ -453,10 +432,10 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
     transition: color var(--cn-dur-1) ease, background-color var(--cn-dur-2) ease, box-shadow var(--cn-dur-2) ease;
   }
 
-  /* the current page: a raised glass capsule with a cyan light under the label */
+  /* the current page: a raised slate capsule with a cyan dot under the label */
   html.cn header.navbar .nav-link.active {
-    background: linear-gradient(180deg, rgba(255, 255, 255, .20), rgba(255, 255, 255, .08));
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .22), inset 0 1px 0 rgba(255, 255, 255, .32);
+    background: rgba(148, 163, 184, .12);
+    box-shadow: inset 0 0 0 1px var(--cn-ch-line-2);
     color: #fff;
   }
 
@@ -469,8 +448,7 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
     height: 2px;
     margin-inline: auto;
     border-radius: 2px;
-    background: linear-gradient(90deg, var(--cn-ch-lav), var(--cn-cyan), var(--cn-ch-magenta));
-    box-shadow: 0 0 8px rgba(34, 211, 238, .9);
+    background: var(--cn-cyan);
     animation: cn-nav-dot var(--cn-dur-3) var(--cn-ease-out) both;
   }
 
@@ -608,7 +586,7 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
 }
 
 /* ==========================================================================
-   Under 1024px: compact capsule, white Menu pill, luminous sheet when open
+   Under 1024px: compact capsule, white Menu pill, midnight sheet when open
    ========================================================================== */
 @media (max-width: 1023.98px) {
   html.cn header.navbar,
@@ -630,12 +608,12 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
 
   /* ---- open: the bar stays as the sheet's top row ----
      --cn-sheet-foot is the room the link list keeps free above the bottom bar:
-     one row (socials + Sign in, 81px) signed out, two rows signed in. The glass
+     one row (socials + Sign in, 81px) signed out, two rows signed in. The capsule
      capsule gives way to the sheet, so the brand and Close pill sit right on it. */
   html.cn header.navbar.open {
     --cn-sheet-foot: 96px;
     --cn-sheet-top: calc(var(--cn-nav-h) + var(--cn-nav-top) + env(safe-area-inset-top, 0px));
-    --cn-sheet-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 26' fill='none'%3E%3Cg opacity='.5'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2367E8F9'/%3E%3Cstop offset='.55' stop-color='%238B5CF6'/%3E%3Cstop offset='1' stop-color='%23E879F9'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M12 2 L21 6 L20 15 L12 24 L4 15 L3 6 Z' stroke='url(%23g)' stroke-width='.14' stroke-linejoin='round'/%3E%3Cpath d='M12 5 L18.2 7.9 L17.4 14.3 L12 20.7 L6.6 14.3 L5.8 7.9 Z' stroke='url(%23g)' stroke-width='.08' stroke-linejoin='round' stroke-opacity='.7'/%3E%3Cpath d='M12 2 V5 M21 6 L18.2 7.9 M20 15 L17.4 14.3 M12 24 V20.7 M4 15 L6.6 14.3 M3 6 L5.8 7.9' stroke='url(%23g)' stroke-width='.07' stroke-opacity='.55'/%3E%3Crect x='8.3' y='12.5' width='7.4' height='6.2' rx='1.2' stroke='url(%23g)' stroke-width='.12'/%3E%3Cpath d='M9.6 12.5 v-2.3 a2.4 2.4 0 0 1 4.8 0 v2.3' stroke='url(%23g)' stroke-width='.12' stroke-linecap='round'/%3E%3C/g%3E%3C/svg%3E");
+    --cn-sheet-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 26' fill='none'%3E%3Cg opacity='.2'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2322D3EE'/%3E%3Cstop offset='1' stop-color='%233B82F6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M12 2 L21 6 L20 15 L12 24 L4 15 L3 6 Z' stroke='url(%23g)' stroke-width='.14' stroke-linejoin='round'/%3E%3Cpath d='M12 5 L18.2 7.9 L17.4 14.3 L12 20.7 L6.6 14.3 L5.8 7.9 Z' stroke='url(%23g)' stroke-width='.08' stroke-linejoin='round' stroke-opacity='.7'/%3E%3Cpath d='M12 2 V5 M21 6 L18.2 7.9 M20 15 L17.4 14.3 M12 24 V20.7 M4 15 L6.6 14.3 M3 6 L5.8 7.9' stroke='url(%23g)' stroke-width='.07' stroke-opacity='.55'/%3E%3Crect x='8.3' y='12.5' width='7.4' height='6.2' rx='1.2' stroke='url(%23g)' stroke-width='.12'/%3E%3Cpath d='M9.6 12.5 v-2.3 a2.4 2.4 0 0 1 4.8 0 v2.3' stroke='url(%23g)' stroke-width='.12' stroke-linecap='round'/%3E%3C/g%3E%3C/svg%3E");
     position: sticky;
     top: calc(var(--cn-nav-top) + env(safe-area-inset-top, 0px));
     flex-direction: row;
@@ -643,24 +621,17 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
     height: var(--cn-nav-h);
   }
 
-  html.cn header.navbar.open::after {
-    display: none;
-  }
-
-  /* the sheet: a full-height luminous violet glass with three soft lights and a
-     faint shield outline (cyan top-right, violet left, magenta bottom) */
+  /* the sheet: a full-height midnight panel with one cyan light at the top and a faint
+     shield outline at the bottom */
   html.cn header.navbar.open::before {
     position: fixed;
     inset: 0;
     z-index: -1;
     border-radius: 0;
     background:
-      var(--cn-sheet-mark) right -40px bottom calc(var(--cn-sheet-foot) + 16px) / clamp(240px, 78vw, 420px) auto no-repeat,
-      radial-gradient(120% 55% at 100% -8%, rgba(34, 211, 238, .34), transparent 62%),
-      radial-gradient(90% 55% at -12% 36%, rgba(139, 92, 246, .62), transparent 66%),
-      radial-gradient(70% 44% at 84% 78%, rgba(124, 77, 255, .5), transparent 70%),
-      radial-gradient(85% 50% at 108% 106%, rgba(232, 121, 249, .38), transparent 62%),
-      linear-gradient(172deg, #4a1cc4 0%, #34129e 42%, #230a72 100%);
+      var(--cn-sheet-mark) right -72px bottom calc(var(--cn-sheet-foot) + 4px) / clamp(200px, 64vw, 360px) auto no-repeat,
+      radial-gradient(110% 46% at 100% -8%, rgba(34, 211, 238, .13), transparent 62%),
+      linear-gradient(180deg, #0a101c 0%, #060a14 100%);
     box-shadow: none;
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
@@ -669,7 +640,7 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
 
   /* Close: the same white pill with a cross */
   html.cn header.navbar.open #mobileMenu.mobile-menu::before {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%230B0720' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M4 4l8 8M12 4l-8 8'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23060A14' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M4 4l8 8M12 4l-8 8'/%3E%3C/svg%3E");
   }
 
   /* ---- the link list ---- */
@@ -734,14 +705,14 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
     width: 20px;
     height: 20px;
     margin-inline-start: auto;
-    background: var(--cn-ch-lav);
-    opacity: .5;
+    background: var(--cn-ch-mute);
+    opacity: .7;
     -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 10h11M11 5.5 15.5 10 11 14.5'/%3E%3C/svg%3E") center / contain no-repeat;
     mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 10h11M11 5.5 15.5 10 11 14.5'/%3E%3C/svg%3E") center / contain no-repeat;
   }
 
   html.cn header.navbar.open .nav-link:active {
-    color: var(--cn-ch-lav);
+    color: var(--cn-cyan);
   }
 
   html.cn header.navbar.open .nav-link:focus-visible {
@@ -750,7 +721,7 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
     box-shadow: var(--cn-focus);
   }
 
-  /* current page: a solid cyan label, a lit arrow and a soft light behind the row */
+  /* current page: a cyan label and a lit arrow on a quiet slate row */
   html.cn header.navbar.open .nav-link.active {
     width: calc(100% + var(--cn-hd-ps) + var(--cn-hd-pe) - 4px);
     max-width: calc(640px + var(--cn-hd-ps) + var(--cn-hd-pe));
@@ -758,8 +729,8 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
     padding-inline: var(--cn-hd-ps) var(--cn-hd-pe);
     border-bottom-color: transparent;
     border-radius: 18px;
-    background: linear-gradient(90deg, rgba(34, 211, 238, .24), rgba(139, 92, 246, .16) 62%, rgba(232, 121, 249, .06));
-    box-shadow: inset 0 0 0 1px rgba(103, 232, 249, .30), inset 0 1px 0 rgba(255, 255, 255, .14);
+    background: rgba(34, 211, 238, .08);
+    box-shadow: inset 0 0 0 1px rgba(34, 211, 238, .26);
     color: #67e8f9;
   }
 
@@ -799,9 +770,7 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
     margin: 0;
     padding: var(--cn-4) calc(var(--cn-gutter-r) + var(--cn-hd-pe)) calc(var(--cn-4) + env(safe-area-inset-bottom, 0px)) calc(var(--cn-gutter-l) + var(--cn-hd-ps) - 4px);
     border-top: 1px solid var(--cn-ch-line-2);
-    background: rgba(37, 12, 108, .8);
-    -webkit-backdrop-filter: blur(16px) saturate(140%);
-    backdrop-filter: blur(16px) saturate(140%);
+    background: #0a101c;
     animation: cn-sheet-item var(--cn-dur-3) var(--cn-ease-out) 120ms both;
   }
 
@@ -813,13 +782,13 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
     inset-inline: 0;
     bottom: calc(100% + 1px);
     height: var(--cn-6);
-    background: linear-gradient(to bottom, transparent, rgba(37, 12, 108, .6));
+    background: linear-gradient(to bottom, transparent, rgba(6, 10, 20, .8));
     pointer-events: none;
   }
 
   html.cn.cn-consent-visible header.navbar.open .nav-actions {
     bottom: calc(var(--cn-consent-space, 0px) + 20px);
-    border-bottom: 1px solid rgba(196, 181, 253, .20);
+    border-bottom: 1px solid var(--cn-ch-line);
   }
 
   html.cn header.navbar.open .nav-social-links {
@@ -838,7 +807,7 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
     width: 44px;
     height: 44px;
     border: 1px solid var(--cn-ch-line-2);
-    background: rgba(255, 255, 255, .07);
+    background: rgba(255, 255, 255, .05);
   }
 
   html.cn header.navbar.open .nav-social-btn::after,
@@ -1056,7 +1025,7 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
 /* ---------- hover (fine pointers only) ---------- */
 @media (hover: hover) and (pointer: fine) {
   html.cn header.navbar .nav-link:not(.active):hover {
-    background: rgba(255, 255, 255, .09);
+    background: rgba(255, 255, 255, .07);
     color: #fff;
   }
 
@@ -1070,7 +1039,7 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
   html.cn header.navbar #openAuth.login-btn:hover {
     color: var(--cn-ch-ink);
     background: var(--cn-brand-2, #67e8f9);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6), 0 8px 20px -10px rgba(8, 3, 28, .85);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55);
     transform: translateY(-1px);
   }
 
@@ -1080,42 +1049,22 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
 
   html.cn header.navbar .account-action-btn:hover {
     color: #fff;
-    border-color: rgba(196, 181, 253, .6);
-    background: rgba(255, 255, 255, .10);
+    border-color: rgba(148, 163, 184, .6);
+    background: rgba(255, 255, 255, .08);
   }
 
   html.cn header.navbar #mobileMenu.mobile-menu:hover {
-    background: #e6fbff !important;
-  }
-
-  /* the shield turns once when the wordmark is hovered */
-  html.cn header.navbar .brand:hover .brand-mark-icon {
-    animation: cn-mark-spin .9s var(--cn-ease-out);
+    background: #e8edf4 !important;
   }
 }
 
 /* ---------- motion ---------- */
-/* The entrance drop moves the header with a relative offset, not a transform or `translate`: either
-   would make the header the containing block of the fixed menu-sheet layers while it runs, so a tap on
-   Menu in the first .75s would lay the sheet out inside the 58px bar. */
-@keyframes cn-nav-drop {
-  from { top: -16px; }
-  to { top: 0; }
-}
-
-@keyframes cn-rim-sweep {
-  from { background-position: 100% 0; }
-  to { background-position: 0 0; }
-}
-
-@keyframes cn-mark-turn {
-  from { transform: perspective(240px) rotateY(-150deg) scale(.7); opacity: 0; }
-  to { transform: none; opacity: 1; }
-}
-
-@keyframes cn-mark-spin {
-  from { transform: perspective(240px) rotateY(0); }
-  to { transform: perspective(240px) rotateY(360deg); }
+/* The entrance is a plain fade: a transform, `translate` or filter on the header would make it the
+   containing block of the fixed menu-sheet layers while it runs, so a tap on Menu in the first half
+   second would lay the sheet out inside the 58px bar. */
+@keyframes cn-nav-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes cn-nav-dot {
@@ -1143,8 +1092,6 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
   }
 
   html.cn header.navbar,
-  html.cn header.navbar::after,
-  html.cn header.navbar .brand-mark-icon,
   html.cn header.navbar .nav-link.active::after,
   html.cn header.navbar #openAuth.login-btn:not([hidden]),
   html.cn header.navbar.open::before,
@@ -1155,23 +1102,11 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
   }
 }
 
-/* reduced transparency: a solid glass and a solid sheet, no blur */
+/* reduced transparency: the capsule and the sheet are already solid, so only the page-top light goes */
 @media (prefers-reduced-transparency: reduce) {
-  html.cn header.navbar::before {
-    background: #2b0f6e;
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
+  html.cn header.navbar::before { background: #0c1220; }
 
-  html.cn header.navbar.open::before {
-    background: linear-gradient(172deg, #4a1cc4 0%, #34129e 42%, #230a72 100%);
-  }
-
-  html.cn header.navbar.open .nav-actions {
-    background: #250c6c;
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
+  html.cn header.navbar.open::before { background: #060a14; }
 }
 
 /* Windows high contrast: the system drops gradients and shadows, so the capsule gets a real edge */
@@ -1179,10 +1114,6 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
   html.cn header.navbar,
   html.cn header.navbar.glass {
     border: 1px solid CanvasText;
-  }
-
-  html.cn header.navbar::after {
-    display: none;
   }
 
   html.cn header.navbar.open .nav-link.active {

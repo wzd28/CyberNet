@@ -1,241 +1,86 @@
-/* CyberNet AI v4 "Aurora": the light system (owner: aurora).
-   1. The aurora: a global, slowly moving light behind every page.
-   2. Bands: utilities that paint a light (lavender) or stage (deep violet) band.
+/* CyberNet AI v4.1 "Midnight": the ground and the band utilities (owner: aurora).
+   1. The ground: midnight navy with one soft light at the top of each page. Static.
+   2. Bands: utilities that paint a light band or a stage band.
    3. Scroll utilities: parallax on a view timeline.
-   4. The global pause (html.cn-still) for everything in this file.
 
-   How the aurora is built (GPU-cheap by construction):
-   - The canvas (body's background, which propagates to the root) holds the ground colour and a
-     crown of light at the top of the document. The crown scrolls with the page, so every page is
-     brightest at its top and settles to the ground as you read down.
-   - Two fixed layers hold the drifting blobs: html::after (deep purple, electric violet, cyan;
-     61 s) and body::before (magenta, blue, cyan; 43 s). They are soft radial gradients, painted
-     once; only transform animates, so the compositor moves them without repainting and the main
-     thread stays idle. No filter:blur (a blur on a full-screen layer costs every frame).
-   - A fixed light beam (body::after) sweeps across once every 53 s on wider screens.
-   - A static film grain (html::before) sits on top of the light, under all content.
-   Every layer has a negative z-index in the root stacking context, so it paints above the canvas
-   and below everything in <main>. Light bands are opaque, so the aurora is quiet under them, and
-   while one fills the middle of the screen the aurora around it dims (html.cn-aurora-low).
-   Phones get one drift layer and the grain (no beam, no second drift layer).
-   Motion stops under reduced motion and while html.cn-still is set (the global "Pause motion"
-   control, 07-aurora.js). A hidden tab renders nothing, so nothing runs there either.
-   The legacy scanline overlay and top bar used body::before/::after; every property they set
-   (style.css: content, position, inset/top/height, z-index, background, background-size,
-   animation, opacity) is reset here. */
+   What changed from v4 "Aurora" (owner feedback: too much purple, not smooth when scrolling):
+   - The fixed, full-screen drifting layers (html::after, body::before), the light beam
+     (body::after) and the film grain (html::before) are gone. They sat over the whole viewport
+     on every page, so the GPU had to blend three to four extra screens of texture on every
+     scroll frame, and phones felt it. Nothing fixed covers the page any more.
+   - The visible motion moved into the dark sections themselves: one small canvas per section,
+     drawn at 30 fps and paused off-screen (04-bgfx.css, 09-bgfx.js).
+   - The light is cyan and blue on navy. No violet or magenta washes.
+   The ground lives on body's background, which propagates to the root canvas: it is painted
+   once with the page and scrolls with it, so it costs nothing per frame. The light at the top
+   scrolls with the document, so each page is brightest at its top and settles to plain navy as
+   you read down.
+   The legacy scanline overlay and animated top bar used body::before / ::after (style.css:
+   fixed, z-index 998/999); they stay switched off here. */
 
 /* ------------------------------------------------------------------------------------------
-   1a. Canvas: the ground and the crown of light at the top of the page
-   Peak brightness was kept so that the smallest text (--cn-text-3) stays at 4.5:1 or more where
-   the crown and a drifting blob overlap.
+   1. Ground
    ------------------------------------------------------------------------------------------ */
 html.cn body {
   background-color: var(--cn-p-night);
   background-image:
-    radial-gradient(62% 44% at 50% 0%, rgba(124, 77, 255, .34), rgba(124, 77, 255, .12) 52%, transparent 74%),
-    radial-gradient(34% 30% at 94% 2%, rgba(34, 211, 238, .16), transparent 74%),
-    radial-gradient(30% 28% at 4% 10%, rgba(232, 121, 249, .11), transparent 74%),
-    linear-gradient(180deg, rgba(43, 15, 110, .5), rgba(43, 15, 110, 0));
+    radial-gradient(56% 40% at 50% 0%, rgba(34, 211, 238, .075), rgba(34, 211, 238, .02) 54%, transparent 76%),
+    radial-gradient(36% 30% at 92% 0%, rgba(59, 130, 246, .09), transparent 74%),
+    radial-gradient(30% 26% at 6% 6%, rgba(96, 165, 250, .05), transparent 74%),
+    linear-gradient(180deg, rgba(12, 18, 32, .9), rgba(12, 18, 32, 0));
   background-repeat: no-repeat;
-  background-size: 100% clamp(760px, 130vh, 1400px);
+  background-size: 100% clamp(720px, 120vh, 1300px);
   background-position: 50% 0;
 }
 
-/* ------------------------------------------------------------------------------------------
-   1b. The drifting layers
-   inset:0 plus a base scale of 1.12 keeps every layer's edge outside the viewport through the
-   whole drift (the largest offset is 3.5%, under the 6% the scale adds on each side).
-   ------------------------------------------------------------------------------------------ */
+/* No fixed layers: the old aurora pseudo-elements and the legacy scanlines / top bar are off. */
+html.cn::before,
 html.cn::after,
-html.cn body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  top: 0;
-  width: auto;
-  height: auto;
-  z-index: -3;
-  pointer-events: none;
-  opacity: 1;
-  background-repeat: no-repeat;
-  background-size: auto;
-  transform-origin: 50% 50%;
-  contain: strict;
-  will-change: transform;
-}
-html.cn::after {
-  background-image:
-    radial-gradient(52vmax 40vmax at 6% 2%, rgba(91, 43, 224, .46), rgba(91, 43, 224, .16) 48%, transparent 74%),
-    radial-gradient(58vmax 44vmax at 66% 48%, rgba(58, 18, 168, .5), rgba(58, 18, 168, .14) 52%, transparent 76%),
-    radial-gradient(40vmax 34vmax at 98% 90%, rgba(34, 211, 238, .15), rgba(34, 211, 238, .05) 52%, transparent 76%);
-  transform: scale(1.12);
-  animation: cn-aurora-a var(--cn-loop-a) var(--cn-ease-in-out) infinite alternate;
-}
-html.cn body::before {
-  background-image:
-    radial-gradient(34vmax 28vmax at 94% 8%, rgba(232, 121, 249, .13), rgba(232, 121, 249, .04) 50%, transparent 76%),
-    radial-gradient(42vmax 32vmax at 8% 92%, rgba(96, 165, 250, .15), rgba(96, 165, 250, .05) 50%, transparent 76%),
-    radial-gradient(30vmax 24vmax at 36% 34%, rgba(34, 211, 238, .07), transparent 74%);
-  transform: scale(1.12);
-  animation: cn-aurora-b var(--cn-loop-b) var(--cn-ease-in-out) infinite alternate;
-}
-@keyframes cn-aurora-a {
-  0% { transform: translate3d(-3%, -2%, 0) scale(1.12); }
-  50% { transform: translate3d(2.5%, 1.5%, 0) scale(1.16); }
-  100% { transform: translate3d(-1%, 3.5%, 0) scale(1.13); }
-}
-@keyframes cn-aurora-b {
-  0% { transform: translate3d(3%, 2%, 0) scale(1.14); }
-  50% { transform: translate3d(-2.5%, -1.5%, 0) scale(1.12); }
-  100% { transform: translate3d(1.5%, -3%, 0) scale(1.16); }
-}
-
-/* ------------------------------------------------------------------------------------------
-   1c. The light beam: a soft diagonal shaft of cyan-white light that crosses the screen in
-   about 30 s, then rests out of view, once every 53 s. Wider screens only.
-   ------------------------------------------------------------------------------------------ */
+html.cn body::before,
 html.cn body::after {
   content: none;
   animation: none;
 }
-@media (min-width: 761px) {
-  html.cn body::after {
-    content: "";
-    position: fixed;
-    inset: auto;
-    top: -30vh;
-    left: 0;
-    right: auto;
-    width: 34vw;
-    height: 160vh;
-    z-index: -2;
-    pointer-events: none;
-    opacity: 1;
-    background-image: linear-gradient(90deg, transparent 0%, rgba(103, 232, 249, .035) 28%, rgba(230, 251, 255, .075) 48%, rgba(196, 181, 253, .05) 64%, transparent 100%);
-    background-size: auto;
-    transform: translate3d(-60vw, 0, 0) rotate(16deg);
-    animation: cn-beam 53s linear infinite;
-    contain: strict;
-    will-change: transform;
-  }
-}
-@keyframes cn-beam {
-  0% { transform: translate3d(-60vw, 0, 0) rotate(16deg); }
-  58%, 100% { transform: translate3d(150vw, 0, 0) rotate(16deg); }
-}
 
-/* ------------------------------------------------------------------------------------------
-   1d. Film grain: static, on top of the light and under the content. A tiled SVG noise
-   (data: URI, allowed by the CSP) at a few percent, so gradients never band.
-   ------------------------------------------------------------------------------------------ */
-html.cn::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1.4 0 0 0 -.62'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
-  background-size: 220px 220px;
-  opacity: .12;
-  contain: strict;
-}
-
-/* Phones: one drift layer and the grain. The second drift layer and the beam are where most of
-   the extra GPU memory would go on a small device, and the first layer carries the colour. */
-@media (max-width: 760px) {
-  html.cn body::before {
-    content: none;
-    animation: none;
-  }
-  html.cn::after {
-    background-image:
-      radial-gradient(70vmax 52vmax at 0% 0%, rgba(91, 43, 224, .46), rgba(91, 43, 224, .16) 48%, transparent 74%),
-      radial-gradient(64vmax 48vmax at 80% 46%, rgba(58, 18, 168, .5), rgba(58, 18, 168, .14) 52%, transparent 76%),
-      radial-gradient(46vmax 38vmax at 100% 96%, rgba(34, 211, 238, .14), rgba(34, 211, 238, .05) 52%, transparent 76%),
-      radial-gradient(40vmax 32vmax at 0% 92%, rgba(232, 121, 249, .10), transparent 74%);
-  }
-}
-
-/* Tone: while a light band fills the middle of the screen (07-aurora.js sets html.cn-aurora-low)
-   the aurora around it dims, so the lavender sheet reads calm. Opacity only: the compositor
-   fades the layers without repainting them. */
-html.cn::after,
-html.cn body::before,
-html.cn body::after {
-  transition: opacity 1.4s var(--cn-ease-in-out);
-}
-html.cn.cn-aurora-low::after,
-html.cn.cn-aurora-low body::before {
-  opacity: .5;
-}
-html.cn.cn-aurora-low body::after {
-  opacity: 0;
-}
-
-/* Paused (the global control) and reduced motion: the layers rest where they are / at their
-   first frame. Under forced colours and in print there is no aurora at all. */
-html.cn.cn-still::after,
-html.cn.cn-still body::before,
-html.cn.cn-still body::after {
-  animation-play-state: paused;
-}
-@media (prefers-reduced-motion: reduce) {
-  html.cn::after,
-  html.cn body::before {
-    animation: none;
-    will-change: auto;
-  }
-  html.cn body::after {
-    animation: none;
-    transform: translate3d(18vw, 0, 0) rotate(16deg);
-    will-change: auto;
-  }
-}
 @media (forced-colors: active), print {
-  html.cn::before,
-  html.cn::after,
-  html.cn body::before,
-  html.cn body::after {
-    content: none;
-  }
+  html.cn body { background-image: none; }
 }
 
 /* ------------------------------------------------------------------------------------------
    2. Bands
-   .cn-light / [data-cn-tone="light"]: a lavender band. 00-tokens.css flips every token inside
-   it, so the components there adapt with no extra rules. Here the band itself is painted: the
-   #f6f4ff ground lit by a violet glow from the top and cyan / magenta from the lower corners,
-   a white top edge, and the band's corners (--cn-r-band).
-   .cn-stage-band / [data-cn-tone="stage"]: the luminous violet stage (--cn-grad-stage).
+   .cn-light / [data-cn-tone="light"]: a light band. 00-tokens.css flips every token inside it,
+   so the components there adapt with no extra rules. Here the band itself is painted: the
+   light ground with one faint cyan light from the top, a white top edge, a hairline and the
+   band's corners (--cn-r-band). Neutral shadow, no coloured glow.
+   .cn-stage-band / [data-cn-tone="stage"]: the dark stage (--cn-grad-stage).
    Zero specificity, so a section's own shell always wins.
    ------------------------------------------------------------------------------------------ */
 :where(html.cn) :where(.cn-light, [data-cn-tone="light"]) {
   background-color: var(--cn-bg);
-  background-image:
-    radial-gradient(60% 50% at 50% 0%, rgba(139, 92, 246, .13), transparent 72%),
-    radial-gradient(42% 46% at 100% 100%, rgba(34, 211, 238, .12), transparent 72%),
-    radial-gradient(40% 42% at 0% 100%, rgba(232, 121, 249, .09), transparent 72%);
+  background-image: radial-gradient(60% 50% at 50% 0%, rgba(34, 211, 238, .07), transparent 72%);
   border-radius: var(--cn-r-band);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, .9),
-    0 0 0 1px rgba(196, 181, 253, .22),
-    0 40px 90px -50px rgba(10, 4, 40, .55);
+    0 0 0 1px rgba(15, 23, 42, .07),
+    0 30px 60px -40px rgba(2, 6, 23, .45);
 }
 :where(html.cn) :where(.cn-stage-band, [data-cn-tone="stage"]) {
   background: var(--cn-grad-stage);
   border-radius: var(--cn-r-band);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, .12),
-    0 0 0 1px rgba(196, 181, 253, .16),
-    0 40px 100px -50px rgba(91, 43, 224, .7);
+    inset 0 1px 0 rgba(255, 255, 255, .08),
+    0 0 0 1px rgba(148, 163, 184, .14),
+    0 30px 60px -40px rgba(0, 0, 0, .6);
   color: var(--cn-text);
 }
 
 /* ------------------------------------------------------------------------------------------
    3. Scroll utilities
    [data-cn-parallax]: the element drifts against the scroll while it crosses the viewport
-   (--cn-px, default 32px each way). Scroll-driven, so the compositor runs it with no script;
-   where view timelines are missing it simply stays still. Off under reduced motion and pause.
+   (--cn-px, default 32px each way). Scroll-driven and translate-only, so the compositor runs it
+   with no script; where view timelines are missing it simply stays still. Off under reduced
+   motion and Pause motion. Use it on small decorative elements only, never on large photos
+   (DESIGN.md v4.1: no scroll-timeline parallax on large images).
    ------------------------------------------------------------------------------------------ */
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {

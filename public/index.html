@@ -15,7 +15,7 @@
   <script>
   (function(){
     var d=document,r=d.documentElement;
-    try{if(localStorage.getItem("cn-still")==="1")r.classList.add("cn-still")}catch(e){}
+    try{if(localStorage.getItem("cn-still-2")==="1")r.classList.add("cn-still")}catch(e){}
     if(/^\/(quick-scan|analysis-ai|recovery|learn|pricing|about)\/?$/.test(location.pathname)){
       r.classList.add("cn-deep");
       var t=0,done=function(){clearTimeout(t);r.classList.remove("cn-deep")};
@@ -39,7 +39,7 @@
   <link rel="stylesheet" href="/cybernet-howto.css?v=20260905-1" />
   <link id="cybernetBusinessTeamStylesheet" rel="stylesheet" href="/cybernet-business-team.css?v=20260927-2" />
   <link rel="stylesheet" href="/cybernet-consent.css?v=20260927-2" />
-  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261013-2" />
+  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261014-5" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=20260830-5">
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=20260830-5">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=20260830-5">
@@ -495,7 +495,7 @@
       <div class="hero" id="heroSection">
         <div class="cn-stage cn-hero4">
           <div class="cn-hero4-scene" aria-hidden="true">
-            <img class="cn-hero4-poster" src="/ui/3d/hero-globe.webp?v=20261014-1" srcset="/ui/3d/hero-globe-480.webp?v=20261014-1 480w, /ui/3d/hero-globe-800.webp?v=20261014-1 800w, /ui/3d/hero-globe.webp?v=20261014-1 1200w" sizes="(min-width: 60rem) and (min-height: 521px) min(60vw, 820px), (max-height: 520px) and (orientation: landscape) 420px, min(100vw, 640px)" alt="" width="1200" height="1200" decoding="async" fetchpriority="high" />
+            <img class="cn-hero4-poster" src="/ui/3d/hero-globe.webp?v=20261014-5" srcset="/ui/3d/hero-globe-480.webp?v=20261014-5 480w, /ui/3d/hero-globe-800.webp?v=20261014-5 800w, /ui/3d/hero-globe.webp?v=20261014-5 1200w" sizes="(min-width: 60rem) and (min-height: 521px) min(60vw, 820px), (max-height: 520px) and (orientation: landscape) 420px, min(100vw, 640px)" alt="" width="1200" height="1200" decoding="async" fetchpriority="high" />
             <canvas class="cn-hero4-canvas" data-cn="hero3d"></canvas>
           </div>
           <div class="hero-content reveal cn-hero">
@@ -542,7 +542,7 @@
           </button>
           <button class="hero-video-btn" type="button" data-video="recovery" aria-haspopup="dialog">
             <span class="hero-video-btn-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.6"/><path d="m6 6 3.4 3.4M18 6l-3.4 3.4M6 18l3.4-3.4M18 18l-3.4-3.4"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.4 12a8.6 8.6 0 1 0 8.6-8.6 8.6 8.6 0 0 0-6.1 2.5L3.5 8.3"/><path d="M3.5 3.6v4.7h4.7"/><path d="M12 7.6l3.8 1.7-.45 3.8L12 16.9l-3.35-3.8-.45-3.8Z"/></svg>
             </span>
             <span class="hero-video-btn-label">Recovery</span>
             <span class="cn-tile-sub">How it works</span>
@@ -643,15 +643,21 @@
         </header>
         <div class="cn-bento" data-cn="bento">
           <figure class="cn-tile cn-tile--a reveal">
-            <picture><img src="/ui/img/threat-hacker-4x5-800.webp?v=20261014-1" srcset="/ui/img/threat-hacker-4x5-800.webp?v=20261014-1 800w, /ui/img/threat-hacker-4x5-1200.webp?v=20261014-1 1200w" sizes="(max-width: 1020px) 100vw, (max-width: 1440px) 52vw, 720px" width="1200" height="1500" loading="lazy" decoding="async" alt="A hooded hacker seen from behind as a dark silhouette, facing screens full of code" /></picture>
+            <picture><img src="/ui/img/threat-hacker-800.webp?v=20261014-5" srcset="/ui/img/threat-hacker-800.webp?v=20261014-5 800w, /ui/img/threat-hacker-1600.webp?v=20261014-5 1600w" sizes="(max-width: 1020px) 100vw, 1200px" width="1600" height="1067" loading="lazy" decoding="async" alt="A hooded hacker seen from behind, typing at a desk in front of screens full of code" /></picture>
             <figcaption><b>Phishing texts and emails</b><span>Fake bank, parcel and toll alerts that push you to tap a link.</span></figcaption>
           </figure>
-          <figure class="cn-tile cn-tile--b reveal">
-            <picture><source media="(max-width: 700px)" srcset="/ui/img/threat-phone-4x5-800.webp?v=20261014-1 800w, /ui/img/threat-phone-4x5-1200.webp?v=20261014-1 1200w" sizes="100vw" /><img src="/ui/img/threat-phone-800.webp?v=20261014-1" srcset="/ui/img/threat-phone-800.webp?v=20261014-1 800w, /ui/img/threat-phone-1600.webp?v=20261014-1 1600w" sizes="(max-width: 620px) 100vw, (max-width: 1020px) 46vw, (max-width: 1440px) 36vw, 520px" width="1600" height="1067" loading="lazy" decoding="async" alt="A hand holding a glowing phone in a dark room, lit in violet and cyan" /></picture>
-            <figcaption><b>Lookalike links and QR codes</b><span>Addresses that copy a real brand, one letter at a time.</span></figcaption>
+          <figure class="cn-tile cn-tile--b cn-tile--qr reveal">
+            <div class="cn-qr">
+              <a class="cn-qr-code" href="https://cybernetai.app" aria-label="QR code that opens cybernetai.app"><img src="/ui/img/qr-cybernetai.svg?v=20261014-5" alt="QR code that opens cybernetai.app" width="232" height="232" loading="lazy" decoding="async" /></a>
+              <ul class="cn-qr-links" aria-label="A real link next to a lookalike">
+                <li class="is-real"><span class="cn-qr-tag">Real</span><a href="https://cybernetai.app">cybernetai.app</a></li>
+                <li class="is-fake"><span class="cn-qr-tag">Lookalike</span><span class="cn-qr-fake">cybernet-ai.app-verify.co</span></li>
+              </ul>
+            </div>
+            <figcaption><b>Lookalike links and QR codes</b><span>Addresses that copy a real brand, one letter at a time. This code is real: it opens cybernetai.app.</span></figcaption>
           </figure>
           <figure class="cn-tile cn-tile--c reveal">
-            <picture><source media="(max-width: 700px)" srcset="/ui/img/threat-ai-4x5-800.webp?v=20261014-1 800w, /ui/img/threat-ai-4x5-1200.webp?v=20261014-1 1200w" sizes="100vw" /><img src="/ui/img/threat-ai-800.webp?v=20261014-1" srcset="/ui/img/threat-ai-800.webp?v=20261014-1 800w, /ui/img/threat-ai-1600.webp?v=20261014-1 1600w" sizes="(max-width: 620px) 100vw, (max-width: 1020px) 46vw, (max-width: 1440px) 50vw, 720px" width="1600" height="1067" loading="lazy" decoding="async" alt="A glowing AI chip on a circuit board in violet and cyan light" /></picture>
+            <picture><source media="(max-width: 700px)" srcset="/ui/img/threat-ai-4x5-800.webp?v=20261014-5 800w, /ui/img/threat-ai-4x5-1200.webp?v=20261014-5 1200w" sizes="100vw" /><img src="/ui/img/threat-ai-800.webp?v=20261014-5" srcset="/ui/img/threat-ai-800.webp?v=20261014-5 800w, /ui/img/threat-ai-1600.webp?v=20261014-5 1600w" sizes="(max-width: 620px) 100vw, (max-width: 1020px) 46vw, (max-width: 1440px) 50vw, 720px" width="1600" height="1067" loading="lazy" decoding="async" alt="A glowing AI chip on a circuit board in cool cyan light" /></picture>
             <figcaption><b>AI-made scams</b><span>Cloned voices, fake videos and perfectly written messages.</span></figcaption>
           </figure>
           <div class="cn-tile cn-tile--stat reveal">
@@ -833,7 +839,7 @@
 
       <!-- STATEMENT -->
       <div class="home-quote glass reveal">
-        <div class="cn-close-shield" aria-hidden="true"><img src="/ui/3d/shield.webp?v=20261014-1" alt="" width="640" height="640" loading="lazy" decoding="async" /></div>
+        <div class="cn-close-shield" aria-hidden="true"><img src="/ui/3d/shield.webp?v=20261014-5" alt="" width="640" height="640" loading="lazy" decoding="async" /></div>
         <p data-cn="scrub">Scammers count on you acting fast. CyberNet AI gives you a second opinion just as fast.</p>
         <div class="cn-close">
           <a class="primary-btn big" href="#cnScanInput">Check a message or link</a>
@@ -2500,7 +2506,6 @@
 
     <!-- ═══════════ ABOUT ═══════════ -->
     <section id="about" class="page">
-      <p class="cn-operator">CyberNet AI is operated under <strong>Marks Events FZ LLE</strong></p>
       <div class="about-top reveal">
         <div class="pill glass">
           About CyberNet AI
@@ -2648,6 +2653,8 @@
           <button type="button" class="primary-btn open-feedback-btn">Send feedback</button>
         </div>
       </div>
+
+      <p class="cn-operator cn-operator-foot">CyberNet AI is operated under <strong>Marks Events FZ LLE</strong></p>
     </section>
 
   </main>
@@ -2668,7 +2675,7 @@
 <script src="/cybernet-business-team.js?v=20260930-2" defer></script>
   <script src="/cybernet-final-ui-fix.js?v=20260930-2" defer></script>
       <script src="/cybernet-legal-upgrade.js?v=20260930-2" defer></script>
-  <script src="/ui/cybernet-ui.js?v=20261013-2" defer></script>
+  <script src="/ui/cybernet-ui.js?v=20261014-5" defer></script>
 </body>
 </html>
 

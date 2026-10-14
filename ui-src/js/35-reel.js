@@ -1,4 +1,4 @@
-/* Home 6 · Three tools (#cnFlow): an accessible tabbed reel on a violet stage.
+/* Home 6 · Three tools (#cnFlow): an accessible tabbed reel on a navy stage.
    Tabs follow the WAI-ARIA tabs pattern (aria-selected, roving tabindex, arrow/Home/End keys,
    inactive panels inert + aria-hidden). Auto-advance runs only while the reel is on screen and the
    tab is visible: the active tab's progress line is a CSS animation over data-interval, and its
@@ -7,12 +7,13 @@
    whenever its panel shows (a class per word, so a frame restyles one word, not the whole bubble).
    Each tab's one-line description is copied once into its panel as a caption (.cn-reel-cap).
 
-   v4 stage: a decorative 3D scene (.cn-flow-stage, aria-hidden) is built next to the tabs: the big
-   shield sprite floats in a tilted orbit of small 3D objects, and takes the active tool's colour
-   (data-cn-tool on the reel: scan cyan, ai violet, rec mint; CSS does the tint and the swap spin).
-   Its loops run only while the stage is on screen, the tab is visible, motion is allowed and the
-   section is not paused (data-cn-play on the stage). The one Pause/Play button pauses all motion
-   in the section (the tour and the stage); Play also restarts a tour stopped by a tab click.
+   v4.1 stage: a quiet decorative scene (.cn-flow-stage, aria-hidden) is built next to the tabs:
+   the chrome shield floats inside two thin tilted orbit lines (the section's motion canvas
+   draws the travelling light). A tool change sets data-cn-tool on the reel (scan | ai | rec) and
+   the shield settles in again (CSS). Its one small loop runs only while the stage is on screen,
+   the tab is visible, motion is allowed and the section is not paused (data-cn-play on the
+   stage). The one Pause/Play button pauses all motion in the section (the tour and the
+   stage); Play also restarts a tour stopped by a tab click.
    CN.pause() / CN.resume() (the page-wide motion control) reach it through CN.register.
    Reduced motion: no auto-advance, no streaming, no loops, instant switches. */
 (function () {
@@ -48,9 +49,9 @@
     b.classList.toggle("is-paused", word === "Play");
   }
 
-  /* The decorative stage: glow, light rays, a floor light, then a 3D layer holding a tilted orbit
-     (three small objects on arms) and the shield. Built once, before the reel is shown, so it
-     never shifts the page when it scrolls into view. */
+  /* The decorative stage: a soft light, a contact shadow, then a 3D layer holding a tilted orbit
+     (two hairlines) and the shield. Built once, before the reel is shown, so it never shifts the
+     page when it scrolls into view. */
   function buildStage(reel, list) {
     var st = CN.qs(".cn-flow-stage", reel);
     if (st) return st;
@@ -58,13 +59,9 @@
     st.className = "cn-flow-stage";
     st.setAttribute("aria-hidden", "true");
     st.innerHTML =
-      '<i class="cn-fs-glow"></i><i class="cn-fs-rays"></i><i class="cn-fs-floor"></i>' +
+      '<i class="cn-fs-glow"></i><i class="cn-fs-floor"></i>' +
       '<span class="cn-fs-3d">' +
-        '<span class="cn-fs-orbit"><i class="cn-fs-path"></i><i class="cn-fs-path cn-fs-path--b"></i>' +
-          '<b class="cn-fs-arm cn-fs-arm--a"><i class="cn-fs-sat cn-fs-orb"></i></b>' +
-          '<b class="cn-fs-arm cn-fs-arm--b"><i class="cn-fs-sat cn-fs-ring"></i></b>' +
-          '<b class="cn-fs-arm cn-fs-arm--c"><i class="cn-fs-sat cn-fs-spark"></i></b>' +
-        '</span>' +
+        '<span class="cn-fs-orbit"><i class="cn-fs-path"></i><i class="cn-fs-path cn-fs-path--b"></i></span>' +
         '<i class="cn-fs-shield"></i>' +
       '</span>';
     list.parentNode.insertBefore(st, list.nextSibling);
@@ -179,7 +176,7 @@
         if (on) { p.removeAttribute("aria-hidden"); p.removeAttribute("inert"); }
         else { p.setAttribute("aria-hidden", "true"); p.setAttribute("inert", ""); }
       });
-      /* the stage takes the tool's colour (a data attribute: legacy observers watch "class") */
+      /* the stage's shield settles in again (a data attribute: legacy observers watch "class") */
       if (reel.getAttribute("data-cn-tool") !== keys[i]) reel.setAttribute("data-cn-tool", keys[i]);
       if (changed && reel.classList.contains("is-shown")) stream(streams[i]);
       keepVisible(tabs[i]);

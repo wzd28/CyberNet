@@ -37,12 +37,11 @@ html.cn body.cn-legal-page {
   min-height: 100vh;
   min-height: 100svh;
   margin: 0;
-  /* v4: the luminous ground, still (a document never animates): violet light from the top left,
-     cyan from the top right, a magenta breath at the foot of the page. */
+  /* v4.1: midnight navy with one soft cyan light at the top and a touch of blue at the corner,
+     painted once with the page (a document never animates, and nothing here is fixed). */
   background:
-    radial-gradient(64% 600px at 10% -160px, rgba(124, 77, 255, .55), transparent 72%) no-repeat,
-    radial-gradient(54% 520px at 94% -90px, rgba(34, 211, 238, .26), transparent 70%) no-repeat,
-    radial-gradient(70% 560px at 50% 100%, rgba(232, 121, 249, .14), transparent 72%) no-repeat,
+    radial-gradient(56% 480px at 50% -130px, rgba(34, 211, 238, .075), transparent 74%) no-repeat,
+    radial-gradient(38% 400px at 94% -90px, rgba(59, 130, 246, .09), transparent 74%) no-repeat,
     var(--cn-bg);
 }
 html.cn.cn-legal { scrollbar-color: var(--cn-surface-3) var(--cn-bg); }
@@ -623,6 +622,7 @@ html.cn body.cn-404 > main a.btn {
 html.cn body.cn-404 > main a.btn.primary { background: var(--cn-cyan); color: var(--cn-on-cyan); }
 html.cn body.cn-404 > main a.btn.secondary {
   border-color: var(--cn-line-2);
+  background: transparent; /* the inline fallback in 404.html gives it an explicit #0c1220 fill */
   color: var(--cn-text);
   font-weight: 500;
 }
@@ -687,107 +687,20 @@ html.cn body.cn-404 > main a.btn:focus-visible { outline: 2px solid var(--cn-cya
 }
 
 /* ---------------------------------------------------------------------
-   13. v4 "Aurora": the same palette as the app, still readable. This bundle does not include
-       the inner-page kit, so the few values it needs are local.
+   13. v4.1 "Midnight": the same calm palette as the app. This bundle does not include the
+       inner-page kit, so the few values it needs are local. There is no fixed light layer: the
+       ground (section 1) is painted once with the page.
    --------------------------------------------------------------------- */
-html.cn body.cn-legal-page {
-  --cn-lg-fill: linear-gradient(180deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, 0) 44%), linear-gradient(var(--cn-surface), var(--cn-surface));
-  --cn-lg-edge: var(--cn-grad-hair);
-  --cn-lg-lift: 0 26px 56px -34px rgba(8, 4, 30, .85), inset 0 1px 0 rgba(255, 255, 255, .07);
-}
-/* The light: a fixed, static layer (painted once, nothing animates in a document) with the same hues
-   as the app's aurora, so a legal page is not darker than the page that links to it. The values
-   stay at the aurora's own strength: the long-read ink and the small labels keep 4.5:1 on it. */
-html.cn body.cn-legal-page::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  contain: strict;
-  background:
-    radial-gradient(52vmax 40vmax at 6% 2%, rgba(91, 43, 224, .5), rgba(91, 43, 224, .16) 48%, transparent 74%),
-    radial-gradient(58vmax 44vmax at 72% 54%, rgba(58, 18, 168, .5), rgba(58, 18, 168, .14) 52%, transparent 76%),
-    radial-gradient(40vmax 34vmax at 98% 8%, rgba(34, 211, 238, .16), transparent 74%),
-    radial-gradient(44vmax 32vmax at 2% 98%, rgba(232, 121, 249, .13), transparent 74%),
-    radial-gradient(40vmax 30vmax at 100% 100%, rgba(34, 211, 238, .12), transparent 74%);
-}
-@media print { html.cn body.cn-legal-page::before { display: none; } }
-@media (forced-colors: active) { html.cn body.cn-legal-page::before { display: none; } }
-html.cn body.cn-legal-page .cn-legal-page-brand img { background: linear-gradient(150deg, #67e8f9, #8b5cf6 70%, #e879f9); }
-html.cn body.cn-legal-page .cn-legal-page-top { border-bottom-color: var(--cn-line-2); }
-html.cn body.cn-legal-page .cn-legal-page-home {
-  border: 1px solid transparent;
-  background: linear-gradient(rgba(11, 7, 32, .42), rgba(11, 7, 32, .42)) padding-box, var(--cn-lg-edge) border-box;
-}
 html.cn body.cn-legal-page .cn-legal-eyebrow {
   padding: 5px 14px 5px 28px;
   background:
-    radial-gradient(circle at 14px 50%, var(--cn-cyan) 0 3px, rgba(34, 211, 238, .3) 3.5px 7px, transparent 8px),
-    linear-gradient(100deg, rgba(34, 211, 238, .16), rgba(139, 92, 246, .18));
-  box-shadow: inset 0 0 0 1px var(--cn-cyan-line);
-}
-html.cn body.cn-legal-page .cn-legal-hero h1 {
-  width: fit-content;
-  max-width: 100%;
-  background: linear-gradient(100deg, #fff 0%, #fff 45%, var(--cn-violet-2) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-  padding-block-end: .08em;
-}
-html.cn body.cn-legal-page .cn-legal-meta { border-top-color: var(--cn-line-2); }
-html.cn body.cn-legal-page .cn-legal-meta > span:first-child::before { box-shadow: 0 0 8px var(--cn-cyan); }
-html.cn body.cn-legal-page .cn-legal-toc {
-  border: 1px solid transparent;
-  background: var(--cn-lg-fill) padding-box, var(--cn-lg-edge) border-box;
-  box-shadow: var(--cn-lg-lift);
-}
-html.cn body.cn-legal-page .cn-legal-toc strong { color: var(--cn-cyan-2); }
-html.cn body.cn-legal-page .cn-legal-section { border-top-color: var(--cn-line-2); }
-html.cn body.cn-legal-page .cn-legal-section h2 { color: #fff; }
-html.cn body.cn-legal-page .cn-legal-section li::marker { color: var(--cn-cyan-2); }
-html.cn body.cn-legal-page .cn-legal-callout {
-  border: 1px solid transparent;
-  background: linear-gradient(100deg, rgba(34, 211, 238, .1), transparent 55%) padding-box, var(--cn-lg-fill) padding-box, var(--cn-lg-edge) border-box;
-  box-shadow: var(--cn-lg-lift);
-}
-html.cn body.cn-legal-page .cn-legal-callout::before { inset-inline-start: 0; background: linear-gradient(180deg, var(--cn-cyan), var(--cn-violet)); }
-html.cn body.cn-legal-page .cn-legal-callout.warn {
-  background: linear-gradient(100deg, rgba(251, 191, 36, .14), transparent 60%) padding-box, var(--cn-lg-fill) padding-box, var(--cn-lg-edge) border-box;
-}
-html.cn body.cn-legal-page .cn-legal-callout.warn::before { background: var(--cn-warn); }
-html.cn body.cn-legal-page .cn-legal-callout.danger {
-  background: linear-gradient(100deg, rgba(255, 138, 156, .14), transparent 60%) padding-box, var(--cn-lg-fill) padding-box, var(--cn-lg-edge) border-box;
-}
-html.cn body.cn-legal-page .cn-legal-callout.danger::before { background: var(--cn-danger); }
-html.cn body.cn-legal-page .cn-legal-data-table {
-  border-color: var(--cn-line-2);
-  background: rgba(11, 7, 32, .3);
-}
-html.cn body.cn-legal-page .cn-legal-data-table th {
-  background: rgba(124, 77, 255, .3);
-  color: var(--cn-text);
-}
-html.cn body.cn-legal-page .cn-legal-data-table :is(th, td) { border-top-color: var(--cn-line); }
-html.cn body.cn-legal-page .cn-consent-open-btn { border-color: var(--cn-line-ctl); }
-html.cn body.cn-legal-page .cn-legal-page-footer { border-top-color: var(--cn-line-2); }
-@media (hover: hover) and (pointer: fine) {
-  html.cn body.cn-legal-page :is(.cn-legal-page-home, .cn-consent-open-btn, .cn-legal-toc a):hover { background-color: rgba(196, 181, 253, .14); }
-  html.cn body.cn-legal-page .cn-legal-page-home:hover { background: linear-gradient(rgba(60, 40, 140, .55), rgba(60, 40, 140, .55)) padding-box, var(--cn-lg-edge) border-box; }
+    radial-gradient(circle at 14px 50%, var(--cn-cyan) 0 3px, transparent 3.5px),
+    var(--cn-fill-1);
+  box-shadow: inset 0 0 0 1px var(--cn-line-2);
+  color: var(--cn-text-2);
 }
 
-/* 404: the same ground with the shield above the mark (a still render, no animation) */
-html.cn body.cn-404 {
-  background:
-    radial-gradient(46vmax 36vmax at 50% 36%, rgba(91, 43, 224, .46), rgba(58, 18, 168, .16) 55%, transparent 76%),
-    radial-gradient(70% 520px at 14% -120px, rgba(124, 77, 255, .5), transparent 72%),
-    radial-gradient(56% 480px at 90% -60px, rgba(34, 211, 238, .24), transparent 70%),
-    radial-gradient(70% 46% at 50% 108%, rgba(34, 211, 238, .2), transparent 70%),
-    radial-gradient(120% 70% at 50% 118%, rgba(232, 121, 249, .22), transparent 66%),
-    var(--cn-bg);
-}
+/* 404: the same ground with the chrome shield above the mark (a still render, no animation) */
 html.cn body.cn-404 > main {
   position: relative;
   padding-block-start: clamp(124px, 24vw, 200px);
@@ -802,24 +715,12 @@ html.cn body.cn-404 > main::after {
   aspect-ratio: 1;
   translate: -50% 0;
   background:
-    url("/ui/3d/shield-320.webp?v=20261014-1") center / contain no-repeat,
-    radial-gradient(closest-side, rgba(34, 211, 238, .38), transparent 78%) center / 100% 100% no-repeat;
+    url("/ui/3d/shield-320.webp?v=20261014-5") center / contain no-repeat,
+    radial-gradient(closest-side, rgba(34, 211, 238, .09), transparent 78%) center / 100% 100% no-repeat;
   pointer-events: none;
 }
 /* The 3D shield above replaces the small outline mark (decorative, aria-hidden): one hero object. */
 html.cn body.cn-404 > main > svg.mark { display: none; }
-html.cn body.cn-404 > main h1 {
-  background: linear-gradient(100deg, #fff 0%, #fff 40%, var(--cn-violet-2) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-  padding-block-end: .08em;
-}
-html.cn body.cn-404 > main a.btn.primary { box-shadow: var(--cn-glow-cta); }
-@media (hover: hover) and (pointer: fine) {
-  html.cn body.cn-404 > main a.btn.primary:hover { box-shadow: var(--cn-glow-cta-hover); }
-}
 html.cn body.cn-404 > main a.btn.secondary { border-color: var(--cn-line-ctl); }
 @media (max-height: 520px) {
   html.cn body.cn-404 > main { padding-block-start: 0; }
@@ -827,17 +728,4 @@ html.cn body.cn-404 > main a.btn.secondary { border-color: var(--cn-line-ctl); }
 }
 @media (forced-colors: active) {
   html.cn body.cn-404 > main::after { display: none; }
-}
-@media print {
-  html.cn body.cn-legal-page .cn-legal-hero h1 { background: none; -webkit-text-fill-color: CanvasText; color: CanvasText; }
-  html.cn body.cn-legal-page { --cn-lg-fill: none; }
-}
-
-@media (forced-colors: active) {
-  html.cn body.cn-legal-page .cn-legal-hero h1,
-  html.cn body.cn-404 > main h1 {
-    background: none;
-    -webkit-text-fill-color: CanvasText;
-    color: CanvasText;
-  }
 }

@@ -1,15 +1,16 @@
 /* ==========================================================================
-   60-overlays.css  -  v4 "Aurora" dialogs: modals, the how-to walkthrough, the
+   60-overlays.css  -  v4.1 "Midnight" dialogs: modals, the how-to walkthrough, the
    account / API key / business dialogs, the Legal Center shell and the cookie bar.
 
-   Shape: a luminous violet glass sheet (deep violet gradient, a cyan light top-right,
-   a magenta glow bottom-left) with a 1px gradient rim, --cn-r-panel corners and one
-   soft shadow, over a violet scrim blurred 10px. Desktop shows a centred sheet;
-   phones get a bottom sheet (top corners only, 92dvh, inner scroll, safe-area padding).
+   Shape: a solid midnight sheet (navy gradient, a 1px hairline, a thin cyan highlight on
+   its top edge), --cn-r-panel corners and one soft shadow, over a flat dark scrim (no
+   backdrop blur: the page behind is locked, and a blur is a compositor pass for nothing).
+   Desktop shows a centred sheet; phones get a bottom sheet (top corners only, 92dvh,
+   inner scroll, safe-area padding).
 
    Inside a dialog the surface, line and text tokens are re-declared (section 0), so
    every inner panel, field and chip that reads --cn-surface-2, --cn-line or --cn-text
-   (01-base.css and the rules below) takes the violet palette without a rule of its own,
+   (01-base.css and the rules below) takes the midnight palette without a rule of its own,
    whatever the page-level tokens are.
 
    Contracts kept (maps/HAZARDS.md):
@@ -32,20 +33,20 @@
 
 /* ---------- 0. The dialog palette ---------- */
 html.cn :is(.modal, .cn-legal-modal) {
-  --cn-bg: #1c0a58;            /* where the sheet gradient ends (the bottom fades into it) */
-  --cn-bg-2: #190a50;          /* wells inside a sheet */
-  --cn-surface: #240d6a;
-  --cn-surface-2: #2c1380;     /* field fills and raised items (opaque: native option lists use it) */
-  --cn-surface-3: #371a98;
-  --cn-line: rgba(196, 181, 253, .20);
-  --cn-line-2: rgba(196, 181, 253, .34);
-  --cn-line-ctl: rgba(214, 207, 253, .52);   /* field edges: 3.7:1 against the sheet, 3.3:1 over the field fill */
-  --cn-text: #f8f6ff;
-  --cn-text-2: #d6cffd;        /* 10.6:1 on the sheet */
-  --cn-text-3: #b8adf2;        /* 7.7:1 on the sheet; 5.8:1 on surface-3 */
-  --cn-on-cyan: #0b0720;
-  --cn-focus: 0 0 0 3px #1d0b57, 0 0 0 5px var(--cn-cyan);
-  --cn-shadow: 0 44px 90px -34px rgba(8, 3, 28, .9);
+  --cn-bg: #0c1220;            /* where the sheet gradient ends (the bottom fades into it) */
+  --cn-bg-2: #0a101c;          /* wells inside a sheet */
+  --cn-surface: #101829;
+  --cn-surface-2: #151f34;     /* field fills and raised items (opaque: native option lists use it) */
+  --cn-surface-3: #1b2742;
+  --cn-line: rgba(148, 163, 184, .18);
+  --cn-line-2: rgba(148, 163, 184, .30);
+  --cn-line-ctl: rgba(176, 188, 205, .58);   /* field edges: 3.9:1 against the sheet, 3.5:1 over the field fill */
+  --cn-text: #f5f7fa;
+  --cn-text-2: #b3bccb;        /* 9.6:1 on the sheet */
+  --cn-text-3: #97a2b4;        /* 6.5:1 on the sheet; 5.4:1 on surface-3 */
+  --cn-on-cyan: #04121a;
+  --cn-focus: 0 0 0 3px #0c1220, 0 0 0 5px var(--cn-cyan);
+  --cn-shadow: 0 40px 80px -36px rgba(0, 0, 0, .85);
   /* legacy tokens the add-on sheets and JS templates read */
   --bg: var(--cn-bg);
   --bg-alt: var(--cn-bg-2);
@@ -57,13 +58,10 @@ html.cn :is(.modal, .cn-legal-modal) {
   --text: var(--cn-text);
   --muted: var(--cn-text-2);
   --soft: var(--cn-text-2);
-  /* the sheet: two soft lights over a deep violet gradient, inside a gradient rim */
+  /* the sheet: a thin cyan highlight on the top edge over a navy gradient (the card draws its own hairline) */
   --cn-sheet:
-    linear-gradient(90deg, transparent, rgba(103, 232, 249, .95) 30%, rgba(196, 181, 253, .9) 62%, rgba(232, 121, 249, .8) 80%, transparent) 50% 0 / 64% 2px no-repeat padding-box,
-    radial-gradient(72% 46% at 100% 0%, rgba(34, 211, 238, .22), transparent 70%) padding-box,
-    radial-gradient(62% 42% at 0% 100%, rgba(232, 121, 249, .20), transparent 70%) padding-box,
-    linear-gradient(165deg, #3a1599 0%, #280e78 48%, #1c0a58 100%) padding-box,
-    linear-gradient(135deg, rgba(103, 232, 249, .95), rgba(139, 92, 246, .7) 46%, rgba(232, 121, 249, .78)) border-box;
+    linear-gradient(90deg, transparent, rgba(34, 211, 238, .7) 50%, transparent) 50% 0 / 52% 1px no-repeat,
+    linear-gradient(180deg, #111a2d 0%, #0c1220 100%);
 }
 
 /* ---------- 1. Scrim ---------- */
@@ -73,10 +71,10 @@ html.cn .modal {
     max(var(--cn-6), env(safe-area-inset-right, 0px))
     max(var(--cn-6), env(safe-area-inset-bottom, 0px))
     max(var(--cn-6), env(safe-area-inset-left, 0px));
-  background:
-    radial-gradient(60% 50% at 50% 0%, rgba(124, 77, 255, .46), transparent 70%),
-    radial-gradient(50% 40% at 100% 100%, rgba(232, 121, 249, .16), transparent 70%),
-    rgba(18, 7, 56, .72);
+  background: rgba(3, 6, 12, .78);
+  /* style.css blurs the scrim by 10px; a blur over the live page is a compositor pass for nothing */
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
   overscroll-behavior: contain;
 }
 
@@ -97,10 +95,10 @@ html.cn :is(#authModal, #feedbackModal, #accountDetailsModal, #cybernetHowToGetK
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: var(--cn-card-pad) var(--cn-card-pad) var(--cn-card-pb);
-  border: 1px solid transparent;
+  border: 1px solid var(--cn-line-2);
   border-radius: var(--cn-r-panel);
   background: var(--cn-sheet);
-  box-shadow: var(--cn-shadow), 0 0 90px -28px rgba(124, 77, 255, .75), inset 0 1px 0 rgba(255, 255, 255, .16);
+  box-shadow: var(--cn-shadow), inset 0 1px 0 rgba(255, 255, 255, .05);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   color: var(--cn-text);
@@ -132,50 +130,101 @@ html.cn #cybernetHowToGetKeyModal > .modal-card { width: min(620px, 100%); }
 html.cn #businessTeamModal > .modal-card { width: min(900px, 100%); max-height: min(90dvh, 960px); }
 html.cn #acceptInviteModal > .modal-card { width: min(560px, 100%); }
 
-/* ---------- 3. Close button (the × glyph is replaced by a drawn cross) ---------- */
+/* ---------- 3. Close buttons: one drawn cross, centred by construction ----------
+   Every round close button (.close-modal in the sheets, .cn-legal-close in the Legal Center) draws its
+   cross itself: a mask on ::before, placed with inset:0 + margin:auto inside the button's padding box.
+   That centres it on the circle exactly (the box is 14px in a 38px padding box, so 12px each side), whatever
+   the font, the line box or the engine's grid/flex quirks.
+   The old build made the button a grid whose items were that mask and the (empty) "×" text node: the grid
+   shared the free height between the two rows and the cross sat about 6px above the centre.
+   The "×" in the markup (some of it injected by scripts we do not own) only survives as a fallback label:
+   font-size:0 takes it out of layout and paint, and aria-label carries the accessible name.
+   ::after pads the hit area to 44px (the button itself stays a calm 40px circle). */
+html.cn :is(.modal .close-modal, .cn-legal-modal .cn-legal-close) {
+  position: relative;
+  box-sizing: border-box;
+  flex: none;
+  display: block;
+  width: 40px;
+  height: 40px;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--cn-line-2);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .06);
+  box-shadow: none;
+  color: var(--cn-text);
+  font-size: 0;
+  line-height: 0;
+  text-indent: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--cn-dur-1) ease, color var(--cn-dur-1) ease;
+}
+
 html.cn .modal .close-modal {
   position: absolute;
   top: 16px;
   inset-inline-end: 16px;
   inset-inline-start: auto;
   z-index: 3;
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  border: 1px solid var(--cn-line-2);
-  border-radius: 50%;
-  background: rgba(255, 255, 255, .10);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14);
-  color: var(--cn-text);
-  font-size: 0;
-  line-height: 0;
-  cursor: pointer;
-  transition: background-color var(--cn-dur-1) ease, color var(--cn-dur-1) ease;
 }
 
-html.cn .modal .close-modal::before {
-  content: "";
-  width: 14px;
-  height: 14px;
-  background: currentColor;
-  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M2.5 2.5l9 9M11.5 2.5l-9 9'/%3E%3C/svg%3E") center / contain no-repeat;
-  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M2.5 2.5l9 9M11.5 2.5l-9 9'/%3E%3C/svg%3E") center / contain no-repeat;
-}
-
-/* 44px hit area */
-html.cn .modal .close-modal::after {
+html.cn :is(.modal .close-modal, .cn-legal-modal .cn-legal-close)::before {
   content: "";
   position: absolute;
-  inset: -2px;
+  inset: 0;
+  width: 14px;
+  height: 14px;
+  margin: auto;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='%23000' stroke-width='1.75' stroke-linecap='round'%3E%3Cpath d='M2.5 2.5l9 9M11.5 2.5l-9 9'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='%23000' stroke-width='1.75' stroke-linecap='round'%3E%3Cpath d='M2.5 2.5l9 9M11.5 2.5l-9 9'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+  pointer-events: none;
+}
+
+/* 44px hit area (the padding box is 38px; 3px out on every side) */
+html.cn :is(.modal .close-modal, .cn-legal-modal .cn-legal-close)::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
   border-radius: 50%;
 }
 
-html.cn .modal .close-modal:focus-visible {
+html.cn :is(.modal .close-modal, .cn-legal-modal .cn-legal-close):focus-visible {
   outline: none;
   color: var(--cn-text);
   box-shadow: var(--cn-focus);
+}
+
+/* The same drawn cross, for the one other round "x" in the pages: remove the attached image (Analysis AI).
+   Its rules are in 30-tools.css; the grid + glyph there leave the cross at the font's idea of centre. */
+html.cn #cybernetai .chat-attach-remove {
+  position: relative;
+  display: block;
+  font-size: 0;
+  line-height: 0;
+}
+/* 44px hit area on the 36px circle */
+html.cn #cybernetai .chat-attach-remove::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+}
+html.cn #cybernetai .chat-attach-remove::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 14px;
+  height: 14px;
+  margin: auto;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='%23000' stroke-width='1.75' stroke-linecap='round'%3E%3Cpath d='M2.5 2.5l9 9M11.5 2.5l-9 9'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='%23000' stroke-width='1.75' stroke-linecap='round'%3E%3Cpath d='M2.5 2.5l9 9M11.5 2.5l-9 9'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+  pointer-events: none;
 }
 
 /* ---------- 4. Type inside sheets ---------- */
@@ -204,10 +253,10 @@ html.cn .modal .account-eyebrow {
   min-height: 24px;
   margin: 0 0 var(--cn-3);
   padding: 0 10px;
-  border: 1px solid rgba(103, 232, 249, .32);
+  border: 1px solid rgba(34, 211, 238, .34);
   border-radius: var(--cn-r-pill);
-  background: linear-gradient(135deg, rgba(34, 211, 238, .18), rgba(139, 92, 246, .30));
-  color: #eafcff;
+  background: rgba(34, 211, 238, .1);
+  color: #d9f7fc;
   font-family: var(--cn-font-mono);
   font-size: 11px;
   font-weight: 500;
@@ -660,10 +709,10 @@ html.cn #howtoVideoModal .video-player-shell {
   height: min(760px, calc(100dvh - 48px));
   max-height: none;
   padding: var(--cn-5) clamp(20px, 1rem + 1.4vw, 32px) clamp(20px, 1rem + 1vw, 28px);
-  border: 1px solid transparent;
+  border: 1px solid var(--cn-line-2);
   border-radius: var(--cn-r-panel);
   background: var(--cn-sheet);
-  box-shadow: var(--cn-shadow), 0 0 90px -28px rgba(124, 77, 255, .75), inset 0 1px 0 rgba(255, 255, 255, .16);
+  box-shadow: var(--cn-shadow), inset 0 1px 0 rgba(255, 255, 255, .05);
   color: var(--cn-text);
   font-family: var(--cn-font);
   animation: cn-ov-in var(--cn-dur-3) var(--cn-ease-out) both;
@@ -715,7 +764,7 @@ html.cn #howtoVideoModal .video-exit-btn {
 html.cn #howtoVideoModal .video-exit-btn::after {
   content: "";
   position: absolute;
-  inset: -2px;
+  inset: -3px; /* the padding box is 38px high: 44px hit area */
 }
 
 html.cn #howtoVideoModal :is(.video-exit-btn, .video-control-btn, .video-modal-tab):focus-visible {
@@ -889,10 +938,8 @@ html.cn #howtoVideoModal .hw-visual {
   padding: clamp(18px, 1rem + 1vw, 28px);
   border: 1px solid var(--cn-line);
   border-radius: var(--cn-r-card);
-  background:
-    radial-gradient(80% 60% at 100% 0%, rgba(34, 211, 238, .12), transparent 70%),
-    linear-gradient(160deg, rgba(54, 24, 156, .62), rgba(30, 12, 98, .5));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1);
+  background: var(--cn-surface);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05);
 }
 
 html.cn #howtoVideoModal .hw-tabs {
@@ -987,10 +1034,8 @@ html.cn #howtoVideoModal .hw-nav {
   padding: var(--cn-2) var(--cn-3);
   border: 1px solid var(--cn-line);
   border-radius: var(--cn-r-card);
-  background: rgba(34, 12, 100, .8);
-  box-shadow: 0 -14px 30px -20px rgba(8, 3, 28, .9), inset 0 1px 0 rgba(255, 255, 255, .1);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
-  backdrop-filter: blur(14px) saturate(140%);
+  background: var(--cn-surface-2);
+  box-shadow: 0 -12px 24px -18px rgba(0, 0, 0, .8), inset 0 1px 0 rgba(255, 255, 255, .05);
 }
 
 html.cn #howtoVideoModal .hw-btn {
@@ -1675,18 +1720,17 @@ html.cn .cn-legal-modal {
     max(var(--cn-6), env(safe-area-inset-right, 0px))
     max(var(--cn-6), env(safe-area-inset-bottom, 0px))
     max(var(--cn-6), env(safe-area-inset-left, 0px));
-  background:
-    radial-gradient(60% 50% at 50% 0%, rgba(124, 77, 255, .46), transparent 70%),
-    radial-gradient(50% 40% at 100% 100%, rgba(232, 121, 249, .16), transparent 70%),
-    rgba(18, 7, 56, .72);
+  background: rgba(3, 6, 12, .78);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 html.cn .cn-legal-modal .cn-legal-dialog {
   height: min(860px, calc(100dvh - 48px));
-  border: 1px solid transparent;
+  border: 1px solid var(--cn-line-2);
   border-radius: var(--cn-r-panel);
   background: var(--cn-sheet);
-  box-shadow: var(--cn-shadow), 0 0 90px -28px rgba(124, 77, 255, .75), inset 0 1px 0 rgba(255, 255, 255, .16);
+  box-shadow: var(--cn-shadow), inset 0 1px 0 rgba(255, 255, 255, .05);
   font-family: var(--cn-font);
   animation: cn-ov-in var(--cn-dur-3) var(--cn-ease-out) both;
 }
@@ -1717,20 +1761,7 @@ html.cn .cn-legal-modal .cn-legal-brand small {
   letter-spacing: var(--cn-track-label);
 }
 
-html.cn .cn-legal-modal .cn-legal-close {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  border: 1px solid var(--cn-line-2);
-  border-radius: 50%;
-  background: rgba(255, 255, 255, .10);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14);
-  color: var(--cn-text);
-  font-size: 20px;
-  line-height: 1;
-}
+/* .cn-legal-close: the round close button is drawn in section 3 together with .close-modal */
 
 html.cn .cn-legal-modal .cn-legal-tabs {
   gap: 4px;
@@ -1760,7 +1791,7 @@ html.cn .cn-legal-modal .cn-legal-tab.active {
 }
 
 html.cn .cn-legal-modal .cn-legal-viewer {
-  background: rgba(18, 7, 56, .42);
+  background: rgba(6, 10, 20, .45);
   color: var(--cn-text);
   font-family: var(--cn-font);
   scrollbar-color: var(--cn-line-2) transparent;
@@ -1850,26 +1881,23 @@ html.cn .cn-legal-modal :is(.cn-legal-close, .cn-legal-tab, .cn-legal-done):focu
 
 /* ---------- 14. Cookie bar (#cnConsentBar). Fixed, z 150, [hidden] and the body padding stay legacy ----------
    Every colour here is a literal: these rules are also picked into the legal-page bundle
-   (cybernet-ui-legal.css), which carries no chrome palette. The bar is opaque enough (95%)
-   to hold its contrast over a light section as well as the violet stage. */
+   (cybernet-ui-legal.css), which carries no chrome palette. The bar is solid, so it holds its
+   contrast over a light section as well as over the dark ground. */
 html.cn .cn-consent {
   --cn-consent-accent: #67e8f9;
-  --cn-consent-text: #f8f6ff;
-  --cn-consent-muted: #d6cffd;
-  --cn-consent-border: rgba(196, 181, 253, .34);
+  --cn-consent-text: #f5f7fa;
+  --cn-consent-muted: #b3bccb;
+  --cn-consent-border: rgba(148, 163, 184, .34);
   left: max(var(--cn-4), env(safe-area-inset-left, 0px));
   right: max(var(--cn-4), env(safe-area-inset-right, 0px));
   bottom: calc(var(--cn-3) + env(safe-area-inset-bottom, 0px));
   max-width: 720px;
   gap: var(--cn-5);
   padding: var(--cn-4) var(--cn-4) var(--cn-4) var(--cn-5);
-  border: 1px solid transparent;
+  border: 1px solid rgba(34, 211, 238, .34);
   border-radius: var(--cn-r-card);
-  background:
-    radial-gradient(70% 90% at 100% 0%, rgba(34, 211, 238, .20), transparent 70%) padding-box,
-    linear-gradient(160deg, rgba(70, 26, 190, .96), rgba(34, 12, 104, .97)) padding-box,
-    linear-gradient(135deg, rgba(103, 232, 249, .95), rgba(139, 92, 246, .7) 50%, rgba(232, 121, 249, .78)) border-box;
-  box-shadow: 0 26px 60px -26px rgba(8, 3, 28, .9), 0 0 60px -22px rgba(124, 77, 255, .7), inset 0 1px 0 rgba(255, 255, 255, .18);
+  background: #0c1220;
+  box-shadow: 0 22px 44px -26px rgba(0, 0, 0, .85), inset 0 1px 0 rgba(255, 255, 255, .06);
   color: var(--cn-consent-text);
   font-family: var(--cn-font);
   animation: cn-consent-in var(--cn-dur-3) var(--cn-ease-out) both;
@@ -1912,9 +1940,9 @@ html.cn .cn-consent-actions {
 html.cn .cn-consent-btn {
   min-height: 44px;
   padding: 0 16px;
-  border: 1px solid rgba(196, 181, 253, .42);
+  border: 1px solid rgba(148, 163, 184, .46);
   border-radius: var(--cn-r-pill);
-  background: rgba(255, 255, 255, .08);
+  background: rgba(255, 255, 255, .06);
   color: var(--cn-consent-text);
   font-family: var(--cn-font);
   font-size: 14px;
@@ -1925,7 +1953,7 @@ html.cn .cn-consent-btn {
 
 html.cn .cn-consent-btn[aria-pressed="true"] {
   border-color: rgba(103, 232, 249, .65);
-  background: rgba(34, 211, 238, .16);
+  background: rgba(34, 211, 238, .14);
 }
 
 html.cn .cn-consent-btn:active {
@@ -1935,14 +1963,14 @@ html.cn .cn-consent-btn:active {
 html.cn .cn-consent-btn:focus-visible,
 html.cn .cn-consent-text a:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px #1d0b57, 0 0 0 5px #22d3ee;
+  box-shadow: 0 0 0 3px #0c1220, 0 0 0 5px #22d3ee;
 }
 
 /* ---------- 15. Hover (fine pointers only) ---------- */
 @media (hover: hover) and (pointer: fine) {
   html.cn .modal .close-modal:hover,
   html.cn .cn-legal-modal .cn-legal-close:hover {
-    background: rgba(255, 255, 255, .20);
+    background: rgba(255, 255, 255, .12);
     color: #fff;
   }
 
@@ -2008,8 +2036,8 @@ html.cn .cn-consent-text a:focus-visible {
   }
 
   html.cn .cn-consent-btn:hover {
-    border-color: rgba(196, 181, 253, .7);
-    background: rgba(255, 255, 255, .15);
+    border-color: rgba(148, 163, 184, .7);
+    background: rgba(255, 255, 255, .12);
   }
 
   html.cn .cn-consent-text a:hover {
@@ -2321,32 +2349,20 @@ html.cn .cn-consent-text a:focus-visible {
   }
 }
 
-/* The scrim blurs the page only on wide screens with a fine pointer: a full-screen backdrop blur is a
-   compositor pass per frame over the moving aurora and the hero scene, which phones and tablets do not
-   need (the sheet covers most of a phone, and the scrim is already 78% dark). */
-@media (min-width: 640px) and (hover: hover) and (pointer: fine) {
-  html.cn .modal,
-  html.cn .cn-legal-modal {
-    background:
-      radial-gradient(60% 50% at 50% 0%, rgba(124, 77, 255, .46), transparent 70%),
-      radial-gradient(50% 40% at 100% 100%, rgba(232, 121, 249, .16), transparent 70%),
-      rgba(18, 7, 56, .6);
-    -webkit-backdrop-filter: blur(8px) saturate(130%);
-    backdrop-filter: blur(8px) saturate(130%);
-  }
-}
+/* The scrim is a flat 78% dark with no backdrop blur at any size: a blur over the hero scene and the
+   section canvases is a compositor pass for no gain (the page behind is locked and mostly covered). */
 
-/* ---------- 17b. Active segments: one raised glass look for every tab strip in a dialog ---------- */
+/* ---------- 17b. Active segments: one raised slate look for every tab strip in a dialog ---------- */
 html.cn :is(#authModal .auth-tab.active, #accountDetailsModal .cn-account-tab.active, #howtoVideoModal .video-modal-tab.active, #howtoVideoModal .hw-tab.is-active, .cn-legal-modal .cn-legal-tab.active) {
-  border-color: rgba(255, 255, 255, .26);
-  background: linear-gradient(180deg, rgba(255, 255, 255, .24), rgba(255, 255, 255, .10));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .30);
+  border-color: var(--cn-line-2);
+  background: var(--cn-surface-3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06);
   color: #fff;
 }
 
 /* Windows high contrast: the drawn cross and the sheets keep an edge and a visible glyph */
 @media (forced-colors: active) {
-  html.cn .modal .close-modal::before {
+  html.cn :is(.modal .close-modal, .cn-legal-modal .cn-legal-close, #cybernetai .chat-attach-remove)::before {
     forced-color-adjust: none;
     background: ButtonText;
   }
@@ -2406,18 +2422,10 @@ html.cn :is(#authModal .auth-tab.active, #accountDetailsModal .cn-account-tab.ac
   }
 }
 
-/* reduced transparency: solid scrim and bar, no blur */
+/* reduced transparency: a more opaque scrim (the sheets and the bar are already solid) */
 @media (prefers-reduced-transparency: reduce) {
   html.cn .modal,
   html.cn .cn-legal-modal {
-    background: rgba(11, 7, 32, .92);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
-
-  html.cn .cn-consent {
-    background: linear-gradient(#2a0f78, #1b0952) padding-box, linear-gradient(135deg, #67e8f9, #8b5cf6, #e879f9) border-box;
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
+    background: rgba(3, 6, 12, .94);
   }
 }
