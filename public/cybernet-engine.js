@@ -231,8 +231,13 @@ function analyzeTextRules(text){
 // digits and the dots in "Sgt." / "Mr." / "$3.5M" are evened out, and "..." /
 // "!!!" become commas, so punctuation does not cut the sentence windows short.
 // \b never matches next to Arabic letters, so the Arabic patterns use none.
+// Light unmasking too: "g0ld m!ne" and "w1dow", Cyrillic look-alike letters
+// inside Latin words ("gоld"), and dotted letters ("B.U.S.I.N.E.S.S").
+// Only 0, 1 and !: Arabic chat writes 3, 7, 2 and 5 for letters ("a3allmak").
+const TR_LEET={"0":"o","1":"i","!":"i"};
+const TR_CYR={"а":"a","е":"e","о":"o","р":"p","с":"c","у":"y","х":"x","і":"i","ј":"j","ѕ":"s"};
 function twoRuleText(clean){
-  return clean.replace(/[’‘ʼ`´]/g,"'").replace(/[٠-٩]/g,d=>String(d.charCodeAt(0)-1632)).replace(/[۰-۹]/g,d=>String(d.charCodeAt(0)-1776)).replace(/٪/g,"%").replace(/\bu\.s\.(?:a\.)?/g,"us ").replace(/\b(mrs?|ms|miss|dr|engr?|rev|fr|prof|sgt|lt|capt|col|gen|maj|cpl|pvt|hon|sr|jr)\./g,"$1").replace(/(\d)\.(?=\d)/g,"$1,").replace(/\.{2,}|…|!{2,}|\?{2,}/g,", ");
+  return clean.replace(/[a-zаеорсухіјѕ]{2,}/g,w=>/[a-z]/.test(w)&&/[аеорсухіјѕ]/.test(w)?w.replace(/[аеорсухіјѕ]/g,c=>TR_CYR[c]):w).replace(/([a-z])([01!])(?=[a-z])/g,(m,a,b)=>a+TR_LEET[b]).replace(/\b(?:[a-z]\.){3,}[a-z]?(?![a-z])/g,w=>w.replace(/\./g,"")).replace(/[’‘ʼ`´]/g,"'").replace(/[٠-٩]/g,d=>String(d.charCodeAt(0)-1632)).replace(/[۰-۹]/g,d=>String(d.charCodeAt(0)-1776)).replace(/٪/g,"%").replace(/\bu\.s\.(?:a\.)?/g,"us ").replace(/\b(mrs?|ms|miss|dr|engr?|rev|fr|prof|sgt|lt|capt|col|gen|maj|cpl|pvt|hon|sr|jr)\./g,"$1").replace(/(\d)\.(?=\d)/g,"$1,").replace(/\.{2,}|…|!{2,}|\?{2,}/g,", ");
 }
 // A message that warns about these scams describes them; it is not one ("this
 // is not a scam" is the scammer talking, so it does not count).
@@ -358,6 +363,292 @@ function hiddenFundsShare(t){
   const fortune=HF_BIG.test(t)||HF_BIG_AR.test(t)||HF_BOX_CASH.test(t)||HF_BOX_CASH_AR.test(t)||((HF_STASH.test(t)||HF_STASH_AR.test(t))&&(persona||war))||(war&&(HF_FOUND.test(t)||HF_FOUND_AR.test(t)))||(pose&&share);
   if(!fortune)return false;
   return share||pose||HF_CARRY.test(t)||HF_CARRY_AR.test(t)||HF_KIN.test(t)||HF_KIN_AR.test(t)||HF_FEE.test(t)||HF_FEE_AR.test(t);
+}
+
+// ── Owner-approved rules, second round (14 Oct 2026) ──
+// A. A "widow" whose late husband left her gold or millions asks a stranger to
+//    help invest, manage or receive it (romance + inheritance scam).
+// B. A stranger who owns a gold mine wants a partner, investor or buyer and
+//    promises a share of the profit.
+// C. Kilos of gold bars, dust or nuggets offered below the market price, as an
+//    urgent sale or with "documents ready".
+// D. The classic 419 opener: a business proposal worth millions that is
+//    confidential and "100% risk free", even before any ask; or an "investor
+//    with $50 million to place" who needs a local partner.
+// E. A message that opens with "beware of scammers" and then makes its own
+//    pitch is judged on what the sender says in their own voice (ownVoice), so
+//    the warning no longer hides it; a warning that only describes scams, or
+//    quotes one it received, leaves nothing to judge.
+// Like the first two rules, each needs several parts together, never one
+// keyword, and reads the twoRuleText() copy of the message.
+
+// E. What is not the sender's own voice: quoted words; a whole message that
+// reports one it received ("my aunt got this message:"); and, in each
+// sentence, the words after a warning ("beware of scammers", "fake brokers",
+// "they", "if someone offers you") up to the point where the sender speaks for
+// themselves again ("I am", "we", "my", "sorry, wrong number"). After "they
+// say" or "claiming" the rest of the sentence is reported speech, and a
+// verdict ("... is a scam") makes the words before it a description.
+const OV_QUOTED=/"[^"]{1,400}"|“[^”]{1,400}”|«[^»]{1,400}»|(?:^|[\s:(-])'[^']{2,400}'(?=[\s.,!?;:)،؟-]|$)/g;
+const OV_REPORTED=/\b(?:got|received|receive|receiving|get|getting|saw|seen|spotted|came across|forwarded)\s+(?:this|the following|a|an|one|such a|these|those|similar)\s+(?:[a-z']+\s+){0,3}?(?:messages?|msgs?|texts?|sms|emails?|e-mails?|dms?|whatsapps?|mails?|letters?|offers?|posts?|ads?|adverts?)\b[^.!?:]{0,40}:|\b(?:sent|wrote|messaged|texted|emailed|forwarded)\s+(?:me|us|her|him|my [a-z]+)\s*:|\b(?:for example|for instance|example|it says|it said|it reads|saying)\s*:|\b(?:messages?|texts?|emails?|sms|posts?)\s+(?:going around|circulating|doing the rounds)\b[^.!?:]{0,30}:/;
+const OV_REPORTED_AR=/(?:وصلتني|وصلني|جاتني|جاني|جتني|استلمت|تلقيت|تلقى|تلقت)\s?(?:هذه|هذي|ذي|اليوم)?\s?(?:ال)?(?:رسالة|رسايل|رسائل|مسج|إيميل|ايميل)|(?:مثال|مثلاً|مثلا)\s?:|(?:رسالة|رسائل|رسايل|مسج|إيميل|ايميل)\s?(?:نصب|احتيال|احتيالية|مزيفة|وهمية|منتشرة)[^.!?:]{0,30}:/u;
+// "This is not a scam message:" is the sender talking, not a report.
+const OV_NOT_SCAM=/\b(?:not|no|never|isn'?t|am not)\s+(?:a\s+|an\s+)?(?:scam|scammer|fraud|fraudster|hoax|fake)\b|(?:ليست|ليس|مو|مش|موب|ما هي|غير)\s?(?:رسالة|رسائل|مسج)/gu;
+// More ways to warn ("never trust", "تنبيه", "لا تصدق") than the two morning
+// rules needed, including a victim's story ("I lost $20,000 to a fake seller
+// who offered me...", "don't make my mistake").
+const OV_WARN_MORE=/\b(?:do not trust|don'?t trust|never trust|be wary|be cautious|stay safe|stay alert|too good to be true|red flags?|hang up|no legitimate|caution|(?:i|we) lost (?:\$|aed|usd|dhs|\d|money|my savings|our savings|everything|all)|scammed|cheated|conned|fell for|my mistake|is lying|are lying|anyone (?:promising|offering|who promises|who offers)|offered me|tried to sell me|sold me|promised me)\b|تنبيه|خسرت|غلطتي|نصب علي|نصبوا علي|انضحك علي|عرض علي|عرض عليّ|انتبه|انتبهوا|لا تثق|لا تثقوا|لا تصدق|لا تصدقوا|يكذب|كذاب|(?:^|[^\p{L}])(?:ال)?نصب(?![\p{L}])/u;
+const OV_MARK=/\b(?:scams?|scammers?|fraud|frauds|fraudsters?|hoax|con ?artists?|con ?men|criminals?|crooks?|thieves|gangs?|victims?|beware|watch out|be careful|be wary|be cautious|careful everyone|caution|warn(?:s|ed|ing)?|alert|fake|police|arrested|going around|don'?t (?:reply|respond|answer|trust)|do not (?:reply|respond|answer|trust)|never (?:reply|respond|trust|send|share|pay)|report (?:it|them|this|the (?:number|sender))|block (?:the (?:number|sender)|them)|too good to be true|red flags?|hang up|no legitimate|scammed|cheated|conned|fell for|(?:i|we) lost (?:\$|aed|usd|dhs|\d|money|my savings|our savings|everything|all)|anyone (?:promising|offering|who promises|who offers)|they|them|their|theirs|if (?:someone|anyone|somebody|a stranger|a person|you (?:get|receive|see))|someone you (?:have never met|never met|don'?t know|do not know)|such (?:messages?|texts?|offers?|people|calls|emails?)|these (?:messages?|texts?|offers?|people|scams?|emails?)|(?:messages?|texts?|emails?|calls?|offers?) (?:from|saying|that say|claiming|like|asking|promising|offering))\b|احذر|احذروا|حذار|تحذير|تنبيه|انتبه|انتبهوا|محتال|المحتال|نصاب|النصاب|احتيال|الاحتيال|لا ترد|لا تردوا|لا تتجاوب|لا تثق|لا تثقوا|لا تصدق|لا تصدقوا|بلّغ|بلغوا|خسرت|غلطتي|يرسلون|يعدون|يطلبون|يعرضون|هؤلاء|الضحايا|ضحايا|عصابة|عصابات|رسائل|الرسائل|أشخاص|اشخاص|أي واحد|اي واحد|أي شخص|اي شخص|من يعدك|من يقول|إذا (?:أحد|احد|شخص)|(?:^|[^\p{L}])(?:ال)?نصب(?![\p{L}])/gu;
+const OV_SAID=/\b(?:say|says|said|saying|claim|claims|claimed|claiming|pretend(?:s|ed|ing)?|pos(?:e|es|ing) as|tell(?:s|ing)? (?:you|people|victims|everyone)|told (?:me|us|him|her|them|people|victims)|wrote|writes|offered me|tried to sell me|sold me|promised me)\b|عرض علي|عرض عليّ|باع لي|وعدني|يقولون|يقول|تقول|قالت|يدعي|تدعي|يدعون|يدّعون|يزعم|تزعم|يزعمون|ينتحل|ينتحلون/gu;
+const OV_VERDICT=/\b(?:is|are|was|were|it'?s|its|that'?s|thats|these are|those are)\s+(?:a\s+|an\s+|all\s+|just\s+|also\s+|obviously\s+|clearly\s+|definitely\s+|surely\s+|100%\s+)?(?:(?:well[- ]known|common|classic|known|typical|big|total|obvious|old|new|clear)\s+)?(?:scams?|fraud|frauds|fake|hoax|lies|lying|a trap|scammers?|fraudsters?)\b|(?:هي|هو|هذه|هذا|هذي|هاي)\s?(?:عمليات?\s?|عملية\s?|(?:ال)?رسائل\s?|(?:ال)?رسالة\s?)?(?:نصب|احتيال)|عمليات نصب|نصب واحتيال|يكذب|كذاب/gu;
+const OV_SELF=/\b(?:i|i'm|im|i've|ive|i'll|i'd|my|mine|we|we're|we've|we'll|our|ours|sorry|hello|hi|dear|greetings|wrong (?:number|person|chat)|this is (?:a |the )?(?:real|genuine|legit|not))\b|(?:^|[^\p{L}])(?:أنا|انا|نحن|احنا|إحنا|لدي|لديّ|عندي|لدينا|عندنا|اسمي|آسف|اسف|آسفة|اسفة|أملك|املك|نملك|أبحث|ابحث|نبحث|أبي|ابي|أبغى|ابغى|أريد|اريد|أحتاج|احتاج|نحتاج|زوجي|رقم غلط|رقم خطأ|غلطت)(?![\p{L}])/gu;
+const OV_KINDS=[[OV_MARK,"mark"],[OV_SAID,"said"],[OV_VERDICT,"verdict"]];
+function ovAll(re,s){
+  const out=[];re.lastIndex=0;
+  for(let m,n=0;(m=re.exec(s))&&n<400;n++){if(!m[0]){re.lastIndex++;continue}out.push(m)}
+  return out;
+}
+function ownVoiceSentence(s){
+  const marks=[];
+  for(const [re,kind] of OV_KINDS)for(const m of ovAll(re,s)){
+    // "as I said" and "that said" are the sender talking.
+    if(kind==="said"&&/\b(?:i|we|that)\s*$/.test(s.slice(Math.max(0,m.index-6),m.index)))continue;
+    marks.push({at:m.index,end:m.index+m[0].length,kind});
+  }
+  if(!marks.length)return s;
+  marks.sort((a,b)=>a.at-b.at);
+  const selfs=ovAll(OV_SELF,s).map(m=>m.index);
+  let out="",pos=0,j=0;
+  for(let i=0;i<marks.length;){
+    const m=marks[i];
+    if(m.at>=pos)out+=s.slice(pos,m.at)+" ";
+    let end=Math.max(pos,m.end),kind=m.kind;i++;
+    // The warning runs on until the sender speaks for themselves again.
+    for(;;){
+      if(kind==="verdict")out=" ";
+      if(kind==="said")return out;
+      while(j<selfs.length&&selfs[j]<end)j++;
+      const next=i<marks.length?marks[i]:null;
+      if(j<selfs.length&&(!next||selfs[j]<next.at)){pos=selfs[j];break}
+      if(!next)return out;
+      end=Math.max(end,next.end);kind=next.kind;i++;
+    }
+  }
+  return out+s.slice(pos);
+}
+function ownVoice(t){
+  const plain=t.replace(OV_NOT_SCAM," genuine ");
+  if(OV_REPORTED.test(plain)||OV_REPORTED_AR.test(plain))return "";
+  const out=plain.replace(OV_QUOTED," ").split(/[.!?؟;\n]+/).map(ownVoiceSentence).join(". ");
+  return /\p{L}{2}/u.test(out)?out:"";
+}
+
+// Spelled-out millions ("four million five hundred thousand dollars").
+const BIG_WORDS=/\b(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|fifty|hundred)(?:[- ](?:point|and)[- ][a-z]+)?\s+million\b/;
+
+// A. The story: the sender is a widow, or her husband died ("my late husband").
+const WI_STORY=/\b(?:i'?m|i am|im|i was|i'?ve been|i have been|my name is)\b[^.!?]{0,40}?\bwidd?ow(?:ed|er)?\b|\bwidd?ow (?:of (?:the )?late|here)\b|\b(?:my|our)\s+(?:late|deceased|dead|departed|beloved late)\s+(?:husband|hubby|spouse|wife)\b|(?:^|[.!?,;:]\s*)late (?:husband|hubby)\b|\bmy (?:husband|hubby|spouse|wife)\b[^.!?]{0,30}?\b(?:passed away|passed on|died|die|was killed|is dead)\b|\b(?:lost|buried)\s+my\s+(?:husband|hubby|spouse|wife)\b|\b(?:death|loss|passing) of my (?:husband|hubby|spouse|wife)\b|\bmy (?:husband|hubby)'?s (?:death|passing)\b/;
+const WI_STORY_AR=/(?:^|[^\p{L}\p{N}_])(?:و|ك|ف)?(?:ال)?(?:أرملة|ارملة|أرمله|ارمله|أرمل|ارمل)(?![\p{L}\p{N}_])|زوجي\s?(?:المرحوم|الراحل|المتوفى|المتوفي|الله يرحمه|رحمه الله)|(?:المرحوم|الراحل)\s?زوجي|(?:توفي|توفى|مات|استشهد|رحل)\s?زوجي|زوجي\s?(?:توفي|توفى|مات|استشهد|رحل)|(?:فقدت|وفاة)\s?زوجي|زوجتي\s?(?:المرحومة|الراحلة|المتوفاة)|(?:توفيت|ماتت)\s?زوجتي/u;
+// The fortune he left: millions, kilos of gold, or an inheritance.
+const WI_SUM=/[$€£]\s?\d{3}(?:,\d{3})+|[$€£]\s?\d{1,3}(?:,\d{3}){2,}|\b(?:usd|aed|eur|gbp)\s?\d{3}(?:,\d{3})+|\b\d{3}(?:,\d{3})+\s?(?:usd|dollars|euros|pounds|aed|dirhams)\b|\b\d+\s?(?:kg|kgs|kilos?|kilograms?)\b[^.!?]{0,20}?\bgold\b|\bgold\b[^.!?]{0,20}?\b\d+\s?(?:kg|kgs|kilos?|kilograms?)\b/;
+const WI_LEFT=/\b(?:left|leave|leaving|bequeathed|willed|deposited|kept|inherited|got)\b[^.!?]{0,50}?\b(?:money|cash|funds?|gold|fortune|inheritance|estate|savings|assets|wealth|propert(?:y|ies)|business|shares|bars|bullion|sum|dollars|euros|millions?)\b|\b(?:inheritance|estate|fortune|wealth)\b|\b(?:with|have|has|got|own)\s+(?:a lot of|lots of|plenty of|so much|huge|big|large|a large amount of)\s+(?:money|gold|wealth|cash|funds|savings)\b|\bi am left with\b/;
+const WI_FORTUNE_AR=/(?:ترك|تركه|تركها|ورثت|ورثته|أودع|اودع|خلّف|خلف|خلى|خلّى|سايب|ساب)[^.!?]{0,40}(?:ذهب|دهب|أموال|اموال|مال|المال|مبلغ|ثروة|ميراث|إرث|ارث|ورث|سبائك|كيلو|دولار|مليون|ملايين|عقار|فلوس)|ميراث|الميراث|إرث|الإرث|ثروة|(?:^|[^\p{L}])(?:ال)?ورث(?![\p{L}])|\d+\s?(?:كيلو|كغ|كجم|كيلوغرام|كيلوجرام)\s?(?:من\s)?(?:ال)?(?:ذهب|دهب)/u;
+// The ask: help her invest, manage, receive or sell it, give it to charity
+// through you, or a share for you.
+const WI_ASK=/\b(?:help|assist)\s+(?:me|us)\s+(?:to\s+)?(?:invest|manage|handle|receive|recieve|claim|sell|move|transfer|keep|look after|take care of|run|secure|withdraw|use|ship|export|with)\b|\b(?:could|can|would|will)\s+(?:you|u)\s+(?:please\s+)?(?:help|assist|manage|invest|handle|receive|look after|take care of|be my)\b|\b(?:you|u)\s+(?:could|can|would)\s+(?:please\s+)?(?:help|assist)\s+(?:me|us)\b|\b(?:want|need|like|wish)\s+(?:you|u|someone|somebody|a man|a person)\s+(?:kind\s+|honest\s+|reliable\s+|trustworthy\s+)?(?:to\s+)?(?:help|guide|advise|assist|invest|manage|receive|recieve|handle|look after|take care of|keep|hold|use|be|execute|distribute|donate|travel)\b|\b(?:need|want|looking for|seeking|search(?:ing)? for)\s+(?:a|an|your|some|one)?\s*(?:very\s+)?(?:trustworthy|trusted|honest|reliable|sincere|god[- ]fearing|kind|caring|serious|good)\s+(?:man|person|partner|friend|someone|somebody|individual|gentleman|foreigner)\b|\b(?:need|want|looking for|seeking|search(?:ing)? for)\s+(?:a\s+|an\s+|one\s+)?(?:someone|somebody|a man|a person|man|person|partner|people)\s+(?:who|that|to)\s+(?:can\s+|will\s+|could\s+|would\s+|is able to\s+)?(?:help|assist|manage|handle|invest|receive|take care|look after|run|sell|execute|distribute|partner)\b|\b(?:need|want|looking for|seeking)\s+(?:a|an|your)\s+(?:business\s+)?partner\b|\b(?:invest|manage|handle)\s+(?:it|them|the (?:money|funds|gold|inheritance))\s+(?:for me|on my behalf|in your)\b|\bwith you as (?:my|a) partner\b|\binvest(?:ing)?\s+(?:it\s+|them\s+|the money\s+|this\s+)?(?:together|with you)\b|\binvest(?:ing)?\b[^.!?]{0,30}?\bwith\s+(?:a\s+|an\s+|some\s+)?(?:good\s+|kind\s+|honest\s+|serious\s+|trustworthy\s+|nice\s+)?(?:someone|somebody|man|person|partner|you|u)\b|\bwith you\b[^.!?]{0,30}\binvest\b|\b(?:be|become|act as|stand as)\s+my\s+(?:guide|partner|business partner|adviser|advisor|manager|representative|beneficiary|trustee)\b|\b(?:someone|somebody|a man|a person)\s+(?:honest|trustworthy|reliable|kind|sincere|serious)\s+(?:to\s+)?(?:help|guide|advise|assist|manage|invest)\b|\bi need (?:you|u)\b|\b(?:need|want|seek|seeking) your (?:help|assistance|support)\b|\b(?:use|donate|distribute|give)\b[^.!?]{0,40}?\b(?:charity|charities|orphans?|orphanages?|the poor|less privileged|motherless|church|mosque)\b/;
+const WI_ASK_AR=/(?:يساعدني|تساعدني|ساعدني|مساعدتك|مساعدتي|أحتاجك|احتاجك|أريدك|اريدك|أبيك|ابيك|أبغاك|ابغاك)[^.!?]{0,30}(?:استثمار|استثمارها|استثماره|أستثمر|استثمر|إدارة|ادارة|أدير|ادير|إدارته|ادارته|استلام|استلامه|استلامها|بيع|بيعه|بيعها|أبيعه|ابيعه|نقل|نقله|نقلها|تحويل|تحويله|إخراج|اخراج)|(?:شخص|رجل|شريك|إنسان|انسان|حد|أحد|احد)\s?(?:أمين|امين|موثوق|صادق|ثقة|مؤمن|يوثق)|(?:أبي|ابي|أبغى|ابغى|أريد|اريد|أحتاج|احتاج|أبحث عن|ابحث عن|أدور|ادور|عايزة|عايز)\s?(?:شخص|رجل|أحد|احد|حد|إنسان|انسان|شريك)[^.!?،]{0,30}(?:يساعدني|يعينني|يتولى|يدير|يستثمر|يستلم|يبيع)|(?:تستثمره|تستثمرها|تديره|تديرها|تستلمه|تستلمها)|(?:معك|معاك)\s?(?:كشريك|شريك)|(?:أستثمر|استثمر|نستثمر)[^.!?،]{0,20}(?:معك|معاك)|(?:توزيعها|توزيعه|أتبرع|اتبرع|التبرع)[^.!?،]{0,30}(?:الفقراء|الأيتام|الايتام|المحتاجين|عن طريقك|من خلالك)/u;
+const WI_SHARE=/\b(?:you|u)(?:'ll| will| would| can)?\s+(?:get|receive|have|earn|take|keep)\s+(?:a\s+|your\s+)?(?:good|fair|big|generous|nice)?\s*(?:share|cut|percentage|commission|reward)\b|\b\d{1,2}\s?%\s+(?:will be|is)\s+(?:yours|for you)\b|\b\d{1,2}\s?(?:%|percent)\s+(?:commission|share|cut|for you|for yourself)\b|\bkeep\s+\d{1,2}\s?(?:%|percent)\b|\b(?:i will|i'll|will)\s+(?:pay|reward|compensate)\s+(?:you|u)\s+(?:well|handsomely|\d)/;
+const WI_SHARE_AR=/(?:أعطيه|اعطيه|وأعطيه|واعطيه|أعطيك|اعطيك|وأعطيك|واعطيك|أعطيها|اعطيها)\s?(?:نسبة|\d)|(?:له|وله|لك|ولك|لها)\s?(?:مني\s?)?(?:نسبة\s?)?\d{1,2}\s?%/u;
+// A stranger, not family: she introduces herself as a widow (or as dying), uses
+// a romance or trust line, puts the money abroad or offers a share; a plain
+// greeting ("my name is", "dear sir") counts only next to millions or gold.
+const WI_SELF=/\b(?:i'?m|i am|im|i was|i'?ve been|i have been|my name is)\b[^.!?]{0,40}?\bwidd?ow(?:ed|er)?\b|\bwidd?ow of (?:the )?late\b|\b(?:i'?m|i am)\b[^.!?]{0,30}?\b(?:dying|terminally ill|suffering from|diagnosed with|cancer)\b/;
+const WI_SELF_AR=/(?:^|[^\p{L}\p{N}_])(?:أنا|انا)(?![\p{L}\p{N}_])[^.!?]{0,25}(?:أرملة|ارملة|أرمل|ارمل)|اسمي[^.!?]{0,30}(?:أرملة|ارملة)|(?:أرملة|ارملة) المرحوم|(?:أنا|انا)[^.!?]{0,25}(?:مريضة|مصابة|السرطان)/u;
+const WI_STRANGER=/\b(?:my dear|darling|sweetheart|handsome|my love|lonely|future together|our future|build a (?:life|future)|share my life|in your country|foreign(?:er)?|abroad|overseas|can i trust you|i (?:feel|know|believe|think) i can trust you|i trust you|someone i can trust|out of the blue|have no (?:one|child|children|family|kids)|dear beloved|beloved (?:one|friend|in christ|in the lord)|dearest (?:one|friend|in)|in the name of god|god bless you|i really am|the real (?:one|me))\b|\b(?:trust(?:worthy|ed)?|honest|reliable|sincere|god[- ]fearing|kind)\s+(?:man|person|partner|friend|someone|individual|gentleman|foreigner)\b|\b(?:someone|somebody|a man|a person)\s+(?:honest|trustworthy|reliable|kind|sincere)\b|\b(?:i'?m|i am|this is)\s+(?:a\s+)?(?:not a (?:scammer|fake|fraud)|(?:100%\s+)?(?:real|genuine|legit|honest)\b)/;
+const WI_INTRO=/\b(?:my name is|i'?m mrs|i am mrs|nice to meet you|sorry (?:to|for) (?:bother|disturb|intrude|contacting|disturbing|bothering)|forgive (?:my|the) intrusion|out of the blue|i (?:came across|found|saw|got) your (?:profile|number|contact|email)|dear (?:friend|sir|madam|one|beloved)|(?:hello|hi|hey|greetings|good (?:day|morning|evening))\s+(?:my\s+)?(?:dear|friend|sir|madam)|greetings|compliments of the (?:day|season))\b|\bi(?:'m| am) [a-z]+,? \d{2}\b|\b(?:i'?m|i am) [a-z]+ from\b/;
+const WI_INTRO_AR=/اسمي|أنا السيدة|انا السيدة|تشرفت|(?:آسفة|اسفة|آسف|اسف)\s?(?:على|ع)\s?(?:الإزعاج|الازعاج)|عزيزي|عزيزتي|صديقي/u;
+const WI_STRANGER_AR=/وحيدة|(?:أثق|اثق)\s?(?:بك|فيك)|في بلدك|ببلدك|(?:بنك|حساب)\s?(?:أجنبي|اجنبي)|خارج البلد|في الخارج|مستقبلنا/u;
+// The reader is family or someone she knows ("your father passed away", "hi
+// cousin").
+const WI_KNOWN=/\byour (?:late |dear |poor )?(?:father|dad|daddy|mother|mum|mom|mama|grandfather|grandmother|grandpa|grandma|granny|uncle|aunt|auntie|sister|brother|cousin|neighbou?r|colleague|landlady|landlord|tenant|teacher)\b|\b(?:mum|mom|mama|dad|baba|grandma) here\b|(?:^|[.!?,]\s*)(?:hi|hello|hey|dear|salam|salaam)\s+(?:cousin|cuz|auntie|aunty|aunt|uncle|sis|sister|niece|nephew|son|daughter|mum|mom|dad|grandma|grandpa)\b|(?:^|[^\p{L}\p{N}_])(?:أبوك|ابوك|والدك|أمك|امك|والدتك|جدك|جدتك|عمك|خالك|عمتك|خالتك|أختك|اختك|جارتك|جارك|يا ابني|يا بنتي|يا ولدي|يا بني|ماما|بابا)(?![\p{L}\p{N}_])/u;
+// She asks for a third party (a licensed fund, an honest valuer), not for you.
+const WI_REFER=/\b(?:find|recommend|suggest|know of|introduce me to|refer me to)\s+(?:me\s+)?(?:an?\s+|some\s+|any\s+|a good\s+)?(?:honest|trusted|trustworthy|reliable|good|licensed|regulated|registered)?\s*(?:[a-z]+\s+)?(?:person|valuer|jeweller|jeweler|adviser|advisor|lawyer|company|firm|bank|broker|agent|shop|planner)\b|\b(?:does|do) (?:anyone|anybody|any of you) know\b|\bcan (?:anyone|anybody) recommend\b|\bany (?:recommendations|suggestions)\b|\b(?:licensed|regulated)\b|هل (?:أحد|احد|حد)|(?:أحد|احد) يعرف|تنصحوني|تنصحني|توصياتكم|ترشحوا|ترشح لي|ترشحون|مرخص|مرخصة/u;
+function widowInheritance(t){
+  if(!(WI_STORY.test(t)||WI_STORY_AR.test(t))||WI_KNOWN.test(t))return false;
+  const s=t.replace(/\breal estate\b/g,"property");
+  const big=HF_BIG.test(s)||HF_BIG_AR.test(s)||WI_SUM.test(s)||BIG_WORDS.test(s);
+  if(!(big||WI_LEFT.test(s)||WI_FORTUNE_AR.test(s)))return false;
+  const share=HF_SHARE.test(s)||HF_SHARE_AR.test(s)||WI_SHARE.test(s)||WI_SHARE_AR.test(s);
+  if(!share&&WI_REFER.test(s))return false;
+  if(!(share||WI_ASK.test(s)||WI_ASK_AR.test(s)||HF_CARRY.test(s)||HF_CARRY_AR.test(s)))return false;
+  if(share||WI_SELF.test(s)||WI_SELF_AR.test(s)||WI_STRANGER.test(s)||WI_STRANGER_AR.test(s))return true;
+  return (big||/\bgold\b|ذهب/u.test(s))&&(WI_INTRO.test(s)||WI_INTRO_AR.test(s));
+}
+
+// B. The sender owns, runs or represents a gold mine (or supplies its dust) ...
+const GM_GOLD=/\bgold\b|\bau\s?(?:999|99\b|bars?|dust|nuggets?|bullion)|ذهب|دهب/u;
+const GM_MINE=/\b(?:i|we|our (?:company|cooperative|co-?op|family|group|firm|team|association|partners?)|my (?:family|father|uncle|brother|cousin|boss|partner|company))\b[^.!?]{0,30}?\b(?:own|owns|have|has|run|runs|operate|operates|manage|manages|possess|possesses|got|control|controls|hold|holds)\b[^.!?]{0,30}?\b(?:mines?|mining (?:sites?|company|companies|concessions?|licen[cs]es?|fields?|operations?|business|plants?|rights?)|concessions?)\b|\b(?:owner|owners|proprietor|director|ceo|manager|chairman|operator|chief)\s+of\s+(?:a|an|the|our|my)?\s*(?:[a-z]+\s+){0,3}?(?:mines?|mining\b|gold resources\b)|\b(?:gold\s+)?mine\s+owners?\b|\b(?:i|we)(?:'m|'re| am| are)\s+(?:a|an|the)?\s*(?:[a-z-]+\s+){0,3}?(?:miners?|mining (?:company|firm|cooperative|group|family|business|operators?)|(?:gold|gold dust|raw gold|alluvial gold)\s+(?:suppliers?|exporters?|producers?))\b|\b(?:my|our)\s+(?:[a-z-]+\s+){0,2}?(?:mines|mining (?:sites?|company|concessions?|business|operations?)|concessions?)\b|\b(?:my|our)\s+(?:[a-z-]+\s+){0,2}?mine\s+(?:in|at|near|produces|has|is)\b|\brepresent(?:s|ing)?\b[^.!?]{0,30}?\b(?:mines?|mining (?:company|companies|firm|group|cooperative|sites?|concessions?))\b|\b(?:left|inherited|bequeathed)\b[^.!?]{0,30}?\b(?:mines?|mining (?:concessions?|sites?|licen[cs]es?))\b|\bwith (?:active |producing |our own |its own |own )?(?:gold\s+)?(?:mining sites?|mines|concessions?)\b/;
+const GM_MINE_AR=/(?:لدي|لديّ|عندي|لدينا|عندنا|أملك|املك|نملك|أمتلك|امتلك|نمتلك|أدير|ادير|ندير|صاحب|مالك|مالكو|مالكي)[^.!?،]{0,25}(?:منجم|مناجم|منجما|منجماً|تعدين)|(?:نحن|احنا)\s?(?:شركة|عائلة|مجموعة)[^.!?]{0,20}(?:تعدين|منجم|مناجم)|منجمي|منجمنا|مناجمنا/u;
+// ... wants a partner, investor or buyer ...
+const GM_PARTNER=/\b(?:looking for|look for|seeking|seek|search(?:ing)? for|need|needs|want|wants|require|requires|in need of)\s+(?:[a-z0-9-]+\s+){0,3}?(?:business\s+)?(?:partners?|investors?|buyers?|financiers?|sponsors?|associates?|co-?investors?|off-?takers?)\b|\bpartner (?:with (?:me|us)|up)\b|\binvest (?:in|into) (?:my|our|the) (?:mines?|project|company|business|site|concession|equipment|operation)\b|\binvest in equipment\b|\b(?:partnership|joint venture)\b|\b(?:people|someone|somebody|anyone|a person|persons|individuals|(?:a\s+)?(?:foreign\s+|local\s+)?(?:company|firm))\s+(?:who|that|to)\s+(?:can\s+|could\s+|will\s+|would\s+|wants?\s+to\s+|is willing to\s+|are willing to\s+)?(?:invest|partner|fund|finance|sponsor|buy|join)\b|\b(?:if|when)\s+(?:you|u)\s+(?:can|could)\s+(?:fund|finance|invest|sponsor|bring|provide)\b/;
+const GM_PARTNER_AR=/(?:أبحث|ابحث|نبحث|أدور|ادور|ندور|محتاج|نحتاج|أحتاج|احتاج|أريد|اريد|نريد|نبغى|أبغى|ابغى|أبي|ابي|نبي|ودي|نطلب)\s?(?:عن|على)?\s?(?:شريك|شركاء|مستثمر|مستثمرين|مشتري|مشترين|ممول|ممولين|داعم)|شراكة|(?:للاستثمار|الاستثمار|استثمر|تستثمر|تستثمري)\s?(?:معنا|معي)|يمول|يمولنا|(?:يدخل|يستثمر)\s?(?:معي|معنا)/u;
+// ... and promises a share, big profits or a multiple of your money.
+const GM_PROMISE=/\b\d{1,3}\s?(?:%|percent|per cent)\s+(?:of\s+)?(?:the\s+|all\s+(?:the\s+)?|our\s+|my\s+|every\s+|each\s+)?(?:net\s+|gross\s+)?(?:profits?|returns?|gold|proceeds|production|output|shares?|income|revenue|earnings)\b|\b(?:profit|profits|returns?|revenue|production|output)\s+(?:sharing|split|share)\b|\b(?:profits?|returns?|income)\s+(?:is|are|will be)\s+(?:very\s+|so\s+|really\s+)?(?:big|huge|high|massive|good|great|guaranteed|assured|enormous|\d)|\bprofits?\s+(?:guaranteed|assured)\b|\b(?:huge|big|massive|high|great|enormous|guaranteed|assured|double|triple)\s+(?:profits?|returns?|income|money)\b|\b(?:double|triple|\d+x)\s+(?:your|ur)\s+(?:money|investment|capital)\b|\b(?:make|earn|get)\s+(?:\d+x|\d+ times|double|triple)\b|\breturns? of \d+\s?%|\breturns?\s+(?:of\s+)?[$€£]\s?\d|\broi\b[^.!?]{0,20}?\d{2,4}\s?%|\b\d{2,4}\s?%\s+(?:roi|return)\b|\b(?:ur|your)\s+(?:share|cut|percentage)\b|\b(?:you|u)\s+(?:can|could|will|'ll|would)\s+(?:make|earn|get|gain|double|triple|receive)\b|\binvest\s+[$€£]?\d|\b(?:below|under|less than|cheaper than)\s+(?:the\s+)?(?:market|spot|lbma|world)\b|\b(?:we|and we)\s+(?:will\s+|can\s+)?(?:share|split|divide)\s+(?:the\s+)?(?:profits?|gold|proceeds|income|output|production)\b|\b(?:partners?|investors?)\s+(?:will|would)\s+(?:receive|get|earn|be paid)\b|\bcommissions?\s+(?:to be paid|for (?:you|facilitators|agents)|paid to)\b/;
+const GM_PROMISE_AR=/\d{1,3}\s?%\s?(?:من\s)?(?:ال)?(?:أرباح|ارباح|ربح|إنتاج|انتاج|ذهب|عائد)|(?:أرباح|ارباح|ربح|الربح|الأرباح|الارباح|عائد|العائد|عوائد)\S{0,2}[^.!?،]{0,20}?\d{1,3}\s?%|(?:أرباح|ارباح|ربح|الربح|الأرباح|الارباح|عائد|العائد)\s?(?:كبيرة|كبير|ضخمة|ضخم|مضمون|مضمونة|عالية|عالي|مجزية|ممتازة|هائلة|خيالية)|نسبتك|حصتك|نصيبك|ستربح|تربح|تضاعف|نص ونص|نص بنص|(?:نصف|نص)\s?(?:ال)?(?:أرباح|ارباح|ربح|إنتاج|انتاج|ذهب)|(?:نعطيه|نعطيك|أعطيك|اعطيك|سنعطيك|نمنحك|ونعطيه|ونعطيك)\s?(?:نصف|نص|\d)|مضمون\S?\s?100\s?%|100\s?%\s?مضمون|(?:الشغل|الربح|الأرباح|الارباح)\s?مضمون/u;
+// A licensed company's formal partnership (a signed MoU, an NDA, a feasibility
+// study, its website) with only a share of production on offer is business;
+// guaranteed or huge profits, or a WhatsApp pitch, still count.
+const GM_FORMAL=/\b(?:mou|nda|feasibility (?:study|studies)|signed (?:mou|agreement|contract)|our website|on our website|annual report|shareholders?|stock exchange|listed (?:on|company)|tadawul|attached|as discussed|engineering partner|strategic partner|technical partner|offtake agreement)\b|موقعنا|الموقع الرسمي|مذكرة تفاهم|دراسة الجدوى|المساهمين|مدرجة|شريك استراتيجي|شريك إستراتيجي|مرخصة|الترخيص/u;
+const GM_STRONG=/\b(?:guaranteed|assured|huge|massive|enormous|double|triple|\d+x|\d+ times|roi|whatsapp|telegram|dm me|inbox me)\b|\breturns?\s+(?:of\s+)?[$€£]|\b(?:below|under|less than|cheaper than)\s+(?:the\s+)?(?:market|spot|lbma|world)\b|مضمون|مضمونة|خيالية|ضخمة|هائلة|تضاعف|واتس/u;
+// "My uncle owns a gold mine and wants investors" is a pitch only when it
+// invites the reader in ("interested?", "can I send you details?"); otherwise
+// it is family news or a question ("should I invest?").
+const GM_RELATIVE=/\b(?:my|our)\s+(?:uncle|father|dad|cousin|brother|friend|boss|relative|neighbou?r|colleague)\b[^.!?]{0,30}?\b(?:owns?|has|have|runs?|operates?|got)\b/;
+const GM_INVITE=/\binterested\b|\bcan i (?:send|share|tell|introduce|connect)\b|\b(?:reply|contact|whatsapp|dm|message|call|text)\s+(?:me|us|him)\b|\breply\b|\b(?:you|u)\s+(?:will|can|could|'ll|would)\s+(?:get|receive|earn|make)\b|\b(?:your|ur)\s+(?:share|cut|percentage)\b|\bfor (?:you|u)\b|\bjoin\b/;
+function goldMinePartner(t){
+  if(!GM_GOLD.test(t)||!(GM_MINE.test(t)||GM_MINE_AR.test(t)))return false;
+  if(!(GM_PARTNER.test(t)||GM_PARTNER_AR.test(t)))return false;
+  if(!(HF_SHARE.test(t)||HF_SHARE_AR.test(t)||GM_PROMISE.test(t)||GM_PROMISE_AR.test(t)))return false;
+  if(GM_RELATIVE.test(t)&&!GM_INVITE.test(t))return false;
+  return !GM_FORMAL.test(t)||GM_STRONG.test(t);
+}
+
+// C. Bulk gold: two kilos or more of gold (or "1kg x 30 pcs", "5 pieces of
+// 1kg", 64 oz or more), or raw gold (dust, nuggets, doré) or "large
+// quantities". One kilo bar is a normal bullion-shop item.
+const CG_QTY=/\b(\d{1,6}(?:,\d{3})*)\s?(?:metric\s+)?(?:kg|kgs|kilos?|kilograms?|tons?|tonnes?)(?![a-z])|(\d{1,6})\s?(?:كيلو|كيلوغرام|كيلوجرام|كجم|كغ|كلغ|طن|أطنان|اطنان)|\b(\d{1,6}(?:,\d{3})*)\s?(?:oz|ounces?)\b|\b(\d{1,4})\s?(?:pieces|pcs|bars)\s+(?:of\s+)?(?:1|one)\s?(?:kg|kilo)\b/gu;
+const CG_GOLD_NEAR=/gold|bars?\b|bullion|nuggets?|dust|dor[eé]|ingots?|ذهب|دهب|سبائك|سبايك|تبر/u;
+const CG_RAW=/\b(?:gold\s+(?:dust|nuggets?|dor[eé]|ore)|raw gold|alluvial gold|rough gold|unrefined gold|au dust)\b|تراب\s?(?:ال)?(?:ذهب|دهب)|(?:^|[^\p{L}])تبر|(?:ذهب|دهب)\s?خام|الذهب\s?الخام|خام\s?(?:ال)?(?:ذهب|دهب)|شذرات/u;
+const CG_BULK=/\b(?:1|one)\s?(?:kg|kilo)\s*(?:gold\s+)?(?:bars?\s*)?[x×*]\s*(?:[2-9]|\d{2,})|\b(?:large|huge|big|bulk|unlimited)\s+(?:quantit(?:y|ies)|amounts?|volumes?)\b|\bin bulk\b|\b(?:kilos|tons|tonnes) of (?:gold|it|them)\b|\bkilo ?bars\b|\bkg bars\b|كميات\s?كبيرة/u;
+function bulkGold(t){
+  if(!GM_GOLD.test(t)&&!/سبائك|سبايك|تبر/u.test(t))return false;
+  if(CG_BULK.test(t)||CG_RAW.test(t))return true;
+  CG_QTY.lastIndex=0;
+  for(let m,n=0;(m=CG_QTY.exec(t))&&n<30;n++){
+    const kg=m[1]||m[2],oz=m[3],pcs=m[4];
+    const qty=Number(String(kg||oz||pcs).replace(/,/g,""));
+    const near=t.slice(Math.max(0,m.index-40),m.index+m[0].length+40);
+    const enough=pcs?qty>=2:oz?qty>=64:(qty>=2||/ton|طن/u.test(m[0]));
+    if(enough&&CG_GOLD_NEAR.test(near))return true;
+  }
+  return false;
+}
+const CG_SALE=/\b(?:for sale|on sale|available|in stock|selling|sell|sells|seller|sale|supply|supplies|supplying|suppliers?|offer|offering|we have|i have|i hav|price|prices|per kg|per kilo|per gram|ready (?:for|to) (?:sale|export|ship|deliver)|wts|ready stock|mandated?|i give|we give|can give|buyers?|(?:whatsapp|contact|call|message|text|dm|inbox)\s+(?:me|us))\b/;
+const CG_SALE_AR=/للبيع|متوفر|متوفرة|متاح|متاحة|نبيع|أبيع|ابيع|(?:^|[^\p{L}])بيع|نوفر|أوفر|اوفر|لدينا|لدي|عندي|عندنا|بسعر|عرض|نعرض|أعرض|اعرض/u;
+// The lure: below the market price, a fraction of it, an urgent sale, a seller
+// leaving or in need of cash, gold "direct from the mine" ...
+const CG_CHEAP=/\b(?:below|under|less than|cheaper than|lower than|beneath)\s+(?:the\s+)?(?:current\s+|today'?s\s+|international\s+|world\s+|global\s+|local\s+)?(?:market|spot|lbma|world|international|official|retail|london|dubai|uae|shop|souk|bank)\b|[$€£]\s?\d[\d,]*\s+(?:below|under|less than|cheaper than)\b|\b\d{1,2}\s?%\s+(?:below|less|cheaper|under)\b|\b\d{1,2}\s?%\s+of\s+(?:the\s+)?(?:[a-z]+\s+)?(?:market|spot|dubai|current|real|world|lbma|retail|actual|normal)\s+(?:price|rate|value)\b|\b(?:lbma|spot|market|london fix)\s+(?:price\s+)?(?:minus|less)\s+\d|\b(?:half|50\s?%\s+of)\s+(?:the\s+|of the\s+)?(?:[a-z]+\s+)?(?:price|value|rate)\b|\bhalf price\b|\b(?:cheap|cheaper|very low|lowest|low|giveaway|unbeatable|crazy|throwaway)\s+(?:price|prices|rate)\b|\b(?:price|prices|rate)\b[^.!?]{0,25}?\b(?:is|are)\s+(?:very\s+|so\s+|really\s+|way\s+)?(?:low|cheap)\b|\bway cheaper\b|\b(?:very good|good|great|best|special)\s+price\s+compared to\b|\bcompared to (?:the )?(?:market|dubai|spot)\b|\(market (?:price )?(?:is|=|:)|\b(?:urgent|quick|fast|emergency|distress)\s+sale\b|\bneeds?\s+to\s+sell\b[^.!?]{0,15}\b(?:urgently|quickly|fast|asap|now|today)\b|\bsell(?:ing)?\s+(?:urgently|fast|quickly)\b|\bin a hurry\b|\b(?:seller|owner|i|he|she|we)\s+(?:needs?)\s+(?:the\s+)?(?:money|cash)\b|\bleaving\b[^.!?]{0,20}\b(?:tomorrow|today|tonight|the country)\b|\bdirect from (?:the |my |our )?mines?\b/;
+const CG_CHEAP_AR=/(?:أقل|اقل|أرخص|ارخص)\s?من\s?(?:ال)?(?:سعر\s?)?(?:ال)?(?:سوق|بورصة|عالمي|العالمي|أسعار|اسعار|دبي|محلات|المحلات)|(?:بخصم|خصم)\s?\d{1,2}\s?%\s?(?:عن|من)\s?(?:سعر\s?)?(?:ال)?(?:سوق|بورصة|عالمي)|بسعر\s?(?:أقل|اقل|مغري|مغرى|رخيص|حرق|مخفض|خيالي|تفضيلي)|\d{1,2}\s?%\s?(?:أقل|اقل)|نصف\s?(?:ال)?سعر|بنص\s?(?:ال)?سعر|(?:بيع|للبيع)\s?(?:مستعجل|سريع|عاجل)|مستعجل|مسافر|محتاج\s?(?:فلوس|مال|المال)|سعر خاص ما يتكرر/u;
+// ... or two weaker signs (one for raw gold): "documents ready", "serious
+// buyers only" / "come to Accra and test", export jargon, a discount,
+// WhatsApp-only contact.
+const CG_DISCOUNT=/\b\d{1,2}\s?%\s+(?:discount|off)\b|\bdiscount(?:ed)?\s+(?:of\s+)?\d{1,2}\s?%|\bat (?:a|huge|big|great|good) discount\b|\bdiscount(?:ed)?\s+(?:price|rate)s?\b|\b(?:big|huge|great|good|special|massive)\s+discount\b|بخصم\s?\d|خصم\s?\d{1,2}\s?%|\d{1,2}\s?%\s?(?:خصم|تخفيض)/u;
+const CG_WEAK=[/\b(?:documents?|docs|papers|paperwork|certificates?)\s+(?:are\s+|is\s+)?(?:ready|available|complete|in order|provided|attached)\b|\b(?:all|full|complete|original)\s+(?:the\s+)?(?:documents|papers|paperwork|certificates?)\b|\b(?:papers|documents?|paperwork)\s+(?:all\s+)?complete\b|\bdocs? in order\b|\bcertificate with me\b|(?:الأوراق|الاوراق|أوراق|اوراق|المستندات|مستندات|الوثائق|الشهادات)\s?(?:جاهزة|كاملة|متوفرة|سليمة|نظامية)/u,/\bserious (?:buyers?|people|clients|ones|investors)\b|\bfor (?:those|people) who are serious\b|\bbuyers? (?:must|should|to|will)\s+(?:come|be|have|pay|bring)\b|\bready buyers?\b|\b(?:buyer|you)\s+(?:pays?|can pay)\s+after\b|\bpay(?:ment)? after (?:testing|you see|assay|inspection)\b|\b(?:meet|come)\s+and\s+test\b|\btest (?:it )?(?:before|with acid)\b|\bcome to (?:accra|ghana|kumasi|lome|togo|mali|bamako|kinshasa|congo|sudan|khartoum|lagos|nigeria|cameroon|douala|abidjan|kampala|uganda|tanzania|my house)\b|للجادين|مشتري\s?جاد|مشترين\s?جادين|وافحص/u,/\b(?:fob|cif|sgs|assay report|certificate of origin|export permit|export licen[cs]e|icpo|loi|spa|mt103|mt760|proof of funds|seller mandate|mandated to sell|ncnda|imfpa)\b/,CG_DISCOUNT,/\b(?:whatsapp|telegram)\s+(?:only|me)\b|\b(?:dm|inbox)\s+me\b|\bmessage me for (?:videos?|pictures?|photos?)\b|\bsend (?:your|ur) whatsapp\b|\b(?:pictures?|photos?) and videos?\b|واتساب فقط|واتس فقط|التواصل واتساب/u];
+// A discount on making charges or on big orders is a shop's offer, not cheap
+// gold; a price at or above the market ("spot plus a premium") is not a lure.
+const CG_DISCOUNT_ON=/\b(?:discount|off)\b[^.!?]{0,30}?\b(?:on|for)\s+(?:the\s+)?(?:making|labou?r|bulk|large|big|volume|wholesale|orders?|purchases?|jewell?ery|charges)\b|(?:خصم|تخفيض)[^.!?،]{0,15}(?:على|لل)\s?(?:ال)?(?:طلبات|مشتريات|المصنعية|مصنعية|الجملة)/gu;
+const CG_ATMARKET=/\b(?:spot|market|lbma|live|today'?s)\s+(?:price\s+|rate\s+)?(?:\+|plus)|\bplus\s+(?:a\s+)?(?:small\s+|fixed\s+)?(?:premium|making)\b|\bat (?:the )?(?:live |current |today'?s |prevailing )?(?:market|spot) (?:price|rate)\b|\bfollows? the (?:live )?market\b|\b(?:lbma|london) fix\b|\bon the day of (?:purchase|delivery)\b|بسعر السوق|سعر السوق الحالي|بأسعار السوق|باسعار السوق/u;
+// Not an offer to the reader: news and police reports, a buyer asking for
+// quotes, a supplier's quote to a known customer.
+const CG_NEWS=/\b(?:police|seized|seizure|confiscated|arrested|charged|court|according to|reported|reports|authorities|article|documentary|told reuters|told reporters|central banks?|world gold council|reuters|bloomberg|interfax)\b|\b(?:minister|ministry|council|bank|analysts?|officials?|traders?|dealers?|sources?|spokes(?:man|woman|person)|agency)\s+(?:said|says)\b|\b(?:said|says)\s+(?:on|in a statement|the (?:minister|ministry|council|bank|analysts?|officials?|sources?))\b|الشرطة|شرطة|تضبط|ضبطت|ضبط|مصادرة|القبض|المحكمة|بحسب|وفقاً|وفقا|حسب (?:مصادر|تقرير|وكالة)|مصادر مطلعة|أخبار|اخبار|بنك مركزي|البنك المركزي|وزير|وزارة/u;
+const CG_BUYER=/\b(?:we|i)\s+(?:need|want|require)\s+(?:to buy|\d|a quote|quotes|a supplier|suppliers)\b|\b(?:we|i)\s+(?:are|am)\s+(?:looking to buy|buying)\b|\b(?:wish|would like|want|intend) to buy\b|\bplease (?:quote|send (?:us |me )?(?:your |a )?(?:quote|quotation|offer|best price))\b|\b(?:procurement|purchase order|rfq|request for quotation)\b|نحتاج|نرغب في شراء|نريد شراء|أريد شراء|اريد شراء|نبحث عن مورد/u;
+const CG_KNOWN=/\b(?:as discussed|as agreed|your order|confirm (?:the|your) order|our quote|quote valid|quotation)\b|كما اتفقنا|تأكيد الطلب/u;
+function cheapGoldSale(t){
+  if(CG_NEWS.test(t)||CG_BUYER.test(t)||CG_KNOWN.test(t)||!bulkGold(t)||!(CG_SALE.test(t)||CG_SALE_AR.test(t)))return false;
+  if(CG_CHEAP.test(t)||CG_CHEAP_AR.test(t))return true;
+  if(CG_ATMARKET.test(t))return false;
+  const s=t.replace(CG_DISCOUNT_ON," ");
+  const weak=CG_WEAK.filter(re=>re.test(s)).length;
+  return weak>=2||(weak>=1&&CG_RAW.test(t));
+}
+
+// D. A business proposal or deal ...
+const BP_PROPOSAL=/\bbusiness (?:proposals?|propositions?|deals?|transactions?|offers?|opportunit(?:y|ies)|ventures?|partnerships?)\b|\b(?:lucrative|confidential|private|secret|profitable|mutually beneficial|beneficial|important|urgent|risk[- ]free)\s+(?:business\s+)?(?:deals?|transactions?|proposals?|propositions?|offers?|ventures?|projects?)\b|\b(?:proposal|transaction)\s+(?:worth|of|involving|valued|amounting)\b|\b(?:deal|project)\s+(?:worth|valued)\b|\b(?:deal|proposal|proposition|transaction)s?\s+for\s+(?:you|u)\b|\b(?:i|we)\s+(?:have|got)\s+(?:a|an)\s+(?:[a-z]+\s+)?(?:transaction|deal|proposal|proposition)\b|\btransaction (?:which|that) (?:will|would|is)\b/;
+const BP_PROPOSAL_AR=/عرض\s?(?:عمل|أعمال|اعمال|تجاري|استثماري|مربح|سري)|صفقة\s?(?:تجارية|سرية|مربحة|عمل|أعمال|بقيمة)|مقترح\s?(?:عمل|أعمال|تجاري|استثماري)|اقتراح\s?(?:عمل|تجاري)|مشروع\s?(?:تجاري\s)?(?:سري|مربح)|معاملة\s?(?:سرية|تجارية|مالية)|فرصة\s?(?:عمل|استثمارية|تجارية)\s?(?:سرية|مربحة)|(?:لدي|لديّ|عندي)\s?(?:لك\s)?صفقة/u;
+// ... with the 419 markers: millions, "risk free", secrecy, "benefit us both",
+// a stranger's opening (a barrister, "dear friend", "the late"), a share ...
+const BP_RISKFREE=/\b(?:risk[- ]?free|hitch[- ]free|no risk|without (?:any )?risk|zero risk|legal and safe|safe and legal|(?:totally|completely|perfectly) (?:legal|legit|safe))\b|\b100\s?%\s+(?:safe|legal|legit|legitimate|secure|guaranteed)\b|خال\S{0,2}\s?من\s?(?:أي\s|اي\s)?(?:ال)?مخاطر|(?:بدون|بلا|دون)\s?(?:أي\s|اي\s)?(?:مخاطر|مخاطرة)|(?:مضمون|مضمونة|آمن|امن|آمنة|قانوني|قانونية)\s?100\s?%|100\s?%\s?(?:مضمون|مضمونة|آمن|امن|قانوني|قانونية)/u;
+const BP_SECRET=/\b(?:confidential|strictly private|top secret|secret|discreet|private (?:business|transaction|deal|proposal|email|matter)|nobody will know|no one will know)\b|(?:^|[^\p{L}\p{N}_])(?:سري|سرية|بسرية|السرية|كتمان)(?![\p{L}\p{N}_])/u;
+const BP_MUTUAL=/\bmutual(?:ly)?\s+(?:benefi\w*|interest)|\bbenefit (?:us both|both of us|you and me|you and i|both parties)\b|\b(?:for|to|of) (?:our|the) mutual\b|\bwin[- ]win\b|\blucrative\b|\bprofitable\b|\bmake you rich\b|\bbig reward\b|مفيد\S?\s?(?:لكلينا|للطرفين)|لكلينا|مصلحة\s?(?:الطرفين|مشتركة)|المنفعة المتبادلة|مربح\S?\s?(?:جدا|جداً|للطرفين)/u;
+const BP_STRANGER=/\b(?:dear (?:friend|sir|madam|beloved|partner)|sir\/madam|(?:good day|hello|greetings),? sir|compliments of the (?:day|season)|i am (?:mr|mrs|dr|barrister|engr|chief|prince|princess|general|captain)|barrister|attorney to|personal (?:attorney|lawyer)|bank (?:manager|officer|staff|director)|a staff of|the late|i got your (?:name|contact|email|number)|you will be surprised|out of the blue|trade directory|business directory)\b|\bi am (?:a|the) (?:banker|lawyer|barrister|director|manager)\b/;
+// ... and an invitation to reply, or the sender offering it to you ("I have a
+// proposal", "for you", "your partnership"), not "the client wants one".
+const BP_REPLY=/\b(?:reply|respond|revert|get back|write back|contact me|email me|write me|reach me)\b[^.!?]{0,40}\b(?:details|information|info|explanation|briefing)\b|\bfor (?:more|further|full|complete) (?:details|information|info)\b|\b(?:kindly|please)\s+(?:reply|respond|revert|get back|contact)\b|\binterested\b|\bawait(?:ing)? your (?:urgent |prompt |quick )?(?:reply|response)\b|\bseek(?:ing)? your (?:partnership|assistance|cooperation|consent)\b|\b(?:dear (?:friend|sir|madam|beloved)|sir\/madam|greetings|i am (?:mr|mrs|dr|barrister|engr|chief|prince)|my name is|i write to|i am writing to)\b|\breply (?:me|with your|to (?:me|this email|my (?:private )?email))\b|\b(?:text|message|whatsapp|call|dm|email)\s+me\b|\bget back to me\b|\b(?:send|give)\s+(?:me\s+)?(?:your|ur)\s+(?:phone|number|whatsapp|details|full names?|address)\b|\bjust reply\b|\breply (?:yes|now)\b|للمزيد من التفاصيل|لمزيد من التفاصيل|للتفاصيل|(?:أرجو|ارجو|يرجى|برجاء)\s?(?:الرد|ردك|التواصل)|رد\s?(?:علي|عليّ)|راسلني|مهتم|بانتظار ردك|في انتظار ردك|تواصل معي/u;
+const BP_OFFER=/\b(?:i|we)\s+(?:have|got|hold|bring|wish to|want to|would like to|write to|am writing to|need|seek|am seeking|are seeking)\b[^.!?]{0,60}\b(?:business|proposal|proposition|deal|transaction|offer|project)\b|\b(?:proposals?|propositions?|deals?|transactions?|offers?)\s+(?:for|to|with)\s+(?:you|u)\b|\byour (?:assistance|partnership|cooperation|help|consent)\b|\bcontacting you (?:about|regarding|concerning|for|with)\b|\b(?:are|r) (?:you|u) (?:open|interested|available) (?:to|in|for)\b|(?:^|[^\p{L}\p{N}_])و?(?:لدي|لديّ|عندي|لدينا|عندنا|أقدم لك|اقدم لك|أعرض عليك|اعرض عليك|أحتاج|احتاج|نحتاج)(?![\p{L}\p{N}_])[^.!?]{0,20}(?:عرض|صفقة|مقترح|اقتراح|مشروع|معاملة|فرصة)|(?:نود|نرغب|أود|اود|أرغب|ارغب)\s?(?:في\s)?(?:إشراك|اشراك|مشاركت)|نحن بصدد/u;
+// It is not a 419 when it comes from someone the reader knows (named in the
+// greeting: "Dear Mr Ahmed", "أستاذ خالد"), follows a meeting or tender, asks
+// for a time to meet, or is a concrete local deal (a cafe, a building, land)
+// priced in dirhams.
+const BP_KNOWN=/\b(?:attached|attachment|as discussed|as agreed|following (?:our|your|the) (?:call|meeting|conversation|discussion|visit)|further to (?:our|your)|per our|as per our|thank(?:s| you) for (?:meeting|your time|the meeting|your interest)|tender|rfp|rfq|quotation|board (?:approved|meeting|of directors)|the minutes|the (?:board|client|developer|committee|management)|(?:hi|dear|hello) team|(?:convenient|suitable) time|time (?:to|for a) (?:meet|call|meeting|discuss|chat)|schedule (?:a |the )?(?:demo|call|meeting|viewing|visit)|book (?:a )?(?:call|meeting|viewing|demo)|as promised|as requested|per your request|(?:on|this|next) (?:monday|tuesday|wednesday|thursday|friday|saturday|sunday))\b|مرفق|كما اتفقنا|حسب الاتفاق|بعد اجتماعنا|المناقصة|مجلس الإدارة|مجلس الادارة|عرض سعر|لتحديد موعد|نحدد موعد/u;
+const BP_NAMED=/(?:^|[^a-z])(?:dear|hi|hello|hey|good (?:morning|afternoon|evening)|salam|salaam|assalamu? ?alaikum|greetings)\s+(?:mr|mrs|ms|miss|dr|eng|engr|sheikh|brother|bro|sister|sis|uncle|ustaz|ustadh|ustad|abu|umm)\s+(?!sir\b|madam\b|friend\b)[a-z]{2,}\s*[,.!:-]|^(?:brother|bro|sister|uncle|abu|umm)\s+[a-z]{2,}\s*,|^(?:hi|hello|hey|dear)\s+(?!dear\b|friend\b|sir\b|madam\b|all\b|there\b|everyone\b|beloved\b|partner\b|sweetheart\b|handsome\b|love\b|my\b|good\b|frend\b)[a-z]{3,}\s*,|(?:^|[^\p{L}])(?:أستاذ|استاذ|الأستاذ|الاستاذ|أستاذة|استاذة|أخي|اخي|أخوي|اخوي|أختي|اختي|أبو|ابو|أم|ام|الشيخ|شيخ|دكتور|الدكتور|المهندس|مهندس|عمي|خالي)\s(?!الكريم|العزيز|الفاضل|الغالي|الحبيب|الكريمة|العزيزة)\p{L}{2,}\s?[،,]/u;
+const BP_ASSET=/\b(?:off-?plan|villas?|apartments?|flats?|building|warehouse|land|plots?|shops?|stores?|cafe|cafes|coffee|restaurants?|salon|car wash|laundry|bakery|grocery|supermarket|pharmacy|clinic|gym|farm|franchise|kiosk|food truck|fleet|catering|maintenance|cleaning|fit-?out|building materials|charging stations?|units?|listing|leased|yield)\b|عمارة|بناية|أرض|ارض|فيلا|شقة|شقق|مخزن|مستودع|محل|مطعم|مقهى|كافيه|مزرعة|صالون|مغسلة|بقالة|عيادة|مواد البناء|توريد|صيانة|مؤجرة|عقارية|عقار/u;
+const BP_FOREIGN=/[$€£]|\b(?:usd|us dollars?|dollars?|euros?|eur|gbp|pounds)\b|دولار|يورو|جنيه استرليني/u;
+const BP_LOCAL_SUM=/\b(?:aed|dhs?|dirhams?)\s?\d[\d,]*(?:\s?(?:m|mn|million|millions|bn|billion)\b)?|\b\d[\d,]*\s?(?:m|mn|million|millions|bn|billion)?\s?(?:aed|dhs?|dirhams?)\b|\d[\d,]*\s?(?:مليون|ملايين|مليار|ألف|الف)?\s?درهم|(?:مليون|مليوني|ملايين|مليار)\s?درهم/gu;
+// An investor "with $50 million to place" who needs a local partner or agent.
+const BP_SEEK=/\b(?:need|needs|seeking|seek|looking for|require|requires|want|need for)\s+(?:a|an|one|your)?\s*(?:local|trusted|trustworthy|reliable|honest|foreign|competent)?\s*(?:business\s+)?(?:partner|agent|representative|fund manager|investor)s?\b|\byour partnership\b/;
+const BP_FUND=/\b(?:budget|capital|funds?|liquidity) (?:of|worth)\b|\b(?:to|for) (?:invest|place|deploy|park)\b|\bproject (?:worth|valued|to fund)\b|\bwilling to invest\b|\binvestment opportunity\b/;
+function businessProposal(t){
+  if(BP_KNOWN.test(t)||BP_NAMED.test(t))return false;
+  if(BP_ASSET.test(t)&&!BP_FOREIGN.test(t))return false;
+  const offer=BP_OFFER.test(t),reply=BP_REPLY.test(t);
+  if(!(offer||reply))return false;
+  const s=t.replace(BP_LOCAL_SUM," ");
+  const big=HF_BIG.test(s)||HF_BIG_AR.test(s)||BIG_WORDS.test(s);
+  if(!(BP_PROPOSAL.test(t)||BP_PROPOSAL_AR.test(t)))return big&&BP_SEEK.test(t)&&BP_FUND.test(t);
+  const share=HF_SHARE.test(t)||HF_SHARE_AR.test(t)||/\byour (?:reward|commission|share|cut)\b/.test(t);
+  const marks=[big,BP_RISKFREE.test(t),BP_SECRET.test(t),BP_MUTUAL.test(t),BP_STRANGER.test(t),share].filter(Boolean).length;
+  return marks>=2||(big&&reply);
+}
+
+// The investment-pitch rule below: a guarantee always counts; a return figure
+// or a trading-and-profit story counts only with a pitch to the reader (an
+// invitation, a contact ask, an offer, pressure). A fund's annual report, a
+// statement, market news, a lesson or "should I invest?" is not a pitch, and a
+// fall ("bitcoin fell 8%") is not a return.
+const IP_HARD=/\b(guaranteed|assured|risk[- ]free)\s(?:daily |weekly |monthly )?(?:returns?|profits?|income|roi)\b|\bguaranteed\s+\d{1,3}(?:[.,]\d+)?\s?%\s+(?:daily\s+|weekly\s+|monthly\s+)?(?:returns?|profits?|income|roi|interest)\b|\bprofits?\s+(?:is\s+|are\s+)?(?:guaranteed|assured)\b|\bprofits?\s(?:are\s)?(?:withdrawn|withdrawable|paid out)\s(?:daily|weekly|instantly|anytime)\b/i;
+const IP_HARD_AR=/(عائد|أرباح|ربح|دخل)\s?(مضمون|مضمونة|ثابت|ثابتة)|(استثمر|استثمار|تداول|التداول).{0,60}مضمون/u;
+const IP_NO_GUARANTEE=/\b(?:no|not|never|nobody|no one|without|nor|isn'?t|aren'?t|cannot|can'?t|won'?t|will not|do not|don'?t|does not|doesn'?t)\s+(?:such thing as\s+|any\s+|a\s+|(?:can|will|could|would)\s+(?:offer|give|promise|guarantee|provide)\s+(?:you\s+)?(?:any\s+|a\s+)?|(?:offer|give|promise|provide)\s+(?:you\s+)?(?:any\s+|a\s+)?)?(?:guarantee[sd]?|assured|risk[- ]free)\b|\b(?:no|never)\s+(?:legitimate|legit|real|genuine|licensed|regulated|honest|serious)\s+(?:[a-z]+\s+){0,2}?(?:offers?|gives?|provides?|promises?|pays?|can (?:offer|give|promise|guarantee)|will (?:offer|give|promise|guarantee))\s+(?:you\s+)?(?:any\s+|a\s+)?(?:guarantee[sd]?|guaranteed|assured|risk[- ]free)\b|\bno\s+(?:[a-z]+\s+){0,2}?(?:returns?|profits?)\s+(?:are|is)\s+(?:guaranteed|assured)\b|(?:لا يوجد|لا توجد|ليس هناك|ما في|مافي|ما فيه|ليست|ليس|لا|مو|مش|غير|مب|موب)\s?(?:أي\s|اي\s)?(?:(?:عائد|أرباح|ارباح|ربح|دخل)\s?)?(?:مضمون|مضمونة)/gu;
+const IP_SOFT=/\b\d{1,3}(?:\.\d)?\s?%\s(?:daily|weekly|monthly|per (?:day|week|month)|(?:last|this|every|a) (?:day|week|month)|in (?:a|one) (?:day|week|month))\b|\b(?:forex|crypto|bitcoin|gold|binary options?)\s(?:trading|signals?|investment)\b.{0,90}\b(?:profits?(?![- ](?:share|sharing|margins?)\b)|returns?|made|earn|earned|deposit|withdraw|withdrawal|%|mentor|teach|show you)\b|\b(?:make|earn|making|earning|made|earned|get|getting|receive)\s+(?:up to\s+|over\s+|about\s+|around\s+)?(?:[$€£]\s?\d[\d,.]*\s?k?|\d[\d,.]*\s?k?\s?(?:usd|usdt|aed|dollars?|dirhams?))\s+(?:daily|weekly|a day|a week|per day|per week|every day|each day|every week)\b/i;
+const IP_SOFT_AR=/\d{1,3}\s?%\s?(يومياً|يوميا|شهرياً|شهريا|أسبوعياً|أسبوعيا|في اليوم|في الشهر)|(استثمر|استثمار|تداول|التداول).{0,60}(أرباح|عائد|%)/u;
+const IP_DOWN=/\b(?:fell|falls?|falling|down|dropped|drops?|lost|loses|declined|declines?|slid|slipped|sank|tumbled|plunged|lower|minus)\b[^.!?,;]{0,25}?\d{1,3}(?:[.,]\d+)?\s?%|\b\d{1,3}(?:[.,]\d+)?\s?%\s+(?:lower|down|loss|drop|decline|fall)\b|(?:^|\s)-\s?\d{1,3}(?:[.,]\d+)?\s?%|\bprofits?\s+(?:and|or|&)\s+loss(?:es)?\b|(?:انخفض|انخفضت|انخفاض|تراجع|تراجعت|هبط|هبطت|نزل|نزلت|خسر|خسرت|خسارة)[^.!?،]{0,25}?\d{1,3}(?:[.,]\d+)?\s?%/gu;
+const IP_PITCH=/\b(?:join|sign ?up|register|enrol+|subscribe)\b|\bopen (?:an?|your) (?:[a-z]+ )?account\b|\bcreate (?:an?|your) account\b|\bstart (?:investing|trading|earning|now|today|with (?:just |only )?[$€£]?\d)|\binvest (?:now|today|with (?:us|me)|in (?:our|my)\b|[$€£]\s?\d|\d)|\bdeposit\s+(?:[$€£]?\d|as little|only|just|from|now|today|your|more)|\bminimum (?:deposit|investment)\b|\bwithdraw (?:your|anytime|any time|daily|instantly)\b|\b(?:dm|inbox|message|text|contact|call|whatsapp|telegram|add|email)\s+(?:me|us)\b|\b(?:on|via|in|through) (?:my |our )?(?:whatsapp|telegram|wechat)\b|\b(?:click|tap|visit|check out|download|install)\b[^.!?]{0,30}\b(?:link|here|below|app|site|website|platform|page)\b|\b(?:limited|few|last) (?:spots?|slots?|seats?|places?|time|offer)\b|\bspots? left\b|\bhurry\b|\bact (?:now|fast)\b|\bdon'?t miss\b|\btoday only\b|\blast chance\b|\bvip\b|\bfree (?:signals?|lessons?|training|course|classes|mentoring|coaching)\b|\b(?:i|we)(?:'ll| will| can| could| would)\s+(?:[a-z]+\s+)?(?:teach|show|help|guide|train|coach|mentor|add|send|invite|introduce|manage|trade for)\s+(?:you|u)\b|\blet me (?:show|teach|help|guide|explain|introduce|add|send)\b|\b(?:can|may|shall) i (?:invite|add|show|send|introduce|tell|teach|help|share|explain)\b|\b(?:we|i) (?:have|run|offer|manage) (?:a|an|our|my)\b[^.!?]{0,40}\b(?:program(?:me)?|plan|package|scheme|platform|pool|opportunit(?:y|ies))\b|\b(?:selected?|exclusive|private) (?:individuals|clients|members|investors|few)\b|\b(?:tell|show|teach|guide|invite|introduce)\s+(?:you|u)\s+(?:about|how|to)\b|\bhelp (?:you|u) (?:open|start|invest|earn|make|trade|grow|double)\b|\bwould (?:you|u) like\b|\bdo (?:you|u) want\b|\b(?:are|r) (?:you|u) (?:interested|ready|keen|open)\b|\binterested\s*\?|\bif (?:you(?:'re| are)?|u r|u are) interested\b|\byou(?:'ll| will) (?:like|love) it\b|\bwe offer\b|\b(?:our|my) (?:[a-z]+ )?(?:members|clients|investors|students|customers|subscribers|followers|group|team)\s+(?:[a-z]+\s+)?(?:earn|earns|make|makes|made|get|gets|got|receive|receives|enjoy|enjoys)\b|\b(?:our|my) (?:[a-z]+ ){0,3}(?:platform|program(?:me)?|plan|fund|bot|system|company|club|app)\s+(?:[a-z]+\s+)?(?:pays|gives|offers|generates|delivers|earns|makes|returns|guarantees)\b|\b(?:want|wanna|like) to try\b|\blooking for (?:new |more |serious )?(?:investors|members|partners)\b|\b(?:members|clients|investors|students|subscribers|users)\s+(?:[a-z]+\s+)?(?:earn|make|made|get|got|receive|enjoy)\b|\b(?:platform|program(?:me)?|plan|bot|app|scheme|club|robot|system|package)\s+(?:that\s+|which\s+)?(?:pays|gives|offers|generates|guarantees|delivers)\b|\b(?:you|u) (?:can|could|will|'ll|would) (?:[a-z]+ )?(?:earn|make|get|receive|gain|double|grow|profit|withdraw|start|join|invest)\b|\b(?:your|ur) (?:money|capital|investment|deposit|profits?|returns?|earnings|savings|funds?)\b|\b(?:passive|extra|daily|weekly|monthly) income\b|\bfinancial freedom\b|\bdouble (?:your|ur)\b|\bno experience\b|\bhigh[- ]yield\b|\bguarantee[sd]?\b/;
+const IP_PITCH_AR=/انضم|انضمي|انضموا|سجّل|سجل\s?(?:الآن|الان|معنا|حسابك|عبر|من خلال|بالرابط|مجانا|مجاناً)|سجلي|اشترك|اشتركي|ابدأ|ابدئي|استثمر\s?(?:معنا|معي|الآن|الان|اليوم|ب\s?\d)|استثمري|تواصل|راسلني|راسلنا|كلمني|كلمنا|اتصل\s?(?:بنا|بي)|أضفني|اضفني|ضيفني|واتس|تيليجرام|تلغرام|تليجرام|(?:حمل|حمّل|نزل|نزّل)\s?(?:ال)?تطبيق|سارع|لا تفوت|(?:فرصة|العرض|عرض|عدد)\s?محدود|الحد\s?(?:الأدنى|الادنى)|إيداع|ايداع|أودع|اودع|اسحب|سحب\s?(?:الأرباح|الارباح)|ستربح|تربح|تربحي|ستحصل|تحصل على|تكسب|تكسبي|أرباحك|ارباحك|عائدك|أموالك|اموالك|فلوسك|رأس مالك|راس مالك|مبلغك|استثمارك|أعلمك|اعلمك|أعلّمك|أساعدك|اساعدك|أوريك|اوريك|أشرح لك|اشرح لك|أعرفك|اعرفك|أدخلك|ادخلك|أضيفك|اضيفك|مضمون|مضمونة|بدون مخاطر|بلا مخاطر|مجاناً|مجانا|مجانية|نقدم|نوفر لك|نضمن|عملاؤنا|عملائنا|أعضاؤنا|اعضاؤنا|مشتركينا|منصتنا|برنامجنا|مجموعتنا|قناتنا|توصيات|(?:تحب|تحبي|تبي|تبغى|تبغي|تريد|تريدي|ترغب|ترغبي|حاب|حابة|مهتم|مهتمة|تود)\s?(?:أن|ان)?\s?(?:تستثمر|تتداول|تربح|تكسب|تنضم|تشترك|تبدأ|تبدا|تتعلم|تجرب|أعلمك|اعلمك|أساعدك|اساعدك|أوريك|اوريك|أضيفك|اضيفك|أعرفك|اعرفك|نبدأ)|(?:مهتم|مهتمة)\s?[؟?]|هل (?:أنت|انت) (?:مهتم|مهتمة)|متى يناسبك/u;
+// The pitch is aimed at the reader, not at the sender ("he wants me to join").
+const IP_NOT_ME=/\b(?:wants?|wanted|asked|asks|asking|invited|invites|inviting|told|tells|telling|keeps? (?:asking|telling))\s+(?:me|us|him|her|them)\s+to\s+(?:join|invest|deposit|sign up|register|start)\b[^.!?]{0,40}/g;
+// A report, statement, newsletter, market update or lesson ...
+const IP_REPORT=/\b(?:report|reports|reported|reporting|factsheet|fact sheet|statement|newsletter|digest|roundup|round-up|bulletin|summary|review|according to|analysts?|said|says|reuters|bloomberg|ytd|year to date|q[1-4]|quarter|earnings|lesson|class notice)\b|\byour (?:portfolio|account|savings account|investment account|fund|plan|savings|investments?|holdings?)\s+(?:has\s+)?(?:returned|earned|made|gained|grew|rose|was up|is up)\b|\b(?:fund|portfolio|account|index|etf)\s+(?:has\s+)?(?:returned|made|gained|earned|rose|grew)\b|تقرير|التقرير|نشرة|النشرة|ملخص|محلل|بحسب|وفق|وفقا|وفقاً|محفظتك|حسابك|كشف حساب|الربع|منذ بداية العام/u;
+// ... is not a pitch because it gives a number to call, a newsletter to
+// subscribe to or a webinar to register for.
+const IP_SERVICE=/\b(?:for (?:any )?(?:queries|questions|enquiries|inquiries|more (?:info|information|details))|if you have (?:any )?(?:questions|queries)|if in doubt)\b[^.!?]{0,40}|\b(?:please\s+)?(?:call|contact|email|message|phone)\s+(?:me|us)\b[^.!?]{0,60}|\b(?:un)?subscribe\b[^.!?]{0,40}|\bread more\b[^.!?]{0,30}|\bdownload (?:the |our )?(?:full )?(?:report|statement|factsheet|newsletter|review)\b[^.!?]{0,40}|اشترك\S{0,2}[^.!?]{0,30}|\bregister (?:for|on|at) (?:our|the)\b[^.!?]{0,40}|\bjoin (?:the (?:discussion|conversation|webinar|call|event|session)|(?:our|the) (?:new )?(?:rewards?|loyalty|points|cashback|referral) (?:programme|program|scheme|club))\b|\b(?:your|ur) (?:portfolio|account|savings|statement|plan|holdings|investments?|fund|money)\b|للاستفسار[^.!?]{0,40}|(?:اتصل|تواصل)\s?(?:بنا|معنا)[^.!?]{0,30}|اشترك في (?:نشرتنا|النشرة)[^.!?]{0,30}|حسابك|محفظتك/gu;
+// How high the quoted returns are: 1 = only a modest yearly figure (12% a
+// year or less), 2 = only modest figures (also up to 5% a month), 3 = higher,
+// daily or weekly, 0 = none.
+const IP_RATE=/(\d{1,3})(?:[.,]\d+)?\s?%/g;
+const IP_YEARLY=/annual|yearly|a year|per year|per annum|p\.a\b|this year|last year|ytd|year to date|سنوي|في السنة|بالسنة|هذا العام|العام الماضي|السنة الماضية|هذه السنة/u;
+const IP_SHORT=/daily|weekly|monthly|a day|a week|a month|per day|per week|per month|this week|this month|يومي|أسبوعي|اسبوعي|شهري|في اليوم|في الشهر|الأسبوع|الشهر/u;
+const IP_MONTHLY=/monthly|a month|per month|this month|last month|every month|each month|شهري|في الشهر|الشهر|كل شهر/u;
+const IP_DAYWEEK=/daily|weekly|a day|a week|per day|per week|this week|every day|today|يومي|أسبوع|اسبوع|في اليوم|اليوم/u;
+function returnFigures(t){
+  let n=0,yearlyOnly=true;IP_RATE.lastIndex=0;
+  for(let m;(m=IP_RATE.exec(t))&&n<20;n++){
+    const v=Number(m[1]),near=t.slice(Math.max(0,m.index-20),m.index+m[0].length+15);
+    if(IP_YEARLY.test(near)&&!IP_SHORT.test(near)){if(v>12)return 3;continue}
+    yearlyOnly=false;
+    if(IP_MONTHLY.test(near)&&!IP_DAYWEEK.test(near)&&v<=5)continue;
+    return 3;
+  }
+  return n===0?0:yearlyOnly?1:2;
+}
+function investmentPitch(t){
+  const u=t.replace(IP_NO_GUARANTEE," ");
+  if(IP_HARD.test(u)||IP_HARD_AR.test(u))return true;
+  const d=t.replace(IP_DOWN," ");
+  if(!(IP_SOFT.test(d)||IP_SOFT_AR.test(d)))return false;
+  const figures=returnFigures(d);
+  if(figures===1)return false;
+  let p=u.replace(IP_NOT_ME," ");
+  if(figures===2||IP_REPORT.test(t))p=p.replace(IP_SERVICE," ");
+  return IP_PITCH.test(p)||IP_PITCH_AR.test(p);
 }
 
 function analyzeTextRulesCore(text){
@@ -518,21 +809,32 @@ function analyzeTextRulesCore(text){
     if(paymentTalk&&noCall)addSignal(state,"no-verify-pressure",12,"Discourages checking by phone, so the change cannot be verified with the real person.","Payment redirection (business email compromise)","pressure");
   }
 
-  // Investment pitches: a guaranteed or percentage return, or a trading story
-  // that leads to profits, deposits or "let me show you". No love word needed.
-  if(/\b(guaranteed|assured|risk[- ]free)\s(?:daily |weekly |monthly )?(?:returns?|profits?|income|roi)\b|\b\d{1,3}(?:\.\d)?\s?%\s(?:daily|weekly|monthly|per (?:day|week|month)|(?:last|this|every|a) (?:day|week|month)|in (?:a|one) (?:day|week|month))\b|\b(?:forex|crypto|bitcoin|gold|binary options?)\s(?:trading|signals?|investment)\b.{0,90}\b(?:profits?|returns?|made|earn|earned|deposit|withdraw|withdrawal|%|mentor|teach|show you)\b|\bprofits?\s(?:are\s)?(?:withdrawn|withdrawable|paid out)\s(?:daily|weekly|instantly|anytime)\b/i.test(clean)||/(عائد|أرباح|ربح|دخل)\s?(مضمون|مضمونة|ثابت|ثابتة)|\d{1,3}\s?%\s?(يومياً|يوميا|شهرياً|شهريا|أسبوعياً|أسبوعيا|في اليوم|في الشهر)|(استثمر|استثمار|تداول|التداول).{0,60}(مضمون|أرباح|عائد|%)/u.test(clean))addSignal(state,"investment-pitch",30,"Promises guaranteed or unusually high trading returns — nobody can guarantee that, and this is how investment and \"pig butchering\" scams start.","Investment / trading scam","money",true);
+  // A message that warns about scams is judged only on what the sender says in
+  // their own voice (rule E above): a warning that just describes scams, or
+  // quotes one it received, leaves nothing for the rules below to judge.
+  const twoRule=twoRuleText(clean);
+  const warned=twoRuleWarning(twoRule)||OV_WARN_MORE.test(twoRule);
+  const ruleText=warned?ownVoice(twoRule):twoRule;
+  // Investment pitches: a guaranteed return, or a return figure / trading
+  // story with an invitation, contact ask, offer or pressure aimed at the
+  // reader (see investmentPitch above). No love word needed.
+  if(investmentPitch(warned?ruleText:clean))addSignal(state,"investment-pitch",30,"Promises guaranteed or unusually high trading returns — nobody can guarantee that, and this is how investment and \"pig butchering\" scams start.","Investment / trading scam","money",true);
   // Tech-support pop-up wording; the phone-number rule adds the strong half.
   if(/\b(?:your (?:pc|computer|device|mac|phone|system) (?:is|has been) (?:infected|compromised|hacked|blocked|locked)|(?:detected|found) \d+ (?:viruses|threats|infections)|infected with \d+|(?:malware|trojan|spyware|viruses?) (?:detected|found)|do not (?:shut down|restart|turn off) your (?:pc|computer|device)|windows defender|microsoft security|security center)\b/i.test(clean))addSignal(state,"tech-support-alert",18,"Uses fake virus-alert wording to push you to call or install something.","Tech-support scam","device");
   // Pay a fee first to receive a job, visa, prize, loan or parcel: advance-fee fraud.
   const feeAsk=/\b(?:pay|paying|payment of|deposit|transfer|send|sending)\b[^.!?]{0,60}\b(?:refundable|processing|registration|activation|admin(?:istration)?|training|background[- ]check|medical|visa|onboarding|clearance|release|verification|membership|insurance)\s(?:fee|fees|charge|charges|deposit)\b|\b(?:refundable|processing|registration|activation|admin(?:istration)?|training|background[- ]check|medical|visa|onboarding|clearance|release|verification|membership|insurance)\s(?:fee|fees|charge|charges|deposit)\b[^.!?]{0,80}\b(?:pay|payable|paid|send|transfer|deposit|via|before|to (?:proceed|start|release|unlock|activate|receive|claim|get))\b/i.test(clean);
   const windfall=state.signals.has("prize")||state.signals.has("job")||state.signals.has("delivery")||state.signals.has("recovery")||/\b(?:salary|selected|shortlisted|your cv|congratulations|won|winning|claim|inheritance|compensation|grant|loan (?:is )?approved|beneficiary|job offer|offer letter)\b/i.test(clean);
   if(feeAsk&&windfall)addSignal(state,"advance-fee",30,"Asks you to pay a fee first to receive a job, visa, prize or payout — real employers and lotteries never charge you to receive something.","Advance-fee scam","money",true);
-  // The two owner-approved rules of 14 Oct 2026 (see wrongNumberInvestment and
-  // hiddenFundsShare above). A warning that describes either scam is not one.
-  const twoRule=twoRuleText(clean);
-  if(!training&&!twoRuleWarning(twoRule)){
-    if(wrongNumberInvestment(twoRule))addSignal(state,"wrong-number-investment",34,"Starts as a 'wrong number' text from a stranger who then talks about trading or investing and invites you in — this is how investment and romance (\"pig butchering\") scams open.","Investment / romance scam (wrong-number opener)","money",true);
-    if(hiddenFundsShare(twoRule))addSignal(state,"hidden-funds-share",34,"Tells a story about a stranger's hidden fortune (a soldier's trunk box, a diplomat's consignment, a dead client's account) and wants you to help move or claim it for a share — a classic advance-fee scam: the 'fees' to release it come next.","Advance-fee scam","money",true);
+  // The owner-approved rules of 14 Oct 2026 (wrongNumberInvestment,
+  // hiddenFundsShare and the second round A-D above), on the sender's own
+  // words when the message also warns about scams (rule E).
+  if(!training&&ruleText){
+    if(wrongNumberInvestment(ruleText))addSignal(state,"wrong-number-investment",34,"Starts as a 'wrong number' text from a stranger who then talks about trading or investing and invites you in — this is how investment and romance (\"pig butchering\") scams open.","Investment / romance scam (wrong-number opener)","money",true);
+    if(hiddenFundsShare(ruleText))addSignal(state,"hidden-funds-share",34,"Tells a story about a stranger's hidden fortune (a soldier's trunk box, a diplomat's consignment, a dead client's account) and wants you to help move or claim it for a share — a classic advance-fee scam: the 'fees' to release it come next.","Advance-fee scam","money",true);
+    if(widowInheritance(ruleText))addSignal(state,"widow-inheritance",34,"A stranger who says she is a widow (or that her late husband left her gold or millions) asks you to help invest, manage or receive the money — a romance and inheritance scam: requests for fees or your own money come next.","Romance / inheritance scam","money",true);
+    if(goldMinePartner(ruleText))addSignal(state,"gold-mine-partner",34,"A stranger who says they own a gold mine or a gold supply wants you as a partner, investor or buyer for a share of the profit — the gold does not exist, and the 'export fees' and deposits come next.","Gold investment fraud","money",true);
+    if(cheapGoldSale(ruleText))addSignal(state,"cheap-gold-sale",34,"Offers kilos of gold bars, dust or nuggets below the market price, as an urgent sale or with 'documents ready' — real gold is never sold below its market price: buyers lose the deposit or receive fake gold.","Gold investment fraud","money",true);
+    if(businessProposal(ruleText))addSignal(state,"business-proposal",34,"Offers a confidential, 'risk free' business proposal, often 'worth millions', or says an investor with millions needs you as a local partner — the classic advance-fee (419) opener: once you reply, they ask for fees and your bank details.","Advance-fee scam","money",true);
   }
   // Marketplace overpayment: a cheque for more than the price, "transfer the extra".
   if(/\b(?:transfer|send|forward|wire)\s(?:the\s|my\s|our\s)?(?:extra|difference|excess|overpayment|surplus)\b|\b(?:once|after|when)\s(?:it|the (?:cheque|check|payment|funds?|money))\s(?:clears|has cleared|is cleared)\b|\b(?:cheque|check)\b.{0,40}\b(?:more than|extra|in excess|which includes|that includes)\b/i.test(clean))addSignal(state,"overpayment",24,"Sends more than the price and asks you to forward the extra — the cheque bounces later and you lose what you forwarded.","Overpayment scam","money");
@@ -578,6 +880,11 @@ function analyzeTextRulesCore(text){
   combo("govt-authority-finance",["authority","finance"],24,"Combines government/tax-authority impersonation with a financial demand — a classic pattern in IRS and tax-scam messages.","Government / tax-authority impersonation scam","impersonation");
   if(state.categories.has("money")&&state.categories.has("pressure"))addSignal(state,"money-pressure",20,"Combines financial activity with fear, secrecy, or urgency.","Financial social engineering","money",true);
   if(state.categories.has("impersonation")&&state.categories.has("action"))addSignal(state,"impersonation-action",19,"Combines impersonation clues with a requested click, call, or reply.","Impersonation phishing","impersonation",true);
+  // The owner-approved rules name the scam more precisely than the generic
+  // combinations above ("Gold investment fraud", not "Financial social
+  // engineering"); the most specific one that matched gives the label.
+  const ownerRule=["business-proposal","cheap-gold-sale","gold-mine-partner","widow-inheritance","hidden-funds-share","wrong-number-investment"].map(id=>state.signalList.find(item=>item.id===id)).find(Boolean);
+  if(ownerRule)state.types.push(ownerRule.type);
 
   state.raw=Math.max(0,state.raw);
   let score=nonlinearScore(state.raw);
@@ -923,7 +1230,11 @@ const PLAIN_POINTS=[
   {ids:["wrong-number-investment"],text:"It starts as a ‘wrong number’ text from a stranger who then talks about trading or investing and invites you in. That is how investment and romance scams start."},
   {ids:["investment-pitch"],text:"It promises guaranteed or unusually high trading returns. Nobody can guarantee that."},
   {ids:["advance-fee"],text:"It asks you to pay a fee first to receive a job, prize or visa. Real employers and lotteries never charge you."},
+  {ids:["widow-inheritance"],text:"A stranger says she is a widow whose late husband left her gold or money, and asks you to help invest or receive it. That is a romance and inheritance scam: requests for fees or your own money come next."},
   {ids:["hidden-funds-share"],text:"It tells a story about a stranger’s hidden fortune, like a soldier’s trunk box, a diplomat’s parcel or a dead client’s account, and wants your help to move or claim it for a share. There is no money: the ‘fees’ to release it come next."},
+  {ids:["gold-mine-partner"],text:"A stranger says they own or represent a gold mine and wants you as a partner or investor for a share of the profit. The gold does not exist: fees and deposits come next."},
+  {ids:["cheap-gold-sale"],text:"It offers kilos of gold below the market price, as an ‘urgent sale’ or with ‘documents ready’. Real gold is never sold cheap: you would lose your money or get fake gold."},
+  {ids:["business-proposal"],text:"It offers a secret ‘business proposal’ worth millions, often ‘100% risk free’, or says an investor with millions needs you as a local partner. That is the classic advance-fee scam: once you reply, they ask for fees and your bank details."},
   {ids:["remote","install"],text:"It wants you to install something or hand over control of your device."},
   {ids:["irreversible-payment"],text:"It asks you to pay with gift cards or crypto. That money can never be got back."},
   {ids:["payment-redirect"],text:"It announces new bank details for a payment. Always confirm that by phone with a number you already have."},
