@@ -1,0 +1,43 @@
+/* Smaller "Try" chips in the home paste box (Text / Link / QR code). */
+html.v2 #home #v2ScanBox .v2-try {
+  gap: 6px;
+}
+html.v2 #home #v2ScanBox .v2-try .v2-try-label {
+  font-size: 10px;
+  letter-spacing: .14em;
+  margin-right: 2px;
+}
+html.v2 #home #v2ScanBox .v2-try .v2-chip {
+  height: 26px;
+  min-height: 26px;
+  padding: 0 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 560;
+  letter-spacing: 0;
+  line-height: 1;
+  color: #cffafe;
+  background: rgba(34, 211, 238, .07);
+  border: 1px solid rgba(34, 211, 238, .26);
+  box-shadow: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  html.v2 #home #v2ScanBox .v2-try .v2-chip:hover {
+    color: #ffffff;
+    background: rgba(34, 211, 238, .16);
+    border-color: rgba(34, 211, 238, .55);
+  }
+}
+html.v2 #home #v2ScanBox .v2-try .v2-chip::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: #22d3ee;
+  box-shadow: 0 0 8px rgba(34, 211, 238, .9);
+}
+@media (max-width: 819px) {
+  html.v2 #home #v2ScanBox .v2-try .v2-chip { height: 28px; min-height: 28px; font-size: 12.5px; }
+}

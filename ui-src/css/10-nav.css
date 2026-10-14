@@ -1,0 +1,1132 @@
+/* ==========================================================================
+   10-nav.css  -  v4.1 "Midnight" header (.navbar): a calm navy capsule with a hairline,
+   desktop links, account area, the white "Menu" pill and the midnight menu sheet (phones and
+   tablets).
+
+   Contracts kept (maps/HAZARDS.md):
+   - The header is in normal flow (legacy made it sticky with top:16px).
+     It only sticks while the menu sheet is open, so the Close pill can
+     never scroll out of reach. No body or main padding is involved.
+   - script.js binds the menu to the first .navbar and toggles .navbar.open.
+     cybernet-final-ui-fix.js rewrites #mobileMenu text to Menu/Close and
+     injects !important pill styles at <=900px after this sheet, so the pill
+     uses #mobileMenu.mobile-menu plus !important. Icons are ::before only.
+   - #navIndicator keeps its inline width/transform from JS; it is hidden.
+   - No display:...!important on anything JS shows or hides: #openAuth,
+     #accountSummary and #authCheckingSkeleton stay driven by [hidden].
+   - The header itself has no backdrop-filter, filter or resting transform
+     (the capsule is a tint on ::before: no blur, nothing to repaint while the
+     page scrolls under it), so the fixed sheet layers (open state) use the
+     viewport as their containing block.
+   - Stack: page < header (100) < cookie bar (150) < modals (200..1600).
+
+   The chrome palette (--cn-ch-*) is defined here and read by 15-footer.css. It is
+   deliberately self-contained (literal values), so the header and the footer look right
+   whatever the page tokens say. Midnight: navy ground, slate text, cyan the only accent.
+   ========================================================================== */
+
+html.cn {
+  --cn-ch-ink: #060a14;
+  --cn-ch-mute: #8a95a7;
+  --cn-ch-text: #f5f7fa;
+  --cn-ch-text-2: #b3bccb;   /* 9.4:1 on the capsule */
+  --cn-ch-text-3: #8f9aab;   /* 5.6:1 on the footer ground */
+  --cn-ch-line: rgba(148, 163, 184, .18);
+  --cn-ch-line-2: rgba(148, 163, 184, .32);
+  --cn-ch-cap: rgba(12, 18, 32, .94);       /* the capsule and the sheet's bottom bar */
+}
+
+/* The skip link (.cn-skip) is styled in 90-a11y.css, so it also reaches the legal bundle. */
+
+/* ---------- bar: a navy capsule ---------- */
+html.cn header.navbar,
+html.cn header.navbar.glass {
+  --cn-nav-h: 64px;
+  --cn-nav-top: 12px;
+  --cn-hd-ps: 18px;   /* the capsule's inline padding: the open sheet aligns its rows to it */
+  --cn-hd-pe: 10px;
+  --cn-focus: 0 0 0 3px #060a14, 0 0 0 5px var(--cn-cyan);
+  position: relative;
+  inset: auto;
+  z-index: var(--cn-z-header);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cn-4);
+  box-sizing: border-box;
+  width: min(var(--cn-max-wide), calc(100% - var(--cn-gutter-l) - var(--cn-gutter-r)));
+  height: var(--cn-nav-h);
+  min-height: 0;
+  margin: calc(env(safe-area-inset-top, 0px) + var(--cn-nav-top)) auto 0;
+  padding-block: 0;
+  padding-inline: var(--cn-hd-ps) var(--cn-hd-pe);
+  border: 0;
+  border-radius: var(--cn-r-pill);
+  background: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  color: var(--cn-ch-text);
+  font-family: var(--cn-font);
+  -webkit-font-smoothing: antialiased;
+  animation: cn-nav-in .5s var(--cn-ease-out) backwards;
+}
+
+/* the capsule: solid navy, a hairline and a lit top edge, on a layer behind the content. No
+   backdrop blur (DESIGN.md: frosted glass only on dialogs and the cookie bar). */
+html.cn header.navbar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--cn-ch-cap);
+  box-shadow:
+    inset 0 0 0 1px var(--cn-ch-line),
+    inset 0 1px 0 rgba(255, 255, 255, .06),
+    0 14px 28px -20px rgba(0, 0, 0, .75);
+  pointer-events: none;
+}
+
+/* ---------- brand ---------- */
+html.cn header.navbar .brand {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  margin-inline-start: -6px;
+  padding: 0 6px;
+  border-radius: var(--cn-r-ctl);
+  color: var(--cn-ch-text);
+  font-family: var(--cn-font-mono);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  line-height: 1;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html.cn header.navbar .brand:focus-visible {
+  outline: none;
+  box-shadow: var(--cn-focus);
+}
+
+/* the shield mark */
+html.cn header.navbar .brand-mark-icon {
+  width: 26px;
+  height: 28px;
+  min-width: 26px;
+  max-width: 26px;
+  max-height: 28px;
+}
+
+html.cn header.navbar .brand-text {
+  display: inline-flex;
+  align-items: center;
+  font-size: inherit;
+  white-space: nowrap;
+}
+
+html.cn header.navbar .brand-text span {
+  color: var(--cn-cyan);
+  text-shadow: none;
+}
+
+html.cn header.navbar .brand-text small {
+  display: inline-flex;
+  align-items: center;
+  margin-inline-start: 8px;
+  padding: 3px 6px 2px;
+  border: 1px solid var(--cn-cyan-line, rgba(34, 211, 238, .38));
+  border-radius: 6px;
+  background: rgba(34, 211, 238, .1);
+  color: #d9f7fc;
+  font-family: var(--cn-font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+/* ---------- legacy indicator: hidden (JS still writes its inline geometry) ---------- */
+html.cn header.navbar .nav-indicator {
+  display: none;
+}
+
+/* ---------- account area pieces (bar and sheet) ---------- */
+html.cn header.navbar .nav-social-btn {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: var(--cn-r-pill);
+  background: transparent;
+  color: var(--cn-ch-text-2);
+  box-shadow: none;
+  transform: none;
+  transition: color var(--cn-dur-1) ease, background-color var(--cn-dur-1) ease;
+}
+
+html.cn header.navbar .nav-social-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+html.cn header.navbar .nav-social-btn::after,
+html.cn header.navbar .account-action-btn::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+}
+
+html.cn header.navbar .nav-social-btn:focus-visible {
+  outline: none;
+  color: var(--cn-ch-text);
+  box-shadow: var(--cn-focus);
+  transform: none;
+}
+
+/* Sign in: the one glowing call to action in the bar, cyan with ink text.
+   Display stays with [hidden]. */
+html.cn header.navbar #openAuth.login-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: var(--cn-r-pill);
+  background: var(--cn-brand, #22d3ee);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5);
+  color: var(--cn-ch-ink);
+  font-family: var(--cn-font);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--cn-dur-1) ease, box-shadow var(--cn-dur-2) ease, transform var(--cn-dur-1) var(--cn-ease-out);
+}
+
+html.cn header.navbar #openAuth.login-btn:active {
+  transform: scale(.98);
+}
+
+html.cn header.navbar #openAuth.login-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--cn-focus);
+}
+
+/* Placeholder while the session is checked: a faint outline the size of the
+   Sign in pill with a soft shimmer, so it reads as "loading", not as an
+   empty button. Sign in then fades in over it (display stays with [hidden]). */
+html.cn header.navbar .auth-checking-skeleton {
+  width: 96px;
+  height: 44px;
+  border: 1px solid var(--cn-ch-line);
+  border-radius: var(--cn-r-pill);
+  background: rgba(255, 255, 255, .04);
+}
+
+html.cn header.navbar #openAuth.login-btn:not([hidden]) {
+  animation: cn-sheet-fade var(--cn-dur-2) var(--cn-ease-out) both;
+}
+
+/* Signed in: greeting, plan chip, Sign Out */
+html.cn header.navbar .account-summary {
+  gap: var(--cn-2);
+  min-width: 0;
+}
+
+html.cn header.navbar .nav-greeting {
+  max-width: 14ch;
+  overflow: hidden;
+  color: var(--cn-ch-text-2);
+  font-family: var(--cn-font);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html.cn header.navbar .plan-badge {
+  min-height: 24px;
+  padding: 0 9px;
+  border: 1px solid var(--cn-ch-line-2);
+  border-radius: var(--cn-r-pill);
+  background: rgba(255, 255, 255, .08);
+  color: var(--cn-ch-text-2);
+  box-shadow: none;
+  font-family: var(--cn-font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+html.cn header.navbar .plan-badge.plan-badge-pro {
+  border-color: rgba(34, 211, 238, .45);
+  background: rgba(34, 211, 238, .12);
+  color: #d9f7fc;
+}
+
+html.cn header.navbar .plan-badge.plan-badge-business {
+  border-color: transparent;
+  background: #f5f7fa;
+  color: var(--cn-ch-ink);
+}
+
+/* style.css gives every Business badge a violet gradient and a violet glow: any badge that has no
+   rule of its own (the header, Analysis AI and the account dialog all do) is a white chip instead */
+html.cn .plan-badge.plan-badge-business {
+  border-color: transparent;
+  background: #f5f7fa;
+  box-shadow: none;
+  color: #060a14;
+}
+
+html.cn header.navbar .account-action-btn {
+  position: relative;
+  align-items: center;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--cn-ch-line-2);
+  border-radius: var(--cn-r-pill);
+  background: transparent;
+  color: var(--cn-ch-text-2);
+  font-family: var(--cn-font);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -.005em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--cn-dur-1) ease, background-color var(--cn-dur-1) ease, border-color var(--cn-dur-1) ease;
+}
+
+html.cn header.navbar .account-action-btn:focus-visible {
+  outline: none;
+  color: var(--cn-ch-text);
+  box-shadow: var(--cn-focus);
+}
+
+/* ---------- the white Menu pill (shown under 1024px) ---------- */
+html.cn header.navbar #mobileMenu.mobile-menu {
+  position: relative;
+  inset: auto;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: auto;
+  height: 42px;
+  min-width: 0 !important;
+  min-height: 42px !important;
+  margin-inline-start: auto;
+  padding: 0 17px 0 14px !important;
+  border: 0 !important;
+  border-radius: var(--cn-r-pill) !important;
+  background: #fff !important;
+  color: var(--cn-ch-ink) !important;
+  box-shadow: 0 6px 16px -10px rgba(0, 0, 0, .7);
+  font-family: var(--cn-font) !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  letter-spacing: -.01em !important;
+  line-height: 1 !important;
+  text-transform: none !important;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--cn-dur-1) ease, transform var(--cn-dur-1) var(--cn-ease-out);
+}
+
+/* two-line menu glyph (the label itself is rewritten by JS, so icons live here) */
+html.cn header.navbar #mobileMenu.mobile-menu::before {
+  content: "";
+  flex: none;
+  width: 16px;
+  height: 16px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23060A14' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M2.5 5.5h11M2.5 10.5h11'/%3E%3C/svg%3E") center / 16px 16px no-repeat;
+}
+
+/* the 42px pill gets a 44px hit area */
+html.cn header.navbar #mobileMenu.mobile-menu::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+}
+
+html.cn header.navbar #mobileMenu.mobile-menu:active {
+  transform: scale(.98);
+}
+
+html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
+  outline: none;
+  box-shadow: var(--cn-focus);
+}
+
+/* ==========================================================================
+   Desktop and laptop (1024px and up): one row, links centred
+   ========================================================================== */
+@media (min-width: 1024px) {
+  html.cn header.navbar,
+  html.cn header.navbar.glass,
+  html.cn header.navbar.open {
+    display: grid;
+    grid-template-columns: minmax(max-content, 1fr) auto minmax(max-content, 1fr);
+    align-items: center;
+    column-gap: var(--cn-4);
+    height: var(--cn-nav-h);
+  }
+
+  html.cn header.navbar .brand {
+    justify-self: start;
+  }
+
+  html.cn header.navbar #mobileMenu.mobile-menu {
+    display: none;
+  }
+
+  html.cn header.navbar .nav-tabs,
+  html.cn header.navbar.open .nav-tabs {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 2px;
+    width: auto;
+    margin: 0;
+    padding: 0;
+  }
+
+  html.cn header.navbar .nav-link,
+  html.cn header.navbar.open .nav-link {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    width: auto;
+    height: 44px;
+    margin: 0;
+    padding: 0 13px;
+    border: 0;
+    border-radius: var(--cn-r-pill);
+    background: transparent;
+    color: var(--cn-ch-text-2);
+    font-family: var(--cn-font);
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: -.01em;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color var(--cn-dur-1) ease, background-color var(--cn-dur-2) ease, box-shadow var(--cn-dur-2) ease;
+  }
+
+  /* the current page: a raised slate capsule with a cyan dot under the label */
+  html.cn header.navbar .nav-link.active {
+    background: rgba(148, 163, 184, .12);
+    box-shadow: inset 0 0 0 1px var(--cn-ch-line-2);
+    color: #fff;
+  }
+
+  html.cn header.navbar .nav-link.active::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    bottom: 4px;
+    width: 16px;
+    height: 2px;
+    margin-inline: auto;
+    border-radius: 2px;
+    background: var(--cn-cyan);
+    animation: cn-nav-dot var(--cn-dur-3) var(--cn-ease-out) both;
+  }
+
+  html.cn header.navbar .nav-link:focus-visible {
+    outline: none;
+    color: #fff;
+    box-shadow: var(--cn-focus);
+  }
+
+  /* injected Account link: same as the others, without its glowing dot */
+  html.cn header.navbar .nav-tabs .account-nav-link {
+    gap: 0;
+  }
+
+  html.cn header.navbar .nav-tabs .account-nav-link::before {
+    content: none;
+  }
+
+  html.cn header.navbar .nav-actions,
+  html.cn header.navbar.open .nav-actions {
+    position: static;
+    justify-self: end;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--cn-2);
+    width: auto;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+
+  html.cn header.navbar .nav-social-links {
+    order: 0;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    width: auto;
+    margin: 0;
+    padding-block: 0;
+    padding-inline: 0 var(--cn-2);
+    border: 0;
+  }
+}
+
+/* Nine entries share the row, so the links tighten step by step before the
+   bar collapses into the Menu pill at 1024px. */
+@media (min-width: 1024px) and (max-width: 1439.98px) {
+  html.cn header.navbar .nav-link,
+  html.cn header.navbar.open .nav-link {
+    padding: 0 10px;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1279.98px) {
+  html.cn header.navbar,
+  html.cn header.navbar.glass,
+  html.cn header.navbar.open {
+    column-gap: var(--cn-3);
+    --cn-hd-ps: 14px;
+  }
+
+  html.cn header.navbar .nav-tabs {
+    gap: 0;
+  }
+
+  html.cn header.navbar .nav-link,
+  html.cn header.navbar.open .nav-link {
+    padding: 0 8px;
+    font-size: 13.5px;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1119.98px) {
+  html.cn header.navbar .nav-link,
+  html.cn header.navbar.open .nav-link {
+    padding: 0 6px;
+    font-size: 13px;
+  }
+
+  html.cn header.navbar .brand {
+    font-size: 16px;
+  }
+
+  html.cn header.navbar .brand-text small {
+    margin-inline-start: 6px;
+  }
+
+  html.cn header.navbar #openAuth.login-btn {
+    padding: 0 16px;
+  }
+}
+
+/* Under 1200px the social icons give way (they return inside the menu sheet);
+   signed in, the account area needs their room up to 1600px. */
+@media (min-width: 1024px) and (max-width: 1199.98px) {
+  html.cn header.navbar .nav-social-links {
+    display: none;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1599.98px) {
+  html.cn header.navbar .nav-actions:has(> #accountSummary:not([hidden])) .nav-social-links {
+    display: none;
+  }
+}
+
+/* The greeting needs room; below 1280px the Account link and plan chip carry it. */
+@media (min-width: 1280px) {
+  html.cn header.navbar .nav-greeting {
+    display: inline-block;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1279.98px) {
+  html.cn header.navbar .nav-greeting {
+    display: none;
+  }
+}
+
+/* Sign Out sits in the bar only when there is space (the Account panel has one too). */
+@media (min-width: 1280px) {
+  html.cn header.navbar .account-action-btn {
+    display: inline-flex;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1279.98px) {
+  html.cn header.navbar .account-action-btn {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+   Under 1024px: compact capsule, white Menu pill, midnight sheet when open
+   ========================================================================== */
+@media (max-width: 1023.98px) {
+  html.cn header.navbar,
+  html.cn header.navbar.glass {
+    --cn-nav-h: 58px;
+    --cn-nav-top: 10px;
+    --cn-hd-ps: 14px;
+    --cn-hd-pe: 8px;
+  }
+
+  html.cn header.navbar .nav-tabs,
+  html.cn header.navbar .nav-actions {
+    display: none;
+  }
+
+  html.cn header.navbar #mobileMenu.mobile-menu {
+    display: inline-flex;
+  }
+
+  /* ---- open: the bar stays as the sheet's top row ----
+     --cn-sheet-foot is the room the link list keeps free above the bottom bar:
+     one row (socials + Sign in, 81px) signed out, two rows signed in. The capsule
+     capsule gives way to the sheet, so the brand and Close pill sit right on it. */
+  html.cn header.navbar.open {
+    --cn-sheet-foot: 96px;
+    --cn-sheet-top: calc(var(--cn-nav-h) + var(--cn-nav-top) + env(safe-area-inset-top, 0px));
+    --cn-sheet-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 26' fill='none'%3E%3Cg opacity='.2'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2322D3EE'/%3E%3Cstop offset='1' stop-color='%233B82F6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M12 2 L21 6 L20 15 L12 24 L4 15 L3 6 Z' stroke='url(%23g)' stroke-width='.14' stroke-linejoin='round'/%3E%3Cpath d='M12 5 L18.2 7.9 L17.4 14.3 L12 20.7 L6.6 14.3 L5.8 7.9 Z' stroke='url(%23g)' stroke-width='.08' stroke-linejoin='round' stroke-opacity='.7'/%3E%3Cpath d='M12 2 V5 M21 6 L18.2 7.9 M20 15 L17.4 14.3 M12 24 V20.7 M4 15 L6.6 14.3 M3 6 L5.8 7.9' stroke='url(%23g)' stroke-width='.07' stroke-opacity='.55'/%3E%3Crect x='8.3' y='12.5' width='7.4' height='6.2' rx='1.2' stroke='url(%23g)' stroke-width='.12'/%3E%3Cpath d='M9.6 12.5 v-2.3 a2.4 2.4 0 0 1 4.8 0 v2.3' stroke='url(%23g)' stroke-width='.12' stroke-linecap='round'/%3E%3C/g%3E%3C/svg%3E");
+    position: sticky;
+    top: calc(var(--cn-nav-top) + env(safe-area-inset-top, 0px));
+    flex-direction: row;
+    align-items: center;
+    height: var(--cn-nav-h);
+  }
+
+  /* the sheet: a full-height midnight panel with one cyan light at the top and a faint
+     shield outline at the bottom */
+  html.cn header.navbar.open::before {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    border-radius: 0;
+    background:
+      var(--cn-sheet-mark) right -72px bottom calc(var(--cn-sheet-foot) + 4px) / clamp(200px, 64vw, 360px) auto no-repeat,
+      radial-gradient(110% 46% at 100% -8%, rgba(34, 211, 238, .13), transparent 62%),
+      linear-gradient(180deg, #0a101c 0%, #060a14 100%);
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    animation: cn-sheet-fade var(--cn-dur-2) var(--cn-ease-out) both;
+  }
+
+  /* Close: the same white pill with a cross */
+  html.cn header.navbar.open #mobileMenu.mobile-menu::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23060A14' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M4 4l8 8M12 4l-8 8'/%3E%3C/svg%3E");
+  }
+
+  /* ---- the link list ---- */
+  html.cn header.navbar.open .nav-tabs {
+    position: fixed;
+    inset: calc(var(--cn-sheet-top) + 6px) 0 0 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 0;
+    width: auto;
+    margin: 0;
+    padding: var(--cn-3) calc(var(--cn-gutter-r) + var(--cn-hd-pe) - 2px) calc(var(--cn-sheet-foot) + var(--cn-consent-space, 0px) + env(safe-area-inset-bottom, 0px)) calc(var(--cn-gutter-l) + var(--cn-hd-ps) - 2px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  html.cn header.navbar.open .nav-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  html.cn header.navbar.open .nav-link {
+    position: relative;
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: flex-start;
+    gap: var(--cn-3);
+    width: 100%;
+    max-width: 640px;
+    /* nine rows share the height the bar leaves, between 46px (still a 44px target) and 60px: on a
+       short phone every entry sits above the bar without scrolling */
+    min-height: 60px;
+    min-height: clamp(46px, calc((100dvh - var(--cn-sheet-top) - var(--cn-sheet-foot) - 20px) / 9), 60px);
+    margin: 0;
+    padding: 0 2px;
+    border: 0;
+    border-bottom: 1px solid var(--cn-ch-line);
+    border-radius: 0;
+    background: none;
+    color: var(--cn-ch-text);
+    font-family: var(--cn-font);
+    font-size: clamp(1.4375rem, 1rem + 3.4vw, 1.875rem);
+    font-weight: 600;
+    letter-spacing: -.03em;
+    line-height: 1.1;
+    text-align: start;
+    white-space: normal;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    animation: cn-sheet-item var(--cn-dur-3) var(--cn-ease-out) both;
+  }
+
+  /* a quiet arrow at the end of each row */
+  html.cn header.navbar.open .nav-link::after {
+    content: "";
+    flex: none;
+    width: 20px;
+    height: 20px;
+    margin-inline-start: auto;
+    background: var(--cn-ch-mute);
+    opacity: .7;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 10h11M11 5.5 15.5 10 11 14.5'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 10h11M11 5.5 15.5 10 11 14.5'/%3E%3C/svg%3E") center / contain no-repeat;
+  }
+
+  html.cn header.navbar.open .nav-link:active {
+    color: var(--cn-cyan);
+  }
+
+  html.cn header.navbar.open .nav-link:focus-visible {
+    outline: none;
+    border-radius: var(--cn-r-ctl);
+    box-shadow: var(--cn-focus);
+  }
+
+  /* current page: a cyan label and a lit arrow on a quiet slate row */
+  html.cn header.navbar.open .nav-link.active {
+    width: calc(100% + var(--cn-hd-ps) + var(--cn-hd-pe) - 4px);
+    max-width: calc(640px + var(--cn-hd-ps) + var(--cn-hd-pe));
+    margin-inline: calc(2px - var(--cn-hd-ps)) 0;
+    padding-inline: var(--cn-hd-ps) var(--cn-hd-pe);
+    border-bottom-color: transparent;
+    border-radius: 18px;
+    background: rgba(34, 211, 238, .08);
+    box-shadow: inset 0 0 0 1px rgba(34, 211, 238, .26);
+    color: #67e8f9;
+  }
+
+  html.cn header.navbar.open .nav-link.active::after {
+    background: var(--cn-cyan);
+    opacity: 1;
+  }
+
+  /* injected Account link: no glowing dot, same row as the rest */
+  html.cn header.navbar.open .nav-tabs .account-nav-link::before {
+    content: none;
+  }
+
+  /* gentle stagger: the indicator span is child 1, links start at child 2 */
+  html.cn header.navbar.open .nav-link:nth-child(3) { animation-delay: 25ms; }
+  html.cn header.navbar.open .nav-link:nth-child(4) { animation-delay: 50ms; }
+  html.cn header.navbar.open .nav-link:nth-child(5) { animation-delay: 75ms; }
+  html.cn header.navbar.open .nav-link:nth-child(6) { animation-delay: 100ms; }
+  html.cn header.navbar.open .nav-link:nth-child(7) { animation-delay: 125ms; }
+  html.cn header.navbar.open .nav-link:nth-child(8) { animation-delay: 150ms; }
+  html.cn header.navbar.open .nav-link:nth-child(9) { animation-delay: 175ms; }
+  html.cn header.navbar.open .nav-link:nth-child(n+10) { animation-delay: 200ms; }
+
+  /* ---- bottom bar: socials + Sign in / account ---- */
+  html.cn header.navbar.open .nav-actions {
+    position: fixed;
+    inset: auto 0 0 0;
+    bottom: var(--cn-consent-space, 0px);
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--cn-3);
+    width: auto;
+    min-width: 0;
+    margin: 0;
+    padding: var(--cn-4) calc(var(--cn-gutter-r) + var(--cn-hd-pe)) calc(var(--cn-4) + env(safe-area-inset-bottom, 0px)) calc(var(--cn-gutter-l) + var(--cn-hd-ps) - 4px);
+    border-top: 1px solid var(--cn-ch-line-2);
+    background: #0a101c;
+    animation: cn-sheet-item var(--cn-dur-3) var(--cn-ease-out) 120ms both;
+  }
+
+  /* a soft fade above the bar: when the list is taller than the screen, the
+     row passing under the bar dissolves instead of being cut, a cue to scroll */
+  html.cn header.navbar.open .nav-actions::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    bottom: calc(100% + 1px);
+    height: var(--cn-6);
+    background: linear-gradient(to bottom, transparent, rgba(6, 10, 20, .8));
+    pointer-events: none;
+  }
+
+  html.cn.cn-consent-visible header.navbar.open .nav-actions {
+    bottom: calc(var(--cn-consent-space, 0px) + 20px);
+    border-bottom: 1px solid var(--cn-ch-line);
+  }
+
+  html.cn header.navbar.open .nav-social-links {
+    order: 0;
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 4px;
+    width: auto;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  html.cn header.navbar.open .nav-social-btn {
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--cn-ch-line-2);
+    background: rgba(255, 255, 255, .05);
+  }
+
+  html.cn header.navbar.open .nav-social-btn::after,
+  html.cn header.navbar.open .account-action-btn::after {
+    inset: 0;
+  }
+
+  html.cn header.navbar.open #openAuth.login-btn {
+    flex: 1 1 160px;
+    max-width: 360px;
+    height: 48px;
+    font-size: 15px;
+  }
+
+  html.cn header.navbar.open .auth-checking-skeleton {
+    flex: 1 1 160px;
+    max-width: 360px;
+    height: 48px;
+  }
+
+  html.cn header.navbar.open:has(#accountSummary:not([hidden])) {
+    --cn-sheet-foot: 148px;
+  }
+
+  /* the bar sits 20px above the cookie bar, so the list keeps that room too */
+  html.cn.cn-consent-visible header.navbar.open .nav-tabs {
+    padding-bottom: calc(var(--cn-sheet-foot) + var(--cn-consent-space, 0px) + 20px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* signed in: greeting, plan chip and Sign Out get their own row above the icons */
+  html.cn header.navbar.open .account-summary {
+    order: -1;
+    flex: 1 1 100%;
+    justify-content: flex-start;
+    gap: var(--cn-3);
+    min-width: 0;
+  }
+
+  html.cn header.navbar.open .nav-greeting {
+    display: inline-block;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: none;
+    color: var(--cn-ch-text);
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  html.cn header.navbar.open .plan-badge {
+    flex: none;
+  }
+
+  /* legacy hides Sign Out at <=1100px; the sheet is where a phone reaches it */
+  html.cn header.navbar.open .account-action-btn {
+    display: inline-flex;
+    flex: none;
+    height: 44px;
+    margin-inline-start: auto;
+    padding: 0 18px;
+    font-size: 14px;
+  }
+
+  /* the page behind the sheet does not scroll (12-nav.js mirrors .navbar.open into
+     html.cn-menu-open; no root-anchored :has()) */
+  html.cn.cn-menu-open {
+    overflow: hidden;
+  }
+}
+
+/* phones: tighter bar */
+@media (max-width: 599.98px) {
+  html.cn header.navbar .brand {
+    gap: 8px;
+    font-size: 16px;
+  }
+
+  html.cn header.navbar .brand-mark-icon {
+    width: 24px;
+    height: 26px;
+    min-width: 24px;
+    max-width: 24px;
+    max-height: 26px;
+  }
+}
+
+/* Sign in keeps one row beside the icons down to 320px */
+@media (max-width: 399.98px) {
+  html.cn header.navbar.open #openAuth.login-btn,
+  html.cn header.navbar.open .auth-checking-skeleton {
+    flex-basis: 120px;
+  }
+}
+
+/* folded phones: the wordmark keeps one line next to the pill */
+@media (max-width: 339.98px) {
+  html.cn header.navbar,
+  html.cn header.navbar.glass {
+    gap: var(--cn-2);
+    --cn-hd-ps: 10px;
+    --cn-hd-pe: 6px;
+  }
+
+  html.cn header.navbar .brand {
+    gap: 6px;
+    font-size: 14px;
+  }
+
+  html.cn header.navbar .brand-text small {
+    margin-inline-start: 5px;
+    padding: 2px 4px 1px;
+    font-size: 9px;
+  }
+
+  html.cn header.navbar #mobileMenu.mobile-menu {
+    padding: 0 13px 0 11px !important;
+  }
+
+  /* Sign in takes what the three icons leave (about 96px at 280), so the bar
+     stays one row and every link sits above it */
+  html.cn header.navbar.open #openAuth.login-btn,
+  html.cn header.navbar.open .auth-checking-skeleton {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0 12px;
+  }
+}
+
+/* small phones: the shield outline steps aside (the rows shrink with the height, see .nav-link) */
+@media (max-width: 1023.98px) and (max-height: 760px) {
+  html.cn header.navbar.open {
+    --cn-sheet-mark: none;
+  }
+}
+
+/* short screens (landscape phones): denser rows, two columns when wide enough */
+@media (max-width: 1023.98px) and (max-height: 560px) {
+  html.cn header.navbar.open .nav-link {
+    min-height: 48px;
+    font-size: 1.25rem;
+  }
+
+  /* a slimmer bar: 12 + 44 + 12 */
+  html.cn header.navbar.open .nav-actions {
+    padding-top: var(--cn-3);
+    padding-bottom: calc(var(--cn-3) + env(safe-area-inset-bottom, 0px));
+  }
+
+  html.cn header.navbar.open #openAuth.login-btn,
+  html.cn header.navbar.open .auth-checking-skeleton {
+    height: 44px;
+  }
+
+  html.cn header.navbar.open {
+    --cn-sheet-foot: 84px;
+  }
+
+  html.cn header.navbar.open:has(#accountSummary:not([hidden])) {
+    --cn-sheet-foot: 136px;
+  }
+}
+
+/* wide enough for the account row to share the bar with the icons */
+@media (max-width: 1023.98px) and (max-height: 560px) and (min-width: 480px) {
+  html.cn header.navbar.open .account-summary {
+    order: 1;
+    flex: 1 1 auto;
+    justify-content: flex-end;
+  }
+
+  html.cn header.navbar.open:has(#accountSummary:not([hidden])) {
+    --cn-sheet-foot: 84px;
+  }
+
+  html.cn header.navbar.open .nav-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+    column-gap: var(--cn-8);
+  }
+
+  html.cn header.navbar.open .nav-link {
+    max-width: none;
+  }
+}
+
+/* landscape phones: three rows of three, all nine above the bar (a long label
+   such as "Manage Business" may take two lines in its 48px row) */
+@media (max-width: 1023.98px) and (max-height: 560px) and (min-width: 540px) {
+  html.cn header.navbar.open .nav-tabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: var(--cn-6);
+  }
+}
+
+/* installed app: the body already clears the status bar (90-a11y.css), so the header adds only its own gap */
+@media (display-mode: standalone), (display-mode: fullscreen) {
+  html.cn header.navbar,
+  html.cn header.navbar.glass {
+    margin-top: var(--cn-nav-top);
+  }
+}
+
+/* touch screens at desktop widths (iPad landscape, iPad Pro): 44px targets */
+@media (pointer: coarse) and (min-width: 1024px) {
+  html.cn header.navbar #openAuth.login-btn {
+    height: 44px;
+  }
+
+  html.cn header.navbar .nav-social-btn {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* ---------- hover (fine pointers only) ---------- */
+@media (hover: hover) and (pointer: fine) {
+  html.cn header.navbar .nav-link:not(.active):hover {
+    background: rgba(255, 255, 255, .07);
+    color: #fff;
+  }
+
+  html.cn header.navbar .nav-social-btn:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, .12);
+    transform: none;
+    box-shadow: none;
+  }
+
+  html.cn header.navbar #openAuth.login-btn:hover {
+    color: var(--cn-ch-ink);
+    background: var(--cn-brand-2, #67e8f9);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55);
+    transform: translateY(-1px);
+  }
+
+  html.cn header.navbar #openAuth.login-btn:active {
+    transform: scale(.98);
+  }
+
+  html.cn header.navbar .account-action-btn:hover {
+    color: #fff;
+    border-color: rgba(148, 163, 184, .6);
+    background: rgba(255, 255, 255, .08);
+  }
+
+  html.cn header.navbar #mobileMenu.mobile-menu:hover {
+    background: #e8edf4 !important;
+  }
+}
+
+/* ---------- motion ---------- */
+/* The entrance is a plain fade: a transform, `translate` or filter on the header would make it the
+   containing block of the fixed menu-sheet layers while it runs, so a tap on Menu in the first half
+   second would lay the sheet out inside the 58px bar. */
+@keyframes cn-nav-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes cn-nav-dot {
+  from { opacity: 0; transform: scaleX(.2); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes cn-sheet-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes cn-sheet-item {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.cn header.navbar .nav-link,
+  html.cn header.navbar .nav-social-btn,
+  html.cn header.navbar #openAuth.login-btn,
+  html.cn header.navbar .account-action-btn,
+  html.cn header.navbar #mobileMenu.mobile-menu {
+    transition: none;
+  }
+
+  html.cn header.navbar,
+  html.cn header.navbar .nav-link.active::after,
+  html.cn header.navbar #openAuth.login-btn:not([hidden]),
+  html.cn header.navbar.open::before,
+  html.cn header.navbar.open .nav-link,
+  html.cn header.navbar.open .nav-actions,
+  html.cn header.navbar .auth-checking-skeleton {
+    animation: none;
+  }
+}
+
+/* reduced transparency: the capsule and the sheet are already solid, so only the page-top light goes */
+@media (prefers-reduced-transparency: reduce) {
+  html.cn header.navbar::before { background: #0c1220; }
+
+  html.cn header.navbar.open::before { background: #060a14; }
+}
+
+/* Windows high contrast: the system drops gradients and shadows, so the capsule gets a real edge */
+@media (forced-colors: active) {
+  html.cn header.navbar,
+  html.cn header.navbar.glass {
+    border: 1px solid CanvasText;
+  }
+
+  html.cn header.navbar.open .nav-link.active {
+    color: Highlight;
+  }
+
+  html.cn header.navbar .nav-link.active {
+    border: 1px solid Highlight;
+  }
+}
+
+@media print {
+  html.cn header.navbar {
+    display: none;
+  }
+}

@@ -1,0 +1,2803 @@
+/* CyberNet AI "Signal": tool pages (owner: tools).
+   Quick Scan (section#cybernet) and Analysis AI (section#cybernetai), restyle only.
+   01-base.css already turns .glass into a calm card, buttons into pills and inputs into
+   quiet fields; this partial lays out the two workspaces and every state script.js renders:
+   usage meters, the detect segmented control, scan panels, drop zone, scan ring and steps,
+   result boxes and the verdict card (showReport, showDeepScanPrompt, runScan, prependScan,
+   hydratePreviews), and the Analysis AI access panel, BYOK panel, chat, diagnostic progress
+   (showDiagnosticReport, showAnalysisIncomplete, runDiagnosticAnimation) and composer.
+
+   Verdict system: the result box (or the chat bubble that holds a report) sets --cn-v and
+   --cn-v-tint from the class script.js writes:
+     result-has-danger  -> danger  "SCAM"
+     result-has-safe    -> safe    "NOT A SCAM", "LOW RISK"
+     result-has-uncertain + a plain summary -> warn "CAN'T CONFIRM"
+     result-has-uncertain without one: a redirect, not a warning ("SEND THIS TO ANALYSIS AI"
+     in cyan, "COULDN'T COMPLETE THIS ANALYSIS" in grey). Colour always comes with the word.
+
+   Contracts kept (maps/HAZARDS.md, 06-quick):
+   - #cyberTextBtn, #cyberLinkBtn, #chatSendBtn, '#cyberDropZone h3' get their text rewritten:
+     icons are pseudo-elements only, the glyph text is hidden with font-size:0.
+   - No display value on anything toggled with [hidden] (.report-details, #chatAttachPreview,
+     .input-clear-btn, #aiUpgradeBtn, #manageBillingBtn), and none on .chat-clear-btn (guests).
+   - Scan ring r=44 / dasharray 276 untouched; stroke colour and width via CSS only.
+   - The diagnostic progress is rebuilt every 1300 ms: no entrance animation on its children,
+     and the spinner turns once per 1.3 s so each rebuild lands on the same angle.
+   - #chatMessages stays the scroll container; nothing is inserted in it (only a ::after hint).
+   - className is rewritten on #aiPlanBadge, #aiConnPill, #cybernetByokPill and
+     #cybernetByokMessage: only the JS class names are used.
+   - Inline widths (.usage-meter-track span) and the ring's stroke-dashoffset are never set.
+   - Layout changes are declared per breakpoint (legacy collapses at 920/700/480). */
+
+/* ==========================================================================================
+   0. Icons (stroke SVG masks painted with currentColor)
+   ========================================================================================== */
+html.cn :is(#cybernet, #cybernetai) {
+  --cn-tl-i-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
+  --cn-tl-i-x: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M7 7l10 10M17 7L7 17'/%3E%3C/svg%3E");
+  --cn-tl-i-help: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9.1 9.2a3 3 0 0 1 5.8 1c0 2-2.9 2.5-2.9 4.5M12 18.4h.01'/%3E%3C/svg%3E");
+  --cn-tl-i-ext: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 17L17 7M9 7h8v8'/%3E%3C/svg%3E");
+  --cn-tl-i-refresh: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4.5v4.5H15'/%3E%3C/svg%3E");
+  --cn-tl-i-info: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='8.5'/%3E%3Cpath d='M12 11v5.2M12 7.9h.01'/%3E%3C/svg%3E");
+  --cn-tl-i-alert: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 4l8.5 15h-17z'/%3E%3Cpath d='M12 10v4M12 16.7h.01'/%3E%3C/svg%3E");
+  --cn-tl-i-chev: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9.5 6l6 6-6 6'/%3E%3C/svg%3E");
+  --cn-tl-i-clip: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 11.4l-8.1 8.1a5.1 5.1 0 0 1-7.3-7.3l8.5-8.5a3.4 3.4 0 0 1 4.9 4.9l-8.5 8.4a1.7 1.7 0 0 1-2.4-2.4l7.8-7.8'/%3E%3C/svg%3E");
+  --cn-tl-i-send: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 19V5.5M6 11l6-6 6 6'/%3E%3C/svg%3E");
+  --cn-tl-i-upload: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='3.5' width='17' height='17' rx='3.5'/%3E%3Ccircle cx='9' cy='9' r='1.6'/%3E%3Cpath d='M20.5 15l-4.6-4.6L7 19.5'/%3E%3C/svg%3E");
+  --cn-tl-i-msg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 4.5h14A1.5 1.5 0 0 1 20.5 6v9.5A1.5 1.5 0 0 1 19 17h-8.5l-5 3.5V17H5a1.5 1.5 0 0 1-1.5-1.5V6A1.5 1.5 0 0 1 5 4.5z'/%3E%3C/svg%3E");
+  --cn-tl-i-link: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.1 1.1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.1-1.1'/%3E%3C/svg%3E");
+  --cn-tl-i-img: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='4.5' width='17' height='15' rx='2.5'/%3E%3Ccircle cx='9' cy='9.7' r='1.5'/%3E%3Cpath d='M20.5 15.5l-5-5L6.5 19.5'/%3E%3C/svg%3E");
+  --cn-tl-i-copy: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='8.5' y='8.5' width='12' height='12' rx='2.5'/%3E%3Cpath d='M15.5 8.5V6A2.5 2.5 0 0 0 13 3.5H6A2.5 2.5 0 0 0 3.5 6v7A2.5 2.5 0 0 0 6 15.5h2.5'/%3E%3C/svg%3E");
+  --cn-tl-i-mail: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='5.5' width='17' height='13' rx='2.5'/%3E%3Cpath d='M4 7.5l8 5.5 8-5.5'/%3E%3C/svg%3E");
+  --cn-tl-i-file: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M13.5 3.5H7A2.5 2.5 0 0 0 4.5 6v12A2.5 2.5 0 0 0 7 20.5h10a2.5 2.5 0 0 0 2.5-2.5V9.5z'/%3E%3Cpath d='M13.5 3.5v6h6M12 12.5v3M12 17.9h.01'/%3E%3C/svg%3E");
+  --cn-tl-i-lock: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='5' y='10.5' width='14' height='10' rx='2.5'/%3E%3Cpath d='M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5'/%3E%3C/svg%3E");
+  --cn-tl-i-shield: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.5l7 2.8v5.4c0 4.3-2.9 7.6-7 8.8-4.1-1.2-7-4.5-7-8.8V6.3z'/%3E%3Cpath d='M9 12l2.2 2.2L15.3 10'/%3E%3C/svg%3E");
+}
+
+/* Tool identity (DESIGN.md v4.1 "Midnight"): Quick Scan is cyan, Analysis AI wears a small violet
+   mark, Recovery is mint. --cn-id* colour the identity marks only (the eyebrow dot, the typing
+   caret, the AI bubble's inline-start rule, the speaker dot). The usage bars are cyan (mint on
+   Recovery). Primary buttons, focus rings and verdict colours never change. The violet is the
+   token's small AI mark (an indigo): never a fill, a ground or a glow. */
+html.cn #cybernet {
+  --cn-id: var(--cn-cyan);
+  --cn-id-2: var(--cn-cyan-2);
+  --cn-id-tint: var(--cn-cyan-tint);
+  --cn-id-line: var(--cn-cyan-line);
+}
+html.cn #cybernetai {
+  --cn-id: var(--cn-violet, #818cf8);
+  --cn-id-2: var(--cn-iris, #a5b4fc);
+  --cn-id-tint: var(--cn-iris-tint, rgba(129, 140, 248, .1));
+  --cn-id-line: var(--cn-iris-line, rgba(165, 180, 252, .34));
+}
+
+/* Mask painter shared by every icon pseudo-element below (each sets --cn-tl-ic). */
+html.cn :is(#cybernet, #cybernetai) :is(
+  .detect-tab, .upload-icon, .wwc-item .wwc-icon, .result-box,
+  .verdict-headline-icon, .verdict-note > span, .details-toggle, .chat-attach-btn,
+  .send-btn, .plan-benefit-list > div > span
+)::before {
+  -webkit-mask: var(--cn-tl-ic) center / contain no-repeat;
+  mask: var(--cn-tl-ic) center / contain no-repeat;
+}
+
+/* Mono captions: one look for every small label on these pages (eyebrows aside). */
+html.cn #cybernet .detect-side > .scan-status-text::before,
+html.cn #cybernet .hiw-steps-stacked::before,
+html.cn #cybernet .detect-side > h4,
+html.cn #cybernet .recent-scans > h4,
+html.cn :is(#cybernet, #cybernetai) .verdict-headline-text::before,
+html.cn :is(#cybernet, #cybernetai) :is(.score-display, .diagnostic-score)::before,
+html.cn :is(#cybernet, #cybernetai) :is(.report-col-title, .diagnostic-col h5),
+html.cn :is(#cybernet, #cybernetai) :is(.counter-evidence, .diagnostic-counter) strong,
+html.cn #cybernetai :is(.ai-status-block, .pro-history-head) h5,
+html.cn #cybernetai .chat-bubble::before {
+  font-family: var(--cn-font-mono);
+  font-size: .6875rem;
+  font-weight: 500;
+  letter-spacing: var(--cn-track-label);
+  text-transform: uppercase;
+}
+
+/* ==========================================================================================
+   1. Page rhythm: one 1200px column with a shared start edge
+   ========================================================================================== */
+/* The support box is not in these lists: it keeps the one 860px look from 02-components. */
+html.cn #cybernet > .feature-page-header,
+html.cn #cybernetai > :is(.feature-page-header, .ai-layout),
+html.cn #cybernet .detect-panel > :is(.detect-panel-grid, .what-we-check, .recent-scans) {
+  max-width: var(--cn-max);
+  margin-inline: auto;
+}
+html.cn :is(#cybernet, #cybernetai) > .support-box {
+  margin-block-start: clamp(var(--cn-12), 2rem + 3vw, var(--cn-20));
+}
+
+/* ==========================================================================================
+   2. Page header: eyebrow, H1, lead, cross-link, usage meter (beside it on wide screens)
+   ========================================================================================== */
+html.cn :is(#cybernet, #cybernetai) > .feature-page-header {
+  margin-block: 0 clamp(var(--cn-8), 1.5rem + 2vw, var(--cn-12));
+  padding: 0;
+  text-align: start;
+}
+html.cn :is(#cybernet, #cybernetai) > .feature-page-header::before {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  margin-block-end: var(--cn-5);
+  padding: 4px 12px;
+  border-radius: var(--cn-r-pill);
+  background: var(--cn-id-tint, var(--cn-cyan-tint));
+  color: var(--cn-id-2, var(--cn-cyan-2));
+  font-family: var(--cn-font-mono);
+  font-size: var(--cn-step-label);
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: var(--cn-track-label);
+  text-transform: uppercase;
+}
+html.cn #cybernet > .feature-page-header::before {
+  content: "Instant verdict";
+  content: "Instant verdict" / "";
+}
+html.cn #cybernetai > .feature-page-header::before {
+  content: "AI diagnostic";
+  content: "AI diagnostic" / "";
+}
+html.cn :is(#cybernet, #cybernetai) > .feature-page-header > h1 {
+  max-width: 18ch;
+  margin: 0 0 var(--cn-4);
+  font-size: var(--cn-step-h1);
+  line-height: 1.02;
+  text-align: start;
+}
+html.cn :is(#cybernet, #cybernetai) > .feature-page-header > p:not(.feature-crosslink) {
+  max-width: 54ch;
+  margin: 0;
+  color: var(--cn-text-2);
+  font-size: var(--cn-step-lead);
+  line-height: 1.45;
+  text-align: start;
+}
+/* legacy: .feature-crosslink{font-size:12.5px!important} */
+html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .feature-crosslink {
+  max-width: 62ch;
+  margin: var(--cn-4) 0 0;
+  color: var(--cn-text-2);
+  font-size: .9375rem !important;
+  line-height: 1.5;
+  text-align: start;
+}
+
+/* Usage meter: a slim bar card. The bar width is written inline by script.js. */
+html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .usage-meter-card {
+  max-width: 440px;
+  margin: var(--cn-8) 0 0;
+  padding: var(--cn-4) 18px 14px;
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-card);
+  background: var(--cn-surface);
+  box-shadow: none;
+  text-align: start;
+}
+html.cn :is(#cybernet, #cybernetai) .usage-meter-labels {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--cn-3);
+}
+html.cn :is(#cybernet, #cybernetai) .usage-meter-labels span {
+  color: var(--cn-text-2);
+  font-size: .875rem;
+  font-weight: 500;
+  letter-spacing: -.005em;
+}
+html.cn :is(#cybernet, #cybernetai) .usage-meter-labels strong {
+  color: var(--cn-text);
+  font-family: var(--cn-font-mono);
+  font-size: .875rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+html.cn :is(#cybernet, #cybernetai) .usage-meter-track {
+  height: 4px;
+  margin: var(--cn-3) 0 10px;
+  border-radius: var(--cn-r-pill);
+  background: rgba(255, 255, 255, .08);
+  box-shadow: none;
+  overflow: hidden;
+}
+html.cn :is(#cybernet, #cybernetai) .usage-meter-track span {
+  background: var(--cn-id, var(--cn-cyan));
+  box-shadow: none;
+  transition: width .6s var(--cn-ease-out);
+}
+html.cn :is(#cybernet, #cybernetai) .usage-meter-card small {
+  display: block;
+  color: var(--cn-text-3);
+  font-family: var(--cn-font-mono);
+  font-size: .6875rem;
+  font-weight: 500;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+@media (min-width: 960px) {
+  html.cn :is(#cybernet, #cybernetai) > .feature-page-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+    column-gap: clamp(var(--cn-8), 4vw, var(--cn-20));
+    align-items: end;
+  }
+  html.cn :is(#cybernet, #cybernetai) > .feature-page-header::before { grid-column: 1; grid-row: 1; }
+  html.cn :is(#cybernet, #cybernetai) > .feature-page-header > h1 { grid-column: 1; grid-row: 2; }
+  html.cn :is(#cybernet, #cybernetai) > .feature-page-header > p:not(.feature-crosslink) { grid-column: 1; grid-row: 3; }
+  html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .feature-crosslink { grid-column: 1; grid-row: 4; }
+  html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .usage-meter-card {
+    grid-column: 2;
+    grid-row: 1 / span 4;
+    align-self: end;
+    max-width: none;
+    margin: 0;
+  }
+}
+
+/* ==========================================================================================
+   3. Detect tabs: a segmented control on the column's start edge (never sticky)
+   ========================================================================================== */
+html.cn #cybernet > .detect-tabs {
+  position: static;
+  top: auto;
+  z-index: auto;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--cn-1);
+  width: min(100%, 560px);
+  max-width: none;
+  margin-block: 0 var(--cn-4);
+  margin-inline: max(0px, calc((100% - var(--cn-max)) / 2)) auto;
+  padding: var(--cn-1);
+  border: 1px solid var(--cn-line);
+  border-radius: 16px;
+  background: var(--cn-surface-2);
+  overflow: visible;
+  scroll-snap-type: none;
+}
+html.cn #cybernet .detect-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--cn-2);
+  min-width: 0;
+  min-height: 44px;
+  padding: 6px var(--cn-3);
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--cn-text-2);
+  font-size: .9375rem;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -.01em;
+  white-space: nowrap;
+  text-align: center;
+  cursor: pointer;
+  scroll-snap-align: none;
+  transition: color var(--cn-dur-1) ease, background-color var(--cn-dur-1) ease, box-shadow var(--cn-dur-1) ease;
+}
+html.cn #cybernet .detect-tab::before {
+  --cn-tl-ic: var(--cn-tl-i-msg);
+  content: "";
+  flex: none;
+  width: 16px;
+  height: 16px;
+  background-color: currentColor;
+  opacity: .8;
+}
+html.cn #cybernet .detect-tab[data-tab="link"]::before { --cn-tl-ic: var(--cn-tl-i-link); }
+html.cn #cybernet .detect-tab[data-tab="image"]::before { --cn-tl-ic: var(--cn-tl-i-img); }
+html.cn #cybernet .detect-tab.active {
+  background: var(--cn-surface-3);
+  color: var(--cn-text);
+  box-shadow: inset 0 0 0 1px var(--cn-line), 0 1px 2px rgba(0, 0, 0, .45);
+}
+html.cn #cybernet .detect-tab.active::before {
+  background-color: var(--cn-cyan);
+  opacity: 1;
+}
+@media (hover: hover) and (pointer: fine) {
+  html.cn #cybernet .detect-tab:not(.active):hover {
+    background: rgba(255, 255, 255, .035);
+    color: var(--cn-text);
+  }
+}
+html.cn #cybernet .detect-tab:focus-visible { outline-offset: 1px; }
+
+/* Phones: three equal two-line labels ("Text / Detection"), no icons. */
+@media (max-width: 559px) {
+  html.cn #cybernet > .detect-tabs { width: 100%; }
+  html.cn #cybernet .detect-tab {
+    display: grid;
+    grid-template-columns: min-content;
+    justify-content: center;
+    align-content: center;
+    min-height: 52px;
+    padding: 6px var(--cn-1);
+    font-size: .875rem;
+    line-height: 1.15;
+    white-space: normal;
+  }
+  html.cn #cybernet .detect-tab::before { display: none; }
+}
+/* From 380px the three labels fit on one line at 13px ("Image Detection" is about 100px in
+   a 108px+ tab), so the control is a 44px row instead of 52px two-line pills. Narrower
+   phones keep the two-line labels above. */
+@media (min-width: 380px) and (max-width: 559px) {
+  html.cn #cybernet .detect-tab {
+    display: flex;
+    min-height: 44px;
+    padding-inline: var(--cn-1);
+    font-size: .8125rem;
+    letter-spacing: -.01em;
+    white-space: nowrap;
+  }
+}
+/* Phones: the usage meter is one compact row (label and count, the bar under them). The
+   "Resets daily" caption repeats the label's "Daily", so it is left out here only. */
+@media (max-width: 559px) {
+  html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .usage-meter-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: var(--cn-3);
+    margin-block-start: var(--cn-6);
+    padding: var(--cn-3) var(--cn-4);
+  }
+  html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .usage-meter-card > .usage-meter-labels { display: contents; }
+  html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .usage-meter-card > .usage-meter-track {
+    grid-column: 1 / -1;
+    margin: var(--cn-2) 0 2px;
+  }
+  html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .usage-meter-card > small { display: none; }
+}
+
+/* ==========================================================================================
+   4. Scan panels: a large main card (title, field, footer row, result) and a side card
+   ========================================================================================== */
+html.cn #cybernet .detect-panel.active {
+  animation: cn-tl-panel .38s var(--cn-ease-out) backwards;
+}
+html.cn #cybernet .detect-panel-grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--cn-4);
+  align-items: start;
+}
+@media (min-width: 921px) {
+  html.cn #cybernet .detect-panel-grid {
+    grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr);
+  }
+}
+
+html.cn #cybernet .detect-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--cn-3);
+  padding: clamp(var(--cn-5), .9rem + 1.6vw, 36px);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-panel);
+  background: var(--cn-surface);
+  box-shadow: none;
+}
+html.cn #cybernet .detect-main > * {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+html.cn #cybernet .detect-main > h3 {
+  margin: 0 0 6px;
+  color: var(--cn-text);
+  font-size: clamp(1.25rem, 1.1rem + .5vw, 1.5rem);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -.02em;
+}
+html.cn #cybernet .detect-main > p {
+  max-width: 60ch;
+  margin: 0 0 var(--cn-5);
+  color: var(--cn-text-2);
+  font-size: .9375rem;
+  line-height: 1.55;
+}
+
+/* The message field and the link field: big, calm, 16px+ so iOS never zooms. */
+html.cn #cybernet #cyberTextInput {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: clamp(168px, 24vh, 240px);
+  margin: 0;
+  padding: 18px 20px;
+  border-radius: 18px;
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  resize: none;
+}
+html.cn #cybernet #cyberLinkInput {
+  display: block;
+  width: 100%;
+  height: 56px;
+  margin: 0;
+  padding: 0 20px;
+  border-radius: 16px;
+  font-family: var(--cn-font-mono);
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: -.01em;
+}
+
+/* Footer row: clear + counter on the start side, the Analyze button on the end side. */
+html.cn #cybernet .detect-main > .input-tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--cn-3);
+  min-height: 44px;
+  margin: var(--cn-3) 0 0;
+}
+html.cn #cybernet .detect-main .char-count {
+  margin: 0;
+  color: var(--cn-text-3);
+  font-family: var(--cn-font-mono);
+  font-size: .75rem;
+  font-weight: 500;
+  letter-spacing: .02em;
+  font-variant-numeric: tabular-nums;
+  text-align: start;
+}
+html.cn #cybernet .input-clear-btn {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--cn-line-2);
+  border-radius: var(--cn-r-pill);
+  background: transparent;
+  color: var(--cn-text-2);
+  font-size: .8125rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  cursor: pointer;
+  transition: color var(--cn-dur-1) ease, background-color var(--cn-dur-1) ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  html.cn #cybernet .input-clear-btn:hover {
+    border-color: var(--cn-line-2);
+    background: var(--cn-surface-2);
+    color: var(--cn-text);
+  }
+}
+@media (pointer: coarse) {
+  html.cn #cybernet .input-clear-btn { min-height: 44px; }
+}
+html.cn #cybernet .detect-main > .primary-btn {
+  width: 100%;
+  min-height: 48px;
+  margin-block-start: var(--cn-3);
+  padding-inline: 26px;
+  font-size: 1rem;
+}
+@media (min-width: 560px) {
+  html.cn #cybernet .detect-main { grid-template-columns: minmax(0, 1fr) auto; }
+  html.cn #cybernet .detect-main > .input-tools { grid-column: 1; }
+  html.cn #cybernet .detect-main > .primary-btn {
+    grid-column: 2;
+    width: auto;
+    min-width: 184px;
+  }
+}
+
+/* ==========================================================================================
+   5. Drop zone (stays a <label> wrapping the hidden file input)
+   ========================================================================================== */
+html.cn #cybernet .real-upload-box {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  min-height: clamp(220px, 30vh, 280px);
+  margin: 0;
+  padding: 28px var(--cn-5);
+  border: 1.5px dashed var(--cn-line-2);
+  border-radius: 20px;
+  background: var(--cn-surface-2);
+  color: var(--cn-text-2);
+  text-align: center;
+  box-shadow: none;
+  transform: none;
+  cursor: pointer;
+  transition: border-color var(--cn-dur-1) ease, background-color var(--cn-dur-1) ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  html.cn #cybernet .real-upload-box:hover {
+    border-color: color-mix(in srgb, var(--cn-text) 26%, transparent);
+    background: var(--cn-surface-3);
+    transform: none;
+  }
+}
+html.cn #cybernet .real-upload-box.drag-over {
+  border-color: var(--cn-cyan);
+  background: var(--cn-cyan-tint);
+  transform: none;
+}
+/* Keyboard access: the file input stays inside its <label> but becomes focusable (it was
+   display:none), so Tab reaches the zone and Enter or Space opens the picker. */
+html.cn #cybernet .real-upload-box input[type="file"] {
+  display: block;
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+html.cn #cybernet .real-upload-box:has(input:focus-visible) {
+  outline: 2px solid var(--cn-cyan);
+  outline-offset: 3px;
+}
+html.cn #cybernet .upload-icon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  margin: 0 0 var(--cn-4);
+  border: 1px solid var(--cn-line-2);
+  border-radius: 16px;
+  background: var(--cn-surface-3);
+  color: var(--cn-text);
+  font-size: 0;
+}
+html.cn #cybernet .upload-icon::before {
+  --cn-tl-ic: var(--cn-tl-i-upload);
+  content: "";
+  width: 22px;
+  height: 22px;
+  background-color: currentColor;
+}
+html.cn #cybernet .real-upload-box h3 {
+  margin: 0 0 6px;
+  color: var(--cn-text);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -.01em;
+}
+html.cn #cybernet .real-upload-box p {
+  margin: 0;
+  color: var(--cn-text-2);
+  font-size: .875rem;
+  line-height: 1.6;
+}
+/* The uploaded picture (script.js appends .upload-preview): shown whole on a quiet ground,
+   above the zone's prompt, with its file name underneath. */
+html.cn #cybernet .upload-preview {
+  border-radius: 19px;
+  background: var(--cn-surface-2);
+}
+html.cn #cybernet .upload-preview img {
+  position: absolute;
+  inset: var(--cn-4) var(--cn-4) 56px;
+  width: calc(100% - 32px);
+  height: calc(100% - 72px);
+  border-radius: 10px;
+  object-fit: contain;
+  opacity: 1;
+}
+html.cn #cybernet .upload-preview-label {
+  bottom: 14px;
+  max-width: calc(100% - 24px);
+  padding: 4px 12px;
+  border: 1px solid var(--cn-line-2);
+  border-radius: var(--cn-r-pill);
+  background: rgba(3, 4, 6, .82);
+  color: var(--cn-text);
+  font-family: var(--cn-font-mono);
+  font-size: .75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ==========================================================================================
+   6. Side card: scan status (ring + word), "How it works" steps, "We analyze for" rows
+   ========================================================================================== */
+html.cn #cybernet .detect-side {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--cn-4);
+  row-gap: 0;
+  padding: clamp(var(--cn-5), .9rem + 1vw, 28px);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-panel);
+  background: var(--cn-surface);
+  box-shadow: none;
+  text-align: start;
+}
+html.cn #cybernet .detect-side > * {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+html.cn #cybernet .detect-side { container: cn-side / inline-size; }
+/* The spinning 3D rings and link emoji were decoration; the steps say what happens. */
+html.cn #cybernet .detect-side > .mini-globe-wrap { display: none; }
+
+html.cn #cybernet .detect-side > .scan-ring-wrap {
+  grid-column: 1;
+  width: 64px;
+  height: 64px;
+  margin: 0;
+}
+html.cn #cybernet .scan-ring-svg circle { stroke-width: 5; }
+html.cn #cybernet .scan-ring-svg circle:first-child { stroke: rgba(255, 255, 255, .08); }
+html.cn #cybernet .scan-ring-fill {
+  stroke: var(--cn-cyan);
+  transition: stroke-dashoffset .9s linear, stroke var(--cn-dur-2) ease;
+}
+@media (pointer: coarse) {
+  html.cn #cybernet .scan-ring-fill { transition-duration: .65s, var(--cn-dur-2); }
+}
+html.cn #cybernet .detect-panel:has(.result-box.result-has-danger) .scan-ring-fill { stroke: var(--cn-danger); }
+html.cn #cybernet .detect-panel:has(.result-box.result-has-safe) .scan-ring-fill { stroke: var(--cn-safe); }
+html.cn #cybernet .detect-panel:has(.result-box.result-has-uncertain) .scan-ring-fill { stroke: var(--cn-warn); }
+html.cn #cybernet .scan-ring-label,
+html.cn #cybernet .scan-ring-wrap-small .scan-ring-label {
+  color: var(--cn-text);
+  font-family: var(--cn-font-mono);
+  font-size: .8125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+html.cn #cybernet .detect-side > .scan-status-text {
+  grid-column: 2;
+  margin: 0;
+  color: var(--cn-text);
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: -.01em;
+  text-transform: none;
+}
+html.cn #cybernet .detect-side > .scan-status-text::before {
+  content: "Status";
+  content: "Status" / "";
+  display: block;
+  margin-block-end: 3px;
+  color: var(--cn-text-3);
+}
+
+/* Steps as hairline rows. The step you are on lights up: 1 from the start, 2 once there is
+   something to scan, 3 once a report is showing (separate rules so a browser without
+   :has() only loses these). */
+html.cn #cybernet .hiw-steps-stacked {
+  display: grid;
+  gap: 0;
+  width: auto;
+  margin: 0;
+}
+html.cn #cybernet .detect-side > :is(.scan-ring-wrap, h4) ~ .hiw-steps-stacked { margin-block-start: var(--cn-6); }
+html.cn #cybernet .hiw-steps-stacked::before {
+  content: "How it works";
+  display: block;
+  margin-block-end: var(--cn-2);
+  color: var(--cn-text-3);
+}
+html.cn #cybernet .hiw-step-sm {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: start;
+  align-content: start;
+  gap: 14px;
+  margin: 0;
+  padding: 14px 0;
+  border: 0;
+  border-block-start: 1px solid var(--cn-line);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  text-align: start;
+}
+html.cn #cybernet .hiw-step-sm > span {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  border: 1px solid var(--cn-line-2);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font-mono);
+  font-size: .75rem;
+  font-weight: 500;
+  transition: color var(--cn-dur-2) ease, background-color var(--cn-dur-2) ease, border-color var(--cn-dur-2) ease;
+}
+html.cn #cybernet .hiw-step-sm h4 {
+  margin: 4px 0 2px;
+  color: var(--cn-text);
+  font-size: .9375rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -.01em;
+}
+html.cn #cybernet .hiw-step-sm p {
+  margin: 0;
+  color: var(--cn-text-2);
+  font-size: .8125rem;
+  line-height: 1.5;
+}
+html.cn #cybernet .hiw-step-sm:first-child > span {
+  border-color: var(--cn-cyan-line);
+  background: var(--cn-cyan-tint);
+  color: var(--cn-cyan-2);
+}
+html.cn #cybernet .detect-panel:has(:is(#cyberTextInput, #cyberLinkInput):not(:placeholder-shown)) .hiw-step-sm:nth-child(2) > span {
+  border-color: var(--cn-cyan-line);
+  background: var(--cn-cyan-tint);
+  color: var(--cn-cyan-2);
+}
+html.cn #cybernet .detect-panel:has(.upload-preview, .scanning-placeholder) .hiw-step-sm:nth-child(2) > span {
+  border-color: var(--cn-cyan-line);
+  background: var(--cn-cyan-tint);
+  color: var(--cn-cyan-2);
+}
+html.cn #cybernet .detect-panel:has(.result-box .scan-report) .hiw-step-sm:nth-child(-n + 3) > span {
+  border-color: var(--cn-cyan-line);
+  background: var(--cn-cyan-tint);
+  color: var(--cn-cyan-2);
+}
+
+/* A wide side card (tablets, where it sits under the main card): the three steps side by
+   side. */
+@container cn-side (min-width: 560px) {
+  html.cn #cybernet .hiw-steps-stacked {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: var(--cn-6);
+  }
+  html.cn #cybernet .hiw-steps-stacked::before { grid-column: 1 / -1; }
+  html.cn #cybernet .hiw-step-sm {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    padding-block: var(--cn-4) 0;
+  }
+}
+
+/* Image panel: "We Analyze For" as quiet rows (inline SVG icons from the markup). */
+html.cn #cybernet .detect-side > h4 {
+  margin: 0 0 var(--cn-2);
+  color: var(--cn-text-3);
+}
+html.cn #cybernet .wwc-item-sm {
+  display: flex;
+  align-items: center;
+  gap: var(--cn-3);
+  width: auto;
+  margin: 0;
+  padding: 10px 0;
+  border: 0;
+  border-block-start: 1px solid var(--cn-line);
+  border-radius: 0;
+  background: none;
+  color: var(--cn-text);
+  font-size: .9375rem;
+}
+html.cn #cybernet .wwc-item-sm .wwc-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--cn-line);
+  border-radius: 10px;
+  background: var(--cn-surface-2);
+  color: var(--cn-text-2);
+}
+html.cn #cybernet .wwc-item-sm .wwc-icon svg { width: 16px; height: 16px; }
+
+/* ==========================================================================================
+   7. "What we check" (link panel): four quiet cards, emoji replaced by line icons
+   ========================================================================================== */
+html.cn #cybernet .what-we-check {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--cn-3);
+  margin-block: var(--cn-4) 0;
+}
+@media (min-width: 560px) {
+  html.cn #cybernet .what-we-check { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1000px) {
+  html.cn #cybernet .what-we-check { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+html.cn #cybernet .wwc-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  padding: var(--cn-5);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-card);
+  background: var(--cn-surface);
+  box-shadow: none;
+}
+html.cn #cybernet .wwc-item .wwc-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--cn-line);
+  border-radius: 12px;
+  background: var(--cn-surface-2);
+  color: var(--cn-text-2);
+  font-size: 0;
+}
+html.cn #cybernet .wwc-item .wwc-icon::before {
+  --cn-tl-ic: var(--cn-tl-i-copy);
+  content: "";
+  width: 20px;
+  height: 20px;
+  background-color: currentColor;
+}
+html.cn #cybernet .wwc-item:nth-child(2) .wwc-icon::before { --cn-tl-ic: var(--cn-tl-i-mail); }
+html.cn #cybernet .wwc-item:nth-child(3) .wwc-icon::before { --cn-tl-ic: var(--cn-tl-i-file); }
+html.cn #cybernet .wwc-item:nth-child(4) .wwc-icon::before { --cn-tl-ic: var(--cn-tl-i-lock); }
+html.cn #cybernet .wwc-item h4 {
+  margin: 0 0 4px;
+  color: var(--cn-text);
+  font-size: .9375rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+html.cn #cybernet .wwc-item p {
+  margin: 0;
+  color: var(--cn-text-2);
+  font-size: .875rem;
+  line-height: 1.5;
+}
+
+/* ==========================================================================================
+   8. Example results (prependScan puts real rows on top): hairline rows + verdict pills
+   ========================================================================================== */
+html.cn #cybernet .recent-scans {
+  margin-block: var(--cn-4) 0;
+  padding: clamp(var(--cn-5), .9rem + 1vw, 28px);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-card);
+  background: var(--cn-surface);
+  box-shadow: none;
+}
+html.cn #cybernet .recent-scans > h4 {
+  margin: 0 0 6px;
+  color: var(--cn-text-3);
+}
+html.cn #cybernet .scan-list {
+  display: block;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+html.cn #cybernet .scan-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cn-4);
+  margin: 0;
+  padding: 14px 0;
+  border: 0;
+  border-block-start: 1px solid var(--cn-line);
+  border-radius: 0;
+  background: none;
+}
+html.cn #cybernet .scan-list li:first-child { border-block-start: 0; }
+html.cn #cybernet .scan-list-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--cn-text);
+  font-size: .9375rem;
+  line-height: 1.45;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Phones: the quote gets its own full line (an ellipsis left only "Your accou…" at 280px)
+   and the verdict pill sits under it. prependScan rows use the same li shape. */
+@media (max-width: 479.98px) {
+  html.cn #cybernet .scan-list li {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    row-gap: var(--cn-2);
+  }
+  html.cn #cybernet .scan-list-main {
+    flex-basis: 100%;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
+html.cn :is(#cybernet, #cybernetai) .risk-tag {
+  --cn-v: var(--cn-danger);
+  --cn-v-tint: var(--cn-danger-tint);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+  min-height: 26px;
+  padding: 3px 11px 3px 9px;
+  border: 0;
+  border-radius: var(--cn-r-pill);
+  background: var(--cn-v-tint);
+  color: var(--cn-v);
+  font-size: .8125rem;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+html.cn :is(#cybernet, #cybernetai) .risk-tag::before {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+html.cn :is(#cybernet, #cybernetai) .risk-tag-warning { --cn-v: var(--cn-warn); --cn-v-tint: var(--cn-warn-tint); }
+html.cn :is(#cybernet, #cybernetai) .risk-tag-safe { --cn-v: var(--cn-safe); --cn-v-tint: var(--cn-safe-tint); }
+
+/* ==========================================================================================
+   9. Result box states: empty, notice, analyzing, verdict
+   ========================================================================================== */
+html.cn #cybernet .result-box {
+  --cn-v: var(--cn-cyan-2);
+  --cn-v-tint: var(--cn-cyan-tint);
+  container: cn-report / inline-size;
+  position: relative;
+  min-height: 0;
+  margin: var(--cn-5) 0 0;
+  padding: var(--cn-4) 18px;
+  border: 1px solid var(--cn-line);
+  border-radius: 20px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--cn-text-2);
+  font-size: .9375rem;
+  line-height: 1.55;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  transition: border-color var(--cn-dur-2) ease, background-color var(--cn-dur-2) ease;
+}
+
+/* Empty: only the placeholder sentence. */
+html.cn #cybernet .result-box:not(:has(*)) {
+  display: flex;
+  align-items: center;
+  gap: var(--cn-3);
+  border-style: dashed;
+  border-color: var(--cn-line-2);
+  font-size: .875rem;
+}
+html.cn #cybernet .result-box:not(:has(*))::before {
+  --cn-tl-ic: var(--cn-tl-i-shield);
+  content: "";
+  flex: none;
+  width: 18px;
+  height: 18px;
+  background-color: var(--cn-text-3);
+}
+
+/* Notices (no report): empty input, quota, wrong file, sign-in messages. */
+html.cn #cybernet .result-box:has(> .warning) {
+  border-color: color-mix(in srgb, var(--cn-warn) 30%, transparent);
+  background: var(--cn-warn-tint);
+  background: color-mix(in srgb, var(--cn-warn) 6%, var(--cn-surface));
+}
+html.cn :is(#cybernet .result-box, #cybernetai .chat-bubble-inner) > .warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--cn-text);
+  font-size: .9375rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+html.cn :is(#cybernet .result-box, #cybernetai .chat-bubble-inner) > .warning::before {
+  content: "";
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-block-start: 1px;
+  background-color: var(--cn-warn);
+  -webkit-mask: var(--cn-tl-i-alert) center / contain no-repeat;
+  mask: var(--cn-tl-i-alert) center / contain no-repeat;
+}
+
+/* Analyzing (link + image scans): a quiet spinner and the working word. */
+html.cn #cybernet .result-box:has(> .scanning-placeholder) {
+  border-color: var(--cn-cyan-line);
+  background: var(--cn-surface-2);
+}
+html.cn :is(#cybernet, #cybernetai) .scanning-placeholder {
+  display: flex;
+  align-items: center;
+  gap: var(--cn-3);
+  padding: 0;
+}
+html.cn :is(#cybernet, #cybernetai) .scanning-placeholder::before {
+  content: "";
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, .12);
+  border-top-color: var(--cn-cyan);
+  border-radius: 50%;
+  animation: cn-tl-spin .9s linear infinite;
+}
+html.cn :is(#cybernet, #cybernetai) .scanning-placeholder-text {
+  display: block;
+  color: var(--cn-text);
+  font-size: .9375rem;
+  font-weight: 500;
+}
+html.cn :is(#cybernet, #cybernetai) .scanning-placeholder-text::first-letter { text-transform: uppercase; }
+html.cn :is(#cybernet, #cybernetai) .scan-dots { gap: 4px; }
+html.cn :is(#cybernet, #cybernetai) .scan-dots span {
+  width: 4px;
+  height: 4px;
+  background: var(--cn-cyan-2);
+}
+
+/* Verdict tone variables (on the box, or on the chat bubble holding a report). */
+html.cn :is(#cybernet .result-box, #cybernetai .chat-bubble-inner) {
+  --cn-tl-vi: var(--cn-tl-i-info);
+  --cn-tl-vlabel: "Verdict";
+}
+html.cn :is(#cybernet .result-box, #cybernetai .chat-bubble-inner).result-has-danger {
+  --cn-v: var(--cn-danger);
+  --cn-v-tint: var(--cn-danger-tint);
+  --cn-tl-vi: var(--cn-tl-i-x);
+}
+html.cn :is(#cybernet .result-box, #cybernetai .chat-bubble-inner).result-has-safe {
+  --cn-v: var(--cn-safe);
+  --cn-v-tint: var(--cn-safe-tint);
+  --cn-tl-vi: var(--cn-tl-i-check);
+}
+html.cn :is(#cybernet .result-box, #cybernetai .chat-bubble-inner).result-has-uncertain {
+  --cn-v: var(--cn-warn);
+  --cn-v-tint: var(--cn-warn-tint);
+  --cn-tl-vi: var(--cn-tl-i-help);
+}
+/* Redirect cards are not warnings: "Send this to Analysis AI" in cyan... */
+html.cn #cybernet .result-box.result-has-uncertain:has(> .scan-report > .verdict-headline + .verdict-note) {
+  --cn-v: var(--cn-cyan-2);
+  --cn-v-tint: var(--cn-cyan-tint);
+  --cn-tl-vi: var(--cn-tl-i-ext);
+  --cn-tl-vlabel: "Next step";
+}
+/* ...and "Couldn't complete this analysis" (the only .scan-report in the chat) in grey. */
+html.cn #cybernetai .chat-bubble-inner.result-has-uncertain:has(> .scan-report) {
+  --cn-v: var(--cn-text-2);
+  --cn-v-tint: rgba(255, 255, 255, .06);
+  --cn-tl-vi: var(--cn-tl-i-refresh);
+  --cn-tl-vlabel: "Status";
+}
+
+/* The report card. legacy: '#cybernet .result-box.result-has-*' (1,2,0) adds a glow and a
+   radial tint; the uncertain border colour is !important. */
+html.cn #cybernet .result-box[class*="result-has-"] {
+  padding: clamp(18px, .9rem + 1vw, 26px);
+  border-color: var(--cn-line-2);
+  border-color: color-mix(in srgb, var(--cn-v) 34%, transparent) !important;
+  background:
+    linear-gradient(180deg, var(--cn-v-tint), transparent 150px),
+    var(--cn-surface-2);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--cn-v) 8%, transparent), transparent 150px),
+    var(--cn-surface-2);
+  box-shadow: none;
+}
+
+/* ==========================================================================================
+   10. The verdict card (.scan-report in Quick Scan and the chat's "couldn't complete";
+       .diagnostic-report in Analysis AI). One entrance per new report (fill: backwards,
+       so no transform lingers).
+   ========================================================================================== */
+html.cn :is(#cybernet, #cybernetai) :is(.scan-report, .diagnostic-report) {
+  padding: 0;
+  color: var(--cn-text-2);
+  animation: cn-tl-report .45s var(--cn-ease-out) backwards;
+}
+
+html.cn :is(#cybernet, #cybernetai) :is(.scan-report, .diagnostic-report, .plain-summary, .report-details) > :last-child { margin-block-end: 0; }
+html.cn :is(#cybernet, #cybernetai) .verdict-headline {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 14px;
+  margin: 0 0 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+html.cn :is(#cybernet, #cybernetai) .verdict-headline-icon {
+  position: relative;
+  display: block;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--cn-v-tint);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cn-v) 30%, transparent);
+  color: var(--cn-v);
+  font-size: 0;
+  animation: cn-tl-pop .5s var(--cn-ease-emph) .08s backwards;
+}
+html.cn :is(#cybernet, #cybernetai) .verdict-headline-icon::before {
+  --cn-tl-ic: var(--cn-tl-vi);
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 20px;
+  height: 20px;
+  margin: auto;
+  background-color: currentColor;
+}
+html.cn :is(#cybernet, #cybernetai) .verdict-headline-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  color: var(--cn-v);
+  font-size: clamp(1.375rem, 1.15rem + 1vw, 1.875rem);
+  font-weight: 650;
+  line-height: 1.05;
+  letter-spacing: .005em;
+  text-transform: none;
+}
+html.cn :is(#cybernet, #cybernetai) .verdict-headline-text::before {
+  content: var(--cn-tl-vlabel);
+  color: var(--cn-text-3);
+  line-height: 1.2;
+}
+/* Long redirect titles read as a sentence, not a stamp. */
+html.cn :is(#cybernet, #cybernetai) .scan-report:not(:has(.plain-summary)) .verdict-headline-text {
+  font-size: clamp(1.0625rem, 1rem + .4vw, 1.25rem);
+  line-height: 1.25;
+  letter-spacing: .01em;
+}
+
+/* Plain summary first: the lead, the reasons as hairline rows, then what to do. */
+html.cn :is(#cybernet, #cybernetai) .plain-summary {
+  margin: 0 0 var(--cn-4);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+html.cn :is(#cybernet, #cybernetai) .plain-lead {
+  max-width: 62ch;
+  margin: 0 0 14px;
+  color: var(--cn-text);
+  font-size: clamp(1.0625rem, 1rem + .25vw, 1.1875rem);
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: -.012em;
+}
+html.cn :is(#cybernet, #cybernetai) .plain-points {
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+  border-block-start: 1px solid var(--cn-line);
+  color: var(--cn-text);
+  font-size: .9375rem;
+  line-height: 1.5;
+}
+html.cn :is(#cybernet, #cybernetai) .plain-points li {
+  position: relative;
+  margin: 0;
+  padding-block: 11px;
+  padding-inline: 20px 0;
+  border-block-end: 1px solid var(--cn-line);
+}
+html.cn :is(#cybernet, #cybernetai) .plain-points li::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 3px;
+  top: calc(11px + .75em - 3px);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cn-v);
+}
+html.cn :is(#cybernet, #cybernetai) .plain-action {
+  margin: 0;
+  padding: var(--cn-3) 14px;
+  border: 1px solid var(--cn-line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .03);
+  color: var(--cn-text);
+  font-size: .9375rem;
+  line-height: 1.55;
+}
+html.cn :is(#cybernet, #cybernetai) .plain-action strong {
+  color: var(--cn-v);
+  font-weight: 600;
+}
+
+/* Where a link or QR code goes (and the paid live picture of the page). */
+html.cn :is(#cybernet, #cybernetai) :is(.dest-preview, .qr-preview, .links-found) {
+  margin: 0 0 var(--cn-4);
+  padding: var(--cn-4);
+  border: 1px solid var(--cn-line);
+  border-radius: 16px;
+  background: var(--cn-surface);
+  font-size: .875rem;
+  text-align: start;
+}
+html.cn :is(#cybernet, #cybernetai) :is(.links-found, .qr-preview) .dest-preview {
+  margin: var(--cn-3) 0 0;
+  padding: 14px;
+  background: transparent;
+}
+html.cn :is(#cybernet, #cybernetai) :is(.dest-preview, .qr-preview, .links-found) > strong {
+  display: block;
+  margin: 0 0 10px;
+  color: var(--cn-text-2);
+  font-size: .8125rem;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+html.cn :is(#cybernet, #cybernetai) :is(.dest-url, .qr-raw) {
+  display: block;
+  margin: 0;
+  padding: 10px var(--cn-3);
+  border: 1px solid var(--cn-line);
+  border-radius: 10px;
+  background: var(--cn-bg);
+  color: var(--cn-text);
+  font-family: var(--cn-font-mono);
+  font-size: .8125rem;
+  font-weight: 500;
+  line-height: 1.55;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+html.cn :is(#cybernet, #cybernetai) .qr-kind {
+  margin: 0 0 10px;
+  padding: 3px 10px;
+  border: 1px solid var(--cn-line-2);
+  border-radius: var(--cn-r-pill);
+  color: var(--cn-text-2);
+  font-size: .6875rem;
+  letter-spacing: .02em;
+}
+html.cn :is(#cybernet, #cybernetai) .dest-facts {
+  gap: 6px var(--cn-2);
+  margin-block-start: 10px;
+}
+html.cn :is(#cybernet, #cybernetai) .dest-domain {
+  color: var(--cn-text-2);
+  font-size: .8125rem;
+}
+html.cn :is(#cybernet, #cybernetai) .dest-domain b {
+  color: var(--cn-text);
+  font-family: var(--cn-font-mono);
+  font-weight: 600;
+}
+html.cn :is(#cybernet, #cybernetai) .dest-badge {
+  --cn-v: var(--cn-text-2);
+  --cn-v-tint: rgba(255, 255, 255, .06);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border: 0;
+  border-radius: var(--cn-r-pill);
+  background: var(--cn-v-tint);
+  color: var(--cn-v);
+  font-family: var(--cn-font);
+  font-size: .75rem;
+  font-weight: 500;
+  line-height: 1.45;
+}
+html.cn :is(#cybernet, #cybernetai) .dest-badge::before {
+  content: "";
+  flex: none;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+html.cn :is(#cybernet, #cybernetai) .dest-badge-good { --cn-v: var(--cn-safe); --cn-v-tint: var(--cn-safe-tint); }
+html.cn :is(#cybernet, #cybernetai) .dest-badge-warn { --cn-v: var(--cn-warn); --cn-v-tint: var(--cn-warn-tint); }
+html.cn :is(#cybernet, #cybernetai) .dest-badge-bad { --cn-v: var(--cn-danger); --cn-v-tint: var(--cn-danger-tint); }
+html.cn :is(#cybernet, #cybernetai) .dest-shot { margin-block-start: var(--cn-3); }
+html.cn :is(#cybernet, #cybernetai) .dest-shot > strong {
+  display: block;
+  margin: 0 0 var(--cn-2);
+  color: var(--cn-text-2);
+  font-size: .8125rem;
+  font-weight: 600;
+}
+html.cn :is(#cybernet, #cybernetai) .dest-shot img {
+  border: 1px solid var(--cn-line);
+  border-radius: 10px;
+}
+html.cn :is(#cybernet, #cybernetai) :is(.dest-shot-note, .screenshot-disclaimer, .screenshot-loading) {
+  color: var(--cn-text-2);
+  font-size: .8125rem;
+  line-height: 1.55;
+}
+html.cn :is(#cybernet, #cybernetai) .screenshot-disclaimer { margin-block-start: var(--cn-2); }
+
+/* "Show more details": a quiet pill with a turning chevron. */
+html.cn :is(#cybernet, #cybernetai) .details-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cn-2);
+  min-height: 40px;
+  margin: 2px 0 0;
+  padding: 0 var(--cn-4) 0 var(--cn-3);
+  border: 1px solid var(--cn-line-2);
+  border-radius: var(--cn-r-pill);
+  background: transparent;
+  color: var(--cn-text-2);
+  font-size: .875rem;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -.005em;
+  cursor: pointer;
+  transition: color var(--cn-dur-1) ease, background-color var(--cn-dur-1) ease, border-color var(--cn-dur-1) ease;
+}
+html.cn :is(#cybernet, #cybernetai) .details-toggle::before,
+html.cn :is(#cybernet, #cybernetai) .details-toggle[aria-expanded="true"]::before {
+  --cn-tl-ic: var(--cn-tl-i-chev);
+  content: "";
+  flex: none;
+  width: 14px;
+  height: 14px;
+  background-color: currentColor;
+  font-size: inherit;
+  transition: rotate var(--cn-dur-2) var(--cn-ease-out);
+}
+html.cn :is(#cybernet, #cybernetai) .details-toggle[aria-expanded="true"]::before { rotate: 90deg; }
+html.cn :is(#cybernet, #cybernetai) .details-toggle[aria-expanded="true"] { color: var(--cn-text); }
+@media (hover: hover) and (pointer: fine) {
+  html.cn :is(#cybernet, #cybernetai) .details-toggle:hover {
+    border-color: color-mix(in srgb, var(--cn-text) 24%, transparent);
+    background: rgba(255, 255, 255, .04);
+    color: var(--cn-text);
+  }
+}
+@media (pointer: coarse) {
+  html.cn :is(#cybernet, #cybernetai) .details-toggle { min-height: 44px; }
+}
+
+/* The details (never a display value here: [hidden] must win). */
+html.cn :is(#cybernet, #cybernetai) .report-details {
+  margin-block-start: var(--cn-5);
+  animation: cn-tl-fade .3s var(--cn-ease-out) backwards;
+}
+html.cn :is(#cybernet, #cybernetai) :is(.report-top-row, .diagnostic-report-head) {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px var(--cn-3);
+  margin: 0 0 var(--cn-4);
+  padding: 0 0 var(--cn-4);
+  border-block-end: 1px solid var(--cn-line);
+}
+html.cn :is(#cybernet, #cybernetai) :is(.scam-type-tag, .diagnostic-scam-type) {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  padding: 5px var(--cn-3);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-pill);
+  background: rgba(255, 255, 255, .05);
+  color: var(--cn-text);
+  font-size: .8125rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+html.cn :is(#cybernet, #cybernetai) :is(.score-display, .diagnostic-score) {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  margin-inline-start: auto;
+  color: var(--cn-v);
+  font-family: var(--cn-font-mono);
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -.03em;
+  font-variant-numeric: tabular-nums;
+}
+html.cn :is(#cybernet, #cybernetai) :is(.score-display, .diagnostic-score)::before {
+  content: "Risk score";
+  margin-inline-end: 10px;
+  color: var(--cn-text-3);
+  align-self: center;
+}
+html.cn :is(#cybernet, #cybernetai) :is(.score-display, .diagnostic-score) > span {
+  color: var(--cn-text-3);
+  font-size: .8125rem;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+html.cn :is(#cybernet, #cybernetai) .analysis-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 14px;
+}
+html.cn :is(#cybernet, #cybernetai) .analysis-sources span {
+  margin: 0;
+  padding: 3px 10px;
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-pill);
+  color: var(--cn-text-2);
+  font-size: .75rem;
+  font-weight: 500;
+}
+html.cn :is(#cybernet, #cybernetai) :is(.verdict-note, .diagnostic-note) {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: var(--cn-3) 14px;
+  border: 1px solid var(--cn-line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .03);
+  color: var(--cn-text-2);
+  font-size: .875rem;
+  line-height: 1.55;
+}
+html.cn :is(#cybernet, #cybernetai) .verdict-note > span {
+  display: block;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-block-start: 2px;
+  color: var(--cn-text-3);
+  font-size: 0;
+}
+html.cn :is(#cybernet, #cybernetai) .verdict-note > span::before {
+  --cn-tl-ic: var(--cn-tl-i-info);
+  content: "";
+  display: block;
+  width: 100%;
+  height: 100%;
+  background-color: currentColor;
+}
+html.cn :is(#cybernet, #cybernetai) :is(.verdict-note, .diagnostic-note) p {
+  margin: 0;
+  color: var(--cn-text-2);
+  font-size: .875rem;
+  line-height: 1.55;
+}
+html.cn :is(#cybernet, #cybernetai) :is(.counter-evidence, .diagnostic-counter) {
+  margin: 0 0 14px;
+  padding: var(--cn-3) 14px 4px;
+  border: 1px solid color-mix(in srgb, var(--cn-safe) 24%, transparent);
+  border-radius: 14px;
+  background: transparent;
+  color: var(--cn-text-2);
+  font-size: .875rem;
+  line-height: 1.5;
+}
+html.cn :is(#cybernet, #cybernetai) :is(.counter-evidence, .diagnostic-counter) strong {
+  display: block;
+  margin: 0 0 4px;
+  color: var(--cn-safe);
+}
+html.cn :is(#cybernet, #cybernetai) :is(.counter-evidence, .diagnostic-counter) ul {
+  display: block;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+html.cn :is(#cybernet, #cybernetai) :is(.counter-evidence, .diagnostic-counter) li {
+  position: relative;
+  margin: 0;
+  padding-block: var(--cn-2);
+  padding-inline: 18px 0;
+  border-block-start: 1px solid var(--cn-line);
+  color: var(--cn-text-2);
+  font-size: .875rem;
+}
+html.cn :is(#cybernet, #cybernetai) :is(.counter-evidence, .diagnostic-counter) li:first-child { border-block-start: 0; }
+html.cn :is(#cybernet, #cybernetai) :is(.counter-evidence, .diagnostic-counter) li::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 3px;
+  top: calc(var(--cn-2) + .75em - 2.5px);
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--cn-safe);
+}
+
+/* Evidence and safety steps: two columns when the card is wide enough. The query container
+   is the result box (Quick Scan) or the conversation (Analysis AI): both have a definite
+   width, so a report never depends on :has() to size its bubble. */
+html.cn :is(#cybernet, #cybernetai) :is(.report-body, .diagnostic-body) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--cn-5);
+}
+@container cn-report (min-width: 560px) {
+  html.cn :is(#cybernet, #cybernetai) :is(.report-body, .diagnostic-body) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--cn-6);
+  }
+}
+html.cn :is(#cybernet, #cybernetai) :is(.report-col, .diagnostic-col) {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+html.cn :is(#cybernet, #cybernetai) :is(.report-col-title, .diagnostic-col h5) {
+  display: flex;
+  align-items: center;
+  gap: var(--cn-2);
+  margin: 0 0 6px;
+  color: var(--cn-text-2);
+  line-height: 1.3;
+}
+html.cn :is(#cybernet, #cybernetai) :is(.col-warn, .col-safe) {
+  display: block;
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cn-v);
+  font-size: 0;
+}
+html.cn :is(#cybernet, #cybernetai) .col-safe { background: var(--cn-cyan-2); }
+html.cn #cybernetai .diagnostic-col h5::before {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cn-v);
+}
+html.cn #cybernetai .diagnostic-col:has(> .diagnostic-actions) h5::before { background: var(--cn-cyan-2); }
+html.cn :is(#cybernet, #cybernetai) :is(.report-list, .diagnostic-col ul) {
+  display: block;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--cn-text-2);
+  font-size: .875rem;
+  line-height: 1.5;
+}
+html.cn :is(#cybernet, #cybernetai) :is(.report-list, .diagnostic-col ul) li {
+  position: relative;
+  margin: 0;
+  padding-block: 10px;
+  padding-inline: 18px 0;
+  border-block-start: 1px solid var(--cn-line);
+  color: var(--cn-text-2);
+  font-size: .875rem;
+  line-height: 1.5;
+}
+html.cn :is(#cybernet, #cybernetai) :is(.report-list, .diagnostic-col ul) li::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 3px;
+  top: calc(10px + .75em - 2.5px);
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--cn-text-3);
+}
+html.cn :is(#cybernet, #cybernetai) :is(.report-list.safe-list, .diagnostic-actions) li::before {
+  top: calc(10px + .75em - 1px);
+  width: 9px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--cn-cyan-2);
+}
+html.cn :is(#cybernet, #cybernetai) :is(.report-list, .diagnostic-col ul) li strong { color: var(--cn-text); }
+
+/* ==========================================================================================
+   11. Analysis AI: layout, access panel (+ injected BYOK panel), service rows
+   ========================================================================================== */
+/* The conversation is the page: full width and first on every screen, with the access
+   panel under it (three ruled columns on wide screens: plan, your key, status). The
+   panel used to sit beside the chat and ran twice its height. */
+html.cn #cybernetai > .ai-layout {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--cn-4);
+  align-items: start;
+}
+html.cn #cybernetai .ai-chat { order: -1; }
+@media (min-width: 1100px) {
+  html.cn #cybernetai .ai-config {
+    columns: 3;
+    column-gap: clamp(var(--cn-8), 4vw, 56px);
+    column-rule: 1px solid var(--cn-line);
+  }
+  html.cn #cybernetai .ai-config > * { break-inside: avoid; }
+  html.cn #cybernetai .ai-config > .cybernet-byok-panel {
+    break-before: column;
+    margin-block-start: 0;
+    padding-block-start: 0;
+    border-block-start: 0;
+  }
+  html.cn #cybernetai .ai-config > #testApiKeyBtn {
+    break-before: column;
+    margin-block-start: 0;
+  }
+}
+
+html.cn #cybernetai .ai-config {
+  padding: clamp(var(--cn-5), .9rem + 1vw, 28px);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-panel);
+  background: var(--cn-surface);
+  box-shadow: none;
+}
+html.cn #cybernetai .account-access-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--cn-3);
+}
+html.cn #cybernetai .account-access-head .account-eyebrow {
+  margin: 0 0 6px;
+  color: var(--cn-text-3);
+}
+html.cn #cybernetai #aiPlanTitle {
+  margin: 0;
+  color: var(--cn-text);
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -.02em;
+}
+html.cn #cybernetai .ai-config .plan-badge {
+  flex: none;
+  min-height: 24px;
+  padding: 3px 10px;
+  border: 1px solid var(--cn-line-2);
+  border-radius: var(--cn-r-pill);
+  background: rgba(255, 255, 255, .05);
+  box-shadow: none;
+  color: var(--cn-text-2);
+  font-size: .6875rem;
+  font-weight: 600;
+  letter-spacing: .08em;
+}
+html.cn #cybernetai .ai-config .plan-badge-pro {
+  border-color: var(--cn-cyan-line);
+  background: var(--cn-cyan-tint);
+  color: var(--cn-cyan-2);
+}
+html.cn #cybernetai .ai-config .plan-badge-business {
+  border-color: color-mix(in srgb, var(--cn-ice) 30%, transparent);
+  background: rgba(230, 251, 255, .08);
+  color: var(--cn-ice);
+}
+html.cn #cybernetai #aiPlanDescription {
+  margin: var(--cn-3) 0 var(--cn-5);
+  color: var(--cn-text-2);
+  font-size: .875rem;
+  line-height: 1.55;
+}
+/* The header meter already shows these numbers (the guest value even disagreed: "0 / 3"
+   against "— / 3"). Hidden visually only: the ids stay and every JS write is null-safe. */
+html.cn #cybernetai .ai-config > .usage-meter-card { display: none; }
+
+/* Benefits: ✓ / × glyphs become icons (the list is rebuilt by JS with the same shape). */
+html.cn #cybernetai .plan-benefit-list {
+  display: grid;
+  gap: 0;
+  margin: 0 0 var(--cn-5);
+  border-block-start: 1px solid var(--cn-line);
+  color: var(--cn-text);
+  font-size: .875rem;
+  line-height: 1.45;
+}
+html.cn #cybernetai .plan-benefit-list > div {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 0;
+  border-block-end: 1px solid var(--cn-line);
+}
+html.cn #cybernetai .plan-benefit-list > div > span {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-block-start: 1px;
+  color: var(--cn-safe);
+  font-size: 0;
+}
+html.cn #cybernetai .plan-benefit-list > div > span::before {
+  --cn-tl-ic: var(--cn-tl-i-check);
+  content: "";
+  width: 16px;
+  height: 16px;
+  background-color: currentColor;
+}
+html.cn #cybernetai .plan-benefit-list > .benefit-locked { color: var(--cn-text-2); }
+html.cn #cybernetai .plan-benefit-list > .benefit-locked > span { color: var(--cn-text-3); }
+html.cn #cybernetai .plan-benefit-list > .benefit-locked > span::before { --cn-tl-ic: var(--cn-tl-i-lock); width: 15px; height: 15px; }
+
+html.cn #cybernetai .ai-config > #aiUpgradeBtn { width: 100%; }
+/* The panel's call to action is a quiet outline, so the composer's send button stays the
+   only filled cyan pill in view. */
+html.cn #cybernetai .ai-config > #aiUpgradeBtn {
+  min-height: 48px;
+  border: 1px solid var(--cn-line-ctl);
+  background: transparent;
+  box-shadow: none;
+  color: var(--cn-text);
+  font-size: 1rem;
+}
+@media (hover: hover) and (pointer: fine) {
+  html.cn #cybernetai .ai-config > #aiUpgradeBtn:hover {
+    border-color: var(--cn-text-2);
+    background: var(--cn-fill-1);
+    color: var(--cn-text);
+  }
+}
+/* "Refresh account status" is a utility: a quiet text action with a refresh glyph, not
+   a full-width outlined button that outranks the status it refreshes. */
+html.cn #cybernetai .ai-config > #testApiKeyBtn {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--cn-2);
+  width: auto;
+  min-height: 44px;
+  margin-block-start: var(--cn-2);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--cn-text-2);
+  font-size: .875rem;
+  font-weight: 500;
+  letter-spacing: -.005em;
+  text-align: start;
+  translate: none;
+}
+html.cn #cybernetai .ai-config > #testApiKeyBtn::before {
+  content: "";
+  flex: none;
+  width: 16px;
+  height: 16px;
+  background-color: currentColor;
+  -webkit-mask: var(--cn-tl-i-refresh) center / contain no-repeat;
+  mask: var(--cn-tl-i-refresh) center / contain no-repeat;
+}
+@media (hover: hover) and (pointer: fine) {
+  html.cn #cybernetai .ai-config > #testApiKeyBtn:hover {
+    background: none;
+    color: var(--cn-text);
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: .22em;
+  }
+}
+html.cn #cybernetai .ai-config > #testApiKeyBtn:disabled { opacity: .55; }
+
+/* Account status line (#aiApiStatus is a .result-box holding span.warning | span.safe). */
+html.cn #cybernetai #aiApiStatus {
+  min-height: 0;
+  margin: var(--cn-3) 0 0;
+  padding: var(--cn-3) 14px;
+  border: 1px solid var(--cn-line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .03);
+  box-shadow: none;
+  color: var(--cn-text-2);
+  font-size: .875rem;
+  line-height: 1.5;
+}
+html.cn #cybernetai #aiApiStatus > :is(.warning, .safe) {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  color: var(--cn-text-2);
+}
+html.cn #cybernetai #aiApiStatus > :is(.warning, .safe)::before {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cn-warn);
+  translate: 0 -1px;
+}
+html.cn #cybernetai #aiApiStatus > .safe { color: var(--cn-text); }
+html.cn #cybernetai #aiApiStatus > .safe::before { background: var(--cn-safe); }
+
+html.cn #cybernetai .ai-status-block {
+  margin-block-start: var(--cn-6);
+  padding: 0;
+  border: 0;
+}
+html.cn #cybernetai .ai-status-block h5 {
+  margin: 0 0 6px;
+  color: var(--cn-text-3);
+}
+html.cn #cybernetai .ai-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cn-3);
+  padding: 11px 0;
+  border-block-start: 1px solid var(--cn-line);
+  color: var(--cn-text);
+  font-size: .875rem;
+}
+html.cn #cybernetai .ai-status-row > span:first-child { color: var(--cn-text-2); }
+html.cn #cybernetai :is(#aiModelName, #aiReqLeft) {
+  font-family: var(--cn-font-mono);
+  font-size: .8125rem;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+html.cn #cybernetai .status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--cn-r-pill);
+  background: rgba(255, 255, 255, .05);
+  color: var(--cn-text-2);
+  font-size: .75rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+html.cn #cybernetai .status-pill::before {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+html.cn #cybernetai .status-pill-safe { background: var(--cn-safe-tint); color: var(--cn-safe); }
+html.cn #cybernetai .status-pill-warn { background: var(--cn-warn-tint); color: var(--cn-warn); }
+
+/* BYOK (cybernet-account-api-upgrade.js inserts it before #testApiKeyBtn): a quiet section. */
+html.cn #cybernetai .cybernet-byok-panel {
+  margin: var(--cn-5) 0 var(--cn-2);
+  padding: var(--cn-5) 0 0;
+  border: 0;
+  border-block-start: 1px solid var(--cn-line);
+  border-radius: 0;
+  background: none;
+}
+html.cn #cybernetai .cybernet-byok-title-row {
+  align-items: center;
+  gap: var(--cn-3);
+  margin: 0 0 var(--cn-2);
+}
+html.cn #cybernetai .cybernet-byok-title-row h5 {
+  margin: 0;
+  color: var(--cn-text);
+  font-size: .9375rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+html.cn #cybernetai .cybernet-byok-status-pill {
+  padding: 3px 10px;
+  border: 1px solid var(--cn-line-2);
+  border-radius: var(--cn-r-pill);
+  background: transparent;
+  color: var(--cn-text-2);
+  font-size: .6875rem;
+  letter-spacing: .06em;
+}
+html.cn #cybernetai .cybernet-byok-status-pill.connected {
+  border-color: color-mix(in srgb, var(--cn-safe) 35%, transparent);
+  background: var(--cn-safe-tint);
+  color: var(--cn-safe);
+}
+html.cn #cybernetai .cybernet-byok-panel > p {
+  margin: 0 0 var(--cn-3);
+  color: var(--cn-text-2);
+  font-size: .8125rem;
+  line-height: 1.55;
+}
+/* legacy keeps padding-right:68px!important + margin:0!important for the Show button */
+html.cn #cybernetai .cybernet-byok-field input {
+  height: 48px;
+  padding-inline-start: 14px;
+  border-radius: var(--cn-r-ctl);
+  font-family: var(--cn-font-mono);
+  font-size: 1rem;
+}
+html.cn #cybernetai .cybernet-byok-show {
+  height: 34px;
+  min-width: 52px;
+  padding: 0 10px;
+  border: 1px solid var(--cn-line-2);
+  border-radius: 10px;
+  background: var(--cn-surface-3);
+  color: var(--cn-text-2);
+  font-size: .8125rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+/* 44px target (DESIGN.md rule 5); it still fits inside the 48px field */
+html.cn #cybernetai #cybernetByokShow { min-height: 44px; min-width: 56px; }
+html.cn #cybernetai .cybernet-byok-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--cn-2);
+  margin-block-start: var(--cn-3);
+}
+html.cn #cybernetai .cybernet-byok-actions > button {
+  width: 100%;
+  min-width: 0;
+  padding-inline: var(--cn-3);
+  font-size: .875rem;
+}
+html.cn #cybernetai .cybernet-byok-actions > #cybernetValidateApiKey { grid-column: 1 / -1; }
+/* Connecting your own key is optional: a secondary button, not another filled cyan pill. */
+html.cn #cybernetai .cybernet-byok-actions > #cybernetValidateApiKey {
+  border: 1px solid var(--cn-line-2);
+  background: transparent;
+  box-shadow: none;
+  color: var(--cn-text);
+}
+@media (hover: hover) and (pointer: fine) {
+  html.cn #cybernetai .cybernet-byok-actions > #cybernetValidateApiKey:not(:disabled):hover {
+    border-color: color-mix(in srgb, var(--cn-text) 22%, transparent);
+    background: var(--cn-surface-2);
+    color: var(--cn-text);
+  }
+}
+/* "How to get a personal API key" reads as the help link it is. */
+html.cn #cybernetai .cybernet-byok-actions > #cybernetHowToGetKey {
+  justify-content: flex-start;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--cn-cyan-2);
+  font-size: .8125rem;
+  font-weight: 500;
+  line-height: 1.35;
+  text-align: start;
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--cn-cyan-line);
+  text-underline-offset: .22em;
+  translate: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  html.cn #cybernetai .cybernet-byok-actions > #cybernetHowToGetKey:hover {
+    background: none;
+    color: var(--cn-text);
+    text-decoration-color: currentColor;
+  }
+}
+html.cn #cybernetai .cybernet-byok-actions > #cybernetForgetApiKey { width: auto; padding-inline: var(--cn-4); }
+html.cn #cybernetai .cybernet-byok-message {
+  min-height: 0;
+  margin-block-start: 10px;
+  color: var(--cn-text-2);
+  font-size: .8125rem;
+  line-height: 1.5;
+}
+html.cn #cybernetai .cybernet-byok-message:empty { margin: 0; }
+html.cn #cybernetai .cybernet-byok-message.success { color: var(--cn-safe); }
+html.cn #cybernetai .cybernet-byok-message.error { color: var(--cn-danger); }
+html.cn #cybernetai .cybernet-byok-message.warning { color: var(--cn-warn); }
+html.cn #cybernetai .cybernet-byok-privacy {
+  margin-block-start: var(--cn-2);
+  color: var(--cn-text-2);
+  font-size: .75rem;
+  line-height: 1.5;
+}
+
+/* Tablets: the panel is one wide column, so buttons keep their natural width. */
+@media (min-width: 560px) and (max-width: 1099px) {
+  html.cn #cybernetai .ai-config > #aiUpgradeBtn {
+    display: flex;
+    width: fit-content;
+    min-width: 240px;
+  }
+  html.cn #cybernetai .cybernet-byok-actions { grid-template-columns: auto minmax(0, 1fr) auto; }
+  html.cn #cybernetai .cybernet-byok-actions > #cybernetValidateApiKey {
+    grid-column: auto;
+    padding-inline: 22px;
+  }
+  html.cn #cybernetai .cybernet-byok-actions > #cybernetHowToGetKey { padding-inline: var(--cn-2); }
+}
+/* Scan history: final-ui-fix.js moves #proHistoryCard into the Account modal; styled
+   wherever it lives, in case it is still here. */
+html.cn #cybernetai .pro-history-card {
+  margin-block-start: var(--cn-6);
+  padding-block-start: 0;
+  border: 0;
+}
+html.cn #cybernetai .pro-history-head h5 {
+  margin: 0;
+  color: var(--cn-text-3);
+}
+html.cn #cybernetai .pro-history-head span { color: var(--cn-text-3); font-size: .75rem; }
+html.cn #cybernetai .pro-history-list { gap: 0; margin-block-start: 6px; }
+html.cn #cybernetai .pro-history-list p { color: var(--cn-text-2); font-size: .8125rem; }
+html.cn #cybernetai .history-entry {
+  padding: 10px 0;
+  border: 0;
+  border-block-start: 1px solid var(--cn-line);
+  border-radius: 0;
+  background: none;
+}
+html.cn #cybernetai .history-entry strong { color: var(--cn-text); font-size: .8125rem; font-weight: 600; }
+html.cn #cybernetai .history-entry span { color: var(--cn-text-2); font-family: var(--cn-font-mono); font-size: .75rem; }
+
+/* ==========================================================================================
+   12. Analysis AI chat: calm bubbles, mono speaker labels, diagnostic progress, composer
+   ========================================================================================== */
+html.cn #cybernetai .ai-chat {
+  --cn-tl-col: 820px;
+  --cn-tl-side: max(22px, calc((100% - var(--cn-tl-col)) / 2));
+  display: flex;
+  flex-direction: column;
+  height: 680px;
+  height: clamp(560px, calc(100svh - 64px), 820px);
+  min-height: 0;
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-panel);
+  background: var(--cn-surface);
+  box-shadow: none;
+  overflow: hidden;
+}
+@media (max-width: 920px) {
+  html.cn #cybernetai .ai-chat { height: 600px; height: clamp(520px, 80svh, 760px); }
+}
+@media (max-width: 480px) {
+  html.cn #cybernetai .ai-chat {
+    height: 560px;
+    height: clamp(480px, 82svh, 720px);
+    border-radius: var(--cn-r-card);
+  }
+}
+/* Before the first message the conversation is only the welcome bubble: the pane hugs it,
+   so the composer sits right under it (it was 300-470px further down, below the fold).
+   When a second bubble arrives :has() stops matching and the fixed height and internal
+   scroll come back. Browsers without :has() keep the fixed height. */
+html.cn #cybernetai .ai-chat:has(> .chat-messages > .chat-bubble:only-child) {
+  height: auto;
+}
+html.cn #cybernetai .ai-chat:has(> .chat-messages > .chat-bubble:only-child) > .chat-messages {
+  flex: 0 0 auto;
+}
+html.cn #cybernetai .ai-chat-lead {
+  flex-shrink: 0;
+  padding: 18px var(--cn-tl-side) var(--cn-4);
+  border-block-end: 1px solid var(--cn-line);
+}
+html.cn #cybernetai .ai-chat-lead h4 {
+  margin: 0 0 4px;
+  color: var(--cn-text);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -.015em;
+}
+html.cn #cybernetai .ai-chat-lead p {
+  max-width: 70ch;
+  margin: 0;
+  color: var(--cn-text-2);
+  font-size: .875rem;
+  line-height: 1.5;
+}
+
+html.cn #cybernetai .chat-messages {
+  container: cn-report / inline-size;
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 18px;
+  padding: 22px var(--cn-tl-side);
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+/* Only the welcome bubble: a quiet hint at the foot of the empty conversation. */
+html.cn #cybernetai .chat-messages:has(> .chat-bubble:only-child)::after {
+  content: "Text · Links · Screenshots · Enter to send";
+  content: "Text · Links · Screenshots · Enter to send" / "";
+  align-self: center;
+  margin-block-start: auto;
+  padding-block-start: var(--cn-4);
+  color: var(--cn-text-3);
+  font-family: var(--cn-font-mono);
+  font-size: .6875rem;
+  font-weight: 500;
+  letter-spacing: .06em;
+  text-align: center;
+  text-transform: uppercase;
+}
+html.cn #cybernetai .chat-bubble {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  max-width: min(84%, 640px);
+}
+html.cn #cybernetai .chat-bubble-user {
+  align-items: flex-end;
+  align-self: flex-end;
+  margin-inline-start: auto;
+}
+html.cn #cybernetai .chat-bubble::before {
+  content: "Analysis AI";
+  padding-inline: 2px;
+  color: var(--cn-text-3);
+}
+/* The AI speaker label carries a small violet dot (the page's AI identity mark). */
+html.cn #cybernetai .chat-bubble-ai::before {
+  padding-inline-start: 14px;
+  background: radial-gradient(circle at 5px 50%, var(--cn-id) 0 3px, transparent 3.5px) no-repeat;
+}
+html.cn #cybernetai .chat-bubble-ai:dir(rtl)::before {
+  padding-inline: 2px 14px;
+  background-image: radial-gradient(circle at calc(100% - 5px) 50%, var(--cn-id) 0 3px, transparent 3.5px);
+}
+html.cn #cybernetai .chat-bubble-user::before { content: "You"; }
+html.cn #cybernetai .chat-bubble-inner {
+  min-width: 0;
+  max-width: 100%;
+  padding: 13px var(--cn-4);
+  border-radius: 16px;
+  font-size: .9375rem;
+  font-weight: 400;
+  line-height: 1.6;
+  letter-spacing: -.005em;
+  overflow-wrap: anywhere;
+}
+html.cn #cybernetai .chat-bubble-ai > .chat-bubble-inner {
+  border: 1px solid var(--cn-line);
+  border-inline-start: 2px solid var(--cn-id);
+  border-start-start-radius: 6px;
+  border-end-start-radius: 6px;
+  background: var(--cn-surface-2);
+  color: var(--cn-text);
+}
+html.cn #cybernetai .chat-bubble-user > .chat-bubble-inner {
+  border: 1px solid var(--cn-line-2);
+  border-end-end-radius: 6px;
+  background: var(--cn-surface-3);
+  color: var(--cn-text);
+  font-weight: 400;
+}
+/* A bubble holding progress or a report takes the width the card needs, and the start rule
+   takes the verdict colour. */
+html.cn #cybernetai .chat-bubble-ai:has(> .chat-bubble-inner > :is(.diagnostic-report, .scan-report, .diagnostic-progress)) {
+  width: min(100%, 680px);
+  max-width: 100%;
+}
+html.cn #cybernetai .chat-bubble-ai:has(> .chat-bubble-inner > :is(.diagnostic-report, .scan-report, .diagnostic-progress)) > .chat-bubble-inner {
+  width: 100%;
+  padding: clamp(var(--cn-4), .8rem + .8vw, 22px);
+}
+html.cn #cybernetai .chat-bubble-ai > .chat-bubble-inner[class*="result-has-"] {
+  border-inline-start-color: var(--cn-v);
+  background:
+    linear-gradient(180deg, var(--cn-v-tint), transparent 150px),
+    var(--cn-surface-2);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--cn-v) 7%, transparent), transparent 150px),
+    var(--cn-surface-2);
+}
+
+/* Diagnostic progress (innerHTML rebuilt every 1300 ms: no entrance animations here). */
+html.cn #cybernetai .diagnostic-progress { padding: 0; }
+html.cn #cybernetai .diagnostic-progress-head {
+  display: flex;
+  align-items: center;
+  gap: var(--cn-3);
+  margin: 0 0 14px;
+}
+html.cn #cybernetai .diagnostic-spinner {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, .12);
+  border-top-color: var(--cn-id);
+  border-radius: 50%;
+  box-shadow: none;
+  animation: cn-tl-spin 1.3s linear infinite;
+}
+html.cn #cybernetai .diagnostic-progress-text {
+  color: var(--cn-text);
+  font-size: .9375rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+html.cn #cybernetai .diagnostic-progress-steps {
+  display: grid;
+  gap: 10px;
+  padding-inline-start: 0;
+}
+html.cn #cybernetai .diagnostic-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--cn-text-3);
+  font-size: .875rem;
+  line-height: 1.4;
+  transition: none;
+}
+html.cn #cybernetai .diagnostic-step-dot {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--cn-line-2);
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
+  color: var(--cn-id-2);
+  font-size: .625rem;
+  font-weight: 700;
+  line-height: 1;
+}
+html.cn #cybernetai .diagnostic-step.active { color: var(--cn-text); }
+html.cn #cybernetai .diagnostic-step.active .diagnostic-step-dot {
+  border-color: var(--cn-id);
+  background: radial-gradient(circle, var(--cn-id) 0 3px, transparent 3.5px);
+  box-shadow: none;
+}
+html.cn #cybernetai .diagnostic-step.done { color: var(--cn-text-2); }
+html.cn #cybernetai .diagnostic-step.done .diagnostic-step-dot {
+  border-color: var(--cn-id-line);
+  background: var(--cn-id-tint);
+}
+
+/* Follow-up answers (no verdict). */
+html.cn #cybernetai .diagnostic-followup-head {
+  gap: 10px;
+  margin: 0 0 var(--cn-3);
+  color: var(--cn-text);
+  font-size: .9375rem;
+  font-weight: 600;
+}
+html.cn #cybernetai .diagnostic-followup-tag {
+  padding: 3px 10px;
+  border: 1px solid var(--cn-line-2);
+  border-radius: var(--cn-r-pill);
+  color: var(--cn-text-2);
+  font-size: .6875rem;
+  font-weight: 500;
+}
+
+/* Buttons inside the conversation: Download (Pro) quiet, upgrade prompts as the cyan pill. */
+html.cn #cybernetai .report-download-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  min-height: 40px;
+  margin: 14px 0 0;
+  padding: 0 var(--cn-4);
+  border: 1px solid var(--cn-line-2);
+  border-radius: var(--cn-r-pill);
+  background: transparent;
+  color: var(--cn-text);
+  font-size: .875rem;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  cursor: pointer;
+  transition: background-color var(--cn-dur-1) ease, border-color var(--cn-dur-1) ease, translate var(--cn-dur-2) var(--cn-ease-out);
+}
+html.cn #cybernetai .report-download-btn[data-upgrade-now] {
+  border-color: transparent;
+  background: var(--cn-cyan);
+  color: var(--cn-on-cyan);
+}
+@media (hover: hover) and (pointer: fine) {
+  html.cn #cybernetai .report-download-btn:hover {
+    background: var(--cn-surface-3);
+    border-color: var(--cn-line-2);
+    translate: 0 -1px;
+  }
+  html.cn #cybernetai .report-download-btn[data-upgrade-now]:hover {
+    background: var(--cn-cyan-2);
+    border-color: transparent;
+  }
+}
+@media (pointer: coarse) {
+  html.cn #cybernetai .report-download-btn { min-height: 44px; }
+}
+
+/* Attachment chip above the composer (shown and hidden through [hidden]). */
+html.cn #cybernetai .chat-attach-preview {
+  gap: 10px;
+  margin: 0 max(var(--cn-4), calc(var(--cn-tl-side) - 6px)) var(--cn-2);
+  padding: 6px 6px 6px var(--cn-2);
+  border: 1px solid var(--cn-line);
+  border-radius: 14px;
+  background: var(--cn-surface-2);
+}
+html.cn #cybernetai .chat-attach-thumb {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background-color: var(--cn-surface-3);
+}
+html.cn #cybernetai .chat-attach-name {
+  color: var(--cn-text-2);
+  font-size: .8125rem;
+}
+html.cn #cybernetai .chat-attach-remove {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--cn-text-2);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+@media (hover: hover) and (pointer: fine) {
+  html.cn #cybernetai .chat-attach-remove:hover { background: rgba(255, 255, 255, .06); color: var(--cn-text); }
+}
+
+/* The composer: one rounded field holding attach / message / clear / send. */
+html.cn #cybernetai .chat-input-row.chat-input-row-unified {
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--cn-1);
+  margin: 0 max(var(--cn-4), calc(var(--cn-tl-side) - 6px)) var(--cn-5);
+  padding: 6px;
+  border: 1px solid var(--cn-line-2);
+  border-radius: 18px;
+  background: var(--cn-surface-2);
+  transition: border-color var(--cn-dur-1) ease, background-color var(--cn-dur-1) ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  html.cn #cybernetai .chat-input-row-unified:hover {
+    border-color: color-mix(in srgb, var(--cn-text) 22%, transparent);
+  }
+}
+html.cn #cybernetai .chat-input-row-unified:focus-within {
+  outline: 2px solid var(--cn-cyan);
+  outline-offset: 2px;
+}
+html.cn #cybernetai .chat-input-row-unified.drag-active {
+  border-color: var(--cn-cyan);
+  border-style: dashed;
+  background: var(--cn-cyan-tint);
+  outline: 0;
+}
+html.cn #cybernetai #chatInput {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 44px;
+  margin: 0;
+  padding: 0 var(--cn-2);
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--cn-text);
+  font-size: 1rem;
+  line-height: 1.3;
+}
+html.cn #cybernetai #chatInput:is(:focus, :focus-visible, :hover) {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+}
+html.cn #cybernetai .chat-attach-btn {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--cn-text-2);
+  cursor: pointer;
+  transition: color var(--cn-dur-1) ease, background-color var(--cn-dur-1) ease;
+}
+html.cn #cybernetai .chat-attach-btn > span { display: none; }
+/* Ready for #aiImageInput without [hidden] (see the markup request): focusable, invisible. */
+html.cn #cybernetai .chat-attach-btn { position: relative; }
+html.cn #cybernetai #aiImageInput:not([hidden]) {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+html.cn #cybernetai .chat-attach-btn:has(input:focus-visible) {
+  outline: 2px solid var(--cn-cyan);
+  outline-offset: 2px;
+}
+html.cn #cybernetai .chat-attach-btn::before {
+  --cn-tl-ic: var(--cn-tl-i-clip);
+  content: "";
+  width: 20px;
+  height: 20px;
+  background-color: currentColor;
+}
+html.cn #cybernetai .chat-clear-btn {
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--cn-text-3);
+}
+@media (hover: hover) and (pointer: fine) {
+  html.cn #cybernetai :is(.chat-attach-btn, .chat-clear-btn):hover {
+    background: rgba(255, 255, 255, .05);
+    color: var(--cn-text);
+  }
+}
+html.cn #cybernetai #chatSendBtn.send-btn {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: var(--cn-cyan);
+  color: var(--cn-on-cyan);
+  font-size: 0;
+  cursor: pointer;
+  transform: none;
+  transition: background-color var(--cn-dur-1) ease, translate var(--cn-dur-2) var(--cn-ease-out), scale var(--cn-dur-1) var(--cn-ease-out);
+}
+html.cn #cybernetai #chatSendBtn.send-btn::before {
+  --cn-tl-ic: var(--cn-tl-i-send);
+  content: "";
+  width: 18px;
+  height: 18px;
+  background-color: currentColor;
+}
+/* Signed out the button reads "Register for Free to Scan". */
+html.cn #cybernetai #chatSendBtn.send-btn.send-btn-wide {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  padding: 0 18px;
+  font-size: .875rem;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  white-space: nowrap;
+}
+html.cn #cybernetai #chatSendBtn.send-btn.send-btn-wide::before { content: none; }
+@media (hover: hover) and (pointer: fine) {
+  html.cn #cybernetai #chatSendBtn.send-btn:hover {
+    background: var(--cn-cyan-2);
+    transform: none;
+    translate: 0 -1px;
+  }
+}
+html.cn #cybernetai #chatSendBtn.send-btn:active { scale: .97; translate: none; }
+@media (max-width: 560px) {
+  html.cn #cybernetai #chatSendBtn.send-btn.send-btn-wide {
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+    height: 44px;
+    white-space: normal;
+  }
+}
+
+/* ==========================================================================================
+   13. Small screens
+   ========================================================================================== */
+@media (max-width: 700px) {
+  html.cn #cybernet :is(.detect-main, .detect-side) { border-radius: var(--cn-r-card); }
+  html.cn #cybernetai .ai-config { border-radius: var(--cn-r-card); }
+  html.cn #cybernet #cyberTextInput { min-height: 160px; padding: var(--cn-4); font-size: 1rem; }
+  html.cn #cybernetai .ai-chat { --cn-tl-side: var(--cn-4); }
+  html.cn #cybernetai .chat-bubble { max-width: 92%; }
+  html.cn #cybernetai .chat-input-row.chat-input-row-unified { margin: 0 10px 10px; }
+}
+@media (max-width: 480px) {
+  html.cn #cybernet :is(.detect-main, .detect-side) { padding: 18px; }
+  html.cn #cybernet .result-box[class*="result-has-"] { padding: 18px var(--cn-4); }
+  /* The welcome bubble says the same thing; the conversation gets the room. */
+  html.cn #cybernetai .ai-chat-lead p { display: none; }
+  html.cn #cybernetai .ai-chat-lead h4 { margin: 0; }
+}
+/* Landscape phones: the whole workspace fits the screen, so the composer is always in
+   reach while the conversation is in view. */
+@media (max-height: 560px) and (orientation: landscape) {
+  html.cn #cybernetai .ai-chat {
+    height: 360px;
+    height: max(300px, calc(100svh - 24px));
+  }
+  html.cn #cybernetai .ai-chat-lead { padding-block: var(--cn-3); }
+  html.cn #cybernetai .ai-chat-lead p { display: none; }
+  html.cn #cybernetai .ai-chat-lead h4 { margin: 0; }
+  html.cn #cybernetai .chat-messages { padding-block: var(--cn-3); }
+}
+/* Folded and small phones: the welcome bubble at 92% of a 16px-padded pane left 70% of the
+   screen for text, so it ran taller than the pane and slid under the composer. */
+@media (max-width: 359.98px) {
+  html.cn #cybernetai .ai-chat {
+    --cn-tl-side: var(--cn-3);
+    height: 560px;
+    height: clamp(480px, 88svh, 720px);
+  }
+  html.cn #cybernetai .chat-bubble { max-width: 100%; }
+  html.cn #cybernetai .chat-bubble-inner {
+    padding: var(--cn-3) 14px;
+    font-size: .875rem;
+    line-height: 1.55;
+  }
+}
+@media (max-width: 380px) {
+  html.cn #cybernet .detect-main,
+  html.cn #cybernet .detect-side { padding: var(--cn-4); }
+  html.cn #cybernet .result-box[class*="result-has-"] { padding: var(--cn-4); }
+  html.cn :is(#cybernet, #cybernetai) .verdict-headline { gap: var(--cn-3); }
+  html.cn :is(#cybernet, #cybernetai) .verdict-headline-icon { width: 40px; height: 40px; }
+  html.cn :is(#cybernet, #cybernetai) :is(.score-display, .diagnostic-score)::before { content: "Risk"; }
+}
+
+/* ==========================================================================================
+   14. Motion
+   ========================================================================================== */
+@keyframes cn-tl-panel {
+  from { opacity: .35; translate: 0 6px; }
+  to { opacity: 1; translate: none; }
+}
+@keyframes cn-tl-report {
+  from { opacity: 0; translate: 0 8px; }
+  to { opacity: 1; translate: none; }
+}
+@keyframes cn-tl-pop {
+  from { opacity: 0; scale: .9; }
+  to { opacity: 1; scale: 1; }
+}
+@keyframes cn-tl-fade {
+  from { opacity: 0; translate: 0 -4px; }
+  to { opacity: 1; translate: none; }
+}
+@keyframes cn-tl-spin {
+  to { rotate: 360deg; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.cn #cybernet .detect-panel.active,
+  html.cn :is(#cybernet, #cybernetai) :is(.scan-report, .diagnostic-report, .verdict-headline-icon, .report-details) {
+    animation: none;
+  }
+  html.cn #cybernet .scan-ring-fill { transition: none; }
+  html.cn :is(#cybernet, #cybernetai) .details-toggle::before { transition: none; }
+}
+
+/* ==========================================================================================
+   15. Forced colours: icons painted with a system colour so they never vanish
+   ========================================================================================== */
+@media (forced-colors: active) {
+  html.cn :is(#cybernet, #cybernetai) :is(
+    .detect-tab, .upload-icon, .wwc-item .wwc-icon, .result-box,
+    .verdict-headline-icon, .verdict-note > span, .details-toggle, .chat-attach-btn,
+    .send-btn, .plan-benefit-list > div > span
+  )::before {
+    forced-color-adjust: none;
+    background-color: CanvasText;
+  }
+  html.cn #cybernet .detect-tab.active { outline: 2px solid Highlight; }
+  html.cn :is(#cybernet, #cybernetai) :is(.risk-tag, .status-pill, .dest-badge) { border: 1px solid CanvasText; }
+}
+
+/* ==========================================================================================
+   16. Label floor: these small labels measured 11px; nothing is under --cn-step-label (12px).
+   Each selector outranks the rule that set the smaller size above.
+   ========================================================================================== */
+html.cn :is(#cybernet, #cybernetai) .usage-meter-card :is(#quickScanUsageReset, #analysisAiHeaderUsageReset),
+html.cn #cybernetai .ai-config #aiPlanBadge,
+html.cn #cybernetai #cybernetByokPill,
+html.cn #cybernet .recent-scans > h4,
+html.cn #cybernetai .ai-status-block h5 {
+  font-size: var(--cn-step-label);
+}
+
+/* ==========================================================================================
+   17. v4.1 "Midnight": the inner-page kit (35, 40, 45 and 50 load after this file and read it)
+   Calm navy cards on hairlines, one cyan accent. Identity marks stay small: Quick Scan cyan,
+   Analysis AI a small violet mark, Recovery mint. No gradient borders, no coloured glows, no
+   gradient headlines, no big blurred shadows, no scroll-timeline motion, no infinite loops.
+   ========================================================================================== */
+html.cn :is(#cybernet, #cybernetai, #recovery, #learn, #pricing, #about) {
+  --cn-pg-inset: rgba(6, 10, 20, .5);                 /* wells: fields, the plan's raised cells */
+  --cn-pg-lift: inset 0 1px 0 rgba(255, 255, 255, .045), 0 16px 32px -26px rgba(0, 0, 0, .6);
+  --cn-pg-sprite-glow: rgba(34, 211, 238, .09);       /* a faint cool haze behind the chrome object */
+}
+
+/* A page-header sprite (decorative chrome render) settles in once when its page opens. It is a
+   pseudo-element on the header, so there is nothing to start, pause or tidy up. */
+@keyframes cn-pg-in {
+  from { opacity: 0; translate: 0 14px; scale: .96; }
+  to { opacity: 1; translate: 0 0; scale: 1; }
+}
+
+/* 17.1 Header: a quiet pill with the identity dot, a plain title, the sprite, the usage meter */
+html.cn :is(#cybernet, #cybernetai) > .feature-page-header {
+  position: relative;
+  isolation: isolate;
+}
+html.cn :is(#cybernet, #cybernetai) > .feature-page-header::before {
+  padding: 4px 14px 4px 28px;
+  background:
+    radial-gradient(circle at 14px 50%, var(--cn-id) 0 3px, transparent 3.5px),
+    linear-gradient(var(--cn-fill-1), var(--cn-fill-1)),
+    var(--cn-surface); /* solid, so the section motion lines pass behind it, not through the words */
+  box-shadow: inset 0 0 0 1px var(--cn-line-2);
+  color: var(--cn-text-2);
+}
+html.cn :is(#cybernet, #cybernetai) > .feature-page-header::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset-block-start: -34px;
+  inset-inline-end: -6px;
+  width: 104px;
+  aspect-ratio: 1;
+  background: var(--cn-pg-sprite) center / contain no-repeat, radial-gradient(closest-side, var(--cn-pg-sprite-glow), transparent 78%) center / 100% 100% no-repeat;
+  pointer-events: none;
+  animation: cn-pg-in .9s var(--cn-ease-out) .15s backwards;
+}
+html.cn #cybernet { --cn-pg-sprite: url("/ui/3d/shield-320.webp?v=20261014-5"); }
+@media (min-width: 960px) {
+  html.cn #cybernet { --cn-pg-sprite: url("/ui/3d/shield.webp?v=20261014-5"); }
+}
+/* Analysis AI: the glass globe with the AI chip inside (the hero globe's language) */
+html.cn #cybernetai { --cn-pg-sprite: url("/ui/3d/ai-globe-320.webp?v=20261014-5"); --cn-pg-sprite-glow: rgba(59, 130, 246, .08); }
+@media (min-width: 960px) {
+  html.cn #cybernetai { --cn-pg-sprite: url("/ui/3d/ai-globe.webp?v=20261014-5"); }
+}
+@media (min-width: 560px) {
+  html.cn :is(#cybernet, #cybernetai) > .feature-page-header::after { inset-block-start: -34px; width: 150px; }
+}
+@media (max-width: 359.98px) {
+  html.cn :is(#cybernet, #cybernetai) > .feature-page-header::after { display: none; }
+}
+/* Wide screens: the header is a grid with the usage card at the end, so the sprite stands on top
+   of that card instead (a pseudo-element of the card, anchored to its top edge): the whole object
+   is always visible, whatever the height of the text beside it. The shield's lower tip rests on
+   the card, the globe sinks a little behind it, as if resting on the card. */
+@media (min-width: 960px) {
+  html.cn :is(#cybernet, #cybernetai) > .feature-page-header::after { display: none; }
+  html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .usage-meter-card { position: relative; }
+  html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .usage-meter-card::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset-block-end: calc(100% - var(--cn-pg-sink, 0px));
+    inset-inline-end: var(--cn-pg-x, 9%);
+    width: var(--cn-pg-w, clamp(140px, 50%, 190px));
+    aspect-ratio: 1;
+    background: var(--cn-pg-sprite) center / contain no-repeat, radial-gradient(closest-side, var(--cn-pg-sprite-glow), transparent 78%) center / 100% 100% no-repeat;
+    pointer-events: none;
+    animation: cn-pg-in .9s var(--cn-ease-out) .15s backwards;
+  }
+  /* the globe fills its render, so it stays smaller than the old orb (which had a ring round it) */
+  html.cn #cybernetai { --cn-pg-w: clamp(150px, 50%, 192px); --cn-pg-sink: 16px; --cn-pg-x: 8%; }
+}
+
+html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .feature-crosslink .inline-link-btn { color: var(--cn-cyan-2); }
+html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .usage-meter-card {
+  box-shadow: var(--cn-pg-lift);
+}
+html.cn :is(#cybernet, #cybernetai) .usage-meter-track span {
+  border-radius: inherit;
+  background: var(--cn-cyan);
+}
+
+/* 17.2 Quick Scan: tabs, cards, drop zone, steps */
+html.cn #cybernet > .detect-tabs { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04); }
+html.cn #cybernet .detect-tab.active::before { background-color: var(--cn-cyan-2); }
+
+html.cn :is(
+  #cybernet .detect-main, #cybernet .detect-side, #cybernet .recent-scans,
+  #cybernetai .ai-config, #cybernetai .ai-chat
+) {
+  box-shadow: var(--cn-pg-lift);
+}
+html.cn #cybernet .detect-main {
+  /* one light edge on the card that holds the work: a cyan hairline that fades out */
+  background: linear-gradient(90deg, var(--cn-cyan-line), transparent 46%) top left / 100% 1px no-repeat, var(--cn-surface);
+}
+
+html.cn #cybernet :is(#cyberTextInput, #cyberLinkInput) { background: var(--cn-pg-inset); }
+html.cn #cybernet .real-upload-box { background: var(--cn-pg-inset); }
+@media (hover: hover) and (pointer: fine) {
+  html.cn #cybernet .real-upload-box:hover {
+    border-color: var(--cn-cyan-line);
+    background: var(--cn-cyan-tint);
+  }
+}
+html.cn #cybernet .upload-icon {
+  border-color: var(--cn-line-2);
+  background: var(--cn-surface-3);
+  color: var(--cn-cyan-2);
+}
+html.cn #cybernet .wwc-item .wwc-icon {
+  border: 0;
+  background: var(--cn-cyan-tint);
+  box-shadow: inset 0 0 0 1px var(--cn-cyan-line);
+  color: var(--cn-cyan-2);
+}
+html.cn #cybernet .scan-ring-svg circle:first-child { stroke: var(--cn-line-2); }
+
+/* 17.3 Results: the colour always travels with the word; a flat tint, no glow */
+html.cn #cybernet .result-box:not(:has(*)) { background: var(--cn-pg-inset); }
+html.cn :is(#cybernet, #cybernetai) .verdict-headline-icon {
+  background: color-mix(in srgb, var(--cn-v) 16%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cn-v) 40%, transparent);
+}
+html.cn :is(#cybernet, #cybernetai) :is(.plain-action, .verdict-note, .diagnostic-note),
+html.cn :is(#cybernet, #cybernetai) :is(.dest-preview, .qr-preview, .links-found) {
+  background: var(--cn-pg-inset);
+}
+html.cn :is(#cybernet, #cybernetai) :is(.dest-url, .qr-raw) { background: rgba(3, 6, 14, .6); }
+html.cn #cybernet .upload-preview-label { background: rgba(6, 10, 20, .88); }
+
+/* 17.4 Analysis AI: the conversation. The only violet is the small mark: the AI bubble's
+   inline-start rule and the speaker dot (--cn-id above). */
+html.cn #cybernetai .chat-bubble-ai > .chat-bubble-inner {
+  border-inline-start-color: var(--cn-id);
+  background: var(--cn-pg-inset);
+}
+html.cn #cybernetai .chat-input-row.chat-input-row-unified { background: var(--cn-pg-inset); }
+html.cn #cybernetai #aiApiStatus { background: var(--cn-pg-inset); }
+html.cn #cybernetai .diagnostic-spinner { border-top-color: var(--cn-cyan-2); }
+
+@media (prefers-reduced-motion: reduce) {
+  html.cn :is(#cybernet, #cybernetai) > .feature-page-header::after,
+  html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .usage-meter-card::before { animation: none; }
+}
+@media (forced-colors: active) {
+  html.cn :is(#cybernet, #cybernetai) > .feature-page-header::after,
+  html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .usage-meter-card::before { display: none; }
+  html.cn :is(#cybernet .detect-main, #cybernet .detect-side, #cybernetai .ai-chat, #cybernetai .ai-config) { border-color: CanvasText; }
+}

@@ -1,0 +1,29 @@
+/* Loading speed (Largest Contentful Paint).
+   The first block of every page carries .reveal, which stays at opacity 0 until
+   script.js adds .show after all deferred scripts run, about 2 to 9 seconds on a
+   slow phone. These blocks are now painted on the first frame. They still get a
+   short rise that only moves them, because an opacity fade would hold back the
+   browser's paint timing. Everything further down the page keeps the normal reveal. */
+html.v2 #home .hero .hero-content.reveal,
+html.v2 #home .hero .hero-visual.reveal,
+html.v2 .page .feature-page-header.reveal,
+html.v2 #learn .learn-hero.reveal,
+html.v2 #pricing .pricing-head.reveal,
+html.v2 #about .about-top.reveal {
+  opacity: 1;
+  transform: none;
+  filter: none;
+  animation: v2-first-rise .7s cubic-bezier(.2, .8, .2, 1) both;
+}
+@keyframes v2-first-rise {
+  from { translate: 0 14px; }
+  to { translate: 0 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html.v2 #home .hero .hero-content.reveal,
+  html.v2 #home .hero .hero-visual.reveal,
+  html.v2 .page .feature-page-header.reveal,
+  html.v2 #learn .learn-hero.reveal,
+  html.v2 #pricing .pricing-head.reveal,
+  html.v2 #about .about-top.reveal { animation: none; }
+}

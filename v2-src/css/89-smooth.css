@@ -1,0 +1,35 @@
+/* Smoothness. Blurring the page behind a card (backdrop-filter) is the most expensive
+   effect in the design: the GPU re-blurs every visible card on every scroll frame,
+   which is what made Home drop frames. Cards inside the pages now sit on a dark tint
+   instead, which looks the same on the black ground and keeps text readable over the
+   background art. The menu bar, the phone menu, pop-ups and the cookie bar are outside
+   <main> and keep their frosted blur. */
+html.v2 main *,
+html.v2 main *::before,
+html.v2 main *::after {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+html.v2 main :is(.glass, .pill, .v2-scanbox, .v2-cc, .hero-video-btn, .hero-stats-panel, .hero-why-panel,
+  .why-choose-item, .wow-section, .support-box, .detect-tabs, .about-block, .about-value, .fetch-panel,
+  .learn-search-card, .rm-node, .recovery-pro-upsell, .price-card, .pricing-toggle, .secondary-btn,
+  .recovery-cases-card, .recovery-fact-card, .recovery-history-card, .recovery-immediate-card,
+  .recovery-intake-card, .recovery-remaining-card, .recovery-resources-card, .recovery-status-card,
+  .recovery-summary-card, .recovery-timeline-card, .recovery-update-card) {
+  background-color: rgba(3, 10, 13, .82) !important;
+}
+
+/* Home horizon: brightening the glow by animating --hm-hz repainted its very large
+   blurred shadows on every scroll frame (the hero was the only place frames dropped).
+   The glow now sits at full strength on its own GPU layer and only its opacity follows
+   the scroll, which needs no repaint. */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: scroll()) {
+    html.v2 #home .hero::after {
+      --hm-hz: 1;
+      animation-name: v2-hero-horizon-fade;
+      will-change: opacity;
+    }
+  }
+}
+@keyframes v2-hero-horizon-fade { from { opacity: .7; } to { opacity: 1; } }

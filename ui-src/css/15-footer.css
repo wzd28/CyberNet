@@ -1,0 +1,338 @@
+/* ==========================================================================
+   15-footer.css  -  v4.1 "Midnight" footer: a flat, quiet band under a hairline with a thin cyan
+   highlight at its centre. Wordmark, legal links, the "Pause motion" control and the fine print.
+   Nothing here moves and nothing here is blurred or glowing.
+
+   Markup (index.html): <footer><a class="cn-footer-brand">...</a><p>(c) line, email,
+   Cookie settings</p><button class="cn-motion-toggle" data-cn-motion>...</footer>.
+   cybernet-legal-upgrade.js appends nav.cn-footer-legal (four links and a "Legal Center"
+   button) to the FIRST <footer> in the document, so every rule here targets body > footer
+   only (the Legal Center dialog has its own <footer class="cn-legal-dialog-foot">).
+
+   The "Pause motion" control (07-aurora.js; <button class="cn-motion-toggle" data-cn-motion>,
+   base look in 02-components.css) is the global switch for every loop on the site. It is a
+   direct child of the footer and takes the fine-print row, at the inline end (it may also sit
+   inside the fine-print paragraph). Here it only gets the footer's outline; its glyph and its
+   Pause / Play state (.is-paused) are the component's own.
+   ========================================================================== */
+
+html.cn body > footer {
+  --cn-foot-pad: max(var(--cn-gutter-l), calc((100% - var(--cn-max)) / 2));
+  --cn-focus: 0 0 0 3px #04070e, 0 0 0 5px var(--cn-cyan);
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto;
+  align-items: center;
+  column-gap: 0;
+  row-gap: var(--cn-5);
+  box-sizing: border-box;
+  width: auto;
+  max-width: none;
+  margin: 0; /* the page's own bottom padding sets the gap (DESIGN.md: the footer adds no margin) */
+  padding: clamp(48px, 2.2rem + 3vw, 80px) max(var(--cn-gutter-r), calc((100% - var(--cn-max)) / 2)) calc(var(--cn-8) + env(safe-area-inset-bottom, 0px)) var(--cn-foot-pad);
+  border: 0;
+  border-top: 1px solid var(--cn-ch-line);
+  border-radius: 0;
+  overflow-x: clip; /* the visually hidden Pause motion control (20-hero.css) must never add a scrollbar */
+  /* a thin cyan highlight on the top hairline, centred and fading out; then the ground */
+  background:
+    linear-gradient(90deg, transparent, rgba(34, 211, 238, .5) 50%, transparent) top center / min(560px, 56%) 1px no-repeat,
+    #04070e;
+  box-shadow: none;
+  color: var(--cn-ch-text-3);
+  font-family: var(--cn-font);
+  font-size: var(--cn-step-small);
+  line-height: 1.5;
+  text-align: start;
+}
+
+/* the hairline between the wordmark row and the fine print: a grid item of its own,
+   so it runs under both the fine print and the control, and fades at both ends */
+html.cn body > footer::before {
+  content: "";
+  grid-column: 1 / -1;
+  grid-row: 2;
+  align-self: center;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(148, 163, 184, 0), rgba(148, 163, 184, .22) 12%, rgba(148, 163, 184, .22) 88%, rgba(148, 163, 184, 0));
+  pointer-events: none;
+}
+
+/* ---------- wordmark ---------- */
+/* Plain inline flow (never flex: flex items would split "Cyber" and "Net"
+   apart). The literal space before <small> is the gap before the chip, and
+   the 48px line makes the whole link a 44px+ target. */
+html.cn body > footer .cn-footer-brand {
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: start;
+  display: inline-block;
+  height: 48px;
+  margin-inline-start: -6px;
+  padding: 0 6px;
+  border-radius: var(--cn-r-ctl);
+  color: var(--cn-ch-text);
+  font-family: var(--cn-font-mono);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  line-height: 48px;
+  text-decoration: none;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* the shield mark from the header, drawn here so the markup stays a plain link */
+html.cn body > footer .cn-footer-brand::before {
+  content: "";
+  display: inline-block;
+  vertical-align: middle;
+  width: 26px;
+  height: 28px;
+  margin-inline-end: 12px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 26' fill='none'%3E%3Cpath d='M12 2 L21 6 L20 15 L12 24 L4 15 L3 6 Z' stroke='%2322D3EE' stroke-width='1.8' stroke-linejoin='round'/%3E%3Crect x='8.3' y='12.5' width='7.4' height='6.2' rx='1.2' fill='%2322D3EE'/%3E%3Cpath d='M9.6 12.5v-2.3a2.4 2.4 0 0 1 4.8 0v2.3' stroke='%2322D3EE' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='12' cy='15.2' r='1' fill='%23060A14'/%3E%3Cpath d='M12 15.9v1.4' stroke='%23060A14' stroke-width='1' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+html.cn body > footer .cn-footer-brand span {
+  color: var(--cn-cyan);
+}
+
+/* "AI": the header's chip */
+html.cn body > footer .cn-footer-brand small {
+  display: inline-block;
+  vertical-align: middle;
+  margin: -2px 0 0;
+  padding: 3px 6px 2px;
+  border: 1px solid rgba(34, 211, 238, .38);
+  border-radius: 6px;
+  background: rgba(34, 211, 238, .1);
+  color: #d9f7fc;
+  font-family: var(--cn-font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+/* ---------- fine print ---------- */
+html.cn body > footer > p {
+  grid-column: 1;
+  grid-row: 3;
+  margin: 0;
+  padding: 0 var(--cn-6) 0 0;
+  color: var(--cn-ch-text-2);
+  font-family: var(--cn-font);
+  font-size: 13px;
+  line-height: 1.7;
+  text-align: start;
+  text-wrap: pretty;
+}
+
+/* email and Cookie settings read as links: a quiet underline that brightens.
+   (Literal colours: a rule that names .cn-cookie-settings is also picked into the legal-page
+   bundle, which does not carry the chrome palette.) */
+html.cn body > footer > p a,
+html.cn body > footer > p .cn-cookie-settings {
+  display: inline;
+  min-height: 0;
+  padding: 10px 0; /* inline: the padding widens the hit area (about 40px) and leaves the line height alone */
+  border: 0;
+  background: none;
+  color: #b3bccb;
+  font: inherit;
+  text-decoration: underline;
+  text-decoration-color: rgba(148, 163, 184, .4);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: color var(--cn-dur-1) ease, text-decoration-color var(--cn-dur-1) ease;
+}
+
+/* ---------- legal links ---------- */
+/* it spans both columns (so the control's column is only as wide as the control) and sits at the
+   inline end of the first row, beside the wordmark; it wraps before it can reach the wordmark */
+html.cn body > footer .cn-footer-legal {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  justify-self: end;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0 var(--cn-6);
+  max-width: calc(100% - 250px);
+  margin: 0;
+}
+
+html.cn body > footer .cn-footer-legal a,
+html.cn body > footer .cn-footer-legal button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  /* an underline that draws in on hover */
+  background: linear-gradient(var(--cn-cyan), var(--cn-cyan)) 0 calc(50% + 12px) / 0 1px no-repeat;
+  color: var(--cn-ch-text-2);
+  font-family: var(--cn-font);
+  font-size: 13.5px;
+  font-weight: 500;
+  letter-spacing: -.005em;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--cn-dur-1) ease, background-size var(--cn-dur-3) var(--cn-ease-out);
+}
+
+/* ---------- the "Pause motion" control: a quiet outlined pill ---------- */
+html.cn body > footer :is(.cn-motion-toggle, [data-cn-motion]) {
+  box-sizing: border-box;
+  min-height: 40px;
+  margin: 0;
+  padding: 0 18px 0 15px;
+  border: 1px solid var(--cn-ch-line-2);
+  background: rgba(255, 255, 255, .04);
+  box-shadow: none;
+  color: #b3bccb;
+  font-size: 13px;
+  font-weight: 600;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* paused: a cyan edge, so the state reads at a glance (the glyph turns to Play by itself) */
+html.cn body > footer :is(.cn-motion-toggle, [data-cn-motion]).is-paused {
+  border-color: rgba(34, 211, 238, .5);
+  background: rgba(34, 211, 238, .1);
+  color: #d9f7fc;
+}
+
+/* as a direct child of the footer it takes the fine-print row, at the inline end */
+html.cn body > footer > :is(.cn-motion-toggle, [data-cn-motion], .cn-footer-tools) {
+  grid-column: 2;
+  grid-row: 3;
+  justify-self: end;
+  align-self: center;
+}
+
+html.cn body > footer a:focus-visible,
+html.cn body > footer button:focus-visible,
+html.cn body > footer .cn-footer-brand:focus-visible {
+  outline: none;
+  color: #fff;
+  box-shadow: var(--cn-focus);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  html.cn body > footer .cn-footer-legal a:hover,
+  html.cn body > footer .cn-footer-legal button:hover {
+    color: #fff;
+    background-size: 100% 1px;
+  }
+
+  html.cn body > footer > p a:hover,
+  html.cn body > footer > p .cn-cookie-settings:hover {
+    color: #fff;
+    text-decoration-color: currentColor;
+  }
+
+  html.cn body > footer :is(.cn-motion-toggle, [data-cn-motion]):hover {
+    border-color: rgba(148, 163, 184, .6);
+    background: rgba(255, 255, 255, .09);
+    color: #fff;
+  }
+}
+
+/* narrow desktops and landscape tablets: the five links tighten so they stay on one row beside the wordmark */
+@media (min-width: 900px) and (max-width: 1119.98px) {
+  html.cn body > footer .cn-footer-legal {
+    gap: 0 var(--cn-4);
+    max-width: calc(100% - 224px);
+  }
+
+  html.cn body > footer .cn-footer-legal a,
+  html.cn body > footer .cn-footer-legal button {
+    font-size: 13px;
+  }
+}
+
+/* ---------- tablets and phones: one column ---------- */
+@media (max-width: 899.98px) {
+  html.cn body > footer {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+    row-gap: var(--cn-3);
+    padding-top: clamp(40px, 2rem + 2vw, 56px);
+    padding-bottom: calc(var(--cn-8) + env(safe-area-inset-bottom, 0px));
+  }
+
+  html.cn body > footer .cn-footer-brand { grid-column: 1; grid-row: 1; }
+
+  html.cn body > footer .cn-footer-legal {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: start;
+    justify-content: flex-start;
+    gap: 0 var(--cn-6);
+    max-width: none;
+    margin: 0 0 var(--cn-2);
+  }
+
+  html.cn body > footer::before { grid-column: 1; grid-row: 3; }
+
+  html.cn body > footer > p {
+    grid-column: 1;
+    grid-row: 4;
+    padding-inline-end: 0;
+    padding-top: var(--cn-2);
+  }
+
+  html.cn body > footer > :is(.cn-motion-toggle, [data-cn-motion], .cn-footer-tools) {
+    grid-column: 1;
+    grid-row: 5;
+    justify-self: start;
+    margin-top: var(--cn-2);
+  }
+}
+
+@media (max-width: 479.98px) {
+  html.cn body > footer .cn-footer-legal {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, max-content));
+    column-gap: var(--cn-6);
+    width: 100%;
+  }
+
+  html.cn body > footer .cn-footer-legal a,
+  html.cn body > footer .cn-footer-legal button {
+    white-space: normal;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.cn body > footer .cn-footer-legal a,
+  html.cn body > footer .cn-footer-legal button {
+    transition: none;
+  }
+}
+
+/* Windows high contrast: a real edge on the band and the toggle */
+@media (forced-colors: active) {
+  html.cn body > footer {
+    border-top: 1px solid CanvasText;
+  }
+
+  html.cn body > footer :is(.cn-motion-toggle, [data-cn-motion]) {
+    border: 1px solid ButtonText;
+  }
+}
+
+@media print {
+  html.cn body > footer {
+    display: none;
+  }
+}

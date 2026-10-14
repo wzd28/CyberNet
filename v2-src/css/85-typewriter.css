@@ -1,0 +1,30 @@
+/* Typewriter titles (see v2-src/js/40-typewriter.js). Characters are plain inline
+   spans: they must not pick up the gradient that styles "h1 span" in the heads. */
+html.v2 .feature-page-header h1 .v2-tw-ch {
+  background: none;
+  -webkit-background-clip: border-box;
+  background-clip: border-box;
+  color: inherit;
+}
+html.v2 .feature-page-header h1.v2-typing .v2-tw-ch {
+  opacity: 0;
+  animation: v2-tw-in .01s linear forwards;
+  animation-delay: calc(var(--i) * 26ms + 60ms);
+}
+html.v2 .feature-page-header h1.v2-typing::after {
+  content: "";
+  display: inline-block;
+  width: .07em;
+  height: .86em;
+  margin-left: .05em;
+  vertical-align: -.06em;
+  background: #22d3ee;
+  box-shadow: 0 0 14px rgba(34, 211, 238, .85);
+  animation: v2-tw-caret .5s steps(1) infinite;
+}
+@keyframes v2-tw-in { to { opacity: 1; } }
+@keyframes v2-tw-caret { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  html.v2 .feature-page-header h1.v2-typing .v2-tw-ch { opacity: 1; animation: none; }
+  html.v2 .feature-page-header h1.v2-typing::after { display: none; }
+}

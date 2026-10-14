@@ -1,0 +1,603 @@
+/* Home 3 - Live activity (.cn-live), plus the panel shell shared by the three home panels this
+   partial family owns (22-live, 23-threats, 24-demo).
+
+   v4.1 "Midnight": Home alternates light bands and navy stages. Live and the Example scan are
+   LIGHT panels (#F5F7FA ground, white cards, ink #0B1220, slate greys); "Scams don't look like
+   scams" between them is a navy stage. Each panel is an inset rounded sheet whose edges line up
+   with the hero stage (--cn-max-wide, gutter margins), so the navy ground shows around it.
+
+   The light tokens come from 00-tokens.css (its light scope lists #home > .cn-live and
+   #home > .cn-demo), so shared components (head, eyebrow, label, ghost button) read correctly
+   without new markup, and cyan is never text here. This file paints the panels themselves: the
+   pale ground with one faint cyan light at the top, the edge and the corners (--cn-r-band, as
+   03-aurora.css bands). Neutral shadows only. Every text colour set below was measured at 4.5:1
+   or more against white and #F5F7FA.
+
+   Live: real numbers only. 25-live.js reads /api/public-stats (through the legacy fill, then its own
+   polls), counts the totals up when they come into view, grows the gradient bars, draws the
+   threats-per-100-scans ring and adds .is-live (eyebrow "Live"). If no data can be read it adds
+   .is-down: the eyebrow, bars and ring go away, the counters keep their dash and the note explains.
+   Layout: totals 8 / ring 4, then "At a glance" as a 4-up strip (>= 1000px); totals 12, ring 5 /
+   glance 7 (640-999px); one column on phones. Down: totals 7 / glance 5. */
+
+/* ---------- Panel shell (shared: .cn-live, .cn-threats, .cn-demo) ---------- */
+html.cn #home > :is(.cn-live, .cn-threats, .cn-demo) {
+  --cn-panel-r: var(--cn-r-band, clamp(28px, 1rem + 3vw, 56px));
+  --cn-panel-px: clamp(16px, .25rem + 3.6vw, 72px);
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  width: auto;
+  max-width: none;
+  margin-block: clamp(14px, .5rem + 1vw, 24px);
+  margin-inline:
+    max(var(--cn-gutter-l), calc((100% - var(--cn-max-wide)) / 2))
+    max(var(--cn-gutter-r), calc((100% - var(--cn-max-wide)) / 2));
+  padding: clamp(56px, 2.25rem + 4vw, 120px) var(--cn-panel-px);
+  border-radius: var(--cn-panel-r);
+  overflow: hidden;
+  overflow: clip;
+}
+/* The first panel after the hero keeps the hero's breathing room. */
+html.cn #home > .hero + .cn-live { margin-block-start: clamp(28px, 1rem + 3vw, 64px); }
+
+/* Light panels: ground and edge (tokens: 00-tokens.css light scope). One faint cyan light at the
+   top, a white top edge and a slate hairline. No outer shadow: on the navy ground it would only
+   cost raster memory. No dot grid and no floating sprite: the band stays quiet. */
+html.cn #home > :is(.cn-live, .cn-demo) {
+  --cn-l-shadow: 0 1px 2px rgba(15, 23, 42, .05), 0 16px 32px -24px rgba(15, 23, 42, .22);
+  color-scheme: light;
+  color: var(--cn-text);
+  background-color: #f5f7fa;
+  background-image:
+    radial-gradient(60% 46% at 50% 0%, rgba(34, 211, 238, .08), transparent 72%),
+    linear-gradient(180deg, #fafbfc 0%, #f5f7fa 46%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .9),
+    0 0 0 1px rgba(148, 163, 184, .14);
+}
+
+/* Light heads: ink lead phrase, the continuation in slate (the two-tone rule, 7.3:1). */
+html.cn #home > :is(.cn-live, .cn-demo) :is(.cn-head h2, .cn-demo-copy h2) > span {
+  color: var(--cn-text-2);
+}
+/* Eyebrow on light: a white pill with a cyan hairline and deep teal text (7.1:1). */
+html.cn #home > :is(.cn-live, .cn-demo) .cn-eyebrow {
+  border: 1px solid rgba(14, 116, 144, .28);
+  background: #ffffff;
+  color: #0b5f77;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .05);
+}
+
+/* ---------- Live: section ---------- */
+html.cn #home .cn-live {
+  container: cn-live / inline-size;
+  font-family: var(--cn-font);
+}
+
+/* The eyebrow says "Live" only once real data has arrived (25-live.js); until then its dot is grey. */
+html.cn.cn-js #home .cn-live:not(.is-live) .cn-head .cn-live-dot {
+  background: var(--cn-text-3);
+  box-shadow: none;
+  animation: none;
+}
+html.cn.cn-js #home .cn-live:not(.is-live) .cn-head .cn-live-dot::before,
+html.cn.cn-js #home .cn-live:not(.is-live) .cn-head .cn-live-dot::after {
+  animation: none;
+  opacity: 0;
+}
+html.cn #home .cn-live.is-live .cn-head .cn-live-dot {
+  background: #06b6d4;
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, .22);
+}
+
+/* API down: nothing claims to be live and no empty chart is drawn. */
+html.cn.cn-js #home .cn-live.is-down .cn-head .cn-eyebrow,
+html.cn.cn-js #home .cn-live.is-down .cn-funnel,
+html.cn.cn-js #home .cn-live.is-down .cn-live-time,
+html.cn.cn-js #home .cn-live.is-down .hero-info-row > .cn-ring-card { display: none; }
+
+/* ---------- Grid ---------- */
+html.cn #home .cn-live .hero-info-row {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: clamp(12px, 1.8cqi, 22px);
+  max-inline-size: var(--cn-max);
+  margin: 0 auto;
+}
+html.cn #home .cn-live .hero-info-row > * {
+  grid-column: 1 / -1;
+  min-inline-size: 0;
+}
+@container cn-live (min-width: 640px) {
+  html.cn #home .cn-live .hero-info-row > .cn-ring-card { grid-column: span 5; }
+  html.cn #home .cn-live .hero-info-row > .hero-why-panel { grid-column: span 7; }
+  html.cn.cn-js #home .cn-live.is-down .hero-info-row > .hero-stats-panel { grid-column: span 7; }
+  html.cn.cn-js #home .cn-live.is-down .hero-info-row > .hero-why-panel { grid-column: span 5; }
+}
+@container cn-live (min-width: 1000px) {
+  html.cn #home .cn-live .hero-info-row > .hero-stats-panel { grid-column: span 8; }
+  html.cn #home .cn-live .hero-info-row > .cn-ring-card { grid-column: span 4; }
+  html.cn #home .cn-live .hero-info-row > .hero-why-panel { grid-column: 1 / -1; }
+  html.cn.cn-js #home .cn-live.is-down .hero-info-row > .hero-stats-panel { grid-column: span 7; }
+  html.cn.cn-js #home .cn-live.is-down .hero-info-row > .hero-why-panel { grid-column: span 5; }
+}
+
+/* ---------- Cards: white, a soft neutral shadow, a lit top edge ---------- */
+html.cn #home .cn-live .hero-stats-panel,
+html.cn #home .cn-live .cn-ring-card,
+html.cn #home .cn-live .hero-why-panel {
+  container-type: inline-size;
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+  padding: clamp(20px, 3.4cqi, 36px);
+  background: #ffffff;
+  border: 1px solid var(--cn-line);
+  border-radius: clamp(20px, 2.4cqi, 28px);
+  box-shadow: var(--cn-l-shadow);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  color: var(--cn-text);
+}
+/* The ring card carries the section's one gradient hairline: a cyan pass fading into slate. */
+html.cn #home .cn-live .cn-ring-card {
+  border-color: transparent;
+  background:
+    linear-gradient(#ffffff, #ffffff) padding-box,
+    linear-gradient(150deg, rgba(34, 211, 238, .6), rgba(15, 23, 42, .08) 46%, rgba(15, 23, 42, .08) 70%, rgba(59, 130, 246, .3)) border-box;
+}
+
+/* Card titles share the system label (Mona Sans caps); mono is kept for numbers. */
+html.cn #home .cn-live .hero-stats-panel-head h4,
+html.cn #home .cn-live .hero-why-panel h4,
+html.cn #home .cn-live .cn-ring-card .cn-label {
+  margin: 0;
+  font-family: var(--cn-font);
+  font-size: var(--cn-step-label);
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--cn-text-2);
+  text-wrap: balance;
+}
+
+/* ---------- Totals panel ---------- */
+html.cn #home .cn-live .hero-stats-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  min-block-size: 28px;
+  margin: 0 0 clamp(18px, 5cqi, 30px);
+}
+html.cn #home .cn-live .cn-live-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-block-size: 28px;
+  font-family: var(--cn-font-mono);
+  font-size: var(--cn-step-label);
+  line-height: 1.35;
+  letter-spacing: .02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--cn-text-2);
+  white-space: nowrap;
+}
+html.cn #home .cn-live.is-live .cn-live-time {
+  padding: 0 11px;
+  border-radius: var(--cn-r-pill);
+  background: #ecfeff;
+  color: #0b5f77;
+}
+html.cn #home .cn-live .cn-live-time:empty { display: none; }
+@container (max-width: 299px) {
+  html.cn #home .cn-live .hero-stats-panel-head { flex-direction: column; align-items: flex-start; }
+}
+html.cn #home .cn-live.is-live .cn-live-time::before {
+  content: "";
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: 50%;
+  background: #06b6d4;
+}
+
+/* Counters: big tabular numbers in ink (17:1). Each carries a small key in its series colour
+   (scans cyan -> blue, threats blue, recoveries mint), the same colours as its bar below. */
+html.cn #home .cn-live .hero-live-stats {
+  --cn-stat-gap: clamp(12px, 4cqi, 28px);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--cn-stat-gap);
+  margin: 0;
+}
+html.cn #home .cn-live .hero-live-stat {
+  --cn-g1: var(--cn-text);
+  --cn-dot: linear-gradient(135deg, #22d3ee, #3b82f6);
+  min-inline-size: 0;
+  padding-block-start: 16px;
+  border-block-start: 1px solid var(--cn-line);
+}
+html.cn #home .cn-live .hero-live-stat:nth-child(2) { --cn-dot: #3b82f6; }
+html.cn #home .cn-live .hero-live-stat:nth-child(3) { --cn-dot: linear-gradient(135deg, #2dd4bf, #14b8a6); }
+html.cn #home .cn-live .hero-live-stat strong {
+  display: block;
+  /* Sized so a 7-character count ("123,456") still fits a third of the panel. */
+  font-family: var(--cn-font);
+  font-size: clamp(1.5rem, calc((100cqi - 2 * var(--cn-stat-gap)) / 3 / 4.25), 3.5rem);
+  font-weight: 650;
+  line-height: 1.02;
+  letter-spacing: -.04em;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  color: var(--cn-g1);
+  white-space: nowrap;
+}
+/* Before data the dash stays quiet (5.5:1). No gradient text: the numbers are plain ink. */
+html.cn #home .cn-live:not(.is-live) .hero-live-stat strong { --cn-g1: #5b6576; }
+html.cn #home .cn-live .hero-live-stat span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-block-start: 12px;
+  font-family: var(--cn-font);
+  font-size: var(--cn-step-label);
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--cn-text-2);
+}
+html.cn #home .cn-live .hero-live-stat span::before {
+  content: "";
+  flex: none;
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: 3px;
+  background: var(--cn-dot);
+}
+
+/* Narrow panels: one row per number, label first, number at the end. */
+@container (max-width: 459px) {
+  html.cn #home .cn-live .hero-live-stats {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  html.cn #home .cn-live .hero-live-stat {
+    display: flex;
+    flex-direction: row-reverse;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-block: 14px;
+  }
+  html.cn #home .cn-live .hero-live-stat strong { font-size: clamp(1.75rem, 11cqi, 2.5rem); }
+  html.cn #home .cn-live .hero-live-stat span { margin: 0; min-inline-size: 0; }
+}
+
+/* Small and folded phones: the label above its number. */
+@container (max-width: 259px) {
+  html.cn #home .cn-live .hero-live-stat { flex-direction: column-reverse; align-items: flex-start; gap: 6px; }
+}
+
+/* Count bars: one shared scale (the largest count fills the track); counts, never percentages.
+   Rows share the panel's columns (display: contents), so labels and counts of any length line up. */
+html.cn #home .cn-live .cn-funnel {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
+  align-items: center;
+  gap: 16px 16px;
+  margin-block: clamp(24px, 6cqi, 34px) 26px;
+  padding: clamp(16px, 3cqi, 22px);
+  border-radius: 18px;
+  background: #f7f9fb;
+  border: 1px solid rgba(15, 23, 42, .06);
+}
+html.cn #home .cn-live .cn-funnel-row { display: contents; }
+html.cn #home .cn-live .cn-funnel-row > span {
+  font-family: var(--cn-font);
+  font-size: var(--cn-step-label);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--cn-text-2);
+  white-space: nowrap;
+}
+html.cn #home .cn-live .cn-funnel-row > i {
+  display: block;
+  block-size: 12px;
+  border-radius: var(--cn-r-pill);
+  background: #e7ecf2;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, .06);
+  overflow: hidden;
+}
+html.cn #home .cn-live .cn-funnel-row > i > b {
+  display: block;
+  block-size: 100%;
+  inline-size: calc(var(--v, 0) * 100%);
+  border-radius: inherit;
+  background: linear-gradient(90deg, #22d3ee, #3b82f6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .45);
+  transition: inline-size 1.4s var(--cn-ease-out);
+}
+html.cn #home .cn-live .cn-funnel-row[data-key="threats"] > i > b { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+html.cn #home .cn-live .cn-funnel-row[data-key="recoveries"] > i > b { background: linear-gradient(90deg, #2dd4bf, #14b8a6); }
+html.cn #home .cn-live .cn-funnel-row:nth-child(2) > i > b { transition-delay: 140ms; }
+html.cn #home .cn-live .cn-funnel-row:nth-child(3) > i > b { transition-delay: 280ms; }
+html.cn #home .cn-live .cn-funnel-row > em {
+  font-family: var(--cn-font-mono);
+  font-size: .8125rem;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+  color: var(--cn-text);
+  white-space: nowrap;
+}
+html.cn #home .cn-live:not(.is-live) .cn-funnel-row > em { color: var(--cn-text-2); }
+/* Narrow panels: the totals sit right above as big numbers, so the bars drop their repeated
+   counts (the chart is aria-hidden) and keep label | bar on one line. */
+@container (max-width: 459px) {
+  html.cn #home .cn-live .cn-funnel { grid-template-columns: max-content minmax(0, 1fr); gap: 14px 14px; }
+  html.cn #home .cn-live .cn-funnel-row > em { display: none; }
+}
+/* Folded phones: the label above its bar. */
+@container (max-width: 249px) {
+  html.cn #home .cn-live .cn-funnel { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  html.cn #home .cn-live .cn-funnel-row > i { margin-block-end: 6px; }
+}
+
+html.cn #home .cn-live .hero-stats-note {
+  box-sizing: border-box;
+  min-block-size: calc(2lh + 17px);
+  margin: auto 0 0;
+  padding-block-start: 16px;
+  border-block-start: 1px solid var(--cn-line);
+  font-size: var(--cn-step-small);
+  line-height: 1.5;
+  letter-spacing: var(--cn-track-body);
+  color: var(--cn-text-2);
+  text-wrap: pretty;
+}
+html.cn #home .cn-live .hero-stats-note strong {
+  font-weight: 600;
+  color: var(--cn-text);
+}
+@container (max-width: 299px) {
+  html.cn #home .cn-live .hero-stats-note { min-block-size: calc(3lh + 17px); }
+}
+
+/* ---------- Threats per 100 scans ring ---------- */
+html.cn #home .cn-live .cn-ring-card { gap: 18px; align-items: stretch; }
+html.cn #home .cn-live .cn-ring {
+  position: relative;
+  inline-size: min(100%, 15rem);
+  aspect-ratio: 1;
+  margin: auto;
+}
+/* A faint cyan wash behind the ring (static gradient, no blur filter). */
+html.cn #home .cn-live .cn-ring::before {
+  content: "";
+  position: absolute;
+  inset: -10%;
+  z-index: 0;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(34, 211, 238, .07), transparent 100%);
+  pointer-events: none;
+}
+html.cn #home .cn-live .cn-ring svg {
+  position: relative;
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: visible;
+  transform: rotate(-90deg);
+}
+html.cn #home .cn-live .cn-ring-track {
+  fill: none;
+  stroke: #e7ecf2;
+  stroke-width: 9;
+}
+html.cn #home .cn-live .cn-ring-val {
+  fill: none;
+  /* 25-live.js adds the gradient (#cnRingGrad, cyan -> blue); without it the stroke is teal. */
+  stroke: url(#cnRingGrad) #0e7490;
+  stroke-width: 9;
+  stroke-linecap: round;
+  stroke-dasharray: 100 200; /* no round-cap dot when the share is zero */
+  transition: stroke-dashoffset 1.6s var(--cn-ease-out), opacity var(--cn-dur-2) ease;
+}
+html.cn #home .cn-live:not(.is-live) .cn-ring-val { opacity: 0; }
+html.cn #home .cn-live .cn-ring b {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--cn-font);
+  font-size: clamp(1.75rem, 15cqi, 2.75rem);
+  font-weight: 650;
+  line-height: 1;
+  letter-spacing: -.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--cn-text);
+}
+html.cn #home .cn-live:not(.is-live) .cn-ring b { color: var(--cn-text-2); }
+html.cn #home .cn-live .cn-ring-note {
+  margin: 0;
+  font-size: var(--cn-step-small);
+  line-height: 1.5;
+  letter-spacing: var(--cn-track-body);
+  color: var(--cn-text-2);
+  text-wrap: pretty;
+}
+
+/* Phones: the ring sits beside its note (label on top), so the card stays short. */
+@container cn-live (min-width: 290px) and (max-width: 639px) {
+  html.cn #home .cn-live .cn-ring-card {
+    display: grid;
+    grid-template-columns: minmax(0, 7.5rem) minmax(0, 1fr);
+    grid-template-areas: "label label" "ring note";
+    align-items: center;
+    gap: 16px 20px;
+  }
+  html.cn #home .cn-live .cn-ring-card > .cn-label { grid-area: label; }
+  html.cn #home .cn-live .cn-ring { grid-area: ring; inline-size: 100%; margin: 0; }
+  html.cn #home .cn-live .cn-ring-note { grid-area: note; }
+  html.cn #home .cn-live .cn-ring b { font-size: 1.75rem; }
+}
+@container cn-live (max-width: 289px) {
+  html.cn #home .cn-live .cn-ring { inline-size: min(100%, 10rem); }
+}
+
+/* ---------- At a glance ---------- */
+html.cn #home .cn-live .hero-why-panel ul {
+  display: grid;
+  gap: 14px;
+  margin: 20px 0 22px;
+  padding: 0;
+  list-style: none;
+}
+html.cn #home .cn-live .hero-why-panel li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: .9375rem;
+  line-height: 1.45;
+  letter-spacing: var(--cn-track-body);
+  color: var(--cn-text);
+  text-wrap: pretty;
+}
+/* One quiet icon tile for every point (deep teal on a pale slate tile); the recovery point
+   carries Recovery's mint. */
+html.cn #home .cn-live .hero-why-panel .why-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  inline-size: 40px;
+  block-size: 40px;
+  margin: 0;
+  border-radius: 12px;
+  background: #f1f5f9;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, .06);
+  color: #0b6a84;
+}
+html.cn #home .cn-live .hero-why-panel li:nth-child(4) .why-icon { color: #0d6b64; }
+html.cn #home .cn-live .hero-why-panel .why-icon svg {
+  display: block;
+  inline-size: 18px;
+  block-size: 18px;
+}
+/* The link reads as a quiet text link with an arrow. */
+html.cn #home .cn-live .hero-why-panel .secondary-btn {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  inline-size: auto;
+  min-block-size: 44px;
+  margin-block-start: auto;
+  padding: 0 16px;
+  background: #f5f7fa;
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-pill);
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  font-family: var(--cn-font);
+  font-size: var(--cn-step-small);
+  font-weight: 600;
+  letter-spacing: var(--cn-track-body);
+  text-align: start;
+  white-space: normal;
+  color: var(--cn-text);
+  transform: none;
+}
+html.cn #home .cn-live .hero-why-panel .secondary-btn::after {
+  content: "";
+  flex: none;
+  inline-size: 7px;
+  block-size: 7px;
+  border-block-start: 1.5px solid currentColor;
+  border-inline-end: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform var(--cn-dur-1) var(--cn-ease-out);
+}
+html.cn[dir="rtl"] #home .cn-live .hero-why-panel .secondary-btn::after { transform: rotate(-135deg); }
+html.cn #home .cn-live .hero-why-panel .secondary-btn:focus-visible { outline: 2px solid var(--cn-ring); outline-offset: 3px; box-shadow: none; }
+@media (hover: hover) and (pointer: fine) {
+  html.cn #home .cn-live .hero-why-panel .secondary-btn:hover {
+    background: #ffffff;
+    border-color: rgba(15, 23, 42, .2);
+    color: #0b6a84;
+    transform: none;
+  }
+  html.cn #home .cn-live .hero-why-panel .secondary-btn:hover::after { transform: translateX(2px) rotate(45deg); }
+}
+
+/* Wide: "At a glance" becomes a 4-up strip with the link at the end of its title row. */
+@container cn-live (min-width: 1000px) {
+  html.cn #home .cn-live:not(.is-down) .hero-why-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "title link" "list list";
+    align-items: center;
+    column-gap: 24px;
+    padding-block: 26px 30px;
+  }
+  html.cn #home .cn-live:not(.is-down) .hero-why-panel h4 { grid-area: title; }
+  html.cn #home .cn-live:not(.is-down) .hero-why-panel .secondary-btn { grid-area: link; align-self: center; margin: 0; }
+  html.cn #home .cn-live:not(.is-down) .hero-why-panel ul {
+    grid-area: list;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0;
+    margin: 20px 0 0;
+  }
+  html.cn #home .cn-live:not(.is-down) .hero-why-panel li {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    padding-inline: 22px;
+    border-inline-start: 1px solid var(--cn-line);
+  }
+  html.cn #home .cn-live:not(.is-down) .hero-why-panel li:first-child { padding-inline-start: 0; border-inline-start: 0; }
+}
+
+/* ---------- Scroll motion: the cards settle in as the panel scrolls up ----------
+   translate only: a compositor animation on a scroll timeline, so no main-thread work per
+   frame. Fill "forwards": below the viewport a card shows its resting state (find-in-page and
+   full-page captures see it). */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    html.cn:not(.cn-still) #home .cn-live .hero-info-row > * {
+      animation: cn-live-rise linear forwards;
+      animation-timeline: view();
+      animation-range: entry 0% entry 70%;
+    }
+    html.cn:not(.cn-still) #home .cn-live .hero-info-row > .cn-ring-card { animation-range: entry 8% entry 85%; }
+    html.cn:not(.cn-still) #home .cn-live .hero-info-row > .hero-why-panel { animation-range: entry 10% entry 90%; }
+  }
+}
+@keyframes cn-live-rise {
+  from { translate: 0 40px; }
+  to { translate: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.cn #home .cn-live .cn-funnel-row > i > b,
+  html.cn #home .cn-live .cn-ring-val { transition: none; }
+}
+
+@media (forced-colors: active) {
+  html.cn #home .cn-live .cn-ring-val { stroke: Highlight; }
+  html.cn #home .cn-live .cn-funnel-row > i > b { background: Highlight; }
+}
+
+/* Label floor: no text under --cn-step-label (12px), phones included (DESIGN.md rule 6). */
+html.cn #home .cn-live :is(.hero-live-stat span, .cn-funnel-row > span) { font-size: var(--cn-step-label); }
+

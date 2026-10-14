@@ -1,0 +1,585 @@
+/* Home 4 - "Scams don't look like scams" (#cnThreats): a navy stage with a photo bento.
+
+   Markup: .cn-head, then .cn-bento[data-cn="bento"] with
+   - .cn-tile--a: the hacker photo (a wide 3:2 scene: a hooded figure from behind at a desk,
+     typing, screens of code; no face) with its <figcaption>;
+   - .cn-tile--b.cn-tile--qr: a real QR code that opens https://cybernetai.app (a.cn-qr-code >
+     img qr-cybernetai.svg) and ul.cn-qr-links with the real address (li.is-real) next to a
+     lookalike (li.is-fake), each with a .cn-qr-tag, then its <figcaption>;
+   - .cn-tile--c: the AI photo with its <figcaption>;
+   - .cn-tile--stat: the $442B fact (counted by 50-counters.js).
+   The figures carry legacy .reveal (script.js adds .show at page load), so their own transform
+   is left to that; motion here uses opacity and the independent translate/scale properties, and
+   the entrance is keyed to 27-bento.js (.is-armed on the bento, .is-in per tile), not .show.
+
+   Look (v4.1 "Midnight"): a navy stage with one faint cyan light at the top; the section motion
+   canvas (09-bgfx.js, z-index -1) draws its light lines over that ground and under the content.
+   Tiles are rounded photos with a slate hairline and a lit top edge; captions are compact navy
+   glass. Photos are graded to navy and cyan by the image pipeline, so no colour overlay sits on
+   them (only a soft navy fade under a caption). No sprites, no gradient text, neutral shadows.
+
+   Layout (container queries on the section):
+   - >= 880px: "a a a a a a a a b b b b" / "c c c c c c s s s s s s". The hacker photo spans two
+     thirds at its own 3:2 shape, so the whole scene shows (desk, both screens, the typing hand);
+     the QR tile beside it takes the same height.
+   - 560-879px: the hacker photo full width at 3:2, then QR | AI, then the fact.
+   - < 560px: one column; each photo keeps its shape (hacker 3:2, AI 4:3) with its caption
+     under it, so nothing covers the picture.
+
+   Motion (all of it stops under reduced motion and the global Pause motion):
+   - Each tile enters on its own visit: the photo settles from a 4% zoom and fades up, a thin
+     cyan scan line passes down it once, and the caption rises in (opacity and transforms only).
+   - Photos lean in a little on hover (fine pointers).
+   - No scroll-timeline parallax on these large images: they scroll as plain layers. */
+
+/* ---------- Stage ---------- */
+html.cn #home > .cn-threats {
+  container: cn-threats / inline-size;
+  --cn-text: #f5f7fa;
+  --cn-text-2: #aab4c3;
+  --cn-text-3: #8a95a7;
+  --cn-line: rgba(148, 163, 184, .14);
+  --cn-line-2: rgba(148, 163, 184, .24);
+  --cn-tile-r: clamp(18px, 1rem + .6cqi, 26px);
+  color-scheme: dark;
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  background-color: #080d18;
+  background-image:
+    radial-gradient(64% 42% at 50% 0%, rgba(34, 211, 238, .07), transparent 72%),
+    radial-gradient(40% 36% at 100% 100%, rgba(59, 130, 246, .06), transparent 72%),
+    linear-gradient(180deg, #0b1120 0%, #070b15 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .06),
+    inset 0 0 0 1px rgba(148, 163, 184, .1);
+}
+
+/* ---------- Head ---------- */
+html.cn #home .cn-threats .cn-head h2 { color: var(--cn-text); }
+html.cn #home .cn-threats .cn-head h2 > span { color: var(--cn-text-2); }
+html.cn #home .cn-threats .cn-head > p { color: var(--cn-text-2); }
+
+/* ---------- Bento ---------- */
+html.cn #home .cn-threats .cn-bento {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(12px, 1.6cqi, 20px);
+  max-inline-size: var(--cn-max);
+  margin: 0 auto;
+}
+@container cn-threats (min-width: 560px) {
+  html.cn #home .cn-threats .cn-bento {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-areas: "a a a a a a" "b b b c c c" "s s s s s s";
+    grid-template-rows: auto auto auto;
+  }
+  html.cn #home .cn-threats .cn-tile--a { grid-area: a; }
+  html.cn #home .cn-threats .cn-tile--b { grid-area: b; }
+  html.cn #home .cn-threats .cn-tile--c { grid-area: c; }
+  html.cn #home .cn-threats .cn-tile--stat { grid-area: s; }
+}
+@container cn-threats (min-width: 880px) {
+  html.cn #home .cn-threats .cn-bento {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-template-areas:
+      "a a a a a a a a b b b b"
+      "c c c c c c s s s s s s";
+    grid-template-rows: auto clamp(250px, 26cqi, 320px);
+  }
+}
+
+/* ---------- Tiles: rounded, a slate hairline, a lit top edge, a navy ground ---------- */
+html.cn #home .cn-threats .cn-tile {
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  min-inline-size: 0;
+  margin: 0;
+  border: 1px solid rgba(148, 163, 184, .16);
+  border-radius: var(--cn-tile-r);
+  background: #0c1220;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), 0 24px 48px -32px rgba(0, 0, 0, .7);
+  overflow: hidden;
+  overflow: clip;
+  color: var(--cn-text);
+}
+
+/* Photo tiles. The <picture> fills the tile (wide screens) or keeps the photo's own shape above
+   the caption (phones). The image never moves on scroll. */
+html.cn #home .cn-threats figure.cn-tile:not(.cn-tile--qr) picture {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  display: block;
+}
+html.cn #home .cn-threats figure.cn-tile:not(.cn-tile--qr) img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  max-inline-size: none;
+  object-fit: cover;
+  object-position: 50% 50%;
+  border-radius: 0;
+}
+/* The hacker scene at its own 3:2 shape: nothing is cropped (wide screens fill the 2/3 column). */
+html.cn #home .cn-threats figure.cn-tile--a { aspect-ratio: 3 / 2; }
+/* The AI photo: the chip sits in the middle of the frame, so any crop keeps it. */
+html.cn #home .cn-threats figure.cn-tile--c { min-block-size: 240px; }
+html.cn #home .cn-threats figure.cn-tile--c img { object-position: 50% 46%; }
+
+/* A soft navy fade under each caption (no colour cast on the photo). The hacker caption sits at
+   the bottom right over the dark hoodie, so its fade comes from that corner and the typing hand
+   at the bottom left stays clear. */
+html.cn #home .cn-threats figure.cn-tile:not(.cn-tile--qr)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(0deg, rgba(6, 10, 20, .62) 0%, rgba(6, 10, 20, .18) 32%, transparent 52%);
+}
+html.cn #home .cn-threats figure.cn-tile--a::after {
+  background: radial-gradient(60% 56% at 100% 100%, rgba(6, 10, 20, .6), transparent 72%);
+}
+
+/* The scan line: a thin cyan line with a short soft trail that passes down a photo once as it
+   scrolls in (the product's own gesture: CyberNet AI reading the scam). Behind the caption. */
+html.cn #home .cn-threats figure.cn-tile:not(.cn-tile--qr)::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 0;
+  z-index: 0;
+  block-size: 24%;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent 0%, rgba(34, 211, 238, .06) 60%, rgba(103, 232, 249, .32) calc(100% - 2px), rgba(230, 251, 255, .85) calc(100% - 1px), rgba(230, 251, 255, .85) 100%);
+  opacity: 0;
+  translate: 0 -100%;
+}
+
+/* Captions: compact navy glass with a small icon tile (tile: ::before, icon: ::after; both
+   decorative). Text is >= 7:1 on the glass even over the brightest screen in a photo. */
+html.cn #home .cn-threats .cn-tile figcaption {
+  --cn-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='14' rx='3'/%3E%3Cpath d='m4 7.5 8 5.5 8-5.5'/%3E%3C/svg%3E");
+  position: absolute;
+  inset-inline-start: clamp(10px, 1.4cqi, 18px);
+  inset-block-end: clamp(10px, 1.4cqi, 18px);
+  z-index: 1;
+  display: grid;
+  gap: 3px;
+  box-sizing: border-box;
+  max-inline-size: min(26rem, calc(100% - 2 * clamp(10px, 1.4cqi, 18px)));
+  min-block-size: 60px;
+  padding: 12px 16px 13px 58px;
+  border: 1px solid rgba(148, 163, 184, .2);
+  border-radius: clamp(14px, .7rem + .4cqi, 18px);
+  /* Glass without a live blur (80-perf.css keeps backdrop-filter out of <main>). */
+  background: rgba(8, 13, 24, .82);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .07), 0 12px 24px -16px rgba(0, 0, 0, .7);
+  transition: translate .6s var(--cn-ease-out);
+}
+html.cn #home .cn-threats .cn-tile figcaption::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 13px;
+  inset-block-start: 50%;
+  inline-size: 32px;
+  block-size: 32px;
+  margin-block-start: -16px;
+  border: 1px solid rgba(34, 211, 238, .28);
+  border-radius: 10px;
+  background: rgba(34, 211, 238, .08);
+}
+html.cn #home .cn-threats .cn-tile figcaption::after {
+  content: "";
+  position: absolute;
+  inset-inline-start: 21px;
+  inset-block-start: 50%;
+  inline-size: 18px;
+  block-size: 18px;
+  margin-block-start: -9px;
+  background: #67e8f9;
+  -webkit-mask: var(--cn-icon) center / contain no-repeat;
+  mask: var(--cn-icon) center / contain no-repeat;
+}
+html.cn #home .cn-threats .cn-tile--b figcaption {
+  --cn-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 14a4.2 4.2 0 0 0 6 0l3-3a4.2 4.2 0 0 0-6-6l-1 1'/%3E%3Cpath d='M14 10a4.2 4.2 0 0 0-6 0l-3 3a4.2 4.2 0 0 0 6 6l1-1'/%3E%3C/svg%3E");
+}
+html.cn #home .cn-threats .cn-tile--c figcaption {
+  --cn-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M11 3.5c.6 4 2.6 6 6.5 6.5-3.9.6-5.9 2.6-6.5 6.5-.6-3.9-2.6-5.9-6.5-6.5 3.9-.5 5.9-2.5 6.5-6.5Z'/%3E%3Cpath d='M18.5 15c.3 1.6 1 2.3 2.5 2.5-1.5.3-2.2 1-2.5 2.5-.3-1.5-1-2.2-2.5-2.5 1.5-.2 2.2-.9 2.5-2.5Z'/%3E%3C/svg%3E");
+}
+html.cn #home .cn-threats .cn-tile figcaption b {
+  font-size: clamp(1rem, .94rem + .3cqi, 1.125rem);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -.012em;
+  color: #f5f7fa;
+  text-wrap: balance;
+}
+html.cn #home .cn-threats .cn-tile figcaption span {
+  font-size: var(--cn-step-small);
+  line-height: 1.45;
+  letter-spacing: var(--cn-track-body);
+  color: #b9c2cf;
+  text-wrap: pretty;
+}
+/* The hacker caption: bottom right, over the dark hoodie, so the hand on the keyboard (bottom
+   left of the frame) and both screens stay in view. Physical "right": the photo does not flip
+   in a right-to-left layout, so neither does its caption. */
+html.cn #home .cn-threats .cn-tile--a figcaption {
+  inset-inline-start: auto;
+  right: clamp(10px, 1.4cqi, 18px);
+  left: auto;
+  max-inline-size: min(23rem, 46%);
+}
+
+/* ---------- The QR tile: a real code that opens cybernetai.app, a real link and a lookalike ----------
+   The code sits on a white card (dark modules on white, with a quiet zone), so a phone camera
+   reads it from the screen. It is drawn at a whole number of CSS pixels per module (29 modules:
+   6px = 174px, 5px = 145px), so every module edge is crisp. */
+html.cn #home .cn-threats .cn-tile--qr {
+  container: cn-qr / inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(16px, 2cqi, 22px);
+  padding: clamp(18px, 2.2cqi, 26px);
+  background:
+    radial-gradient(90% 50% at 50% 0%, rgba(34, 211, 238, .07), transparent 72%),
+    linear-gradient(180deg, #101828 0%, #0b1120 100%);
+}
+html.cn #home .cn-threats .cn-qr {
+  display: grid;
+  gap: 16px;
+  min-inline-size: 0;
+}
+html.cn #home .cn-threats .cn-qr-code {
+  justify-self: center;
+  display: block;
+  padding: 12px;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, .06), 0 1px 2px rgba(0, 0, 0, .3), 0 16px 32px -18px rgba(0, 0, 0, .8);
+  line-height: 0;
+  text-decoration: none;
+  transition: translate var(--cn-dur-2) var(--cn-ease-out), box-shadow var(--cn-dur-2) ease;
+}
+html.cn #home .cn-threats .cn-qr-code img {
+  position: static;
+  display: block;
+  inline-size: 145px;
+  block-size: 145px;
+  max-inline-size: none;
+  border-radius: 0;
+}
+@container cn-qr (min-width: 330px) {
+  html.cn #home .cn-threats .cn-qr-code img { inline-size: 174px; block-size: 174px; }
+}
+html.cn #home .cn-threats .cn-qr-code:focus-visible {
+  outline: 2px solid var(--cn-ring);
+  outline-offset: 4px;
+}
+@media (hover: hover) and (pointer: fine) {
+  html.cn #home .cn-threats .cn-qr-code:hover {
+    translate: 0 -1px;
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, .06), 0 0 0 1px rgba(103, 232, 249, .5), 0 18px 36px -18px rgba(0, 0, 0, .85);
+  }
+}
+
+/* The two addresses: an icon in a ring, the tag, then the address on its own line, so the
+   longest one ("cybernet-ai.app-verify.co") never has to break on a phone. */
+html.cn #home .cn-threats .cn-qr-links {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+html.cn #home .cn-threats .cn-qr-links li {
+  --cn-qr-c: #67e8f9;
+  --cn-qr-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E");
+  position: relative;
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  grid-template-areas: "icon tag" "icon url";
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 2px;
+  min-inline-size: 0;
+  padding: 10px 14px 11px 12px;
+  border: 1px solid rgba(34, 211, 238, .26);
+  border-radius: 14px;
+  background: rgba(34, 211, 238, .05);
+}
+html.cn #home .cn-threats .cn-qr-links li.is-fake {
+  --cn-qr-c: #ff8a9c;
+  --cn-qr-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 4 2.8 19.5h18.4Z'/%3E%3Cpath d='M12 10v4.2'/%3E%3Cpath d='M12 17.2h.01'/%3E%3C/svg%3E");
+  border-color: rgba(255, 138, 156, .3);
+  background: rgba(255, 138, 156, .05);
+}
+/* the ring and the glyph */
+html.cn #home .cn-threats .cn-qr-links li::before {
+  content: "";
+  grid-area: icon;
+  align-self: center;
+  box-sizing: border-box;
+  inline-size: 26px;
+  block-size: 26px;
+  border: 1.5px solid color-mix(in srgb, var(--cn-qr-c) 55%, transparent);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--cn-qr-c) 12%, transparent);
+}
+html.cn #home .cn-threats .cn-qr-links li::after {
+  content: "";
+  position: absolute;
+  inset-inline-start: 18px;
+  inset-block-start: 50%;
+  inline-size: 14px;
+  block-size: 14px;
+  margin-block-start: -7px;
+  background: var(--cn-qr-c);
+  -webkit-mask: var(--cn-qr-icon) center / contain no-repeat;
+  mask: var(--cn-qr-icon) center / contain no-repeat;
+  pointer-events: none;
+}
+html.cn #home .cn-threats .cn-qr-tag {
+  grid-area: tag;
+  color: var(--cn-qr-c);
+  font-family: var(--cn-font);
+  font-size: var(--cn-step-label);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+html.cn #home .cn-threats .cn-qr-links :is(a, .cn-qr-fake) {
+  grid-area: url;
+  min-inline-size: 0;
+  font-family: var(--cn-font-mono);
+  font-size: clamp(.875rem, .84rem + .2cqi, .9375rem);
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: -.01em;
+  overflow-wrap: anywhere;
+}
+/* The real address: white, with a cyan underline that brightens on hover (a link that opens
+   the real site). */
+html.cn #home .cn-threats .cn-qr-links .is-real a {
+  justify-self: start;
+  color: #f5f7fa;
+  text-decoration-line: underline;
+  text-decoration-thickness: 1.5px;
+  text-decoration-color: rgba(103, 232, 249, .6);
+  text-underline-offset: .24em;
+  transition: color var(--cn-dur-1) ease, text-decoration-color var(--cn-dur-1) ease;
+}
+/* The whole row answers the pointer (the link's hit area grows to the row). */
+html.cn #home .cn-threats .cn-qr-links .is-real a::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+@media (hover: hover) and (pointer: fine) {
+  html.cn #home .cn-threats .cn-qr-links .is-real:hover { border-color: rgba(34, 211, 238, .5); background: rgba(34, 211, 238, .08); }
+  html.cn #home .cn-threats .cn-qr-links .is-real a:hover { color: #67e8f9; text-decoration-color: currentColor; }
+}
+html.cn #home .cn-threats .cn-qr-links .is-real a:focus-visible { outline: 2px solid var(--cn-ring); outline-offset: 3px; border-radius: 4px; }
+/* The lookalike: coral, struck through. It is plain text, never a link. */
+html.cn #home .cn-threats .cn-qr-fake {
+  color: #ffb4c0;
+  text-decoration-line: line-through;
+  text-decoration-thickness: 1.5px;
+  text-decoration-color: rgba(255, 138, 156, .85);
+}
+
+/* The QR tile's caption is part of the card (no glass pill over a photo). */
+html.cn #home .cn-threats .cn-tile--qr figcaption {
+  position: static;
+  max-inline-size: none;
+  min-block-size: 0;
+  margin-block-start: auto;
+  padding: 16px 0 0;
+  border: 0;
+  border-block-start: 1px solid rgba(148, 163, 184, .14);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+html.cn #home .cn-threats .cn-tile--qr figcaption::before,
+html.cn #home .cn-threats .cn-tile--qr figcaption::after { content: none; }
+/* Folded phones: the rows drop the icon ring and tighten, so "cybernetai.app" stays on one line. */
+@container cn-qr (max-width: 239px) {
+  html.cn #home .cn-threats .cn-qr-links li {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "tag" "url";
+    padding: 9px 12px 10px;
+  }
+  html.cn #home .cn-threats .cn-qr-links li::before,
+  html.cn #home .cn-threats .cn-qr-links li::after { content: none; }
+  html.cn #home .cn-threats .cn-qr-links :is(a, .cn-qr-fake) { font-size: .8125rem; }
+}
+/* Wide QR tiles (tablets in landscape, large text): the code beside the two addresses. */
+@container cn-qr (min-width: 470px) {
+  html.cn #home .cn-threats .cn-qr {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: 22px;
+  }
+}
+
+/* ---------- Phones: each photo keeps its own shape, the caption sits under it ---------- */
+@container cn-threats (max-width: 559px) {
+  html.cn #home .cn-threats figure.cn-tile:not(.cn-tile--qr) {
+    display: flex;
+    flex-direction: column;
+    aspect-ratio: auto;
+    min-block-size: 0;
+  }
+  html.cn #home .cn-threats figure.cn-tile:not(.cn-tile--qr) picture {
+    position: relative;
+    inset: auto;
+    z-index: 0;
+    aspect-ratio: 3 / 2;
+    overflow: hidden;
+  }
+  html.cn #home .cn-threats figure.cn-tile--c picture { aspect-ratio: 4 / 3; }
+  html.cn #home .cn-threats figure.cn-tile:not(.cn-tile--qr)::after { content: none; }
+  html.cn #home .cn-threats figure.cn-tile:not(.cn-tile--qr)::before { z-index: 1; block-size: 16%; }
+  html.cn #home .cn-threats figure.cn-tile:not(.cn-tile--qr) figcaption {
+    position: relative;
+    inset: auto;
+    right: auto;
+    max-inline-size: none;
+    min-block-size: 0;
+    padding: 14px 16px 16px 60px;
+    border: 0;
+    border-block-start: 1px solid rgba(148, 163, 184, .12);
+    border-radius: 0;
+    background: #0c1220;
+    box-shadow: none;
+  }
+  html.cn #home .cn-threats .cn-tile figcaption::before { inset-inline-start: 16px; }
+  html.cn #home .cn-threats .cn-tile figcaption::after { inset-inline-start: 24px; }
+  html.cn #home .cn-threats .cn-tile figcaption b { font-size: 1rem; }
+  html.cn #home .cn-threats .cn-tile figcaption span { font-size: .875rem; line-height: 1.45; }
+}
+@container cn-threats (max-width: 299px) {
+  html.cn #home .cn-threats figure.cn-tile:not(.cn-tile--qr) figcaption { padding-inline-start: 16px; }
+  html.cn #home .cn-threats .cn-tile:not(.cn-tile--qr) figcaption::before,
+  html.cn #home .cn-threats .cn-tile:not(.cn-tile--qr) figcaption::after { content: none; }
+}
+
+/* ---------- The $442B fact ---------- */
+html.cn #home .cn-threats .cn-tile--stat {
+  container: cn-stat / inline-size;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: clamp(22px, 3cqi, 36px);
+  background:
+    radial-gradient(70% 70% at 100% 0%, rgba(34, 211, 238, .1), transparent 70%),
+    linear-gradient(160deg, #111a2c 0%, #0a101c 100%);
+}
+/* a short cyan rule above the number */
+html.cn #home .cn-threats .cn-tile--stat::before {
+  content: "";
+  inline-size: 32px;
+  block-size: 3px;
+  margin-block-end: 6px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #22d3ee, #3b82f6);
+}
+html.cn #home .cn-threats .cn-tile--stat .cn-stat-num {
+  display: block;
+  margin: 0;
+  font-family: var(--cn-font);
+  font-size: clamp(3rem, 20cqi, 6rem);
+  white-space: nowrap;
+  font-weight: 600;
+  line-height: .92;
+  letter-spacing: -.05em;
+  font-variant-numeric: tabular-nums;
+  color: #f5f7fa;
+}
+html.cn #home .cn-threats .cn-tile--stat p {
+  max-inline-size: 36ch;
+  margin: 4px 0 0;
+  font-size: var(--cn-step-body);
+  line-height: 1.5;
+  letter-spacing: var(--cn-track-body);
+  color: #c7cfdb;
+  text-wrap: pretty;
+}
+html.cn #home .cn-threats .cn-tile--stat .cn-src {
+  display: block;
+  max-inline-size: 46ch;
+  margin: 0;
+  color: var(--cn-text-3);
+  font: 400 var(--cn-step-label)/1.5 var(--cn-font-mono);
+  letter-spacing: .01em;
+}
+/* Tablets: the fact runs the full width, so the number and its sentence sit side by side. */
+@container cn-threats (min-width: 600px) and (max-width: 879px) {
+  html.cn #home .cn-threats .cn-tile--stat {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas: "rule ." "num text" "num src";
+    align-content: end;
+    align-items: end;
+    column-gap: clamp(24px, 5cqi, 48px);
+    row-gap: 8px;
+  }
+  html.cn #home .cn-threats .cn-tile--stat::before { grid-area: rule; }
+  html.cn #home .cn-threats .cn-tile--stat .cn-stat-num { grid-area: num; }
+  html.cn #home .cn-threats .cn-tile--stat p { grid-area: text; margin: 0; }
+  html.cn #home .cn-threats .cn-tile--stat .cn-src { grid-area: src; padding-block-end: .2em; }
+}
+
+/* ---------- Motion ---------- */
+/* Hover (fine pointers): the photo leans in a touch, the caption lifts a pixel or two. */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  html.cn #home .cn-threats figure.cn-tile:not(.cn-tile--qr):hover img { scale: 1.03; }
+  html.cn #home .cn-threats figure.cn-tile:not(.cn-tile--qr):hover figcaption { translate: 0 -2px; }
+  html.cn #home .cn-threats .cn-bento.is-armed figure.cn-tile.is-in:hover figcaption { transition-delay: 0s; }
+}
+
+/* Scroll-in (27-bento.js): once the bento is armed (.is-armed, JS and motion only), each tile
+   waits faded and slightly zoomed until a fifth of it is on screen (.is-in); then the photo
+   settles, the scan line passes once and the caption rises in. Opacity and transforms only
+   (compositor work, no blur filter). Without JS, under reduced motion or the global pause,
+   tiles are simply shown. */
+@media (prefers-reduced-motion: no-preference) {
+  html.cn.cn-js:not(.cn-still) #home .cn-threats .cn-bento.is-armed figure.cn-tile:not(.cn-tile--qr, .is-in) img { opacity: 0; scale: 1.04; }
+  html.cn.cn-js:not(.cn-still) #home .cn-threats .cn-bento.is-armed .cn-tile:not(.is-in) :is(figcaption, .cn-qr) { opacity: 0; translate: 0 12px; }
+  html.cn #home .cn-threats figure.cn-tile:not(.cn-tile--qr) img { transition: scale 1.2s var(--cn-ease-out), opacity .8s ease; }
+  html.cn #home .cn-threats .cn-tile :is(figcaption, .cn-qr) { transition: translate .7s var(--cn-ease-out), opacity .6s ease; }
+  html.cn #home .cn-threats .cn-bento.is-armed .cn-tile.is-in figcaption { transition-delay: .2s; }
+  html.cn:not(.cn-still) #home .cn-threats .cn-bento.is-armed figure.cn-tile:not(.cn-tile--qr).is-in::before { animation: cn-tile-scan 1.5s var(--cn-ease-in-out) .25s 1 both; }
+  html.cn:not(.cn-still) #home .cn-threats .cn-bento.is-armed figure.cn-tile--c.is-in::before { animation-delay: .45s; }
+  html.cn.cn-still #home .cn-threats .cn-tile :is(img, figcaption, .cn-qr) { transition: none; }
+}
+@keyframes cn-tile-scan {
+  0% { opacity: 0; translate: 0 -100%; }
+  14%, 82% { opacity: 1; }
+  100% { opacity: 0; translate: 0 420%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.cn #home .cn-threats .cn-tile :is(img, figcaption, .cn-qr, .cn-qr-code) { transition: none; }
+}
+
+@media (forced-colors: active) {
+  html.cn #home .cn-threats figure.cn-tile::before { display: none; }
+  html.cn #home .cn-threats .cn-tile { border-color: CanvasText; }
+  html.cn #home .cn-threats .cn-tile figcaption { background: Canvas; border-color: CanvasText; }
+  html.cn #home .cn-threats .cn-tile figcaption::before,
+  html.cn #home .cn-threats .cn-tile figcaption::after { display: none; }
+  html.cn #home .cn-threats .cn-tile figcaption { padding-inline-start: 16px; }
+  html.cn #home .cn-threats .cn-qr-code { forced-color-adjust: none; background: #ffffff; outline: 1px solid CanvasText; }
+  html.cn #home .cn-threats .cn-qr-links li { border-color: CanvasText; }
+  html.cn #home .cn-threats .cn-qr-links li::after { background: CanvasText; }
+}

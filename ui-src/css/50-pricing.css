@@ -1,0 +1,1215 @@
+/* CyberNet UI · 50-pricing: section#pricing (restyle only). Spec: ui-src/DESIGN.md, "Pricing".
+   Every rule is scoped "html.cn #pricing". Legacy traps handled here (maps/HAZARDS.md, 04-pricing):
+   - cybernet-account-api-upgrade.css forces #pricing grid padding-top 42/48px, overflow:visible and the
+     ribbon's top:-22px with !important. Only the grid padding and the ribbon top are overridden (with
+     !important and a higher specificity); nothing here needs overflow:hidden, so the inline
+     overflow:visible that account-api-upgrade.js writes on the Pro card is left alone.
+   - .price-amount, .price-period, #billingEquivalent, #businessBillingEquivalent, the three plan buttons and
+     .cn-seat-option have their text rewritten by JS: typography only, no inner markup, icons via pseudos.
+   - Every card is a .reveal (legacy owns its transform), so no card uses transform.
+   - .billing-equivalent rules are !important in style.css, so those overrides are !important too.
+   - content-visibility:auto on .pricing-grid applies paint containment: set back to visible.
+   - #pricingNotice.className is rewritten wholesale: styled only through .pricing-notice/.show/.error/
+     .success, and display is never set here (legacy .show owns it).
+   - Toggle thumb geometry is CSS-only: option width == thumb width (--cn-pr-seg), gap 0, and the yearly
+     thumb moves by translateX(100%) of its own width.
+   - Price changes animate with CSS only: :has() swaps the animation-name when the cycle or seat changes, so
+     no class is toggled (legal-upgrade.js observes class/data-cycle changes on the whole body). The :has()
+     subjects are the small .pricing-head and the Business card, never the whole page. */
+
+html.cn #pricing {
+  /* Icons are masks, coloured with tokens through background-color. */
+  --cn-pr-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5.5 12.5l4.2 4.2L18.5 8'/%3E%3C/svg%3E");
+  --cn-pr-dash: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M7.5 12h9'/%3E%3C/svg%3E");
+  /* Price-change animation names: swapped by :has() below (on the head and on the Business card) so the
+     animation restarts. */
+  --cn-pr-cyc: cn-pr-cycle-a;
+  --cn-pr-seat: cn-pr-seat-a;
+  /* Reading column for the FAQ and the fine print: the card column when the plans stack, wider
+     under the three-up tray. */
+  --cn-pr-col: 600px;
+  font-family: var(--cn-font);
+  color: var(--cn-text);
+}
+
+@media (min-width: 1024px) {
+  html.cn #pricing { --cn-pr-col: 760px; }
+}
+
+html.cn #pricing .pricing-head:has(#pricingToggle[data-cycle="yearly"]) ~ .pricing-grid { --cn-pr-cyc: cn-pr-cycle-b; }
+html.cn #pricing .business-price-card:has(.cn-seat-option[data-seat-tier="10"].is-active) { --cn-pr-seat: cn-pr-seat-b; }
+html.cn #pricing .business-price-card:has(.cn-seat-option[data-seat-tier="20"].is-active) { --cn-pr-seat: cn-pr-seat-c; }
+
+/* ---------- operator line (look and its 24px from 02-components.css; the head's top margin adds the
+   rest of the space, collapsing with it) ---------- */
+html.cn #pricing > .cn-operator {
+  max-inline-size: var(--cn-max);
+  margin-inline: auto;
+}
+
+/* ---------- head ---------- */
+html.cn #pricing .pricing-head {
+  container: cn-pr-head / inline-size;
+  max-inline-size: 820px;
+  margin: clamp(var(--cn-8), 1.5rem + 2vw, var(--cn-12)) auto clamp(var(--cn-10), 1.75rem + 2.5vw, var(--cn-12));
+  text-align: center;
+}
+
+html.cn #pricing .pricing-head .pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cn-2);
+  min-height: 28px;
+  margin: 0 auto var(--cn-6);
+  padding: 0 var(--cn-3);
+  border: 0;
+  border-radius: var(--cn-r-pill);
+  background: var(--cn-cyan-tint);
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  color: var(--cn-cyan-2);
+  font-family: var(--cn-font-mono);
+  font-size: var(--cn-step-label);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: var(--cn-track-label);
+  text-transform: uppercase;
+}
+
+html.cn #pricing .pricing-head h1 {
+  max-inline-size: 12em;
+  margin: 0 auto var(--cn-5);
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: var(--cn-step-h1);
+  font-weight: 600;
+  font-stretch: 100%;
+  line-height: 1.04;
+  letter-spacing: -.03em;
+  text-wrap: balance;
+}
+
+html.cn #pricing .pricing-head h1 span {
+  color: var(--cn-text-2);
+  -webkit-text-fill-color: currentColor;
+  background: none;
+  text-shadow: none;
+}
+
+html.cn #pricing .pricing-head > p {
+  max-inline-size: 50ch;
+  margin: 0 auto;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: var(--cn-step-lead);
+  line-height: 1.45;
+  letter-spacing: var(--cn-track-body);
+  text-wrap: pretty;
+}
+
+/* ---------- Monthly / Yearly segmented control ---------- */
+html.cn #pricing .pricing-toggle-wrap {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--cn-3);
+  margin-top: var(--cn-8);
+}
+
+/* Wide enough: the save tag hangs beside the toggle (out of flow), so the toggle stays on the centre axis. */
+@container cn-pr-head (min-width: 520px) {
+  html.cn #pricing .pricing-toggle-wrap { flex-direction: row; }
+  html.cn #pricing .pricing-toggle-wrap > .save-tag.save-tag {
+    position: absolute;
+    inset-inline-start: calc(100% + var(--cn-3));
+    top: 50%;
+    translate: 0 -50%;
+  }
+}
+
+html.cn #pricing .pricing-toggle {
+  --cn-pr-seg: 112px;
+  position: relative;
+  display: inline-flex;
+  gap: 0;
+  padding: var(--cn-1);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-ctl);
+  background: var(--cn-surface-2);
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+html.cn #pricing .toggle-option {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--cn-pr-seg);
+  min-height: 44px;
+  margin: 0;
+  padding: 0 var(--cn-3);
+  border: 0;
+  border-radius: calc(var(--cn-r-ctl) - var(--cn-1));
+  background: transparent;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: .9375rem;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: var(--cn-track-body);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color var(--cn-dur-2) var(--cn-ease-out);
+}
+
+html.cn #pricing .toggle-option.active { color: var(--cn-text); }
+
+html.cn #pricing .toggle-option:focus-visible {
+  outline: none;
+  box-shadow: var(--cn-focus);
+}
+
+html.cn #pricing .toggle-thumb {
+  position: absolute;
+  z-index: 1;
+  top: var(--cn-1);
+  bottom: var(--cn-1);
+  left: var(--cn-1);
+  inset-inline-start: var(--cn-1);
+  inline-size: var(--cn-pr-seg);
+  height: auto;
+  border-radius: calc(var(--cn-r-ctl) - var(--cn-1));
+  background: var(--cn-surface-3);
+  box-shadow: inset 0 0 0 1px var(--cn-line-2), 0 1px 2px rgba(0, 0, 0, .45), 0 6px 14px -8px rgba(0, 0, 0, .8);
+  transition: transform var(--cn-dur-3) var(--cn-ease-emph);
+}
+
+/* The one cyan mark: a 4px dot under the active label (as in the header nav). */
+html.cn #pricing .toggle-thumb::after {
+  content: "";
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  inline-size: 4px;
+  block-size: 4px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: var(--cn-cyan);
+}
+
+html.cn #pricing .pricing-toggle[data-cycle="yearly"] .toggle-thumb { transform: translateX(100%); }
+html.cn[dir="rtl"] #pricing .pricing-toggle[data-cycle="yearly"] .toggle-thumb { transform: translateX(-100%); }
+
+/* Save tag: a quiet chip that lights up (cyan dot, cyan text) once Yearly is chosen. */
+html.cn #pricing .save-tag {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cn-2);
+  min-height: 28px;
+  padding: 0 var(--cn-3);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-pill);
+  background: transparent;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: .8125rem;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0;
+  white-space: nowrap;
+  transition: color var(--cn-dur-2) var(--cn-ease-out), background-color var(--cn-dur-2) var(--cn-ease-out), border-color var(--cn-dur-2) var(--cn-ease-out);
+}
+
+html.cn #pricing .save-tag::before {
+  content: "";
+  flex: none;
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: 50%;
+  background: var(--cn-text-3);
+  transition: background-color var(--cn-dur-2) var(--cn-ease-out);
+}
+
+html.cn #pricing #pricingToggle[data-cycle="yearly"] + .save-tag {
+  border-color: transparent;
+  background: var(--cn-cyan-tint);
+  color: var(--cn-cyan-2);
+}
+
+/* One soft ring leaves the dot when Yearly is chosen (transform and opacity only). */
+html.cn #pricing .save-tag::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  inset-inline-start: var(--cn-3);
+  inline-size: 6px;
+  block-size: 6px;
+  margin-top: -3px;
+  border-radius: 50%;
+  background: var(--cn-cyan);
+  opacity: 0;
+  pointer-events: none;
+}
+
+html.cn #pricing #pricingToggle[data-cycle="yearly"] + .save-tag::before { background: var(--cn-cyan); }
+
+html.cn #pricing #pricingToggle[data-cycle="yearly"] + .save-tag::after {
+  animation: cn-pr-ping var(--cn-dur-4) var(--cn-ease-out) 1;
+}
+
+@keyframes cn-pr-ping {
+  0% { transform: scale(1); opacity: .6; }
+  100% { transform: scale(3.2); opacity: 0; }
+}
+
+/* ---------- plan cards on a tray ---------- */
+html.cn #pricing .pricing-grid.pricing-grid-three {
+  container: cn-pr-tray / inline-size;
+  content-visibility: visible;
+  contain-intrinsic-size: none;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  gap: var(--cn-3);
+  max-inline-size: 600px;
+  margin: 0 auto;
+  padding: 0 !important;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+
+/* Three columns: the cards sit on one tray (radius 28 = card 20 + 8 padding, so the corners nest). */
+@media (min-width: 1024px) {
+  html.cn #pricing .pricing-grid.pricing-grid-three {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--cn-2);
+    max-inline-size: var(--cn-max);
+    padding: var(--cn-2) !important;
+    border: 1px solid var(--cn-line);
+    border-radius: var(--cn-r-panel);
+    background: var(--cn-bg-2);
+  }
+}
+
+html.cn #pricing .pricing-grid-three .price-card {
+  --cn-pr-pad: clamp(20px, 5cqi, 32px);
+  container: cn-plan / inline-size;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin: 0;
+  padding: var(--cn-pr-pad);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-card);
+  background: var(--cn-surface);
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  color: var(--cn-text);
+  text-align: start;
+}
+
+@media (min-width: 1024px) {
+  html.cn #pricing .pricing-grid-three .price-card { --cn-pr-pad: clamp(24px, 2.6cqi, 32px); }
+}
+
+/* Pro: a cyan hairline border and a light that fades out along the top edge. Static: the earlier
+   animated beam repainted the card every frame, and nothing here moves. */
+html.cn #pricing .pricing-grid-three .pro-price-card {
+  border-color: var(--cn-cyan-line);
+}
+
+html.cn #pricing .pricing-grid-three .pro-price-card::before {
+  content: "";
+  position: absolute;
+  inset-block-start: -1px;
+  inset-inline: var(--cn-pr-pad);
+  block-size: 1px;
+  background: linear-gradient(90deg, transparent, var(--cn-cyan) 50%, transparent);
+  pointer-events: none;
+}
+
+/* Top row: plan label, plus "Most Popular" on Pro. The PLAN badges repeat the plan name: hidden here only
+   (the same classes are used by #navPlanBadge and #aiPlanBadge elsewhere). */
+html.cn #pricing .price-card-topline {
+  display: flex;
+  align-items: center;
+  gap: var(--cn-2);
+  min-height: 24px;
+  margin: 0;
+}
+
+html.cn #pricing .price-card-topline .plan-badge { display: none; }
+
+html.cn #pricing .price-plan-label {
+  display: block;
+  margin: 0;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font-mono);
+  font-size: var(--cn-step-label);
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: var(--cn-track-label);
+  text-transform: uppercase;
+}
+
+html.cn #pricing .pricing-grid-three .pro-price-card .popular-ribbon {
+  position: absolute;
+  top: var(--cn-pr-pad) !important;
+  left: auto;
+  right: var(--cn-pr-pad);
+  inset-inline-end: var(--cn-pr-pad);
+  inset-inline-start: auto;
+  transform: none;
+  display: inline-flex;
+  align-items: center;
+  block-size: 24px;
+  padding: 0 10px;
+  border-radius: var(--cn-r-pill);
+  background: var(--cn-cyan-tint);
+  box-shadow: inset 0 0 0 1px rgba(34, 211, 238, .22);
+  color: var(--cn-cyan-2);
+  font-family: var(--cn-font-mono);
+  font-size: var(--cn-step-label);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: var(--cn-track-label);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+html.cn #pricing .pro-price-card .price-card-topline { padding-inline-end: 124px; }
+
+/* Narrow 3-up cards: the Pro label wraps beside the ribbon, so every top row keeps two lines and the plan
+   names and prices stay on one line across the tray. */
+@media (min-width: 1024px) {
+  @container cn-plan (max-width: 295px) {
+    html.cn #pricing .price-card-topline { min-height: 2.8em; align-items: flex-start; }
+    html.cn #pricing .price-plan-label { padding-top: 3px; }
+  }
+}
+
+/* Very narrow cards (folded phones): the ribbon sits in flow above the label. */
+@container cn-plan (max-width: 259px) {
+  html.cn #pricing .pricing-grid-three .pro-price-card .popular-ribbon {
+    position: static;
+    align-self: flex-start;
+    margin-bottom: var(--cn-3);
+  }
+  html.cn #pricing .pro-price-card .price-card-topline { padding-inline-end: 0; }
+}
+
+html.cn #pricing .pricing-grid-three .price-card h3 {
+  margin: var(--cn-3) 0 0;
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: clamp(1.125rem, 1.05rem + .3vw, 1.3125rem);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -.015em;
+  text-transform: none;
+}
+
+/* Price: big tabular number, small period. The whitespace between the two spans differs in the markup;
+   inside a flex row it is dropped, so every card has the same gap. */
+html.cn #pricing .pricing-grid-three .price-card h2 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--cn-2);
+  margin: var(--cn-5) 0 0;
+  font-family: var(--cn-font);
+  line-height: 1;
+}
+
+html.cn #pricing .pricing-grid-three .price-card .price-amount {
+  color: var(--cn-text);
+  -webkit-text-fill-color: currentColor;
+  font-family: var(--cn-font);
+  font-size: clamp(2.5rem, 15cqi, 3.5rem);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -.045em;
+  /* Mona Sans draws a slashed zero in its tabular figures; prices use proportional lining figures. */
+  font-variant-numeric: lining-nums proportional-nums;
+  text-shadow: none;
+}
+
+html.cn #pricing .pricing-grid-three .price-card .price-period {
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: .9375rem;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+html.cn #pricing .pricing-grid-three .price-card > p {
+  margin: var(--cn-3) 0 0;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: .9375rem;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+html.cn #pricing .pricing-grid-three .price-card .billing-equivalent {
+  min-height: 1.5em !important;
+  margin: var(--cn-3) 0 0 !important;
+  color: var(--cn-text-2) !important;
+  font-family: var(--cn-font);
+  font-size: var(--cn-step-small) !important;
+  line-height: 1.5;
+}
+
+/* Price changes (Monthly/Yearly, seat tier): the new figure settles in. */
+html.cn #pricing .pricing-grid-three .price-card .price-amount,
+html.cn #pricing .pricing-grid-three .price-card .price-period,
+html.cn #pricing .pricing-grid-three .price-card .billing-equivalent {
+  animation: var(--cn-pr-cyc) var(--cn-dur-3) var(--cn-ease-out);
+}
+
+html.cn #pricing .pricing-grid-three .business-price-card .price-amount,
+html.cn #pricing .pricing-grid-three .business-price-card .billing-equivalent {
+  animation-name: var(--cn-pr-cyc), var(--cn-pr-seat);
+  animation-duration: var(--cn-dur-3), var(--cn-dur-3);
+  animation-timing-function: var(--cn-ease-out), var(--cn-ease-out);
+}
+
+@keyframes cn-pr-cycle-a { from { opacity: 0; transform: translateY(.25em); } to { opacity: 1; transform: none; } }
+@keyframes cn-pr-cycle-b { from { opacity: 0; transform: translateY(.25em); } to { opacity: 1; transform: none; } }
+@keyframes cn-pr-seat-a { from { opacity: 0; transform: translateY(.25em); } to { opacity: 1; transform: none; } }
+@keyframes cn-pr-seat-b { from { opacity: 0; transform: translateY(.25em); } to { opacity: 1; transform: none; } }
+@keyframes cn-pr-seat-c { from { opacity: 0; transform: translateY(.25em); } to { opacity: 1; transform: none; } }
+
+/* ---------- Business: seat picker (segmented control) and team note ---------- */
+html.cn #pricing .cn-seat-picker { margin: var(--cn-6) 0 0; }
+
+html.cn #pricing .cn-seat-picker-label {
+  display: block;
+  margin: 0 0 var(--cn-2);
+  color: var(--cn-text-2);
+  font-family: var(--cn-font-mono);
+  font-size: var(--cn-step-label);
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: var(--cn-track-label);
+  text-transform: uppercase;
+}
+
+html.cn #pricing .cn-seat-options {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: row;
+  gap: 0;
+  padding: var(--cn-1);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-ctl);
+  background: var(--cn-surface-2);
+}
+
+html.cn #pricing .cn-seat-option {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 52px;
+  margin: 0;
+  padding: var(--cn-2) var(--cn-1);
+  border: 0;
+  border-radius: calc(var(--cn-r-ctl) - var(--cn-1));
+  background: transparent;
+  box-shadow: none;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: .75rem;
+  font-weight: 500;
+  line-height: 1.3;
+  font-variant-numeric: lining-nums proportional-nums;
+  text-align: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color var(--cn-dur-2) var(--cn-ease-out), background-color var(--cn-dur-2) var(--cn-ease-out), box-shadow var(--cn-dur-2) var(--cn-ease-out);
+}
+
+html.cn #pricing .cn-seat-option b {
+  display: block;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: .875rem;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  transition: color var(--cn-dur-2) var(--cn-ease-out);
+}
+
+html.cn #pricing .cn-seat-option.is-active {
+  background: var(--cn-surface-3);
+  box-shadow: inset 0 0 0 1px var(--cn-line-2), 0 1px 2px rgba(0, 0, 0, .45);
+  color: var(--cn-cyan-2);
+}
+
+html.cn #pricing .cn-seat-option.is-active b { color: var(--cn-text); }
+
+html.cn #pricing .cn-seat-option:focus-visible {
+  outline: none;
+  box-shadow: var(--cn-focus);
+}
+
+/* Where :has() works, the raised pill slides between tiers instead of jumping. Three tiers assumed. */
+@supports selector(:has(*)) {
+  html.cn #pricing .cn-seat-options::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    top: var(--cn-1);
+    bottom: var(--cn-1);
+    left: var(--cn-1);
+    inset-inline-start: var(--cn-1);
+    inline-size: calc((100% - 2 * var(--cn-1)) / 3);
+    border-radius: calc(var(--cn-r-ctl) - var(--cn-1));
+    background: var(--cn-surface-3);
+    box-shadow: inset 0 0 0 1px var(--cn-line-2), 0 1px 2px rgba(0, 0, 0, .45);
+    transition: transform var(--cn-dur-3) var(--cn-ease-emph);
+  }
+  html.cn #pricing .cn-seat-options:has(> .cn-seat-option:nth-child(2).is-active)::before { transform: translateX(100%); }
+  html.cn #pricing .cn-seat-options:has(> .cn-seat-option:nth-child(3).is-active)::before { transform: translateX(200%); }
+  html.cn[dir="rtl"] #pricing .cn-seat-options:has(> .cn-seat-option:nth-child(2).is-active)::before { transform: translateX(-100%); }
+  html.cn[dir="rtl"] #pricing .cn-seat-options:has(> .cn-seat-option:nth-child(3).is-active)::before { transform: translateX(-200%); }
+  html.cn #pricing .cn-seat-option.is-active { background: transparent; box-shadow: none; }
+  html.cn #pricing .cn-seat-option.is-active:focus-visible { box-shadow: var(--cn-focus); }
+}
+
+html.cn #pricing .cn-seat-custom {
+  display: block;
+  margin-top: var(--cn-3);
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: .8125rem;
+  line-height: 1.5;
+}
+
+html.cn #pricing .cn-seat-custom a {
+  color: var(--cn-cyan-2);
+  text-decoration: underline;
+  text-decoration-color: var(--cn-cyan-line);
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+
+html.cn #pricing .pricing-grid-three .price-card > .business-email-note {
+  margin: var(--cn-4) 0 0;
+  padding: var(--cn-3) var(--cn-4);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-ctl);
+  background: var(--cn-surface-2);
+  color: var(--cn-text-2);
+  font-size: .875rem;
+  line-height: 1.5;
+}
+
+/* Three-up tray: every feature list starts on the same line. The copy under the price gets
+   one shared height (Free's description is three lines, Pro's and Business's billing line
+   one), and Business's team note moves under its list, beside the button. Only the
+   visual order changes: the note is plain text and the focus order is untouched.
+   (.billing-equivalent's min-height is !important in style.css.) */
+@media (min-width: 1024px) {
+  html.cn #pricing .pricing-grid-three .price-card > p:is(:not([class]), .billing-equivalent) {
+    min-height: 4.75rem !important;
+  }
+  html.cn #pricing .pricing-grid-three .business-price-card > .business-email-note {
+    order: 1;
+    margin: 0 0 var(--cn-6);
+  }
+  html.cn #pricing .pricing-grid-three .business-price-card > .plan-select-btn { order: 2; }
+}
+
+/* ---------- feature lists ---------- */
+html.cn #pricing .pricing-grid-three .price-card ul {
+  display: grid;
+  gap: var(--cn-3);
+  margin: var(--cn-6) 0 var(--cn-8);
+  padding: var(--cn-6) 0 0;
+  border-top: 1px solid var(--cn-line);
+  list-style: none;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: .9375rem;
+}
+
+html.cn #pricing .pricing-grid-three .price-card li {
+  position: relative;
+  margin: 0;
+  padding-inline-start: 30px;
+  color: var(--cn-text-2);
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+html.cn #pricing .pricing-grid-three .price-card li strong {
+  color: var(--cn-text);
+  font-weight: 600;
+}
+
+/* Tick: a tinted disc (::before) with a check mask (::after). */
+html.cn #pricing .pricing-grid-three .price-card li::before,
+html.cn #pricing .pricing-grid-three .price-card li::after {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  top: calc(.725em - 9px);
+  inline-size: 18px;
+  block-size: 18px;
+}
+
+html.cn #pricing .pricing-grid-three .price-card li::before {
+  border-radius: 50%;
+  background: var(--cn-cyan-tint);
+  color: transparent;
+}
+
+html.cn #pricing .pricing-grid-three .price-card li::after {
+  background: var(--cn-cyan-2);
+  -webkit-mask: var(--cn-pr-check) center / 14px 14px no-repeat;
+  mask: var(--cn-pr-check) center / 14px 14px no-repeat;
+}
+
+html.cn #pricing .pricing-grid-three .price-card li.feature-unavailable::before {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--cn-line-2);
+}
+
+html.cn #pricing .pricing-grid-three .price-card li.feature-unavailable::after {
+  background: var(--cn-text-3);
+  -webkit-mask-image: var(--cn-pr-dash);
+  mask-image: var(--cn-pr-dash);
+}
+
+/* ---------- checkout consent (injected by cybernet-legal-upgrade.js before #proPlanBtn) ---------- */
+html.cn #pricing #cnCheckoutConsentBox {
+  margin: auto 0 var(--cn-3);
+  padding: var(--cn-4);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-ctl);
+  background: var(--cn-surface-2);
+  box-shadow: none;
+  font-family: var(--cn-font);
+}
+
+html.cn #pricing #cnCheckoutConsentBox + #proPlanBtn { margin-top: 0; }
+
+html.cn #pricing #cnCheckoutConsentBox.cn-legal-error {
+  border-color: rgba(251, 113, 133, .55) !important;
+  box-shadow: 0 0 0 3px var(--cn-danger-tint);
+}
+
+html.cn #pricing #cnCheckoutConsentBox .cn-checkout-price-summary {
+  margin: 0 0 var(--cn-3);
+  padding: 0 0 var(--cn-3);
+  border: 0;
+  border-bottom: 1px solid var(--cn-line);
+  border-radius: 0;
+  background: none;
+  color: var(--cn-text-2);
+  font-size: .8125rem;
+  line-height: 1.5;
+}
+
+html.cn #pricing #cnCheckoutConsentBox strong {
+  color: var(--cn-text);
+  font-weight: 600;
+}
+
+html.cn #pricing #cnCheckoutConsentBox .cn-checkout-consent-row {
+  gap: var(--cn-3);
+  align-items: start;
+}
+
+/* The native checkbox stays in place (legal-upgrade.js reads .checked); only its skin changes. */
+html.cn #pricing #cnCheckoutConsentBox input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: none;
+  inline-size: 18px;
+  block-size: 18px;
+  margin: 1px 0 0;
+  border: 1.5px solid var(--cn-text-3);
+  border-radius: 5px;
+  background: transparent center / 14px 14px no-repeat;
+  cursor: pointer;
+  transition: background-color var(--cn-dur-1) var(--cn-ease-out), border-color var(--cn-dur-1) var(--cn-ease-out);
+}
+
+html.cn #pricing #cnCheckoutConsentBox input[type="checkbox"]:checked {
+  border-color: var(--cn-cyan);
+  background-color: var(--cn-cyan);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23001018' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5.5 12.5l4.2 4.2L18.5 8'/%3E%3C/svg%3E");
+}
+
+html.cn #pricing #cnCheckoutConsentBox input[type="checkbox"]:focus-visible {
+  outline: none;
+  box-shadow: var(--cn-focus);
+}
+
+html.cn #pricing #cnCheckoutConsentBox label {
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: .8125rem;
+  line-height: 1.5;
+}
+
+html.cn #pricing #cnCheckoutConsentBox .cn-legal-inline-actions {
+  gap: 0 var(--cn-4);
+  margin-top: var(--cn-1);
+  padding-left: 0;
+  padding-inline-start: 30px;
+}
+
+html.cn #pricing #cnCheckoutConsentBox .cn-legal-link-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px; /* stand-alone buttons, not inline text: 44px target (DESIGN.md rule 5) */
+  padding: 0;
+  color: var(--cn-cyan-2);
+  font-family: var(--cn-font);
+  font-size: .8125rem;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: 0;
+  text-decoration: underline;
+  text-decoration-color: var(--cn-cyan-line);
+  text-underline-offset: 3px;
+}
+
+html.cn #pricing #cnCheckoutConsentBox .cn-legal-link-btn:focus-visible {
+  outline: none;
+  border-radius: 4px;
+  box-shadow: var(--cn-focus);
+}
+
+html.cn #pricing #cnCheckoutConsentBox .cn-legal-required {
+  margin: 0;
+  text-wrap: pretty;
+  padding-inline-start: 30px;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: .75rem;
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: 0;
+}
+
+/* ---------- plan buttons (labels and disabled state are set by JS: no inner markup) ---------- */
+html.cn #pricing .plan-select-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--cn-2);
+  inline-size: 100%;
+  min-height: 48px;
+  margin-top: auto;
+  padding: 0 var(--cn-6);
+  border: 1px solid var(--cn-line-2);
+  border-radius: var(--cn-r-pill);
+  background: transparent;
+  box-shadow: none;
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: .9375rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -.005em;
+  text-align: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  /* Lift and press come from the shared button rules (translate / scale, 01-base.css). */
+}
+
+html.cn #pricing #proPlanBtn {
+  border-color: var(--cn-cyan);
+  background: var(--cn-cyan);
+  color: var(--cn-on-cyan);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  html.cn #pricing .plan-select-btn:not(:disabled):hover {
+    border-color: rgba(255, 255, 255, .24);
+    background: var(--cn-surface-3);
+    box-shadow: none;
+  }
+  html.cn #pricing #proPlanBtn:not(:disabled):hover {
+    border-color: var(--cn-cyan-2);
+    background: var(--cn-cyan-2);
+  }
+  html.cn #pricing .toggle-option:not(.active):hover,
+  html.cn #pricing .cn-seat-option:not(.is-active):hover,
+  html.cn #pricing .cn-seat-option:not(.is-active):hover b { color: var(--cn-text); }
+  html.cn #pricing .cn-seat-custom a:hover,
+  html.cn #pricing #cnCheckoutConsentBox .cn-legal-link-btn:hover { text-decoration-color: currentColor; }
+  html.cn #pricing #cnCheckoutConsentBox input[type="checkbox"]:not(:checked):hover { border-color: var(--cn-text-2); }
+}
+
+html.cn #pricing .plan-select-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--cn-focus);
+}
+
+/* "Current Plan" and "Included with ..." render disabled: a calm, settled state rather than a faded button. */
+html.cn #pricing .plan-select-btn:disabled,
+html.cn #pricing #proPlanBtn:disabled {
+  opacity: 1;
+  translate: none;
+  scale: none;
+  border-color: var(--cn-line);
+  background: transparent;
+  box-shadow: none;
+  color: var(--cn-text-2);
+  cursor: default;
+}
+
+/* A free-plan visitor's Pro button is only disabled while Stripe Checkout is opening: dim it in place. */
+html.cn body[data-plan="free"] #pricing #proPlanBtn:disabled {
+  border-color: var(--cn-cyan);
+  background: var(--cn-cyan);
+  color: var(--cn-on-cyan);
+  opacity: .55;
+  cursor: progress;
+}
+
+/* ---------- notice (live region; display owned by legacy .pricing-notice / .show) ---------- */
+html.cn #pricing .pricing-notice {
+  max-inline-size: 640px;
+  margin: var(--cn-6) auto 0;
+  padding: var(--cn-3) var(--cn-5);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-ctl);
+  background: var(--cn-surface);
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: var(--cn-step-small);
+  line-height: 1.5;
+  text-align: center;
+  text-wrap: pretty;
+}
+
+html.cn #pricing .pricing-notice.error {
+  border-color: rgba(251, 113, 133, .3);
+  background: var(--cn-danger-tint);
+  color: var(--cn-danger);
+}
+
+html.cn #pricing .pricing-notice.success {
+  border-color: rgba(52, 211, 153, .3);
+  background: var(--cn-safe-tint);
+  color: var(--cn-safe);
+}
+
+/* ---------- FAQ (styles ready for the .cn-faq markup requested from the owner of index.html) ---------- */
+/* One reading column, shared with the fine print below, so the two blocks line up. */
+html.cn #pricing .cn-faq {
+  max-inline-size: var(--cn-pr-col);
+  margin: clamp(var(--cn-16), 3rem + 4vw, var(--cn-24)) auto 0;
+}
+
+html.cn #pricing .cn-faq-head .cn-eyebrow,
+html.cn #pricing .cn-faq-eyebrow {
+  display: block;
+  margin: 0 0 var(--cn-3);
+  color: var(--cn-cyan-2);
+  font-family: var(--cn-font-mono);
+  font-size: var(--cn-step-label);
+  font-weight: 500;
+  letter-spacing: var(--cn-track-label);
+  text-transform: uppercase;
+}
+
+html.cn #pricing .cn-faq-head h2 {
+  margin: 0 0 var(--cn-3);
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: clamp(1.625rem, 1.3rem + 1.3vw, 2.375rem);
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: var(--cn-track-h2);
+  text-wrap: balance;
+}
+
+html.cn #pricing .cn-faq-head h2 span { color: var(--cn-text-2); }
+
+html.cn #pricing .cn-faq-head p {
+  max-inline-size: 52ch;
+  margin: 0 0 var(--cn-8);
+  color: var(--cn-text-2);
+  font-size: .9375rem;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+html.cn #pricing .cn-faq-list { border-top: 1px solid var(--cn-line); }
+
+html.cn #pricing .cn-faq-item {
+  border-bottom: 1px solid var(--cn-line);
+  interpolate-size: allow-keywords;
+}
+
+html.cn #pricing .cn-faq-item > summary {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 56px;
+  padding: var(--cn-4) var(--cn-10) var(--cn-4) 0;
+  padding-inline: 0 var(--cn-10);
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.4;
+  list-style: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html.cn #pricing .cn-faq-item > summary::-webkit-details-marker { display: none; }
+
+/* Plus that turns into a minus. */
+html.cn #pricing .cn-faq-item > summary::before,
+html.cn #pricing .cn-faq-item > summary::after {
+  content: "";
+  position: absolute;
+  inset-inline-end: 6px;
+  top: 50%;
+  inline-size: 12px;
+  block-size: 1.5px;
+  margin-top: -.75px;
+  border-radius: 1px;
+  background: var(--cn-text-2);
+  transition: transform var(--cn-dur-2) var(--cn-ease-out), background-color var(--cn-dur-2) var(--cn-ease-out);
+}
+
+html.cn #pricing .cn-faq-item > summary::after { transform: rotate(90deg); }
+html.cn #pricing .cn-faq-item[open] > summary::after { transform: rotate(0deg); }
+html.cn #pricing .cn-faq-item[open] > summary::before,
+html.cn #pricing .cn-faq-item[open] > summary::after { background: var(--cn-cyan); }
+
+html.cn #pricing .cn-faq-item > summary:focus-visible {
+  outline: none;
+  border-radius: 6px;
+  box-shadow: var(--cn-focus);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  html.cn #pricing .cn-faq-item > summary:hover::before,
+  html.cn #pricing .cn-faq-item > summary:hover::after { background: var(--cn-text); }
+}
+
+html.cn #pricing .cn-faq-item p {
+  max-inline-size: 60ch;
+  margin: 0;
+  padding: 0 var(--cn-10) var(--cn-5) 0;
+  padding-inline: 0 var(--cn-10);
+  color: var(--cn-text-2);
+  font-size: .9375rem;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+@media (max-width: 480px) {
+  html.cn #pricing .cn-faq-item p { padding-inline-end: 0; }
+}
+
+html.cn #pricing .cn-faq-item p strong { color: var(--cn-text); font-weight: 600; }
+
+html.cn #pricing .cn-faq-item a {
+  color: var(--cn-cyan-2);
+  text-decoration: underline;
+  text-decoration-color: var(--cn-cyan-line);
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+
+/* Smooth open/close where the browser can animate to height:auto (Chromium 131+); instant elsewhere. */
+html.cn #pricing .cn-faq-item::details-content {
+  block-size: 0;
+  overflow: clip;
+  opacity: 0;
+  transition: block-size var(--cn-dur-3) var(--cn-ease-out), opacity var(--cn-dur-2) var(--cn-ease-out), content-visibility var(--cn-dur-3) allow-discrete;
+}
+
+html.cn #pricing .cn-faq-item[open]::details-content {
+  block-size: auto;
+  opacity: 1;
+}
+
+/* ---------- fine print: one hairline list, wording unchanged ---------- */
+html.cn #pricing .cn-faq + .pricing-footnote { margin-top: var(--cn-12); }
+
+html.cn #pricing .pricing-footnote,
+html.cn #pricing .pricing-renewal-note,
+html.cn #pricing .pricing-legal-operator-note {
+  max-inline-size: var(--cn-pr-col);
+  margin-inline: auto;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: var(--cn-step-small);
+  line-height: 1.6;
+  letter-spacing: 0;
+  text-align: start;
+  text-wrap: pretty;
+}
+
+html.cn #pricing .pricing-footnote {
+  display: grid;
+  gap: 0;
+  margin-top: clamp(var(--cn-12), 2.5rem + 2vw, var(--cn-16));
+  border-bottom: 0;
+}
+
+html.cn #pricing .pricing-footnote > span,
+html.cn #pricing .pricing-renewal-note,
+html.cn #pricing .pricing-legal-operator-note {
+  display: block;
+  margin-block: 0;
+  padding: var(--cn-4) 0;
+  border: 0;
+  border-top: 1px solid var(--cn-line);
+}
+
+html.cn #pricing .pricing-legal-operator-note { border-bottom: 1px solid var(--cn-line); }
+
+html.cn #pricing .pricing-footnote strong,
+html.cn #pricing .pricing-renewal-note strong,
+html.cn #pricing .pricing-legal-operator-note strong {
+  color: var(--cn-text);
+  font-weight: 600;
+}
+
+/* ---------- support box (shared component; spacing in context only) ---------- */
+html.cn #pricing > .support-box { margin-top: clamp(var(--cn-12), 2.5rem + 2vw, var(--cn-16)); }
+
+/* ---------- accessibility preferences ---------- */
+@media (prefers-reduced-motion: reduce) {
+  html.cn #pricing .pricing-grid-three .price-card .price-amount,
+  html.cn #pricing .pricing-grid-three .price-card .price-period,
+  html.cn #pricing .pricing-grid-three .price-card .billing-equivalent,
+  html.cn #pricing #pricingToggle[data-cycle="yearly"] + .save-tag::after,
+  html.cn #pricing #cnCheckoutConsentBox.cn-legal-error { animation: none; }
+  html.cn #pricing .toggle-thumb,
+  html.cn #pricing .toggle-option,
+  html.cn #pricing .save-tag,
+  html.cn #pricing .save-tag::before,
+  html.cn #pricing .cn-seat-option,
+  html.cn #pricing .cn-seat-option b,
+  html.cn #pricing .cn-seat-options::before,
+  html.cn #pricing .cn-faq-item > summary::before,
+  html.cn #pricing .cn-faq-item > summary::after,
+  html.cn #pricing .cn-faq-item::details-content { transition: none; }
+  html.cn #pricing .plan-select-btn:not(:disabled):hover,
+  html.cn #pricing .plan-select-btn:not(:disabled):active { translate: none; scale: none; }
+}
+
+@media (forced-colors: active) {
+  html.cn #pricing .pricing-grid-three .pro-price-card::before { display: none; }
+  html.cn #pricing .toggle-thumb,
+  html.cn #pricing .cn-seat-options::before { border: 2px solid Highlight; }
+  html.cn #pricing .pricing-grid-three .price-card li::after { background: CanvasText; }
+  html.cn #pricing #cnCheckoutConsentBox input[type="checkbox"] { -webkit-appearance: auto; appearance: auto; }
+}
+
+/* ==========================================================================
+   v4.1 "Midnight" (kit: 30-tools.css section 17)
+   ========================================================================== */
+
+/* ---------- the operator banner: the first thing on Pricing ----------
+   "CyberNet AI is operated under Marks Events FZ LLE" as a readable 14-15px banner: a navy pill with
+   a cyan hairline, the brand shield (a CSS mask of an inline SVG) in cyan at its start, the entity name
+   in white. Centred, prominent, calm. Under 560px the entity takes its own line (02-components) and the
+   pill softens to a card. About carries the same sentence as a quiet footnote at the very end of the
+   page instead (45-about.css, "operator footnote"); #about's note must never pick this banner up. */
+html.cn #pricing > .cn-operator {
+  --cn-op-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 26' fill='none' stroke='%23000'%3E%3Cpath d='M12 2 21 6 20 15 12 24 4 15 3 6Z' stroke-width='1.8' stroke-linejoin='round'/%3E%3Cpath d='M9.6 12.5v-2.3a2.4 2.4 0 0 1 4.8 0v2.3' stroke-width='1.6' stroke-linecap='round'/%3E%3Cpath fill='%23000' stroke='none' fill-rule='evenodd' d='M9.5 12.5h5a1.2 1.2 0 0 1 1.2 1.2v3.8a1.2 1.2 0 0 1-1.2 1.2h-5a1.2 1.2 0 0 1-1.2-1.2v-3.8a1.2 1.2 0 0 1 1.2-1.2ZM12 14.2a1 1 0 0 1 .5 1.866V17.3h-1v-1.234A1 1 0 0 1 12 14.2Z'/%3E%3C/svg%3E");
+  position: relative;
+  box-sizing: border-box;
+  display: block;
+  width: fit-content;
+  max-inline-size: min(100%, 700px);
+  margin: 0 auto clamp(28px, 3.4vw, 44px);
+  padding: 13px clamp(20px, 3vw, 30px) 13px clamp(58px, 7vw, 68px);
+  border: 1px solid var(--cn-cyan-line);
+  border-radius: var(--cn-r-pill);
+  background: var(--cn-surface);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05), 0 12px 24px -18px rgba(0, 0, 0, .7);
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: clamp(.875rem, .82rem + .25vw, .9375rem);
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: 0;
+  text-align: center;
+  text-transform: none;
+  text-wrap: balance;
+}
+html.cn #pricing > .cn-operator::before {
+  content: "";
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: clamp(18px, 3vw, 24px);
+  width: 28px;
+  height: 30px;
+  translate: 0 -50%;
+  background: var(--cn-cyan);
+  -webkit-mask: var(--cn-op-mark) center / contain no-repeat;
+  mask: var(--cn-op-mark) center / contain no-repeat;
+}
+html.cn #pricing > .cn-operator strong {
+  color: var(--cn-text);
+  font-weight: 650;
+}
+@media (max-width: 559.98px) {
+  html.cn #pricing > .cn-operator {
+    border-radius: 22px;
+    padding: 12px 16px 12px 54px;
+    text-align: start;
+  }
+  html.cn #pricing > .cn-operator::before { inset-inline-start: 14px; width: 26px; height: 28px; }
+}
+
+/* ---------- head ---------- */
+html.cn #pricing .pricing-head .pill {
+  padding: 0 14px 0 28px;
+  background:
+    radial-gradient(circle at 14px 50%, var(--cn-cyan) 0 3px, transparent 3.5px),
+    linear-gradient(var(--cn-fill-1), var(--cn-fill-1)),
+    var(--cn-surface); /* solid, so the section motion lines pass behind it, not through the words */
+  box-shadow: inset 0 0 0 1px var(--cn-line-2);
+  color: var(--cn-text-2);
+}
+
+/* ---------- plan cards: the hairline and one soft lift; Pro has its cyan edge (above) ---------- */
+html.cn #pricing .pricing-grid-three .price-card { box-shadow: var(--cn-pg-lift); }
+html.cn #pricing .price-plan-label { color: var(--cn-text-2); }
+html.cn #pricing .pro-price-card .price-plan-label { color: var(--cn-cyan-2); }
+
+html.cn #pricing .plan-select-btn { border-color: var(--cn-line-ctl); }
+@media (hover: hover) and (pointer: fine) {
+  html.cn #pricing .plan-select-btn:not(:disabled):hover {
+    border-color: var(--cn-text-2);
+    background: var(--cn-fill-1);
+  }
+}
+
+@media (forced-colors: active) {
+  html.cn #pricing > .cn-operator { border: 2px solid CanvasText; }
+  html.cn #pricing > .cn-operator::before { forced-color-adjust: none; background: CanvasText; }
+}

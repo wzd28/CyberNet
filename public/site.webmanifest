@@ -1,6 +1,10 @@
 {
+  "id": "/",
   "name": "CyberNet AI",
   "short_name": "CyberNet",
+  "description": "Check suspicious texts, links and QR codes, and get a recovery plan if something already went wrong.",
+  "start_url": "/",
+  "scope": "/",
   "icons": [
     {
       "src": "/favicon-192x192.png",
@@ -13,7 +17,11 @@
       "type": "image/png"
     }
   ],
-  "theme_color": "#06111F",
-  "background_color": "#06111F",
-  "display": "standalone"
+  "theme_color": "#160d42",
+  "background_color": "#160d42",
+  "display": "standalone",
+  "categories": [
+    "security",
+    "utilities"
+  ]
 }

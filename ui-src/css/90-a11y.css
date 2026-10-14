@@ -1,0 +1,235 @@
+/* CyberNet AI v4.1 "Midnight": accessibility and output modes (owner: aurora).
+   Loads last, so these fallbacks apply on top of every partial. */
+
+/* ------------------------------------------------------------------------------------------
+   0. Skip link (<a class="cn-skip" href="#cnMain">, first in <body>): parked above the page
+   until it takes focus, so it never shows as a bare link. Absolute, not fixed, so it scrolls
+   away like everything else. It lives here, not in 10-nav.css, because this partial is also
+   in the legal bundle (cybernet-ui-legal.css), so a standalone page can use the same link.
+   ------------------------------------------------------------------------------------------ */
+html.cn .cn-skip {
+  position: absolute;
+  top: 0;
+  inset-inline-start: max(var(--cn-4), env(safe-area-inset-left, 0px));
+  z-index: 2000;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: var(--cn-r-pill);
+  background: var(--cn-text);
+  color: var(--cn-bg);
+  font-family: var(--cn-font);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  text-decoration: none;
+  white-space: nowrap;
+  transform: translateY(-120%);
+  transition: transform var(--cn-dur-2) var(--cn-ease-out);
+}
+html.cn .cn-skip:focus,
+html.cn .cn-skip:focus-visible {
+  outline: none;
+  box-shadow: var(--cn-focus);
+  transform: translateY(calc(var(--cn-3) + env(safe-area-inset-top, 0px)));
+}
+/* the skip target is focused by the hash jump; it needs no ring of its own */
+html.cn #cnMain:focus {
+  outline: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  html.cn .cn-skip { transition: none; }
+}
+@media print {
+  html.cn .cn-skip { display: none; }
+}
+
+/* ------------------------------------------------------------------------------------------
+   1. Reduced motion, and the global Pause motion (html.cn-still, 07-aurora.js): everything shows
+   its end state. Typing is complete, counters show the final value, reveals are simply visible,
+   loops stop, scroll-linked effects rest at their end. The catch-all covers any animation a
+   partial forgot; spinners keep turning (slowly), because a frozen spinner reads as a hang.
+   Pause motion keeps hover and press transitions (the visitor asked for a still page, not a
+   different one); the section canvases show one still frame (09-bgfx.js), and the catch-all
+   for the pause starts below body.
+   ------------------------------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  html.cn { scroll-behavior: auto; }
+
+  html.cn :where(.page) .reveal,
+  html.cn :where(.page) .reveal.show {
+    transform: none;
+    filter: none;
+    transition: opacity .15s linear;
+  }
+  html.cn.cn-js [data-cn-reveal]:not(.is-in),
+  html.cn.cn-js [data-cn-stagger]:not(.is-in) > * {
+    opacity: 1;
+  }
+  html.cn [data-cn-reveal].is-in,
+  html.cn [data-cn-stagger].is-in > *,
+  html.cn.cn-navigated .page.active-page:not(.leaving),
+  html.cn.cn-navigated .page.leaving {
+    animation: none;
+  }
+  html.cn .cn-live-dot::after,
+  html.cn .cn-live-dot.is-on::after { animation: none; opacity: 0; }
+
+  html.cn :is(.primary-btn, .secondary-btn, .cn-btn, .cn-chip, .cn-motion-toggle):is(:hover, :active) {
+    translate: none;
+    scale: none;
+  }
+
+  html.cn *:not([class*="spinner"]),
+  html.cn *:not([class*="spinner"])::before,
+  html.cn *:not([class*="spinner"])::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-timeline: auto !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+  html.cn [class*="spinner"] {
+    animation-duration: 1.6s !important;
+  }
+}
+
+html.cn.cn-still.cn-js [data-cn-reveal]:not(.is-in),
+html.cn.cn-still.cn-js [data-cn-stagger]:not(.is-in) > * {
+  opacity: 1;
+}
+html.cn.cn-still :where(.page) .reveal { transform: none; filter: none; }
+html.cn.cn-still :is([data-cn-reveal].is-in, [data-cn-stagger].is-in > *) { animation: none; }
+html.cn.cn-still .cn-live-dot::after { animation: none; opacity: 0; }
+html.cn.cn-still body *:not([class*="spinner"]),
+html.cn.cn-still body *:not([class*="spinner"])::before,
+html.cn.cn-still body *:not([class*="spinner"])::after {
+  animation-duration: .01ms !important;
+  animation-iteration-count: 1 !important;
+  animation-timeline: auto !important;
+}
+html.cn.cn-still body [class*="spinner"] {
+  animation-duration: 1.6s !important;
+}
+
+/* ------------------------------------------------------------------------------------------
+   2. Forced colours (Windows High Contrast): give every shape an edge, keep state visible.
+   The system drops box-shadow, and many component focus styles draw their ring with
+   box-shadow after outline:none at a higher specificity, so the one system-coloured outline
+   is forced here (a purely visual !important, inside this mode only). Wrappers that hold a
+   visually hidden input (upload boxes, Recovery toggles) carry the ring for it.
+   ------------------------------------------------------------------------------------------ */
+@media (forced-colors: active) {
+  html.cn :is(.primary-btn, .secondary-btn, .cn-btn, .cn-chip, .cn-ghost-btn, .inline-link-btn) {
+    border: 1px solid ButtonText;
+  }
+  html.cn :is(.pill, .cn-eyebrow, .cn-verdict, .cn-ex, .cn-card, .cn-glass, .cn-motion-toggle, .home-limits-note, .cn-light, [data-cn-tone]),
+  html.cn :where(main) .glass {
+    border: 1px solid CanvasText;
+  }
+  html.cn :is(.cn-card, .cn-glass, .page > .support-box)::before { display: none; }
+  html.cn .cn-motion-toggle::before { border-color: ButtonText; }
+  html.cn :focus-visible,
+  html.cn :is(.real-upload-box, .recovery-toggle, .recovery-upload-row):has(input:focus-visible) {
+    outline: 2px solid Highlight !important;
+    outline-offset: 3px !important;
+  }
+  html.cn .cn-live-dot {
+    forced-color-adjust: none;
+    background: Highlight;
+  }
+  html.cn .cn-live-dot::after { display: none; }
+  html.cn .cn-verdict::before { background: CanvasText; }
+  /* hand checkboxes and radios back to the system so their state stays visible */
+  :where(html.cn input[type="checkbox"], html.cn input[type="radio"]) {
+    -webkit-appearance: auto;
+    appearance: auto;
+  }
+  html.cn :where(select) {
+    -webkit-appearance: auto;
+    appearance: auto;
+    background-image: none;
+    padding-inline-end: revert;
+  }
+  html.cn .cn-operator { border: 1px solid CanvasText; }
+}
+
+/* ------------------------------------------------------------------------------------------
+   3. More contrast: lift the grey text and the hairlines, make glass solid (tokens only, on the
+   root and on every light band, so each resolves against its own ground; no cycles).
+   ------------------------------------------------------------------------------------------ */
+@media (prefers-contrast: more) {
+  html.cn,
+  html.cn :is(.cn-light, [data-cn-tone="light"], #home > .cn-live, #home > .cn-demo, #home > .why-choose, #home > .wow-section) {
+    --cn-text-2: color-mix(in srgb, var(--cn-text) 86%, var(--cn-bg));
+    --cn-text-3: color-mix(in srgb, var(--cn-text) 72%, var(--cn-bg));
+    --cn-line: color-mix(in srgb, var(--cn-text) 26%, transparent);
+    --cn-line-2: color-mix(in srgb, var(--cn-text) 44%, transparent);
+    --cn-line-ctl: color-mix(in srgb, var(--cn-text) 64%, transparent);
+    --cn-cyan-tint: color-mix(in srgb, var(--cn-cyan) 20%, transparent);
+    --cn-glass: var(--cn-surface);
+    --cn-glass-2: var(--cn-surface-2);
+  }
+  html.cn :focus-visible { outline-width: 3px; }
+  html.cn :where(textarea, input)::placeholder { color: var(--cn-text-2); }
+}
+
+/* Less transparency: glass becomes a solid surface (the text then sits on a known colour). */
+@media (prefers-reduced-transparency: reduce) {
+  html.cn,
+  html.cn :is(.cn-light, [data-cn-tone="light"], #home > .cn-live, #home > .cn-demo, #home > .why-choose, #home > .wow-section) {
+    --cn-glass: var(--cn-surface);
+    --cn-glass-2: var(--cn-surface-2);
+  }
+}
+
+/* ------------------------------------------------------------------------------------------
+   4. Installed app (Add to Home Screen, and later the app shell)
+   The header is in normal flow, so the body clears the status bar / notch itself.
+   ------------------------------------------------------------------------------------------ */
+@media (display-mode: standalone), (display-mode: fullscreen) {
+  html.cn body {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  html.cn :is(button, a, [role="button"], [role="tab"]) {
+    -webkit-touch-callout: none;
+  }
+}
+
+/* ------------------------------------------------------------------------------------------
+   5. Print: ink on paper, no effects, links spelled out. (Legacy hides the SPA pages in
+   print; the legal pages print in full.)
+   ------------------------------------------------------------------------------------------ */
+@media print {
+  html.cn,
+  html.cn body {
+    background: Canvas !important;
+    color: CanvasText !important;
+  }
+  html.cn *,
+  html.cn *::before,
+  html.cn *::after {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+  html.cn :is(h1, h2, h3, h4, p, li, strong, span, small, td, th) {
+    color: CanvasText !important;
+  }
+  html.cn :is(h1, h2, h3, h4) { break-after: avoid; }
+  html.cn :is(.cn-card, table, pre, blockquote, figure) { break-inside: avoid; }
+  html.cn :where(main) .glass,
+  html.cn .cn-card {
+    background: none !important;
+    border-color: GrayText !important;
+  }
+  html.cn :is(canvas, video, .cn-live-dot) { display: none; }
+  html.cn .reveal { opacity: 1 !important; transform: none !important; }
+  html.cn :where(a[href^="http"]:not([class]))::after {
+    content: " (" attr(href) ")";
+    font-size: .85em;
+    word-break: break-all;
+  }
+}

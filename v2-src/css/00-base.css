@@ -1,0 +1,1030 @@
+/* =====================================================================
+   CyberNet AI v2 - 00-base.css
+   Design-system layer shared by every other partial: tokens (plus a
+   remap of the legacy tokens), fonts, ground + backdrop, typography,
+   glass, buttons, pills/badges, inputs, generic heads, support box,
+   limits note, footer, modal shell, notices, reveal + page motion,
+   and the reduced-motion / reduced-transparency fallbacks.
+
+   Rules of the house (see maps/HAZARDS.md):
+   - every selector starts with html.v2; no @layer; keyframes are v2-*
+   - !important only against legacy/injected !important, never as a
+     display value on anything JS shows/hides
+   - layout overrides live inside the legacy breakpoints
+     (1150, 1060, 920, 760, 700, 480)
+   - low-specificity defaults use :where() so later partials (and the
+     legacy component rules) can refine them without a fight
+   ===================================================================== */
+
+/* ---------------------------------------------------------------------
+   1. TOKENS
+   html.v2 (0,1,1) beats the legacy :root (0,1,0) blocks, including
+   cybernet-legal.css, which loads after this sheet.
+   --------------------------------------------------------------------- */
+html.v2{
+  /* v2 palette */
+  --v2-ground:#020406;
+  --v2-ink:#effdff;
+  --v2-muted:rgba(239,253,255,.64);
+  --v2-faint:rgba(239,253,255,.56);   /* floor for small text (AA) */
+  --v2-blue:#22d3ee;
+  --v2-violet:#2dd4bf;
+  --v2-g1:#22d3ee;
+  --v2-g2:#a5f3fc;
+  --v2-amber:#FFB547;
+  --v2-safe:#6CF0B0;
+  --v2-danger:#FF5C7A;
+  --v2-navy:#06232a;
+  --v2-navy-deep:#080f11;
+  --v2-on-white:#030505;               /* text on white pills */
+  --v2-grad:linear-gradient(95deg,#22d3ee 0%,#a5f3fc 60%,#e0fcff 100%);
+  --v2-white:linear-gradient(180deg,#67e8f9 0%,#22d3ee 55%,#0fb9d6 100%);
+
+  /* surfaces */
+  --v2-rim:rgba(255,255,255,.13);
+  --v2-rim-soft:rgba(255,255,255,.09);
+  --v2-glass:linear-gradient(180deg,rgba(255,255,255,.085),rgba(255,255,255,.032)),linear-gradient(rgba(17,32,35,.16),rgba(17,32,35,.16));
+  --v2-glass-solid:linear-gradient(180deg,#101b1e,#0a1315);
+  --v2-blur:blur(26px) saturate(160%);
+  --v2-blur-btn:blur(20px) saturate(170%);
+  --v2-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 30px 80px -34px rgba(0,0,0,.8);
+  --v2-field:rgba(255,255,255,.04);
+  --v2-field-solid:#0a1214;            /* select + option background */
+  --v2-focus:0 0 0 4px rgba(34,211,238,.18),0 0 26px -6px rgba(34,211,238,.55);
+
+  /* type + motion */
+  --v2-sans:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --v2-mono:"Geist Mono",ui-monospace,"SFMono-Regular",Consolas,"Liberation Mono",monospace;
+  --v2-ease:cubic-bezier(.2,.8,.2,1);
+  --v2-radius-card:26px;
+  --v2-radius-field:14px;
+
+  /* legacy token remap: untouched legacy styling turns navy / white-blue.
+     --green stays a periwinkle so it works BOTH as accent text on the
+     dark ground (about 9:1) and as an active-control fill carrying
+     color:var(--bg) dark text (about 9:1). */
+  --bg:#030505;
+  --bg-alt:#070c0d;
+  --glass:rgba(120,227,245,.06);
+  --glass-strong:rgba(10,19,21,.86);
+  --glass-border:rgba(255,255,255,.13);
+  --glass-border-strong:rgba(34,211,238,.45);
+  --glass-border-quiet:rgba(255,255,255,.09);
+  --green:#22d3ee;
+  --green-dim:#1ea4bb;
+  --green-bright:#c3f9ff;
+  --text:#effdff;
+  --muted:rgba(239,253,255,.64);
+  --soft:rgba(239,253,255,.56);
+  --danger:#FF5C7A;
+  --warning:#FFB547;
+  --safe:#6CF0B0;
+  --font-body:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  /* Legacy used the mono token for headings, nav, buttons and inputs.
+     v2 is Geist everywhere; real labels get Geist Mono explicitly below. */
+  --font-mono:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --radius-card:24px;
+  --fs-h1:clamp(36px,4.4vw,60px);
+  --fs-h2:clamp(28px,3vw,42px);
+  --tracking-h1:-.045em;
+  --tracking-h2:-.035em;
+  --weight-display:620;
+  --weight-heading:600;
+
+  /* Legal Center tokens (cybernet-legal.css :root loads later) */
+  --cn-legal-bg:#040809;
+  --cn-legal-panel:rgba(9,17,18,.97);
+  --cn-legal-panel-soft:rgba(13,23,24,.72);
+  --cn-legal-border:rgba(255,255,255,.12);
+  --cn-legal-border-strong:rgba(34,211,238,.42);
+  --cn-legal-text:#effdff;
+  --cn-legal-muted:#72d7e8;
+  --cn-legal-soft:#60d2e5;
+  --cn-legal-accent:#22d3ee;
+  --cn-legal-accent-2:#2dd4bf;
+  --cn-legal-safe:#6CF0B0;
+  --cn-legal-warn:#FFB547;
+  --cn-legal-danger:#FF8099;
+
+  accent-color:var(--v2-blue);          /* inherited by every checkbox/radio */
+  scrollbar-color:rgba(34,211,238,.26) transparent;
+  -webkit-text-size-adjust:100%;
+  text-size-adjust:100%;
+}
+
+/* The motion partial opts out of the legacy CSS smooth scroll when it
+   drives scrolling itself. */
+html.v2.v2-smooth{scroll-behavior:auto}
+
+/* ---------------------------------------------------------------------
+   2. FONTS
+   --------------------------------------------------------------------- */
+html.v2 body{
+  font-family:var(--v2-sans);
+  color:var(--v2-ink);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility;
+  font-feature-settings:"liga" 1,"calt" 1;
+}
+html.v2 :where(button,input,textarea,select){font-family:inherit}
+
+/* Literal 'Inter' / 'JetBrains Mono' in the add-on sheets (both fonts
+   are no longer loaded). Sans for UI text... */
+html.v2 :where(.cn-consent,.cn-consent-btn,.cn-consent-open-btn,.cn-legal-viewer,
+  .cn-legal-tab,.cn-legal-done,.cn-legal-link-btn,.cn-legal-text-link,.cn-legal-required,
+  .cn-footer-legal a,.cn-footer-legal button,.cn-account-legal-links a,.cn-account-legal-links button){
+  font-family:var(--v2-sans);
+}
+/* ...and Geist Mono for the small uppercase labels, codes and counters
+   that are meant to read as labels (legacy mono token now maps to sans). */
+html.v2 :where(code,kbd,samp,pre,
+  .account-eyebrow,.price-plan-label,.plan-badge,.usage-chip,.save-tag,.char-count,
+  .brand-text small,.api-key-label,.term-path,.term-body,.fetch-body,
+  .qr-raw,.qr-kind,.dest-url,.dest-badge,.diagnostic-followup-tag,
+  .cybernet-account-live-badge,.cybernet-account-plan-badge,.cybernet-byok-status-pill,
+  .cn-team-tier-badge,.cn-role-badge,.cn-team-pending-badge,.cn-team-pending-countdown,
+  .cn-activity-kind,.cn-activity-verdict,.cn-activity-url,
+  .hw-step-count,.hw-callout-label,.hw-field-box.hw-mono,.hw-tag,.hw-score,.hw-meter-label,.hw-tl-when,
+  .cn-legal-eyebrow,.cn-legal-meta,.cn-legal-toc strong,.cn-legal-data-table th,.cn-legal-brand small){
+  font-family:var(--v2-mono);
+}
+
+/* ---------------------------------------------------------------------
+   3. GROUND + BACKDROP
+   One background, on body only: it propagates to the canvas so the
+   fixed .background (z -5) still paints above it.
+   --------------------------------------------------------------------- */
+html.v2 body{
+  background:
+    radial-gradient(70% 100% at 50% 0%,rgba(31,166,189,.16),transparent 72%) 50% 0/100% 1100px no-repeat,
+    var(--v2-ground);
+  overflow-x:clip;
+}
+
+/* Legacy decoration off: scanlines, animated top bar, particle canvas and
+   the old orb/aurora/grid/watermark/wave layers. (script.js only writes
+   width/height/display:none inline on the canvas, never display:block.) */
+html.v2 body::before,
+html.v2 body::after{content:none;display:none;animation:none}
+html.v2 #particleCanvas{display:none}
+html.v2 .background > *{display:none}
+
+/* The fixed .background becomes the v2 backdrop: a faint 26px dot grid,
+   a navy-blue orb top-left, a violet orb right, and a deep navy floor.
+   Background layers only, so ::before/::after stay free for the motion
+   partial (cursor-lit dots via --v2-mx/--v2-my). */
+html.v2 .background{
+  background:
+    radial-gradient(rgba(122,227,245,.13) 1px,transparent 1.5px) 0 0/26px 26px,
+    radial-gradient(closest-side,rgba(37,193,219,.40),rgba(37,193,219,.13) 52%,transparent) -20vmax -26vmax/60vmax 60vmax no-repeat,
+    radial-gradient(closest-side,rgba(59,220,199,.30),rgba(59,220,199,.09) 55%,transparent) calc(100% + 18vmax) 22vh/50vmax 50vmax no-repeat,
+    radial-gradient(closest-side,rgba(6,35,42,.55),rgba(6,35,42,.18) 60%,transparent) 50% calc(100% + 34vh)/150vw 80vh no-repeat;
+}
+
+/* ---------------------------------------------------------------------
+   4. TYPOGRAPHY, LINKS, SELECTION, FOCUS, SCROLLBARS
+   --------------------------------------------------------------------- */
+html.v2 :where(h1,h2,h3){
+  font-weight:600;
+  letter-spacing:-.025em;
+  text-wrap:balance;
+}
+html.v2 :where(p,li){text-wrap:pretty}
+html.v2 :where(strong,b){font-weight:600}
+
+/* bare text links (classed anchors keep their own colour) */
+:where(html.v2) a{color:var(--v2-g1);text-underline-offset:3px;text-decoration-thickness:1px}
+:where(html.v2) a:hover{color:var(--v2-ink)}
+
+html.v2 ::selection{background:rgba(34,211,238,.38);color:#fff}
+
+html.v2 :where(:focus-visible){outline:2px solid var(--v2-g1);outline-offset:3px}
+html.v2 :where(button,a,[role="tab"]):focus:not(:focus-visible){outline:none}
+
+html.v2 ::-webkit-scrollbar{width:10px;height:10px}
+html.v2 ::-webkit-scrollbar-track{background:transparent}
+html.v2 ::-webkit-scrollbar-thumb{background:rgba(34,211,238,.24);border:3px solid transparent;border-radius:999px;background-clip:padding-box}
+html.v2 ::-webkit-scrollbar-thumb:hover{background-color:rgba(34,211,238,.4)}
+
+/* gradient text (also used by the generic heads below) */
+html.v2 .v2-grad{
+  background:var(--v2-grad);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+  -webkit-box-decoration-break:clone;
+  box-decoration-break:clone;
+}
+
+/* ---------------------------------------------------------------------
+   5. GLASS
+   --------------------------------------------------------------------- */
+html.v2 .glass{
+  background:var(--v2-glass);
+  -webkit-backdrop-filter:var(--v2-blur);
+  backdrop-filter:var(--v2-blur);
+  border:1px solid var(--v2-rim);
+  border-radius:var(--v2-radius-card);
+  box-shadow:var(--v2-shadow);
+}
+
+/* ---------------------------------------------------------------------
+   6. BUTTONS
+   --------------------------------------------------------------------- */
+html.v2 .primary-btn,
+html.v2 .secondary-btn{
+  position:relative;
+  isolation:isolate;
+  min-height:46px;
+  padding:0 22px;
+  border-radius:999px;
+  font-family:var(--v2-sans);
+  font-size:15px;
+  font-weight:560;
+  letter-spacing:-.01em;
+  line-height:1.15;
+  text-decoration:none;
+  -webkit-tap-highlight-color:transparent;
+  transition:
+    transform .25s var(--v2-ease),
+    box-shadow .3s var(--v2-ease),
+    background-color .25s ease,
+    border-color .25s ease,
+    color .2s ease,
+    opacity .2s ease;
+}
+
+/* white pill */
+html.v2 .primary-btn{
+  background:var(--v2-white);
+  color:var(--v2-on-white);
+  border:0;
+  box-shadow:
+    inset 0 1px 0 #fff,
+    inset 0 -3px 8px rgba(67,201,224,.18),
+    0 0 0 1px rgba(255,255,255,.55),
+    0 10px 34px -8px rgba(34,211,238,.55),
+    0 0 50px -12px rgba(45,212,191,.35);
+}
+html.v2 .primary-btn:hover{
+  transform:translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 #fff,
+    inset 0 -3px 8px rgba(67,201,224,.18),
+    0 0 0 1px rgba(255,255,255,.7),
+    0 14px 46px -8px rgba(34,211,238,.8),
+    0 0 76px -12px rgba(45,212,191,.55);
+}
+html.v2 .primary-btn:active{transform:translateY(0) scale(.985)}
+
+/* glass pill with a top specular sheen */
+html.v2 .secondary-btn{
+  background:linear-gradient(180deg,rgba(255,255,255,.13),rgba(255,255,255,.04));
+  border:1px solid rgba(255,255,255,.15);
+  color:var(--v2-ink);
+  -webkit-backdrop-filter:var(--v2-blur-btn);
+  backdrop-filter:var(--v2-blur-btn);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.3),
+    inset 0 -1px 0 rgba(255,255,255,.05),
+    0 10px 26px -12px rgba(0,0,0,.7);
+}
+html.v2 .secondary-btn::before{
+  content:"";
+  position:absolute;
+  inset:1px;
+  z-index:-1;
+  border-radius:inherit;
+  background:linear-gradient(180deg,rgba(255,255,255,.16),transparent 48%);
+  pointer-events:none;
+}
+html.v2 .secondary-btn:hover{
+  transform:translateY(-1px);
+  background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,.06));
+  border-color:rgba(255,255,255,.27);
+  color:#fff;
+}
+html.v2 .secondary-btn:active{transform:translateY(0) scale(.985)}
+
+html.v2 .primary-btn:disabled,
+html.v2 .secondary-btn:disabled{
+  opacity:.55;
+  cursor:not-allowed;
+  transform:none;
+}
+html.v2 .primary-btn:disabled{
+  box-shadow:inset 0 1px 0 #fff,0 0 0 1px rgba(255,255,255,.35);
+}
+
+html.v2 .big{min-height:54px;padding-inline:28px;font-size:16px}
+html.v2 .full{width:100%}
+
+/* Recovery keeps its green identity, as a v2 mint pill (refined by the
+   recovery partial). */
+html.v2 .primary-btn.recovery-primary-btn{
+  background:linear-gradient(180deg,#9df6cc 0%,#5fe3a3 100%);
+  color:#04150c;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.7),
+    inset 0 -3px 8px rgba(20,120,70,.2),
+    0 0 0 1px rgba(160,250,205,.5),
+    0 10px 34px -8px rgba(108,240,176,.45);
+}
+
+/* Spinner: ring + currentColor arc, so it reads on the white pill (dark
+   arc) AND on glass/dark surfaces (light arc). */
+html.v2 .btn-spinner{
+  flex:none;
+  width:14px;
+  height:14px;
+  border:2px solid rgba(70,203,225,.38);
+  border-top-color:currentColor;
+  border-radius:50%;
+  animation:btnSpin .7s linear infinite;
+}
+
+/* ---------------------------------------------------------------------
+   7. PILLS, BADGES, EYEBROWS
+   --------------------------------------------------------------------- */
+html.v2 .pill{
+  min-height:34px;
+  padding:0 14px;
+  border-radius:999px;
+  background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.035));
+  border:1px solid var(--v2-rim);
+  color:var(--v2-ink);
+  font-family:var(--v2-sans);
+  font-size:13.5px;
+  font-weight:500;
+  letter-spacing:-.005em;
+  -webkit-backdrop-filter:blur(16px) saturate(150%);
+  backdrop-filter:blur(16px) saturate(150%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 10px 30px -18px rgba(0,0,0,.8);
+}
+html.v2 :is(.section-head,.about-top) > .pill::before{
+  content:"";
+  flex:none;
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:var(--v2-g1);
+  box-shadow:0 0 12px var(--v2-g1);
+}
+
+html.v2 .plan-badge{
+  min-height:22px;
+  padding:3px 9px 2px;
+  border-radius:999px;
+  font-family:var(--v2-mono);
+  font-size:10.5px;
+  font-weight:600;
+  letter-spacing:.12em;
+  line-height:1.2;
+}
+html.v2 .plan-badge-free{
+  color:#ceeff2;
+  background:rgba(239,253,255,.08);
+  border-color:rgba(239,253,255,.18);
+  box-shadow:none;
+}
+html.v2 .plan-badge-pro{
+  color:var(--v2-on-white);
+  background:var(--v2-white);
+  border-color:rgba(255,255,255,.7);
+  box-shadow:0 6px 18px -6px rgba(34,211,238,.7);
+}
+html.v2 .plan-badge-business{
+  color:#d8fbff;
+  background:rgba(45,212,191,.16);
+  border-color:rgba(165,243,252,.45);
+  box-shadow:0 6px 18px -8px rgba(45,212,191,.6);
+}
+
+html.v2 .usage-chip{
+  color:#cffaff;
+  background:rgba(34,211,238,.1);
+  border:1px solid rgba(34,211,238,.24);
+  font-size:11px;
+  letter-spacing:.06em;
+}
+
+html.v2 .account-eyebrow{
+  color:var(--v2-g1);
+  font-family:var(--v2-mono);
+  font-size:11.5px;
+  font-weight:500;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+
+/* ---------------------------------------------------------------------
+   8. FORM FIELDS (low specificity: refine per component)
+   Only visual properties; margins/heights/flex stay legacy.
+   --------------------------------------------------------------------- */
+html.v2 :where(textarea,input[type="text"],input[type="password"],input[type="email"],
+  input[type="search"],input[type="url"],input[type="tel"],input[type="number"],select){
+  background-color:var(--v2-field);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:var(--v2-radius-field);
+  color:var(--v2-ink);
+  font-family:var(--v2-sans);
+  font-size:15px;
+  line-height:1.45;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+  transition:border-color .2s ease,box-shadow .25s var(--v2-ease),background-color .2s ease;
+}
+html.v2 :where(textarea,input[type="text"],input[type="password"],input[type="email"],
+  input[type="search"],input[type="url"],input[type="tel"],input[type="number"],select):hover{
+  border-color:rgba(255,255,255,.2);
+}
+html.v2 :where(textarea,input[type="text"],input[type="password"],input[type="email"],
+  input[type="search"],input[type="url"],input[type="tel"],input[type="number"],select):focus{
+  outline:none;
+  background-color:rgba(255,255,255,.06);
+  border-color:rgba(34,211,238,.62);
+  box-shadow:var(--v2-focus);
+}
+html.v2 :where(textarea,input)::placeholder{
+  color:var(--v2-faint);
+  font-family:var(--v2-sans);
+  opacity:1;
+}
+html.v2 :where(select){
+  background-color:var(--v2-field-solid);
+  color-scheme:dark;
+  cursor:pointer;
+}
+html.v2 :where(select) option{background:var(--v2-field-solid);color:var(--v2-ink)}
+
+/* Checkbox + radio fallback skin. Zero specificity on purpose: every
+   component rule (legacy .cybernet-switch input, the recovery toggles,
+   the legal consent boxes) wins without a fight. The native input stays
+   in place (JS reads .checked); only its paint changes. */
+:where(html.v2 input[type="checkbox"]),
+:where(html.v2 input[type="radio"]){
+  -webkit-appearance:none;
+  appearance:none;
+  flex:none;
+  display:inline-block;
+  width:18px;
+  height:18px;
+  vertical-align:-4px;
+  border:1.5px solid rgba(239,253,255,.4);
+  border-radius:6px;
+  background:rgba(255,255,255,.05) center/13px 13px no-repeat;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
+  cursor:pointer;
+  transition:background-color .2s ease,border-color .2s ease,box-shadow .2s ease;
+}
+:where(html.v2 input[type="radio"]){border-radius:50%}
+:where(html.v2 input[type="checkbox"]:hover),
+:where(html.v2 input[type="radio"]:hover){border-color:rgba(239,253,255,.62)}
+:where(html.v2 input[type="checkbox"]:checked){
+  border-color:transparent;
+  background-color:var(--v2-g1);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2305060c' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E");
+  box-shadow:0 0 14px -2px rgba(34,211,238,.7);
+}
+:where(html.v2 input[type="radio"]:checked){
+  border-color:var(--v2-g1);
+  background-image:radial-gradient(circle,var(--v2-g1) 0 4px,transparent 4.5px);
+  background-size:100% 100%;
+  box-shadow:0 0 14px -2px rgba(34,211,238,.6);
+}
+/* legacy input:focus (0,1,1) paints a cyan glow on every input, boxes
+   included; restate the v2 states on focus (component rules with an id
+   still win) */
+html.v2 :where(input[type="checkbox"],input[type="radio"]):focus{
+  border-color:rgba(239,253,255,.62);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
+}
+html.v2 :where(input[type="checkbox"]:checked):focus{
+  border-color:transparent;
+  box-shadow:0 0 14px -2px rgba(34,211,238,.7);
+}
+html.v2 :where(input[type="radio"]:checked):focus{
+  border-color:var(--v2-g1);
+  box-shadow:0 0 14px -2px rgba(34,211,238,.6);
+}
+:where(html.v2 input[type="checkbox"]:disabled),
+:where(html.v2 input[type="radio"]:disabled){opacity:.5;cursor:not-allowed}
+
+/* modal/form labels */
+html.v2 :where(.auth-form,.feedback-card) label{
+  color:var(--v2-muted);
+  font-family:var(--v2-sans);
+  font-size:13px;
+  font-weight:500;
+  letter-spacing:0;
+}
+
+/* ---------------------------------------------------------------------
+   9. GENERIC PAGE HEADS
+   (the home hero title is styled by the home partial)
+   --------------------------------------------------------------------- */
+html.v2 .section-head h1,
+html.v2 .about-top h1,
+html.v2 .feature-hero h1,
+html.v2 .learn-hero h1,
+html.v2 .feature-page-header h1{
+  font-family:var(--v2-sans);
+  font-size:clamp(38px,4.4vw,62px);
+  font-weight:620;
+  line-height:1.02;
+  letter-spacing:-.048em;
+  color:var(--v2-ink);
+  text-wrap:balance;
+}
+html.v2 .section-head h1 span,
+html.v2 .about-top h1 span,
+html.v2 .feature-hero h1 span,
+html.v2 .learn-hero h1 span,
+html.v2 .feature-page-header h1 span{
+  background:var(--v2-grad);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+  text-shadow:none;
+  -webkit-box-decoration-break:clone;
+  box-decoration-break:clone;
+}
+html.v2 .section-head p,
+html.v2 .feature-hero p,
+html.v2 .feature-page-header p{
+  color:var(--v2-muted);
+  font-size:18px;
+  line-height:1.55;
+}
+html.v2 .learn-hero p{color:var(--v2-muted)}
+html.v2 .section-head p{max-width:620px;margin-inline:auto}
+html.v2 .feature-page-header{max-width:760px}
+html.v2 .feature-page-header h1{margin-bottom:14px}
+html.v2 .feature-hero,
+html.v2 .learn-hero{border-radius:30px}
+html.v2 .inline-link-btn{color:var(--v2-g1);text-underline-offset:3px}
+html.v2 .inline-link-btn:hover{color:var(--v2-ink)}
+
+/* ---------------------------------------------------------------------
+   10. SUPPORT BOX (one per page) + LIMITS NOTE
+   --------------------------------------------------------------------- */
+html.v2 .support-box{
+  max-width:1200px;
+  margin:48px auto 0;
+  padding:28px 30px;
+  border-radius:28px;
+  gap:28px;
+  background:
+    radial-gradient(80% 140% at 0% 0%,rgba(34,211,238,.12),transparent 60%),
+    var(--v2-glass);
+}
+html.v2 .support-box .account-eyebrow{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:4px;
+}
+html.v2 .support-box .account-eyebrow::before{
+  content:"";
+  flex:none;
+  width:18px;
+  height:1px;
+  background:currentColor;
+  opacity:.7;
+}
+html.v2 .support-box h2{
+  font-family:var(--v2-sans);
+  font-size:clamp(22px,2.3vw,30px);
+  font-weight:600;
+  letter-spacing:-.035em;
+  line-height:1.15;
+  margin:6px 0 8px;
+}
+html.v2 .support-box p{color:var(--v2-muted);font-size:15px;line-height:1.6}
+html.v2 .support-box p a{color:var(--v2-g1)}
+html.v2 .support-box p a:hover{color:var(--v2-ink)}
+html.v2 .support-box-actions{gap:10px}
+
+html.v2 .home-limits-note{
+  max-width:780px;
+  margin-top:36px;
+  padding:16px 22px;
+  border-radius:20px;
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--v2-rim-soft);
+  color:var(--v2-muted);
+  font-size:13.5px;
+  line-height:1.65;
+}
+html.v2 .home-limits-note strong{color:var(--v2-ink);font-weight:600}
+
+/* ---------------------------------------------------------------------
+   11. FOOTER
+   --------------------------------------------------------------------- */
+/* The last section already ends on the legacy .page bottom padding, so the
+   footer adds only a small step (was a ~150px empty band). */
+html.v2 footer{
+  width:min(1200px,calc(100% - 48px));
+  margin:8px auto 28px;
+  padding-top:22px;
+  border-top:1px solid rgba(255,255,255,.07);
+  color:var(--v2-faint);
+  font-family:var(--v2-sans);
+  font-size:13.5px;
+}
+html.v2 footer p{line-height:1.7;text-wrap:balance}
+html.v2 footer a{color:var(--v2-muted);text-decoration:none}
+html.v2 footer a:hover{color:var(--v2-ink);text-decoration:none}
+/* The contact line's email link and Cookie settings button are actions:
+   accent colour (as in the legacy build) and an underline on hover/focus,
+   so they no longer read as more copyright text. The Legal Center row
+   below stays a muted link row. */
+html.v2 footer p a,
+html.v2 footer .cn-cookie-settings{
+  color:var(--v2-g1);
+  text-decoration:none;
+  text-underline-offset:3px;
+  text-decoration-thickness:1px;
+}
+html.v2 footer p a:hover,
+html.v2 footer p a:focus-visible,
+html.v2 footer .cn-cookie-settings:hover,
+html.v2 footer .cn-cookie-settings:focus-visible{color:var(--v2-ink);text-decoration:underline}
+html.v2 footer .cn-cookie-settings{font:inherit}
+html.v2 footer .cn-cookie-settings:focus-visible{outline-color:var(--v2-g1)}
+/* Separators. Today they are bare "&nbsp;·&nbsp;" text, which CSS cannot
+   reach (the first one shares a text node with the copyright). Once
+   index.html wraps each as <span class="v2-sep" aria-hidden="true">·</span>
+   these rules space them evenly and, at <=700px, turn the first one into a
+   line break (see section 15), so no "·" dangles at a line end. Inert
+   until then. */
+html.v2 footer .v2-sep{margin-inline:.3em}
+
+/* Brand mark above the footer text (the prototype's footer row carried the
+   mark). Decorative: empty content, painted with the nav mark's gradient
+   through the same shield + lock mask. Scoped to the site footer
+   (body > footer): the legal pages and the Legal Center dialog also use
+   <footer>. legal-upgrade.js still appends .cn-footer-legal inside it. */
+@supports ((-webkit-mask-image:none) or (mask-image:none)){
+  html.v2 body > footer::before{
+    content:"";
+    display:block;
+    width:24px;
+    height:26px;
+    margin:0 auto 12px;
+    background:linear-gradient(150deg,#22d3ee 0%,#67e8f9 55%,#a5f3fc 100%);
+    -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 26' fill='none' stroke='%23000'%3E%3Cpath d='M12 2 21 6 20 15 12 24 4 15 3 6Z' stroke-width='1.8' stroke-linejoin='round'/%3E%3Cpath d='M9.6 12.5v-2.3a2.4 2.4 0 0 1 4.8 0v2.3' stroke-width='1.6' stroke-linecap='round'/%3E%3Cpath fill='%23000' stroke='none' fill-rule='evenodd' d='M9.5 12.5h5a1.2 1.2 0 0 1 1.2 1.2v3.8a1.2 1.2 0 0 1-1.2 1.2h-5a1.2 1.2 0 0 1-1.2-1.2v-3.8a1.2 1.2 0 0 1 1.2-1.2ZM12 14.2a1 1 0 1 0 0 2a1 1 0 1 0 0-2Z'/%3E%3C/svg%3E") center/contain no-repeat;
+    mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 26' fill='none' stroke='%23000'%3E%3Cpath d='M12 2 21 6 20 15 12 24 4 15 3 6Z' stroke-width='1.8' stroke-linejoin='round'/%3E%3Cpath d='M9.6 12.5v-2.3a2.4 2.4 0 0 1 4.8 0v2.3' stroke-width='1.6' stroke-linecap='round'/%3E%3Cpath fill='%23000' stroke='none' fill-rule='evenodd' d='M9.5 12.5h5a1.2 1.2 0 0 1 1.2 1.2v3.8a1.2 1.2 0 0 1-1.2 1.2h-5a1.2 1.2 0 0 1-1.2-1.2v-3.8a1.2 1.2 0 0 1 1.2-1.2ZM12 14.2a1 1 0 1 0 0 2a1 1 0 1 0 0-2Z'/%3E%3C/svg%3E") center/contain no-repeat;
+  }
+}
+html.v2 .cn-footer-legal{
+  align-items:center;
+  gap:2px 18px;
+  margin-top:8px;
+}
+/* <a> and <button> share one box model, so the Legal Center button no
+   longer sits ~4px lower than the links (24px hit target kept). */
+html.v2 .cn-footer-legal a,
+html.v2 .cn-footer-legal button{
+  display:inline-flex;
+  align-items:center;
+  min-height:24px;
+  padding:0 2px;
+  margin:0;
+  border:0;
+  background:none;
+  color:var(--v2-muted);
+  font:500 13px/1.3 var(--v2-sans);
+  letter-spacing:0;
+  vertical-align:middle;
+}
+html.v2 .cn-footer-legal a:hover,
+html.v2 .cn-footer-legal button:hover{color:var(--v2-ink)}
+
+/* ---------------------------------------------------------------------
+   12. MODAL SHELL (auth, feedback, how-to, account, team, invite, key)
+   Open/close stays the .show display toggle; no transform/filter on
+   .modal itself (backdrop-filter was already there in legacy).
+   --------------------------------------------------------------------- */
+html.v2 .modal{
+  background:
+    radial-gradient(80% 60% at 50% 0%,rgba(34,183,208,.16),transparent 70%),
+    rgba(3,5,6,.64);
+  -webkit-backdrop-filter:blur(12px) saturate(130%);
+  backdrop-filter:blur(12px) saturate(130%);
+}
+html.v2 .modal-card{
+  background:
+    radial-gradient(90% 50% at 50% 0%,rgba(34,211,238,.12),transparent 70%),
+    linear-gradient(180deg,rgba(20,33,35,.74),rgba(8,14,16,.86));
+  -webkit-backdrop-filter:var(--v2-blur);
+  backdrop-filter:var(--v2-blur);
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:28px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 40px 110px -30px rgba(0,0,0,.9);
+  overscroll-behavior:contain;
+  scrollbar-width:thin;
+  animation:v2-modal-in .34s var(--v2-ease) backwards;
+}
+/* add-on modal cards carry .reveal but never get .show */
+html.v2 .modal-card.reveal{opacity:1;transform:none;filter:none}
+
+html.v2 .close-modal{
+  z-index:2;
+  width:38px;
+  height:38px;
+  display:grid;
+  place-items:center;
+  padding:0 0 2px;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,.13);
+  background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.04));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18);
+  color:var(--v2-muted);
+  font-family:var(--v2-sans);
+  font-size:22px;
+  font-weight:400;
+  line-height:1;
+  transition:color .2s ease,background-color .2s ease,border-color .2s ease,transform .25s var(--v2-ease);
+}
+html.v2 .close-modal:hover{
+  color:var(--v2-ink);
+  border-color:rgba(255,255,255,.26);
+  background:linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,.06));
+}
+
+html.v2 .modal-card small{
+  color:var(--v2-faint);
+  font-family:var(--v2-sans);
+  font-size:12px;
+  line-height:1.55;
+}
+
+/* auth modal defaults (a chrome/auth partial may refine) */
+html.v2 .auth-logo-icon{filter:drop-shadow(0 8px 24px rgba(34,211,238,.45))}
+html.v2 .auth-heading h2{
+  font-family:var(--v2-sans);
+  font-size:25px;
+  font-weight:600;
+  letter-spacing:-.035em;
+  line-height:1.15;
+}
+html.v2 .auth-heading p{color:var(--v2-muted);font-size:14px;line-height:1.55}
+html.v2 .auth-tabs{
+  gap:4px;
+  padding:4px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.1);
+  background:rgba(255,255,255,.045);
+  overflow:visible;
+}
+html.v2 .auth-tab{
+  min-height:40px;
+  padding:0 12px;
+  border-radius:999px;
+  color:var(--v2-muted);
+  font-family:var(--v2-sans);
+  font-size:14px;
+  font-weight:560;
+  letter-spacing:-.01em;
+  transition:color .2s ease,background-color .2s ease;
+}
+html.v2 .auth-tab:hover{color:var(--v2-ink)}
+html.v2 .auth-tab.active{
+  background:var(--v2-white);
+  color:var(--v2-on-white);
+  box-shadow:inset 0 1px 0 #fff,0 6px 22px -6px rgba(34,211,238,.7);
+}
+html.v2 .google-auth-btn{
+  min-height:48px;
+  border-radius:999px;
+  font-family:var(--v2-sans);
+  font-size:15px;
+  font-weight:560;
+}
+html.v2 .auth-divider{
+  margin-top:4px;
+  color:var(--v2-faint);
+  font-size:12.5px;
+}
+html.v2 .cn-google-legal-note + .auth-divider,
+html.v2 .auth-inapp-note + .auth-divider{margin-top:16px}
+html.v2 .auth-divider::before,
+html.v2 .auth-divider::after{background:rgba(255,255,255,.1)}
+html.v2 .auth-text-btn,
+html.v2 .account-action-btn{
+  font-family:var(--v2-sans);
+  font-size:13px;
+  font-weight:500;
+  color:var(--v2-muted);
+}
+html.v2 .auth-text-btn:hover,
+html.v2 .account-action-btn:hover{color:var(--v2-ink)}
+html.v2 .auth-text-btn{min-height:32px;margin-top:6px}
+html.v2 .auth-helper-row{margin-top:4px}
+html.v2 .auth-form .primary-btn{margin-top:4px}
+
+/* ---------------------------------------------------------------------
+   13. MESSAGES + NOTICES (tones: safe / warn / danger)
+   JS rewrites className, so only the legacy class names are used.
+   --------------------------------------------------------------------- */
+html.v2 .auth-message{color:var(--v2-muted);font-size:13px;line-height:1.55}
+html.v2 .auth-message.error{color:#FFA3B5}
+html.v2 .auth-message.success{color:var(--v2-safe)}
+html.v2 .auth-message.warning{color:#FFCB7D}
+html.v2 .auth-message:is(.error,.success,.warning):not(:empty){
+  padding:10px 14px;
+  border-radius:14px;
+  border:1px solid currentColor;
+  border-color:color-mix(in srgb,currentColor 34%,transparent);
+  background:color-mix(in srgb,currentColor 9%,transparent);
+}
+
+html.v2 .pricing-notice{
+  border-radius:18px;
+  padding:14px 18px;
+  color:var(--v2-muted);
+  font-size:14px;
+  line-height:1.55;
+}
+html.v2 .pricing-notice.error{
+  color:#FFB3C1;
+  border-color:rgba(255,92,122,.38);
+  background:linear-gradient(180deg,rgba(255,92,122,.12),rgba(255,92,122,.04)),var(--v2-glass);
+}
+html.v2 .pricing-notice.success{
+  color:#A8F5D0;
+  border-color:rgba(108,240,176,.36);
+  background:linear-gradient(180deg,rgba(108,240,176,.11),rgba(108,240,176,.03)),var(--v2-glass);
+}
+
+/* legacy utility tones keep meaning, v2 colours */
+html.v2 .safe{color:var(--v2-safe)}
+html.v2 .warning{color:var(--v2-amber)}
+html.v2 .danger{color:var(--v2-danger)}
+
+/* ---------------------------------------------------------------------
+   14. REVEAL + PAGE MOTION
+   .reveal animates opacity + transform only and rests at transform:none
+   (no lingering containing block). The legacy 3 s failsafe
+   (.page .reveal:not(.show) -> cnRevealFailsafe) is untouched.
+   --------------------------------------------------------------------- */
+html.v2 .reveal{
+  transform:translate3d(0,18px,0);
+  transition:opacity .6s var(--v2-ease),transform .75s var(--v2-ease);
+}
+html.v2 .reveal.show{opacity:1;transform:none}
+
+/* Page enter: fill "backwards" so nothing (no transform) lingers once it
+   ends. Page leave: its own animation, done well inside script.js's
+   fixed 300 ms swap. */
+html.v2 .page{animation:v2-page-in .5s var(--v2-ease) backwards}
+html.v2 .page.leaving{animation:v2-page-out .24s cubic-bezier(.4,0,.8,.3) forwards}
+
+@keyframes v2-page-in{
+  from{opacity:0;transform:translate3d(0,12px,0)}
+  to{opacity:1;transform:none}
+}
+@keyframes v2-page-out{
+  from{opacity:1;transform:none}
+  to{opacity:0;transform:translate3d(0,-10px,0)}
+}
+@keyframes v2-modal-in{
+  from{opacity:0;transform:translate3d(0,14px,0) scale(.97)}
+  to{opacity:1;transform:none}
+}
+
+/* =====================================================================
+   15. RESPONSIVE (same breakpoints as style.css)
+   ===================================================================== */
+@media (max-width:920px){
+  html.v2{
+    --v2-blur:blur(18px) saturate(150%);
+    --v2-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 22px 60px -30px rgba(0,0,0,.8);
+  }
+  /* legacy: no hover lift on touch-sized layouts */
+  html.v2 .primary-btn:hover,
+  html.v2 .secondary-btn:hover{transform:none}
+
+  html.v2 .section-head h1,
+  html.v2 .about-top h1,
+  html.v2 .feature-hero h1,
+  html.v2 .learn-hero h1,
+  html.v2 .feature-page-header h1{font-size:clamp(34px,6vw,46px)}
+  html.v2 .section-head p,
+  html.v2 .feature-hero p,
+  html.v2 .feature-page-header p{font-size:17px}
+}
+
+@media (max-width:760px){
+  html.v2 .support-box{padding:22px;margin-top:36px;border-radius:24px}
+  /* two pills side by side when they fit, stacked full width when not
+     (legacy forced every action to 100% width) */
+  html.v2 .support-box-actions{margin-top:18px;flex-wrap:wrap}
+  html.v2 .support-box-actions > *{flex:1 1 136px;width:auto;min-width:0;padding-inline:16px}
+  html.v2 footer{font-size:13px}
+}
+
+@media (max-width:700px){
+  html.v2{
+    --v2-blur:blur(14px) saturate(140%);
+    --v2-blur-btn:blur(12px) saturate(150%);
+    --v2-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 18px 44px -26px rgba(0,0,0,.8);
+  }
+  /* iOS: 16px minimum stops focus zoom */
+  html.v2 :where(textarea,input[type="text"],input[type="password"],input[type="email"],
+    input[type="search"],input[type="url"],input[type="tel"],input[type="number"],select){font-size:16px}
+
+  html.v2 .reveal{
+    transform:translate3d(0,12px,0);
+    transition-duration:.4s,.45s;
+  }
+
+  html.v2 .section-head h1,
+  html.v2 .about-top h1,
+  html.v2 .feature-hero h1,
+  html.v2 .learn-hero h1,
+  html.v2 .feature-page-header h1{font-size:36px;letter-spacing:-.045em;line-height:1.05}
+  html.v2 .section-head p,
+  html.v2 .feature-hero p,
+  html.v2 .feature-page-header p{font-size:16px}
+
+  html.v2 .modal{padding:14px}
+  html.v2 .modal-card{border-radius:26px}
+  html.v2 .home-limits-note{padding:14px 16px;font-size:13px;border-radius:18px}
+
+  /* copyright on line 1, "email · Cookie settings" on line 2: the first
+     separator becomes an invisible line break (only once index.html has
+     the .v2-sep spans; aria-hidden there) */
+  html.v2 footer .v2-sep:not(.v2-sep ~ .v2-sep){display:block;height:0;margin:0;overflow:hidden}
+}
+
+@media (max-width:480px){
+  /* 16px side gutters (legacy: 9px) */
+  html.v2 main{width:calc(100% - 32px)}
+  html.v2 footer{width:calc(100% - 32px);margin-top:8px}
+  /* greedy wrap keeps the "·" separators at line ends, not line starts */
+  html.v2 footer p{text-wrap:wrap}
+
+  html.v2 .section-head h1,
+  html.v2 .about-top h1,
+  html.v2 .feature-hero h1,
+  html.v2 .learn-hero h1,
+  html.v2 .feature-page-header h1{font-size:34px}
+
+  html.v2 .modal{padding:10px}
+  html.v2 .modal-card{padding:26px 20px 22px}
+  html.v2 .close-modal{top:12px;right:12px}
+  html.v2 .pill{font-size:13px;min-height:32px}
+  html.v2 .support-box h2{font-size:23px}
+}
+
+/* =====================================================================
+   16. ACCESSIBILITY FALLBACKS
+   ===================================================================== */
+@media (prefers-reduced-motion:reduce){
+  html.v2 .reveal,
+  html.v2 .reveal.show{transform:none;transition:opacity .15s linear}
+  html.v2 .page,
+  html.v2 .page.leaving,
+  html.v2 .modal-card{animation:none}
+  html.v2 .primary-btn,
+  html.v2 .secondary-btn,
+  html.v2 .close-modal{transition:none}
+  html.v2 .primary-btn:hover,
+  html.v2 .secondary-btn:hover,
+  html.v2 .primary-btn:active,
+  html.v2 .secondary-btn:active{transform:none}
+  html.v2 .btn-spinner{animation-duration:1.4s}
+}
+
+/* Solid navy instead of blur. (legacy already forces
+   .glass{backdrop-filter:none!important}) */
+@media (prefers-reduced-transparency:reduce){
+  html.v2{
+    --v2-blur:none;
+    --v2-blur-btn:none;
+    --v2-glass:var(--v2-glass-solid);
+  }
+  html.v2 .glass,
+  html.v2 .pill{background:var(--v2-glass-solid)}
+  html.v2 .secondary-btn{background:linear-gradient(180deg,#152224,#0e1719)}
+  html.v2 .pill,
+  html.v2 .secondary-btn,
+  html.v2 .modal-card,
+  html.v2 .modal{-webkit-backdrop-filter:none;backdrop-filter:none}
+  html.v2 .modal{background:rgba(3,5,6,.9)}
+  html.v2 .modal-card{background:linear-gradient(180deg,#111d20,#0a1315)}
+  html.v2 .support-box{background:var(--v2-glass-solid)}
+}
+
+@media (forced-colors:active){
+  html.v2 .primary-btn,
+  html.v2 .secondary-btn,
+  html.v2 .pill{border:1px solid ButtonText}
+  /* hand checkboxes/radios back to the system so state stays visible */
+  :where(html.v2 input[type="checkbox"]),
+  :where(html.v2 input[type="radio"]){-webkit-appearance:auto;appearance:auto}
+  /* footer brand mark: system text colour instead of the gradient */
+  html.v2 body > footer::before{forced-color-adjust:none;background:CanvasText}
+}

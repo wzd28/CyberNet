@@ -1,0 +1,540 @@
+/* 45-about: the About page (section#about). Restyle only; see ui-src/DESIGN.md "About".
+   An editorial page in the spirit of an Apple "About": a big quiet headline (one cyan word), a row
+   of large numbers, a fact sheet, four numbered story blocks on a clean 2-column grid, the "is and
+   isn't" note, the value cards, the support box and, last, the operator footnote.
+
+   Legacy traps handled here (maps/HAZARDS.md "04-pricing" covers About):
+   - .hero-stats-row strong[data-count] is animated by script.js (textContent per frame): the row
+     keeps its class and tag; numbers are tabular so nothing shifts while counting.
+   - .about-block / .about-value are .tilt-card: script.js writes an inline transform on
+     mousemove. 01-base.css neutralises it site-wide (transform:none!important); nothing here
+     sets a transform on them.
+   - .about-values had content-visibility:auto with a 700px placeholder (left a blank block in
+     phone captures): set visible.
+   - .about-top, the stats row, .fetch-panel, .about-grid, .home-limits-note, .about-values and
+     .support-box are .reveal elements: no opacity/transform here.
+   - .pill, .home-limits-note and .support-box are shared with other pages: scoped to #about.
+   - The fetch panel's terminal chrome (traffic-light dots and "whoami") is decorative and has no
+     JS; it is hidden and the panel reads as a plain fact sheet. */
+
+html.cn #about { counter-reset: cn-about; }
+
+/* ---------- the page's top: About opens on its headline (the operator note is a footnote at the end,
+   see "operator footnote" below), so it takes the same top padding as the other inner pages.
+   02-components.css gives #about and #pricing a short top padding for the banner Pricing still opens
+   with; here About goes back to the shared inner-page value (01-base.css) and the head sits right under it. ---------- */
+html.cn section#about.page { padding-block-start: clamp(40px, 1rem + 3vw, 72px); }
+
+/* ---------- header ---------- */
+html.cn #about .about-top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--cn-6);
+  max-width: 1040px;
+  margin: 0 auto clamp(64px, 8vw, 120px);
+  text-align: center;
+}
+
+html.cn #about .about-top .pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  margin: 0;
+  padding: 0 var(--cn-3);
+  border: 0;
+  border-radius: var(--cn-r-pill);
+  background: var(--cn-cyan-tint);
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  color: var(--cn-cyan-2);
+  font: 500 var(--cn-step-label)/1 var(--cn-font-mono);
+  letter-spacing: var(--cn-track-label);
+  text-transform: uppercase;
+}
+
+html.cn #about .about-top h1 {
+  max-width: 15ch;
+  margin: 0;
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: min(var(--cn-step-hero), 12vw);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: var(--cn-track-hero);
+  text-wrap: balance;
+  overflow-wrap: break-word;
+}
+
+/* the page's one cyan word: plain cyan text (gradient text is for the Home hero word only) */
+html.cn #about .about-top h1 span {
+  color: var(--cn-cyan-2);
+  text-shadow: none;
+}
+
+/* ---------- stats row: three large numbers on hairlines ---------- */
+html.cn #about .about-stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  max-width: var(--cn-max);
+  margin: 0 auto clamp(72px, 9vw, 136px);
+  border-top: 1px solid var(--cn-line);
+  border-bottom: 1px solid var(--cn-line);
+}
+
+html.cn #about .about-stats-row > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  margin: 0;
+  padding: clamp(28px, 4vw, 56px) var(--cn-4);
+  border: 0;
+  border-inline-start: 1px solid var(--cn-line);
+  text-align: center;
+}
+
+html.cn #about .about-stats-row > div:first-child { border-inline-start: 0; }
+
+html.cn #about .about-stats-row strong {
+  display: block;
+  min-width: 0;
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: clamp(3rem, 2rem + 4.6vw, 6rem);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -.045em;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+html.cn #about .about-stats-row span {
+  display: block;
+  margin-top: var(--cn-4);
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: .9375rem;
+  line-height: 1.35;
+  text-wrap: balance;
+}
+
+/* narrow phones: one number per row, the label beside it */
+@media (max-width: 380px) {
+  html.cn #about .about-stats-row { grid-template-columns: minmax(0, 1fr); }
+  html.cn #about .about-stats-row > div {
+    display: grid;
+    grid-template-columns: 4.5rem minmax(0, 1fr);
+    align-items: center;
+    gap: var(--cn-3);
+    padding: var(--cn-4) 0;
+    border-inline-start: 0;
+    border-top: 1px solid var(--cn-line);
+    text-align: start;
+  }
+  html.cn #about .about-stats-row > div:first-child { border-top: 0; }
+  html.cn #about .about-stats-row strong { font-size: 2.5rem; }
+  html.cn #about .about-stats-row span { margin-top: 0; font-size: 1rem; }
+}
+
+/* ---------- fact sheet (legacy "whoami" panel) ---------- */
+/* 860px: every standalone card on About (fact sheet, limits note, support) shares one
+   measure, and every grid (stats, story, values) shares the 1200px column. */
+html.cn #about .fetch-panel {
+  max-width: 860px;
+  margin: 0 auto clamp(72px, 9vw, 136px);
+  padding: clamp(24px, 4vw, 44px);
+  overflow: visible;
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-panel);
+  background: var(--cn-surface);
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+html.cn #about .fetch-panel .term-chrome { display: none; }
+
+html.cn #about .fetch-body {
+  display: block;
+  padding: 0;
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: 1rem;
+}
+
+html.cn #about .fetch-body::before {
+  content: "At a glance";
+  display: block;
+  margin-bottom: var(--cn-4);
+  color: var(--cn-text-2);
+  font: 500 var(--cn-step-label)/1.3 var(--cn-font-mono);
+  letter-spacing: var(--cn-track-label);
+  text-transform: uppercase;
+}
+
+html.cn #about .fetch-line {
+  display: grid;
+  grid-template-columns: minmax(0, 11rem) minmax(0, 1fr);
+  align-items: baseline;
+  gap: var(--cn-2) var(--cn-6);
+  padding: var(--cn-5) 0;
+  border-top: 1px solid var(--cn-line);
+  color: var(--cn-text);
+  line-height: 1.5;
+  text-align: start;
+}
+
+html.cn #about .fetch-line:last-child { padding-bottom: 0; }
+
+html.cn #about .fetch-key {
+  color: var(--cn-text-2);
+  font: 500 var(--cn-step-label)/1.5 var(--cn-font-mono);
+  letter-spacing: var(--cn-track-label);
+  text-transform: uppercase;
+}
+
+html.cn #about .fetch-line > span:last-child {
+  min-width: 0;
+  font-size: 1.0625rem;
+  letter-spacing: var(--cn-track-body);
+  text-wrap: pretty;
+}
+
+/* the values are written in lower case ("rule-based + ..."): sentence case on screen */
+html.cn #about .fetch-line > span:last-child::first-letter { text-transform: uppercase; }
+
+html.cn #about .fetch-line .safe-text {
+  color: var(--cn-safe);
+  font: 500 var(--cn-step-small)/1.5 var(--cn-font-mono);
+  letter-spacing: .02em;
+}
+
+@media (max-width: 560px) {
+  html.cn #about .fetch-line {
+    grid-template-columns: minmax(0, 1fr);
+    padding: var(--cn-4) 0;
+  }
+  html.cn #about .fetch-line > span:last-child { font-size: 1rem; }
+}
+
+/* ---------- story: four numbered blocks on a quiet grid ---------- */
+html.cn #about .about-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(48px, 6vw, 88px) clamp(32px, 6vw, 96px);
+  max-width: var(--cn-max);
+  margin: 0 auto clamp(72px, 9vw, 136px);
+}
+
+html.cn #about .about-block {
+  counter-increment: cn-about;
+  min-width: 0;
+  padding: var(--cn-6) 0 0;
+  border: 0;
+  border-top: 1px solid var(--cn-line);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+html.cn #about .about-block h2 {
+  margin: 0 0 var(--cn-4);
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: calc(var(--cn-step-h2) * .66);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: var(--cn-track-h2);
+  text-wrap: balance;
+}
+
+/* decorative index (hidden from assistive tech where the alt syntax is supported) */
+html.cn #about .about-block h2::before {
+  content: counter(cn-about, decimal-leading-zero);
+  content: counter(cn-about, decimal-leading-zero) / "";
+  display: block;
+  margin-bottom: var(--cn-6);
+  color: var(--cn-text-2);
+  font: 500 var(--cn-step-label)/1.3 var(--cn-font-mono);
+  letter-spacing: var(--cn-track-label);
+}
+
+html.cn #about .about-block p {
+  max-width: 58ch;
+  margin: 0;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  letter-spacing: var(--cn-track-body);
+  text-wrap: pretty;
+}
+
+html.cn #about .about-block p strong {
+  color: var(--cn-text);
+  font-weight: 600;
+}
+
+/* ---------- "what it is and isn't" ---------- */
+html.cn #about .home-limits-note {
+  max-width: 860px;
+  margin: 0 auto clamp(72px, 9vw, 136px);
+  padding: clamp(20px, 3vw, 32px) clamp(20px, 4vw, 40px);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-card);
+  background: transparent;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: .9375rem;
+  line-height: 1.65;
+  text-align: start;
+  text-wrap: pretty;
+}
+
+/* the lead-in stays inline: the sentence continues in lower case after it */
+html.cn #about .home-limits-note strong {
+  color: var(--cn-text);
+  font-weight: 600;
+}
+
+/* ---------- values: 2 x 2 cards, icon beside the copy (the Privacy text is four times longer
+   than the others, so four narrow columns left three mostly empty cards) ---------- */
+html.cn #about .about-values {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--cn-4);
+  max-width: var(--cn-max);
+  margin: 0 auto clamp(72px, 9vw, 136px);
+  content-visibility: visible;
+  contain-intrinsic-size: none;
+}
+
+html.cn #about .about-values::before {
+  content: "What we value";
+  grid-column: 1 / -1;
+  margin-bottom: var(--cn-2);
+  color: var(--cn-text-2);
+  font: 500 var(--cn-step-label)/1.3 var(--cn-font-mono);
+  letter-spacing: var(--cn-track-label);
+  text-transform: uppercase;
+}
+
+html.cn #about .about-value {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  align-content: start;
+  column-gap: clamp(16px, 2vw, 24px);
+  row-gap: var(--cn-2);
+  min-width: 0;
+  padding: clamp(20px, 2.6vw, 32px);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-card);
+  background: var(--cn-surface);
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  text-align: start;
+}
+
+html.cn #about .av-icon {
+  grid-row: 1 / span 2;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-ctl);
+  background: var(--cn-surface-2);
+  color: var(--cn-cyan-2);
+}
+
+html.cn #about .av-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+html.cn #about .about-value h3 {
+  grid-column: 2;
+  align-self: center;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  margin: 0;
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: 1.1875rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -.015em;
+}
+
+html.cn #about .about-value p {
+  grid-column: 2;
+  margin: 0;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: .9375rem;
+  line-height: 1.55;
+  letter-spacing: var(--cn-track-body);
+  text-wrap: pretty;
+}
+
+/* ---------- support box: the one component in 02-components.css ---------- */
+
+/* ---------- responsive (page-level grids) ---------- */
+@media (max-width: 760px) {
+  /* story: one column */
+  html.cn #about .about-grid { grid-template-columns: minmax(0, 1fr); }
+  html.cn #about .about-block h2 { font-size: var(--cn-step-h3); }
+  html.cn #about .about-block h2::before { margin-bottom: var(--cn-4); }
+  html.cn #about .about-block p { font-size: 1rem; }
+}
+
+@media (max-width: 720px) {
+  html.cn #about .about-values { grid-template-columns: minmax(0, 1fr); gap: var(--cn-3); }
+}
+
+/* narrow phones: icon beside the title, the text below at full width */
+@media (max-width: 420px) {
+  html.cn #about .about-value {
+    grid-template-rows: auto auto;
+    column-gap: var(--cn-4);
+    padding: var(--cn-5);
+  }
+  html.cn #about .av-icon { grid-row: 1; }
+  html.cn #about .about-value p { grid-column: 1 / -1; margin-top: var(--cn-2); }
+}
+
+/* ==========================================================================
+   v4.1 "Midnight": the shield sprite and a quiet pill (kit: 30-tools.css section 17; the
+   operator banner is styled in 50-pricing.css for Pricing only; About carries that sentence as the
+   footnote below). The page is the editorial layout above: hairlines, big plain numbers, one
+   cyan word.
+   ========================================================================== */
+html.cn #about {
+  --cn-pg-sprite: url("/ui/3d/shield-320.webp?v=20261014-5");
+  --cn-pg-sprite-glow: rgba(34, 211, 238, .09);
+}
+@media (min-width: 1100px) {
+  html.cn #about { --cn-pg-sprite: url("/ui/3d/shield.webp?v=20261014-5"); }
+}
+
+/* header: the pill with its dot, the shield */
+html.cn #about .about-top {
+  position: relative;
+  isolation: isolate;
+}
+html.cn #about .about-top .pill {
+  padding: 0 14px 0 28px;
+  background:
+    radial-gradient(circle at 14px 50%, var(--cn-cyan) 0 3px, transparent 3.5px),
+    linear-gradient(var(--cn-fill-1), var(--cn-fill-1)),
+    var(--cn-surface); /* solid, so the section motion lines pass behind it, not through the words */
+  box-shadow: inset 0 0 0 1px var(--cn-line-2);
+  color: var(--cn-text-2);
+}
+html.cn #about .about-top::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset-block-start: -22px;
+  inset-inline-end: -2px;
+  width: 78px;
+  aspect-ratio: 1;
+  background: var(--cn-pg-sprite) center / contain no-repeat, radial-gradient(closest-side, var(--cn-pg-sprite-glow), transparent 78%) center / 100% 100% no-repeat;
+  pointer-events: none;
+  animation: cn-pg-in .9s var(--cn-ease-out) .15s backwards;
+}
+@media (min-width: 560px) {
+  html.cn #about .about-top::after { inset-block-start: -14px; width: 130px; }
+}
+@media (min-width: 1100px) {
+  /* The shield sits outside the header column (1200px at most): it uses the space beside it, never
+     more than that, so it is never cut by the screen edge. */
+  html.cn #about .about-top::after {
+    inset-block-start: -20px;
+    inset-inline-end: calc(-1 * min(110px, max(0px, max(var(--cn-gutter), (100vw - 15px - 1200px) / 2) - 8px)));
+    width: 230px;
+  }
+}
+@media (max-width: 359.98px) {
+  html.cn #about .about-top::after { display: none; }
+}
+
+/* the fact sheet and the value cards: the hairline and one soft lift */
+html.cn #about .fetch-panel { box-shadow: var(--cn-pg-lift); }
+html.cn #about .fetch-key { color: var(--cn-cyan-2); }
+html.cn #about .av-icon {
+  border: 0;
+  background: var(--cn-cyan-tint);
+  box-shadow: inset 0 0 0 1px var(--cn-cyan-line);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.cn #about .about-top::after { animation: none; }
+}
+@media (forced-colors: active) {
+  html.cn #about .about-top::after { display: none; }
+}
+
+/* ---------- operator footnote: the last thing in #about, right before the footer ----------
+   "CyberNet AI is operated under Marks Events FZ LLE" is a quiet centred line under a hairline, with the
+   brand shield as a small cyan mark in front: not the banner Pricing opens with. It is selected by id so it
+   wins over the base banner look (02-components.css) and #about never picks up the Pricing banner
+   (50-pricing.css is scoped to #pricing). The entity stays on one line (nowrap) and the sentence balances
+   around it; no pill, border-box or fill, nothing that competes with the support box above. */
+html.cn #about > .cn-operator {
+  --cn-op-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 26' fill='none' stroke='%23000'%3E%3Cpath d='M12 2 21 6 20 15 12 24 4 15 3 6Z' stroke-width='1.8' stroke-linejoin='round'/%3E%3Cpath d='M9.6 12.5v-2.3a2.4 2.4 0 0 1 4.8 0v2.3' stroke-width='1.6' stroke-linecap='round'/%3E%3Cpath fill='%23000' stroke='none' fill-rule='evenodd' d='M9.5 12.5h5a1.2 1.2 0 0 1 1.2 1.2v3.8a1.2 1.2 0 0 1-1.2 1.2h-5a1.2 1.2 0 0 1-1.2-1.2v-3.8a1.2 1.2 0 0 1 1.2-1.2ZM12 14.2a1 1 0 0 1 .5 1.866V17.3h-1v-1.234A1 1 0 0 1 12 14.2Z'/%3E%3C/svg%3E");
+  position: static;
+  display: block;
+  box-sizing: border-box;
+  width: auto;
+  max-inline-size: 860px;
+  margin: clamp(48px, 6vw, 88px) auto 0;
+  padding: clamp(18px, 2.4vw, 24px) 0 0;
+  border: 0;
+  border-block-start: 1px solid var(--cn-line);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: .8125rem;
+  font-weight: 450;
+  line-height: 1.55;
+  letter-spacing: 0;
+  text-align: center;
+  text-wrap: balance;
+}
+html.cn #about > .cn-operator::before {
+  content: "";
+  display: inline-block;
+  inline-size: 14px;
+  block-size: 15px;
+  margin-inline-end: 8px;
+  vertical-align: -2px;
+  background: var(--cn-cyan);
+  -webkit-mask: var(--cn-op-mark) center / contain no-repeat;
+  mask: var(--cn-op-mark) center / contain no-repeat;
+}
+html.cn #about > .cn-operator strong {
+  display: inline;
+  color: var(--cn-text);
+  font-weight: 600;
+  white-space: nowrap;
+}
+@media (max-width: 559.98px) {
+  html.cn #about > .cn-operator { border-radius: 0; text-align: center; }
+  html.cn #about > .cn-operator strong { display: inline; }
+}
+@media (forced-colors: active) {
+  html.cn #about > .cn-operator { border-block-start-color: CanvasText; }
+  html.cn #about > .cn-operator::before { forced-color-adjust: none; background: CanvasText; }
+}

@@ -1,0 +1,1107 @@
+/* Home 7-10, v4.1 "Midnight" (see DESIGN.md, v4.1 section):
+   7  Rules first, then AI (.why-choose + .wow-section)  one LIGHT sheet in two parts: the head,
+      the four points and an AI picture, the engine diagram (cyan lanes, the AI lane in the
+      supporting blue; JS: 40-beams.js, one run per entry, no loop), then the facts strip (legacy
+      JS counts the numbers). The ticker stays in the markup for legacy script.js but is
+      [hidden]; no CSS here.
+   8  Closing (.home-quote)  a navy stage: the chrome CyberNet shield rests above the statement
+      and the actions as a quiet metallic emblem (a slow float, never a spin; JS: 55-scrub.js
+      wraps it, adds the Pause button, and splits the statement for its scroll-linked
+      brightening). The section motion canvas (09-bgfx.js) draws its light lines behind it.
+   9  Support box and 10 limits note: compact, on the ground.
+   Every block here is an inset rounded sheet whose edges line up with the hero stage and the
+   other home panels (--cn-max-wide, gutter margins), so the navy ground shows around it.
+   The legacy whole-block reveal (opacity 0 until script.js adds .show) is switched off on these
+   sheets, so a band never flashes in; the content inside rises in on a scroll timeline instead.
+   Legacy traps handled here: content-visibility/contain on .why-choose, .wow-section and
+   .home-quote, the shared .support-box / .home-limits-note classes (scoped to #home), and the
+   .tilt-card inline transform (beaten in 01-base). Nothing here toggles a class to animate:
+   legacy observers watch "class" on the whole body (state is a data attribute). */
+
+/* ---------------------------------------------------------------- shared */
+
+@property --cn-scrub {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
+/* The sheet shell: same edges, radius and side padding as the other home panels. */
+html.cn #home > :is(.why-choose, .wow-section, .home-quote) {
+  --cn-panel-r: clamp(24px, .9rem + 1.6vw, 40px);
+  --cn-panel-px: clamp(16px, .25rem + 3.6vw, 72px);
+  --cn-panel-py: clamp(56px, 2.25rem + 4vw, 112px);
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  width: auto;
+  max-width: none;
+  margin-inline:
+    max(var(--cn-gutter-l), calc((100% - var(--cn-max-wide)) / 2))
+    max(var(--cn-gutter-r), calc((100% - var(--cn-max-wide)) / 2));
+  overflow: hidden;
+  overflow: clip;
+  /* the legacy reveal hides the whole block until script.js adds .show: off on the sheets */
+  opacity: 1;
+  transform: none;
+  transition: none;
+  animation: none;
+}
+/* Whole-pixel edges. The gutter is fluid (16.6px on a 390px phone), and the two halves of the
+   light sheet (.why-choose is paint-contained, .wow-section is not) snapped that fraction to
+   different device pixels, leaving a 1px step at their seam. Rounding the side margins puts every
+   sheet edge on a whole pixel (well under 1px from the hero and the other panels). */
+@supports (margin-inline: round(1.5px, 1px)) {
+  html.cn #home > :is(.cn-flow, .why-choose, .wow-section, .home-quote) {
+    margin-inline:
+      round(max(var(--cn-gutter-l), calc((100% - var(--cn-max-wide)) / 2)), 1px)
+      round(max(var(--cn-gutter-r), calc((100% - var(--cn-max-wide)) / 2)), 1px);
+  }
+}
+/* .wow-section and .home-quote must paint in full (legacy gave them a 700px placeholder and
+   contain:layout paint style under 700px). .why-choose keeps content-visibility:auto from
+   80-perf.css; its placeholder is re-measured below. */
+html.cn #home > .wow-section,
+html.cn #home > .home-quote {
+  content-visibility: visible;
+  contain-intrinsic-size: none;
+  contain: none;
+}
+
+/* ============================================================ 7. Rules first, then AI */
+
+/* The light scope for both parts of the sheet: the same values 00-tokens.css gives its light
+   bands (.cn-light), so every shared component inside reads ink text, white cards and deep
+   cyan marks (the AI mark in indigo). Every pair is at least 4.5:1 (ratios in 00-tokens.css). */
+html.cn #home > :is(.why-choose, .wow-section) {
+  --cn-bg: #f5f7fa;
+  --cn-bg-2: #eef2f6;
+  --cn-surface: #ffffff;
+  --cn-surface-2: #f5f7fa;
+  --cn-surface-3: #ebeff5;
+  --cn-glass: rgba(255, 255, 255, .86);
+  --cn-glass-2: #ffffff;
+  --cn-hi: rgba(255, 255, 255, .95);
+  --cn-fill-1: #ffffff;
+  --cn-fill-2: #f5f7fa;
+  --cn-line: rgba(15, 23, 42, .08);
+  --cn-line-2: rgba(15, 23, 42, .14);
+  --cn-line-ctl: rgba(15, 23, 42, .5);
+  --cn-text: #0b1220;
+  --cn-text-2: #475569;
+  --cn-text-3: #5b6576;
+  --cn-cyan: #0e7490;
+  --cn-cyan-2: #0b6a84;
+  --cn-ice: #0b6a84;
+  --cn-teal: #0e7490;
+  --cn-deep: #d5f6fb;
+  --cn-cyan-tint: rgba(14, 116, 144, .09);
+  --cn-cyan-line: rgba(14, 116, 144, .36);
+  --cn-on-cyan: #ffffff;
+  --cn-ring: #0b6a84;
+  --cn-violet: #4f46e5;
+  --cn-violet-2: #4338ca;
+  --cn-purple: #2563eb;
+  --cn-magenta: #2563eb;
+  --cn-iris: #4f46e5;
+  --cn-iris-2: #4338ca;
+  --cn-iris-tint: rgba(79, 70, 229, .07);
+  --cn-iris-line: rgba(79, 70, 229, .26);
+  --cn-mint: #0d6b64;
+  --cn-mint-2: #0b5f58;
+  --cn-shadow: 0 30px 60px -32px rgba(15, 23, 42, .28);
+  --cn-shadow-card: 0 1px 2px rgba(15, 23, 42, .05), 0 16px 32px -24px rgba(15, 23, 42, .22);
+  --cn-id: var(--cn-cyan);
+  --cn-id-2: var(--cn-cyan-2);
+  --cn-focus: 0 0 0 3px #f5f7fa, 0 0 0 5px #0b6a84;
+  --text: #0b1220;
+  --muted: #475569;
+  --soft: #475569;
+  color-scheme: light;
+  color: var(--cn-text);
+}
+
+/* The light sheet, part one. */
+html.cn #home > .why-choose {
+  container: cn-why / inline-size;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "head" "visual" "grid" "beams";
+  row-gap: clamp(24px, 1rem + 2vw, 40px);
+  margin-block: clamp(14px, .5rem + 1vw, 24px) 0;
+  padding: var(--cn-panel-py) var(--cn-panel-px) clamp(40px, 1.5rem + 2vw, 56px);
+  border-radius: var(--cn-panel-r) var(--cn-panel-r) 0 0;
+  background-color: #f5f7fa;
+  background-image:
+    radial-gradient(60% 40% at 50% 0%, rgba(34, 211, 238, .07), transparent 72%),
+    linear-gradient(180deg, #fafbfc 0%, #f5f7fa 38%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9);
+  color: var(--cn-text);
+  text-align: start;
+}
+@media (min-width: 760px) {
+  html.cn #home > .why-choose { column-gap: clamp(20px, 2.6vw, 40px); }
+}
+@media (min-width: 1100px) {
+  html.cn #home > .why-choose {
+    grid-template-columns: minmax(0, 1.12fr) minmax(0, .88fr);
+    grid-template-areas: "head visual" "grid visual" "beams beams";
+    grid-template-rows: auto 1fr auto;
+    column-gap: clamp(32px, 4vw, 64px);
+  }
+}
+
+/* Head: centred on phones and tablets, start-aligned beside the picture on desktop. */
+html.cn #home > .why-choose > .cn-head {
+  grid-area: head;
+  margin: 0 auto;
+}
+html.cn #home > .why-choose > .cn-head h2 > span { color: var(--cn-text-2); }   /* 7.3:1 on #f5f7fa */
+@media (min-width: 1100px) {
+  html.cn #home > .why-choose > .cn-head {
+    align-items: flex-start;
+    align-self: end;
+    margin: 0;
+    text-align: start;
+  }
+}
+
+/* The AI picture: a graded photo of a board with glowing rings (no people), drawn as the band's
+   own pseudo-element so no markup is needed. Phones and tablets get the 800w file. It does not
+   move on scroll (no scroll-timeline motion on large images). */
+html.cn #home > .why-choose::before {
+  content: "";
+  grid-area: visual;
+  display: block;
+  inline-size: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: clamp(20px, 1rem + 1vw, 28px);
+  background: #0c1220 url("/ui/img/ai-800.webp?v=20261014-5") 50% 50% / cover no-repeat;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .12),
+    0 2px 4px rgba(15, 23, 42, .08),
+    0 32px 60px -36px rgba(15, 23, 42, .45);
+}
+@media (min-width: 760px) and (max-width: 1099.98px) {
+  html.cn #home > .why-choose::before {
+    aspect-ratio: 21 / 9;
+    background-image: image-set(url("/ui/img/ai-800.webp?v=20261014-5") 1x, url("/ui/img/ai-1600.webp?v=20261014-5") 2x);
+    background-position: 50% 42%;
+  }
+}
+@media (min-width: 1100px) {
+  html.cn #home > .why-choose::before {
+    align-self: stretch;
+    block-size: 100%;
+    min-block-size: 420px;
+    aspect-ratio: auto;
+    background-image: url("/ui/img/ai-4x5-800.webp?v=20261014-5");
+    background-image: image-set(url("/ui/img/ai-4x5-800.webp?v=20261014-5") 1x, url("/ui/img/ai-4x5-1200.webp?v=20261014-5") 2x);
+    background-position: 56% 50%;
+  }
+}
+/* ---- the four points: white cards, a quiet icon tile (the AI point carries the indigo mark) ---- */
+html.cn #home .why-choose-grid {
+  grid-area: grid;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  max-width: none;
+  margin: 0;
+  text-align: start;
+}
+@container cn-why (min-width: 560px) {
+  html.cn #home .why-choose-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+html.cn #home .why-choose-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  align-items: start;
+  gap: 14px;
+  padding: 18px 18px 20px;
+  background: #ffffff;
+  border: 1px solid var(--cn-line);
+  border-radius: 20px;
+  box-shadow: var(--cn-shadow-card);
+}
+html.cn #home .why-choose-item::after { content: none; }
+html.cn #home .why-choose-item > div { min-width: 0; }
+html.cn #home .wc-icon-box {
+  display: grid;
+  place-items: center;
+  inline-size: 44px;
+  block-size: 44px;
+  border: 1px solid rgba(15, 23, 42, .07);
+  border-radius: 13px;
+  background: #f1f5f9;
+  color: #0b6a84;
+}
+html.cn #home .wc-icon-box svg { inline-size: 22px; block-size: 22px; }
+/* the AI point shares the AI lane's small indigo mark in the diagram (6.3:1 on its tile) */
+html.cn #home .why-choose-item:first-child .wc-icon-box {
+  border-color: rgba(79, 70, 229, .16);
+  background: #eef2ff;
+  color: #4f46e5;
+}
+html.cn #home .why-choose-item h4 {
+  margin: 0 0 6px;
+  padding-block-start: 1px;
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: var(--cn-track-body);
+}
+html.cn #home .why-choose-item p {
+  margin: 0;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: .9375rem;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+/* folded phones: the icon above the text, so the copy keeps a readable measure */
+@container cn-why (max-width: 299.98px) {
+  html.cn #home .why-choose-item { grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 16px; }
+}
+@media (hover: hover) and (pointer: fine) {
+  html.cn #home .why-choose-item { transition: translate var(--cn-dur-2) var(--cn-ease-out), box-shadow var(--cn-dur-2) ease; }
+  html.cn #home .why-choose-item:hover {
+    translate: 0 -2px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .05), 0 22px 40px -26px rgba(15, 23, 42, .3);
+  }
+}
+
+/* ---- the engine diagram: a white panel with fine lanes (no glow filters: a filter on the
+   SVG would repaint it on every frame of the pulse run) ---- */
+html.cn #home .cn-beams {
+  grid-area: beams;
+  container: cn-beams / inline-size;
+  position: relative;
+  isolation: isolate;
+  max-width: none;
+  margin: clamp(4px, 1vw, 12px) 0 0;
+  padding: clamp(.75rem, .3rem + 1.6vw, 2rem) clamp(.75rem, .2rem + 2.6vw, 2.75rem);
+  border: 1px solid rgba(15, 23, 42, .08);
+  border-radius: clamp(20px, 1rem + 1vw, 28px);
+  background:
+    radial-gradient(34% 70% at 92% 50%, rgba(34, 211, 238, .08), transparent 72%),
+    #ffffff;
+  /* the shadow stays inside the sheet's bottom padding (the sheet clips its paint) */
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .05), 0 18px 36px -26px rgba(15, 23, 42, .26);
+  overflow: hidden;
+}
+/* faint measuring grid */
+html.cn #home .cn-beams::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(rgba(15, 23, 42, .1) 1px, transparent 1.4px);
+  background-size: 24px 24px;
+  background-position: center;
+  -webkit-mask-image: radial-gradient(ellipse 70% 80% at 50% 50%, #000 30%, transparent 100%);
+  mask-image: radial-gradient(ellipse 70% 80% at 50% 50%, #000 30%, transparent 100%);
+  pointer-events: none;
+}
+html.cn #home .cn-beams > svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+/* Lines: gradient strokes (40-beams.js adds the gradients; a flat colour first, as fallback).
+   Inputs run from slate into cyan; the AI lane is the supporting blue (a chart colour), so the
+   diagram stays in the one cyan -> blue family. */
+html.cn #home .cn-beam-paths path {
+  fill: none;
+  stroke: #67e8f9;
+  stroke-width: 2;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+html.cn #home .cn-beam-paths path.is-in { stroke: url(#cnBeamIn) #67e8f9; }
+html.cn #home .cn-beam-paths path.is-in.is-ai { stroke: url(#cnBeamInAi) #60a5fa; }
+html.cn #home .cn-beam-paths path.is-out { stroke: url(#cnBeamOut) #22d3ee; }
+html.cn #home .cn-beam-paths path.is-out.is-ai { stroke: url(#cnBeamOutAi) #3b82f6; }
+
+/* nodes */
+html.cn #home .cn-beam-nodes rect {
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+/* node labels are words, not data: Mona Sans in sentence case */
+html.cn #home .cn-beam-nodes text {
+  font-family: var(--cn-font);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -.005em;
+  text-transform: none;
+}
+html.cn #home .cn-node-in rect { fill: #ffffff; stroke: #d3dae4; }
+html.cn #home .cn-node-in text { fill: #475569; }
+html.cn #home .cn-node-engine rect { fill: #f0fbfd; stroke: rgba(14, 116, 144, .5); }
+html.cn #home .cn-node-engine text { fill: #0b1220; font-weight: 600; }
+html.cn #home .cn-node-engine.is-ai rect { fill: #f2f7ff; stroke: rgba(37, 99, 235, .45); }
+html.cn #home .cn-node-engine.is-ai text { fill: #1d4ed8; }
+/* the Verdict: a cyan pill with ink text (10.6:1) and a soft ring (no glow filter) */
+html.cn #home .cn-node-out rect:not(.cn-node-ring):not(.cn-node-ping) {
+  fill: #22d3ee;
+  stroke: #0e7490;
+}
+html.cn #home .cn-node-out text { fill: #061018; font-weight: 650; }
+html.cn #home .cn-node-ring { fill: rgba(34, 211, 238, .12); stroke: rgba(34, 211, 238, .4); }
+html.cn #home .cn-node-ping {
+  fill: none;
+  stroke: #22d3ee;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+/* connection ports (added by 40-beams.js) */
+html.cn #home .cn-beam-ports circle {
+  fill: #ffffff;
+  stroke: #94a3b8;
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+html.cn #home .cn-beam-ports circle.is-out { stroke: #0e7490; }
+html.cn #home .cn-beam-ports circle.is-ai { stroke: #2563eb; }
+
+/* Pulses (paths cloned by 40-beams.js with pathLength=100): a bright head on a comet tail.
+   ONE run each time the diagram scrolls into view (data-cn-run), about 4 s, then it rests. */
+html.cn #home .cn-beams { --cn-beam-dur: 3.6s; }
+html.cn #home .cn-beam-pulses path {
+  fill: none;
+  stroke: #22d3ee;
+  stroke-linecap: round;
+  opacity: 0;
+}
+html.cn #home .cn-beam-pulses .cn-pulse-head {
+  stroke: #0891b2;
+  stroke-width: 3.5;
+  stroke-dasharray: 6 200;
+  stroke-dashoffset: 7;
+}
+html.cn #home .cn-beam-pulses .cn-pulse-tail {
+  stroke-width: 2.5;
+  stroke-dasharray: 28 200;
+  stroke-dashoffset: 29;
+}
+html.cn #home .cn-beam-pulses .is-ai.cn-pulse-tail { stroke: #60a5fa; }
+html.cn #home .cn-beam-pulses .is-ai.cn-pulse-head { stroke: #2563eb; }
+
+html.cn #home .cn-beam-pulses .is-in.cn-pulse-head { --cn-beam-anim: cn-beam-in-head; --cn-beam-delay: calc(var(--k, 0) * 140ms); }
+html.cn #home .cn-beam-pulses .is-in.cn-pulse-tail { --cn-beam-anim: cn-beam-in-tail; --cn-beam-delay: calc(var(--k, 0) * 140ms); }
+html.cn #home .cn-beam-pulses .is-out.cn-pulse-head { --cn-beam-anim: cn-beam-out-head; --cn-beam-delay: calc(var(--k, 0) * 90ms); }
+html.cn #home .cn-beam-pulses .is-out.cn-pulse-tail { --cn-beam-anim: cn-beam-out-tail; --cn-beam-delay: calc(var(--k, 0) * 90ms); }
+
+html.cn #home .cn-node-engine rect { --cn-node-anim: cn-beam-engine; }
+html.cn #home .cn-node-engine.is-ai rect { --cn-node-anim: cn-beam-engine-ai; }
+html.cn #home .cn-node-engine + .cn-node-engine rect { --cn-beam-delay: 140ms; }
+html.cn #home .cn-node-out rect:not(.cn-node-ring):not(.cn-node-ping) { --cn-node-anim: cn-beam-verdict; }
+
+html.cn #home .cn-beams[data-cn-run] .cn-beam-pulses path {
+  animation: var(--cn-beam-anim, none) var(--cn-beam-dur) linear var(--cn-beam-delay, 0ms) 1 both;
+}
+html.cn #home .cn-beams[data-cn-run] :is(.cn-node-engine rect, .cn-node-out rect:not(.cn-node-ring):not(.cn-node-ping)) {
+  animation: var(--cn-node-anim, none) var(--cn-beam-dur) linear var(--cn-beam-delay, 0ms) 1 both;
+}
+html.cn #home .cn-beams[data-cn-run] .cn-node-ping {
+  animation: cn-beam-ping var(--cn-beam-dur) linear 1 both;
+}
+
+/* One run: inputs travel (0-36%), the checks light (36-46%), the result travels (46-72%),
+   the Verdict rings (72-95%). Every path shares the timeline, so the flow stays in step. */
+@keyframes cn-beam-in-head {
+  0% { stroke-dashoffset: 7; opacity: 0; animation-timing-function: cubic-bezier(.45, 0, .25, 1); }
+  3% { opacity: 1; }
+  34% { stroke-dashoffset: -100; opacity: 1; }
+  37%, 100% { stroke-dashoffset: -100; opacity: 0; }
+}
+@keyframes cn-beam-in-tail {
+  0% { stroke-dashoffset: 29; opacity: 0; animation-timing-function: cubic-bezier(.45, 0, .25, 1); }
+  3% { opacity: .85; }
+  34% { stroke-dashoffset: -78; opacity: .85; }
+  39%, 100% { stroke-dashoffset: -78; opacity: 0; }
+}
+@keyframes cn-beam-out-head {
+  0% { stroke-dashoffset: 7; opacity: 0; }
+  44% { stroke-dashoffset: 7; opacity: 0; animation-timing-function: cubic-bezier(.45, 0, .25, 1); }
+  47% { opacity: 1; }
+  70% { stroke-dashoffset: -100; opacity: 1; }
+  73%, 100% { stroke-dashoffset: -100; opacity: 0; }
+}
+@keyframes cn-beam-out-tail {
+  0% { stroke-dashoffset: 29; opacity: 0; }
+  44% { stroke-dashoffset: 29; opacity: 0; animation-timing-function: cubic-bezier(.45, 0, .25, 1); }
+  47% { opacity: .85; }
+  70% { stroke-dashoffset: -78; opacity: .85; }
+  75%, 100% { stroke-dashoffset: -78; opacity: 0; }
+}
+@keyframes cn-beam-engine {
+  0%, 33% { stroke: rgba(14, 116, 144, .5); fill: #f0fbfd; }
+  38% { stroke: #06b6d4; fill: #cff7fd; }
+  52%, 100% { stroke: rgba(14, 116, 144, .5); fill: #f0fbfd; }
+}
+@keyframes cn-beam-engine-ai {
+  0%, 33% { stroke: rgba(37, 99, 235, .45); fill: #f2f7ff; }
+  38% { stroke: #2563eb; fill: #dbeafe; }
+  52%, 100% { stroke: rgba(37, 99, 235, .45); fill: #f2f7ff; }
+}
+@keyframes cn-beam-verdict {
+  0%, 69% { fill: #22d3ee; }
+  73% { fill: #a5f3fc; }
+  90%, 100% { fill: #22d3ee; }
+}
+@keyframes cn-beam-ping {
+  0%, 70% { opacity: 0; transform: scale(1); }
+  72% { opacity: .7; transform: scale(1); animation-timing-function: cubic-bezier(.22, 1, .36, 1); }
+  96%, 100% { opacity: 0; transform: scale(1.24); }
+}
+
+/* labels stay readable when the diagram scales down (text >= 12px on screen) */
+@container cn-beams (max-width: 860px) {
+  html.cn #home .cn-beam-nodes text { font-size: 18.5px; letter-spacing: 0; }
+}
+
+/* ---- vertical version (built by 40-beams.js from the SVG labels) ---- */
+html.cn #home .cn-bv {
+  display: none;
+  justify-items: center;
+  max-width: 420px;
+  margin-inline: auto;
+  padding-block: 4px;
+}
+@container cn-beams (max-width: 639.98px) {
+  html.cn #home .cn-beams:has(> .cn-bv) > svg { display: none; }
+  html.cn #home .cn-beams > .cn-bv { display: grid; }
+}
+html.cn #home .cn-bv-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+html.cn #home .cn-bv-node {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid #d3dae4;
+  border-radius: var(--cn-r-pill);
+  background: #ffffff;
+  color: #475569;
+  font: 500 14px/1.2 var(--cn-font);
+  letter-spacing: -.005em;
+  text-transform: none;
+  white-space: nowrap;
+}
+/* the two checks share one box; the wire runs into its divider */
+html.cn #home .cn-bv-eng {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  width: 100%;
+  border: 1px solid rgba(14, 116, 144, .4);
+  border-radius: var(--cn-r-ctl);
+  background: #f0fbfd;
+  overflow: hidden;
+  box-shadow: 0 10px 22px -18px rgba(15, 23, 42, .35);
+}
+html.cn #home .cn-bv-eng .cn-bv-node {
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: #0b1220;
+  font-weight: 600;
+  white-space: normal;
+  text-align: center;
+}
+html.cn #home .cn-bv-eng .cn-bv-node + .cn-bv-node { border-inline-start: 1px solid rgba(14, 116, 144, .3); }
+html.cn #home .cn-bv-eng .cn-bv-node.is-ai {
+  background: #f2f7ff;
+  color: #1d4ed8;
+}
+html.cn #home .cn-bv-out .cn-bv-node {
+  position: relative;
+  min-height: 44px;
+  padding: 0 28px;
+  border-color: #0e7490;
+  background: #22d3ee;
+  color: #061018;
+  font-weight: 650;
+  box-shadow: 0 0 0 6px rgba(34, 211, 238, .12), 0 8px 18px -10px rgba(14, 116, 144, .5);
+}
+html.cn #home .cn-bv-out .cn-bv-node::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border: 1.5px solid #22d3ee;
+  border-radius: inherit;
+  opacity: 0;
+}
+html.cn #home .cn-bv-wire {
+  position: relative;
+  display: block;
+  width: 2px;
+  height: 36px;
+  background: linear-gradient(to bottom, #cbd5e1, #22d3ee);
+  overflow: hidden;
+}
+html.cn #home .cn-bv-wire + .cn-bv-eng + .cn-bv-wire { background: linear-gradient(to bottom, #60a5fa, #22d3ee); }
+html.cn #home .cn-bv-wire::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 0;
+  width: 4px;
+  height: 14px;
+  border-radius: 2px;
+  background: linear-gradient(to bottom, transparent, #22d3ee 60%, #ffffff);
+  opacity: 0;
+  transform: translateY(-14px);
+}
+html.cn #home .cn-bv-wire + .cn-bv-eng + .cn-bv-wire::before {
+  background: linear-gradient(to bottom, transparent, #60a5fa 35%, #22d3ee 75%, #ffffff);
+}
+/* one run per entry, in step with the SVG version */
+html.cn #home .cn-beams[data-cn-run] .cn-bv-wire::before { animation: cn-bv-wire-a var(--cn-beam-dur) linear 1 both; }
+html.cn #home .cn-beams[data-cn-run] .cn-bv-wire + .cn-bv-eng + .cn-bv-wire::before { animation-name: cn-bv-wire-b; }
+html.cn #home .cn-beams[data-cn-run] .cn-bv-eng { animation: cn-bv-eng var(--cn-beam-dur) linear 1 both; }
+html.cn #home .cn-beams[data-cn-run] .cn-bv-out .cn-bv-node::after { animation: cn-bv-ping var(--cn-beam-dur) linear 1 both; }
+@keyframes cn-bv-wire-a {
+  0% { opacity: 0; transform: translateY(-14px); animation-timing-function: cubic-bezier(.45, 0, .25, 1); }
+  4% { opacity: 1; }
+  30% { opacity: 1; transform: translateY(36px); }
+  31%, 100% { opacity: 0; transform: translateY(36px); }
+}
+@keyframes cn-bv-wire-b {
+  0% { opacity: 0; transform: translateY(-14px); }
+  46% { opacity: 0; transform: translateY(-14px); animation-timing-function: cubic-bezier(.45, 0, .25, 1); }
+  50% { opacity: 1; }
+  70% { opacity: 1; transform: translateY(36px); }
+  71%, 100% { opacity: 0; transform: translateY(36px); }
+}
+@keyframes cn-bv-eng {
+  0%, 29% { border-color: rgba(14, 116, 144, .4); }
+  34% { border-color: #06b6d4; }
+  48%, 100% { border-color: rgba(14, 116, 144, .4); }
+}
+@keyframes cn-bv-ping {
+  0%, 70% { opacity: 0; transform: scale(1); }
+  72% { opacity: .8; transform: scale(1); animation-timing-function: cubic-bezier(.22, 1, .36, 1); }
+  96%, 100% { opacity: 0; transform: scale(1.18, 1.5); }
+}
+
+/* ---- the facts strip: the light sheet, part two ----
+   One white card (the band's own ::before, so no extra markup) holding the head and the three
+   facts. Legacy JS counts the numbers (.wow-stat-number keeps its data-target). */
+html.cn #home > .wow-section {
+  container: cn-wow / inline-size;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "head" "stats";
+  margin-block: 0 clamp(14px, .5rem + 1vw, 24px);
+  padding: 0 var(--cn-panel-px) clamp(40px, 1.25rem + 3vw, 72px);
+  border: 0;
+  border-radius: 0 0 var(--cn-panel-r) var(--cn-panel-r);
+  background-color: #f5f7fa;
+  background-image: none;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  color: var(--cn-text);
+}
+html.cn #home > .wow-section::before {
+  content: "";
+  grid-area: 1 / 1 / -1 / -1;
+  align-self: stretch;
+  justify-self: stretch;
+  z-index: -1;
+  border: 1px solid transparent;
+  border-radius: clamp(20px, 1rem + 1vw, 28px);
+  background:
+    linear-gradient(#ffffff, #ffffff) padding-box,
+    linear-gradient(120deg, rgba(34, 211, 238, .5), rgba(15, 23, 42, .08) 36%, rgba(15, 23, 42, .08) 70%, rgba(59, 130, 246, .28)) border-box;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .05), 0 16px 32px -24px rgba(15, 23, 42, .24);
+}
+@media (min-width: 1000px) {
+  html.cn #home > .wow-section {
+    grid-template-columns: minmax(0, .78fr) minmax(0, 1.22fr);
+    grid-template-areas: "head stats";
+    align-items: center;
+  }
+}
+
+html.cn #home .wow-header {
+  grid-area: head;
+  max-width: 34rem;
+  margin: 0;
+  padding: clamp(22px, 1rem + 1.6vw, 40px) clamp(20px, 1rem + 1.6vw, 40px) 0;
+  text-align: start;
+}
+@media (min-width: 1000px) {
+  html.cn #home .wow-header { padding-block-end: clamp(22px, 1rem + 1.6vw, 40px); }
+}
+html.cn #home .wow-header h2 {
+  margin: 0;
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: clamp(1.375rem, 1.1rem + 1.2vw, 2.125rem);
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: var(--cn-track-h2);
+  text-wrap: balance;
+}
+html.cn #home .wow-header h2 span {
+  color: var(--cn-text-2);
+  background: none;
+  -webkit-text-fill-color: currentColor;
+  text-shadow: none;
+}
+html.cn #home .wow-header p {
+  max-width: var(--cn-measure, 62ch);
+  margin: var(--cn-2) 0 0;
+  color: var(--cn-text-2);
+  font-size: .9375rem;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+/* three facts side by side: ink numbers, each under a short cyan -> blue rule */
+html.cn #home .wow-stats {
+  grid-area: stats;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  width: auto;
+  max-width: none;
+  margin: 0;
+  padding: clamp(18px, 1rem + 1vw, 28px) clamp(12px, .5rem + 1.4vw, 32px) clamp(22px, 1rem + 1.6vw, 40px);
+}
+html.cn #home .wow-stat.glass,
+html.cn #home .wow-stat {
+  --cn-fact: #0b1220;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: start;
+  align-content: start;
+  gap: 6px;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 4px clamp(8px, .2rem + 1.4vw, 28px);
+  border: 0;
+  border-radius: 0;
+  background: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+  text-align: start;
+}
+html.cn #home .wow-stat + .wow-stat { border-inline-start: 1px solid var(--cn-line); }
+html.cn #home .wow-stat::before {
+  content: "";
+  inline-size: 28px;
+  block-size: 3px;
+  margin-block-end: 6px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #22d3ee, #3b82f6);
+}
+html.cn #home .wow-ring { display: none; }
+html.cn #home .wow-stat-number {
+  margin: 0;
+  color: var(--cn-fact);
+  font-family: var(--cn-font);
+  font-size: clamp(2.25rem, 1.5rem + 2.6vw, 3.75rem);
+  font-weight: 650;
+  line-height: .95;
+  letter-spacing: -.04em;
+  font-variant-numeric: tabular-nums;
+}
+html.cn #home .wow-stat-label {
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: clamp(.8125rem, .76rem + .3vw, .9375rem);
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: -.005em;
+  text-transform: none;
+  overflow-wrap: break-word;
+}
+/* folded phones: one fact per row, the number beside its label */
+@container cn-wow (max-width: 259.98px) {
+  html.cn #home .wow-stats { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  html.cn #home .wow-stat.glass,
+  html.cn #home .wow-stat { grid-template-columns: auto minmax(0, 1fr); align-items: baseline; column-gap: 12px; padding-inline: 4px; }
+  html.cn #home .wow-stat::before { grid-column: 1 / -1; }
+  html.cn #home .wow-stat + .wow-stat { border-inline-start: 0; border-block-start: 1px solid var(--cn-line); padding-block-start: 12px; }
+}
+
+/* ---- scroll-linked reveals inside the light sheet (rise and fade in; transform and opacity
+   only, on the compositor). Fill "forwards", not "both": below the viewport a block shows its
+   resting state (so full-page captures and find-in-page see it), it takes the start state only
+   as its top edge crosses the viewport bottom, and it rests fully shown after. ---- */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    html.cn #home > .why-choose > .cn-head,
+    html.cn #home .cn-beams,
+    html.cn #home .wow-header,
+    html.cn #home .wow-stats {
+      animation: cn-sheet-rise linear forwards;
+      animation-timeline: view();
+      animation-range: entry 0% entry 70%;
+    }
+  }
+}
+@keyframes cn-sheet-rise {
+  from { opacity: 0; transform: translate3d(0, 32px, 0); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ============================================================ 8. Closing */
+
+/* The navy stage: one soft cyan light behind the shield, then the statement and actions. */
+html.cn #home > .home-quote,
+html.cn #home > :is(.wow-section) + .home-quote {
+  --cn-text: #f5f7fa;
+  --cn-text-2: #aab4c3;
+  --cn-text-3: #8a95a7;
+  --cn-line: rgba(148, 163, 184, .14);
+  --cn-line-2: rgba(148, 163, 184, .24);
+  margin-block: clamp(14px, .5rem + 1vw, 24px);
+  padding: clamp(40px, 1.5rem + 3.6vw, 88px) var(--cn-panel-px) var(--cn-panel-py);
+  border: 0;
+  border-radius: var(--cn-panel-r);
+  background-color: #080d18;
+  background-image:
+    radial-gradient(40% 34% at 50% 20%, rgba(34, 211, 238, .08), transparent 72%),
+    radial-gradient(70% 50% at 50% 0%, rgba(148, 163, 184, .06), transparent 74%),
+    linear-gradient(180deg, #0b1120 0%, #070b15 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .06),
+    inset 0 0 0 1px rgba(148, 163, 184, .1);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  color: var(--cn-text);
+  text-align: center;
+}
+/* lit top edge: a faint cyan hairline fading out at both ends */
+html.cn #home > .home-quote::after {
+  content: "";
+  position: absolute;
+  inset: 0 18% auto;
+  block-size: 1px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(103, 232, 249, .42) 40%, rgba(148, 163, 184, .28) 70%, transparent);
+}
+
+/* ---- the shield ----
+   Markup: .cn-close-shield > img. 55-scrub.js wraps the image in .cn-cs-float and sets
+   data-cn-play on .cn-close-shield while it may move (on screen, tab visible, motion allowed,
+   not paused). Without JS the image simply rests. */
+html.cn #home .cn-close-shield {
+  position: relative;
+  z-index: 0;
+  --cn-cs-size: clamp(150px, 7rem + 9vw, 280px);
+  inline-size: var(--cn-cs-size);
+  aspect-ratio: 1;
+  margin: calc(var(--cn-cs-size) * -.04) auto clamp(12px, 1.5vw, 24px);
+  pointer-events: none;
+}
+/* never taller than about half a landscape phone's screen, so the statement follows it */
+@supports (height: 1svh) {
+  html.cn #home .cn-close-shield { --cn-cs-size: min(clamp(150px, 7rem + 9vw, 280px), 48svh); }
+}
+/* a faint cool light behind the emblem (static: no rays, no turning) */
+html.cn #home .cn-close-shield::before {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  z-index: -2;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(165, 243, 252, .1), rgba(34, 211, 238, .05) 46%, transparent 76%);
+}
+/* the contact shadow under the emblem, with a thin cyan rim of light */
+html.cn #home .cn-close-shield::after {
+  content: "";
+  position: absolute;
+  inset: 0 -6% -10%;
+  z-index: -1;
+  background:
+    radial-gradient(34% 5% at 50% 90%, rgba(0, 0, 0, .55), transparent 100%),
+    radial-gradient(38% 4% at 50% 89%, rgba(103, 232, 249, .16), transparent 100%);
+}
+html.cn #home .cn-close-shield img {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 22px 30px rgba(0, 0, 0, .55));
+}
+html.cn #home .cn-cs-float {
+  position: absolute;
+  inset: 0;
+  animation: cn-cs-float 8s ease-in-out infinite;
+}
+html.cn #home .cn-cs-float > img {
+  position: absolute;
+  inset: 0;
+}
+/* the loop runs only while 55-scrub.js says so, and never under the global pause */
+html.cn #home .cn-close-shield:not([data-cn-play]) .cn-cs-float,
+html.cn.cn-still #home .cn-close-shield .cn-cs-float {
+  animation-play-state: paused;
+}
+
+@keyframes cn-cs-float {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -3%, 0); }
+}
+
+/* Scroll-linked entrance: the shield rises and grows into place as the stage scrolls up. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    html.cn #home .cn-close-shield {
+      animation: cn-cs-in linear forwards;
+      animation-timeline: view();
+      animation-range: entry 0% cover 40%;
+    }
+    html.cn #home > .home-quote .cn-close {
+      animation: cn-sheet-rise linear forwards;
+      animation-timeline: view();
+      animation-range: entry 0% entry 90%;
+    }
+  }
+}
+@keyframes cn-cs-in {
+  from { opacity: .1; transform: translate3d(0, 70px, 0) scale(.72); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Pause for the shield and its rays (added by 55-scrub.js): the hero's 36px circle (44px hit
+   area) in the stage's bottom corner. */
+html.cn #home .cn-close-pause {
+  position: absolute;
+  z-index: 3;
+  inset-block-end: 14px;
+  inset-inline-end: 14px;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 36px;
+  height: 36px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--cn-line-2);
+  border-radius: 50%;
+  background: rgba(2, 6, 14, .4);
+  box-shadow: none;
+  color: var(--cn-text-2);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: color var(--cn-dur-1) ease, border-color var(--cn-dur-1) ease, background-color var(--cn-dur-1) ease;
+  -webkit-tap-highlight-color: transparent;
+}
+html.cn #home .cn-close-pause::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+}
+html.cn #home .cn-close-pause > span {
+  display: block;
+  box-sizing: border-box;
+  width: 10px;
+  height: 11px;
+  border-inline: 3px solid currentColor;
+}
+html.cn #home .cn-close-pause[aria-pressed="true"] > span {
+  width: 0;
+  height: 0;
+  margin-inline-start: 3px;
+  border-block: 6px solid transparent;
+  border-inline-start: 10px solid currentColor;
+  border-inline-end: 0;
+}
+html.cn[dir="rtl"] #home .cn-close-pause[aria-pressed="true"] > span { scale: -1 1; margin-inline: 0 3px; }
+html.cn #home .cn-close-pause:focus-visible { outline: 2px solid var(--cn-ring, #22d3ee); outline-offset: 3px; }
+@media (hover: hover) and (pointer: fine) {
+  html.cn #home .cn-close-pause:hover {
+    border-color: rgba(245, 247, 250, .4);
+    background: rgba(255, 255, 255, .08);
+    color: var(--cn-text);
+  }
+}
+
+/* ---- the statement ---- */
+html.cn #home .home-quote p {
+  max-width: 21em;
+  margin: 0 auto;
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: var(--cn-step-h2);
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: var(--cn-track-h2);
+  text-wrap: balance;
+}
+/* 55-scrub.js splits the words (with a visually hidden full copy for screen readers) */
+html.cn #home .home-quote .cn-scrub-line {
+  display: block;
+  text-wrap: balance;
+  --cn-on: #f5f7fa;
+}
+html.cn #home .home-quote .cn-scrub-line + .cn-scrub-line { margin-top: .14em; --cn-on: #67e8f9; }  /* the section's one cyan highlight: 13:1 on the stage */
+/* Each word brightens from slate (#7d889a, 5.3:1 on the stage, so every state stays readable)
+   to its line's colour as the block scrolls up. */
+html.cn #home .home-quote .cn-w {
+  --cn-t: clamp(0, (var(--cn-scrub) * (var(--n, 16) + 3) - var(--i, 0)) / 3, 1);
+  color: color-mix(in oklab, var(--cn-on, #fff) calc(var(--cn-t) * 100%), #7d889a);
+}
+@supports not (color: color-mix(in oklab, red 50%, blue)) {
+  html.cn #home .home-quote .cn-w {
+    color: var(--cn-on, #fff);
+    opacity: calc(.6 + .4 * var(--cn-t));
+  }
+}
+html.cn .cn-scrub-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+@keyframes cn-scrub {
+  from { --cn-scrub: 0; }
+  to { --cn-scrub: 1; }
+}
+@supports (animation-timeline: view()) and (animation-range: cover 10% cover 50%) {
+  html.cn #home .home-quote [data-cn="scrub"] {
+    animation: cn-scrub linear both;
+    animation-duration: auto;
+    animation-timeline: view();
+    animation-range: cover 14% cover 50%;
+  }
+}
+
+/* ---- closing actions under the statement (markup: .home-quote > .cn-close) ---- */
+html.cn #home .cn-close {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--cn-3) var(--cn-6);
+  margin: clamp(28px, 1.2rem + 2.4vw, 48px) auto 0;
+  padding: 0;
+}
+/* the page's closing CTA (a hairline and a soft lift, 00-tokens.css) */
+html.cn #home .cn-close .primary-btn { box-shadow: var(--cn-glow-cta, 0 8px 26px -8px rgba(34, 211, 238, .6)); }
+@media (hover: hover) and (pointer: fine) {
+  html.cn #home .cn-close .primary-btn:hover { box-shadow: var(--cn-glow-cta-hover, 0 10px 32px -8px rgba(34, 211, 238, .75)); }
+}
+html.cn #home .cn-close .cn-ghost-btn {
+  color: var(--cn-mint-2, #99f6e4);   /* Recovery's colour: 12:1 on the stage */
+  text-align: center;
+}
+@media (hover: hover) and (pointer: fine) {
+  html.cn #home .cn-close .cn-ghost-btn:hover { color: #ccfbf1; }
+}
+/* narrow phones: the main action takes the full row, the Recovery route sits under it */
+@media (max-width: 480px) {
+  html.cn #home .cn-close { flex-direction: column; gap: var(--cn-2); }
+  html.cn #home .cn-close .primary-btn { width: 100%; max-width: 22rem; justify-content: center; text-align: center; text-wrap: balance; }
+}
+
+/* ============================================================ 9-10. Support box + limits note */
+
+/* The support box is the shared component (02-components.css); on Home it sits on the ground
+   just under the closing stage, a little closer than a section step. */
+html.cn #home > .support-box {
+  --cn-block-max: 860px;
+  margin-block: clamp(36px, 1.5rem + 2.4vw, 64px) 0;
+}
+/* The limits note is fine print, not a card: a centred footnote at the very end. */
+html.cn #home .home-limits-note {
+  --cn-block-max: 68ch;
+  position: relative;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: .8125rem;
+  line-height: 1.65;
+  text-align: center;
+  text-wrap: pretty;
+}
+html.cn #home .home-limits-note::before { content: none; }
+html.cn #home .home-limits-note strong {
+  color: var(--cn-text);
+  font-weight: 600;
+}
+html.cn #home > .support-box + .home-limits-note { margin-block: clamp(20px, 1rem + 1vw, 32px) 0; }
+
+/* ============================================================ placeholders, motion, colours */
+
+/* content-visibility placeholders for the reshaped sections. The value is the CONTENT height (the
+   sheet's padding is added on top), measured at 1920, 1440, 1280, 844, 820, 390, 320 and 280px
+   wide, so the page barely changes length as they render. Wins over the older values in
+   80-perf.css by specificity; once rendered, "auto" keeps the real size. The tools reel switches
+   to three columns when its container reaches 1040px (a viewport of about 1230px). */
+html.cn #home > section.cn-flow { contain-intrinsic-size: auto 572px; }
+html.cn #home > div.why-choose { contain-intrinsic-size: auto 955px; }
+@media (max-width: 1229.98px) {
+  html.cn #home > section.cn-flow { contain-intrinsic-size: auto 690px; }
+}
+@media (max-width: 1099.98px) {
+  html.cn #home > div.why-choose { contain-intrinsic-size: auto 1045px; }
+}
+@media (max-width: 759.98px) {
+  html.cn #home > section.cn-flow { contain-intrinsic-size: auto 1060px; }
+  html.cn #home > div.why-choose { contain-intrinsic-size: auto 1245px; }
+}
+@media (max-width: 359.98px) {
+  html.cn #home > section.cn-flow { contain-intrinsic-size: auto 1160px; }
+  html.cn #home > div.why-choose { contain-intrinsic-size: auto 1495px; }
+}
+
+/* the global "Pause motion" (html.cn-still) also holds the tools stage (26-flow.css) */
+html.cn.cn-still #home .cn-flow-stage .cn-fs-shield,
+html.cn.cn-still #home .cn-reel.is-auto .cn-reel-tab.is-active .cn-reel-line::after {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* the diagram rests in its static state (40-beams.js never starts a run) */
+  html.cn #home .cn-beam-pulses,
+  html.cn #home .cn-node-ping,
+  html.cn #home .cn-bv-wire::before,
+  html.cn #home .cn-bv-out .cn-bv-node::after { display: none; }
+  html.cn #home .cn-cs-float { animation: none; }
+  html.cn #home .home-quote [data-cn="scrub"] { animation: none; }
+  html.cn #home .home-quote .cn-w { color: var(--cn-on, #fff); opacity: 1; }
+  html.cn #home .why-choose-item { transition: none; }
+}
+
+@media (forced-colors: active) {
+  html.cn #home > .why-choose::before,
+  html.cn #home .cn-close-shield::before { display: none; }
+  html.cn #home .why-choose-item,
+  html.cn #home > .wow-section::before { border: 1px solid CanvasText; }
+  html.cn #home .home-quote .cn-w { color: CanvasText; }
+}

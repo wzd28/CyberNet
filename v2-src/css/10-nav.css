@@ -1,0 +1,924 @@
+/* ==========================================================================
+   v2 NAV  (owner: nav agent)
+   header.navbar.glass -> floating glass pill; #navIndicator -> white sliding
+   pill; #mobileMenu -> white "Menu" pill; .navbar.open -> full-screen sheet.
+
+   Contracts kept:
+   - .navbar stays position:sticky (first .navbar in the DOM, script.js:85).
+   - #navIndicator: JS writes inline transform + width. Never set transform
+     here; it is centred with top:50% + negative margin.
+   - Dark active text only under .nav-tabs.indicator-ready (desktop only).
+   - #mobileMenu text is rewritten to Menu/Close by final-ui-fix.js, whose
+     injected <style> (<=900px, !important) loads after this file. Icons are
+     ::before backgrounds; overrides use #mobileMenu + !important.
+   - No display:...!important on anything JS shows/hides ([hidden] keeps
+     working for #openAuth, #accountSummary, #authCheckingSkeleton).
+   - Open state drops the navbar's backdrop-filter so position:fixed children
+     (the sheet panel, the action bar, the ::before backdrop) use the
+     viewport. Navbar z-index while open: 190 (consent 150 < 190 < .modal 200).
+   ========================================================================== */
+
+/* ---------- shared bar ---------- */
+html.v2 header.navbar.glass{
+  --v2n-top:14px;
+  --v2n-h:62px;
+  width:min(1210px,calc(100% - 28px));
+  height:var(--v2n-h);
+  min-height:0;
+  margin:var(--v2n-top) auto 0;
+  top:var(--v2n-top);
+  padding:0 9px 0 18px;
+  gap:10px;
+  flex-direction:row;
+  align-items:center;
+  border-radius:999px;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.028)),
+    rgba(6,35,42,.16);
+  border:1px solid rgba(255,255,255,.12);
+  -webkit-backdrop-filter:blur(28px) saturate(170%);
+  backdrop-filter:blur(28px) saturate(170%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.16),
+    0 18px 50px -20px rgba(0,0,0,.72);
+  font-family:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+
+/* ---------- brand ---------- */
+html.v2 header.navbar .brand{
+  flex:none;
+  gap:10px;
+  color:#effdff;
+  font-family:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:16.5px;
+  font-weight:620;
+  letter-spacing:-.025em;
+  border-radius:999px;
+}
+
+html.v2 header.navbar .brand:focus-visible{
+  outline:2px solid #22d3ee;
+  outline-offset:4px;
+}
+
+html.v2 header.navbar .brand-mark-icon{
+  width:26px;
+  height:28px;
+  min-width:26px;
+  max-width:26px;
+  max-height:28px;
+}
+
+/* The original CyberNet mark (cyan shield + lock, index.html) is shown as is. */
+html.v2 header.navbar .brand-mark-icon{filter:drop-shadow(0 0 8px rgba(34,211,238,.35))}
+
+/* font-size:inherit beats legacy .brand-text{font-size:18px} at <=920px,
+   so the word mark stays 16-16.5px like the concept on every width. */
+html.v2 header.navbar .brand-text{
+  align-items:center;
+  color:#effdff;
+  font-size:inherit;
+}
+
+html.v2 header.navbar .brand-text{font-family:"JetBrains Mono","Geist Mono",ui-monospace,monospace;font-weight:700;letter-spacing:-.01em}
+html.v2 header.navbar .brand-text span{
+  color:#22d3ee;
+  text-shadow:0 0 18px rgba(34,211,238,.45);
+}
+
+html.v2 header.navbar .brand-text small{
+  display:inline-flex;
+  align-items:center;
+  margin-left:9px;
+  padding:3px 6px 2px;
+  border-radius:6px;
+  border:1px solid rgba(34,211,238,.25);
+  background:rgba(34,211,238,.14);
+  color:#22d3ee;
+  font-family:"Geist Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
+  font-size:10px;
+  font-weight:600;
+  line-height:1.2;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+/* ---------- menu pill (hidden on desktop by legacy .mobile-menu{display:none}) ---------- */
+html.v2 header.navbar #mobileMenu.mobile-menu{
+  position:relative;
+  top:auto;
+  right:auto;
+  flex:none;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  width:auto;
+  height:44px;
+  min-width:0!important;
+  min-height:44px!important;
+  margin-left:auto;
+  padding:0 17px 0 14px!important;
+  border:0!important;
+  border-radius:999px!important;
+  background:linear-gradient(180deg,#fff 0%,#e0fcff 100%)!important;
+  color:#030505!important;
+  font-family:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif!important;
+  font-size:15px!important;
+  font-weight:620!important;
+  letter-spacing:-.01em!important;
+  line-height:1!important;
+  text-transform:none!important;
+  white-space:nowrap;
+  box-shadow:
+    inset 0 1px 0 #fff,
+    0 0 0 1px rgba(255,255,255,.5),
+    0 8px 26px -8px rgba(34,211,238,.75)!important;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  transition:box-shadow .3s cubic-bezier(.2,.8,.2,1),background .3s cubic-bezier(.2,.8,.2,1);
+}
+
+/* Two-line menu icon; the label text itself is rewritten by JS. */
+html.v2 header.navbar #mobileMenu.mobile-menu::before{
+  content:"";
+  flex:none;
+  width:19px;
+  height:19px;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2305060c' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M4 9h16M4 15h16'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+
+html.v2 header.navbar #mobileMenu.mobile-menu:focus-visible{
+  outline:2px solid #22d3ee;
+  outline-offset:3px;
+}
+
+/* ==========================================================================
+   DESKTOP (>1060px): links row with the white sliding pill
+   ========================================================================== */
+@media (min-width:1061px){
+  html.v2 header.navbar .nav-tabs{
+    flex:none;
+    margin:0 auto;
+    gap:0;
+    align-items:center;
+  }
+
+  html.v2 header.navbar .nav-link{
+    position:relative;
+    z-index:1;
+    display:inline-flex;
+    align-items:center;
+    height:38px;
+    padding:0 13px;
+    border-radius:999px;
+    color:rgba(239,253,255,.64);
+    font-family:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    font-size:14px;
+    font-weight:500;
+    letter-spacing:-.005em;
+    line-height:1;
+    white-space:nowrap;
+    cursor:pointer;
+    transition:color .3s cubic-bezier(.2,.8,.2,1),background-color .3s cubic-bezier(.2,.8,.2,1);
+  }
+
+  html.v2 header.navbar .nav-link:hover{
+    color:#effdff;
+  }
+
+  html.v2 header.navbar .nav-link:not(.active):hover{
+    background-color:rgba(255,255,255,.05);
+  }
+
+  html.v2 header.navbar .nav-link.active{
+    color:#effdff;
+  }
+
+  /* Dark label only once the white pill has been measured and placed. */
+  html.v2 header.navbar .nav-tabs.indicator-ready .nav-link.active,
+  html.v2 header.navbar .nav-tabs.indicator-ready .nav-link.active:hover{
+    color:#030505;
+    background-color:transparent;
+  }
+
+  html.v2 header.navbar .nav-link:focus-visible{
+    outline:2px solid #22d3ee;
+    outline-offset:2px;
+  }
+
+  /* Injected Account link: same pill, no cyan dot. */
+  html.v2 header.navbar .nav-tabs .account-nav-link{
+    gap:0;
+  }
+
+  html.v2 header.navbar .nav-tabs .account-nav-link::before{
+    content:none;
+  }
+
+  /* #navIndicator -> white pill. JS owns transform + width (inline). */
+  html.v2 header.navbar .nav-indicator{
+    z-index:0;
+    left:0;
+    top:50%;
+    bottom:auto;
+    height:38px;
+    margin-top:-19px;
+    border-radius:999px;
+    background:var(--v2-white);
+    box-shadow:
+      inset 0 1px 0 #fff,
+      0 6px 22px -6px rgba(34,211,238,.7),
+      0 0 34px -10px rgba(45,212,191,.45);
+    pointer-events:none;
+    transition:
+      transform .5s cubic-bezier(.2,.8,.2,1),
+      width .5s cubic-bezier(.2,.8,.2,1),
+      opacity .25s ease;
+  }
+
+  /* actions */
+  html.v2 header.navbar .nav-actions{
+    flex:none;
+    min-width:0;
+    gap:6px;
+    justify-content:flex-end;
+  }
+
+  html.v2 header.navbar .nav-social-links{
+    gap:4px;
+    padding-right:8px;
+    margin-right:2px;
+    border-right:1px solid rgba(255,255,255,.1);
+  }
+
+  html.v2 header.navbar #openAuth.login-btn{
+    height:44px;
+  }
+}
+
+/* Above 1480px legacy shows the long "Sign In or Create Account" label;
+   give the bar the room it needs so the links never collide with it. */
+@media (min-width:1481px){
+  html.v2 header.navbar.glass{
+    width:min(1340px,calc(100% - 48px));
+  }
+}
+
+/* Signed in, the plan chip + Sign Out are wider than "Sign In"; at the
+   1210px bar the social circles give way so nothing spills out. */
+@media (min-width:1061px) and (max-width:1480px){
+  html.v2 header.navbar .nav-actions:has(> #accountSummary:not([hidden])) .nav-social-links{
+    display:none;
+  }
+}
+
+/* Tighter link pills before the row collapses at 1060px (9 entries). */
+@media (min-width:1061px) and (max-width:1250px){
+  html.v2 header.navbar.glass{
+    padding:0 8px 0 16px;
+    gap:6px;
+  }
+
+  html.v2 header.navbar .brand{
+    gap:8px;
+  }
+
+  html.v2 header.navbar .nav-link{
+    padding:0 9px;
+    font-size:13.5px;
+  }
+
+  html.v2 header.navbar .nav-social-links{
+    display:none;
+  }
+}
+
+/* ---------- desktop action pieces (also reused in the sheet) ---------- */
+html.v2 header.navbar .nav-social-btn{
+  width:34px;
+  height:34px;
+  border-radius:50%;
+  color:rgba(239,253,255,.64);
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.09);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+  transition:color .25s cubic-bezier(.2,.8,.2,1),background-color .25s cubic-bezier(.2,.8,.2,1),border-color .25s cubic-bezier(.2,.8,.2,1);
+}
+
+html.v2 header.navbar .nav-social-btn svg{
+  width:15px;
+  height:15px;
+}
+
+html.v2 header.navbar .nav-social-btn:hover,
+html.v2 header.navbar .nav-social-btn:focus-visible{
+  color:#effdff;
+  background:rgba(255,255,255,.1);
+  border-color:rgba(255,255,255,.2);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12);
+  transform:none;
+}
+
+html.v2 header.navbar .nav-social-btn:focus-visible{
+  outline:2px solid #22d3ee;
+  outline-offset:2px;
+}
+
+/* Sign in: white pill. Display is left to [hidden] and legacy. */
+html.v2 header.navbar #openAuth.login-btn{
+  height:40px;
+  padding:0 18px;
+  border:0;
+  border-radius:999px;
+  background:var(--v2-white);
+  color:#030505;
+  font-family:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:14.5px;
+  font-weight:560;
+  letter-spacing:-.01em;
+  line-height:1;
+  white-space:nowrap;
+  cursor:pointer;
+  box-shadow:
+    inset 0 1px 0 #fff,
+    inset 0 -3px 8px rgba(67,201,224,.16),
+    0 0 0 1px rgba(255,255,255,.5),
+    0 8px 24px -8px rgba(34,211,238,.6),
+    0 0 40px -14px rgba(45,212,191,.4);
+  transition:box-shadow .3s cubic-bezier(.2,.8,.2,1);
+}
+
+html.v2 header.navbar #openAuth.login-btn:hover{
+  color:#030505;
+  border-color:transparent;
+  box-shadow:
+    inset 0 1px 0 #fff,
+    inset 0 -3px 8px rgba(67,201,224,.16),
+    0 0 0 1px rgba(255,255,255,.6),
+    0 10px 30px -8px rgba(34,211,238,.85),
+    0 0 52px -12px rgba(45,212,191,.6);
+  transform:none;
+}
+
+html.v2 header.navbar #openAuth.login-btn:focus-visible{
+  outline:2px solid #22d3ee;
+  outline-offset:3px;
+}
+
+/* Auth-checking placeholder */
+html.v2 header.navbar .auth-checking-skeleton{
+  width:92px;
+  height:40px;
+  border-radius:999px;
+  background:linear-gradient(90deg,rgba(255,255,255,.04) 25%,rgba(34,211,238,.12) 50%,rgba(255,255,255,.04) 75%);
+  background-size:200% 100%;
+  border:1px solid rgba(255,255,255,.08);
+}
+
+/* Signed-in summary: greeting stays hidden (legacy), plan chip + Sign Out */
+html.v2 header.navbar .account-summary{
+  gap:8px;
+}
+
+html.v2 header.navbar .nav-greeting{
+  color:rgba(239,253,255,.64);
+  font-family:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:13.5px;
+}
+
+html.v2 header.navbar .plan-badge{
+  min-height:24px;
+  padding:3px 9px 2px;
+  border-radius:999px;
+  font-family:"Geist Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.12em;
+  line-height:1.4;
+  box-shadow:none;
+}
+
+html.v2 header.navbar .plan-badge-free{
+  color:#cffafe;
+  background:rgba(34,211,238,.1);
+  border:1px solid rgba(34,211,238,.24);
+}
+
+html.v2 header.navbar .plan-badge-pro{
+  color:#030505;
+  background:var(--v2-white);
+  border:1px solid rgba(255,255,255,.6);
+  box-shadow:0 4px 16px -6px rgba(34,211,238,.7);
+}
+
+html.v2 header.navbar .plan-badge-business{
+  color:#ddfcff;
+  background:linear-gradient(100deg,rgba(45,212,191,.3),rgba(34,211,238,.2));
+  border:1px solid rgba(165,243,252,.45);
+  box-shadow:0 4px 16px -6px rgba(45,212,191,.6);
+}
+
+html.v2 header.navbar .account-action-btn{
+  height:34px;
+  padding:0 13px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.1);
+  background:rgba(255,255,255,.04);
+  color:rgba(239,253,255,.72);
+  font-family:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:13px;
+  font-weight:520;
+  letter-spacing:-.005em;
+  white-space:nowrap;
+  cursor:pointer;
+  transition:color .25s cubic-bezier(.2,.8,.2,1),background-color .25s cubic-bezier(.2,.8,.2,1),border-color .25s cubic-bezier(.2,.8,.2,1);
+}
+
+html.v2 header.navbar .account-action-btn:hover,
+html.v2 header.navbar .account-action-btn:focus-visible{
+  color:#effdff;
+  background:rgba(255,255,255,.09);
+  border-color:rgba(255,255,255,.18);
+}
+
+html.v2 header.navbar .account-action-btn:focus-visible{
+  outline:2px solid #22d3ee;
+  outline-offset:2px;
+}
+
+/* ==========================================================================
+   <=1060px: compact bar + white Menu pill, full-screen sheet when open
+   ========================================================================== */
+@media (max-width:1060px){
+  /* the injected pill styles start at 900px; cover the whole range */
+  html.v2 header.navbar #mobileMenu.mobile-menu{
+    display:inline-flex;
+  }
+
+  /* ---- open: the bar stays as the sheet's top row ---- */
+  html.v2 header.navbar.glass.open{
+    --v2n-sheet-top:calc(var(--v2n-top) + var(--v2n-h) + 12px);
+    --v2n-sheet-foot:calc(78px + env(safe-area-inset-bottom,0px));
+    --v2n-sheet-side:max(12px,calc(50% - 320px));
+    z-index:190;
+    height:var(--v2n-h);
+    flex-direction:row;
+    align-items:center;
+    background:transparent;
+    border-color:transparent;
+    box-shadow:none;
+    /* a backdrop-filter here would trap the fixed sheet inside the bar */
+    -webkit-backdrop-filter:none;
+    backdrop-filter:none;
+    filter:none;
+    transform:none;
+  }
+
+  /* full-screen frosted backdrop */
+  html.v2 header.navbar.glass.open::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    z-index:-1;
+    background:
+      radial-gradient(120% 70% at 85% 0%,rgba(60,210,235,.3),transparent 60%),
+      radial-gradient(90% 60% at 0% 100%,rgba(77,224,204,.22),transparent 60%),
+      rgba(6,11,12,.74);
+    -webkit-backdrop-filter:blur(34px) saturate(160%);
+    backdrop-filter:blur(34px) saturate(160%);
+    animation:v2-nav-fade .24s cubic-bezier(.2,.8,.2,1) both;
+  }
+
+  /* the glass pill of the top row */
+  html.v2 header.navbar.glass.open::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    z-index:-1;
+    border-radius:inherit;
+    background:
+      linear-gradient(180deg,rgba(255,255,255,.085),rgba(255,255,255,.032)),
+      rgba(6,35,42,.22);
+    border:1px solid rgba(255,255,255,.13);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.16),
+      0 18px 50px -20px rgba(0,0,0,.8);
+    pointer-events:none;
+  }
+
+  html.v2 header.navbar.open .nav-indicator{
+    display:none;
+  }
+
+  /* "Close": glass pill with an X */
+  html.v2 header.navbar.open #mobileMenu.mobile-menu{
+    padding:0 16px 0 13px!important;
+    background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.045))!important;
+    color:#effdff!important;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.3),
+      inset 0 -1px 0 rgba(255,255,255,.05),
+      0 0 0 1px rgba(255,255,255,.16),
+      0 10px 26px -12px rgba(0,0,0,.7)!important;
+  }
+
+  html.v2 header.navbar.open #mobileMenu.mobile-menu::before{
+    width:18px;
+    height:18px;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23EEF1FF' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M6.5 6.5l11 11M17.5 6.5l-11 11'/%3E%3C/svg%3E");
+  }
+
+  /* ---- the list panel ---- */
+  html.v2 header.navbar.open .nav-tabs{
+    position:fixed;
+    top:var(--v2n-sheet-top);
+    bottom:var(--v2n-sheet-foot);
+    left:var(--v2n-sheet-side);
+    right:var(--v2n-sheet-side);
+    width:auto;
+    margin:0;
+    padding:2px 0 18px;
+    flex-direction:column;
+    align-items:stretch;
+    justify-content:flex-start;
+    gap:2px;
+    overflow-x:hidden;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+    /* soft bottom edge: hints that a short screen can scroll the list */
+    -webkit-mask-image:linear-gradient(180deg,#000 calc(100% - 18px),transparent);
+    mask-image:linear-gradient(180deg,#000 calc(100% - 18px),transparent);
+    animation:v2-nav-rise .34s cubic-bezier(.2,.8,.2,1) both;
+  }
+
+  html.v2 header.navbar.open .nav-tabs::-webkit-scrollbar{
+    display:none;
+  }
+
+  /* each entry: icon tile (::before) + label + hint (::after) + chevron (bg) */
+  html.v2 header.navbar.open .nav-link{
+    position:relative;
+    display:flex;
+    flex:none;
+    flex-wrap:wrap;
+    align-content:center;
+    align-items:baseline;
+    gap:0;
+    width:100%;
+    min-height:68px;
+    margin:0;
+    padding:10px 34px 10px 66px;
+    border:1px solid transparent;
+    border-radius:20px;
+    background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='rgba(239,253,255,0.5)' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 6 6 6-6 6'/%3E%3C/svg%3E") right 12px center/17px 17px no-repeat;
+    color:#effdff;
+    font-family:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    font-size:18px;
+    font-weight:560;
+    letter-spacing:-.02em;
+    line-height:1.2;
+    text-align:left;
+    white-space:normal;
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+    transition:background-color .25s cubic-bezier(.2,.8,.2,1),border-color .25s cubic-bezier(.2,.8,.2,1);
+  }
+
+  html.v2 header.navbar.open .nav-link:hover{
+    color:#effdff;
+  }
+
+  /* no sticky tap-hover tint on touch screens */
+  @media (hover:hover){
+    html.v2 header.navbar.open .nav-link:not(.active):hover{
+      background-color:rgba(255,255,255,.04);
+    }
+  }
+
+  html.v2 header.navbar.open .nav-link:active{
+    background-color:rgba(255,255,255,.06);
+  }
+
+  html.v2 header.navbar.open .nav-link.active{
+    color:#effdff;
+    background-color:rgba(255,255,255,.07);
+    border-color:rgba(255,255,255,.1);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
+  }
+
+  html.v2 header.navbar.open .nav-link:focus-visible{
+    outline:2px solid #22d3ee;
+    outline-offset:-2px;
+  }
+
+  /* icon tile */
+  html.v2 header.navbar.open .nav-link::before{
+    content:"";
+    position:absolute;
+    left:10px;
+    top:50%;
+    width:42px;
+    height:42px;
+    margin-top:-21px;
+    border-radius:14px;
+    border:1px solid rgba(255,255,255,.13);
+    background-color:transparent;
+    background-image:
+      var(--v2n-ic,none),
+      linear-gradient(140deg,rgba(34,211,238,.22),rgba(45,212,191,.12));
+    background-position:center,0 0;
+    background-size:20px 20px,100% 100%;
+    background-repeat:no-repeat;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.14);
+    opacity:1;
+  }
+
+  html.v2 header.navbar.open .nav-link.active::before{
+    border-color:rgba(255,255,255,.2);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 6px 18px -8px rgba(34,211,238,.7);
+  }
+
+  /* one-line hint under the label */
+  html.v2 header.navbar.open .nav-link::after{
+    content:attr(data-v2-hint);
+    flex:0 0 100%;
+    min-width:0;
+    margin-top:3px;
+    color:rgba(239,253,255,.64);
+    font-size:13.5px;
+    font-weight:400;
+    letter-spacing:-.005em;
+    line-height:1.3;
+    text-wrap:pretty;
+  }
+
+  html.v2 header.navbar.open .nav-link:not([data-v2-hint])::after{
+    content:none;
+  }
+
+  html.v2 header.navbar.open #accountNavBtn::after,
+  html.v2 header.navbar.open .account-nav-link::after{
+    content:"Plan, usage and billing";
+  }
+
+  /* icons per entry (stroke icons from the concept set) */
+  html.v2 header.navbar.open .nav-link[data-page="home"]{
+    --v2n-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23DFE6FF' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 10.5 12 3.8l8.5 6.7V19.5a1.5 1.5 0 0 1-1.5 1.5h-4.5v-6h-5v6H5a1.5 1.5 0 0 1-1.5-1.5Z'/%3E%3C/svg%3E");
+  }
+
+  html.v2 header.navbar.open .nav-link[data-page="cybernet"]{
+    --v2n-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23DFE6FF' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='10.8' cy='10.8' r='6.6'/%3E%3Cpath d='m20.5 20.5-4.9-4.9'/%3E%3Cpath d='M11.5 7.6 9.4 11h3l-2.1 3.4'/%3E%3C/svg%3E");
+  }
+
+  html.v2 header.navbar.open .nav-link[data-page="cybernetai"]{
+    --v2n-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23DFE6FF' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M11 3.5c.6 4 2.6 6 6.5 6.5-3.9.6-5.9 2.6-6.5 6.5-.6-3.9-2.6-5.9-6.5-6.5 3.9-.5 5.9-2.5 6.5-6.5Z'/%3E%3Cpath d='M18.5 15c.3 1.6 1 2.3 2.5 2.5-1.5.3-2.2 1-2.5 2.5-.3-1.5-1-2.2-2.5-2.5 1.5-.2 2.2-.9 2.5-2.5Z'/%3E%3C/svg%3E");
+  }
+
+  html.v2 header.navbar.open .nav-link[data-page="recovery"]{
+    --v2n-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23DFE6FF' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='8.5'/%3E%3Ccircle cx='12' cy='12' r='3.6'/%3E%3Cpath d='m6 6 3.4 3.4M18 6l-3.4 3.4M6 18l3.4-3.4M18 18l-3.4-3.4'/%3E%3C/svg%3E");
+  }
+
+  html.v2 header.navbar.open .nav-link[data-page="learn"]{
+    --v2n-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23DFE6FF' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 5.8c2.9-1.3 5.7-1.2 8.5.7v13c-2.8-1.9-5.6-2-8.5-.7Z'/%3E%3Cpath d='M20.5 5.8c-2.9-1.3-5.7-1.2-8.5.7v13c2.8-1.9 5.6-2 8.5-.7Z'/%3E%3C/svg%3E");
+  }
+
+  html.v2 header.navbar.open #navManageBusinessBtn{
+    --v2n-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23DFE6FF' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='7.5' width='17' height='12.5' rx='2.2'/%3E%3Cpath d='M9 7.5V5.6A1.6 1.6 0 0 1 10.6 4h2.8A1.6 1.6 0 0 1 15 5.6v1.9'/%3E%3Cpath d='M3.5 12.6h17'/%3E%3C/svg%3E");
+  }
+
+  html.v2 header.navbar.open .nav-link[data-page="pricing"]{
+    --v2n-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23DFE6FF' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.8 12.6V4.8a1 1 0 0 1 1-1h7.8l7.6 7.6a1.4 1.4 0 0 1 0 2l-6.2 6.2a1.4 1.4 0 0 1-2 0Z'/%3E%3Ccircle cx='8.3' cy='8.3' r='1.4'/%3E%3C/svg%3E");
+  }
+
+  html.v2 header.navbar.open .nav-link[data-page="about"]{
+    --v2n-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23DFE6FF' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='8.5'/%3E%3Cpath d='M12 11v5.4M12 7.7v.1'/%3E%3C/svg%3E");
+  }
+
+  html.v2 header.navbar.open #accountNavBtn,
+  html.v2 header.navbar.open .account-nav-link{
+    --v2n-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23DFE6FF' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='8.4' r='3.8'/%3E%3Cpath d='M4.6 20c.9-3.6 3.8-5.7 7.4-5.7s6.5 2.1 7.4 5.7'/%3E%3C/svg%3E");
+  }
+
+  /* ---- bottom action bar: socials + Sign in / account summary ---- */
+  html.v2 header.navbar.open .nav-actions{
+    position:fixed;
+    left:var(--v2n-sheet-side);
+    right:var(--v2n-sheet-side);
+    bottom:calc(14px + env(safe-area-inset-bottom,0px));
+    width:auto;
+    min-width:0;
+    margin:0;
+    padding:0;
+    flex-direction:row;
+    flex-wrap:nowrap;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    animation:v2-nav-rise .4s cubic-bezier(.2,.8,.2,1) .04s both;
+  }
+
+  html.v2 header.navbar.open .nav-social-links{
+    order:0;
+    flex:none;
+    width:auto;
+    gap:6px;
+    margin:0;
+    padding:0;
+    border:0;
+  }
+
+  html.v2 header.navbar.open .nav-social-btn{
+    width:44px;
+    height:44px;
+  }
+
+  html.v2 header.navbar.open .nav-social-btn svg{
+    width:17px;
+    height:17px;
+  }
+
+  html.v2 header.navbar.open #openAuth.login-btn{
+    flex:1 1 auto;
+    min-width:0;
+    height:50px;
+    font-size:16px;
+  }
+
+  html.v2 header.navbar.open .auth-checking-skeleton{
+    flex:1 1 auto;
+    height:50px;
+  }
+
+  html.v2 header.navbar.open .account-summary{
+    flex:1 1 auto;
+    min-width:0;
+    justify-content:flex-end;
+    gap:10px;
+  }
+
+  /* legacy hides Sign Out at <=1100px; the sheet is the only place a phone
+     user can reach it, so show it here (not a JS-toggled element) */
+  html.v2 header.navbar.open .account-action-btn{
+    display:inline-flex;
+    align-items:center;
+    height:44px;
+    padding:0 18px;
+    font-size:15px;
+  }
+
+  /* page behind the sheet must not scroll; html (not body) so the sticky
+     bar keeps the viewport as its scroll container */
+  html.v2:has(header.navbar.open),
+  html.v2.v2-menu-open{
+    overflow:hidden;
+  }
+}
+
+/* tablet: keep the 62px bar. The open sheet uses the bar's own 14px edges
+   and lays the entries out in two columns, so the list lines up with the
+   top row instead of floating as a narrow centred strip. Row-major order
+   keeps the visual order the same as the DOM / Tab order. */
+@media (min-width:701px) and (max-width:1060px){
+  html.v2 header.navbar.glass{
+    width:min(1210px,calc(100% - 28px));
+  }
+
+  html.v2 header.navbar.glass.open{
+    --v2n-sheet-side:14px;
+  }
+
+  html.v2 header.navbar.open .nav-tabs{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    align-content:start;
+    column-gap:10px;
+  }
+}
+
+/* phones: 58px bar, 10px from the edges (concept p-hero) */
+@media (max-width:700px){
+  html.v2 header.navbar.glass{
+    --v2n-top:10px;
+    --v2n-h:58px;
+    width:calc(100% - 20px);
+    padding:0 7px 0 16px;
+    -webkit-backdrop-filter:blur(14px) saturate(140%);
+    backdrop-filter:blur(14px) saturate(140%);
+  }
+
+  html.v2 header.navbar .brand{
+    font-size:16px;
+  }
+
+  html.v2 header.navbar.glass.open{
+    --v2n-sheet-top:calc(var(--v2n-top) + var(--v2n-h) + 10px);
+    --v2n-sheet-side:10px;
+  }
+
+  html.v2 header.navbar.glass.open::before{
+    -webkit-backdrop-filter:blur(20px) saturate(150%);
+    backdrop-filter:blur(20px) saturate(150%);
+  }
+
+  /* Quick Scan sticky tab row tucks 2px under the 58px bar (10 + 58 - 2), so
+     no strip of sharp page content scrolls between the two glass bars (the
+     bar, z-index 50, overlaps the tabs, z-index 20). 'body' lifts this above
+     30-tools.css's equal-specificity top:76px (<=700 and <=480 blocks), and
+     it covers <=480 too. */
+  html.v2 body #cybernet .detect-tabs{
+    top:66px;
+  }
+}
+
+/* short screens (small phones, landscape): denser rows, the list scrolls */
+@media (max-width:1060px) and (max-height:760px){
+  html.v2 header.navbar.open .nav-link{
+    min-height:58px;
+    padding-top:7px;
+    padding-bottom:7px;
+    font-size:17px;
+  }
+
+  html.v2 header.navbar.open .nav-link::after{
+    margin-top:1px;
+    font-size:13px;
+  }
+}
+
+@media (max-width:360px){
+  html.v2 header.navbar.open .nav-link{
+    min-height:58px;
+    padding-left:60px;
+    font-size:17px;
+  }
+
+  html.v2 header.navbar.open .nav-link::before{
+    left:8px;
+    width:38px;
+    height:38px;
+    margin-top:-19px;
+    border-radius:12px;
+  }
+
+  html.v2 header.navbar.open .nav-social-btn{
+    width:40px;
+    height:40px;
+  }
+}
+
+/* ---------- motion ---------- */
+@keyframes v2-nav-fade{
+  from{opacity:0}
+  to{opacity:1}
+}
+
+@keyframes v2-nav-rise{
+  from{opacity:0;transform:translateY(10px)}
+  to{opacity:1;transform:none}
+}
+
+@media (prefers-reduced-motion:reduce){
+  html.v2 header.navbar .nav-indicator,
+  html.v2 header.navbar .nav-link,
+  html.v2 header.navbar #mobileMenu.mobile-menu,
+  html.v2 header.navbar #openAuth.login-btn,
+  html.v2 header.navbar .nav-social-btn,
+  html.v2 header.navbar .account-action-btn{
+    transition:none;
+  }
+
+  html.v2 header.navbar.glass.open::before,
+  html.v2 header.navbar.open .nav-tabs,
+  html.v2 header.navbar.open .nav-actions{
+    animation:none;
+  }
+
+  html.v2 header.navbar .auth-checking-skeleton{
+    animation:none;
+  }
+}
+
+/* ---------- reduced transparency: solid navy, no blur ---------- */
+@media (prefers-reduced-transparency:reduce){
+  html.v2 header.navbar.glass{
+    background:#0d181b;
+    -webkit-backdrop-filter:none;
+    backdrop-filter:none;
+  }
+
+  html.v2 header.navbar.glass.open{
+    background:transparent;
+  }
+
+  html.v2 header.navbar.glass.open::before{
+    background:#070e0f;
+    -webkit-backdrop-filter:none;
+    backdrop-filter:none;
+  }
+
+  html.v2 header.navbar.glass.open::after{
+    background:#101d20;
+  }
+}

@@ -1,0 +1,731 @@
+/* =====================================================================
+   70-legal.css  -  standalone legal pages and the 404 page
+   Pages: /privacy.html, /terms.html, /refunds.html, /acceptable-use.html
+   (<html class="cn cn-legal">, <body class="cn-legal-page">) and /404.html
+   (<body class="cn-404">). They load this bundle but not the UI JS, so
+   html.cn-js is never set here and nothing may depend on it.
+   Every hook is a plain class: no :has() anchored on html, body or main.
+   Those rules ship in the SPA bundle too, and a :has() subject that high
+   up was re-checked on every DOM change of the app (the biggest single
+   cause of style recalculation on Home).
+
+   Look: a calm document. One centred reading column (about 68ch), a quiet
+   top bar in normal flow, hairlines instead of cards, mono labels for the
+   version and dates, a contents index at the top (never sticky: nothing
+   follows the reader), tables that stack on narrow screens.
+
+   Overrides public/cybernet-legal.css (standalone page rules from line 333
+   and its 820/700/560px blocks). Its only !important is the colour of
+   .cn-legal-page-home, so that colour carries !important here too.
+   Type, text links, code, focus ring and selection come from 01-base.
+   The Legal Center modal on the main site (.cn-legal-modal) is styled in
+   60-overlays: every rule here needs body.cn-legal-page or body.cn-404.
+   ===================================================================== */
+
+/* ---------------------------------------------------------------------
+   1. Ground, column and local aliases
+   --------------------------------------------------------------------- */
+html.cn body.cn-legal-page {
+  --cn-legal-col: 46rem;
+  /* Body copy sits between --cn-text and --cn-text-2: calm, but bright
+     enough for long reading (about 11:1 on --cn-bg). */
+  --cn-legal-ink: var(--cn-text-2);
+  --cn-legal-ink: color-mix(in oklab, var(--cn-text) 52%, var(--cn-text-2));
+  /* The site's vector mark (header .brand-mark-icon) as a mask. */
+  --cn-legal-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 26' fill='none' stroke='%23000'%3E%3Cpath d='M12 2 21 6 20 15 12 24 4 15 3 6Z' stroke-width='1.8' stroke-linejoin='round'/%3E%3Cpath d='M9.6 12.5v-2.3a2.4 2.4 0 0 1 4.8 0v2.3' stroke-width='1.6' stroke-linecap='round'/%3E%3Cpath fill='%23000' stroke='none' fill-rule='evenodd' d='M9.5 12.5h5a1.2 1.2 0 0 1 1.2 1.2v3.8a1.2 1.2 0 0 1-1.2 1.2h-5a1.2 1.2 0 0 1-1.2-1.2v-3.8a1.2 1.2 0 0 1 1.2-1.2ZM12 14.2a1 1 0 0 1 .5 1.866V17.3h-1v-1.234A1 1 0 0 1 12 14.2Z'/%3E%3C/svg%3E");
+  --cn-legal-back: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M13 8H3.5M7.5 3.5 3 8l4.5 4.5'/%3E%3C/svg%3E");
+  min-height: 100vh;
+  min-height: 100svh;
+  margin: 0;
+  /* v4.1: midnight navy with one soft cyan light at the top and a touch of blue at the corner,
+     painted once with the page (a document never animates, and nothing here is fixed). */
+  background:
+    radial-gradient(56% 480px at 50% -130px, rgba(34, 211, 238, .075), transparent 74%) no-repeat,
+    radial-gradient(38% 400px at 94% -90px, rgba(59, 130, 246, .09), transparent 74%) no-repeat,
+    var(--cn-bg);
+}
+html.cn.cn-legal { scrollbar-color: var(--cn-surface-3) var(--cn-bg); }
+@media (prefers-reduced-motion: no-preference) {
+  /* Contents links glide to their section. */
+  html.cn.cn-legal { scroll-behavior: smooth; }
+}
+
+/* main: full width with the site gutters (01-base caps main at 1360px). */
+html.cn body.cn-legal-page .cn-legal-page-shell {
+  container: cn-legal / inline-size;
+  width: 100%;
+  max-width: none;
+  padding: 0 var(--cn-gutter-r) max(var(--cn-8), env(safe-area-inset-bottom)) var(--cn-gutter-l);
+}
+html.cn body.cn-legal-page :is(.cn-legal-hero, .cn-legal-layout) {
+  max-width: var(--cn-legal-col);
+  margin-inline: auto;
+}
+/* Below about 52rem the column fills the container, so its edge lines up
+   with the top bar and the footer instead of missing them by a few px. */
+@container cn-legal (width < 52rem) {
+  html.cn body.cn-legal-page :is(.cn-legal-hero, .cn-legal-layout) { max-width: none; }
+}
+
+/* ---------------------------------------------------------------------
+   2. Top bar: mark + wordmark (home link) and a "Return to CyberNet" pill.
+      In normal flow; legacy made it a sticky frosted panel.
+   --------------------------------------------------------------------- */
+html.cn body.cn-legal-page .cn-legal-page-top {
+  position: static;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cn-3);
+  max-width: var(--cn-max);
+  min-height: 72px;
+  margin: 0 auto;
+  padding: var(--cn-3) 0;
+  border: 0;
+  border-bottom: 1px solid var(--cn-line);
+  border-radius: 0;
+  background: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+html.cn body.cn-legal-page .cn-legal-page-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 44px;
+  margin-inline-start: -6px;
+  padding-inline: 6px 8px;
+  border-radius: var(--cn-r-ctl);
+  color: var(--cn-text);
+}
+/* The page's <img> is the old raster shield. The img content box collapses
+   to zero height so the PNG is never drawn, and the padding box shows the
+   token colour through the mark. The alt text stays. */
+html.cn body.cn-legal-page .cn-legal-page-brand img {
+  flex: none;
+  box-sizing: content-box;
+  width: 26px;
+  height: 0;
+  padding-top: 28px;
+  border-radius: 0;
+  background: var(--cn-cyan);
+  -webkit-mask: var(--cn-legal-mark) center / contain no-repeat;
+  mask: var(--cn-legal-mark) center / contain no-repeat;
+}
+/* Wordmark in JetBrains Mono 700 like the site header. If the markup gains
+   Cyber<span>Net</span> AI (see the report), "Net" turns cyan. */
+html.cn body.cn-legal-page .cn-legal-page-brand > span {
+  overflow: hidden;
+  color: var(--cn-text);
+  font: 700 15px/1 var(--cn-font-mono);
+  letter-spacing: -.02em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+html.cn body.cn-legal-page .cn-legal-page-brand > span > span { color: var(--cn-cyan); }
+/* The outlined AI chip, the same as the header (.brand-text small) and the
+   footer (.cn-footer-brand small). The literal space before <small> gives the
+   gap, so the text reads "CyberNet AI". */
+html.cn body.cn-legal-page .cn-legal-page-brand > span > small {
+  display: inline-block;
+  vertical-align: middle;
+  margin: -2px 0 0;
+  padding: 3px 5px 2px;
+  border: 1px solid var(--cn-line-2);
+  border-radius: 6px;
+  color: var(--cn-text-2);
+  font: 600 11px/1.1 var(--cn-font-mono);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+/* Secondary pill with a back arrow. */
+html.cn body.cn-legal-page .cn-legal-page-home {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cn-2);
+  min-height: 44px;
+  padding: 0 18px 0 14px;
+  border: 1px solid var(--cn-line-2);
+  border-radius: var(--cn-r-pill);
+  color: var(--cn-text) !important; /* legacy sets this colour with !important */
+  font: 500 var(--cn-step-small)/1 var(--cn-font);
+  letter-spacing: -.005em;
+  text-transform: none;
+  text-decoration: none;
+  white-space: nowrap;
+}
+html.cn body.cn-legal-page .cn-legal-page-home::before {
+  content: "";
+  flex: none;
+  width: 16px;
+  height: 16px;
+  background: currentColor;
+  -webkit-mask: var(--cn-legal-back) center / contain no-repeat;
+  mask: var(--cn-legal-back) center / contain no-repeat;
+}
+html.cn body.cn-legal-page .cn-legal-page-home:dir(rtl)::before { transform: scaleX(-1); }
+
+/* Folded and very small phones: the wordmark leaves the bar (it stays in
+   the accessibility tree); the mark and the pill remain. */
+@container cn-legal (width < 340px) {
+  html.cn body.cn-legal-page .cn-legal-page-brand > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    clip-path: inset(50%);
+  }
+  html.cn body.cn-legal-page .cn-legal-page-brand { min-width: 44px; justify-content: center; }
+}
+
+/* ---------------------------------------------------------------------
+   3. Document header: eyebrow, H1, lead, mono meta (version and dates)
+   --------------------------------------------------------------------- */
+html.cn body.cn-legal-page .cn-legal-hero {
+  padding: clamp(2.5rem, 1.6rem + 4vw, 6rem) 0 clamp(2rem, 1.5rem + 2vw, 3.25rem);
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+html.cn body.cn-legal-page .cn-legal-eyebrow {
+  align-items: center;
+  max-width: 100%;
+  min-height: 28px;
+  margin: 0 0 var(--cn-6);
+  padding: 5px 12px;
+  border: 0;
+  /* A full pill on one line, a soft rectangle if a fold wraps it. */
+  border-radius: var(--cn-r-ctl);
+  background: var(--cn-cyan-tint);
+  color: var(--cn-cyan-2);
+  font: 500 var(--cn-step-label)/1.35 var(--cn-font-mono);
+  letter-spacing: var(--cn-track-label);
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+@container cn-legal (width < 360px) {
+  html.cn body.cn-legal-page .cn-legal-eyebrow { letter-spacing: .05em; }
+}
+html.cn body.cn-legal-page .cn-legal-hero h1 {
+  margin: 0;
+  color: var(--cn-text);
+  font: 600 var(--cn-step-h1)/1.04 var(--cn-font);
+  letter-spacing: var(--cn-track-hero);
+}
+html.cn body.cn-legal-page .cn-legal-hero p {
+  max-width: var(--cn-measure);
+  margin: var(--cn-5) 0 0;
+  color: var(--cn-text-2);
+  font-size: var(--cn-step-lead);
+  line-height: 1.5;
+}
+/* Dates, contact and service: a hairline-topped strip of mono labels.
+   The first item (effective / updated) reads brightest. */
+html.cn body.cn-legal-page .cn-legal-meta {
+  gap: var(--cn-2) var(--cn-6);
+  margin: var(--cn-8) 0 0;
+  padding-top: var(--cn-5);
+  border-top: 1px solid var(--cn-line);
+  color: var(--cn-text-2);
+  font: 400 var(--cn-step-label)/1.6 var(--cn-font-mono);
+  letter-spacing: .02em;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+}
+html.cn body.cn-legal-page .cn-legal-meta > span {
+  display: inline-flex;
+  gap: var(--cn-2);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+html.cn body.cn-legal-page .cn-legal-meta > span::before {
+  content: "";
+  flex: none;
+  width: 4px;
+  height: 4px;
+  margin-top: calc(.8em - 2px); /* centred on the first line, also when it wraps */
+  border-radius: 50%;
+  background: var(--cn-text-3);
+}
+html.cn body.cn-legal-page .cn-legal-meta > span:first-child { color: var(--cn-text); }
+html.cn body.cn-legal-page .cn-legal-meta > span:first-child::before { background: var(--cn-cyan); }
+@container cn-legal (width < 600px) {
+  html.cn body.cn-legal-page .cn-legal-meta { flex-direction: column; }
+}
+
+/* ---------------------------------------------------------------------
+   4. Contents index: a quiet card at the top, never sticky.
+      Two columns when there is room, an inset list with hairline rows
+      (like a settings list) on phones.
+   --------------------------------------------------------------------- */
+html.cn body.cn-legal-page .cn-legal-layout {
+  display: block;
+  margin-top: 0;
+}
+html.cn body.cn-legal-page .cn-legal-toc {
+  position: static;
+  max-height: none;
+  overflow: visible;
+  margin: 0 0 clamp(1.5rem, 1rem + 2vw, 2.5rem);
+  padding: var(--cn-2);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-card);
+  background: var(--cn-surface);
+  columns: 2 15rem;
+  column-gap: var(--cn-2);
+}
+html.cn body.cn-legal-page .cn-legal-toc strong {
+  column-span: all;
+  margin: 0;
+  padding: var(--cn-3) var(--cn-3) var(--cn-2);
+  color: var(--cn-text-2);
+  font: 500 var(--cn-step-label)/1.3 var(--cn-font-mono);
+  letter-spacing: var(--cn-track-label);
+}
+html.cn body.cn-legal-page .cn-legal-toc a {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px var(--cn-3);
+  border-radius: 10px;
+  color: var(--cn-text-2);
+  font-size: var(--cn-step-small);
+  text-decoration: none; /* 01-base underlines class-less links */
+  break-inside: avoid;
+}
+html.cn body.cn-legal-page .cn-legal-toc a:focus-visible { color: var(--cn-text); }
+@container cn-legal (width < 600px) {
+  html.cn body.cn-legal-page .cn-legal-toc { padding: var(--cn-1) 0 var(--cn-2); }
+  html.cn body.cn-legal-page .cn-legal-toc strong { padding-inline: var(--cn-4); }
+  html.cn body.cn-legal-page .cn-legal-toc a {
+    margin-inline: var(--cn-4);
+    padding-inline: 0;
+    border-radius: 0;
+    font-size: calc(var(--cn-step-body) * .9375);
+  }
+  html.cn body.cn-legal-page .cn-legal-toc a + a { border-top: 1px solid var(--cn-line); }
+}
+
+/* ---------------------------------------------------------------------
+   5. Sections: hairline rhythm, readable measure, H2/H3 from the scale
+   --------------------------------------------------------------------- */
+html.cn body.cn-legal-page .cn-legal-section {
+  margin: 0;
+  padding: clamp(2rem, 1.6rem + 1.6vw, 3rem) 0;
+  border: 0;
+  border-top: 1px solid var(--cn-line);
+  border-radius: 0;
+  background: none;
+  scroll-margin-top: var(--cn-6);
+}
+html.cn body.cn-legal-page .cn-legal-section:last-child { padding-bottom: var(--cn-4); }
+html.cn body.cn-legal-page .cn-legal-section h2 {
+  position: relative;
+  margin: 0 0 var(--cn-5);
+  color: var(--cn-text);
+  font: 600 var(--cn-step-h3)/1.2 var(--cn-font);
+  letter-spacing: -.02em;
+}
+html.cn body.cn-legal-page .cn-legal-section h3 {
+  margin: var(--cn-8) 0 var(--cn-3);
+  color: var(--cn-text);
+  font: 600 calc(var(--cn-step-body) * 1.125)/1.35 var(--cn-font);
+  letter-spacing: -.012em;
+}
+html.cn body.cn-legal-page .cn-legal-section h2 + h3 { margin-top: 0; }
+html.cn body.cn-legal-page .cn-legal-section :is(p, li) {
+  max-width: 68ch;
+  color: var(--cn-legal-ink);
+  font-size: var(--cn-step-body);
+  line-height: 1.7;
+}
+html.cn body.cn-legal-page .cn-legal-section p { margin: 0 0 var(--cn-4); }
+html.cn body.cn-legal-page .cn-legal-section :is(p, ul, ol):last-child { margin-bottom: 0; }
+html.cn body.cn-legal-page .cn-legal-section strong { color: var(--cn-text); }
+html.cn body.cn-legal-page .cn-legal-section :is(ul, ol) {
+  max-width: 68ch;
+  margin: 0 0 var(--cn-4);
+  padding: 0;
+  padding-inline-start: 1.35em;
+}
+html.cn body.cn-legal-page .cn-legal-section li { padding-inline-start: .25em; }
+html.cn body.cn-legal-page .cn-legal-section li + li { margin-top: var(--cn-2); }
+html.cn body.cn-legal-page .cn-legal-section li::marker { color: var(--cn-text-3); }
+html.cn body.cn-legal-page .cn-legal-section code { white-space: nowrap; }
+html.cn body.cn-legal-page :is(.cn-legal-section, .cn-legal-page-footer) a { overflow-wrap: anywhere; }
+/* 17px body copy once the column is wide enough to carry it. */
+@container cn-legal (width >= 720px) {
+  html.cn body.cn-legal-page :is(.cn-legal-section :is(p, li), .cn-legal-callout) { font-size: calc(var(--cn-step-body) * 1.0625); }
+}
+
+/* Arriving from the contents: a short cyan rule marks the heading, drawn
+   in from the top. Static under reduced motion. */
+html.cn body.cn-legal-page .cn-legal-section:target > h2::before {
+  content: "";
+  position: absolute;
+  inset-block: .18em;
+  inset-inline-start: calc(var(--cn-3) * -1);
+  width: 2px;
+  border-radius: 2px;
+  background: var(--cn-cyan);
+  transform-origin: top;
+}
+@media (prefers-reduced-motion: no-preference) {
+  html.cn body.cn-legal-page .cn-legal-section:target > h2::before {
+    animation: cn-legal-mark var(--cn-dur-4) var(--cn-ease-out) both;
+  }
+}
+@keyframes cn-legal-mark {
+  from { opacity: 0; transform: scaleY(0); }
+}
+
+/* ---------------------------------------------------------------------
+   6. Callouts (.cn-legal-callout, .warn, .danger). Legacy set these at
+      11px; they carry key statements, so they get body size.
+   --------------------------------------------------------------------- */
+html.cn body.cn-legal-page .cn-legal-callout {
+  position: relative;
+  margin: var(--cn-5) 0;
+  padding: var(--cn-4) var(--cn-5);
+  padding-inline-start: calc(var(--cn-5) + 2px);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-ctl);
+  background: var(--cn-surface);
+  color: var(--cn-legal-ink);
+  font-size: var(--cn-step-body);
+  line-height: 1.65;
+  text-wrap: pretty;
+}
+html.cn body.cn-legal-page .cn-legal-callout::before {
+  content: "";
+  position: absolute;
+  inset-block: var(--cn-4);
+  inset-inline-start: -1px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--cn-cyan);
+}
+html.cn body.cn-legal-page .cn-legal-callout:first-child { margin-top: 0; }
+html.cn body.cn-legal-page .cn-legal-callout:last-child { margin-bottom: 0; }
+html.cn body.cn-legal-page .cn-legal-callout.warn { background: color-mix(in oklab, var(--cn-warn) 5%, var(--cn-surface)); }
+html.cn body.cn-legal-page .cn-legal-callout.warn::before { background: var(--cn-warn); }
+html.cn body.cn-legal-page .cn-legal-callout.danger { background: color-mix(in oklab, var(--cn-danger) 5%, var(--cn-surface)); }
+html.cn body.cn-legal-page .cn-legal-callout.danger::before { background: var(--cn-danger); }
+
+/* ---------------------------------------------------------------------
+   7. Data tables (the privacy retention schedule). Rows stack < 560px.
+   --------------------------------------------------------------------- */
+html.cn body.cn-legal-page .cn-legal-data-table {
+  position: relative;
+  display: table;
+  margin: var(--cn-6) 0;
+  overflow: visible;
+  border: 1px solid var(--cn-line);
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: var(--cn-r-ctl);
+  font-size: var(--cn-step-small);
+  line-height: 1.55;
+  font-variant-numeric: normal; /* prose, not figures: 01-base sets tabular-nums on tables */
+}
+html.cn body.cn-legal-page .cn-legal-data-table :is(th, td) {
+  min-width: 0;
+  padding: var(--cn-4) var(--cn-5);
+  border: 0;
+  border-top: 1px solid var(--cn-line);
+  color: var(--cn-legal-ink);
+  text-align: start;
+}
+html.cn body.cn-legal-page .cn-legal-data-table :is(th, td) + :is(th, td) { padding-inline-start: var(--cn-3); }
+html.cn body.cn-legal-page .cn-legal-data-table th {
+  border-top: 0;
+  background: var(--cn-surface);
+  color: var(--cn-text-2);
+  font: 500 var(--cn-step-label)/1.3 var(--cn-font-mono);
+  letter-spacing: var(--cn-track-label);
+}
+html.cn body.cn-legal-page .cn-legal-data-table th:first-child { border-start-start-radius: calc(var(--cn-r-ctl) - 1px); }
+html.cn body.cn-legal-page .cn-legal-data-table th:last-child { border-start-end-radius: calc(var(--cn-r-ctl) - 1px); }
+html.cn body.cn-legal-page .cn-legal-data-table td:first-child {
+  width: 34%;
+  color: var(--cn-text);
+  font-weight: 500;
+}
+@container cn-legal (width >= 720px) {
+  html.cn body.cn-legal-page .cn-legal-data-table { font-size: calc(var(--cn-step-small) * 1.0715); }
+}
+@container cn-legal (width < 560px) {
+  html.cn body.cn-legal-page .cn-legal-data-table,
+  html.cn body.cn-legal-page .cn-legal-data-table :is(tbody, tr, td) { display: block; }
+  html.cn body.cn-legal-page .cn-legal-data-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  html.cn body.cn-legal-page .cn-legal-data-table tr { padding: var(--cn-4); }
+  html.cn body.cn-legal-page .cn-legal-data-table tr + tr { border-top: 1px solid var(--cn-line); }
+  html.cn body.cn-legal-page .cn-legal-data-table td,
+  html.cn body.cn-legal-page .cn-legal-data-table td + td {
+    padding: 0;
+    border: 0;
+  }
+  html.cn body.cn-legal-page .cn-legal-data-table td:first-child { width: auto; margin-bottom: var(--cn-1); }
+}
+
+/* ---------------------------------------------------------------------
+   8. "Cookie settings" button in the Privacy Policy (consent.js opens the
+      bar), and the footer operator line
+   --------------------------------------------------------------------- */
+html.cn body.cn-legal-page .cn-consent-open-btn {
+  min-height: 44px;
+  margin: var(--cn-1) 0 0;
+  padding: 0 var(--cn-5);
+  border: 1px solid var(--cn-line-2);
+  border-radius: var(--cn-r-pill);
+  background: transparent;
+  color: var(--cn-text);
+  font: 500 var(--cn-step-small)/1 var(--cn-font);
+}
+html.cn body.cn-legal-page .cn-legal-page-footer {
+  max-width: var(--cn-max);
+  margin: clamp(3rem, 2rem + 4vw, 6rem) auto 0;
+  padding: var(--cn-6) 0 0;
+  border-top: 1px solid var(--cn-line);
+  color: var(--cn-text-2);
+  font-size: var(--cn-step-small);
+  line-height: 1.6;
+  text-wrap: balance;
+}
+
+/* ---------------------------------------------------------------------
+   9. Hover (fine pointers) and motion (only when motion is allowed: under
+      reduced motion the colour changes stay, lifts and presses do not)
+   --------------------------------------------------------------------- */
+@media (hover: hover) and (pointer: fine) {
+  html.cn body.cn-legal-page :is(.cn-legal-page-home, .cn-consent-open-btn, .cn-legal-toc a):hover { background: var(--cn-surface-2); }
+  html.cn body.cn-legal-page .cn-legal-toc a:hover { color: var(--cn-text); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  html.cn body.cn-legal-page :is(.cn-legal-page-home, .cn-consent-open-btn, .cn-legal-toc a) {
+    transition: background-color var(--cn-dur-1) var(--cn-ease-out), color var(--cn-dur-1) var(--cn-ease-out), transform var(--cn-dur-1) var(--cn-ease-out);
+  }
+  html.cn body.cn-legal-page .cn-legal-page-home::before { transition: transform var(--cn-dur-2) var(--cn-ease-out); }
+  html.cn body.cn-legal-page :is(.cn-legal-page-home, .cn-consent-open-btn):active { transform: scale(.98); }
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  html.cn body.cn-legal-page :is(.cn-legal-page-home, .cn-consent-open-btn):hover { transform: translateY(-1px); }
+  html.cn body.cn-legal-page :is(.cn-legal-page-home, .cn-consent-open-btn):hover:active { transform: scale(.98); }
+  html.cn body.cn-legal-page .cn-legal-page-home:hover::before { transform: translateX(-2px); }
+  html.cn body.cn-legal-page .cn-legal-page-home:dir(rtl):hover::before { transform: scaleX(-1) translateX(-2px); }
+}
+
+/* ---------------------------------------------------------------------
+   10. 404 (/404.html, <body class="cn-404">): one <main> holding svg.mark,
+       an h1, a p and a .row of two links. Its inline <style> stays as the
+       plain fallback.
+   --------------------------------------------------------------------- */
+html.cn body.cn-404 {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  min-height: 100svh;
+  margin: 0;
+  padding: var(--cn-10) var(--cn-gutter-r) var(--cn-10) var(--cn-gutter-l);
+  /* A still version of the home hero's ground: low teal and cyan light
+     rising from the bottom edge. */
+  background: var(--cn-bg);
+  background:
+    radial-gradient(70% 46% at 50% 108%, color-mix(in oklab, var(--cn-cyan) 16%, transparent), transparent 70%),
+    radial-gradient(120% 70% at 50% 118%, color-mix(in oklab, var(--cn-teal) 30%, transparent), transparent 66%),
+    var(--cn-bg);
+}
+/* The hero stage's faint 28px dot grid, fading out from the centre. */
+html.cn body.cn-404::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(circle, color-mix(in oklab, var(--cn-text) 7%, transparent) 1px, transparent 1.5px) center / 28px 28px;
+  -webkit-mask-image: radial-gradient(60% 55% at 50% 45%, #000, transparent);
+  mask-image: radial-gradient(60% 55% at 50% 45%, #000, transparent);
+}
+html.cn body.cn-404 > main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 34rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: center;
+}
+html.cn body.cn-404 > main > svg.mark {
+  order: -1;
+  box-sizing: border-box;
+  width: 64px;
+  height: 64px;
+  margin: 0 0 var(--cn-6);
+  padding: 15px;
+  border: 1px solid var(--cn-line-2);
+  border-radius: var(--cn-r-card);
+  background: var(--cn-surface);
+}
+html.cn body.cn-404 > main > svg.mark path { stroke: var(--cn-cyan); }
+/* Mono status label above the heading. */
+html.cn body.cn-404 > main::before {
+  content: "Error 404";
+  margin: 0 0 var(--cn-5);
+  padding: 5px 12px;
+  border-radius: var(--cn-r-pill);
+  background: var(--cn-cyan-tint);
+  color: var(--cn-cyan-2);
+  font: 500 var(--cn-step-label)/1.35 var(--cn-font-mono);
+  letter-spacing: var(--cn-track-label);
+  text-transform: uppercase;
+}
+html.cn body.cn-404 > main h1 {
+  margin: 0;
+  font: 600 var(--cn-step-h2)/1.05 var(--cn-font);
+  letter-spacing: var(--cn-track-h2);
+}
+html.cn body.cn-404 > main p {
+  max-width: 40ch;
+  margin: var(--cn-5) 0 var(--cn-8);
+  color: var(--cn-text-2);
+  font-size: var(--cn-step-lead);
+  line-height: 1.5;
+}
+html.cn body.cn-404 > main .row {
+  justify-content: center;
+  gap: var(--cn-3);
+  width: 100%;
+}
+html.cn body.cn-404 > main a.btn {
+  min-height: 48px;
+  padding: 0 22px;
+  border: 1px solid transparent;
+  border-radius: var(--cn-r-pill);
+  font: 600 var(--cn-step-body)/1 var(--cn-font);
+  letter-spacing: -.01em;
+  white-space: nowrap;
+}
+html.cn body.cn-404 > main a.btn.primary { background: var(--cn-cyan); color: var(--cn-on-cyan); }
+html.cn body.cn-404 > main a.btn.secondary {
+  border-color: var(--cn-line-2);
+  background: transparent; /* the inline fallback in 404.html gives it an explicit #0c1220 fill */
+  color: var(--cn-text);
+  font-weight: 500;
+}
+/* The inline <style> sets its own outline; use the site ring. */
+html.cn body.cn-404 > main a.btn:focus-visible { outline: 2px solid var(--cn-cyan); outline-offset: 3px; }
+@media (max-width: 379px) {
+  html.cn body.cn-404 > main .row { flex-direction: column; }
+}
+@media (hover: hover) and (pointer: fine) {
+  html.cn body.cn-404 > main a.btn.primary:hover { background: var(--cn-cyan-2); }
+  html.cn body.cn-404 > main a.btn.secondary:hover { background: var(--cn-surface-2); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  html.cn body.cn-404 > main a.btn { transition: background-color var(--cn-dur-1) var(--cn-ease-out), transform var(--cn-dur-1) var(--cn-ease-out); }
+  html.cn body.cn-404 > main a.btn:active { transform: scale(.98); }
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  html.cn body.cn-404 > main a.btn:hover { transform: translateY(-1px); }
+  html.cn body.cn-404 > main a.btn:hover:active { transform: scale(.98); }
+}
+
+/* ---------------------------------------------------------------------
+   11. Forced colours (Windows High Contrast): the mark, the arrow and the
+       accent rules are painted with backgrounds, which the system removes.
+   --------------------------------------------------------------------- */
+@media (forced-colors: active) {
+  /* Pseudo-elements can't sit inside :is() (that drops the whole rule), so they are listed one by one. */
+  html.cn body.cn-legal-page .cn-legal-page-brand img,
+  html.cn body.cn-legal-page .cn-legal-page-home::before,
+  html.cn body.cn-legal-page .cn-legal-callout::before,
+  html.cn body.cn-legal-page .cn-legal-section:target > h2::before,
+  html.cn body.cn-legal-page .cn-legal-meta > span::before {
+    forced-color-adjust: none;
+    background: CanvasText;
+  }
+  html.cn body.cn-legal-page :is(.cn-legal-eyebrow, .cn-consent-open-btn) { border: 1px solid CanvasText; }
+  html.cn body.cn-404 > main a.btn { border-color: ButtonText; }
+}
+
+/* ---------------------------------------------------------------------
+   12. Print: legal documents get printed. Light scheme and dark text via
+       the tokens (remapped to system colours for this page), no chrome.
+   --------------------------------------------------------------------- */
+@media print {
+  html.cn.cn-legal { color-scheme: light; }
+  html.cn body.cn-legal-page {
+    --cn-surface: Canvas;
+    --cn-surface-2: Canvas;
+    --cn-line: GrayText;
+    --cn-line-2: GrayText;
+    --cn-text: CanvasText;
+    --cn-text-2: CanvasText;
+    --cn-text-3: GrayText;
+    --cn-legal-ink: CanvasText;
+    --cn-cyan-2: LinkText;
+    --cn-cyan-tint: transparent;
+    background: Canvas;
+  }
+  html.cn body.cn-legal-page :is(.cn-legal-page-home, .cn-legal-toc, .cn-consent-open-btn) { display: none; }
+  html.cn body.cn-legal-page .cn-legal-eyebrow { padding: 0; }
+  html.cn body.cn-legal-page .cn-legal-section { padding-block: 18pt; }
+}
+
+/* ---------------------------------------------------------------------
+   13. v4.1 "Midnight": the same calm palette as the app. This bundle does not include the
+       inner-page kit, so the few values it needs are local. There is no fixed light layer: the
+       ground (section 1) is painted once with the page.
+   --------------------------------------------------------------------- */
+html.cn body.cn-legal-page .cn-legal-eyebrow {
+  padding: 5px 14px 5px 28px;
+  background:
+    radial-gradient(circle at 14px 50%, var(--cn-cyan) 0 3px, transparent 3.5px),
+    var(--cn-fill-1);
+  box-shadow: inset 0 0 0 1px var(--cn-line-2);
+  color: var(--cn-text-2);
+}
+
+/* 404: the same ground with the chrome shield above the mark (a still render, no animation) */
+html.cn body.cn-404 > main {
+  position: relative;
+  padding-block-start: clamp(124px, 24vw, 200px);
+}
+html.cn body.cn-404 > main::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset-block-start: 0;
+  inset-inline-start: 50%;
+  width: clamp(120px, 24vw, 190px);
+  aspect-ratio: 1;
+  translate: -50% 0;
+  background:
+    url("/ui/3d/shield-320.webp?v=20261014-5") center / contain no-repeat,
+    radial-gradient(closest-side, rgba(34, 211, 238, .09), transparent 78%) center / 100% 100% no-repeat;
+  pointer-events: none;
+}
+/* The 3D shield above replaces the small outline mark (decorative, aria-hidden): one hero object. */
+html.cn body.cn-404 > main > svg.mark { display: none; }
+html.cn body.cn-404 > main a.btn.secondary { border-color: var(--cn-line-ctl); }
+@media (max-height: 520px) {
+  html.cn body.cn-404 > main { padding-block-start: 0; }
+  html.cn body.cn-404 > main::after { display: none; }
+}
+@media (forced-colors: active) {
+  html.cn body.cn-404 > main::after { display: none; }
+}

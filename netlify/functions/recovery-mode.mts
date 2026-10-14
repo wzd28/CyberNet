@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { DEFAULT_MODEL, DEFAULT_MINI_MODEL, modelParams, createResponse, autoReplaceEnabled } from "../lib/ai-models.mjs";
 
 declare const Netlify: {
   env: {
@@ -28,13 +29,15 @@ type OfficialResource = {
   phone?: string;
 };
 
-const MODEL = Netlify.env.get("ANALYSIS_MODEL") || "gpt-5";
-const MINI_MODEL = Netlify.env.get("ANALYSIS_MODEL_MINI") || "gpt-5-mini";
+// Same environment variables and defaults as Analysis AI (netlify/lib/ai-models.mjs).
+const MODEL = (Netlify.env.get("ANALYSIS_MODEL") || "").trim() || DEFAULT_MODEL;
+const MINI_MODEL = (Netlify.env.get("ANALYSIS_MODEL_MINI") || "").trim() || DEFAULT_MINI_MODEL;
 
 // Higher-stakes cases get the full model; routine ones get the cheaper one.
 // There's no deterministic substitute for a recovery plan, so AI always runs
-// here — this only decides which model, never whether to skip it.
-function modelForRiskFloor(riskFloor: RiskLevel): string {
+// here — this only decides which model, never whether to skip it. Shared with
+// recovery-update.mts, so a case and its updates are routed the same way.
+function modelForRiskFloor(riskFloor: RiskLevel | string): string {
   // Only "critical" is worth the slower model. This used to include "high"
   // too, which was affordable while few cases reached that floor - but once the
   // selected incident type started raising the floor, most real cases became
@@ -105,7 +108,17 @@ type ClassifierResult = {
   riskFloor: RiskLevel;
   urgencyFloor: Urgency;
   signals: string[];
+  // Money moved or card/bank details were handed over: the instant plan then
+  // starts with a call to the bank. Optional so jobs queued before this field
+  // existed still parse.
+  moneyInvolved?: boolean;
 };
+
+// Money that left, or card/bank details or bank sign-in details that were
+// given. Only adds the bank step to the instant plan; it does not change the
+// category or the risk floor.
+const MONEY_INVOLVED_EN = /\b(?:sent|wired|transferred|paid|charged|debited|deducted|withdrew|withdrawn|lost|stole|stolen|took)\b[^.!?]{0,60}\b(?:money|funds|savings|aed|usd|sar|qar|kwd|bhd|omr|egp|dhs|dirhams?|riyals?|dinars?|dollars?|pounds|euros?|bitcoin|btc|crypto|usdt|gift ?cards?)\b|[$€£]\s?\d|\b(?:card (?:details|number|was charged)|charged (?:to )?my (?:card|account)|charges? on my (?:card|account)|cvv|bank (?:details|transfer|account)|wire transfer|unauthori[sz]ed (?:charge|transaction|payment|transfer|withdrawal)|money (?:was|got) (?:taken|stolen|transferred))\b|\b(?:bank|banking)\b[^.!?]{0,60}\b(?:password|log ?in|otp|code|pin|card)\b|\b(?:password|otp|pin|card)\b[^.!?]{0,40}\b(?:bank|banking)\b/i;
+const MONEY_INVOLVED_AR = /(حولت|حوّلت|دفعت|سحبوا|خصم|تحويل|مبلغ|فلوس|أموال|درهم|ريال|دينار|بطاقتي|بطاقة البنك|بيانات البطاقة|حسابي البنكي)/u;
 
 const CATEGORY_KEYWORDS: Array<{ id: string; label: string; terms: string[] }> = [
   { id: "email_compromise", label: "Email compromise", terms: ["email hacked", "gmail hacked", "outlook hacked", "can't access my email", "email account compromised", "someone got into my email"] },
@@ -166,6 +179,75 @@ const SELECTED_INCIDENT_TYPES: Record<string, { label: string; riskFloor: RiskLe
   "phishing / scam": { label: "Phishing", riskFloor: "medium" },
 };
 
+// Phrase-flexible patterns on top of the exact keyword lists above, which miss
+// ordinary wording ("my Instagram was hacked" does not contain "instagram
+// hacked") and all Arabic. Each hit adds risk points like the quick answers do
+// and can name the category when no keyword list matched.
+const RX_SOCIAL = "(?:instagram|insta|facebook|fb|tiktok|snapchat|snap|whatsapp|telegram|twitter|x account|linkedin|youtube)";
+const RX_MAIL = "(?:gmail|outlook|hotmail|yahoo|icloud|email|e-mail|mailbox)";
+const RX_HACK = "(?:hacked|hijacked|compromised|taken over|took over|breached|broken into|stolen)";
+const RX_MONEY = "(?:money|savings|funds|aed|usd|usdt|sar|qar|kwd|bhd|omr|dhs|dirhams?|riyals?|dinars?|dollars?|bitcoin|btc|crypto|[$€£]\\s?\\d|\\d[\\d,.]*\\s?(?:aed|usd|usdt|sar|qar|kwd|bhd|omr|dhs|dirhams?|riyals?|dinars?|dollars?|k\\b))";
+const RECOVERY_PATTERNS = {
+  socialTakeover: new RegExp(`\\b${RX_HACK}\\b[^.!?]{0,40}\\b${RX_SOCIAL}\\b|\\b${RX_SOCIAL}\\b[^.!?]{0,40}\\b${RX_HACK}\\b`),
+  mailTakeover: new RegExp(`\\b${RX_HACK}\\b[^.!?]{0,40}\\b${RX_MAIL}\\b|\\b${RX_MAIL}\\b[^.!?]{0,40}\\b${RX_HACK}\\b|(?:logged|signed) (?:in|into)[^.!?]{0,40}\\b${RX_MAIL}\\b[^.!?]{0,60}\\b(?:cant|can't|cannot|can not|unable|locked)\\b`),
+  unknownSignIn: new RegExp(`\\b(?:someone|somebody|stranger|unknown (?:person|device))\\b[^.!?]{0,20}\\b(?:logged|signed) (?:in|into)\\b`),
+  moneyLost: new RegExp(`\\b(?:sent|transferred|paid|wired|deposited|invested|lost|gave|charged|took|stole)\\b[^.!?]{0,40}${RX_MONEY}|\\b(?:card|account) (?:was|has been|got) (?:charged|debited)\\b|\\bcharged my (?:card|account)\\b|\\b(?:unauthori[sz]ed|unknown|strange) (?:charges?|transactions?|payments?|withdrawals?|transfers?)\\b`),
+  codeShared: /\b(?:i|we)\s+(?:\w+\s+){0,2}?(?:gave|shared|read|entered|typed|sent|told|forwarded|put)\b[^.!?]{0,30}\b(?:otp|one[- ]time|code|pin|passcode|password|verification)\b|\b(?:gave|shared|told)\s+(?:them|him|her|the caller|the agent)\b[^.!?]{0,20}\b(?:otp|code|pin|passcode|password)\b/,
+  commandRun: /\b(?:press(?:ed)? win\s?\+?\s?r|paste[d]? (?:a |the |some )?(?:command|code into)|powershell|installed (?:anydesk|teamviewer|quick ?support)|let (?:them|him|her) (?:control|access))\b/,
+  linkedDevice: /\b(?:unknown|new|unrecognized|unrecognised|strange) linked device\b|\blinked devices?\b[^.!?]{0,40}\b(?:don'?t|do not|didn'?t|did not) (?:know|recogni[sz]e)\b/,
+  deviceCode: /\bdevicelogin\b|\bdevice code\b|google\.com\/device\b/,
+  familyVoice: /\b(?:sounded (?:exactly |just )?like|voice (?:of|sounded)|new number)\b[^.!?]{0,60}\b(?:son|daughter|mum|mom|dad|father|mother|brother|sister|grandson|granddaughter|wife|husband)\b|\b(?:son|daughter|mum|mom|dad|brother|sister)\b[^.!?]{0,60}\bnew number\b/,
+  negated: /\b(?:didn'?t|did not|never|haven'?t|have not|not)\b/,
+  arHacked: /(اختراق|مخترق|هاكر|تهكير|اخترقوا|اخترق|سرقوا حسابي|سرقة حسابي)/u,
+  arSocial: /(انستغرام|انستقرام|إنستغرام|فيسبوك|فيس بوك|واتساب|واتس اب|سناب|تيك توك|تويتر|تلغرام|تيليجرام)/u,
+  arMail: /(البريد الإلكتروني|الايميل|الإيميل|ايميلي|إيميلي|جيميل)/u,
+  arMoneyLost: /(حولت|حوّلت|دفعت|سرقوا|نصب|احتيال|خسرت|سحبوا|خصموا)[^.!?]{0,40}(مبلغ|فلوس|أموال|درهم|ريال|دينار|دولار|\d{3,})/u,
+  arCodeShared: /(أعطيت|اعطيت|عطيته|شاركت|أرسلت|ارسلت|قلت له|قلت لهم|كتبت)[^.!?]{0,30}(رمز التحقق|الرمز|رمز|كود|الكود|كلمة المرور|الرقم السري)/u,
+  arMoneyWords: /(بنك|البنك|فلوس|مبلغ|بطاقة|كلمة المرور|رمز|تحويل|محفظة|حساب)/u,
+};
+
+// A negation word right before a match ("I haven't sent any money", "لم أحول أي مبلغ"):
+// at most two words in between, so "no idea, I sent 500 AED" still counts.
+const NEG_PREFIX = /(?:\b(?:didn'?t|did not|never|haven'?t|have not|hasn'?t|has not|wasn'?t|was not|not|no|without)\s+(?:[\w']+\s+){0,2}|(?:^|\s)(?:لم|لا|ما|ولا|وما)\s+(?:\S+\s+){0,2})$/iu;
+function negatedBefore(text: string, index: number): boolean {
+  return NEG_PREFIX.test(text.slice(Math.max(0, index - 40), index));
+}
+function unnegatedMatch(re: RegExp, text: string): boolean {
+  const m = re.exec(text);
+  return Boolean(m && !negatedBefore(text, m.index));
+}
+
+function extraRecoverySignals(description: string): { points: number; category: string; notes: string[]; moneyLost: boolean; codeShared: boolean } {
+  const t = description.toLowerCase().replace(/[’]/g, "'");
+  const out = { points: 0, category: "", notes: [] as string[], moneyLost: false, codeShared: false };
+  const add = (points: number, note: string, category = "") => {
+    out.points += points;
+    out.notes.push(note);
+    if (category && !out.category) out.category = category;
+  };
+  const hit = (re: RegExp) => {
+    const m = re.exec(t);
+    return Boolean(m && !RECOVERY_PATTERNS.negated.test(m[0]) && !negatedBefore(t, m.index));
+  };
+  // Takeover wording carries its own "can not get in", so it is not negation-checked.
+  if (unnegatedMatch(RECOVERY_PATTERNS.socialTakeover, t)) add(2, "A social-media account appears to have been taken over.", "Social media compromise");
+  else if (unnegatedMatch(RECOVERY_PATTERNS.mailTakeover, t)) add(2, "An email account appears to have been taken over.", "Email compromise");
+  else if (hit(RECOVERY_PATTERNS.unknownSignIn)) add(1, "Someone else appears to have signed in to an account.");
+  if (hit(RECOVERY_PATTERNS.moneyLost)) { out.moneyLost = true; add(2, "Money appears to have left the user's account.", "Financial / payment fraud"); }
+  if (hit(RECOVERY_PATTERNS.codeShared)) { out.codeShared = true; add(2, "A code or password appears to have been handed to someone else.", "OTP / credential exposure"); }
+  if (hit(RECOVERY_PATTERNS.commandRun)) add(2, "A command or remote-access tool may have been run at an attacker's request.", "Malware / device compromise");
+  if (RECOVERY_PATTERNS.linkedDevice.test(t)) add(1, "A linked device may belong to an attacker.", "Social media compromise");
+  if (RECOVERY_PATTERNS.deviceCode.test(t)) add(1, "A sign-in code may have been entered for someone else's device.", "Account compromise");
+  if (RECOVERY_PATTERNS.familyVoice.test(t)) add(1, "Possible family-impersonation or voice-clone scam.", "Family-emergency / voice-cloning scam");
+  if (unnegatedMatch(RECOVERY_PATTERNS.arHacked, description)) {
+    add(2, "An account appears to have been hacked (reported in Arabic).",
+      RECOVERY_PATTERNS.arSocial.test(description) ? "Social media compromise" : RECOVERY_PATTERNS.arMail.test(description) ? "Email compromise" : "Account compromise");
+  }
+  if (unnegatedMatch(RECOVERY_PATTERNS.arMoneyLost, description)) { out.moneyLost = true; add(2, "Money appears to have been lost (reported in Arabic).", "Financial / payment fraud"); }
+  if (unnegatedMatch(RECOVERY_PATTERNS.arCodeShared, description)) { out.codeShared = true; add(2, "A code or password appears to have been handed to someone else (reported in Arabic).", "OTP / credential exposure"); }
+  return out;
+}
+
 function classifyIncident(
   description: string,
   quickAnswers: Record<string, boolean>,
@@ -198,6 +280,10 @@ function classifyIncident(
   if (quickAnswers.identityExposed) { riskScore += 1; signals.push("Identity information may be exposed."); }
   if (quickAnswers.deviceStrange) { riskScore += 1; signals.push("Device is behaving unusually."); }
 
+  const extra = extraRecoverySignals(description);
+  riskScore += extra.points;
+  signals.push(...extra.notes);
+
   let riskFloor: RiskLevel = "low";
   if (riskScore >= 4) riskFloor = "critical";
   else if (riskScore >= 2) riskFloor = "high";
@@ -214,19 +300,27 @@ function classifyIncident(
   // "Other" carries no floor of its own, so a description that already
   // mentions money, banking, passwords or codes cannot sit at low risk just
   // because no category matched it.
-  if (riskFloor === "low" && /\b(bank|money|payment|card|password|otp|code|reset|transfer|transaction|wallet|crypto)\b/i.test(text)) {
+  if (riskFloor === "low" && (/\b(bank|money|payment|card|password|otp|code|reset|transfer|transaction|wallet|crypto)\b/i.test(text) || RECOVERY_PATTERNS.arMoneyWords.test(description))) {
     riskFloor = "medium";
     signals.push("Money, banking or credential details are involved even though no specific incident pattern matched.");
   }
 
+  // Money already gone or a code already handed over, said in the description
+  // rather than ticked in the quick answers, is just as urgent.
   let urgencyFloor: Urgency = "soon";
-  if (quickAnswers.sentMoney || quickAnswers.sharedOtp || quickAnswers.lostAccess || riskFloor === "critical") urgencyFloor = "immediate";
+  if (quickAnswers.sentMoney || quickAnswers.sharedOtp || quickAnswers.lostAccess || extra.moneyLost || extra.codeShared || riskFloor === "critical") urgencyFloor = "immediate";
   else if (riskFloor === "high" || quickAnswers.unknownLogin || quickAnswers.sharedPassword) urgencyFloor = "today";
 
-  // An explicit selection beats the keyword guess for naming the incident.
-  const incidentCategory = selected ? selected.label : bestCategory.label;
+  // An explicit selection beats the keyword guess for naming the incident; a
+  // keyword match beats the phrase patterns.
+  const incidentCategory = selected ? selected.label : bestCategory.id !== "other" ? bestCategory.label : extra.category || bestCategory.label;
 
-  return { incidentCategory, riskFloor, urgencyFloor, signals: uniqueStrings(signals, 10) };
+  const moneyInvolved = Boolean(quickAnswers.sentMoney) || extra.moneyLost ||
+    bestCategory.id === "financial_fraud" ||
+    selected?.label === "Financial / payment fraud" ||
+    unnegatedMatch(MONEY_INVOLVED_EN, description) || unnegatedMatch(MONEY_INVOLVED_AR, description);
+
+  return { incidentCategory, riskFloor, urgencyFloor, signals: uniqueStrings(signals, 10), moneyInvolved };
 }
 
 // ─── Verified official resource allowlist (never invented by the AI) ───
@@ -334,7 +428,7 @@ Rules:
 10. updateQuestion should be a short, natural prompt inviting the user to report back what they've done (e.g. "What have you secured so far?").
 11. Never promise complete safety. remainingRisk should reflect realistic residual risk even after immediate actions.
 12. When recommending authentication security, prefer authenticator apps or passkeys/FIDO2 over SMS one-time codes, which remain vulnerable to real-time phishing relay. Recommend scanning the device for malware BEFORE resetting passwords when device compromise is plausible — resetting first can let an attacker with device access regain control immediately.
-13. Recognize current 2025-2026 scam patterns in the incident description and tailor the plan accordingly: AI voice-cloning or deepfake family-emergency scams (advise verifying via a separate known channel, not the number/video that contacted them); romance-investment ("pig butchering") scams (advise stopping all further transfers immediately, since attackers often request "just one more" payment to "unlock" withdrawals); government/law-enforcement impersonation ("digital arrest") scams (reassure the user that real agencies do not demand secrecy or immediate payment by gift card, wire, or crypto); toll and package-delivery smishing; and job/task scams requesting upfront payment.
+13. Recognize current 2025-2026 scam patterns in the incident description and tailor the plan accordingly: AI voice-cloning or deepfake family-emergency and "Hi Mum, new number" scams (advise verifying via a separate known channel, not the number/video that contacted them); romance-investment ("pig butchering") scams and fake trading apps (advise stopping all further transfers immediately, since attackers often request "just one more" payment or a "tax" to "unlock" withdrawals); government/law-enforcement impersonation ("digital arrest") scams (reassure the user that real agencies do not demand secrecy or immediate payment by gift card, wire, or crypto); toll and package-delivery smishing (Salik, Darb, RTA, Emirates Post); job/task scams requesting upfront payment; codes passed to a caller, a "vote" link or an AI voice agent (sign out other sessions and change the password at once); a pasted command or fake CAPTCHA (ClickFix: disconnect and scan the device before changing passwords); an unknown WhatsApp linked device or a code entered at a device-login page (remove the device or session first). When money left an account or card, the first action is calling the bank or card issuer on the number on the card or in its official app to block the card and ask for the transfer to be stopped or recalled.
 
 14. REGION — name only institutions, apps and authorities that belong to the user's REGION (for a case in Kuwait do not mention UAE Pass; for Saudi Arabia use Absher and the Saudi banks the user named). If the region is missing, say "your bank", "your national ID authority" and "your local police" rather than guessing a country.
 
@@ -392,8 +486,19 @@ async function runAiRecoveryPlan(args: {
     inputContent.push({ type: "input_image", image_url: args.imageData, detail: "high" });
   }
 
-  const response = await client.responses.create({
-    model: modelForRiskFloor(args.riskFloor),
+  const { response } = await createResponse(client, modelForRiskFloor(args.riskFloor), (model, effortOverride) => ({
+    ...modelParams(model, {
+      // gpt-5 keeps "minimal" (unchanged). This runs in the background job with
+      // no request deadline, so a model without "minimal" gets "low", OpenAI's
+      // documented starting point for requests that used "minimal".
+      preferredEfforts: ["minimal", "low"],
+      effortOverride: effortOverride || env("RECOVERY_REASONING_EFFORT"),
+      // Sized for the plan the instructions ask for (about 11 actions rather
+      // than up to 30): never truncated into "incomplete", no room for sprawl.
+      baseOutputTokens: 3_500,
+      cacheKey: "cybernet-recovery-plan-v1",
+      customBaseUrl: Boolean(env("OPENAI_BASE_URL")),
+    }),
     instructions: recoveryInstructions,
     input: [{ role: "user", content: inputContent }],
     text: {
@@ -409,14 +514,8 @@ async function runAiRecoveryPlan(args: {
         schema: recoverySchema,
       },
     },
-    // Sized for the plan the instructions now ask for (about 11 actions rather
-    // than up to 30). Generous enough that a legitimate plan is never truncated
-    // into an "incomplete" response, without leaving room for the sprawl that
-    // pushed this call past the request budget.
-    max_output_tokens: 3_500,
-    reasoning: { effort: "minimal" },
     store: false,
-  });
+  }) as any, { allowReplace: autoReplaceEnabled(env("ANALYSIS_MODEL_AUTO_REPLACE")), label: "CyberNet Recovery plan" });
 
   if (response.status === "incomplete") {
     throw new Error(
@@ -439,7 +538,20 @@ async function runAiRecoveryPlan(args: {
 }
 
 function fallbackPlan(classifier: ClassifierResult, region: string) {
+  // When money or card details were involved, the call that can still stop or
+  // recall a payment comes first: banks can sometimes act within minutes or
+  // hours, and nothing else on this list helps with that.
+  const bankAction: RecoveryAction = {
+    id: "contact-bank",
+    title: "Call your bank or card issuer now",
+    instruction: "Use the number on the back of your card or in your bank's official app, not one from a message, and ask them to block the card and stop or recall the payment. If you paid through an exchange or payment app, contact it the same way.",
+    why: "A transfer can sometimes be stopped or recalled if the bank hears about it quickly, and blocking the card prevents further charges.",
+    verification: "You have a reference number from the bank for the blocked card or the recall request.",
+    priority: "critical",
+    estimatedMinutes: 15,
+  };
   const immediateActions: RecoveryAction[] = [
+    ...(classifier.moneyInvolved ? [bankAction] : []),
     {
       id: "secure-primary-email",
       title: "Secure your primary email account",
@@ -471,7 +583,10 @@ function fallbackPlan(classifier: ClassifierResult, region: string) {
     inferences: [],
     unknowns: ["The full extent of any unauthorized access could not be assessed without enhanced analysis."],
     immediateActions,
-    first10Minutes: immediateActions,
+    // Empty on purpose: repeating the immediate actions here made sanitizePlan
+    // save every action twice (immediate-0 and t10-0), doubling the task list
+    // and its weight in the progress bar.
+    first10Minutes: [],
     firstHour: [],
     first24Hours: [],
     next7Days: [],
@@ -645,7 +760,9 @@ async function consumeRecoveryCaseBusiness(businessAccountId: string) {
   };
 }
 
-async function saveCase(userId: string, classifier: ClassifierResult, plan: any, region: string, caseTitle: string, businessAccountId?: string | null, teamLogDescription?: string | null) {
+// afterCaseRow runs as soon as the case row exists, alongside the version and
+// task inserts (the background job only needs the case id to start).
+async function saveCase<T>(userId: string, classifier: ClassifierResult, plan: any, region: string, caseTitle: string, businessAccountId?: string | null, teamLogDescription?: string | null, afterCaseRow?: (caseId: string) => Promise<T>): Promise<{ caseId: string; after: T | undefined }> {
   const insertResponse = await serviceFetch("/rest/v1/recovery_cases", {
     method: "POST",
     headers: { Prefer: "return=representation" },
@@ -682,7 +799,10 @@ async function saveCase(userId: string, classifier: ClassifierResult, plan: any,
 
   // The plan version and the task list both depend on the case row and not on
   // each other, so they go together. Sequential round trips were costing about
-  // a second of a request budget that has very little to spare.
+  // a second of a request budget that has very little to spare. The background
+  // trigger goes with them rather than after them.
+  const afterPromise = afterCaseRow ? afterCaseRow(caseRow.id as string) : Promise.resolve(undefined);
+  afterPromise.catch(() => null); // awaited below; never left unhandled
   await Promise.all([
     serviceFetch("/rest/v1/recovery_versions", {
       method: "POST",
@@ -714,7 +834,7 @@ async function saveCase(userId: string, classifier: ClassifierResult, plan: any,
       : Promise.resolve(null),
   ]);
 
-  return caseRow.id as string;
+  return { caseId: caseRow.id as string, after: await afterPromise };
 }
 
 export default async function handler(request: Request, context: any): Promise<Response> {
@@ -777,9 +897,42 @@ export default async function handler(request: Request, context: any): Promise<R
   // the request budget, and on production most of them did not.
   const plan = sanitizePlan(null, classifier, region);
 
+  const buildJob = (caseId: string) => {
+    const job = {
+      kind: "start",
+      caseId,
+      userId: user.id,
+      classifier,
+      region,
+      input: {
+        description,
+        quickAnswers,
+        incidentTypeHint,
+        accountsInvolved,
+        incidentTime,
+        region,
+        riskFloor: classifier.riskFloor,
+        urgencyFloor: classifier.urgencyFloor,
+        imageData,
+      },
+    };
+    // A typical screenshot alone is larger than the background payload cap, so
+    // it is left out and the planner is told one was attached.
+    const jobSize = utf8Length(JSON.stringify(job));
+    if (jobSize > MAX_BACKGROUND_JOB_CHARS && job.input.imageData) {
+      job.input.imageData = "";
+      job.input.description += "\n\n[The user attached a screenshot, but it was too large to forward to the planner; base the plan on the description.]";
+      console.warn("CyberNet Recovery image dropped from background job", { caseId, chars: jobSize });
+    }
+    return job;
+  };
+
+  // The background job is started as soon as the case row exists, alongside
+  // the version and task inserts, instead of after all of them.
   let caseId: string;
+  let aiPending = false;
   try {
-    caseId = await saveCase(
+    const saved = await saveCase(
       user.id,
       classifier,
       plan,
@@ -787,40 +940,17 @@ export default async function handler(request: Request, context: any): Promise<R
       `${plan.incidentType} — ${new Date().toLocaleDateString()}`,
       team?.businessAccountId,
       team && team.role !== "owner" ? description : null,
+      (newCaseId) => triggerBackgroundJob(request, context, buildJob(newCaseId)).catch((error) => {
+        console.error("CyberNet Recovery background trigger failed", { caseId: newCaseId, error });
+        return false;
+      }),
     );
+    caseId = saved.caseId;
+    aiPending = Boolean(saved.after);
   } catch (error) {
     console.error("CyberNet Recovery case save failed", error);
     return json({ error: "Your recovery plan was generated, but it could not be saved. Please try again.", code: "save_failed" }, 500);
   }
-
-  const job = {
-    kind: "start",
-    caseId,
-    userId: user.id,
-    classifier,
-    region,
-    input: {
-      description,
-      quickAnswers,
-      incidentTypeHint,
-      accountsInvolved,
-      incidentTime,
-      region,
-      riskFloor: classifier.riskFloor,
-      urgencyFloor: classifier.urgencyFloor,
-      imageData,
-    },
-  };
-  // A typical screenshot alone is larger than the background payload cap, so
-  // it is left out and the planner is told one was attached.
-  const jobSize = utf8Length(JSON.stringify(job));
-  if (jobSize > MAX_BACKGROUND_JOB_CHARS && job.input.imageData) {
-    job.input.imageData = "";
-    job.input.description += "\n\n[The user attached a screenshot, but it was too large to forward to the planner; base the plan on the description.]";
-    console.warn("CyberNet Recovery image dropped from background job", { caseId, chars: jobSize });
-  }
-
-  const aiPending = await triggerBackgroundJob(request, context, job);
 
   if (aiPending) {
     plan.summary = "Your essential safety actions are ready below. CyberNet AI is preparing your full recovery plan now - it will appear here in about a minute.";

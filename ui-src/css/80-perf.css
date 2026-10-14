@@ -1,0 +1,142 @@
+/* CyberNet AI v4.1 "Midnight": performance (owner: aurora).
+   Loads after the page partials on purpose: these rules settle paint and compositing costs
+   for everything above them. */
+
+/* ------------------------------------------------------------------------------------------
+   1. First block of every page paints on the first frame
+   The opening block of each page carries .reveal, which legacy keeps at opacity 0 until
+   script.js adds .show after every deferred script has run (2 to 9 s on a slow phone).
+   Content painted at opacity 0 is also skipped as a Largest Contentful Paint candidate.
+   These blocks are now simply there. The working area of each tool (Quick Scan's tabs and
+   panel, the Analysis AI workspace, the Recovery intake) is held still too, because a tab
+   click re-runs the legacy reveal on the whole page and made it flicker.
+   Home's hero gets no reveal at all (DESIGN.md: help before hype).
+   ------------------------------------------------------------------------------------------ */
+html.cn #home .hero .hero-content.reveal,
+html.cn #home .hero .hero-visual.reveal,
+html.cn .page .feature-page-header.reveal,
+html.cn #learn .learn-hero.reveal,
+html.cn #pricing .pricing-head.reveal,
+html.cn #about .about-top.reveal,
+html.cn #cybernet .detect-tabs.reveal,
+html.cn #cybernet .detect-panel-grid.reveal,
+html.cn #cybernetai .ai-layout.reveal,
+html.cn #recovery #recoveryIntake.reveal {
+  opacity: 1;
+  transform: none;
+  filter: none;
+  transition: none;
+  animation: none;
+}
+
+/* ------------------------------------------------------------------------------------------
+   2. Page switches
+   Legacy runs pageFade (opacity 0 -> 1) on every page, including the very first one, which
+   delays the first paint of the hero and of deep-linked pages. Its "both" fill also leaves a
+   transform behind (a containing block for fixed children) and blocks the leave transition.
+   Now: the first page paints at once; after the visitor navigates (05-reveal.js sets
+   html.cn-navigated on a [data-page] click or back/forward), the leaving page fades out inside
+   script.js's fixed 300 ms swap and the new one eases in. The entrance starts at partial
+   opacity, so the new page is a paint candidate from its first frame.
+   ------------------------------------------------------------------------------------------ */
+html.cn .page {
+  animation: none;
+}
+html.cn.cn-navigated .page.active-page:not(.leaving) {
+  animation: cn-page-in .5s var(--cn-ease-out) backwards;
+}
+html.cn.cn-navigated .page.leaving {
+  animation: cn-page-out .22s var(--cn-ease-in-out) forwards;
+}
+@keyframes cn-page-in {
+  from { opacity: .35; translate: 0 10px; }
+  to { opacity: 1; translate: none; }
+}
+@keyframes cn-page-out {
+  from { opacity: 1; translate: none; }
+  to { opacity: 0; translate: 0 -6px; }
+}
+
+/* ------------------------------------------------------------------------------------------
+   3. No frosted glass inside <main>
+   backdrop-filter re-blurs everything behind a card on every scroll frame, and over a moving
+   section canvas it would have to re-blur on every animation frame too. Cards get their glass
+   look from a translucent navy tint instead (--cn-glass), which costs nothing per frame. The
+   header sheet, modals and the cookie bar live outside <main> and keep theirs (DESIGN.md).
+   ------------------------------------------------------------------------------------------ */
+html.cn main *,
+html.cn main *::before,
+html.cn main *::after {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* ------------------------------------------------------------------------------------------
+   4. Containment that clipped content
+   Legacy put content-visibility:auto with a 700px placeholder height on these blocks. The
+   placeholder is far from their real height (the page jumps while scrolling, deep links land
+   in the wrong place) and the paint containment clipped anything that overflowed them.
+   ------------------------------------------------------------------------------------------ */
+html.cn :is(.wow-section, .pricing-grid, .about-values) {
+  content-visibility: visible;
+  contain-intrinsic-size: none;
+}
+
+/* ------------------------------------------------------------------------------------------
+   5. Skip rendering the heavy Home sections until they come near
+   The example scan, the tools reel and the engine diagram are all below the fold
+   on every device and hold most of Home's DOM. content-visibility:auto lets the browser skip
+   their style, layout and paint until they approach the viewport (measured: Total Blocking
+   Time 636 -> 344 ms on a 4x-throttled phone). It is safe here because each section carries
+   its own padding (gutters plus half a section step), so the paint containment clips nothing
+   (0 px descendant overflow at 390 and 1440), and no section uses fixed children or counters
+   that cross its edge. Each placeholder is the section's measured content height (stacked
+   under 1024px, side by side above), so the page barely changes length as they render; once
+   rendered, "auto" makes the browser remember the real size, so scrolling back never jumps.
+   v4 heights (14 Oct, measured at 1440, 820 and 390 px): re-measure when a section changes.
+   Not applied to the ticker (.wow-section) or the statement (.home-quote): their content
+   overflows on purpose. Wins over the content-visibility:visible list in 28-home-more.css by
+   source order at equal specificity.
+   ------------------------------------------------------------------------------------------ */
+html.cn #home > :is(.cn-demo, .cn-flow, .why-choose) {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 880px;
+}
+html.cn #home > .cn-demo { contain-intrinsic-size: auto 570px; }
+html.cn #home > .cn-flow { contain-intrinsic-size: auto 740px; }
+html.cn #home > .why-choose { contain-intrinsic-size: auto 1100px; }
+@media (max-width: 1023.98px) {
+  html.cn #home > .cn-demo { contain-intrinsic-size: auto 1110px; }
+  html.cn #home > .cn-flow { contain-intrinsic-size: auto 820px; }
+  html.cn #home > .why-choose { contain-intrinsic-size: auto 1160px; }
+}
+@media (max-width: 599.98px) {
+  html.cn #home > .cn-demo { contain-intrinsic-size: auto 1090px; }
+  html.cn #home > .cn-flow { contain-intrinsic-size: auto 1150px; }
+  html.cn #home > .why-choose { contain-intrinsic-size: auto 1340px; }
+}
+
+/* ------------------------------------------------------------------------------------------
+   6. Background motion: the section canvases live in 04-bgfx.css / 09-bgfx.js (one per dark
+   section, 30 fps on desktop and 20 on touch, drawn only while on screen). Nothing fixed covers
+   the page while it scrolls.
+   ------------------------------------------------------------------------------------------ */
+
+/* ------------------------------------------------------------------------------------------
+   7. Smooth scrolling (v4.1, owner feedback: "not smooth when you scroll")
+   - The scroll position is the browser's own (compositor-threaded) on every device; desktop
+     with a fine pointer may add Lenis inertia (06-scroll.js), which only moves that same native
+     position. Lenis needs html's smooth scroll-behavior off while it is driving, and must never
+     try to drive inside an overlay or a nested scroller (the data-lenis-prevent hook).
+   - Large photos never move on a scroll timeline; reveals use opacity and transforms only (no
+     blur filter); no backdrop-filter, blend mode or filter layer is fixed over the page.
+   ------------------------------------------------------------------------------------------ */
+html.cn.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+html.cn.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+html.cn.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}

@@ -1,0 +1,97 @@
+/* CyberNet AI v4.1 "Midnight": the ground and the band utilities (owner: aurora).
+   1. The ground: midnight navy with one soft light at the top of each page. Static.
+   2. Bands: utilities that paint a light band or a stage band.
+   3. Scroll utilities: parallax on a view timeline.
+
+   What changed from v4 "Aurora" (owner feedback: too much purple, not smooth when scrolling):
+   - The fixed, full-screen drifting layers (html::after, body::before), the light beam
+     (body::after) and the film grain (html::before) are gone. They sat over the whole viewport
+     on every page, so the GPU had to blend three to four extra screens of texture on every
+     scroll frame, and phones felt it. Nothing fixed covers the page any more.
+   - The visible motion moved into the dark sections themselves: one small canvas per section,
+     drawn at 30 fps and paused off-screen (04-bgfx.css, 09-bgfx.js).
+   - The light is cyan and blue on navy. No violet or magenta washes.
+   The ground lives on body's background, which propagates to the root canvas: it is painted
+   once with the page and scrolls with it, so it costs nothing per frame. The light at the top
+   scrolls with the document, so each page is brightest at its top and settles to plain navy as
+   you read down.
+   The legacy scanline overlay and animated top bar used body::before / ::after (style.css:
+   fixed, z-index 998/999); they stay switched off here. */
+
+/* ------------------------------------------------------------------------------------------
+   1. Ground
+   ------------------------------------------------------------------------------------------ */
+html.cn body {
+  background-color: var(--cn-p-night);
+  background-image:
+    radial-gradient(56% 40% at 50% 0%, rgba(34, 211, 238, .075), rgba(34, 211, 238, .02) 54%, transparent 76%),
+    radial-gradient(36% 30% at 92% 0%, rgba(59, 130, 246, .09), transparent 74%),
+    radial-gradient(30% 26% at 6% 6%, rgba(96, 165, 250, .05), transparent 74%),
+    linear-gradient(180deg, rgba(12, 18, 32, .9), rgba(12, 18, 32, 0));
+  background-repeat: no-repeat;
+  background-size: 100% clamp(720px, 120vh, 1300px);
+  background-position: 50% 0;
+}
+
+/* No fixed layers: the old aurora pseudo-elements and the legacy scanlines / top bar are off. */
+html.cn::before,
+html.cn::after,
+html.cn body::before,
+html.cn body::after {
+  content: none;
+  animation: none;
+}
+
+@media (forced-colors: active), print {
+  html.cn body { background-image: none; }
+}
+
+/* ------------------------------------------------------------------------------------------
+   2. Bands
+   .cn-light / [data-cn-tone="light"]: a light band. 00-tokens.css flips every token inside it,
+   so the components there adapt with no extra rules. Here the band itself is painted: the
+   light ground with one faint cyan light from the top, a white top edge, a hairline and the
+   band's corners (--cn-r-band). Neutral shadow, no coloured glow.
+   .cn-stage-band / [data-cn-tone="stage"]: the dark stage (--cn-grad-stage).
+   Zero specificity, so a section's own shell always wins.
+   ------------------------------------------------------------------------------------------ */
+:where(html.cn) :where(.cn-light, [data-cn-tone="light"]) {
+  background-color: var(--cn-bg);
+  background-image: radial-gradient(60% 50% at 50% 0%, rgba(34, 211, 238, .07), transparent 72%);
+  border-radius: var(--cn-r-band);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .9),
+    0 0 0 1px rgba(15, 23, 42, .07),
+    0 30px 60px -40px rgba(2, 6, 23, .45);
+}
+:where(html.cn) :where(.cn-stage-band, [data-cn-tone="stage"]) {
+  background: var(--cn-grad-stage);
+  border-radius: var(--cn-r-band);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .08),
+    0 0 0 1px rgba(148, 163, 184, .14),
+    0 30px 60px -40px rgba(0, 0, 0, .6);
+  color: var(--cn-text);
+}
+
+/* ------------------------------------------------------------------------------------------
+   3. Scroll utilities
+   [data-cn-parallax]: the element drifts against the scroll while it crosses the viewport
+   (--cn-px, default 32px each way). Scroll-driven and translate-only, so the compositor runs it
+   with no script; where view timelines are missing it simply stays still. Off under reduced
+   motion and Pause motion. Use it on small decorative elements only, never on large photos
+   (DESIGN.md v4.1: no scroll-timeline parallax on large images).
+   ------------------------------------------------------------------------------------------ */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    html.cn:not(.cn-still) [data-cn-parallax] {
+      animation: cn-parallax linear both;
+      animation-timeline: view();
+      animation-range: cover 0% cover 100%;
+    }
+  }
+}
+@keyframes cn-parallax {
+  from { translate: 0 var(--cn-px, 32px); }
+  to { translate: 0 calc(var(--cn-px, 32px) * -1); }
+}

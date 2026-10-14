@@ -9,6 +9,7 @@ import {
   getHistory,
   getActiveTeamMembership
 } from "../lib/supabase.mjs";
+import { modelParams } from "../lib/ai-models.mjs";
 
 const MAX_TEXT_CHARS = 16_000;
 const MAX_IMAGE_DATA_CHARS = 5_500_000;
@@ -189,9 +190,13 @@ Accuracy rules:
    concrete structural indicators (typosquatting, homoglyphs, suspicious TLD,
    credential-harvesting path, brand/domain mismatch) before raising risk on that basis.
 10. Weigh current scam patterns when evidence matches: QR-code phishing, toll/package
-   delivery smishing, job/task scams, government-impersonation "digital arrest" scams,
-   AI voice-cloning family-emergency requests, and romance-investment ("pig butchering")
-   crypto scams.
+   delivery smishing (Salik, Darb, RTA, Emirates Post), job/task scams paid in USDT,
+   government-impersonation "digital arrest" scams, "Hi Mum, new number" and AI
+   voice-cloned family requests, romance-investment ("pig butchering") crypto scams,
+   requests to pass on a code you just received, fake CAPTCHAs that say to paste a
+   command, device-login codes, and "press 1" fake purchase alerts. Everyday messages
+   (a meeting-room or promo code, a location pin, a bank's own alert with its hotline)
+   are low risk when nothing else is wrong.
 11. When suggesting account recovery or MFA, prefer authenticator apps or passkeys over
    SMS codes, which remain phishable.
 12. ${detail}
@@ -260,11 +265,21 @@ async function callOpenAI({
         format: {
           type: "json_schema",
           name: "cybernet_byok_security_analysis",
-          strict: true,
+          // Not strict, like /api/analyze: strict decoding is slower and
+          // normalize() already validates every field.
+          strict: false,
           schema
         }
       },
-      max_output_tokens: plan === "pro" ? 2400 : 1400,
+      // Sent without a reasoning field, a reasoning model thinks at its
+      // default (medium), which often ran out of this output budget and came
+      // back "incomplete" (refunded as an error). The visitor's model now gets
+      // the lightest effort it accepts, and the budget grows with it.
+      ...modelParams(model, {
+        preferredEfforts: ["minimal", "none", "low"],
+        baseOutputTokens: plan === "pro" ? 2400 : 1400,
+        cacheKey: "cybernet-byok-v1"
+      }),
       store: false
     }),
     // Shorter than the page's 36 s abort, so a call the page has given up on
@@ -344,12 +359,18 @@ export default async request => {
 
     // Team members use the shared team pool and their activity goes in the
     // owner's log, which only /api/analyze does; the page falls back to it.
-    const team = await getActiveTeamMembership(user.id).catch(() => null);
+    // The team check and the profile read do not depend on each other.
+    // A profile error is only raised after the team answer, as before.
+    const [team, profileResult] = await Promise.all([
+      getActiveTeamMembership(user.id).catch(() => null),
+      getProfile(user).then((value) => ({ value, error: null }), (error) => ({ value: null, error }))
+    ]);
     if (team) {
       return json({ error: "Team accounts use the shared team pool.", code: "byok_team_member" }, 409);
     }
+    if (profileResult.error) throw profileResult.error;
 
-    const profile = await getProfile(user);
+    const profile = profileResult.value;
     const plan = effectivePlan(profile);
 
     reservation = await consumeAnalysis(user.id);

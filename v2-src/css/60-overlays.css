@@ -1,0 +1,1767 @@
+/* =====================================================================
+   60-overlays.css  -  v2 overlays and surfaces
+   Owns: the shared modal shell (.modal / .modal-card / .close-modal),
+   #authModal (+ signup legal box, Google note), #feedbackModal,
+   #howtoVideoModal (+ .hw-* walkthrough), #accountDetailsModal,
+   #cybernetHowToGetKeyModal, #businessTeamModal, #acceptInviteModal,
+   the cookie bar .cn-consent, the Legal Center .cn-legal-*, the shared
+   legal document classes and the standalone legal pages + 404.
+
+   Contracts kept (see redesign-v2/maps/HAZARDS.md):
+   - Modals open/close only through .show (display). No display rule here
+     touches .modal, .auth-form, [hidden] elements or panes.
+   - z-index stack untouched (consent 150, .modal 200, account 1300,
+     team 1350, key 1400, invite 1500, auth 1600, legal 100000).
+   - Inline widths / transforms set by JS (usage fills, how-to meters)
+     are never overridden.
+   - The cybernetFinalUiFixStyles block is injected after this sheet, so
+     account-modal rules use #accountDetailsModal-level specificity.
+   - !important is used only against documented legacy !important rules
+     (.auth-create-link colour, .cn-legal-page-home colour).
+   ===================================================================== */
+
+html.v2{
+  --ov-ink:var(--v2-ink,#effdff);
+  --ov-muted:var(--v2-muted,rgba(239,253,255,.64));
+  --ov-faint:var(--v2-faint,rgba(239,253,255,.56));
+  --ov-body:rgba(239,253,255,.76);
+  --ov-g1:var(--v2-g1,#22d3ee);
+  --ov-g2:var(--v2-g2,#a5f3fc);
+  --ov-blue:var(--v2-blue,#22d3ee);
+  --ov-violet:var(--v2-violet,#2dd4bf);
+  --ov-amber:var(--v2-amber,#FFB547);
+  --ov-safe:var(--v2-safe,#6CF0B0);
+  --ov-danger:var(--v2-danger,#FF5C7A);
+  --ov-navy:var(--v2-navy,#06232a);
+  --ov-ground:var(--v2-ground,#020406);
+  --ov-sans:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --ov-mono:"Geist Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
+  --ov-ease:cubic-bezier(.2,.8,.2,1);
+  --ov-rim:rgba(255,255,255,.13);
+  --ov-line:rgba(255,255,255,.08);
+  --ov-cell:rgba(5,8,9,.5);
+  --ov-card:
+    radial-gradient(90% 46% at 50% 0%,rgba(34,211,238,.15),transparent 72%),
+    linear-gradient(180deg,rgba(20,33,36,.82),rgba(8,14,16,.9));
+  --ov-glass:linear-gradient(180deg,rgba(255,255,255,.085),rgba(255,255,255,.032));
+  /* glass with a faint navy tint (legal hero / sections / TOC) */
+  --ov-glass-navy:linear-gradient(180deg,rgba(103,223,244,.1),rgba(94,221,243,.035));
+  --ov-white:linear-gradient(180deg,#67e8f9 0%,#22d3ee 55%,#0fb9d6 100%);
+  --ov-white-shadow:inset 0 1px 0 #fff,inset 0 -3px 8px rgba(67,201,224,.18),0 0 0 1px rgba(255,255,255,.55),0 10px 34px -8px rgba(34,211,238,.55),0 0 50px -12px rgba(45,212,191,.35);
+  --ov-glassbtn:linear-gradient(180deg,rgba(255,255,255,.15),rgba(255,255,255,0) 52%),linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.035));
+  --ov-glassbtn-shadow:inset 0 1px 0 rgba(255,255,255,.28),inset 0 -1px 0 rgba(255,255,255,.05),0 10px 26px -12px rgba(0,0,0,.7);
+}
+
+@keyframes v2-ov-in{
+  from{opacity:0;transform:translateY(14px) scale(.985)}
+  to{opacity:1;transform:none}
+}
+@keyframes v2-ov-sheet{
+  from{opacity:.4;transform:translateY(48px)}
+  to{opacity:1;transform:none}
+}
+
+/* ---------------------------------------------------------------------
+   1. Shared modal shell
+   --------------------------------------------------------------------- */
+
+/* Scrim. Only colour and blur change; display, inset, z-index and the
+   .show mechanism stay legacy. */
+html.v2 .modal{
+  background:rgba(4,7,7,.56);
+  -webkit-backdrop-filter:blur(14px) saturate(130%);
+  backdrop-filter:blur(14px) saturate(130%);
+}
+
+/* The card modals. :is() with ids gives (1,2,1) so the injected
+   #accountDetailsModal .cybernet-account-card width rule is beaten. */
+html.v2 :is(#authModal,#feedbackModal,#accountDetailsModal,#businessTeamModal,#acceptInviteModal,#cybernetHowToGetKeyModal) .modal-card{
+  font-family:var(--ov-sans);
+  color:var(--ov-ink);
+  background:var(--ov-card);
+  border:1px solid var(--ov-rim);
+  border-radius:30px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.14),
+    0 40px 120px -40px rgba(0,0,0,.9),
+    0 0 90px -30px rgba(81,219,242,.32);
+  -webkit-backdrop-filter:none;
+  backdrop-filter:none;
+  scrollbar-width:thin;
+  scrollbar-color:rgba(255,255,255,.18) transparent;
+  -webkit-font-smoothing:antialiased;
+  animation:v2-ov-in .44s var(--ov-ease) backwards;
+}
+html.v2 :is(#authModal,#feedbackModal,#accountDetailsModal,#businessTeamModal,#acceptInviteModal,#cybernetHowToGetKeyModal) .modal-card::-webkit-scrollbar{width:8px}
+html.v2 :is(#authModal,#feedbackModal,#accountDetailsModal,#businessTeamModal,#acceptInviteModal,#cybernetHowToGetKeyModal) .modal-card::-webkit-scrollbar-thumb{background:rgba(255,255,255,.16);border-radius:8px;border:2px solid transparent;background-clip:padding-box}
+
+/* Round glass close button (proto .v-x) */
+html.v2 .modal .close-modal{
+  top:18px;
+  right:18px;
+  z-index:4;
+  width:38px;
+  height:38px;
+  display:grid;
+  place-items:center;
+  padding:0 0 2px;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.07);
+  color:var(--ov-muted);
+  font:400 22px/1 var(--ov-sans);
+  cursor:pointer;
+  transition:background .2s var(--ov-ease),color .2s var(--ov-ease),border-color .2s var(--ov-ease);
+}
+html.v2 .modal .close-modal:hover{background:rgba(255,255,255,.13);color:var(--ov-ink);border-color:rgba(255,255,255,.22)}
+html.v2 .modal .close-modal:focus-visible{outline:2px solid var(--ov-g1);outline-offset:3px}
+
+/* Mono eyebrow, inside overlays only (.account-eyebrow is shared with
+   page panels owned by other partials). */
+html.v2 .modal .account-eyebrow{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:10px;
+  color:var(--ov-g1);
+  font:500 11.5px/1.3 var(--ov-mono);
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+html.v2 .modal .account-eyebrow::before{
+  content:"";
+  width:18px;
+  height:1px;
+  background:currentColor;
+  opacity:.7;
+  flex:none;
+}
+
+html.v2 .modal .modal-card h2{
+  font-family:var(--ov-sans);
+  font-weight:600;
+  letter-spacing:-.035em;
+  line-height:1.1;
+  color:var(--ov-ink);
+  text-wrap:balance;
+}
+
+/* ---------------------------------------------------------------------
+   2. Form controls inside overlays
+   --------------------------------------------------------------------- */
+/* background-color, not the shorthand: the shorthand reset the select's
+   chevron background-image (this rule is (0,3,2), the select rule after it
+   matches that specificity and wins by order). */
+html.v2 .modal :is(input[type="text"],input[type="email"],input[type="password"],textarea,select){
+  width:100%;
+  border:1px solid rgba(255,255,255,.12);
+  background-color:rgba(5,9,10,.55);
+  color:var(--ov-ink);
+  font:400 15px/1.45 var(--ov-sans);
+  letter-spacing:-.005em;
+  border-radius:14px;
+  padding:13px 16px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+  transition:border-color .2s var(--ov-ease),box-shadow .2s var(--ov-ease),background .2s var(--ov-ease);
+}
+html.v2 .modal :is(input[type="text"],input[type="email"],input[type="password"],textarea,select):hover{border-color:rgba(255,255,255,.2)}
+html.v2 .modal :is(input[type="text"],input[type="email"],input[type="password"],textarea,select):focus{
+  outline:none;
+  border-color:rgba(34,211,238,.65);
+  background-color:rgba(7,13,15,.72);
+  box-shadow:0 0 0 4px rgba(34,211,238,.16),inset 0 1px 0 rgba(255,255,255,.05);
+}
+html.v2 .modal :is(input,textarea)::placeholder{color:rgba(239,253,255,.42);font-family:var(--ov-sans)}
+/* (0,3,2) + later than the shared field rule, so the chevron and the
+   44px right padding win (#feedbackType is the only modal select) */
+html.v2 .modal select:is([id],[name]){
+  -webkit-appearance:none;
+  appearance:none;
+  padding-right:44px;
+  cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23b8c6ff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 16px center;
+  background-size:16px 16px;
+}
+html.v2 .modal select option{background:#0b1315;color:var(--ov-ink)}
+/* required + first option value "" -> :invalid until a topic is picked,
+   so "Choose one" reads as a placeholder (the open list stays full ink) */
+html.v2 #feedbackModal select:invalid{color:rgba(239,253,255,.42)}
+
+html.v2 .modal :is(.auth-form,.feedback-card) label{
+  display:block;
+  margin-bottom:8px;
+  color:var(--ov-muted);
+  font:500 11.5px/1.3 var(--ov-mono);
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+
+/* ---------------------------------------------------------------------
+   3. Buttons inside overlays (white primary pill, glass secondary pill)
+   --------------------------------------------------------------------- */
+html.v2 .modal .primary-btn,
+html.v2 #accountDetailsModal .protect-primary{
+  min-height:50px;
+  padding:0 24px;
+  border:0;
+  border-radius:999px;
+  background:var(--ov-white);
+  color:#030505;
+  font:580 15.5px/1.2 var(--ov-sans);
+  letter-spacing:-.01em;
+  text-transform:none;
+  box-shadow:var(--ov-white-shadow);
+  transition:transform .25s var(--ov-ease),box-shadow .25s var(--ov-ease),opacity .2s ease,filter .2s ease;
+}
+html.v2 .modal .primary-btn:hover:not(:disabled),
+html.v2 #accountDetailsModal .protect-primary:hover{
+  transform:translateY(-1px);
+  box-shadow:inset 0 1px 0 #fff,inset 0 -3px 8px rgba(67,201,224,.18),0 0 0 1px rgba(255,255,255,.6),0 14px 44px -8px rgba(34,211,238,.75),0 0 70px -12px rgba(45,212,191,.5);
+}
+html.v2 .modal .secondary-btn,
+html.v2 #accountDetailsModal .protect-secondary{
+  min-height:50px;
+  padding:0 22px;
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:999px;
+  background:var(--ov-glassbtn);
+  color:var(--ov-ink);
+  font:560 15px/1.2 var(--ov-sans);
+  letter-spacing:-.01em;
+  text-transform:none;
+  box-shadow:var(--ov-glassbtn-shadow);
+  /* 00-base gives .secondary-btn blur+saturate(170%); over the navy card
+     that saturates into a solid blue blob, and the scrim already blurs. */
+  -webkit-backdrop-filter:none;
+  backdrop-filter:none;
+  transition:transform .25s var(--ov-ease),border-color .2s ease,background .2s ease;
+}
+/* .secondary-btn already gets the proto's ::before sheen from 00-base, so
+   it takes the proto's plain fill here (one sheen, not two). */
+html.v2 .modal .secondary-btn{background:linear-gradient(180deg,rgba(255,255,255,.13),rgba(255,255,255,.04))}
+html.v2 .modal .secondary-btn:hover:not(:disabled){
+  transform:translateY(-1px);
+  border-color:rgba(255,255,255,.28);
+  background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,.06));
+}
+html.v2 #accountDetailsModal .protect-secondary:hover{
+  transform:translateY(-1px);
+  border-color:rgba(255,255,255,.28);
+  background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,0) 52%),linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.05));
+}
+html.v2 .modal :is(.primary-btn,.secondary-btn):disabled{opacity:.5;transform:none}
+html.v2 .modal :is(.primary-btn,.secondary-btn):focus-visible{outline:2px solid var(--ov-g1);outline-offset:3px}
+
+/* ---------------------------------------------------------------------
+   4. Sign-in / create account
+   --------------------------------------------------------------------- */
+/* The Create Account tab is taller than the 90vh card, so the bottom gets
+   a scroll cue: a periwinkle shadow pinned to the card edge (scroll) and a
+   card-coloured cover that travels with the content (local) and hides the
+   shadow once the end is reached or when nothing overflows. */
+html.v2 #authModal .modal-card{
+  width:min(448px,100%);
+  padding:30px 30px 26px;
+  background:
+    linear-gradient(to top,#080e10 40%,rgba(8,14,16,0)) 0 100%/100% 64px no-repeat local,
+    radial-gradient(farthest-side at 50% 100%,rgba(34,211,238,.45),transparent) 0 100%/100% 24px no-repeat scroll,
+    var(--ov-card);
+}
+html.v2 #authModal .auth-logo{margin-bottom:16px;display:flex;justify-content:center}
+html.v2 #authModal .auth-logo-icon{
+  width:60px;
+  height:60px;
+  min-width:60px;
+  max-width:60px;
+  max-height:60px;
+  padding:12px;
+  border-radius:19px;
+  background:linear-gradient(140deg,rgba(34,211,238,.3),rgba(45,212,191,.14));
+  border:1px solid rgba(255,255,255,.15);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 14px 34px -12px rgba(34,211,238,.7);
+  filter:none;
+  overflow:visible;
+}
+
+html.v2 #authModal .auth-heading{margin:0 0 20px}
+html.v2 #authModal .auth-heading h2{font-size:26px;font-weight:600;letter-spacing:-.04em;margin-bottom:8px}
+html.v2 #authModal .auth-heading p{color:var(--ov-muted);font-size:14.5px;line-height:1.5;text-wrap:pretty}
+
+/* Segmented tabs with a white active pill */
+html.v2 #authModal .auth-tabs{
+  gap:4px;
+  padding:4px;
+  margin-bottom:20px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.1);
+  background:rgba(5,9,10,.55);
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.35);
+}
+html.v2 #authModal .auth-tab{
+  min-height:40px;
+  padding:0 14px;
+  border-radius:999px;
+  color:var(--ov-muted);
+  font:560 14.5px/1 var(--ov-sans);
+  letter-spacing:-.01em;
+  cursor:pointer;
+  transition:background .25s var(--ov-ease),color .25s var(--ov-ease),box-shadow .25s var(--ov-ease);
+}
+html.v2 #authModal .auth-tab:hover:not(.active){color:var(--ov-ink);background:rgba(255,255,255,.05)}
+html.v2 #authModal .auth-tab.active{
+  background:linear-gradient(180deg,#67e8f9 0%,#22d3ee 55%,#0fb9d6 100%);
+  color:#030505;
+  box-shadow:inset 0 1px 0 #fff,0 6px 20px -6px rgba(34,211,238,.7);
+}
+html.v2 #authModal .auth-tab:focus-visible{outline:2px solid var(--ov-g1);outline-offset:2px}
+
+/* Google keeps its white button and four-colour G */
+html.v2 #authModal .google-auth-btn{
+  min-height:50px;
+  margin-bottom:0;
+  padding:0 20px;
+  gap:11px;
+  border-radius:999px;
+  background:#fff;
+  border:1px solid rgba(0,0,0,.06);
+  color:#1f1f1f;
+  font:560 15px/1 var(--ov-sans);
+  letter-spacing:-.01em;
+  box-shadow:inset 0 -2px 6px rgba(17,32,35,.08),0 10px 28px -12px rgba(0,0,0,.7);
+  transition:transform .25s var(--ov-ease),box-shadow .25s var(--ov-ease);
+}
+html.v2 #authModal .google-auth-btn:hover{transform:translateY(-1px);box-shadow:inset 0 -2px 6px rgba(17,32,35,.08),0 14px 34px -12px rgba(0,0,0,.8),0 0 0 4px rgba(255,255,255,.06)}
+html.v2 #authModal .google-auth-btn:focus-visible{outline:2px solid var(--ov-g1);outline-offset:3px}
+html.v2 #authModal .google-auth-btn:disabled{opacity:.6;transform:none}
+
+html.v2 #authModal .cn-google-legal-note,
+html.v2 #authModal .auth-inapp-note{
+  margin:12px 4px 0;
+  color:var(--ov-muted);
+  font:400 12.5px/1.55 var(--ov-sans);
+  text-align:center;
+  text-wrap:pretty;
+}
+html.v2 #authModal .cn-google-legal-note .cn-legal-link-btn{
+  color:var(--ov-g1);
+  font:500 12.5px/1.55 var(--ov-sans);
+  letter-spacing:0;
+  text-decoration:underline;
+  text-decoration-color:rgba(34,211,238,.45);
+  text-underline-offset:3px;
+}
+html.v2 #authModal .auth-divider{
+  margin:18px 0 18px;
+  gap:14px;
+  color:var(--ov-faint);
+  font:500 11px/1 var(--ov-mono);
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+html.v2 #authModal .auth-divider::before,
+html.v2 #authModal .auth-divider::after{background:linear-gradient(90deg,transparent,rgba(255,255,255,.14))}
+html.v2 #authModal .auth-divider::after{background:linear-gradient(90deg,rgba(255,255,255,.14),transparent)}
+
+html.v2 #authModal .auth-form .primary-btn{margin-top:4px}
+html.v2 #authModal .auth-helper-row{margin-top:12px;gap:2px 12px}
+html.v2 #authModal .auth-text-btn{
+  min-height:36px;
+  margin:0;
+  padding:8px 4px;
+  color:var(--ov-muted);
+  font:500 13.5px/1.3 var(--ov-sans);
+  letter-spacing:-.005em;
+  cursor:pointer;
+  transition:color .2s ease;
+}
+html.v2 #authModal .auth-text-btn:hover{color:var(--ov-ink)}
+html.v2 #authModal .auth-text-btn:focus-visible{outline:2px solid var(--ov-g1);outline-offset:2px;border-radius:8px}
+/* style.css:5972 sets these with !important */
+html.v2 #authModal .auth-create-link,
+html.v2 #authModal .auth-login-link{color:var(--ov-g1)!important}
+html.v2 #authModal .auth-create-link:hover,
+html.v2 #authModal .auth-login-link:hover{color:#c3f9ff!important}
+html.v2 #authModal .auth-login-link{margin-top:10px}
+html.v2 #authModal #resendConfirmBtn{width:100%;margin-top:8px}
+
+/* Dimmed white pill until the legal box is ticked (still clickable: the
+   capture-phase guard shows the error). */
+html.v2 #authModal #signupBtn.cn-consent-pending{
+  background:linear-gradient(180deg,rgba(255,255,255,.72),rgba(226,252,255,.58));
+  color:rgba(3,5,5,.74);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 0 0 1px rgba(255,255,255,.25);
+}
+
+html.v2 #authModal .auth-message{
+  margin-top:14px;
+  color:var(--ov-muted);
+  font:400 13.5px/1.5 var(--ov-sans);
+}
+/* Empty live regions (legacy min-height:20px + margin) left a ~50px hole
+   under the last control; they collapse until JS writes a message. */
+html.v2 .modal :is(#authMessage,#feedbackMessage,#accountDetailsMessage,#cnInviteMessage,#cnTeamMessage):empty{min-height:0;margin-top:0}
+html.v2 #authModal .auth-message.error{color:#ffb0bd}
+html.v2 #authModal .auth-message.success{color:var(--ov-safe)}
+html.v2 #authModal .modal-card > small{
+  margin-top:14px;
+  padding-top:14px;
+  border-top:1px solid var(--ov-line);
+  color:var(--ov-faint);
+  font:400 12.5px/1.5 var(--ov-sans);
+  letter-spacing:0;
+  text-wrap:pretty;
+}
+
+/* Signup legal consent (cybernet-legal-upgrade.js) */
+html.v2 #cnSignupLegalBox{
+  margin:2px 0 16px;
+  padding:14px 14px 13px;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:18px;
+  background:rgba(5,9,10,.5);
+}
+html.v2 #cnSignupLegalBox .cn-signup-legal-row{gap:11px}
+/* Native checkbox kept in place, drawn with appearance:none */
+html.v2 #cnSignupLegalBox input[type="checkbox"]{
+  -webkit-appearance:none;
+  appearance:none;
+  width:20px;
+  height:20px;
+  margin:1px 0 0;
+  border:1.5px solid rgba(255,255,255,.34);
+  border-radius:7px;
+  background:rgba(255,255,255,.05) center/14px 14px no-repeat;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
+  cursor:pointer;
+  transition:background-color .2s ease,border-color .2s ease,box-shadow .2s ease;
+}
+html.v2 #cnSignupLegalBox input[type="checkbox"]:hover{border-color:rgba(255,255,255,.55)}
+html.v2 #cnSignupLegalBox input[type="checkbox"]:checked{
+  border-color:transparent;
+  background-color:var(--ov-g1);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2305060c' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E");
+  box-shadow:0 0 14px -2px rgba(34,211,238,.7);
+}
+html.v2 #cnSignupLegalBox input[type="checkbox"]:focus-visible{outline:2px solid var(--ov-g1);outline-offset:3px}
+html.v2 #cnSignupLegalBox.cn-legal-error input[type="checkbox"]{border-color:rgba(255,128,153,.85)}
+html.v2 #cnSignupLegalBox label{
+  margin:0;
+  color:var(--ov-muted);
+  font:400 13px/1.55 var(--ov-sans);
+  letter-spacing:0;
+  text-transform:none;
+}
+html.v2 #cnSignupLegalBox strong{color:var(--ov-ink);font-weight:560}
+html.v2 #cnSignupLegalBox .cn-legal-inline-actions{gap:4px 14px;margin-top:8px;padding-left:29px}
+html.v2 #cnSignupLegalBox .cn-legal-link-btn{
+  min-height:28px;
+  color:var(--ov-g1);
+  font:500 13px/1.4 var(--ov-sans);
+  letter-spacing:0;
+  text-decoration:underline;
+  text-decoration-color:rgba(34,211,238,.45);
+  text-underline-offset:3px;
+}
+html.v2 #cnSignupLegalBox .cn-legal-link-btn:hover{color:#c3f9ff}
+html.v2 #cnSignupLegalBox .cn-legal-required{
+  display:block;
+  margin:6px 0 0 29px;
+  color:var(--ov-faint);
+  font:400 12px/1.45 var(--ov-sans);
+  letter-spacing:0;
+  text-align:left;
+  /* balance keeps "2026-09-04" whole (pretty broke it at the hyphen) */
+  text-wrap:balance;
+}
+
+/* Short desktop/tablet viewports: trim the top of the auth card so the
+   form starts higher (after the base rules above: same specificity). */
+@media (min-width:701px) and (max-height:960px){
+  html.v2 #authModal .modal-card{padding-top:24px}
+  html.v2 #authModal .auth-logo{margin-bottom:10px}
+  html.v2 #authModal .auth-logo-icon{width:46px;height:46px;min-width:46px;max-width:46px;max-height:46px;padding:9px;border-radius:15px}
+  html.v2 #authModal .auth-heading{margin-bottom:14px}
+  html.v2 #authModal .auth-tabs{margin-bottom:14px}
+  html.v2 #authModal .auth-divider{margin:12px 0}
+  html.v2 #cnSignupLegalBox{margin-bottom:12px}
+}
+
+/* ---------------------------------------------------------------------
+   5. Feedback (Netlify form)
+   --------------------------------------------------------------------- */
+html.v2 #feedbackModal .feedback-card{
+  width:min(640px,100%);
+  padding:32px 32px 28px;
+}
+html.v2 #feedbackModal .feedback-heading{margin:0 0 22px;padding-right:44px}
+html.v2 #feedbackModal .feedback-heading h2{font-size:clamp(24px,3vw,31px);margin:2px 0 10px}
+html.v2 #feedbackModal .feedback-heading p{color:var(--ov-muted);font-size:14.5px;line-height:1.6;text-wrap:pretty}
+html.v2 #feedbackModal textarea{min-height:150px;height:150px;resize:vertical;line-height:1.55}
+html.v2 #feedbackModal #feedbackSubmitBtn{margin-top:6px}
+html.v2 #feedbackModal .feedback-message{color:var(--ov-muted);font:400 13.5px/1.5 var(--ov-sans)}
+html.v2 #feedbackModal .feedback-message.error{color:#ffb0bd}
+html.v2 #feedbackModal .feedback-message.success{color:var(--ov-safe)}
+
+/* ---------------------------------------------------------------------
+   6. How-to walkthrough (full-screen)
+   --------------------------------------------------------------------- */
+/* opaque full-screen sheet: the scrim blur would be wasted GPU work */
+html.v2 #howtoVideoModal{
+  background:var(--ov-ground);
+  -webkit-backdrop-filter:none;
+  backdrop-filter:none;
+}
+html.v2 #howtoVideoModal .video-player-shell{
+  position:relative;
+  padding:18px 24px 20px;
+  font-family:var(--ov-sans);
+  color:var(--ov-ink);
+  background:
+    radial-gradient(70% 55% at 88% -6%,rgba(62,205,229,.26),transparent 62%),
+    radial-gradient(60% 50% at 0% 104%,rgba(77,224,204,.18),transparent 62%),
+    linear-gradient(180deg,#05090a,var(--ov-ground) 70%);
+}
+html.v2 #howtoVideoModal .video-player-topbar{margin-bottom:14px;min-height:44px}
+html.v2 #howtoVideoModal .video-player-topbar h3{
+  font:600 21px/1.2 var(--ov-sans);
+  letter-spacing:-.03em;
+  color:var(--ov-ink);
+  min-width:0;
+}
+html.v2 #howtoVideoModal :is(.video-exit-btn,.video-control-btn){
+  min-height:42px;
+  padding:0 16px;
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:999px;
+  background:var(--ov-glassbtn);
+  color:var(--ov-ink);
+  font:560 14px/1 var(--ov-sans);
+  letter-spacing:-.01em;
+  box-shadow:var(--ov-glassbtn-shadow);
+  cursor:pointer;
+  transition:border-color .2s ease,background .2s ease,color .2s ease;
+}
+html.v2 #howtoVideoModal .video-exit-btn{padding:0 16px 0 13px}
+html.v2 #howtoVideoModal :is(.video-exit-btn,.video-control-btn):hover{border-color:rgba(255,255,255,.3);color:var(--ov-ink)}
+html.v2 #howtoVideoModal :is(.video-exit-btn,.video-control-btn):focus-visible{outline:2px solid var(--ov-g1);outline-offset:3px}
+
+/* Tabs: one glass track with a white active pill */
+html.v2 #howtoVideoModal .video-modal-tabs{
+  width:max-content;
+  max-width:100%;
+  gap:4px;
+  padding:4px;
+  margin-bottom:16px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.1);
+  background:rgba(255,255,255,.04);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+}
+html.v2 #howtoVideoModal .video-modal-tab{
+  min-height:38px;
+  padding:0 16px;
+  border:0;
+  border-radius:999px;
+  background:transparent;
+  color:var(--ov-muted);
+  font:560 14px/1 var(--ov-sans);
+  letter-spacing:-.01em;
+  white-space:nowrap;
+  cursor:pointer;
+  transition:background .25s var(--ov-ease),color .25s var(--ov-ease);
+}
+html.v2 #howtoVideoModal .video-modal-tab:hover:not(.active){color:var(--ov-ink);background:rgba(255,255,255,.06)}
+html.v2 #howtoVideoModal .video-modal-tab.active{
+  background:linear-gradient(180deg,#67e8f9 0%,#22d3ee 55%,#0fb9d6 100%);
+  color:#030505;
+  box-shadow:inset 0 1px 0 #fff,0 6px 20px -6px rgba(34,211,238,.7);
+}
+html.v2 #howtoVideoModal .video-modal-tab:focus-visible{outline:2px solid var(--ov-g1);outline-offset:2px}
+
+html.v2 #howtoVideoModal .video-modal-player{
+  border-radius:26px;
+  border:1px solid rgba(255,255,255,.1);
+  /* navy-tinted glass like the site cards (no backdrop blur: the sheet
+     is opaque) */
+  background:var(--v2-glass),rgba(8,15,17,.5);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
+  padding:32px;
+  scrollbar-width:thin;
+  scrollbar-color:rgba(255,255,255,.18) transparent;
+}
+html.v2 #howtoVideoModal .video-modal-placeholder{color:var(--ov-muted)}
+html.v2 #howtoVideoModal .video-modal-placeholder svg{color:var(--ov-g1)}
+html.v2 #howtoVideoModal .video-player-controls{gap:10px;margin-top:14px}
+html.v2 #howtoVideoModal #videoPlayPauseBtn{
+  width:46px;
+  min-height:46px;
+  padding:0;
+  justify-content:center;
+  border:0;
+  background:var(--ov-white);
+  color:#030505;
+  box-shadow:var(--ov-white-shadow);
+}
+html.v2 #howtoVideoModal #videoPlayPauseBtn:hover{color:#030505}
+html.v2 #howtoVideoModal .video-speed-btn{font-family:var(--ov-mono);font-size:13px;min-width:58px;justify-content:center}
+
+/* Walkthrough content (.hw-*, rendered by cybernet-howto.js).
+   Verdict mock colours stay as the product semantics (red / blue / violet). */
+html.v2 #howtoVideoModal .hw{font-family:var(--ov-sans)}
+html.v2 #howtoVideoModal .hw-summary{color:var(--ov-muted);font-size:17px;line-height:1.6;text-wrap:pretty}
+html.v2 #howtoVideoModal .hw-step-count{
+  color:var(--ov-g1);
+  font:500 11.5px/1.3 var(--ov-mono);
+  letter-spacing:.14em;
+}
+html.v2 #howtoVideoModal .hw-heading{
+  font:600 28px/1.15 var(--ov-sans);
+  letter-spacing:-.035em;
+  color:var(--ov-ink);
+}
+html.v2 #howtoVideoModal .hw-body{color:var(--ov-muted);font-size:16.5px;line-height:1.6}
+html.v2 #howtoVideoModal .hw-callout{
+  border-radius:20px;
+  border:1px solid rgba(34,211,238,.22);
+  background:linear-gradient(180deg,rgba(34,211,238,.12),rgba(45,212,191,.05));
+  padding:18px 20px;
+}
+html.v2 #howtoVideoModal .hw-callout-label{font:500 11px/1.3 var(--ov-mono);letter-spacing:.14em}
+html.v2 #howtoVideoModal .hw-callout-info .hw-callout-label{color:var(--ov-g1)}
+html.v2 #howtoVideoModal .hw-callout-warn{border-color:rgba(255,181,71,.3);background:linear-gradient(180deg,rgba(255,181,71,.1),rgba(255,181,71,.03))}
+html.v2 #howtoVideoModal .hw-callout-warn .hw-callout-label{color:var(--ov-amber)}
+html.v2 #howtoVideoModal .hw-callout-ok{border-color:rgba(108,240,176,.26);background:linear-gradient(180deg,rgba(108,240,176,.08),rgba(108,240,176,.02))}
+html.v2 #howtoVideoModal .hw-callout-ok .hw-callout-label{color:var(--ov-safe)}
+html.v2 #howtoVideoModal .hw-callout b{color:var(--ov-ink);font-weight:580;letter-spacing:-.01em}
+html.v2 #howtoVideoModal .hw-callout p{color:var(--ov-muted)}
+
+html.v2 #howtoVideoModal .hw-visual{
+  border-radius:24px;
+  border:1px solid rgba(255,255,255,.09);
+  background:
+    radial-gradient(80% 60% at 50% 0%,rgba(34,211,238,.14),transparent 70%),
+    rgba(12,22,24,.42);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 30px 80px -40px rgba(0,0,0,.8);
+}
+/* the list divider is for stacked lists; as the first child it drew a
+   stray rule above "Why we think this is a scam" (Quick Scan step 4) */
+html.v2 #howtoVideoModal .hw-visual > .hw-list:first-child{border-top:0;padding-top:0}
+html.v2 #howtoVideoModal .hw-tab{
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.1);
+  background:rgba(255,255,255,.04);
+  color:var(--ov-muted);
+  font:500 12.5px/1 var(--ov-sans);
+}
+html.v2 #howtoVideoModal .hw-tab.is-active{
+  border-color:#fff;
+  background:linear-gradient(180deg,#67e8f9 0%,#22d3ee 55%,#0fb9d6 100%);
+  color:#030505;
+}
+html.v2 #howtoVideoModal .hw-field-label,
+html.v2 #howtoVideoModal .hw-meter-label,
+html.v2 #howtoVideoModal .hw-list-title{color:var(--ov-faint);font-family:var(--ov-mono);font-size:11px;letter-spacing:.14em}
+html.v2 #howtoVideoModal .hw-field-box{
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.035);
+  color:var(--ov-ink);
+}
+html.v2 #howtoVideoModal .hw-field-box.hw-mono,
+html.v2 #howtoVideoModal :is(.hw-verdict,.hw-tag,.hw-score,.hw-tl-when,.hw-meter b){font-family:var(--ov-mono)}
+html.v2 #howtoVideoModal .hw-verdict{border-radius:16px}
+html.v2 #howtoVideoModal .hw-tag{border-color:rgba(255,255,255,.12);color:var(--ov-muted)}
+html.v2 #howtoVideoModal .hw-score{color:var(--ov-ink)}
+html.v2 #howtoVideoModal .hw-list{border-top-color:var(--ov-line)}
+html.v2 #howtoVideoModal .hw-list li,
+html.v2 #howtoVideoModal .hw-note-grid > div,
+html.v2 #howtoVideoModal .hw-tl-what,
+html.v2 #howtoVideoModal .hw-task{color:var(--ov-muted)}
+html.v2 #howtoVideoModal :is(.hw-note-grid b,.hw-meter b){color:var(--ov-ink)}
+html.v2 #howtoVideoModal .hw-quote{border-left-color:rgba(34,211,238,.4);color:var(--ov-muted)}
+html.v2 #howtoVideoModal .hw-meter-track{height:6px;background:rgba(255,255,255,.08)}
+/* width stays inline (cybernet-howto.js) */
+html.v2 #howtoVideoModal .hw-meter-track span{background:linear-gradient(90deg,var(--ov-g1),var(--ov-g2));box-shadow:0 0 12px rgba(34,211,238,.45)}
+html.v2 #howtoVideoModal .hw-tl-when{color:var(--ov-g1)}
+html.v2 #howtoVideoModal .hw-check{border-color:rgba(255,255,255,.3);color:#030505;border-radius:7px}
+html.v2 #howtoVideoModal .hw-task.is-done .hw-check{background:var(--ov-g1);border-color:var(--ov-g1)}
+html.v2 #howtoVideoModal .hw-task.is-done{color:var(--ov-faint)}
+
+html.v2 #howtoVideoModal .hw-nav{border-top-color:var(--ov-line);padding-top:22px}
+html.v2 #howtoVideoModal .hw-btn{
+  min-height:46px;
+  padding:0 24px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.16);
+  background:var(--ov-glassbtn);
+  color:var(--ov-ink);
+  font:560 15px/1 var(--ov-sans);
+  letter-spacing:-.01em;
+  box-shadow:var(--ov-glassbtn-shadow);
+}
+html.v2 #howtoVideoModal .hw-btn:hover:not(:disabled){border-color:rgba(255,255,255,.3);background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,0) 52%),linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.05))}
+html.v2 #howtoVideoModal .hw-btn-primary{
+  border-color:transparent;
+  background:var(--ov-white);
+  color:#030505;
+  font-weight:600;
+  box-shadow:var(--ov-white-shadow);
+}
+html.v2 #howtoVideoModal .hw-btn-primary:hover:not(:disabled){background:var(--ov-white);border-color:transparent}
+html.v2 #howtoVideoModal .hw-btn:disabled{opacity:.34;box-shadow:none}
+html.v2 #howtoVideoModal :is(.hw-btn,.hw-dot):focus-visible{outline:2px solid var(--ov-g1);outline-offset:3px}
+html.v2 #howtoVideoModal .hw-dots{gap:6px;align-items:center}
+html.v2 #howtoVideoModal .hw-dot{
+  width:8px;
+  height:8px;
+  background:rgba(255,255,255,.22);
+  transition:width .3s var(--ov-ease),background .3s var(--ov-ease);
+}
+html.v2 #howtoVideoModal .hw-dot.is-active{width:22px;background:#fff;transform:none;box-shadow:0 0 12px rgba(34,211,238,.6)}
+
+/* ---------------------------------------------------------------------
+   7. Account modal (cybernet-account-api-upgrade.js + final-ui-fix tabs)
+   --------------------------------------------------------------------- */
+html.v2 #accountDetailsModal .modal-card{
+  width:min(1040px,calc(100vw - 48px));
+  padding:30px;
+}
+html.v2 #accountDetailsModal .cybernet-account-head{margin-bottom:20px;padding-right:48px;align-items:center}
+html.v2 #accountDetailsModal .cn-account-title-row{gap:16px;margin:0}
+html.v2 #accountDetailsModal .cn-account-title-icon{
+  width:54px;
+  height:54px;
+  min-width:54px;
+  padding:11px;
+  margin-top:2px;
+  border-radius:17px;
+  background:linear-gradient(140deg,rgba(34,211,238,.3),rgba(45,212,191,.14));
+  border:1px solid rgba(255,255,255,.15);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 12px 30px -12px rgba(34,211,238,.7);
+}
+html.v2 #accountDetailsModal .cybernet-account-head h2{font-size:clamp(26px,3.2vw,36px);letter-spacing:-.04em}
+html.v2 #accountDetailsModal .cybernet-account-head p{color:var(--ov-muted);font-size:15px;line-height:1.55;margin-top:6px;max-width:56ch}
+html.v2 #accountDetailsModal .cybernet-account-live-badge{
+  min-height:30px;
+  padding:0 12px;
+  gap:8px;
+  border:1px solid rgba(108,240,176,.28);
+  background:rgba(108,240,176,.08);
+  color:#a8f5d0;
+  font:500 11px/1 var(--ov-mono);
+  letter-spacing:.12em;
+}
+html.v2 #accountDetailsModal .cybernet-account-live-badge::before{background:var(--ov-safe);box-shadow:0 0 10px var(--ov-safe);width:6px;height:6px}
+
+/* Account Info / Saved Reports tabs: beats the injected .cn-account-tab rules */
+html.v2 #accountDetailsModal .cn-account-tabs{
+  gap:4px;
+  padding:4px;
+  margin:0 0 20px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.1);
+  background:rgba(5,9,10,.6);
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.35);
+}
+html.v2 #accountDetailsModal .cn-account-tab{
+  min-height:42px;
+  padding:0 16px;
+  border-radius:999px;
+  color:var(--ov-muted);
+  font:560 14.5px/1 var(--ov-sans);
+  letter-spacing:-.01em;
+  text-transform:none;
+}
+html.v2 #accountDetailsModal .cn-account-tab:hover:not(.active){color:var(--ov-ink);background:rgba(255,255,255,.05)}
+html.v2 #accountDetailsModal .cn-account-tab.active{
+  color:#030505;
+  background:linear-gradient(180deg,#67e8f9 0%,#22d3ee 55%,#0fb9d6 100%);
+  box-shadow:inset 0 1px 0 #fff,0 6px 20px -6px rgba(34,211,238,.7);
+}
+html.v2 #accountDetailsModal .cn-account-tab:focus-visible{outline:2px solid var(--ov-g1);outline-offset:2px}
+
+html.v2 #accountDetailsModal .cybernet-account-grid{gap:10px}
+html.v2 #accountDetailsModal .cybernet-account-item{
+  padding:16px 18px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:20px;
+  background:var(--ov-cell);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+}
+html.v2 #accountDetailsModal .cybernet-account-item > span{
+  margin-bottom:8px;
+  color:var(--ov-faint);
+  font:500 11px/1.3 var(--ov-mono);
+  letter-spacing:.14em;
+}
+html.v2 #accountDetailsModal .cybernet-account-item strong{color:var(--ov-ink);font-size:16px;font-weight:500;letter-spacing:-.01em}
+html.v2 #accountDetailsModal .cybernet-account-plan b{font-weight:600}
+html.v2 #accountDetailsModal .cybernet-account-plan-badge{
+  padding:4px 10px 3px;
+  border-radius:999px;
+  border:1px solid rgba(34,211,238,.32);
+  background:rgba(34,211,238,.12);
+  color:var(--ov-g1);
+  font:600 10.5px/1.4 var(--ov-mono);
+  font-style:normal;
+  letter-spacing:.12em;
+}
+@media (min-width:821px){
+  /* three tiles side by side instead of a 2+1 grid with an empty cell */
+  html.v2 #accountDetailsModal .cybernet-account-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+
+/* Recovery-emails switch: the invisible input stays on top (z 1, 46x26) */
+html.v2 #accountDetailsModal .cybernet-notify-copy label{color:var(--ov-ink);font:560 15.5px/1.4 var(--ov-sans);letter-spacing:-.01em}
+html.v2 #accountDetailsModal .cybernet-notify-copy p{color:var(--ov-muted);font-size:13.5px}
+html.v2 #accountDetailsModal .cybernet-switch-track{
+  border:1px solid rgba(255,255,255,.16);
+  background:rgba(255,255,255,.08);
+  transition:background .25s var(--ov-ease),border-color .25s var(--ov-ease);
+}
+html.v2 #accountDetailsModal .cybernet-switch-track::after{
+  background:rgba(239,253,255,.72);
+  box-shadow:0 2px 6px rgba(0,0,0,.4);
+  transition:transform .25s var(--ov-ease),background .25s var(--ov-ease);
+}
+html.v2 #accountDetailsModal .cybernet-switch input:checked + .cybernet-switch-track{
+  border-color:transparent;
+  background:linear-gradient(90deg,var(--ov-blue),var(--ov-violet));
+  box-shadow:0 0 18px -4px rgba(34,211,238,.7);
+}
+html.v2 #accountDetailsModal .cybernet-switch input:checked + .cybernet-switch-track::after{background:#fff;box-shadow:0 2px 8px rgba(3,5,5,.45)}
+html.v2 #accountDetailsModal .cybernet-switch input:focus-visible + .cybernet-switch-track{outline:2px solid var(--ov-g1);outline-offset:3px}
+html.v2 #accountDetailsModal .cybernet-notify-warning{color:#ffcf8f;font-size:13px;line-height:1.55}
+html.v2 #accountDetailsModal .cybernet-notify-status{color:var(--ov-muted);font-size:13px}
+html.v2 #accountDetailsModal .cybernet-notify-status.error{color:#ffb0bd}
+html.v2 #accountDetailsModal .cybernet-notify-status.success{color:var(--ov-safe)}
+
+html.v2 #accountDetailsModal .cybernet-account-actions{gap:10px;margin-top:16px}
+html.v2 #accountDetailsModal .cybernet-account-message{color:var(--ov-muted);font-size:13.5px}
+html.v2 #accountDetailsModal .cybernet-account-message.error{color:#ffb0bd}
+html.v2 #accountDetailsModal .cybernet-account-message.success{color:var(--ov-safe)}
+
+/* Saved reports pane (moved in by final-ui-fix.js) */
+html.v2 #accountDetailsModal .cn-account-report-section{
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:22px;
+  padding:20px;
+  background:var(--ov-cell);
+}
+html.v2 #accountDetailsModal .cn-account-report-heading h3{color:var(--ov-ink);font:600 19px/1.25 var(--ov-sans);letter-spacing:-.025em}
+html.v2 #accountDetailsModal .cn-account-report-heading p{color:var(--ov-muted);font-size:13.5px;line-height:1.55}
+html.v2 #accountDetailsModal .cn-account-report-heading span{
+  padding:5px 10px 4px;
+  border:1px solid rgba(34,211,238,.3);
+  background:rgba(34,211,238,.1);
+  color:var(--ov-g1);
+  font:600 10.5px/1.3 var(--ov-mono);
+  letter-spacing:.12em;
+}
+/* #proHistoryCard is moved in from #cybernetai .ai-config (final-ui-fix
+   js:543-553); its legacy divider and 11.5px side-panel text are reset
+   for the modal. Entries are rebuilt by script.js renderProHistory. */
+html.v2 #accountDetailsModal .pro-history-card{padding-top:0;border-top:0}
+html.v2 #accountDetailsModal .pro-history-head h5{color:var(--ov-ink);font:580 14.5px/1.3 var(--ov-sans);letter-spacing:-.01em}
+html.v2 #accountDetailsModal .pro-history-head span{
+  padding:4px 10px 3px;
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:999px;
+  color:var(--ov-muted);
+  font:500 11px/1.3 var(--ov-mono);
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+html.v2 #accountDetailsModal .pro-history-list{
+  gap:8px;
+  max-height:320px;
+  scrollbar-width:thin;
+  scrollbar-color:rgba(255,255,255,.16) transparent;
+}
+html.v2 #accountDetailsModal .pro-history-list p{color:var(--ov-muted);font-size:13.5px;line-height:1.6}
+html.v2 #accountDetailsModal .history-entry{
+  padding:12px 14px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:14px;
+  background:rgba(255,255,255,.035);
+}
+html.v2 #accountDetailsModal .history-entry strong{color:var(--ov-ink);font:560 14px/1.4 var(--ov-sans);letter-spacing:-.005em}
+html.v2 #accountDetailsModal .history-entry span{margin-top:3px;color:var(--ov-faint);font:500 12px/1.4 var(--ov-mono);letter-spacing:.02em}
+
+html.v2 #accountDetailsModal .protect-saved-case{
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:18px;
+  background:rgba(255,255,255,.035);
+}
+html.v2 #accountDetailsModal .protect-saved-case h3{color:var(--ov-ink);font:560 15px/1.35 var(--ov-sans)}
+html.v2 #accountDetailsModal .protect-saved-case p{color:var(--ov-muted);font-size:13px}
+html.v2 #accountDetailsModal .protect-saved-case small{color:var(--ov-faint);font-family:var(--ov-mono)}
+html.v2 #accountDetailsModal .protect-no-cases{border-color:rgba(255,255,255,.14);border-radius:20px;color:var(--ov-muted);font-size:14px}
+html.v2 #accountDetailsModal :is(.protect-primary,.protect-secondary,.protect-danger-btn){min-height:40px;padding:0 16px;font-size:13.5px}
+html.v2 #accountDetailsModal .protect-danger-btn{
+  border:1px solid rgba(255,92,122,.35);
+  border-radius:999px;
+  background:rgba(255,92,122,.1);
+  color:#ffb0bd;
+  font-family:var(--ov-sans);
+  font-weight:560;
+}
+html.v2 #accountDetailsModal .protect-badge{border-radius:999px;font:600 10px/1.3 var(--ov-mono);letter-spacing:.1em}
+
+/* Legal & Billing panel (cybernet-legal-upgrade.js) */
+html.v2 #cnAccountLegalPanel{
+  margin-top:14px;
+  padding:18px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:20px;
+  background:var(--ov-cell);
+}
+html.v2 #cnAccountLegalPanel h3{color:var(--ov-ink);font:600 16px/1.3 var(--ov-sans);letter-spacing:-.02em;margin-bottom:6px}
+html.v2 #cnAccountLegalPanel p{color:var(--ov-muted);font-size:13.5px;line-height:1.6}
+html.v2 #cnAccountLegalPanel .cn-account-legal-links{gap:8px;margin-top:14px}
+html.v2 #cnAccountLegalPanel .cn-account-legal-links :is(button,a){
+  min-height:38px;
+  padding:0 15px;
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:999px;
+  background:var(--ov-glassbtn);
+  color:var(--ov-ink);
+  font:500 13.5px/1 var(--ov-sans);
+  letter-spacing:-.005em;
+  box-shadow:var(--ov-glassbtn-shadow);
+}
+html.v2 #cnAccountLegalPanel .cn-account-legal-links :is(button,a):hover{border-color:rgba(255,255,255,.28)}
+
+/* ---------------------------------------------------------------------
+   8. "How to get a personal API key"
+   --------------------------------------------------------------------- */
+html.v2 #cybernetHowToGetKeyModal .modal-card{width:min(640px,calc(100vw - 48px));padding:30px}
+html.v2 #cybernetHowToGetKeyModal .cybernet-account-head{margin-bottom:6px;padding-right:48px}
+html.v2 #cybernetHowToGetKeyModal .cybernet-account-head h2{font-size:clamp(24px,3vw,30px);margin:2px 0 10px}
+html.v2 #cybernetHowToGetKeyModal .cybernet-account-head p{color:var(--ov-muted);font-size:14.5px;line-height:1.6}
+html.v2 #cybernetHowToGetKeyModal .cybernet-howto-provider,
+html.v2 #cybernetHowToGetKeyModal .cybernet-howto-provider:first-of-type{
+  margin-top:10px;
+  padding:16px 18px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:20px;
+  background:var(--ov-cell);
+}
+html.v2 #cybernetHowToGetKeyModal .cybernet-howto-provider:first-of-type{margin-top:18px}
+html.v2 #cybernetHowToGetKeyModal .cybernet-howto-provider h4{color:var(--ov-ink);font:600 16px/1.3 var(--ov-sans);letter-spacing:-.02em;margin-bottom:8px}
+html.v2 #cybernetHowToGetKeyModal .cybernet-howto-provider ol{color:var(--ov-muted);font-size:14px;line-height:1.65;padding-left:20px}
+html.v2 #cybernetHowToGetKeyModal .cybernet-howto-provider li::marker{color:var(--ov-g1);font-family:var(--ov-mono);font-size:12px}
+html.v2 #cybernetHowToGetKeyModal .cybernet-howto-provider li strong{color:var(--ov-ink);font-weight:560}
+html.v2 #cybernetHowToGetKeyModal .cybernet-howto-note{
+  margin-top:14px;
+  padding:13px 15px;
+  border:1px solid rgba(255,181,71,.26);
+  border-radius:16px;
+  background:rgba(255,181,71,.06);
+  color:#ffd9a6;
+  font-size:13.5px;
+  line-height:1.55;
+}
+
+/* ---------------------------------------------------------------------
+   9. Manage Business (team)
+   --------------------------------------------------------------------- */
+html.v2 #businessTeamModal .modal-card{width:min(880px,calc(100vw - 48px));padding:30px}
+html.v2 #businessTeamModal .cn-team-head{margin-bottom:22px;padding-right:48px}
+html.v2 #businessTeamModal .cn-team-head h2{font-size:clamp(26px,3.4vw,36px);letter-spacing:-.04em;margin:2px 0 8px}
+html.v2 #businessTeamModal .cn-team-head p{color:var(--ov-muted);font-size:14.5px;line-height:1.6}
+html.v2 #businessTeamModal .cn-team-tier-badge{
+  min-height:30px;
+  padding:0 12px;
+  border:1px solid rgba(34,211,238,.3);
+  background:rgba(34,211,238,.14);
+  color:var(--ov-g1);
+  font:500 11px/1 var(--ov-mono);
+  letter-spacing:.12em;
+}
+html.v2 #businessTeamModal .cn-team-stats{gap:10px}
+html.v2 #businessTeamModal .cn-team-stat{
+  padding:16px 18px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:20px;
+  background:var(--ov-cell);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+}
+html.v2 #businessTeamModal .cn-team-stat > span{color:var(--ov-faint);font:500 11px/1.3 var(--ov-mono);letter-spacing:.14em}
+html.v2 #businessTeamModal .cn-team-stat strong{color:var(--ov-ink);font:600 28px/1.1 var(--ov-sans);letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+/* .modal-card small (style.css) centres these in mono; reset */
+html.v2 #businessTeamModal .cn-team-stat small{
+  margin-top:8px;
+  color:var(--ov-faint);
+  font:400 12.5px/1.5 var(--ov-sans);
+  letter-spacing:0;
+  text-align:left;
+}
+html.v2 #businessTeamModal .cn-team-track{height:6px;background:rgba(255,255,255,.08)}
+/* transform:scaleX is inline from JS; only paint changes here */
+html.v2 #businessTeamModal .cn-team-track > span{background:linear-gradient(90deg,var(--ov-g1),var(--ov-g2));box-shadow:0 0 12px rgba(34,211,238,.5)}
+html.v2 #businessTeamModal .cn-team-track.is-high > span{background:linear-gradient(90deg,var(--ov-amber),var(--ov-danger));box-shadow:0 0 12px rgba(255,92,122,.45)}
+
+html.v2 #businessTeamModal .cn-team-section{margin-top:22px;padding-top:22px;border-top-color:var(--ov-line)}
+html.v2 #businessTeamModal .cn-team-section-head h3{color:var(--ov-ink);font:600 18px/1.3 var(--ov-sans);letter-spacing:-.025em}
+html.v2 #businessTeamModal .cn-team-section-head p{color:var(--ov-faint);font-size:13px;line-height:1.5}
+html.v2 #businessTeamModal .cn-team-invite-row{gap:10px;align-items:stretch}
+html.v2 #businessTeamModal .cn-team-invite-row .primary-btn{min-height:48px}
+html.v2 #businessTeamModal .cn-team-invite-note{color:var(--ov-faint);font-size:13px}
+
+html.v2 #businessTeamModal :is(.cn-team-member,.cn-activity-item){
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:16px;
+  background:var(--ov-cell);
+}
+html.v2 #businessTeamModal .cn-team-member-name{color:var(--ov-ink);font-size:14.5px;font-weight:560}
+html.v2 #businessTeamModal .cn-team-member-email{color:var(--ov-muted);font-size:13px}
+html.v2 #businessTeamModal .cn-team-member-usage{color:var(--ov-ink);font-family:var(--ov-mono);font-size:13px}
+html.v2 #businessTeamModal .cn-team-member-usage small{color:var(--ov-faint);font:400 12px/1.4 var(--ov-sans);letter-spacing:0;margin-top:2px}
+html.v2 #businessTeamModal :is(.cn-role-badge,.cn-activity-kind,.cn-activity-verdict,.cn-team-pending-badge){
+  padding:4px 9px 3px;
+  border-radius:999px;
+  font:600 10.5px/1.4 var(--ov-mono);
+  letter-spacing:.1em;
+}
+html.v2 #businessTeamModal .cn-role-badge{border-color:rgba(34,211,238,.36);background:rgba(34,211,238,.12);color:var(--ov-g1)}
+html.v2 #businessTeamModal .cn-role-badge.is-member{border-color:rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:var(--ov-muted)}
+html.v2 #businessTeamModal .cn-role-badge.is-you{border-color:rgba(108,240,176,.35);background:rgba(108,240,176,.1);color:#a8f5d0}
+html.v2 #businessTeamModal .cn-team-remove{
+  min-height:34px;
+  padding:0 14px;
+  border:1px solid rgba(255,92,122,.35);
+  border-radius:999px;
+  background:rgba(255,92,122,.1);
+  color:#ffb0bd;
+  font:560 13px/1 var(--ov-sans);
+  letter-spacing:0;
+  text-transform:none;
+}
+html.v2 #businessTeamModal .cn-team-remove:hover:not(:disabled){background:rgba(255,92,122,.18);border-color:rgba(255,92,122,.55)}
+
+html.v2 #businessTeamModal .cn-team-pending-item{
+  border:1px dashed rgba(255,181,71,.38);
+  border-radius:16px;
+  background:rgba(255,181,71,.05);
+  color:var(--ov-ink);
+  font-size:13.5px;
+}
+html.v2 #businessTeamModal .cn-team-pending-badge{border-color:rgba(255,181,71,.38);background:rgba(255,181,71,.12);color:#ffd9a0}
+html.v2 #businessTeamModal .cn-team-pending-countdown{color:var(--ov-muted);font-family:var(--ov-mono);font-size:12px}
+html.v2 #businessTeamModal .cn-team-pending-countdown.is-soon{color:#ffd9a0}
+html.v2 #businessTeamModal .cn-team-pending-countdown.is-expired{color:#ffb0bd}
+
+html.v2 #businessTeamModal .cn-activity-summary{padding:12px 14px;transition:background .2s ease}
+html.v2 #businessTeamModal .cn-activity-summary:hover{background:rgba(255,255,255,.04)}
+html.v2 #businessTeamModal .cn-activity-summary:focus-visible{outline:2px solid var(--ov-g1);outline-offset:-2px;border-radius:16px}
+html.v2 #businessTeamModal .cn-activity-kind{border:1px solid rgba(255,255,255,.14);color:var(--ov-muted)}
+html.v2 #businessTeamModal .cn-activity-kind.is-scan{border-color:rgba(34,211,238,.36);background:rgba(34,211,238,.12);color:var(--ov-g1)}
+html.v2 #businessTeamModal .cn-activity-kind.is-quick{border-color:rgba(165,243,252,.38);background:rgba(45,212,191,.12);color:#c2f9ff}
+html.v2 #businessTeamModal .cn-activity-kind.is-recovery{border-color:rgba(108,240,176,.35);background:rgba(108,240,176,.1);color:#a8f5d0}
+@media (min-width:561px){
+  /* one badge column so the titles line up (legacy wraps the row <=560) */
+  html.v2 #businessTeamModal .cn-activity-kind{min-width:104px;text-align:center}
+}
+html.v2 #businessTeamModal .cn-activity-title{color:var(--ov-ink);font-size:14px}
+html.v2 #businessTeamModal .cn-activity-meta{color:var(--ov-faint);font-size:12px}
+html.v2 #businessTeamModal .cn-activity-verdict.is-danger{border:1px solid rgba(255,92,122,.4);background:rgba(255,92,122,.14);color:#ffb0bd}
+html.v2 #businessTeamModal .cn-activity-verdict.is-safe{border:1px solid rgba(108,240,176,.35);background:rgba(108,240,176,.1);color:#a8f5d0}
+html.v2 #businessTeamModal .cn-activity-verdict.is-neutral{border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:var(--ov-muted)}
+html.v2 #businessTeamModal .cn-activity-body{border-top-color:var(--ov-line);color:var(--ov-muted);font-size:13px}
+html.v2 #businessTeamModal .cn-activity-body strong{color:var(--ov-faint);font:500 11px/1.3 var(--ov-mono);letter-spacing:.14em}
+html.v2 #businessTeamModal .cn-activity-submitted{border-color:rgba(255,255,255,.08);border-radius:12px;background:rgba(4,7,8,.6);color:var(--ov-ink);font-family:var(--ov-mono)}
+html.v2 #businessTeamModal :is(.cn-activity-list b,.cn-activity-url){color:var(--ov-ink)}
+html.v2 #businessTeamModal .cn-activity-tasks .is-done{color:#a8f5d0}
+html.v2 #businessTeamModal .cn-activity-note{color:var(--ov-faint)}
+html.v2 #businessTeamModal .cn-activity-note.is-error{color:#ffb0bd}
+html.v2 #businessTeamModal .cn-team-activity{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.16) transparent}
+html.v2 #businessTeamModal .cn-team-empty{border-color:rgba(255,255,255,.14);border-radius:16px;color:var(--ov-muted);font-size:13.5px}
+html.v2 :is(#businessTeamModal,#acceptInviteModal) .cn-team-message{color:var(--ov-muted);font-size:13.5px}
+html.v2 :is(#businessTeamModal,#acceptInviteModal) .cn-team-message.error{color:#ffb0bd}
+html.v2 :is(#businessTeamModal,#acceptInviteModal) .cn-team-message.success{color:var(--ov-safe)}
+html.v2 :is(#businessTeamModal,#acceptInviteModal) .cn-team-message.warning{color:#ffd9a0}
+
+/* ---------------------------------------------------------------------
+   10. Accept invite
+   --------------------------------------------------------------------- */
+html.v2 #acceptInviteModal .modal-card{width:min(560px,calc(100vw - 48px));padding:30px}
+html.v2 #acceptInviteModal .cn-invite-card > .account-eyebrow{padding-right:44px}
+html.v2 #acceptInviteModal .cn-invite-card h2{font-size:clamp(24px,3.2vw,30px);margin:2px 0 10px;padding-right:20px}
+html.v2 #acceptInviteModal .cn-invite-card > p{color:var(--ov-muted);font-size:14.5px;line-height:1.6}
+html.v2 #acceptInviteModal .cn-invite-terms{
+  margin-top:18px;
+  padding:16px 18px;
+  border:1px solid rgba(255,181,71,.32);
+  border-radius:20px;
+  background:linear-gradient(180deg,rgba(255,181,71,.1),rgba(255,181,71,.04));
+}
+html.v2 #acceptInviteModal .cn-invite-terms strong{color:#ffd9a0;font:500 11px/1.3 var(--ov-mono);letter-spacing:.14em}
+html.v2 #acceptInviteModal .cn-invite-terms ul{color:var(--ov-body);font-size:14px;line-height:1.6;padding-left:18px}
+html.v2 #acceptInviteModal .cn-invite-terms li + li{margin-top:6px}
+html.v2 #acceptInviteModal .cn-invite-actions{gap:10px;margin-top:20px}
+
+/* ---------------------------------------------------------------------
+   11. Cookie choice bar (cybernet-consent.js). z-index 150, the body
+   padding reservation and the [hidden] guard stay legacy. Decline and
+   Accept keep one identical style (equal prominence).
+   --------------------------------------------------------------------- */
+html.v2 .cn-consent{
+  --cn-consent-accent:var(--ov-g1);
+  --cn-consent-text:var(--ov-ink);
+  --cn-consent-muted:var(--ov-muted);
+  --cn-consent-border:var(--ov-rim);
+  max-width:760px;
+  bottom:calc(16px + env(safe-area-inset-bottom,0px));
+  gap:20px;
+  padding:16px 16px 16px 22px;
+  border:1px solid var(--ov-rim);
+  border-radius:24px;
+  background:linear-gradient(180deg,rgba(22,36,39,.72),rgba(8,15,16,.8));
+  -webkit-backdrop-filter:blur(26px) saturate(160%);
+  backdrop-filter:blur(26px) saturate(160%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 30px 80px -24px rgba(0,0,0,.85),0 0 60px -24px rgba(81,219,242,.4);
+  color:var(--ov-ink);
+  font-family:var(--ov-sans);
+}
+html.v2 .cn-consent-title{font:600 15.5px/1.3 var(--ov-sans);letter-spacing:-.02em;color:var(--ov-ink)}
+html.v2 .cn-consent-text{color:var(--ov-muted);font-size:13.5px;line-height:1.5}
+html.v2 .cn-consent-text a{color:var(--ov-g1);font-weight:500;text-decoration-color:rgba(34,211,238,.5);text-underline-offset:3px}
+html.v2 .cn-consent-current{color:var(--ov-g1);font:500 12.5px/1.4 var(--ov-sans)}
+html.v2 .cn-consent-actions{width:232px;gap:8px}
+html.v2 .cn-consent-btn{
+  min-height:44px;
+  padding:0 16px;
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:999px;
+  background:var(--ov-glassbtn);
+  color:var(--ov-ink);
+  font:560 14.5px/1 var(--ov-sans);
+  letter-spacing:-.01em;
+  box-shadow:var(--ov-glassbtn-shadow);
+  transition:border-color .2s ease,background .2s ease,box-shadow .2s ease;
+}
+html.v2 .cn-consent-btn:hover{
+  border-color:rgba(255,255,255,.32);
+  background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,0) 52%),linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.05));
+}
+html.v2 .cn-consent-btn[aria-pressed="true"]{
+  border-color:rgba(34,211,238,.7);
+  box-shadow:var(--ov-glassbtn-shadow),0 0 0 3px rgba(34,211,238,.2);
+}
+html.v2 .cn-consent-btn:focus-visible,
+html.v2 .cn-consent-text a:focus-visible{outline:2px solid var(--ov-g1);outline-offset:3px}
+
+/* Footer and Privacy-page "Cookie settings" openers */
+html.v2 .cn-consent-open-btn{
+  min-height:40px;
+  padding:0 17px;
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:999px;
+  background:var(--ov-glassbtn);
+  color:var(--ov-ink);
+  font:560 14px/1 var(--ov-sans);
+  letter-spacing:-.01em;
+  box-shadow:var(--ov-glassbtn-shadow);
+}
+html.v2 .cn-consent-open-btn:hover{border-color:rgba(255,255,255,.3);background:var(--ov-glassbtn)}
+html.v2 .cn-consent-open-btn:focus-visible{outline:2px solid var(--ov-g1);outline-offset:3px}
+
+/* ---------------------------------------------------------------------
+   12. Legal Center modal (z-index 100000, legacy)
+   --------------------------------------------------------------------- */
+html.v2{
+  --cn-legal-bg:var(--ov-ground);
+  --cn-legal-border:rgba(255,255,255,.09);
+  --cn-legal-border-strong:rgba(255,255,255,.18);
+  --cn-legal-text:var(--ov-ink);
+  --cn-legal-muted:var(--ov-body);
+  --cn-legal-soft:var(--ov-faint);
+  --cn-legal-accent:var(--ov-g1);
+  --cn-legal-accent-2:var(--ov-violet);
+  --cn-legal-warn:var(--ov-amber);
+  --cn-legal-danger:var(--ov-danger);
+  --cn-legal-safe:var(--ov-safe);
+}
+html.v2 .cn-legal-modal{
+  background:rgba(4,7,7,.6);
+  -webkit-backdrop-filter:blur(14px) saturate(130%);
+  backdrop-filter:blur(14px) saturate(130%);
+}
+html.v2 .cn-legal-dialog{
+  border:1px solid var(--ov-rim);
+  border-radius:30px;
+  background:var(--ov-card);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 40px 120px -40px rgba(0,0,0,.9),0 0 90px -30px rgba(81,219,242,.32);
+  font-family:var(--ov-sans);
+  color:var(--ov-ink);
+}
+html.v2 .cn-legal-dialog-head{padding:16px 18px 16px 22px;border-bottom:1px solid var(--ov-line)}
+html.v2 .cn-legal-brand img{
+  width:40px;
+  height:40px;
+  filter:hue-rotate(38deg) saturate(.85) drop-shadow(0 0 12px rgba(34,211,238,.45));
+}
+html.v2 .cn-legal-brand strong{font:600 18px/1.2 var(--ov-sans);letter-spacing:-.025em;color:var(--ov-ink)}
+html.v2 .cn-legal-brand small{color:var(--ov-faint);font:500 11px/1.3 var(--ov-mono);letter-spacing:.12em}
+html.v2 .cn-legal-close{
+  width:38px;
+  height:38px;
+  display:grid;
+  place-items:center;
+  padding:0 0 2px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:50%;
+  background:rgba(255,255,255,.07);
+  color:var(--ov-muted);
+  font:400 22px/1 var(--ov-sans);
+}
+html.v2 .cn-legal-close:hover{background:rgba(255,255,255,.13);color:var(--ov-ink);border-color:rgba(255,255,255,.22)}
+html.v2 .cn-legal-close:focus-visible{outline:2px solid var(--ov-g1);outline-offset:3px}
+html.v2 .cn-legal-tabs{
+  gap:6px;
+  padding:10px 18px;
+  border-bottom:1px solid var(--ov-line);
+  background:rgba(5,8,9,.35);
+  scrollbar-width:none;
+}
+html.v2 .cn-legal-tabs::-webkit-scrollbar{display:none}
+html.v2 .cn-legal-tab{
+  min-height:38px;
+  padding:0 15px;
+  border:1px solid transparent;
+  border-radius:999px;
+  color:var(--ov-muted);
+  font:560 14px/1 var(--ov-sans);
+  letter-spacing:-.01em;
+  text-transform:none;
+  transition:background .25s var(--ov-ease),color .25s var(--ov-ease);
+}
+html.v2 .cn-legal-tab:hover:not(.active){color:var(--ov-ink);background:rgba(255,255,255,.06)}
+html.v2 .cn-legal-tab.active{
+  border-color:#fff;
+  background:linear-gradient(180deg,#67e8f9 0%,#22d3ee 55%,#0fb9d6 100%);
+  color:#030505;
+  box-shadow:inset 0 1px 0 #fff,0 6px 20px -6px rgba(34,211,238,.7);
+}
+html.v2 .cn-legal-tab:focus-visible{outline:2px solid var(--ov-g1);outline-offset:2px}
+html.v2 .cn-legal-viewer{
+  padding:22px;
+  background:rgba(2,4,5,.42);
+  color:var(--ov-ink);
+  font-family:var(--ov-sans);
+  scrollbar-color:rgba(255,255,255,.18) transparent;
+}
+html.v2 .cn-legal-viewer a{color:var(--ov-g1);text-underline-offset:3px}
+/* <footer> element: undo the site footer rule from 00-base */
+html.v2 .cn-legal-dialog-foot{
+  width:auto;
+  margin:0;
+  font-size:inherit;
+  padding:12px 18px 12px 22px;
+  border-top:1px solid var(--ov-line);
+  background:rgba(5,8,9,.45);
+}
+html.v2 .cn-legal-dialog-foot p{color:var(--ov-muted);font-size:13px;line-height:1.5;max-width:70ch;text-align:left;text-wrap:pretty}
+html.v2 .cn-legal-done{
+  min-height:44px;
+  padding:0 22px;
+  border:0;
+  border-radius:999px;
+  background:var(--ov-white);
+  color:#030505;
+  font:580 14.5px/1 var(--ov-sans);
+  letter-spacing:-.01em;
+  box-shadow:var(--ov-white-shadow);
+}
+html.v2 .cn-legal-done:focus-visible{outline:2px solid var(--ov-g1);outline-offset:3px}
+
+/* ---------------------------------------------------------------------
+   13. Legal document classes (Legal Center viewer + standalone pages)
+   --------------------------------------------------------------------- */
+html.v2 .cn-legal-hero{
+  position:relative;
+  padding:40px 40px 34px;
+  border:1px solid var(--ov-rim);
+  border-radius:30px;
+  background:
+    radial-gradient(70% 90% at 100% 0%,rgba(81,219,242,.18),transparent 62%),
+    var(--ov-glass-navy);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 30px 80px -34px rgba(0,0,0,.8);
+  overflow:hidden;
+}
+html.v2 .cn-legal-eyebrow{
+  align-items:center;
+  gap:8px;
+  margin-bottom:18px;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:none;
+  color:var(--ov-g1);
+  font:500 11.5px/1.3 var(--ov-mono);
+  letter-spacing:.14em;
+}
+html.v2 .cn-legal-eyebrow::before{content:"";width:18px;height:1px;background:currentColor;opacity:.7;flex:none}
+html.v2 .cn-legal-hero h1{
+  font:620 clamp(38px,5.6vw,68px)/1 var(--ov-sans);
+  letter-spacing:-.052em;
+  color:var(--ov-ink);
+  text-wrap:balance;
+}
+html.v2 .cn-legal-viewer .cn-legal-hero h1{font-size:clamp(32px,4.4vw,52px)}
+html.v2 .cn-legal-hero p{max-width:62ch;margin-top:18px;color:var(--ov-muted);font-size:18px;line-height:1.6;text-wrap:pretty}
+html.v2 .cn-legal-meta{gap:8px 18px;margin-top:22px;color:var(--ov-faint);font:500 11.5px/1.6 var(--ov-mono);letter-spacing:.1em}
+
+html.v2 .cn-legal-toc{
+  padding:16px;
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:22px;
+  background:var(--ov-glass-navy);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.1);
+  scrollbar-width:thin;
+  scrollbar-color:rgba(255,255,255,.16) transparent;
+}
+html.v2 .cn-legal-toc strong{margin:2px 6px 10px;color:var(--ov-faint);font:500 11px/1.3 var(--ov-mono);letter-spacing:.14em}
+html.v2 .cn-legal-toc a{padding:8px 10px;border-radius:10px;color:var(--ov-muted);font-size:14px;line-height:1.4;transition:background .2s ease,color .2s ease}
+html.v2 .cn-legal-toc a:hover{background:rgba(255,255,255,.06);color:var(--ov-ink)}
+html.v2 .cn-legal-toc a:focus-visible{outline:2px solid var(--ov-g1);outline-offset:1px}
+
+html.v2 .cn-legal-section{
+  margin-bottom:12px;
+  padding:28px 30px;
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:24px;
+  background:linear-gradient(180deg,rgba(103,223,244,.075),rgba(94,221,243,.025));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07);
+}
+html.v2 .cn-legal-section h2{font:600 25px/1.2 var(--ov-sans);letter-spacing:-.035em;color:var(--ov-ink);text-wrap:balance}
+html.v2 .cn-legal-section h3{font:600 18px/1.3 var(--ov-sans);letter-spacing:-.02em;color:var(--ov-ink)}
+/* 65ch measure (Geist's "0" is wide, so 70ch ran ~100 characters a line) */
+html.v2 .cn-legal-section :is(p,li){max-width:65ch;color:var(--ov-body);font-size:16.5px;line-height:1.72}
+html.v2 .cn-legal-section strong{color:var(--ov-ink);font-weight:600}
+html.v2 .cn-legal-section li::marker{color:var(--ov-g1)}
+/* legacy ul/ol margin is 8px 0 0, so a paragraph after a list sat on
+   the last bullet */
+html.v2 .cn-legal-section :is(ul,ol){margin-bottom:16px}
+html.v2 .cn-legal-section :is(ul,ol):last-child{margin-bottom:0}
+html.v2 .cn-legal-section a{color:var(--ov-g1);text-decoration-color:rgba(34,211,238,.45);text-underline-offset:3px}
+html.v2 .cn-legal-callout{
+  max-width:65ch;
+  padding:14px 16px;
+  border:1px solid rgba(34,211,238,.24);
+  border-radius:16px;
+  background:linear-gradient(180deg,rgba(34,211,238,.12),rgba(45,212,191,.05));
+  color:var(--ov-body);
+  font-size:15px;
+  line-height:1.65;
+}
+html.v2 .cn-legal-callout.warn{border-color:rgba(255,181,71,.34);background:linear-gradient(180deg,rgba(255,181,71,.11),rgba(255,181,71,.04))}
+html.v2 .cn-legal-callout.danger{border-color:rgba(255,92,122,.38);background:linear-gradient(180deg,rgba(255,92,122,.12),rgba(255,92,122,.04))}
+html.v2 .cn-legal-data-table{font-size:14px;line-height:1.55;border-radius:14px}
+html.v2 .cn-legal-data-table :is(th,td){border-color:rgba(255,255,255,.1);color:var(--ov-body)}
+html.v2 .cn-legal-data-table th{background:rgba(34,211,238,.08);color:var(--ov-g1);font:500 11px/1.4 var(--ov-mono);letter-spacing:.12em}
+html.v2 .cn-legal-data-table td:first-child{color:var(--ov-ink);font-weight:560}
+
+/* ---------------------------------------------------------------------
+   14. Standalone legal pages (privacy / terms / refunds / acceptable-use)
+   --------------------------------------------------------------------- */
+/* Same ground as the app (00-base body), plus a fixed copy of the app's
+   .background stack (dot grid, navy orb top-left, violet orb right, navy
+   floor): the legal pages have no .background element. (0,2,3) beats
+   00-base's body::before{content:none}. html has no background, so the
+   body's propagates to the canvas and z-index:-1 paints above it. */
+html.v2 body.cn-legal-page{
+  min-height:100vh;
+  background:
+    radial-gradient(70% 100% at 50% 0%,rgba(31,166,189,.16),transparent 72%) 50% 0/100% 1100px no-repeat,
+    var(--ov-ground);
+  color:var(--ov-ink);
+  font-family:var(--ov-sans);
+  -webkit-font-smoothing:antialiased;
+}
+html.v2 body.cn-legal-page::before{
+  content:"";
+  display:block;
+  position:fixed;
+  inset:0;
+  z-index:-1;
+  pointer-events:none;
+  background:
+    radial-gradient(rgba(122,227,245,.10) 1px,transparent 1.5px) 0 0/26px 26px,
+    radial-gradient(closest-side,rgba(37,193,219,.40),rgba(37,193,219,.13) 52%,transparent) -20vmax -26vmax/60vmax 60vmax no-repeat,
+    radial-gradient(closest-side,rgba(59,220,199,.30),rgba(59,220,199,.09) 55%,transparent) calc(100% + 18vmax) 22vh/50vmax 50vmax no-repeat,
+    radial-gradient(closest-side,rgba(6,35,42,.55),rgba(6,35,42,.18) 60%,transparent) 50% calc(100% + 34vh)/150vw 80vh no-repeat;
+}
+/* navy-tinted glass like the app's cards (standalone pages only; the
+   Legal Center viewer keeps its own surfaces) */
+html.v2 body.cn-legal-page .cn-legal-hero{
+  background:
+    radial-gradient(70% 90% at 100% 0%,rgba(81,219,242,.22),transparent 62%),
+    var(--v2-glass);
+}
+html.v2 body.cn-legal-page :is(.cn-legal-section,.cn-legal-toc){background:var(--v2-glass)}
+html.v2 .cn-legal-page-shell{width:min(1180px,calc(100% - 48px));padding:14px 0 56px}
+html.v2 .cn-legal-page-top{
+  top:14px;
+  min-height:62px;
+  margin-bottom:26px;
+  padding:0 9px 0 18px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:999px;
+  /* same fill as the app's header.navbar.glass (10-nav) */
+  background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.028)),rgba(6,35,42,.16);
+  -webkit-backdrop-filter:blur(28px) saturate(170%);
+  backdrop-filter:blur(28px) saturate(170%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 18px 50px -20px rgba(0,0,0,.8);
+}
+html.v2 .cn-legal-page-brand{gap:10px}
+html.v2 .cn-legal-page-brand img{width:30px;height:30px;filter:hue-rotate(38deg) saturate(.85) drop-shadow(0 0 10px rgba(34,211,238,.45))}
+html.v2 .cn-legal-page-brand span{color:var(--ov-ink);font:620 16.5px/1 var(--ov-sans);letter-spacing:-.025em}
+/* Brand mark = the nav's blue-violet shield (10-nav .brand-mark-icon),
+   painted without touching the markup: the img's content box collapses
+   to 0 height (the cyan PNG is never drawn), the padding box paints the
+   gradient and the shield mask cuts the shape out of it. */
+@supports ((-webkit-mask-image:none) or (mask-image:none)){
+  html.v2 :is(.cn-legal-brand,.cn-legal-page-brand) img{
+    flex:none;
+    box-sizing:content-box;
+    height:0;
+    min-height:0;
+    max-height:none;
+    overflow:hidden;
+    border-radius:0;
+    filter:none;
+    background:linear-gradient(150deg,#22d3ee 0%,#67e8f9 55%,#a5f3fc 100%);
+    -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 26' fill='none' stroke='%23000'%3E%3Cpath d='M12 2 21 6 20 15 12 24 4 15 3 6Z' stroke-width='1.8' stroke-linejoin='round'/%3E%3Cpath d='M9.6 12.5v-2.3a2.4 2.4 0 0 1 4.8 0v2.3' stroke-width='1.6' stroke-linecap='round'/%3E%3Cpath fill='%23000' stroke='none' fill-rule='evenodd' d='M9.5 12.5h5a1.2 1.2 0 0 1 1.2 1.2v3.8a1.2 1.2 0 0 1-1.2 1.2h-5a1.2 1.2 0 0 1-1.2-1.2v-3.8a1.2 1.2 0 0 1 1.2-1.2ZM12 14.2a1 1 0 1 0 0 2a1 1 0 1 0 0-2Z'/%3E%3C/svg%3E") center/contain no-repeat;
+    mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 26' fill='none' stroke='%23000'%3E%3Cpath d='M12 2 21 6 20 15 12 24 4 15 3 6Z' stroke-width='1.8' stroke-linejoin='round'/%3E%3Cpath d='M9.6 12.5v-2.3a2.4 2.4 0 0 1 4.8 0v2.3' stroke-width='1.6' stroke-linecap='round'/%3E%3Cpath fill='%23000' stroke='none' fill-rule='evenodd' d='M9.5 12.5h5a1.2 1.2 0 0 1 1.2 1.2v3.8a1.2 1.2 0 0 1-1.2 1.2h-5a1.2 1.2 0 0 1-1.2-1.2v-3.8a1.2 1.2 0 0 1 1.2-1.2ZM12 14.2a1 1 0 1 0 0 2a1 1 0 1 0 0-2Z'/%3E%3C/svg%3E") center/contain no-repeat;
+  }
+  html.v2 .cn-legal-brand img{width:32px;padding:35px 0 0}
+  html.v2 .cn-legal-page-brand img{width:26px;padding:28px 0 0}
+}
+/* cybernet-legal.css:361 sets this colour with !important */
+html.v2 body.cn-legal-page .cn-legal-page-home{
+  min-height:44px;
+  padding:0 18px;
+  border:0;
+  border-radius:999px;
+  background:var(--ov-white);
+  color:#030505!important;
+  font:600 14.5px/1 var(--ov-sans);
+  letter-spacing:-.01em;
+  text-transform:none;
+  box-shadow:inset 0 1px 0 #fff,0 0 0 1px rgba(255,255,255,.5),0 8px 26px -8px rgba(34,211,238,.75);
+}
+html.v2 body.cn-legal-page .cn-legal-page-home:focus-visible{outline:2px solid var(--ov-g1);outline-offset:3px}
+html.v2 body.cn-legal-page .cn-legal-layout{gap:16px;margin-top:16px}
+html.v2 body.cn-legal-page .cn-legal-toc{top:96px;max-height:calc(100vh - 116px)}
+@media (min-width:821px){
+  /* 18 two-line entries overflow the sticky box: tighter rows fit more,
+     and the bottom edge fades so the inner scroll is visible */
+  html.v2 body.cn-legal-page .cn-legal-toc{
+    padding-bottom:28px;
+    -webkit-mask-image:linear-gradient(#000 calc(100% - 36px),transparent);
+    mask-image:linear-gradient(#000 calc(100% - 36px),transparent);
+  }
+  html.v2 body.cn-legal-page .cn-legal-toc a{padding:6px 10px;font-size:13.5px}
+}
+html.v2 body.cn-legal-page .cn-legal-section{scroll-margin-top:100px}
+html.v2 .cn-legal-page-footer{width:auto;margin:24px 0 0;padding:22px 0 0;border-top:1px solid var(--ov-line);color:var(--ov-faint);font-size:13.5px}
+html.v2 .cn-legal-page-footer a{color:var(--ov-g1)}
+
+/* ---------------------------------------------------------------------
+   15. 404 (self-contained page: only its <main> with an svg.mark)
+   --------------------------------------------------------------------- */
+html.v2:has(> body > main > svg.mark){height:100%}
+html.v2 body:has(> main > svg.mark){
+  min-height:100vh;
+  min-height:100svh;
+  margin:0;
+  padding:24px 16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:
+    radial-gradient(60% 46% at 20% 0%,rgba(37,193,219,.34),transparent 64%),
+    radial-gradient(50% 40% at 100% 100%,rgba(54,219,197,.24),transparent 64%),
+    var(--ov-ground);
+  color:var(--ov-ink);
+  font-family:var(--ov-sans);
+  -webkit-font-smoothing:antialiased;
+}
+html.v2 body > main:has(> svg.mark){
+  position:relative;
+  width:100%;
+  max-width:520px;
+  margin:0;
+  padding:44px 34px 36px;
+  border:1px solid var(--ov-rim);
+  border-radius:30px;
+  background:var(--ov-card);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 40px 120px -40px rgba(0,0,0,.9),0 0 90px -30px rgba(81,219,242,.35);
+  text-align:center;
+}
+html.v2 body > main > svg.mark{
+  width:64px;
+  height:64px;
+  margin:0 auto 22px;
+  padding:13px;
+  border-radius:20px;
+  background:linear-gradient(140deg,rgba(34,211,238,.3),rgba(45,212,191,.14));
+  border:1px solid rgba(255,255,255,.15);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 14px 34px -12px rgba(34,211,238,.7);
+}
+html.v2 body > main > svg.mark path{stroke:#dcfbff}
+html.v2 body > main > svg.mark path + path{stroke:var(--ov-g1)}
+html.v2 body > main:has(> svg.mark) h1{margin:0 0 12px;font:620 32px/1.08 var(--ov-sans);letter-spacing:-.045em;text-wrap:balance}
+html.v2 body > main:has(> svg.mark) p{margin:0 auto 26px;max-width:40ch;color:var(--ov-muted);font-size:16px;line-height:1.6}
+html.v2 body > main:has(> svg.mark) .row{gap:10px}
+html.v2 body > main:has(> svg.mark) a.btn{
+  min-height:50px;
+  padding:0 24px;
+  border-radius:999px;
+  font:580 15.5px/1 var(--ov-sans);
+  letter-spacing:-.01em;
+}
+html.v2 body > main:has(> svg.mark) a.btn.primary{background:var(--ov-white);color:#030505;box-shadow:var(--ov-white-shadow)}
+html.v2 body > main:has(> svg.mark) a.btn.secondary{border:1px solid rgba(255,255,255,.16);background:var(--ov-glassbtn);color:var(--ov-ink);box-shadow:var(--ov-glassbtn-shadow)}
+html.v2 body > main:has(> svg.mark) a.btn:focus-visible{outline:2px solid var(--ov-g1);outline-offset:3px}
+
+/* ---------------------------------------------------------------------
+   16. Responsive (legacy breakpoints + the add-on sheets' own ones)
+   --------------------------------------------------------------------- */
+@media (max-width:920px){
+  html.v2 #howtoVideoModal .hw-heading{font-size:24px}
+  html.v2 #howtoVideoModal .video-modal-player{padding:24px}
+}
+
+@media (max-width:820px){
+  /* TOC: 16-20 stacked links pushed the document below the fold; on
+     narrow screens it becomes one scrollable row of chips. */
+  html.v2 .cn-legal-toc{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    padding:8px 30px 8px 8px;
+    overflow-x:auto;
+    scrollbar-width:none;
+    border-radius:999px;
+    -webkit-mask-image:linear-gradient(90deg,#000 86%,transparent);
+    mask-image:linear-gradient(90deg,#000 86%,transparent);
+  }
+  html.v2 .cn-legal-toc::-webkit-scrollbar{display:none}
+  html.v2 .cn-legal-toc strong{flex:none;margin:0 6px 0 10px;white-space:nowrap}
+  html.v2 .cn-legal-toc a{
+    flex:none;
+    white-space:nowrap;
+    padding:8px 13px;
+    border:1px solid rgba(255,255,255,.1);
+    border-radius:999px;
+    background:rgba(255,255,255,.04);
+    font-size:13.5px;
+  }
+  html.v2 .cn-legal-dialog{border-radius:24px}
+  html.v2 .cn-legal-dialog-foot{gap:10px;padding:12px 16px}
+  html.v2 .cn-legal-done{width:100%}
+  html.v2 .cn-legal-viewer{padding:14px}
+  html.v2 .cn-legal-hero{padding:28px 22px 24px}
+  html.v2 .cn-legal-section{padding:22px 20px}
+  html.v2 #accountDetailsModal .cybernet-account-live-badge{margin-top:14px}
+}
+
+@media (max-width:760px){
+  html.v2 #authModal .auth-helper-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap}
+  html.v2 #authModal .auth-helper-row .auth-text-btn{justify-self:auto}
+}
+
+@media (max-width:720px){
+  /* the injected sticky tab strip uses top:-20px = the card's top padding */
+  html.v2 #accountDetailsModal .modal-card{padding-top:20px}
+  html.v2 #accountDetailsModal .cn-account-tabs{background:rgba(11,20,22,.97);box-shadow:0 10px 20px -10px rgba(0,0,0,.7)}
+}
+
+@media (max-width:700px){
+  /* Card modals become bottom sheets (concept p-verdict) */
+  html.v2 .modal{
+    -webkit-backdrop-filter:blur(10px) saturate(120%);
+    backdrop-filter:blur(10px) saturate(120%);
+  }
+  html.v2 :is(#authModal,#feedbackModal,#accountDetailsModal,#businessTeamModal,#acceptInviteModal,#cybernetHowToGetKeyModal){
+    align-items:flex-end;
+    padding:12px 0 0;
+  }
+  html.v2 :is(#authModal,#feedbackModal,#accountDetailsModal,#businessTeamModal,#acceptInviteModal,#cybernetHowToGetKeyModal) .modal-card{
+    width:100%;
+    max-width:100%;
+    max-height:92vh;
+    max-height:92dvh;
+    padding:22px 18px calc(24px + env(safe-area-inset-bottom,0px));
+    border-bottom:0;
+    border-radius:28px 28px 0 0;
+    animation-name:v2-ov-sheet;
+    overscroll-behavior:contain;
+  }
+  html.v2 #accountDetailsModal .modal-card{padding-top:20px}
+  html.v2 .modal .close-modal{top:14px;right:14px}
+  /* Auth + feedback sheets scroll: the close (first child of the card)
+     stays pinned 14px from the top-right of the visible sheet instead of
+     scrolling away. The margins place it where the absolute one sat
+     (22px/18px card padding) and the -30px bottom margin cancels its
+     38px height, so the layout below does not move. Sticky insets are
+     measured from the scroll container's content edge (inside its 22px
+     top padding), so top:-8px = 14px from the sheet's top edge. */
+  html.v2 :is(#authModal,#feedbackModal) .close-modal{
+    position:sticky;
+    top:-8px;
+    right:auto;
+    margin:-8px -4px -30px auto;
+  }
+  /* The page behind an open sheet stays put (on html: body overflow does
+     not reach the viewport here). Stylesheet rule, so the Legal Center's
+     inline documentElement overflow reset cannot clear it. */
+  html.v2:has(:is(#authModal,#feedbackModal).show){overflow:hidden}
+  html.v2 .modal :is(input[type="text"],input[type="email"],input[type="password"],textarea,select){font-size:16px}
+
+  html.v2 #authModal .auth-logo{margin-bottom:12px}
+  html.v2 #authModal .auth-logo-icon{width:52px;height:52px;min-width:52px;max-width:52px;max-height:52px;padding:10px;border-radius:16px}
+  html.v2 #authModal .auth-heading{margin-bottom:16px}
+  html.v2 #authModal .auth-heading h2{font-size:23px}
+  html.v2 #authModal .auth-heading p{font-size:14px}
+  html.v2 #authModal .auth-tabs{margin-bottom:16px}
+  html.v2 #authModal .auth-divider{margin:14px 0}
+
+  html.v2 #feedbackModal .feedback-heading{margin-bottom:18px}
+  html.v2 #feedbackModal .feedback-heading p{font-size:14px}
+
+  html.v2 #howtoVideoModal .video-player-shell{padding:12px 14px 14px}
+  html.v2 #howtoVideoModal .video-player-topbar{margin-bottom:12px}
+  html.v2 #howtoVideoModal .video-player-topbar h3{font-size:17px}
+  html.v2 #howtoVideoModal .video-modal-tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-bottom:12px}
+  html.v2 #howtoVideoModal .video-modal-tabs::-webkit-scrollbar{display:none}
+  html.v2 #howtoVideoModal .video-modal-tab{padding:0 13px;font-size:13.5px}
+  html.v2 #howtoVideoModal .video-modal-player{padding:18px 16px;border-radius:22px}
+  html.v2 #howtoVideoModal .hw{gap:24px}
+  html.v2 #howtoVideoModal .hw-summary,
+  html.v2 #howtoVideoModal .hw-body{font-size:15.5px}
+  html.v2 #howtoVideoModal .hw-heading{font-size:22px}
+  html.v2 #howtoVideoModal .hw-visual{padding:18px;border-radius:20px}
+  html.v2 #howtoVideoModal .hw-callout{padding:16px}
+
+  html.v2 #accountDetailsModal .cybernet-account-head{padding-right:40px}
+  html.v2 #accountDetailsModal .cn-account-title-icon{width:46px;height:46px;min-width:46px;padding:9px;border-radius:14px}
+  html.v2 #accountDetailsModal .cybernet-account-head p{font-size:14px}
+  html.v2 #accountDetailsModal .cn-account-title-row{align-items:flex-start}
+  html.v2 #accountDetailsModal .cybernet-account-item{padding:13px 16px;border-radius:18px}
+  html.v2 #accountDetailsModal .cybernet-account-item > span{margin-bottom:5px}
+  html.v2 #howtoVideoModal .video-control-btn{padding:0 14px;font-size:13px}
+  html.v2 #accountDetailsModal .cybernet-account-actions .primary-btn,
+  html.v2 #accountDetailsModal .cybernet-account-actions .secondary-btn{flex:1 1 140px;min-height:48px}
+
+  html.v2 #businessTeamModal .cn-team-head{padding-right:40px}
+  html.v2 #businessTeamModal .cn-team-stat{padding:14px 16px}
+  html.v2 #businessTeamModal .cn-team-stat strong{font-size:24px}
+  html.v2 #cybernetHowToGetKeyModal .cybernet-account-head{padding-right:40px}
+
+  html.v2 .cn-consent{border-radius:22px}
+  html.v2 .cn-consent,
+  html.v2 .cn-legal-toc,
+  html.v2 .cn-legal-page-top{
+    -webkit-backdrop-filter:blur(14px) saturate(140%);
+    backdrop-filter:blur(14px) saturate(140%);
+  }
+  html.v2 .cn-legal-modal{
+    -webkit-backdrop-filter:blur(10px) saturate(120%);
+    backdrop-filter:blur(10px) saturate(120%);
+  }
+  html.v2 .cn-legal-data-table :is(th,td){min-width:150px}
+  html.v2 .cn-legal-hero p{font-size:16.5px}
+  html.v2 .cn-legal-section :is(p,li){font-size:16px}
+}
+
+@media (max-width:600px){
+  html.v2 .cn-consent{
+    gap:12px;
+    padding:14px 14px 14px 16px;
+    bottom:calc(10px + env(safe-area-inset-bottom,0px));
+  }
+  html.v2 .cn-consent-title{font-size:15px}
+  html.v2 .cn-consent-text{font-size:13px;line-height:1.45}
+  html.v2 .cn-consent-actions{width:100%}
+}
+
+@media (max-width:560px){
+  html.v2 .cn-legal-modal{padding:8px}
+  html.v2 .cn-legal-dialog{border-radius:22px}
+  html.v2 .cn-legal-dialog-head{padding:12px 12px 12px 16px}
+  html.v2 .cn-legal-tabs{flex-wrap:wrap;padding:8px 12px;gap:4px}
+  html.v2 .cn-legal-tab{min-height:34px;padding:0 12px;font-size:13px}
+  html.v2 .cn-legal-dialog-foot{padding:10px 12px}
+  html.v2 .cn-legal-dialog-foot p{font-size:12.5px}
+  html.v2 .cn-legal-viewer{padding:10px}
+  html.v2 .cn-legal-viewer .cn-legal-hero{padding:22px 18px}
+  html.v2 .cn-legal-page-shell{width:calc(100% - 32px);padding-top:10px}
+  /* -6px: 10px from the screen edges, like the app's phone nav */
+  html.v2 .cn-legal-page-top{top:10px;min-height:58px;padding:0 7px 0 14px;margin-inline:-6px}
+  html.v2 body.cn-legal-page .cn-legal-page-home{min-height:42px;padding:0 15px;font-size:14px}
+  html.v2 .cn-legal-page-brand span{font-size:16px}
+
+  html.v2 #businessTeamModal .cn-team-invite-row .primary-btn{flex:1 1 100%}
+}
+
+@media (max-width:480px){
+  html.v2 #howtoVideoModal .video-modal-tab{padding:0 11px;font-size:13px}
+  html.v2 #howtoVideoModal .video-exit-btn{min-height:40px;padding:0 14px 0 11px}
+  html.v2 .cn-legal-hero h1{font-size:36px}
+  html.v2 .cn-legal-viewer .cn-legal-hero h1{font-size:30px}
+  html.v2 .cn-legal-section{padding:20px 16px;border-radius:20px}
+  html.v2 .cn-legal-section h2{font-size:22px}
+  html.v2 body > main:has(> svg.mark){padding:36px 22px 28px}
+  html.v2 body > main:has(> svg.mark) h1{font-size:28px}
+  html.v2 body > main:has(> svg.mark) a.btn{flex:1 1 100%}
+  html.v2 #acceptInviteModal .cn-invite-actions > button{flex:1 1 100%}
+}
+
+/* ---------------------------------------------------------------------
+   17. Accessibility preferences
+   --------------------------------------------------------------------- */
+@media (prefers-reduced-motion:reduce){
+  html.v2 :is(#authModal,#feedbackModal,#accountDetailsModal,#businessTeamModal,#acceptInviteModal,#cybernetHowToGetKeyModal) .modal-card{animation:none}
+  html.v2 .modal :is(.primary-btn,.secondary-btn,.close-modal,.auth-tab,.google-auth-btn),
+  html.v2 #accountDetailsModal :is(.cn-account-tab,.cybernet-switch-track,.protect-primary,.protect-secondary),
+  html.v2 #accountDetailsModal .cybernet-switch-track::after,
+  html.v2 #howtoVideoModal :is(.video-modal-tab,.hw-dot,.hw-btn),
+  html.v2 :is(.cn-legal-tab,.cn-legal-toc a,.cn-consent-btn){transition:none}
+  html.v2 .modal :is(.primary-btn,.secondary-btn,.google-auth-btn):hover,
+  html.v2 #accountDetailsModal :is(.protect-primary,.protect-secondary):hover{transform:none}
+}
+
+@media (prefers-reduced-transparency:reduce){
+  html.v2 .modal,
+  html.v2 .cn-legal-modal{
+    background:rgba(3,6,6,.92);
+    -webkit-backdrop-filter:none;
+    backdrop-filter:none;
+  }
+  html.v2 :is(#authModal,#feedbackModal,#accountDetailsModal,#businessTeamModal,#acceptInviteModal,#cybernetHowToGetKeyModal) .modal-card,
+  html.v2 .cn-legal-dialog,
+  html.v2 body > main:has(> svg.mark){background:#0b1517}
+  html.v2 #authModal .modal-card{
+    background:
+      linear-gradient(to top,#0b1517 40%,rgba(11,21,23,0)) 0 100%/100% 64px no-repeat local,
+      radial-gradient(farthest-side at 50% 100%,rgba(34,211,238,.45),transparent) 0 100%/100% 24px no-repeat scroll,
+      #0b1517;
+  }
+  html.v2 .cn-consent,
+  html.v2 .cn-legal-page-top,
+  html.v2 .cn-legal-toc,
+  html.v2 body.cn-legal-page .cn-legal-toc{
+    background:#0b1517;
+    -webkit-backdrop-filter:none;
+    backdrop-filter:none;
+  }
+  html.v2 .cn-legal-hero,
+  html.v2 .cn-legal-section,
+  html.v2 body.cn-legal-page :is(.cn-legal-hero,.cn-legal-section){background:#0a1213}
+}

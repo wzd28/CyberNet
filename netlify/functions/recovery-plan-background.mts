@@ -34,6 +34,7 @@ type UpdateJob = {
   completedTaskTitles: string[];
   previousPlan: any;
   riskFloor: string;
+  region?: string;
 };
 
 async function loadCase(caseId: string) {
@@ -54,57 +55,62 @@ async function loadTasks(caseId: string): Promise<any[]> {
 // measured against the plan the user actually sees. Task keys carry the
 // version (v2-immediate-0) so a new action never lands on an old task's row.
 async function writeAiStartVersion(caseId: string, plan: any) {
-  const caseRow = await loadCase(caseId);
+  // The case row and its tasks do not depend on each other.
+  const [caseRow, existingTasks] = await Promise.all([loadCase(caseId), loadTasks(caseId)]);
   if (!caseRow) throw new Error("Recovery case disappeared before the AI plan was ready.");
 
   const newVersionNumber = (Number(caseRow.current_version) || 1) + 1;
   rekeyPlan(plan, newVersionNumber);
-  const existingTasks = await loadTasks(caseId);
   const planActions = listPlanActions(plan);
 
+  // New rows and superseded rows never share a key (new keys carry the new
+  // version), so the insert and the delete can go together.
   const newTaskRows = buildTaskRows(caseId, newVersionNumber, planActions, existingTasks);
-  if (newTaskRows.length) {
-    await serviceFetch("/rest/v1/recovery_tasks", {
-      method: "POST",
-      headers: { Prefer: "return=minimal" },
-      body: JSON.stringify(newTaskRows),
-    });
-  }
-
   const superseded = supersededTaskKeys(existingTasks, planActions, newTaskRows);
-  if (superseded.length) {
-    await serviceFetch(
-      `/rest/v1/recovery_tasks?case_id=eq.${encodeURIComponent(caseId)}&task_key=in.(${taskKeyInList(superseded)})`,
-      { method: "DELETE", headers: { Prefer: "return=minimal" } },
-    );
-  }
-
   await Promise.all([
-    serviceFetch(`/rest/v1/recovery_cases?id=eq.${encodeURIComponent(caseId)}`, {
-      method: "PATCH",
-      headers: { Prefer: "return=minimal" },
-      body: JSON.stringify({
-        incident_type: plan.incidentType,
-        risk_level: plan.riskLevel,
-        urgency: plan.urgency,
-        confidence: plan.confidence,
-        current_version: newVersionNumber,
-        updated_at: new Date().toISOString(),
-      }),
-    }),
-    serviceFetch("/rest/v1/recovery_versions", {
-      method: "POST",
-      headers: { Prefer: "return=minimal" },
-      body: JSON.stringify({
-        case_id: caseId,
-        version_number: newVersionNumber,
-        structured_plan: plan,
-        change_summary: "CyberNet AI recovery plan ready.",
-        risk_level: plan.riskLevel,
-        progress_percent: Number(caseRow.progress_percent) || 0,
-      }),
-    }),
+    newTaskRows.length
+      ? serviceFetch("/rest/v1/recovery_tasks", {
+          method: "POST",
+          headers: { Prefer: "return=minimal" },
+          body: JSON.stringify(newTaskRows),
+        })
+      : null,
+    superseded.length
+      ? serviceFetch(
+          `/rest/v1/recovery_tasks?case_id=eq.${encodeURIComponent(caseId)}&task_key=in.(${taskKeyInList(superseded)})`,
+          { method: "DELETE", headers: { Prefer: "return=minimal" } },
+        )
+      : null,
   ]);
+
+  // The version row goes in before the case points at it. The page polls the
+  // case and reads the latest version once current_version moves; written the
+  // other way round (or together), a poll could land in between and show the
+  // old plan as the finished one.
+  await serviceFetch("/rest/v1/recovery_versions", {
+    method: "POST",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({
+      case_id: caseId,
+      version_number: newVersionNumber,
+      structured_plan: plan,
+      change_summary: "CyberNet AI recovery plan ready.",
+      risk_level: plan.riskLevel,
+      progress_percent: Number(caseRow.progress_percent) || 0,
+    }),
+  });
+  await serviceFetch(`/rest/v1/recovery_cases?id=eq.${encodeURIComponent(caseId)}`, {
+    method: "PATCH",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({
+      incident_type: plan.incidentType,
+      risk_level: plan.riskLevel,
+      urgency: plan.urgency,
+      confidence: plan.confidence,
+      current_version: newVersionNumber,
+      updated_at: new Date().toISOString(),
+    }),
+  });
 }
 
 async function runStart(job: StartJob) {
@@ -136,7 +142,7 @@ async function runUpdate(job: UpdateJob) {
   let rawUpdate: any = null;
   try {
     rawUpdate = await runAiUpdate(
-      { previousPlan: job.previousPlan, completedTaskTitles: job.completedTaskTitles, updateText: job.updateText, riskFloor: job.riskFloor },
+      { previousPlan: job.previousPlan, completedTaskTitles: job.completedTaskTitles, updateText: job.updateText, riskFloor: job.riskFloor, region: job.region || String(caseRow.region || "") },
       { timeoutMs: 120_000 },
     );
   } catch (error) {
