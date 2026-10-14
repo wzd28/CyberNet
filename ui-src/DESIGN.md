@@ -5,6 +5,80 @@ Sources live in `ui-src/` and are built into `public/ui/cybernet-ui.css`, `publi
 
 The design replaces the rejected v2 look. v2 used hacker imagery, code rain, virus sprites, a red "threat field" and glow everywhere, and the owner called it "suspicious and weird". The replacement is calm, precise and expensive. Motion shows the product working; it is never decoration for its own sake. References: Apple product pages (quiet type, one big moment per section), Linear and Socket (real product UI in place of metaphors), Lovable and Higgsfield (a prompt-box hero, rails of cards), Google Safety Center (security explained calmly).
 
+## v4 "Aurora" (14 Oct 2026): this section overrides anything below that conflicts
+
+The owner saw v3 and said it is good but "too basic, depressing and dark". v4 keeps v3's structure, safety rules and components, and adds light, colour, depth and motion. The target sits between the two rejected extremes: alive, colourful and 3D like a launch page, but organised, clean and premium, never neon-cheap or "hacker theatre".
+
+What changes:
+1. **Light and colour.** The ground moves from near-black to a midnight indigo. A global, slowly moving aurora sits behind every page (fixed layer, GPU transforms only): deep purple, violet, cyan, blue and a touch of magenta. Cards become luminous glass (indigo tint, gradient hairline borders). Cyan stays the brand signal. Deep purple and violet are the second voice: AI, highlights, gradients. Mint marks Recovery, and soft magenta appears as a rare spark. Verdict colours keep their meaning.
+2. **3D.** Home opens with a real-time Three.js scene: a glowing globe (dotted or textured continents and an atmosphere rim in cyan and violet) with the CyberNet logo shields (hexagon shield and lock) rotating on their own axis while they orbit it. Threat pulses travel along arcs and are caught by a shield in a cyan flash. Smaller 3D objects (padlock, AI chip, data cube) float nearby. Elsewhere, pre-rendered 3D objects (transparent WebP renders of the same models, made by our own render script) float with CSS motion and scroll parallax. The closing section has a large rotating shield.
+3. **Pictures.** Real photographs (free licence: Unsplash or Pexels; never paid), with **no human faces**: a hooded hacker seen from behind, hands on keyboards, a phone with a message, abstract AI networks, servers and locks. Every photo is colour-graded to the palette (a duotone in indigo, cyan and violet) so the set reads as one art-directed series, with rounded corners and gradient borders.
+4. **Motion everywhere, with purpose.** The aurora drifts. The hero scene turns, and nudges slightly as you scroll. Sections reveal with blur and rise. Image tiles move with gentle parallax. Number counters run. Gradient borders sweep once. Hover lifts are allowed. Scroll-linked effects use CSS `animation-timeline: view()`, with an IntersectionObserver fallback. Every loop pauses off-screen and when the tab is hidden, can be paused (one global "Pause motion" control plus the hero Pause), and stops under reduced motion.
+5. **Home order (fewer, stronger sections):**
+   1. Globe hero (copy and scan box first in reading order, the 3D scene beside it on desktop and above it on phones).
+   2. How-to tiles.
+   3. Live activity.
+   4. "Scams don't look like scams" (photo bento with the $442B fact).
+   5. Example scan.
+   6. Three tools.
+   7. Rules first, then AI (with the facts row).
+   8. Closing shield and statement.
+   9. Support.
+   10. Fine print.
+   
+   The separate globe section and the moving ticker are gone.
+6. **Phones first.** The 3D scene renders at DPR 1 and about 30 fps, with fewer objects, and sits above the copy at about 62vw tall. The poster image shows instantly and the live scene fades in over it. Photos use 800w versions. Nothing overflows from 280px up.
+7. **Pricing.** The "CyberNet AI is operated under Marks Events FZ LLE" line is a clearly visible banner at the very top of Pricing and About. It is a centred pill set in 14–15px Mona Sans 500, with the entity name in white at weight 650, and starts with the brand shield shown as a CSS mask in a cyan-violet-magenta gradient. It has a 1px cyan-to-violet-to-magenta gradient border over a soft indigo fill with a violet glow. Under 560px the entity takes its own line. Its styles live in 50-pricing.css for both pages. It is not a tiny mono strip.
+
+v4 tokens and light system (`00-tokens.css`, `03-aurora.css`; replaces the "v4 tokens" list above)
+
+Ground and surfaces (dark, the default; every page, and Home's stages):
+- `--cn-bg` #160d42 (luminous violet-indigo, never black), `--cn-bg-2` #1c1150.
+- Solid surfaces #211561 / #291a75 / #33218a (`--cn-surface`, `-2`, `-3`). Luminous glass for cards: `--cn-glass` rgba(42,27,118,.56) with `--cn-sheen` (a white light from the top) and `--cn-hi` (the lit 1px top edge). No backdrop blur inside <main>: the tint is the glass.
+- Lines: lilac rgba(196,181,253,.16) and .28; field edges `--cn-line-ctl` rgba(225,218,255,.46) (3.1:1 or more on every surface).
+- Text: `--cn-text` #f7f5ff, `--cn-text-2` #cfc8f5, `--cn-text-3` #b6aee6 (5.9:1 on surface-3, 4.7:1 even where the aurora's crown and a blob overlap).
+- Accents: cyan `--cn-cyan` #22d3ee / `--cn-cyan-2` #67e8f9 (text); violet `--cn-violet` #8b5cf6 / `--cn-violet-2` #c4b5fd (text); `--cn-purple` #5b2be0, `--cn-purple-700` #3a12a8, `--cn-purple-deep` #2b0f6e; magenta `--cn-magenta` #e879f9 (fills, glows, gradient ends; never text on the ground) and `--cn-magenta-2` #f0abfc (magenta text); `--cn-blue` #60a5fa; ink `--cn-ink` #0b0720. AI accent `--cn-iris` #b8a6ff / `--cn-iris-2` #c9bbff. Mint (Recovery) and the verdicts: safe #34d399, warn #fbbf24, danger (coral) #ff8a9c.
+- Fixed brand pill: `--cn-brand` #22d3ee with `--cn-on-brand` #0b0720 (10.9:1). The primary button uses these, so it is the same bright cyan pill on dark and light grounds.
+- `--cn-ring` is the focus colour (cyan on dark, #0b6a84 on light).
+- Gradients: `--cn-grad-brand` cyan → violet → magenta (oklch interpolation where supported, sRGB stops otherwise); `--cn-grad-text` for gradient words (`.cn-grad`; every stop clears 4.5:1); `--cn-grad-hair` (a gradient hairline); `--cn-grad-stage` (the #2b0f6e violet stage mesh lit by electric violet, cyan and magenta); `--cn-edge-1..4` (the conic hairline colours of glass panels).
+- Palette primitives `--cn-p-*` never change with the section tone (use them only where a colour must be identical on dark and light).
+
+Light bands (Home's rhythm): `html.cn :is(.cn-light, [data-cn-tone="light"], #home > .cn-live, #home > .cn-demo, #home > .why-choose, #home > .wow-section)` flips every token to the light set: ground #f6f4ff, white cards, surface-2 #f5f2ff, surface-3 #ece7ff, ink text #1b1340 / #4b4a6b / #5f5c85 (15.9 / 7.8 / 5.8:1), lines rgba(43,15,110,.11/.19), field edges 3.6:1+. Cyan is never text on light: `--cn-cyan-2` becomes #0b6a84 (5.1:1 on surface-3) and `--cn-cyan` (marks) #0e7490; violet text #5b21b6, AI #6d28d9, mint #0d6b64, magenta #a21caf, verdicts #04704f / #92400e / #be123c (all 5.1:1 or more on surface-3). Derived tokens (`--cn-id*`, `--cn-focus`, `--cn-grad-sweep`) and the legacy variables (`--bg`, `--green`, `--text` …) are re-declared on each light scope, so components and untouched legacy rules inside follow the tone with no extra CSS. To make another block light: add `class="cn-light"` or `data-cn-tone="light"` (it also gets a painted lavender band with a violet top glow, 03-aurora.css), or add its selector to the list (keep 01-base.css, 90-a11y.css and the LIGHT list in 07-aurora.js in step). `.cn-stage-band` / `[data-cn-tone="stage"]` paints a violet stage band the same way.
+
+The aurora (`03-aurora.css`): a global light behind every SPA page, GPU-cheap by construction.
+- The canvas (body's background) holds the ground and a crown of violet, cyan and magenta light at the top of the document, so each page is brightest at its top.
+- Two fixed layers (html::after, body::before) hold soft radial blobs (deep purple, electric violet, cyan; magenta, blue) drifting on 61 s and 43 s loops. Transform only (compositor): no repaint, no main-thread work, no filter blur. A fixed light beam (body::after) crosses the screen once every 53 s on screens 761px and wider. A static film grain (html::before, SVG noise data URI, 12%) sits over the light and under the content.
+- Phones keep one drift layer and the grain.
+- While a light band fills the middle of the screen the aurora dims (`html.cn-aurora-low`, an opacity fade).
+- Stops under reduced motion and Pause motion; removed under forced colours and in print.
+
+Pause motion (`07-aurora.js`, footer `button.cn-motion-toggle[data-cn-motion]`): one switch for every loop. It toggles `html.cn-still`, which is remembered in localStorage ("cn-still"). While paused: the aurora rests in place, every CSS animation shows its end state exactly as under prefers-reduced-motion (hover and press transitions still work), `CN.reduced()` answers true, `CN.pause()` runs on every module controller (and again on any module that starts later when it scrolls near), and the hero's own Pause button is pressed for the visitor (released again on resume if the control pressed it). API: `CN.still()`, `CN.setStill(bool)`, `CN.onStill(cb) -> off()`, and a document "cn:still" event (detail.still). The label carries the state ("Pause motion" / "Play motion"); the glyph follows `.is-paused`.
+
+Components (v4 look):
+- Primary button: the cyan pill lit from above (inset highlight). Only the primary CTA (`.big`, `.cn-cta`) gets the soft cyan halo (`--cn-glow-cta`); on light bands the pill gets a teal edge instead.
+- Secondary button: a glass outline on dark (`--cn-fill-1`), white on light.
+- Eyebrow (`.cn-eyebrow`, `.pill`): a lit pill with a cyan-to-violet wash, a cyan hairline, mono caps in cyan text; `.cn-eyebrow.is-ai` in violet.
+- Chip (`.cn-chip`): tint plus hairline, brighter on hover; 44px hit area.
+- Card (`.cn-card`, alias `.cn-glass`; legacy `.glass` in <main>): luminous glass. `.cn-card` and the support box draw a conic gradient hairline (a masked ::before over the border only); when they scroll in (`.is-in`) the light runs once round the edge (`--cn-edge-a`, 2.8 s). `.is-lit` raises the hairline for a featured card.
+- Verdict badge: tint, hairline, a glowing dot and the word. Live dot: a cyan dot with a soft glow; its ring pulses twice per visit.
+- Gradient word: `.cn-grad`.
+
+Scroll motion (`05-reveal.js`, `01-base.css`):
+- `[data-cn-reveal]` rises in once, out of an 8px blur on screens 761px and wider (fade and rise on phones), as it crosses 92% of the viewport. Variants: `="fade"`, `="scale"` (photos settle from 1.04), `="clip"` (wipes up from the bottom edge), `="off"`. `[data-cn-stagger]` children follow 70 ms apart; `--cn-d` delays a single block.
+- Legacy `.reveal` is a page-load cascade (script.js shows every reveal of the page at once), so it cannot be a scroll reveal. On Home, 05-reveal.js tags the section heads, the support box and the limits note with `data-cn-reveal`; blocks with their own scroll-linked motion are left to their partials. Owners can key one-off entrance effects to `.is-in`.
+- `[data-cn-parallax]`: drifts against the scroll (`--cn-px`, default 32px each way) on a view timeline; still where unsupported, under reduced motion and while paused.
+- Count-up (`[data-cn-count]`): exponential ease-out over 1.7 s (`data-cn-count-dur`), `.is-counting` while it runs.
+
+Modes: prefers-contrast: more lifts grey text and lines and makes glass solid; prefers-reduced-transparency makes glass solid (`--cn-glass` = `--cn-surface`); forced colours removes the aurora and the gradient hairlines and gives shapes a system edge.
+
+Performance rules still apply:
+- One live WebGL context at a time.
+- 3D starts after first paint and never blocks the H1 or the scan box.
+- A poster image is shown first.
+- Pre-rendered sprites are used for decoration instead of extra WebGL.
+- Photos are lazy-loaded WebP with `srcset`.
+- LCP stays under 2.5 s on Home.
+
 ## Non-negotiables
 
 1. **Functionality is untouched.** Quick Scan, Analysis AI, Recovery, auth, pricing, business and every other flow keep their markup, IDs, `data-*` attributes, form names, JS-used classes and handlers. `public/script.js` and the other legacy scripts are not edited, apart from the sanctioned edits listed below. Read `maps/HAZARDS.md` in the tooling folder for the traps: inline styles set by JS, `className` overwrites, innerHTML rebuilds, the `.page` / `.active-page` switch, `.reveal` animations, global `textarea`/`input` rules, the `[hidden]{display:none!important}` rule, the z-index stack.

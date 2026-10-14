@@ -1,4 +1,4 @@
-/* CyberNet AI "Signal": performance (owner: foundation).
+/* CyberNet AI v4 "Aurora": performance (owner: aurora).
    Loads after the page partials on purpose: these rules settle paint and compositing costs
    for everything above them. */
 
@@ -24,6 +24,7 @@ html.cn #cybernetai .ai-layout.reveal,
 html.cn #recovery #recoveryIntake.reveal {
   opacity: 1;
   transform: none;
+  filter: none;
   transition: none;
   animation: none;
 }
@@ -58,9 +59,10 @@ html.cn.cn-navigated .page.leaving {
 
 /* ------------------------------------------------------------------------------------------
    3. No frosted glass inside <main>
-   backdrop-filter re-blurs everything behind a card on every scroll frame, and cards sit on a
-   near-black ground where the blur shows nothing anyway. The header sheet, modals and the
-   cookie bar live outside <main> and keep theirs (DESIGN.md, Space and shape).
+   backdrop-filter re-blurs everything behind a card on every scroll frame, and over the moving
+   aurora it would have to re-blur on every animation frame too. Cards get their glass look from
+   a translucent indigo tint instead (--cn-glass), which costs nothing per frame. The header
+   sheet, modals and the cookie bar live outside <main> and keep theirs (DESIGN.md).
    ------------------------------------------------------------------------------------------ */
 html.cn main *,
 html.cn main *::before,
@@ -82,7 +84,7 @@ html.cn :is(.wow-section, .pricing-grid, .about-values) {
 
 /* ------------------------------------------------------------------------------------------
    5. Skip rendering the heavy Home sections until they come near
-   The example scan, the tools reel, the engine diagram and the globe are all below the fold
+   The example scan, the tools reel and the engine diagram are all below the fold
    on every device and hold most of Home's DOM. content-visibility:auto lets the browser skip
    their style, layout and paint until they approach the viewport (measured: Total Blocking
    Time 636 -> 344 ms on a 4x-throttled phone). It is safe here because each section carries
@@ -91,20 +93,36 @@ html.cn :is(.wow-section, .pricing-grid, .about-values) {
    that cross its edge. Each placeholder is the section's measured content height (stacked
    under 1024px, side by side above), so the page barely changes length as they render; once
    rendered, "auto" makes the browser remember the real size, so scrolling back never jumps.
+   v4 heights (14 Oct, measured at 1440, 820 and 390 px): re-measure when a section changes.
    Not applied to the ticker (.wow-section) or the statement (.home-quote): their content
    overflows on purpose. Wins over the content-visibility:visible list in 28-home-more.css by
    source order at equal specificity.
    ------------------------------------------------------------------------------------------ */
-html.cn #home > :is(.cn-demo, .cn-flow, .why-choose, .cn-world) {
+html.cn #home > :is(.cn-demo, .cn-flow, .why-choose) {
   content-visibility: auto;
   contain-intrinsic-size: auto 880px;
 }
-html.cn #home > .cn-demo { contain-intrinsic-size: auto 620px; }
-html.cn #home > .cn-flow { contain-intrinsic-size: auto 860px; }
-html.cn #home > .cn-world { contain-intrinsic-size: auto 600px; }
+html.cn #home > .cn-demo { contain-intrinsic-size: auto 570px; }
+html.cn #home > .cn-flow { contain-intrinsic-size: auto 740px; }
+html.cn #home > .why-choose { contain-intrinsic-size: auto 1100px; }
 @media (max-width: 1023.98px) {
-  html.cn #home > .cn-demo { contain-intrinsic-size: auto 1050px; }
-  html.cn #home > .cn-flow { contain-intrinsic-size: auto 840px; }
-  html.cn #home > .why-choose { contain-intrinsic-size: auto 1000px; }
-  html.cn #home > .cn-world { contain-intrinsic-size: auto 800px; }
+  html.cn #home > .cn-demo { contain-intrinsic-size: auto 1110px; }
+  html.cn #home > .cn-flow { contain-intrinsic-size: auto 820px; }
+  html.cn #home > .why-choose { contain-intrinsic-size: auto 1160px; }
 }
+@media (max-width: 599.98px) {
+  html.cn #home > .cn-demo { contain-intrinsic-size: auto 1090px; }
+  html.cn #home > .cn-flow { contain-intrinsic-size: auto 1150px; }
+  html.cn #home > .why-choose { contain-intrinsic-size: auto 1340px; }
+}
+
+/* ------------------------------------------------------------------------------------------
+   6. The aurora's budget (03-aurora.css)
+   Four pseudo-element layers, all below the content: two drifting light layers and a beam
+   (transform-only compositor animations: no main-thread work, no repaint per frame) and a
+   static grain. Each is contain:strict and sized to the viewport (the drift is a base scale,
+   not an oversized box), so the GPU holds about 1.25 screens of texture per moving layer.
+   Phones keep one drift layer and the grain. Measured with the page parked at the footer: the
+   main thread stays idle while the aurora moves (0.4 to 1.4% main-thread task time in quiet
+   samples at 1440px, headless Edge; the compositor does the work).
+   ------------------------------------------------------------------------------------------ */

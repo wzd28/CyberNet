@@ -1,60 +1,121 @@
 /* ==========================================================================
-   15-footer.css  -  The site footer: a quiet band with a hairline top.
+   15-footer.css  -  v4 "Aurora" footer: a rich deep-violet band with a rounded
+   top edge, a gradient rim, a faint dot grid and a drifting glow. Wordmark, legal
+   links, the "Pause motion" control and the fine print.
 
-   Markup (index.html): <footer><p>© line · email · Cookie settings</p></footer>
-   cybernet-legal-upgrade.js appends nav.cn-footer-legal (four links and a
-   "Legal Center" button) to the FIRST <footer> in the document, so every rule
-   here targets body > footer only (the Legal Center dialog has its own
+   Markup (index.html): <footer><a class="cn-footer-brand">...</a><p>(c) line, email,
+   Cookie settings</p></footer>. cybernet-legal-upgrade.js appends nav.cn-footer-legal
+   (four links and a "Legal Center" button) to the FIRST <footer> in the document, so
+   every rule here targets body > footer only (the Legal Center dialog has its own
    <footer class="cn-legal-dialog-foot">).
 
-   The wordmark (a.cn-footer-brand: Cyber<span>Net</span> <small>AI</small>)
-   matches the header: the shield mark, "CyberNet" as one word with "Net" in
-   cyan, and "AI" as the small outlined chip. The link is a 44px target.
+   The "Pause motion" control (07-aurora.js; <button class="cn-motion-toggle" data-cn-motion>,
+   base look in 02-components.css) is the global switch for every loop on the site. It may be a
+   direct child of the footer (it then takes the fine-print row, at the inline end) or sit inside
+   the fine-print paragraph. Here it only gets the footer's glass; its glyph and its
+   Pause / Play state (.is-paused) are the component's own.
+
+   The footer glow drifts only while the footer is on screen (12-nav.js adds .is-on) and not
+   paused: html.cn-still (the global pause) and CN.pause() both hold it, and reduced motion
+   shows it still.
    ========================================================================== */
 
 html.cn body > footer {
   --cn-foot-pad: max(var(--cn-gutter-l), calc((100% - var(--cn-max)) / 2));
+  --cn-foot-r: clamp(24px, 2vw + 12px, 40px);
+  --cn-focus: 0 0 0 3px #150642, 0 0 0 5px var(--cn-cyan);
   position: relative;
+  isolation: isolate;
+  overflow: clip;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas:
-    "brand legal"
-    "line  line";
+  grid-template-rows: auto auto auto;
   align-items: center;
-  column-gap: var(--cn-8);
-  row-gap: var(--cn-4);
+  column-gap: 0;
+  row-gap: var(--cn-5);
   box-sizing: border-box;
   width: auto;
   max-width: none;
   margin: 0; /* the page's own bottom padding sets the gap (DESIGN.md: the footer adds no margin) */
-  padding: var(--cn-10) max(var(--cn-gutter-r), calc((100% - var(--cn-max)) / 2)) calc(var(--cn-10) + env(safe-area-inset-bottom, 0px)) var(--cn-foot-pad);
-  border-top: 1px solid var(--cn-line);
-  background: var(--cn-bg);
-  color: var(--cn-text-3);
+  padding: clamp(48px, 2.2rem + 3vw, 80px) max(var(--cn-gutter-r), calc((100% - var(--cn-max)) / 2)) calc(var(--cn-8) + env(safe-area-inset-bottom, 0px)) var(--cn-foot-pad);
+  border: 0;
+  border-top: 1px solid transparent;
+  border-radius: var(--cn-foot-r) var(--cn-foot-r) 0 0;
+  /* layers, top to bottom: the wireframe shield, a violet crown of light, a soft fade that dims the
+     dot grid downwards, the dot grid, the violet base; then the gradient rim on the border box */
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 26' fill='none'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2367E8F9'/%3E%3Cstop offset='.55' stop-color='%238B5CF6'/%3E%3Cstop offset='1' stop-color='%23E879F9'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cg opacity='.3'%3E%3Cpath d='M12 2 L21 6 L20 15 L12 24 L4 15 L3 6 Z' stroke='url(%23g)' stroke-width='.14' stroke-linejoin='round'/%3E%3Cpath d='M12 5 L18.2 7.9 L17.4 14.3 L12 20.7 L6.6 14.3 L5.8 7.9 Z' stroke='url(%23g)' stroke-width='.08' stroke-linejoin='round' stroke-opacity='.7'/%3E%3Cpath d='M12 2 V5 M21 6 L18.2 7.9 M20 15 L17.4 14.3 M12 24 V20.7 M4 15 L6.6 14.3 M3 6 L5.8 7.9' stroke='url(%23g)' stroke-width='.07' stroke-opacity='.55'/%3E%3Crect x='8.3' y='12.5' width='7.4' height='6.2' rx='1.2' stroke='url(%23g)' stroke-width='.12'/%3E%3Cpath d='M9.6 12.5 v-2.3 a2.4 2.4 0 0 1 4.8 0 v2.3' stroke='url(%23g)' stroke-width='.12' stroke-linecap='round'/%3E%3C/g%3E%3C/svg%3E") right 3% bottom -120px / clamp(260px, 28vw, 380px) auto no-repeat padding-box,
+    radial-gradient(75% 130% at 50% -25%, rgba(124, 77, 255, .72), transparent 70%) padding-box,
+    linear-gradient(180deg, rgba(22, 6, 66, 0) 0%, rgba(22, 6, 66, .55) 85%) padding-box,
+    radial-gradient(circle, rgba(196, 181, 253, .26) 1px, transparent 1.5px) 0 0 / 24px 24px padding-box,
+    linear-gradient(180deg, #36129f 0%, #280c7e 52%, #1d0958 100%) padding-box,
+    linear-gradient(90deg, rgba(103, 232, 249, 0) 0%, #67e8f9 16%, #a78bfa 50%, #e879f9 84%, rgba(232, 121, 249, 0) 100%) border-box;
+  /* the light that spills up onto the page above the band */
+  box-shadow: 0 -26px 70px -26px rgba(139, 92, 246, .75);
+  color: var(--cn-ch-text-3);
   font-family: var(--cn-font);
   font-size: var(--cn-step-small);
   line-height: 1.5;
   text-align: start;
 }
 
+/* the hairline between the wordmark row and the fine print: a grid item of its own,
+   so it runs under both the fine print and the control, and fades at both ends */
+html.cn body > footer::before {
+  content: "";
+  grid-column: 1 / -1;
+  grid-row: 2;
+  align-self: center;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(196, 181, 253, 0), rgba(196, 181, 253, .30) 12%, rgba(196, 181, 253, .30) 88%, rgba(196, 181, 253, 0));
+  pointer-events: none;
+}
+
+/* the drifting glow: cyan bottom-left, magenta bottom-right, violet on top. Transform only. */
+html.cn body > footer::after {
+  content: "";
+  position: absolute;
+  inset: -34% -12% -12%;
+  z-index: -1;
+  background:
+    radial-gradient(34% 46% at 12% 80%, rgba(34, 211, 238, .30), transparent 70%),
+    radial-gradient(30% 44% at 88% 72%, rgba(232, 121, 249, .32), transparent 70%),
+    radial-gradient(42% 52% at 54% 22%, rgba(139, 92, 246, .44), transparent 72%);
+  animation: cn-foot-drift 29s ease-in-out infinite alternate;
+  animation-play-state: paused;
+  pointer-events: none;
+}
+
+html.cn body > footer.is-on:not(.is-paused)::after {
+  will-change: transform;
+  animation-play-state: running;
+}
+
+/* the global "Pause motion" (html.cn-still): the glow rests where it is */
+html.cn.cn-still body > footer::after {
+  animation-play-state: paused;
+  will-change: auto;
+}
+
 /* ---------- wordmark ---------- */
 /* Plain inline flow (never flex: flex items would split "Cyber" and "Net"
    apart). The literal space before <small> is the gap before the chip, and
-   the 44px line makes the whole link a 44px target. */
+   the 48px line makes the whole link a 44px+ target. */
 html.cn body > footer .cn-footer-brand {
-  grid-area: brand;
+  grid-column: 1;
+  grid-row: 1;
   justify-self: start;
   display: inline-block;
-  height: 44px;
+  height: 48px;
   margin-inline-start: -6px;
   padding: 0 6px;
   border-radius: var(--cn-r-ctl);
-  color: var(--cn-text);
+  color: var(--cn-ch-text);
   font-family: var(--cn-font-mono);
-  font-size: 15px;
+  font-size: 20px;
   font-weight: 700;
   letter-spacing: -.02em;
-  line-height: 44px;
+  line-height: 48px;
   text-decoration: none;
   white-space: nowrap;
   -webkit-tap-highlight-color: transparent;
@@ -65,25 +126,27 @@ html.cn body > footer .cn-footer-brand::before {
   content: "";
   display: inline-block;
   vertical-align: middle;
-  width: 20px;
-  height: 22px;
-  margin-inline-end: 10px;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 26' fill='none'%3E%3Cpath d='M12 2 L21 6 L20 15 L12 24 L4 15 L3 6 Z' stroke='%2322D3EE' stroke-width='1.8' stroke-linejoin='round'/%3E%3Crect x='8.3' y='12.5' width='7.4' height='6.2' rx='1.2' fill='%2322D3EE'/%3E%3Cpath d='M9.6 12.5v-2.3a2.4 2.4 0 0 1 4.8 0v2.3' stroke='%2322D3EE' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='12' cy='15.2' r='1' fill='%23030406'/%3E%3Cpath d='M12 15.9v1.4' stroke='%23030406' stroke-width='1' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  width: 26px;
+  height: 28px;
+  margin-inline-end: 12px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 26' fill='none'%3E%3Cpath d='M12 2 L21 6 L20 15 L12 24 L4 15 L3 6 Z' stroke='%2322D3EE' stroke-width='1.8' stroke-linejoin='round'/%3E%3Crect x='8.3' y='12.5' width='7.4' height='6.2' rx='1.2' fill='%2322D3EE'/%3E%3Cpath d='M9.6 12.5v-2.3a2.4 2.4 0 0 1 4.8 0v2.3' stroke='%2322D3EE' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='12' cy='15.2' r='1' fill='%230B0720'/%3E%3Cpath d='M12 15.9v1.4' stroke='%230B0720' stroke-width='1' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  filter: drop-shadow(0 0 8px rgba(34, 211, 238, .55));
 }
 
 html.cn body > footer .cn-footer-brand span {
   color: var(--cn-cyan);
 }
 
-/* "AI": the header's outlined chip */
+/* "AI": the header's gradient chip */
 html.cn body > footer .cn-footer-brand small {
   display: inline-block;
   vertical-align: middle;
   margin: -2px 0 0;
-  padding: 3px 5px 2px;
-  border: 1px solid var(--cn-line-2);
+  padding: 3px 6px 2px;
+  border: 1px solid rgba(103, 232, 249, .42);
   border-radius: 6px;
-  color: var(--cn-text-2);
+  background: linear-gradient(135deg, rgba(34, 211, 238, .22), rgba(139, 92, 246, .34));
+  color: #eafcff;
   font-family: var(--cn-font-mono);
   font-size: 11px;
   font-weight: 600;
@@ -92,32 +155,34 @@ html.cn body > footer .cn-footer-brand small {
   text-transform: uppercase;
 }
 
-/* ---------- copyright line ---------- */
+/* ---------- fine print ---------- */
 html.cn body > footer > p {
-  grid-area: line;
+  grid-column: 1 / -1;
+  grid-row: 3;
   margin: 0;
-  padding-top: var(--cn-4);
-  border-top: 1px solid var(--cn-line);
-  color: var(--cn-text-2);
+  padding: 0;
+  color: var(--cn-ch-text-2);
   font-family: var(--cn-font);
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.7;
   text-align: start;
   text-wrap: pretty;
 }
 
-/* email and Cookie settings read as links: a quiet underline that brightens */
+/* email and Cookie settings read as links: a quiet underline that brightens.
+   (Literal colours: a rule that names .cn-cookie-settings is also picked into the legal-page
+   bundle, which does not carry the chrome palette.) */
 html.cn body > footer > p a,
 html.cn body > footer > p .cn-cookie-settings {
   display: inline;
   min-height: 0;
-  padding: 0;
+  padding: 10px 0; /* inline: the padding widens the hit area (about 40px) and leaves the line height alone */
   border: 0;
   background: none;
-  color: var(--cn-text-2);
+  color: #d6cffd;
   font: inherit;
   text-decoration: underline;
-  text-decoration-color: var(--cn-line-2);
+  text-decoration-color: rgba(196, 181, 253, .36);
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
   cursor: pointer;
@@ -126,14 +191,18 @@ html.cn body > footer > p .cn-cookie-settings {
 }
 
 /* ---------- legal links ---------- */
+/* it spans both columns (so the control's column is only as wide as the control) and sits at the
+   inline end of the first row, beside the wordmark; it wraps before it can reach the wordmark */
 html.cn body > footer .cn-footer-legal {
-  grid-area: legal;
+  grid-column: 1 / -1;
+  grid-row: 1;
   justify-self: end;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
-  gap: 0 var(--cn-5);
+  gap: 0 var(--cn-6);
+  max-width: calc(100% - 250px);
   margin: 0;
 }
 
@@ -145,32 +214,94 @@ html.cn body > footer .cn-footer-legal button {
   padding: 0;
   border: 0;
   border-radius: 6px;
-  background: none;
-  color: var(--cn-text-2);
+  /* an underline that draws in on hover (cyan, violet, magenta) */
+  background: linear-gradient(90deg, var(--cn-cyan), #a78bfa 55%, #e879f9) 0 calc(50% + 12px) / 0 1px no-repeat;
+  color: var(--cn-ch-text-2);
   font-family: var(--cn-font);
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 500;
   letter-spacing: -.005em;
   line-height: 1.2;
   text-decoration: none;
   white-space: nowrap;
   cursor: pointer;
-  transition: color var(--cn-dur-1) ease;
+  transition: color var(--cn-dur-1) ease, background-size var(--cn-dur-3) var(--cn-ease-out);
+}
+
+/* ---------- the "Pause motion" control: the footer's glass pill ---------- */
+html.cn body > footer :is(.cn-motion-toggle, [data-cn-motion]) {
+  box-sizing: border-box;
+  min-height: 40px;
+  margin: 0;
+  padding: 0 18px 0 15px;
+  border: 1px solid rgba(196, 181, 253, .36);
+  background: rgba(255, 255, 255, .07);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12);
+  color: #d6cffd;
+  font-size: 13px;
+  font-weight: 600;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* paused: a cyan edge, so the state reads at a glance (the glyph turns to Play by itself) */
+html.cn body > footer :is(.cn-motion-toggle, [data-cn-motion]).is-paused {
+  border-color: rgba(103, 232, 249, .55);
+  background: rgba(34, 211, 238, .12);
+  color: #eafcff;
+}
+
+/* as a direct child of the footer it takes the fine-print row, at the inline end;
+   the fine print then keeps the first column */
+html.cn body > footer > :is(.cn-motion-toggle, [data-cn-motion], .cn-footer-tools) {
+  grid-column: 2;
+  grid-row: 3;
+  justify-self: end;
+  align-self: center;
+}
+
+html.cn body > footer:has(> :is(.cn-motion-toggle, [data-cn-motion], .cn-footer-tools)) > p {
+  grid-column: 1;
+  padding-inline-end: var(--cn-6);
 }
 
 html.cn body > footer a:focus-visible,
 html.cn body > footer button:focus-visible,
 html.cn body > footer .cn-footer-brand:focus-visible {
   outline: none;
-  color: var(--cn-text);
+  color: #fff;
   box-shadow: var(--cn-focus);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  html.cn body > footer a:hover,
-  html.cn body > footer button:hover {
-    color: var(--cn-text);
+  html.cn body > footer .cn-footer-legal a:hover,
+  html.cn body > footer .cn-footer-legal button:hover {
+    color: #fff;
+    background-size: 100% 1px;
+  }
+
+  html.cn body > footer > p a:hover,
+  html.cn body > footer > p .cn-cookie-settings:hover {
+    color: #fff;
     text-decoration-color: currentColor;
+  }
+
+  html.cn body > footer :is(.cn-motion-toggle, [data-cn-motion]):hover {
+    border-color: rgba(196, 181, 253, .6);
+    background: rgba(255, 255, 255, .13);
+    color: #fff;
+  }
+}
+
+/* narrow desktops and landscape tablets: the five links tighten so they stay on one row beside the wordmark */
+@media (min-width: 900px) and (max-width: 1119.98px) {
+  html.cn body > footer .cn-footer-legal {
+    gap: 0 var(--cn-4);
+    max-width: calc(100% - 224px);
+  }
+
+  html.cn body > footer .cn-footer-legal a,
+  html.cn body > footer .cn-footer-legal button {
+    font-size: 13px;
   }
 }
 
@@ -178,19 +309,39 @@ html.cn body > footer .cn-footer-brand:focus-visible {
 @media (max-width: 899.98px) {
   html.cn body > footer {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      "brand"
-      "legal"
-      "line";
+    grid-template-rows: auto;
     row-gap: var(--cn-3);
-    padding-top: var(--cn-8);
+    padding-top: clamp(40px, 2rem + 2vw, 56px);
     padding-bottom: calc(var(--cn-8) + env(safe-area-inset-bottom, 0px));
   }
 
+  html.cn body > footer .cn-footer-brand { grid-column: 1; grid-row: 1; }
+
   html.cn body > footer .cn-footer-legal {
+    grid-column: 1;
+    grid-row: 2;
     justify-self: start;
     justify-content: flex-start;
-    gap: 0 var(--cn-5);
+    gap: 0 var(--cn-6);
+    max-width: none;
+    margin: 0 0 var(--cn-2);
+  }
+
+  html.cn body > footer::before { grid-column: 1; grid-row: 3; }
+
+  html.cn body > footer > p,
+  html.cn body > footer:has(> :is(.cn-motion-toggle, [data-cn-motion], .cn-footer-tools)) > p {
+    grid-column: 1;
+    grid-row: 4;
+    padding-inline-end: 0;
+    padding-top: var(--cn-2);
+  }
+
+  html.cn body > footer > :is(.cn-motion-toggle, [data-cn-motion], .cn-footer-tools) {
+    grid-column: 1;
+    grid-row: 5;
+    justify-self: start;
+    margin-top: var(--cn-2);
   }
 }
 
@@ -205,6 +356,34 @@ html.cn body > footer .cn-footer-brand:focus-visible {
   html.cn body > footer .cn-footer-legal a,
   html.cn body > footer .cn-footer-legal button {
     white-space: normal;
+  }
+}
+
+/* ---------- motion ---------- */
+@keyframes cn-foot-drift {
+  from { transform: translate3d(-2.5%, 3%, 0) scale(1); }
+  to { transform: translate3d(3%, -4%, 0) scale(1.09); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.cn body > footer::after {
+    animation: none;
+  }
+
+  html.cn body > footer .cn-footer-legal a,
+  html.cn body > footer .cn-footer-legal button {
+    transition: none;
+  }
+}
+
+/* Windows high contrast: a real edge on the band and the toggle */
+@media (forced-colors: active) {
+  html.cn body > footer {
+    border-top: 1px solid CanvasText;
+  }
+
+  html.cn body > footer :is(.cn-motion-toggle, [data-cn-motion]) {
+    border: 1px solid ButtonText;
   }
 }
 

@@ -4,7 +4,9 @@
    uses it (a custom property on the arc, the score, the progress bar, the active highlight, or a
    class on the character being typed), so a frame restyles a handful of nodes, never the whole
    console. Attribute changes are invisible to the legacy body-wide observers (childList and
-   characterData only). Without JS, or with reduced motion, the finished state shows. */
+   characterData only). Without JS, or with reduced motion, the finished state shows.
+   The global "Pause motion" control (html.cn-still, 03-aurora.css) also holds the loop, as do
+   CN.pause() and a hidden tab; the section's own Pause button stays the visitor's control. */
 (function () {
   "use strict";
   var CN = window.CN;
@@ -62,6 +64,30 @@
     p.appendChild(frag);
     return { chars: i, marks: k };
   }
+
+  /* Pause / Play: the visible word carries the state, so the button is not also a pressed
+     toggle (that announced "Play, pressed"). Only the first text node is swapped, which keeps a
+     visually hidden context span ("the example scan") from the markup. The button is wired at
+     start-up, so it answers at once even before the console (a lazy module) has started. */
+  var btnState = { paused: false, sync: null };
+  function label(b, word) {
+    var n = b.firstChild;
+    if (n && n.nodeType === 3) { if (n.nodeValue !== word) n.nodeValue = word; }
+    else b.insertBefore(document.createTextNode(word), n);
+    b.classList.toggle("is-paused", word === "Play");
+  }
+  CN.onReady(function () {
+    var btn = CN.qs("#cnDemo [data-cn-demo-toggle]") || CN.qs("[data-cn-demo-toggle]");
+    if (!btn) return;
+    btn.removeAttribute("aria-pressed");
+    label(btn, "Pause");
+    if (CN.reduced()) btn.hidden = true;
+    btn.addEventListener("click", function () {
+      btnState.paused = !btnState.paused;
+      label(btn, btnState.paused ? "Play" : "Pause");
+      if (btnState.sync) btnState.sync();
+    });
+  });
 
   CN.register("demo", function (fig) {
     var sec = fig.closest(".cn-demo") || fig.parentNode;
@@ -175,9 +201,11 @@
       render(t);
     });
 
+    var root = document.documentElement;
     function still() { return CN.reduced(); }
+    function held() { return root.classList.contains("cn-still"); }
     function sync() {
-      var go = visible && !paused && !still();
+      var go = visible && !paused && !still() && !held();
       if (go) lp.start(); else lp.stop();
       // The status blink and the waiting skeletons are CSS loops: freeze them whenever the JS
       // timeline is not running (off screen, paused, reduced motion), not only on a user Pause.
@@ -196,24 +224,9 @@
       }
     }
 
-    /* Pause / Play: the visible word carries the state, so the button is not also a pressed
-       toggle (that announced "Play, pressed"). Only the first text node is swapped, which keeps
-       a visually hidden context span ("the example scan") from the markup. */
-    function label(b, word) {
-      var n = b.firstChild;
-      if (n && n.nodeType === 3) { if (n.nodeValue !== word) n.nodeValue = word; }
-      else b.insertBefore(document.createTextNode(word), n);
-      b.classList.toggle("is-paused", word === "Play");
-    }
-    if (btn) {
-      btn.removeAttribute("aria-pressed");
-      label(btn, "Pause");
-      btn.addEventListener("click", function () {
-        paused = !paused;
-        label(btn, paused ? "Play" : "Pause");
-        sync();
-      });
-    }
+    // The Pause button is wired at start-up (below); from here on it also drives this timeline.
+    btnState.sync = function () { paused = btnState.paused; sync(); };
+    paused = btnState.paused;
 
     fig.classList.add("is-ready");
     if (still()) applyMotionPref(); else snap(0);
@@ -222,6 +235,15 @@
       visible = e ? vis && e.intersectionRatio >= .28 : vis;
       sync();
     }, { threshold: [0, .3, .6] });
+
+    // Follow the global pause (a class on <html>; attribute changes only, so this stays quiet).
+    if ("MutationObserver" in window) {
+      var wasHeld = held();
+      new MutationObserver(function () {
+        var h = held();
+        if (h !== wasHeld) { wasHeld = h; sync(); }
+      }).observe(root, { attributes: true, attributeFilter: ["class"] });
+    }
 
     var mq = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
     if (mq) {

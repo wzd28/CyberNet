@@ -42,67 +42,131 @@
   line-gap-override: 0%;
 }
 
+/* ==========================================================================================
+   v4 "Aurora" palette (14 Oct 2026). Bright and luminous, never black.
+   - Ground: a luminous violet-indigo (#160d42) under a slowly drifting aurora (03-aurora.css).
+   - Home alternates deep-violet stages with LIGHT lavender bands (the light scope below).
+   - Cyan is the brand signal (primary button, focus, live data). Violet and deep purple are the
+     second voice (AI, highlights, gradients). Mint marks Recovery. Magenta is a rare spark.
+     Coral, amber and green keep their verdict meaning.
+   Every text pair was measured (WCAG 2.x relative luminance): all text is at least 4.5:1 on the
+   surface it sits on, and field edges are at least 3:1. Ratios sit next to the values.
+   ========================================================================================== */
 html.cn {
-  /* Colour: ground and surfaces */
-  --cn-bg: #030406;
-  --cn-bg-2: #07090c;
-  --cn-surface: #0b0f13;
-  --cn-surface-2: #11161b;
-  --cn-surface-3: #171d23;
-  --cn-line: rgba(255, 255, 255, .08);
-  --cn-line-2: rgba(255, 255, 255, .14);
-  --cn-line-ctl: rgba(255, 255, 255, .34);   /* form-field edges: >= 3:1 against cards (WCAG 1.4.11) */
+  /* Palette primitives. These never change with the section tone: use them only where a colour
+     must stay the same on dark and light grounds (the brand pill, stage meshes, 3D accents). */
+  --cn-p-ink: #0b0720;          /* violet-tinted near-black: footer depth, text on cyan */
+  --cn-p-night: #160d42;        /* page ground */
+  --cn-p-stage: #2b0f6e;        /* the violet stage (hero, closing): white text 15.0:1 */
+  --cn-p-violet-700: #3a12a8;
+  --cn-p-electric: #5b2be0;     /* electric violet: mesh light, white text 7.3:1 */
+  --cn-p-violet: #8b5cf6;       /* mid-gradient violet (fills and light, not text) */
+  --cn-p-lilac: #c4b5fd;
+  --cn-p-cyan: #22d3ee;
+  --cn-p-cyan-light: #67e8f9;
+  --cn-p-cyan-ink: #0e7490;     /* cyan on light grounds (5.4:1 on white) */
+  --cn-p-blue: #60a5fa;
+  --cn-p-magenta: #e879f9;      /* the spark: gradient ends and glows */
+  --cn-p-mint: #5eead4;
+  --cn-p-lavender: #f6f4ff;     /* light band ground */
 
-  /* Colour: text */
-  --cn-text: #f3f6f7;
-  --cn-text-2: #9aa5ad;
-  --cn-text-3: #7a8690;   /* labels, meta, counters: 4.56:1 even on surface-3 */
+  /* Brand pill. Fixed on purpose: the primary button is cyan with ink text on every ground
+     (10.9:1), so it never follows --cn-cyan into the deeper light-band cyan. */
+  --cn-brand: #22d3ee;
+  --cn-brand-2: #67e8f9;
+  --cn-on-brand: #0b0720;
+
+  /* Colour: ground and surfaces (dark, the default) */
+  --cn-bg: #160d42;
+  --cn-bg-2: #1c1150;
+  --cn-surface: #211561;        /* cards (solid) */
+  --cn-surface-2: #291a75;      /* raised items, inputs */
+  --cn-surface-3: #33218a;      /* hover of raised items */
+  /* Luminous glass: an indigo tint the aurora glows through (no blur inside <main>). */
+  --cn-glass: rgba(42, 27, 118, .56);
+  --cn-glass-2: rgba(54, 34, 142, .64);
+  --cn-sheen: linear-gradient(180deg, rgba(255, 255, 255, .075), rgba(255, 255, 255, 0) 42%);
+  --cn-hi: rgba(255, 255, 255, .07);        /* the lit top edge of glass (an inset 1px line) */
+  --cn-fill-1: rgba(255, 255, 255, .06);    /* neutral wash: secondary buttons, quiet chips */
+  --cn-fill-2: rgba(255, 255, 255, .11);    /* the same, on hover */
+  --cn-line: rgba(196, 181, 253, .16);
+  --cn-line-2: rgba(196, 181, 253, .28);
+  --cn-line-ctl: rgba(225, 218, 255, .46);   /* field edges: 3.3:1 on surface-2, 3.1:1 on surface-3 */
+
+  /* Colour: text (ratios from the ground to surface-3, the lightest dark surface) */
+  --cn-text: #f7f5ff;           /* 16.6 .. 11.3 */
+  --cn-text-2: #cfc8f5;         /* 11.3 .. 7.7 */
+  --cn-text-3: #b6aee6;         /* 8.7 .. 5.9 (4.7 at the brightest aurora peak): labels, meta */
 
   /* Colour: brand signal */
-  --cn-cyan: #22d3ee;
-  --cn-cyan-2: #67e8f9;
+  --cn-cyan: #22d3ee;           /* marks, bars, the live dot: 6.7:1 on surface-3 */
+  --cn-cyan-2: #67e8f9;         /* cyan text: 8.4:1 on surface-3 */
   --cn-ice: #e6fbff;
   --cn-teal: #0e7490;
-  --cn-deep: #083344;
-  --cn-cyan-tint: rgba(34, 211, 238, .10);
-  --cn-cyan-line: rgba(34, 211, 238, .35);
-  --cn-on-cyan: #001018;
+  --cn-deep: #0b3a5c;
+  --cn-cyan-tint: rgba(34, 211, 238, .12);
+  --cn-cyan-line: rgba(34, 211, 238, .42);
+  --cn-on-cyan: #0b0720;
+  --cn-ring: #22d3ee;           /* the focus ring */
 
-  /* Colour: second accent "iris" (AI). Owner asked for more colour: cyan stays the brand signal,
-     iris marks AI moments (Analysis AI, the AI half of the engine, gradient ends). Never on verdicts. */
-  --cn-iris: #8b8cff;
-  --cn-iris-2: #b9baff;
-  --cn-iris-deep: #2b2a6b;
-  --cn-iris-tint: rgba(139, 140, 255, .12);
-  --cn-iris-line: rgba(139, 140, 255, .38);
-  --cn-grad-brand: linear-gradient(100deg, var(--cn-cyan) 0%, #7fb8ff 50%, var(--cn-iris) 100%);
+  /* Colour: the violet family (the second voice) */
+  --cn-violet: #8b5cf6;
+  --cn-violet-2: #c4b5fd;       /* violet text: 7.5:1 on surface-3 */
+  --cn-purple: #5b2be0;
+  --cn-purple-700: #3a12a8;
+  --cn-purple-deep: #2b0f6e;
+  --cn-magenta: #e879f9;        /* the spark: fills, glows, gradient ends (not text on the ground) */
+  --cn-magenta-2: #f0abfc;      /* magenta text: 6.9:1 on surface-3, 5.5:1 at the aurora peak */
+  --cn-blue: #60a5fa;
+  --cn-ink: #0b0720;
+
+  /* Colour: "iris", the AI accent (Analysis AI, the AI half of the engine). Now violet. */
+  --cn-iris: #b8a6ff;           /* 5.8:1 on surface-3, 4.6:1 at the brightest aurora peak */
+  --cn-iris-2: #c9bbff;         /* 7.0:1 on surface-3 */
+  --cn-iris-deep: #2e1a7a;
+  --cn-iris-tint: rgba(167, 139, 250, .15);
+  --cn-iris-line: rgba(184, 166, 255, .42);
+
   /* Recovery identity colour (progress and marks only, never a verdict) */
   --cn-mint: #5eead4;
   --cn-mint-2: #99f6e4;
   --cn-mint-deep: #115e59;
   --cn-mint-tint: rgba(94, 234, 212, .12);
-  --cn-mint-line: rgba(94, 234, 212, .38);
-
-  /* Tool identity. Each tool page sets these to its own accent (Quick Scan cyan, Analysis AI
-     iris, Recovery mint); identity marks read them, so a mark never hard-codes a tool colour.
-     Buttons, focus rings and verdicts never use them. */
-  --cn-id: var(--cn-cyan);
-  --cn-id-2: var(--cn-cyan-2);
-  --cn-id-tint: var(--cn-cyan-tint);
-  --cn-id-line: var(--cn-cyan-line);
+  --cn-mint-line: rgba(94, 234, 212, .40);
 
   /* Colour: verdicts (only inside results and examples, always with a word) */
-  --cn-safe: #34d399;
-  --cn-safe-tint: rgba(52, 211, 153, .12);
-  --cn-warn: #fbbf24;
-  --cn-warn-tint: rgba(251, 191, 36, .12);
-  --cn-danger: #fb7185;
-  --cn-danger-tint: rgba(251, 113, 133, .12);
+  --cn-safe: #34d399;           /* 6.3:1 on surface-3 */
+  --cn-safe-tint: rgba(52, 211, 153, .14);
+  --cn-warn: #fbbf24;           /* 7.3:1 */
+  --cn-warn-tint: rgba(251, 191, 36, .14);
+  --cn-danger: #ff8a9c;         /* coral: 5.4:1 on surface-3, 4.5:1 on its own tint there */
+  --cn-danger-tint: rgba(255, 122, 144, .14);
 
-  /* Gradients */
-  --cn-grad-signal: linear-gradient(90deg, var(--cn-teal) 0%, var(--cn-cyan) 45%, var(--cn-ice) 100%);
-  /* The hero sweep travels cyan -> ice -> iris: the brand gradient, passing through the word once. */
-  --cn-grad-sweep: linear-gradient(100deg, var(--cn-text) 0%, var(--cn-text) 34%, var(--cn-cyan) 44%, var(--cn-ice) 50%, #7fb8ff 56%, var(--cn-iris) 62%, var(--cn-text) 74%, var(--cn-text) 100%);
+  /* Depth and light */
+  --cn-shadow: 0 30px 60px -30px rgba(8, 4, 30, .78);
+  --cn-shadow-card: 0 24px 48px -32px rgba(8, 4, 30, .7);
+  --cn-glow-cta: 0 0 0 1px rgba(103, 232, 249, .42), 0 8px 26px -8px rgba(34, 211, 238, .6), 0 0 56px -14px rgba(34, 211, 238, .55);
+  --cn-glow-cta-hover: 0 0 0 1px rgba(165, 243, 252, .7), 0 10px 32px -8px rgba(34, 211, 238, .75), 0 0 76px -12px rgba(103, 232, 249, .62);
+
+  /* Gradients. The brand gradient runs cyan -> violet -> magenta. These sRGB stops are the
+     fallback; browsers with oklch interpolation get the clean version below (no grey middle). */
+  --cn-grad-brand: linear-gradient(120deg, #22d3ee 0%, #60a5fa 26%, #8b5cf6 56%, #c26bf5 78%, #e879f9 100%);
+  --cn-grad-text: linear-gradient(100deg, #67e8f9 0%, #a5b4fc 42%, #d8b4fe 72%, #f0abfc 100%);
+  --cn-grad-hair: linear-gradient(140deg, rgba(103, 232, 249, .62), rgba(139, 92, 246, .42) 34%, rgba(196, 181, 253, .1) 62%, rgba(232, 121, 249, .44));
+  --cn-grad-signal: linear-gradient(90deg, #0e7490 0%, #22d3ee 45%, #e6fbff 100%);
+  /* The hairline of a glass panel is a conic light in these four colours (bright cyan and
+     magenta passes, dim violet between); 02-components.css builds it and turns it once. */
+  --cn-edge-1: rgba(103, 232, 249, .75);
+  --cn-edge-2: rgba(139, 92, 246, .32);
+  --cn-edge-3: rgba(196, 181, 253, .1);
+  --cn-edge-4: rgba(232, 121, 249, .55);
+  /* The luminous violet stage (hero, closing statement): a mesh of light on #2b0f6e. */
+  --cn-grad-stage:
+    radial-gradient(60% 55% at 18% 12%, rgba(91, 43, 224, .95), transparent 70%),
+    radial-gradient(45% 45% at 86% 22%, rgba(34, 211, 238, .38), transparent 72%),
+    radial-gradient(50% 45% at 62% 100%, rgba(232, 121, 249, .3), transparent 72%),
+    radial-gradient(70% 60% at 50% 60%, rgba(58, 18, 168, .55), transparent 80%),
+    #2b0f6e;
 
   /* Type */
   --cn-font: "Mona Sans", "Mona Sans Fallback", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
@@ -133,13 +197,12 @@ html.cn {
   --cn-max-wide: 1360px;
   --cn-measure: 62ch;
 
-  /* Shape and depth */
+  /* Shape */
   --cn-r-panel: 28px;
   --cn-r-card: 20px;
   --cn-r-ctl: 14px;
   --cn-r-pill: 999px;
-  --cn-shadow: 0 30px 60px -30px rgba(0, 0, 0, .7);
-  --cn-focus: 0 0 0 3px var(--cn-bg), 0 0 0 5px var(--cn-cyan);
+  --cn-r-band: clamp(28px, 1rem + 3vw, 56px);   /* the corners of a light band */
 
   /* Motion */
   --cn-ease-out: cubic-bezier(.22, 1, .36, 1);
@@ -153,7 +216,7 @@ html.cn {
   --cn-loop-b: 43s;
   --cn-loop-c: 29s;
 
-  /* Layers (legacy auth modal sits at 1600) */
+  /* Layers (the legacy auth modal sits at 1600). The aurora paints below everything (z < 0). */
   --cn-z-raised: 10;
   --cn-z-header: 100;
   --cn-z-sheet: 1000;
@@ -162,5 +225,128 @@ html.cn {
   color-scheme: dark;
 }
 
-/* Reserved for the app: a light theme is not designed yet. Keep the dark values until it is. */
+/* oklch interpolation where it exists: cyan -> violet -> magenta without a muddy middle. */
+@supports (background-image: linear-gradient(in oklch, red, blue)) {
+  html.cn {
+    --cn-grad-brand: linear-gradient(in oklch 120deg, #22d3ee 0%, #8b5cf6 55%, #e879f9 100%);
+    --cn-grad-text: linear-gradient(in oklch 100deg, #67e8f9 0%, #c4b5fd 55%, #f0abfc 100%);
+  }
+}
+
+/* ==========================================================================================
+   Light bands. Mark any block light and everything inside adapts, because components read
+   tokens only:  html.cn :is(.cn-light, [data-cn-tone="light"], <a section selector>)
+   Home's light panels are the selectors at the end of the list: Live and the Example scan
+   (22-live.css paints their sheet) and "Rules first, then AI" with its facts strip
+   (28-home-more.css). Those partials re-declare the same values for their own panels. A section
+   owner can add or drop a selector here without touching markup (keep 01-base.css, 90-a11y.css
+   and the LIGHT list in 07-aurora.js in step). A block marked .cn-light or
+   [data-cn-tone="light"] also gets a painted band from 03-aurora.css.
+   Cyan is never text here: --cn-cyan-2 (cyan text) becomes #0b6a84 (5.1:1 even on surface-3)
+   and --cn-cyan (marks, bars, dots) becomes #0e7490. The primary button keeps its bright cyan
+   pill through --cn-brand.
+   ========================================================================================== */
+html.cn :is(.cn-light, [data-cn-tone="light"], #home > .cn-live, #home > .cn-demo, #home > .why-choose, #home > .wow-section) {
+  --cn-bg: #f6f4ff;
+  --cn-bg-2: #efebff;
+  --cn-surface: #ffffff;
+  --cn-surface-2: #f5f2ff;
+  --cn-surface-3: #ece7ff;
+  --cn-glass: rgba(255, 255, 255, .82);
+  --cn-glass-2: #ffffff;
+  --cn-sheen: linear-gradient(180deg, rgba(255, 255, 255, .9), rgba(255, 255, 255, 0) 46%);
+  --cn-hi: rgba(255, 255, 255, .95);
+  --cn-fill-1: #ffffff;
+  --cn-fill-2: #f5f2ff;
+  --cn-line: rgba(43, 15, 110, .11);
+  --cn-line-2: rgba(43, 15, 110, .19);
+  --cn-line-ctl: rgba(27, 19, 64, .54);       /* 3.8:1 on white, 3.6:1 on surface-3 */
+
+  --cn-text: #1b1340;           /* 15.9 on the ground, 14.1 on surface-3 */
+  --cn-text-2: #4b4a6b;         /* 7.8 .. 6.9 */
+  --cn-text-3: #5f5c85;         /* 5.8 .. 5.2 */
+
+  --cn-cyan: #0e7490;
+  --cn-cyan-2: #0b6a84;
+  --cn-ice: #0b6a84;
+  --cn-teal: #0e7490;
+  --cn-deep: #d5f6fb;
+  --cn-cyan-tint: rgba(14, 116, 144, .09);
+  --cn-cyan-line: rgba(14, 116, 144, .36);
+  --cn-on-cyan: #ffffff;        /* white on #0e7490: 5.4:1 */
+  --cn-ring: #0b6a84;
+
+  --cn-violet: #7c3aed;
+  --cn-violet-2: #5b21b6;       /* 7.5 on surface-3 */
+  --cn-purple: #5b2be0;
+  --cn-magenta: #a21caf;        /* 5.2 on surface-3 */
+  --cn-magenta-2: #a21caf;
+  --cn-blue: #2563eb;
+
+  --cn-iris: #6d28d9;           /* 5.9 on surface-3 */
+  --cn-iris-2: #5b21b6;
+  --cn-iris-deep: #ede6ff;
+  --cn-iris-tint: rgba(109, 40, 217, .09);
+  --cn-iris-line: rgba(109, 40, 217, .3);
+
+  --cn-mint: #0d6b64;           /* 5.3 on surface-3 */
+  --cn-mint-2: #0b5f58;
+  --cn-mint-deep: #ccf5ee;
+  --cn-mint-tint: rgba(13, 107, 100, .09);
+  --cn-mint-line: rgba(13, 107, 100, .32);
+
+  --cn-safe: #04704f;           /* 5.1 on surface-3 */
+  --cn-safe-tint: rgba(4, 120, 87, .1);
+  --cn-warn: #92400e;           /* 5.9 */
+  --cn-warn-tint: rgba(217, 119, 6, .12);
+  --cn-danger: #be123c;         /* 5.2 */
+  --cn-danger-tint: rgba(190, 18, 60, .09);
+
+  --cn-shadow: 0 30px 60px -32px rgba(43, 15, 110, .32);
+  --cn-shadow-card: 0 1px 2px rgba(43, 15, 110, .06), 0 22px 44px -28px rgba(43, 15, 110, .3);
+  --cn-grad-text: linear-gradient(100deg, #0b6a84 0%, #5b21b6 60%, #a21caf 100%);
+  --cn-grad-hair: linear-gradient(140deg, rgba(14, 116, 144, .5), rgba(124, 58, 237, .32) 40%, rgba(43, 15, 110, .08) 66%, rgba(162, 28, 175, .32));
+  --cn-edge-1: rgba(14, 116, 144, .55);
+  --cn-edge-2: rgba(124, 58, 237, .26);
+  --cn-edge-3: rgba(43, 15, 110, .08);
+  --cn-edge-4: rgba(162, 28, 175, .36);
+
+  color-scheme: light;
+  color: var(--cn-text);
+}
+
+/* Tokens derived from others. Declared on the root and again on every light scope, so each
+   resolves against its own ground (a var() is resolved where it is declared, then inherited). */
+html.cn,
+html.cn :is(.cn-light, [data-cn-tone="light"], #home > .cn-live, #home > .cn-demo, #home > .why-choose, #home > .wow-section) {
+  /* Tool identity. Each tool page sets these to its own accent (Quick Scan cyan, Analysis AI
+     iris, Recovery mint); identity marks read them, so a mark never hard-codes a tool colour.
+     Buttons, focus rings and verdicts never use them. */
+  --cn-id: var(--cn-cyan);
+  --cn-id-2: var(--cn-cyan-2);
+  --cn-id-tint: var(--cn-cyan-tint);
+  --cn-id-line: var(--cn-cyan-line);
+  --cn-focus: 0 0 0 3px var(--cn-bg), 0 0 0 5px var(--cn-ring);
+  /* The hero sweep: the brand gradient passing through the word once. */
+  --cn-grad-sweep: linear-gradient(100deg, var(--cn-text) 0%, var(--cn-text) 34%, var(--cn-cyan-2) 43%, var(--cn-ice) 49%, var(--cn-violet-2) 56%, var(--cn-magenta-2) 63%, var(--cn-text) 74%, var(--cn-text) 100%);
+  /* The legacy variables that style.css, the add-on sheets and JS template strings read. */
+  --bg: var(--cn-bg);
+  --bg-alt: var(--cn-bg-2);
+  --glass: var(--cn-surface);
+  --glass-strong: var(--cn-surface-2);
+  --glass-border: var(--cn-line);
+  --glass-border-strong: var(--cn-line-2);
+  --glass-border-quiet: var(--cn-line);
+  --green: var(--cn-cyan);
+  --green-dim: var(--cn-teal);
+  --green-bright: var(--cn-cyan-2);
+  --text: var(--cn-text);
+  --muted: var(--cn-text-2);
+  --soft: var(--cn-text-2);
+  --danger: var(--cn-danger);
+  --warning: var(--cn-warn);
+  --safe: var(--cn-safe);
+}
+
+/* Reserved for the app: a whole-app light theme can reuse the light scope's values later. */
 html.cn[data-theme="light"] { color-scheme: dark; }

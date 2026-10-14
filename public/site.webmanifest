@@ -17,8 +17,11 @@
       "type": "image/png"
     }
   ],
-  "theme_color": "#030406",
-  "background_color": "#030406",
+  "theme_color": "#160d42",
+  "background_color": "#160d42",
   "display": "standalone",
-  "categories": ["security", "utilities"]
+  "categories": [
+    "security",
+    "utilities"
+  ]
 }

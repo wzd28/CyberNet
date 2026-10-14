@@ -1159,3 +1159,240 @@ html.cn #pricing > .support-box { margin-top: clamp(var(--cn-12), 2.5rem + 2vw, 
   html.cn #pricing .pricing-grid-three .price-card li::after { background: CanvasText; }
   html.cn #pricing #cnCheckoutConsentBox input[type="checkbox"] { -webkit-appearance: auto; appearance: auto; }
 }
+
+/* ==========================================================================
+   v4 "Aurora" (kit: 30-tools.css section 17)
+   ========================================================================== */
+
+/* ---------- the operator banner: the first thing on Pricing and About ----------
+   "CyberNet AI is operated under Marks Events FZ LLE" as a readable 14-15px banner: the brand
+   shield (a CSS mask of an inline SVG) in a gradient disc, a soft cyan-to-violet gradient
+   border, centred. Under 560px the entity takes its own line (02-components) and the corners
+   soften from a pill to a card. */
+html.cn :is(#pricing, #about) > .cn-operator {
+  --cn-op-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 26' fill='none' stroke='%23000'%3E%3Cpath d='M12 2 21 6 20 15 12 24 4 15 3 6Z' stroke-width='1.8' stroke-linejoin='round'/%3E%3Cpath d='M9.6 12.5v-2.3a2.4 2.4 0 0 1 4.8 0v2.3' stroke-width='1.6' stroke-linecap='round'/%3E%3Cpath fill='%23000' stroke='none' fill-rule='evenodd' d='M9.5 12.5h5a1.2 1.2 0 0 1 1.2 1.2v3.8a1.2 1.2 0 0 1-1.2 1.2h-5a1.2 1.2 0 0 1-1.2-1.2v-3.8a1.2 1.2 0 0 1 1.2-1.2ZM12 14.2a1 1 0 0 1 .5 1.866V17.3h-1v-1.234A1 1 0 0 1 12 14.2Z'/%3E%3C/svg%3E");
+  position: relative;
+  box-sizing: border-box;
+  display: block;
+  width: fit-content;
+  max-inline-size: min(100%, 700px);
+  margin: 0 auto clamp(28px, 3.4vw, 44px);
+  padding: 13px clamp(20px, 3vw, 30px) 13px clamp(58px, 7vw, 68px);
+  border: 1px solid transparent;
+  border-radius: var(--cn-r-pill);
+  background:
+    linear-gradient(100deg, rgba(34, 211, 238, .13), rgba(139, 92, 246, .2) 62%, rgba(232, 121, 249, .12)) padding-box,
+    linear-gradient(var(--cn-surface), var(--cn-surface)) padding-box,
+    linear-gradient(100deg, #22d3ee, #8b5cf6 58%, #e879f9) border-box;
+  box-shadow: 0 18px 50px -22px rgba(139, 92, 246, .75), 0 0 0 6px rgba(139, 92, 246, .08);
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: clamp(.875rem, .82rem + .25vw, .9375rem);
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: 0;
+  text-align: center;
+  text-transform: none;
+  text-wrap: balance;
+}
+html.cn :is(#pricing, #about) > .cn-operator::before {
+  content: "";
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: clamp(18px, 3vw, 24px);
+  width: 28px;
+  height: 30px;
+  translate: 0 -50%;
+  background: linear-gradient(150deg, #67e8f9, #8b5cf6 62%, #e879f9);
+  -webkit-mask: var(--cn-op-mark) center / contain no-repeat;
+  mask: var(--cn-op-mark) center / contain no-repeat;
+  filter: drop-shadow(0 4px 12px rgba(34, 211, 238, .55));
+}
+html.cn :is(#pricing, #about) > .cn-operator strong {
+  color: #fff;
+  font-weight: 650;
+}
+@media (max-width: 559.98px) {
+  html.cn :is(#pricing, #about) > .cn-operator {
+    border-radius: 22px;
+    padding: 12px 16px 12px 54px;
+    text-align: start;
+  }
+  html.cn :is(#pricing, #about) > .cn-operator::before { inset-inline-start: 14px; width: 26px; height: 28px; }
+}
+
+/* ---------- head ---------- */
+html.cn #pricing.page {
+  background-image:
+    radial-gradient(46rem 26rem at 50% 14rem, rgba(124, 77, 255, .22), transparent 70%),
+    radial-gradient(32rem 20rem at 0% 24rem, rgba(34, 211, 238, .16), transparent 70%),
+    radial-gradient(30rem 20rem at 100% 28rem, rgba(232, 121, 249, .16), transparent 70%);
+}
+html.cn #pricing .pricing-head .pill {
+  padding: 0 14px 0 28px;
+  background:
+    radial-gradient(circle at 14px 50%, var(--cn-cyan) 0 3px, rgba(34, 211, 238, .3) 3.5px 7px, transparent 8px),
+    linear-gradient(100deg, rgba(34, 211, 238, .16), rgba(139, 92, 246, .16));
+  box-shadow: inset 0 0 0 1px var(--cn-cyan-line);
+}
+html.cn #pricing .pricing-head h1 span {
+  background: var(--cn-grad-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* toggle */
+html.cn #pricing .pricing-toggle {
+  border: 1px solid transparent;
+  background: var(--cn-pg-inset-g) padding-box, var(--cn-pg-edge) border-box;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05), 0 18px 40px -26px rgba(8, 4, 30, .9);
+}
+html.cn #pricing .toggle-thumb {
+  background: linear-gradient(135deg, rgba(34, 211, 238, .3), rgba(139, 92, 246, .42));
+  box-shadow: inset 0 0 0 1px rgba(103, 232, 249, .5), 0 8px 26px -10px rgba(34, 211, 238, .55);
+}
+html.cn #pricing .toggle-option.active { color: #fff; }
+html.cn #pricing .toggle-thumb::after { box-shadow: 0 0 8px var(--cn-cyan); }
+html.cn #pricing #pricingToggle[data-cycle="yearly"] + .save-tag {
+  background: linear-gradient(100deg, rgba(34, 211, 238, .2), rgba(139, 92, 246, .22));
+  box-shadow: inset 0 0 0 1px var(--cn-cyan-line);
+}
+html.cn #pricing .save-tag { border-color: rgba(196, 181, 253, .34); }
+
+/* ---------- plan cards: luminous glass; Pro wears the brand gradient ---------- */
+@media (min-width: 1024px) {
+  html.cn #pricing .pricing-grid.pricing-grid-three {
+    gap: clamp(16px, 1.8vw, 24px);
+    padding: 0 !important;
+    border: 0;
+    border-radius: 0;
+    background: none;
+  }
+}
+html.cn #pricing .pricing-grid-three .price-card {
+  border: 1px solid transparent;
+  background: var(--cn-pg-fill) padding-box, var(--cn-pg-edge) border-box;
+  box-shadow: var(--cn-pg-lift), var(--cn-pg-glow);
+}
+html.cn #pricing .pricing-grid-three .pro-price-card {
+  border-color: transparent;
+  background:
+    radial-gradient(90% 200px at 50% 0%, rgba(139, 92, 246, .28), transparent 72%),
+    radial-gradient(70% 180px at 100% 100%, rgba(34, 211, 238, .12), transparent 70%),
+    var(--cn-pg-fill-hi) padding-box,
+    var(--cn-grad-brand) border-box;
+  box-shadow:
+    0 40px 100px -36px rgba(139, 92, 246, .85),
+    0 0 70px -22px rgba(34, 211, 238, .45),
+    inset 0 1px 0 rgba(255, 255, 255, .14),
+    inset 0 0 60px -24px rgba(139, 92, 246, .6);
+}
+@media (min-width: 1024px) {
+  html.cn #pricing .pricing-grid-three .pro-price-card { translate: 0 -14px; }
+}
+html.cn #pricing .pricing-grid-three .pro-price-card::before {
+  background: conic-gradient(from var(--cn-pr-angle),
+    transparent 0turn,
+    transparent .7turn,
+    rgba(34, 211, 238, 0) .7turn,
+    var(--cn-cyan) .8turn,
+    #fff .86turn,
+    var(--cn-magenta) .91turn,
+    transparent .935turn);
+}
+html.cn #pricing .pricing-grid-three .pro-price-card .popular-ribbon {
+  background: linear-gradient(100deg, #5b2be0, #7c3aed 55%, #a21caf);
+  box-shadow: 0 8px 22px -8px rgba(139, 92, 246, .9), inset 0 0 0 1px rgba(255, 255, 255, .28);
+  color: #fff;
+}
+html.cn #pricing .price-plan-label { color: var(--cn-violet-2, #c4b5fd); }
+html.cn #pricing .pro-price-card .price-plan-label { color: var(--cn-text); }
+html.cn #pricing .pricing-grid-three .price-card .price-amount { color: #fff; }
+html.cn #pricing .pricing-grid-three .pro-price-card .price-amount {
+  background: var(--cn-grad-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+html.cn #pricing .pricing-grid-three .price-card ul { border-top-color: rgba(196, 181, 253, .2); }
+html.cn #pricing .pricing-grid-three .price-card li::before {
+  background: linear-gradient(135deg, rgba(34, 211, 238, .34), rgba(139, 92, 246, .4));
+}
+html.cn #pricing .pricing-grid-three .price-card li::after { background: #fff; }
+html.cn #pricing .pricing-grid-three .price-card li.feature-unavailable::before {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px rgba(196, 181, 253, .34);
+}
+html.cn #pricing .pricing-grid-three .price-card li.feature-unavailable::after { background: var(--cn-text-3); }
+
+html.cn #pricing .cn-seat-options,
+html.cn #pricing #cnCheckoutConsentBox,
+html.cn #pricing .pricing-grid-three .price-card > .business-email-note {
+  border-color: rgba(196, 181, 253, .24);
+  background: var(--cn-pg-inset);
+}
+html.cn #pricing .cn-seat-options::before {
+  background: linear-gradient(135deg, rgba(34, 211, 238, .28), rgba(139, 92, 246, .4));
+  box-shadow: inset 0 0 0 1px rgba(103, 232, 249, .45);
+}
+html.cn #pricing .cn-seat-option.is-active { color: var(--cn-cyan-2); }
+
+html.cn #pricing .plan-select-btn { border-color: var(--cn-line-ctl); }
+@media (hover: hover) and (pointer: fine) {
+  html.cn #pricing .plan-select-btn:not(:disabled):hover {
+    border-color: rgba(225, 218, 255, .7);
+    background: rgba(196, 181, 253, .14);
+  }
+}
+html.cn #pricing #proPlanBtn:not(:disabled) { box-shadow: var(--cn-glow-cta); }
+@media (hover: hover) and (pointer: fine) {
+  html.cn #pricing #proPlanBtn:not(:disabled):hover { box-shadow: var(--cn-glow-cta-hover); }
+}
+html.cn #pricing .pricing-notice { background: var(--cn-pg-fill) padding-box, var(--cn-pg-edge) border-box; border: 1px solid transparent; }
+
+/* ---------- FAQ: each question a glass row ---------- */
+html.cn #pricing .cn-faq-eyebrow,
+html.cn #pricing .cn-faq-head .cn-eyebrow { color: var(--cn-cyan-2); }
+html.cn #pricing .cn-faq-head h2 span {
+  background: var(--cn-grad-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+html.cn #pricing .cn-faq-list { display: grid; gap: 10px; border-top: 0; }
+html.cn #pricing .cn-faq-item {
+  padding-inline: clamp(16px, 3vw, 24px);
+  border: 1px solid rgba(196, 181, 253, .2);
+  border-radius: var(--cn-r-card);
+  background: rgba(11, 7, 32, .28);
+  transition: border-color var(--cn-dur-2) var(--cn-ease-out), background-color var(--cn-dur-2) var(--cn-ease-out);
+}
+html.cn #pricing .cn-faq-item[open] {
+  border-color: transparent;
+  background: var(--cn-pg-fill) padding-box, var(--cn-pg-edge) border-box;
+  box-shadow: var(--cn-pg-lift);
+}
+html.cn #pricing .cn-faq-item > summary { padding-inline-end: var(--cn-8); }
+html.cn #pricing .cn-faq-item > summary::before,
+html.cn #pricing .cn-faq-item > summary::after { inset-inline-end: 2px; }
+html.cn #pricing .cn-faq-item p { padding-inline-end: 0; }
+@media (hover: hover) and (pointer: fine) {
+  html.cn #pricing .cn-faq-item:not([open]):hover { border-color: rgba(196, 181, 253, .42); background: rgba(196, 181, 253, .08); }
+}
+html.cn #pricing .pricing-footnote > span,
+html.cn #pricing .pricing-renewal-note,
+html.cn #pricing .pricing-legal-operator-note { border-top-color: rgba(196, 181, 253, .2); }
+html.cn #pricing .pricing-legal-operator-note { border-bottom-color: rgba(196, 181, 253, .2); }
+
+@media (forced-colors: active) {
+  html.cn #pricing :is(.pricing-head h1 span, .pricing-grid-three .pro-price-card .price-amount, .cn-faq-head h2 span) {
+    background: none;
+    -webkit-text-fill-color: CanvasText;
+    color: CanvasText;
+  }
+  html.cn :is(#pricing, #about) > .cn-operator { border: 2px solid CanvasText; }
+  html.cn :is(#pricing, #about) > .cn-operator::before { forced-color-adjust: none; background: CanvasText; }
+}

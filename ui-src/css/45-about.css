@@ -421,3 +421,174 @@ html.cn #about .about-value p {
   html.cn #about .av-icon { grid-row: 1; }
   html.cn #about .about-value p { grid-column: 1 / -1; margin-top: var(--cn-2); }
 }
+
+/* ==========================================================================
+   v4 "Aurora" (kit: 30-tools.css section 17; the operator banner is styled in 50-pricing.css
+   for both Pricing and About, the two pages that open with it)
+   ========================================================================== */
+html.cn #about {
+  --cn-pg-sprite: url("/ui/3d/shield-320.webp?v=20261014-1");
+  --cn-pg-sprite-glow: rgba(34, 211, 238, .42);
+}
+@media (min-width: 1100px) {
+  html.cn #about { --cn-pg-sprite: url("/ui/3d/shield.webp?v=20261014-1"); }
+}
+html.cn #about.page {
+  background-image:
+    radial-gradient(46rem 26rem at 50% 16rem, rgba(124, 77, 255, .24), transparent 70%),
+    radial-gradient(32rem 22rem at 0% 22rem, rgba(34, 211, 238, .16), transparent 70%),
+    radial-gradient(32rem 22rem at 100% 30rem, rgba(232, 121, 249, .18), transparent 70%);
+}
+
+/* header: pill, the gradient word, the shield */
+html.cn #about .about-top { position: relative; isolation: isolate; }
+html.cn #about .about-top .pill {
+  padding: 0 14px 0 28px;
+  background:
+    radial-gradient(circle at 14px 50%, var(--cn-cyan) 0 3px, rgba(34, 211, 238, .3) 3.5px 7px, transparent 8px),
+    linear-gradient(100deg, rgba(34, 211, 238, .16), rgba(139, 92, 246, .16));
+  box-shadow: inset 0 0 0 1px var(--cn-cyan-line);
+}
+html.cn #about .about-top h1 span {
+  background: linear-gradient(100deg, #67e8f9 0%, #c4b5fd 30%, #f5d0fe 50%, #c4b5fd 70%, #67e8f9 100%) 0 0 / 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+html.cn #about .about-top::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset-block-start: -22px;
+  inset-inline-end: -2px;
+  width: 78px;
+  aspect-ratio: 1;
+  background: var(--cn-pg-sprite) center / contain no-repeat, radial-gradient(closest-side, var(--cn-pg-sprite-glow), transparent 78%) center / 100% 100% no-repeat;
+  pointer-events: none;
+  animation: cn-pg-float 7s ease-in-out infinite;
+  animation-play-state: var(--cn-pg-play, paused);
+}
+@media (min-width: 560px) {
+  html.cn #about .about-top::after { inset-block-start: -14px; width: 130px; }
+}
+@media (min-width: 1100px) {
+  /* The shield sits outside the header column (1200px at most): it uses the space beside it, never
+     more than that, so it is never cut by the screen edge. */
+  html.cn #about .about-top::after {
+    inset-block-start: -20px;
+    inset-inline-end: calc(-1 * min(110px, max(0px, max(var(--cn-gutter), (100vw - 15px - 1200px) / 2) - 8px)));
+    width: 230px;
+  }
+}
+@media (max-width: 359.98px) {
+  html.cn #about .about-top::after { display: none; }
+}
+@supports (animation-timeline: scroll()) {
+  html.cn #about .about-top::after {
+    animation: cn-pg-float 7s ease-in-out infinite, cn-pg-scroll linear both;
+    animation-play-state: var(--cn-pg-play, paused), running;
+    animation-timeline: auto, scroll(root);
+    animation-range: normal, 0 520px;
+  }
+}
+
+/* stats: three glass cards with gradient numbers */
+html.cn #about .about-stats-row {
+  gap: clamp(12px, 2vw, 20px);
+  border: 0;
+}
+html.cn #about .about-stats-row > div:is(:first-child, :nth-child(n)) {
+  border: 1px solid transparent;
+  border-radius: var(--cn-r-panel);
+  background: var(--cn-pg-fill) padding-box, var(--cn-pg-edge) border-box;
+  box-shadow: var(--cn-pg-lift), var(--cn-pg-glow);
+}
+html.cn #about .about-stats-row strong {
+  width: fit-content;
+  background: linear-gradient(135deg, #67e8f9, #60a5fa 55%, #a78bfa);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+html.cn #about .about-stats-row > div:nth-child(2) strong { background-image: linear-gradient(135deg, #c4b5fd, #e879f9 60%, #f5d0fe); }
+html.cn #about .about-stats-row > div:nth-child(3) strong { background-image: linear-gradient(135deg, #99f6e4, #22d3ee 55%, #60a5fa); }
+html.cn #about .about-stats-row span { color: var(--cn-text); }
+
+/* fact sheet, limits note */
+html.cn #about .fetch-panel {
+  border: 1px solid transparent;
+  background: var(--cn-pg-fill) padding-box, var(--cn-pg-edge) border-box;
+  box-shadow: var(--cn-pg-lift), var(--cn-pg-glow);
+}
+html.cn #about .fetch-line { border-top-color: rgba(196, 181, 253, .2); }
+html.cn #about .fetch-key { color: var(--cn-cyan-2); }
+html.cn #about .home-limits-note {
+  border: 1px solid transparent;
+  background: var(--cn-pg-inset-g) padding-box, var(--cn-pg-edge) border-box;
+}
+
+/* story: four glass cards with a numbered gradient pill */
+html.cn #about .about-grid { gap: clamp(14px, 2vw, 24px); }
+html.cn #about .about-block {
+  --cn-ab: #22d3ee;
+  --cn-ab-2: #67e8f9;
+  padding: clamp(22px, 3vw, 36px);
+  border: 1px solid transparent;
+  border-radius: var(--cn-r-panel);
+  background:
+    radial-gradient(80% 140px at 0% 0%, color-mix(in srgb, var(--cn-ab) 16%, transparent), transparent 70%),
+    var(--cn-pg-fill) padding-box,
+    linear-gradient(140deg, color-mix(in srgb, var(--cn-ab) 60%, transparent), rgba(196, 181, 253, .14) 58%, color-mix(in srgb, var(--cn-ab) 26%, transparent)) border-box;
+  box-shadow: var(--cn-pg-lift), inset 0 1px 0 rgba(255, 255, 255, .06);
+}
+html.cn #about .about-block:nth-child(2) { --cn-ab: #8b5cf6; --cn-ab-2: #c4b5fd; }
+html.cn #about .about-block:nth-child(3) { --cn-ab: #e879f9; --cn-ab-2: #f5d0fe; }
+html.cn #about .about-block:nth-child(4) { --cn-ab: #60a5fa; --cn-ab-2: #bfdbfe; }
+html.cn #about .about-block h2 { color: #fff; }
+html.cn #about .about-block h2::before {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  margin-bottom: var(--cn-5);
+  padding: 0 12px;
+  border-radius: var(--cn-r-pill);
+  background: color-mix(in srgb, var(--cn-ab) 22%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cn-ab) 55%, transparent);
+  color: var(--cn-ab-2);
+}
+html.cn #about .about-block p { color: var(--cn-text-2); }
+
+/* values: glass cards, a coloured icon each */
+html.cn #about .about-value {
+  --cn-ab: #22d3ee;
+  border: 1px solid transparent;
+  background: var(--cn-pg-fill) padding-box, var(--cn-pg-edge) border-box;
+  box-shadow: var(--cn-pg-lift), var(--cn-pg-glow);
+}
+html.cn #about .about-value:nth-child(2) { --cn-ab: #8b5cf6; }
+html.cn #about .about-value:nth-child(3) { --cn-ab: #e879f9; }
+html.cn #about .about-value:nth-child(4) { --cn-ab: #5eead4; }
+html.cn #about .av-icon {
+  border: 0;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--cn-ab) 55%, transparent), color-mix(in srgb, var(--cn-ab) 18%, transparent));
+  box-shadow: 0 12px 28px -12px var(--cn-ab), inset 0 0 0 1px color-mix(in srgb, var(--cn-ab) 55%, transparent);
+  color: #fff;
+}
+html.cn #about .about-value h3 { color: #fff; }
+html.cn #about .about-values::before { color: var(--cn-cyan-2); }
+html.cn #about .about-grid + .home-limits-note { margin-top: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  html.cn #about .about-top::after { animation: none; }
+}
+@media (forced-colors: active) {
+  html.cn #about .about-top::after { display: none; }
+}
+
+@media (forced-colors: active) {
+  html.cn #about :is(.about-top h1 span, .about-stats-row strong) {
+    background: none;
+    -webkit-text-fill-color: CanvasText;
+    color: CanvasText;
+  }
+}

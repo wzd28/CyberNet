@@ -1,5 +1,6 @@
-/* Header and overlay helpers (owner: chrome). Bridge rules only: this file clicks the existing
-   Menu and Exit buttons exactly as a user would and never wraps or replaces legacy functions.
+/* Header, footer and overlay helpers (owner: chrome). Bridge rules only: this file clicks the
+   existing Menu and Exit buttons exactly as a user would and never wraps or replaces legacy
+   functions.
    - Escape closes the phone/tablet menu sheet (script.js has no Escape handler for it). It
      listens on window in the capture phase, so while a dialog is open the dialog's own Escape
      handlers run instead and the sheet stays as it is.
@@ -13,11 +14,38 @@
    - html.cn-menu-open mirrors .navbar.open (a MutationObserver on the nav's class), so the
      scroll lock in 10-nav.css needs no root-anchored :has() (DESIGN.md, Performance). The
      class sits on <html>, outside the body-wide legacy observers.
+   - The footer band has one slow decorative glow (15-footer.css). It runs only while the
+     footer is on screen and the tab is visible: this file adds .is-on while the footer is in
+     view, and registers the footer as a pausable module (data-cn="chrome-fx"), so the global
+     "Pause motion" control (CN.pause / CN.resume) stops and restarts it with everything else.
    Focus containment for the sheet and the dialogs lives in 08-focus.js (platform owner). */
 (function () {
   "use strict";
   var CN = window.CN;
   if (!CN) return;
+
+  /* ---------- footer glow: on screen only, pausable ---------- */
+  var footer = document.querySelector("body > footer");
+  if (footer && !footer.getAttribute("data-cn")) footer.setAttribute("data-cn", "chrome-fx");
+
+  CN.register("chrome-fx", function (el) {
+    var visible = false, paused = false;
+    function apply() {
+      el.classList.toggle("is-on", visible && !CN.hidden());
+      el.classList.toggle("is-paused", paused);
+    }
+    var stopView = CN.inView(el, function (v) { visible = v; apply(); }, { margin: "120px 0px" });
+    var stopVis = CN.onVisibility(apply);
+    return {
+      pause: function () { paused = true; apply(); },
+      resume: function () { paused = false; apply(); },
+      destroy: function () {
+        stopView();
+        stopVis();
+        el.classList.remove("is-on", "is-paused");
+      }
+    };
+  }, { eager: true });
 
   CN.onReady(function () {
     var nav = CN.qs(".navbar");

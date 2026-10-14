@@ -1,36 +1,21 @@
-/* CyberNet AI "Signal": base layer (owner: foundation).
-   The ground every other partial stands on: legacy token remap, page ground, type, links,
-   focus, selection, scrollbars, the two-tone headline rule, the page container, the legacy
-   decoration switch-off and the calm restyle of the legacy shared controls (buttons, pills,
-   cards, form fields).
+/* CyberNet AI v4 "Aurora": base layer (owner: aurora).
+   The ground every other partial stands on: page ground, type, links, focus, selection,
+   scrollbars, the two-tone headline rule, the page container, the legacy decoration switch-off,
+   the reveal motion and the restyle of the legacy shared controls (buttons, pills, luminous
+   glass cards, form fields). The legacy variable remap lives in 00-tokens.css, so light bands
+   remap it too.
    House rules: every selector starts with html.cn. Specificity stays at (0,2,x) or lower, and
    :where() wraps context, so the later page partials win any tie by source order.
    No display:!important on anything JS shows or hides (see maps/HAZARDS.md). */
 
 /* ------------------------------------------------------------------------------------------
-   1. Legacy token remap
-   style.css, the add-on sheets and some JS template strings read these variables. Pointing
-   them at the Signal tokens recolours every untouched legacy rule at once. --font-mono is
-   the big one: legacy used it for headings, nav, buttons and inputs, so it now maps to the
-   sans; real labels get JetBrains Mono back explicitly in section 4.
+   1. Root
+   The legacy variables (--bg, --green, --text ...) are remapped in 00-tokens.css, on the root
+   and on every light band, so untouched legacy rules follow the section tone. --font-mono is
+   the one remap kept here: legacy used it for headings, nav, buttons and inputs, so it maps to
+   the sans; real labels get JetBrains Mono back explicitly in section 3.
    ------------------------------------------------------------------------------------------ */
 html.cn {
-  --bg: var(--cn-bg);
-  --bg-alt: var(--cn-bg-2);
-  --glass: var(--cn-surface);
-  --glass-strong: var(--cn-surface-2);
-  --glass-border: var(--cn-line);
-  --glass-border-strong: var(--cn-line-2);
-  --glass-border-quiet: var(--cn-line);
-  --green: var(--cn-cyan);
-  --green-dim: var(--cn-teal);
-  --green-bright: var(--cn-cyan-2);
-  --text: var(--cn-text);
-  --muted: var(--cn-text-2);
-  --soft: var(--cn-text-2);
-  --danger: var(--cn-danger);
-  --warning: var(--cn-warn);
-  --safe: var(--cn-safe);
   --font-body: var(--cn-font);
   --font-mono: var(--cn-font);
   --radius-card: var(--cn-r-card);
@@ -46,11 +31,13 @@ html.cn {
 
 /* ------------------------------------------------------------------------------------------
    2. Ground
-   One flat background, on body only (it propagates to the canvas, so overscroll areas match).
-   overflow-x:clip (not hidden) keeps position:sticky working.
+   One background, on body only: it propagates to the canvas, so overscroll areas match and
+   the aurora's fixed layers (03-aurora.css, z-index below 0) paint above it. 03-aurora.css
+   also adds the light crown at the top of every page. overflow-x:clip (not hidden) keeps
+   position:sticky working.
    ------------------------------------------------------------------------------------------ */
 html.cn body {
-  background: var(--cn-bg);
+  background-color: var(--cn-p-night);
   color: var(--cn-text);
   font-family: var(--cn-font);
   font-size: var(--cn-step-body);
@@ -65,15 +52,11 @@ html.cn body {
   overflow-x: clip;
 }
 
-/* Legacy decoration off: the scanline overlay and animated top bar (body pseudo-elements),
-   the orbs / aurora / grid / shield watermark / wave layer and the particle canvas (script.js
-   only ever writes display:none and sizes inline). The hero cursor glow is gone from the
-   markup (script.js returns early without #cursorGlow). */
-html.cn body::before,
-html.cn body::after {
-  content: none;
-  animation: none;
-}
+/* Legacy decoration off: the orbs / aurora / grid / shield watermark / wave layer and the
+   particle canvas (script.js only ever writes display:none and sizes inline). The legacy
+   scanline overlay and animated top bar lived on body::before / body::after; 03-aurora.css
+   reuses those two pseudo-elements for the aurora and resets every legacy property on them.
+   The hero cursor glow is gone from the markup (script.js returns early without #cursorGlow). */
 html.cn .background,
 html.cn #particleCanvas {
   display: none;
@@ -115,6 +98,22 @@ html.cn :where(main) :is(h1, h2) > span:where(:not([class])) {
   -webkit-background-clip: border-box;
   background-clip: border-box;
   text-shadow: none;
+}
+
+/* Gradient words (.cn-grad): the brand light passing through a word. Every stop of
+   --cn-grad-text clears 4.5:1 on its ground (dark: #67e8f9 .. #f0abfc; light bands: #0b6a84 ..
+   #a21caf). The plain colour underneath is the fallback where background-clip:text is missing. */
+html.cn .cn-grad {
+  color: var(--cn-cyan-2);
+  background: var(--cn-grad-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+@media (forced-colors: active) {
+  html.cn .cn-grad { -webkit-text-fill-color: currentColor; background: none; }
 }
 
 /* Page titles on every page except Home (the hero has its own scale). */
@@ -170,16 +169,16 @@ html.cn :where(a:not([class])) {
    4. Selection, focus, scrollbars
    ------------------------------------------------------------------------------------------ */
 html.cn ::selection {
-  background: var(--cn-deep);
-  background: color-mix(in srgb, var(--cn-cyan) 34%, transparent);
+  background: rgba(34, 211, 238, .34);
   color: var(--cn-text);
 }
 
-/* One focus ring everywhere: 2px cyan, 3px off the edge (outline follows border-radius and
-   survives forced-colours mode, unlike a box-shadow ring). (0,2,1) beats the legacy
-   outline:none on inputs and small buttons. */
+/* One focus ring everywhere: 2px, 3px off the edge (an outline follows border-radius and
+   survives forced-colours mode, unlike a box-shadow ring). --cn-ring is bright cyan on dark
+   grounds and #0b6a84 on light bands (cyan itself is 1.7:1 on lavender). (0,2,1) beats the
+   legacy outline:none on inputs and small buttons. */
 html.cn :focus-visible {
-  outline: 2px solid var(--cn-cyan);
+  outline: 2px solid var(--cn-ring);
   outline-offset: 3px;
 }
 html.cn :focus:not(:focus-visible) { outline: none; }
@@ -221,61 +220,100 @@ html.cn .page:where(:not(#home)) {
   padding-block-end: clamp(48px, 1.5rem + 3vw, 80px);
 }
 
-/* Identity glow: every inner page opens on a faint, static wash of its accent behind the
-   title (Quick Scan cyan, Analysis AI iris, Recovery mint; Learn, Pricing and About a softer
-   cyan), a quiet echo of the Home stage. The ellipse is centred 14rem down with a 20rem
-   radius that fades out by 70%, so it has gone to nothing at the page's top edge (no seam
-   under the header). No blur, no animation, nothing to do for reduced motion. */
+/* Identity glow: every inner page opens on a wash of its accent behind the title (Quick Scan
+   cyan, Analysis AI violet, Recovery mint; Learn, Pricing and About a cyan-violet mix), lit
+   like the Home stage. Two ellipses (the accent, plus a violet echo on the far side) fade out
+   before the page's top edge, so there is no seam under the header. No blur, no animation. */
 html.cn :is(#cybernet, #cybernetai, #recovery, #learn, #pricing, #about).page {
-  background-image: radial-gradient(56rem 20rem at var(--cn-glow-x, 50%) 14rem, var(--cn-id-glow, rgba(34, 211, 238, .06)), transparent 70%);
+  background-image:
+    radial-gradient(52rem 22rem at var(--cn-glow-x, 50%) 14rem, var(--cn-id-glow, rgba(34, 211, 238, .14)), transparent 70%),
+    radial-gradient(40rem 20rem at calc(100% - var(--cn-glow-x, 50%) + 12%) 6rem, var(--cn-id-glow-2, rgba(139, 92, 246, .16)), transparent 72%);
   background-repeat: no-repeat;
 }
-html.cn #cybernet.page { --cn-id-glow: rgba(34, 211, 238, .07); --cn-glow-x: 28%; }
-html.cn #cybernetai.page { --cn-id-glow: rgba(139, 140, 255, .12); --cn-glow-x: 28%; }
-html.cn #recovery.page { --cn-id-glow: rgba(94, 234, 212, .08); }
+html.cn #cybernet.page { --cn-id-glow: rgba(34, 211, 238, .16); --cn-glow-x: 28%; }
+html.cn #cybernetai.page { --cn-id-glow: rgba(139, 92, 246, .28); --cn-id-glow-2: rgba(232, 121, 249, .12); --cn-glow-x: 28%; }
+html.cn #recovery.page { --cn-id-glow: rgba(94, 234, 212, .14); --cn-id-glow-2: rgba(139, 92, 246, .14); }
 html.cn[dir="rtl"] :is(#cybernet, #cybernetai).page { --cn-glow-x: 72%; }
 
 /* ------------------------------------------------------------------------------------------
-   6. Legacy reveal, retimed
-   script.js adds .show (page switch, scroll, tab clicks); only the motion curve changes here.
-   Scoped to .page: the modal cards carry .reveal and never get .show. The rest state is
-   transform:none so no containing block lingers for fixed children.
+   6. Reveals
+   a) Legacy .reveal: script.js adds .show to every reveal of the page in one cascade when the
+      page opens (and again on tab clicks), so it is a page-load entrance, not a scroll reveal.
+      Only its curve changes here. Scoped to .page: the modal cards carry .reveal and never get
+      .show. The rest state is transform:none, so no containing block lingers.
+   b) Scroll reveals, driven by 05-reveal.js ([data-cn-reveal], [data-cn-stagger]). Blocks rise
+      out of a soft blur as they scroll in (blur only from 761px: on a phone-sized block a
+      filter costs more than it shows; the end state is filter:none exactly). On Home,
+      05-reveal.js also tags the section heads, the support box and the limits note (blocks
+      with their own scroll motion are left alone); data-cn-reveal="off" keeps a block out. The hidden state exists only once
+      the UI script has run (html.cn-js) and only until the element is in view (.is-in), so
+      nothing can get stuck. Variants: data-cn-reveal="fade" (no rise), "scale" (settles from
+      1.04, for photos), "clip" (wipes up from the bottom edge, for photos and panels).
+      Children of [data-cn-stagger] rise one after another (70 ms apart, --cn-i).
    ------------------------------------------------------------------------------------------ */
 html.cn :where(.page) .reveal {
   transform: translate3d(0, 18px, 0);
-  transition: opacity .7s var(--cn-ease-out), transform .7s var(--cn-ease-out);
+  transition: opacity .7s var(--cn-ease-out), transform .8s var(--cn-ease-out);
 }
 html.cn :where(.page) .reveal.show {
   opacity: 1;
   transform: none;
 }
 
-/* Opt-in reveals driven by 05-reveal.js. The hidden state exists only once the UI script has
-   run (html.cn-js) and only until the element is in view (.is-in), so nothing can get stuck.
-   Children of [data-cn-stagger] rise in one after another (--cn-i is set per child, 70ms). */
-html.cn.cn-js [data-cn-reveal]:not(.is-in),
+html.cn.cn-js [data-cn-reveal]:not(.is-in, [data-cn-reveal="off"]),
 html.cn.cn-js [data-cn-stagger]:not(.is-in) > * {
   opacity: 0;
 }
 html.cn [data-cn-reveal].is-in {
-  animation: cn-rise .7s var(--cn-ease-out) backwards;
+  animation: cn-rise .9s var(--cn-ease-out) backwards;
+  animation-delay: var(--cn-d, 0ms);
 }
 html.cn [data-cn-stagger].is-in > * {
-  animation: cn-rise .7s var(--cn-ease-out) backwards;
+  animation: cn-rise .8s var(--cn-ease-out) backwards;
   animation-delay: calc(var(--cn-i, 0) * 70ms);
 }
+html.cn [data-cn-reveal="fade"].is-in { animation-name: cn-fade; }
+html.cn [data-cn-reveal="scale"].is-in { animation-name: cn-settle; animation-duration: 1.2s; }
+html.cn [data-cn-reveal="clip"].is-in { animation-name: cn-wipe; animation-duration: 1.1s; animation-timing-function: var(--cn-ease-emph); }
 /* Already on screen when the script arrived: shown as is, no replay. */
 html.cn [data-cn-reveal].is-done,
 html.cn [data-cn-stagger].is-done > * {
   animation: none;
 }
 @keyframes cn-rise {
-  from { opacity: 0; translate: 0 18px; }
+  from { opacity: 0; translate: 0 24px; }
   to { opacity: 1; translate: none; }
+}
+@keyframes cn-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes cn-settle {
+  from { opacity: 0; scale: 1.04; }
+  to { opacity: 1; scale: none; }
+}
+@keyframes cn-wipe {
+  from { opacity: .2; clip-path: inset(0 0 100% 0 round var(--cn-r-card)); }
+  to { opacity: 1; clip-path: inset(0 0 0 0 round var(--cn-r-card)); }
+}
+/* Wide screens add the soft blur to the opt-in rise as well (the end state is filter:none). */
+@media (min-width: 761px) {
+  html.cn [data-cn-reveal]:not([data-cn-reveal="fade"], [data-cn-reveal="scale"], [data-cn-reveal="clip"]).is-in,
+  html.cn [data-cn-stagger].is-in > * {
+    animation-name: cn-rise-blur;
+  }
+  @keyframes cn-rise-blur {
+    from { opacity: 0; translate: 0 24px; filter: blur(8px); }
+    to { opacity: 1; translate: none; filter: none; }
+  }
 }
 
 /* ------------------------------------------------------------------------------------------
    7. Buttons (legacy .primary-btn / .secondary-btn; .cn-btn shares the primary look)
+   Primary: the cyan pill with ink text (10.9:1) on every ground (--cn-brand never changes with
+   the section tone), lit from above. The soft outer glow belongs to the primary CTA only: the
+   .big buttons (the hero's "Start scanning" and the closing "Check a message or link") and
+   .cn-cta. Secondary: glass on dark, white on light bands.
    Lift and press use the independent translate/scale properties, so no legacy transform rule
    and no JS-set transform is fought. Buttons never move toward the pointer.
    ------------------------------------------------------------------------------------------ */
@@ -302,6 +340,7 @@ html.cn :is(.primary-btn, .secondary-btn, .cn-btn) {
   transition:
     background-color var(--cn-dur-1) ease,
     border-color var(--cn-dur-1) ease,
+    box-shadow var(--cn-dur-2) var(--cn-ease-out),
     color var(--cn-dur-1) ease,
     opacity var(--cn-dur-1) ease,
     translate var(--cn-dur-2) var(--cn-ease-out),
@@ -310,16 +349,24 @@ html.cn :is(.primary-btn, .secondary-btn, .cn-btn) {
 html.cn .cn-btn { display: inline-flex; }
 
 html.cn :is(.primary-btn, .cn-btn) {
-  background: var(--cn-cyan);
-  color: var(--cn-on-cyan);
+  background: var(--cn-brand);
+  color: var(--cn-on-brand);
   border: 1px solid transparent;
-  box-shadow: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), inset 0 -1px 0 rgba(11, 7, 32, .16);
+}
+/* The primary CTA glows: a soft cyan halo, no motion. */
+html.cn :is(.primary-btn, .cn-btn):is(.big, .cn-cta) {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), inset 0 -1px 0 rgba(11, 7, 32, .16), var(--cn-glow-cta);
+}
+/* On a light band the pill gets a teal edge, so it reads against the lavender (1.7:1 alone). */
+html.cn :is(.cn-light, [data-cn-tone="light"], #home > .cn-live, #home > .cn-demo, #home > .why-choose, #home > .wow-section) :is(.primary-btn, .cn-btn) {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), 0 0 0 1px rgba(14, 116, 144, .4), 0 8px 20px -10px rgba(14, 116, 144, .55);
 }
 html.cn .secondary-btn {
-  background: transparent;
+  background: var(--cn-fill-1);
   color: var(--cn-text);
   border: 1px solid var(--cn-line-2);
-  box-shadow: none;
+  box-shadow: inset 0 1px 0 var(--cn-hi);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
@@ -333,12 +380,14 @@ html.cn :is(.primary-btn, .secondary-btn, .cn-btn).big {
 html.cn :is(.primary-btn, .secondary-btn, .cn-btn):hover { transform: none; }
 @media (hover: hover) and (pointer: fine) {
   html.cn :is(.primary-btn, .cn-btn):not(:disabled):hover {
-    background: var(--cn-cyan-2);
-    box-shadow: none;
+    background: var(--cn-brand-2);
     translate: 0 -1px;
   }
+  html.cn :is(.primary-btn, .cn-btn):is(.big, .cn-cta):not(:disabled):hover {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6), inset 0 -1px 0 rgba(11, 7, 32, .14), var(--cn-glow-cta-hover);
+  }
   html.cn .secondary-btn:not(:disabled):hover {
-    background: var(--cn-surface-2);
+    background: var(--cn-fill-2);
     border-color: var(--cn-line-2);
     color: var(--cn-text);
     translate: 0 -1px;
@@ -394,7 +443,8 @@ html.cn .inline-link-btn {
 /* ------------------------------------------------------------------------------------------
    8. Pills and eyebrows
    Every legacy .pill is a section eyebrow (pricing and about heads; the hero button is
-   restyled by the hero partial).
+   restyled by the hero partial). Same look as .cn-eyebrow (02-components.css): a lit pill with
+   a cyan-to-violet wash and a hairline edge.
    ------------------------------------------------------------------------------------------ */
 html.cn .pill {
   display: inline-flex;
@@ -403,9 +453,9 @@ html.cn .pill {
   min-height: 28px;
   margin-bottom: var(--cn-5);
   padding: 4px 12px;
-  border: 1px solid transparent;
+  border: 1px solid var(--cn-cyan-line);
   border-radius: var(--cn-r-pill);
-  background: var(--cn-cyan-tint);
+  background: linear-gradient(100deg, var(--cn-cyan-tint), var(--cn-iris-tint));
   color: var(--cn-cyan-2);
   font-family: var(--cn-font-mono);
   font-size: var(--cn-step-label);
@@ -413,7 +463,7 @@ html.cn .pill {
   line-height: 1.3;
   letter-spacing: var(--cn-track-label);
   text-transform: uppercase;
-  box-shadow: none;
+  box-shadow: inset 0 1px 0 var(--cn-hi);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
@@ -428,15 +478,18 @@ html.cn .account-eyebrow {
 }
 
 /* ------------------------------------------------------------------------------------------
-   9. Cards
-   Inside <main>, legacy .glass becomes a calm card: surface fill, one hairline, no blur,
-   no glow. Controls that carry .glass (buttons, pills, segmented tracks) are left out.
+   9. Cards: luminous glass
+   Inside <main>, legacy .glass becomes a card of light: an indigo glass the aurora glows
+   through, a sheen from above, a hairline edge lit on top and a soft drop shadow. On a light
+   band the same tokens make it a white card. No backdrop blur (80-perf.css): the tint alone
+   carries the glass look and costs nothing per frame. Controls that carry .glass (buttons,
+   pills, segmented tracks) are left out.
    ------------------------------------------------------------------------------------------ */
 html.cn :where(main) .glass:where(:not(.primary-btn, .secondary-btn, .pill, .detect-tabs, .pricing-toggle)) {
-  background: var(--cn-surface);
+  background: var(--cn-sheen), var(--cn-glass);
   border: 1px solid var(--cn-line);
   border-radius: var(--cn-r-card);
-  box-shadow: none;
+  box-shadow: inset 0 1px 0 var(--cn-hi), var(--cn-shadow-card);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
@@ -450,7 +503,7 @@ html.cn :where(main) :is(.detect-tabs, .pricing-toggle).glass {
 
 /* Shared blocks that end most pages. The support box is one component in 02-components.css. */
 html.cn .home-limits-note {
-  background: var(--cn-surface);
+  background: var(--cn-glass);
   border: 1px solid var(--cn-line);
   border-radius: var(--cn-r-card);
   color: var(--cn-text-2);
@@ -462,9 +515,9 @@ html.cn .home-limits-note strong { color: var(--cn-text); }
 /* ------------------------------------------------------------------------------------------
    10. Form fields
    Visual properties only: the heights, widths and margins that script.js and the legacy
-   layouts rely on stay as they are. 16px text stops iOS from zooming on focus. The mono
-   font and the cyan glow are gone. The edge uses --cn-line-ctl (at least 3:1 against the card), the
-   one non-text contrast a field needs, since its fill barely differs from the card.
+   layouts rely on stay as they are. 16px text stops iOS from zooming on focus. The mono font
+   and the cyan glow are gone. The edge uses --cn-line-ctl (at least 3:1 against the card),
+   the one non-text contrast a field needs, since its fill barely differs from the card.
    (0,1,1)/(0,2,1): any component rule wins.
    ------------------------------------------------------------------------------------------ */
 html.cn :where(textarea, select,
@@ -486,7 +539,7 @@ html.cn :where(textarea, select,
   html.cn :where(textarea, select,
     input:is([type="text"], [type="email"], [type="password"], [type="search"], [type="url"],
       [type="tel"], [type="number"], [type="date"], :not([type]))):hover {
-    border-color: color-mix(in srgb, var(--cn-text) 50%, transparent);
+    border-color: color-mix(in srgb, var(--cn-text) 58%, transparent);
   }
 }
 html.cn :where(textarea, select,
@@ -495,12 +548,11 @@ html.cn :where(textarea, select,
   background-color: var(--cn-surface-2);
   border-color: var(--cn-line-ctl);
   box-shadow: none;
-  outline: 2px solid var(--cn-cyan);
+  outline: 2px solid var(--cn-ring);
   outline-offset: 2px;
 }
 html.cn :where(textarea, input)::placeholder {
   color: var(--cn-text-3);
-  color: color-mix(in srgb, var(--cn-text-2) 62%, var(--cn-text-3));
   font-family: var(--cn-font);
   opacity: 1;
 }
@@ -509,12 +561,12 @@ html.cn :where(textarea, select, input):disabled {
   cursor: not-allowed;
 }
 
-/* Native select with a quiet chevron; the open list is dark (color-scheme on html.cn). */
+/* Native select with a quiet lilac chevron; the open list follows color-scheme. */
 html.cn :where(select) {
   -webkit-appearance: none;
   appearance: none;
   padding-inline-end: 42px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239aa5ad' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23b6aee6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 14px center;
   background-size: 16px 16px;
@@ -539,7 +591,7 @@ html.cn :where(select) option {
   height: 20px;
   margin: 0;
   vertical-align: -4px;
-  border: 1.5px solid color-mix(in srgb, var(--cn-text) 44%, transparent); /* about 4:1 ring (WCAG 1.4.11) */
+  border: 1.5px solid color-mix(in srgb, var(--cn-text) 50%, transparent); /* 3:1+ ring (WCAG 1.4.11) */
   border-radius: 6px;
   background: var(--cn-surface-2) center / 14px 14px no-repeat;
   box-shadow: none;
@@ -548,9 +600,9 @@ html.cn :where(select) option {
 }
 :where(html.cn input[type="radio"]) { border-radius: 50%; }
 :where(html.cn input[type="checkbox"]:not([role="switch"]):checked) {
-  border-color: var(--cn-cyan);
-  background-color: var(--cn-cyan);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23001018' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E");
+  border-color: var(--cn-brand);
+  background-color: var(--cn-brand);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230b0720' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E");
 }
 :where(html.cn input[type="radio"]:checked) {
   border-color: var(--cn-cyan);

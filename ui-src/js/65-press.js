@@ -1,4 +1,4 @@
-/* CyberNet UI: press feedback and pressed state (owner: foundation).
+/* CyberNet UI: press feedback and pressed state (owner: aurora).
    1. The press itself is CSS (scale .98 on :active, 01-base.css). iOS Safari only applies
       :active while a touchstart listener exists somewhere on the page, so this registers one
       passive no-op listener. Nothing is added to buttons and nothing follows the pointer.

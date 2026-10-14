@@ -1713,3 +1713,214 @@ html.cn #recovery { --cn-support-mt: clamp(48px, 6vw, 96px); }
   html.cn #recovery .recovery-action-check input:active { scale: none; }
   html.cn #recovery :is(#recoveryStartBtn, #recoveryUpdateBtn):hover::after { translate: none; }
 }
+
+/* ==========================================================================
+   7. v4 "Aurora": mint light, glass cards, the ring sprite (kit: 30-tools.css section 17)
+   ========================================================================== */
+html.cn #recovery {
+  --cn-id-grad: linear-gradient(90deg, #5eead4, #22d3ee 62%, #60a5fa);
+  --cn-id-rgb: 94, 234, 212;
+  --cn-pg-sprite: url("/ui/3d/ring.webp?v=20261014-1");
+  --cn-pg-sprite-glow: rgba(94, 234, 212, .45);
+}
+html.cn #recovery.page {
+  background-image:
+    radial-gradient(46rem 24rem at 50% 9rem, rgba(94, 234, 212, .15), transparent 70%),
+    radial-gradient(34rem 22rem at 100% 2rem, rgba(124, 77, 255, .22), transparent 70%),
+    radial-gradient(30rem 20rem at 0% 6rem, rgba(34, 211, 238, .14), transparent 70%);
+}
+
+/* header: pill with a mint dot, a title whose second line carries the mint-to-cyan sweep, the ring */
+html.cn #recovery .recovery-header {
+  position: relative;
+  isolation: isolate;
+}
+html.cn #recovery .recovery-header::before {
+  padding: 0 14px 0 28px;
+  background:
+    radial-gradient(circle at 14px 50%, var(--cn-id) 0 3px, rgba(var(--cn-id-rgb), .3) 3.5px 7px, transparent 8px),
+    linear-gradient(100deg, var(--cn-id-tint), rgba(34, 211, 238, .1));
+  box-shadow: inset 0 0 0 1px var(--cn-id-line);
+}
+html.cn #recovery .recovery-header h1 > span {
+  width: fit-content;
+  margin-inline: auto;
+  background: var(--cn-id-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  padding-block-end: .08em;
+}
+html.cn #recovery .recovery-header::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset-block-start: -34px;
+  inset-inline-end: -4px;
+  width: 88px;
+  aspect-ratio: 1;
+  background: var(--cn-pg-sprite) center / contain no-repeat, radial-gradient(closest-side, var(--cn-pg-sprite-glow), transparent 78%) center / 100% 100% no-repeat;
+  pointer-events: none;
+  animation: cn-pg-float 7.5s ease-in-out infinite;
+  animation-play-state: var(--cn-pg-play, paused);
+}
+@media (min-width: 560px) {
+  html.cn #recovery .recovery-header::after { inset-block-start: -32px; inset-inline-end: -10px; width: 120px; }
+}
+@media (min-width: 1100px) {
+  html.cn #recovery .recovery-header::after { inset-block-start: -40px; inset-inline-end: -84px; width: 176px; }
+}
+@media (max-width: 359.98px) {
+  html.cn #recovery .recovery-header::after { display: none; }
+}
+@supports (animation-timeline: scroll()) {
+  html.cn #recovery .recovery-header::after {
+    animation: cn-pg-float 7.5s ease-in-out infinite, cn-pg-scroll linear both;
+    animation-play-state: var(--cn-pg-play, paused), running;
+    animation-timeline: auto, scroll(root);
+    animation-range: normal, 0 520px;
+  }
+}
+
+html.cn #recovery #recoveryUsageCard {
+  border: 1px solid transparent;
+  background: var(--cn-pg-fill) padding-box, var(--cn-pg-edge) border-box;
+  box-shadow: var(--cn-pg-lift), var(--cn-pg-glow);
+}
+html.cn #recovery #recoveryUsageCard .usage-meter-track { height: 6px; background: rgba(167, 180, 255, .18); }
+/* a little tighter than v3, so the intake field starts higher on a 1280x720 laptop */
+html.cn #recovery .recovery-header { margin-block-end: clamp(24px, 3vw, 36px); }
+html.cn #recovery #recoveryUsageCard { margin-block-start: var(--cn-5); }
+html.cn #recovery #recoveryUsageCaseBar {
+  border-radius: inherit;
+  background: var(--cn-id-grad);
+  box-shadow: 0 0 14px rgba(var(--cn-id-rgb), .7);
+}
+
+/* cards: luminous glass with the gradient hairline */
+html.cn #recovery :is(.recovery-intake-card, .recovery-cases-card, .recovery-summary-card,
+  .recovery-immediate-card, .recovery-timeline-card, .recovery-remaining-card,
+  .recovery-resources-card, .recovery-update-card, .recovery-history-card) {
+  border: 1px solid transparent;
+  background: var(--cn-pg-fill) padding-box, var(--cn-pg-edge) border-box;
+  box-shadow: var(--cn-pg-lift), var(--cn-pg-glow);
+}
+html.cn #recovery .recovery-label-lg { color: #fff; }
+html.cn #recovery :is(#recoveryDescription, #recoveryUpdateText, #recoveryAccounts, .recovery-field-grid select) {
+  background-color: var(--cn-pg-inset);
+  border-color: var(--cn-line-ctl);
+}
+html.cn #recovery .recovery-privacy-warning {
+  border-color: rgba(251, 191, 36, .32);
+  background: linear-gradient(100deg, rgba(251, 191, 36, .1), rgba(11, 7, 32, .3) 60%);
+}
+html.cn #recovery .recovery-toggle {
+  border-color: rgba(196, 181, 253, .3);
+  background: rgba(11, 7, 32, .28);
+}
+html.cn #recovery .recovery-toggle:has(input:checked) {
+  border-color: rgba(94, 234, 212, .6);
+  background: linear-gradient(100deg, rgba(94, 234, 212, .2), rgba(34, 211, 238, .1));
+  box-shadow: 0 10px 28px -16px rgba(94, 234, 212, .7);
+}
+html.cn #recovery .recovery-upload-row {
+  border-color: rgba(103, 232, 249, .4);
+  background: rgba(11, 7, 32, .28);
+}
+html.cn #recovery .recovery-upload-row .upload-icon-sm {
+  border: 0;
+  background: linear-gradient(135deg, rgba(34, 211, 238, .3), rgba(139, 92, 246, .4));
+}
+html.cn #recovery .recovery-upload-row .upload-icon-sm::before { background: #fff; }
+html.cn #recovery :is(#recoveryStartBtn, #recoveryUpdateBtn):not(:disabled) { box-shadow: var(--cn-glow-cta); }
+@media (hover: hover) and (pointer: fine) {
+  html.cn #recovery :is(#recoveryStartBtn, #recoveryUpdateBtn):not(:disabled):hover { box-shadow: var(--cn-glow-cta-hover); }
+}
+html.cn #recovery .recovery-case-item {
+  border-color: rgba(196, 181, 253, .22);
+  background: rgba(11, 7, 32, .3);
+}
+html.cn #recovery .recovery-case-progress { background: rgba(167, 180, 255, .18); }
+html.cn #recovery .recovery-case-progress span { background: var(--cn-id-grad); }
+html.cn #recovery #recoveryCaseList > .recovery-empty-note:only-child::before {
+  border: 0;
+  background: linear-gradient(135deg, rgba(94, 234, 212, .3), rgba(139, 92, 246, .4));
+}
+html.cn #recovery #recoveryCaseList > .recovery-empty-note:only-child::after { background: #fff; }
+
+/* the plan: panels of cells with a lift, a gradient progress value, brighter risk and priority marks */
+html.cn #recovery :is(.recovery-status-row, .recovery-facts-grid) {
+  background: rgba(196, 181, 253, .22);
+  box-shadow: var(--cn-pg-lift);
+}
+html.cn #recovery #recoveryProgressOut {
+  width: fit-content;
+  background: var(--cn-id-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-size: 1.5rem;
+}
+html.cn #recovery .recovery-risk-badge:is(.recovery-risk-critical, .recovery-risk-high, .recovery-risk-medium, .recovery-risk-low) {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 40%, transparent), 0 0 22px -6px currentColor;
+}
+html.cn #recovery .recovery-immediate-card {
+  border-color: transparent;
+  background:
+    radial-gradient(70% 120px at 0% 0%, rgba(94, 234, 212, .16), transparent 70%),
+    var(--cn-pg-fill) padding-box,
+    var(--cn-pg-edge) border-box;
+}
+html.cn #recovery .recovery-timeline-tabs {
+  border-color: rgba(196, 181, 253, .22);
+  background: var(--cn-pg-inset);
+}
+html.cn #recovery .recovery-timeline-tab.active {
+  background: linear-gradient(135deg, rgba(94, 234, 212, .26), rgba(34, 211, 238, .22));
+  box-shadow: inset 0 0 0 1px rgba(94, 234, 212, .5), 0 8px 22px -10px rgba(94, 234, 212, .5);
+  color: #fff;
+}
+html.cn #recovery .recovery-action-check input:checked { box-shadow: 0 0 12px rgba(var(--cn-id-rgb), .6); }
+html.cn #recovery .recovery-locked-note { border-color: rgba(103, 232, 249, .38); background: rgba(11, 7, 32, .26); }
+html.cn #recovery .recovery-locked-note::before { background: linear-gradient(135deg, rgba(34, 211, 238, .3), rgba(139, 92, 246, .4)); }
+html.cn #recovery .recovery-locked-note::after { background: #fff; }
+html.cn #recovery .recovery-pro-upsell {
+  border: 1px solid transparent;
+  background:
+    radial-gradient(80% 160px at 100% 0%, rgba(232, 121, 249, .22), transparent 70%),
+    var(--cn-pg-fill) padding-box,
+    var(--cn-grad-brand) border-box;
+  box-shadow: 0 34px 80px -34px rgba(139, 92, 246, .75), 0 0 60px -26px rgba(34, 211, 238, .45);
+}
+html.cn #recovery .recovery-pro-upsell-icon {
+  background: linear-gradient(135deg, rgba(34, 211, 238, .34), rgba(139, 92, 246, .5));
+  box-shadow: 0 12px 28px -12px rgba(139, 92, 246, .9);
+  color: #fff;
+}
+html.cn #recovery .recovery-pro-upsell-body::before {
+  border-color: rgba(232, 121, 249, .5);
+  background: linear-gradient(100deg, rgba(139, 92, 246, .35), rgba(232, 121, 249, .25));
+  color: #fff;
+}
+html.cn #recovery .recovery-resource-item a { border-color: rgba(196, 181, 253, .34); }
+html.cn #recovery #recoveryUpdateQuestion {
+  border-inline-start-color: var(--cn-violet);
+  background: rgba(11, 7, 32, .36);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.cn #recovery .recovery-header::after { animation: none; }
+}
+@media (forced-colors: active) {
+  html.cn #recovery .recovery-header::after { display: none; }
+}
+
+@media (forced-colors: active) {
+  html.cn #recovery .recovery-header h1 > span,
+  html.cn #recovery #recoveryProgressOut {
+    background: none;
+    -webkit-text-fill-color: CanvasText;
+    color: CanvasText;
+  }
+}

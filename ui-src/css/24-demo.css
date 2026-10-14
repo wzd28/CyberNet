@@ -1,10 +1,15 @@
-/* Home 3 - Example scan (#cnDemo)
-   Copy and steps on the left (5/12), the console on the right (7/12), stacked below 880px.
-   The console is a calm product miniature, never a terminal: graphite surfaces, mono labels,
-   verdict colours only inside the result. 30-demo.js drives it with a class per typed character
-   (.is-on, .is-caret) and custom properties set on the one element that reads each of them
-   (--cn-hp on each highlight, --cn-arc on the arc, --cn-score on the number, --cn-prog on the bar,
-   --cn-fade on the body and footer, --p on each step bar). The static markup is the finished state. */
+/* Home 5 - Example scan (#cnDemo)
+   v4: a LIGHT lavender panel (the shell, ground and light tokens come from 22-live.css) holding the
+   copy and steps on the left (5/12) and the console on the right (7/12), stacked below 880px.
+   The console is a dark glass device for contrast: it re-declares the dark tokens, so everything
+   inside it keeps the product look (indigo surfaces, mono labels, verdict colours only inside the
+   result) while the copy around it reads ink on lavender.
+   It is a calm product miniature, never a terminal. 30-demo.js drives it with a class per typed
+   character (.is-on, .is-caret) and custom properties set on the one element that reads each of
+   them (--cn-hp on each highlight, --cn-arc on the arc, --cn-score on the number, --cn-prog on the
+   bar, --cn-fade on the body and footer, --p on each step bar). The static markup is the finished
+   state. Scroll: the console rises into place as it enters (animation-timeline: view(); 27-bento.js
+   adds .is-in where scroll timelines are missing). Reduced motion: no rise, the finished state. */
 
 /* Registered and not inherited: a frame that moves a highlight or the loop fade restyles that
    one element, not every character inside it. */
@@ -12,17 +17,35 @@
 @property --cn-fade { syntax: "<number>"; inherits: false; initial-value: 1; }
 
 html.cn #home .cn-demo {
-  /* Width, gutters and the section rhythm come from 02-components.css (home container). */
+  /* Panel shell, light ground and light tokens: 22-live.css. */
   container: cn-demo / inline-size;
   font-family: var(--cn-font);
   color: var(--cn-text);
 }
 
 html.cn #home .cn-demo-in {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: clamp(28px, 6cqi, 48px);
+  gap: clamp(32px, 6cqi, 56px);
   align-items: center;
+  max-inline-size: var(--cn-max);
+  margin-inline: auto;
+}
+/* Light behind the device: violet and cyan pools, so it reads as lit from behind (static). */
+html.cn #home .cn-demo-in::before {
+  content: "";
+  position: absolute;
+  inset: 34% -8% -6% -8%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(46% 42% at 62% 48%, rgba(139, 92, 246, .30), transparent 72%),
+    radial-gradient(36% 34% at 30% 72%, rgba(34, 211, 238, .24), transparent 72%),
+    radial-gradient(30% 30% at 88% 20%, rgba(232, 121, 249, .18), transparent 72%);
+}
+@container cn-demo (min-width: 880px) {
+  html.cn #home .cn-demo-in::before { inset: -6% -6% -10% 36%; }
 }
 @container cn-demo (min-width: 880px) {
   html.cn #home .cn-demo-in {
@@ -70,9 +93,9 @@ html.cn #home .cn-step-bar {
   position: absolute;
   inset-block: 6px;
   inset-inline-start: 0;
-  inline-size: 2px;
-  border-radius: 2px;
-  background: var(--cn-line-2);
+  inline-size: 3px;
+  border-radius: 3px;
+  background: #e4e0ff;
   overflow: hidden;
 }
 html.cn #home .cn-step-bar::after {
@@ -80,11 +103,11 @@ html.cn #home .cn-step-bar::after {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: var(--cn-cyan);
+  background: linear-gradient(180deg, #22d3ee, #8b5cf6);
   transform: scaleY(var(--p, 0));
   transform-origin: 50% 0;
 }
-html.cn #home .cn-step.is-done .cn-step-bar::after { background: var(--cn-teal); }
+html.cn #home .cn-step.is-done .cn-step-bar::after { background: linear-gradient(180deg, #0e7490, #6d28d9); }
 html.cn #home .cn-step b {
   display: flex;
   align-items: baseline;
@@ -119,7 +142,7 @@ html.cn #home .cn-step small {
 }
 html.cn #home .cn-step.is-active b,
 html.cn #home .cn-step.is-done b { color: var(--cn-text); }
-html.cn #home .cn-step.is-active b::before { color: var(--cn-cyan-2); }
+html.cn #home .cn-step.is-active b::before { color: #5b2be0; }
 html.cn #home .cn-step.is-done b::before { color: var(--cn-text-2); }
 
 /* Stacked layout: the steps become a 2 x 2 grid with a bar on top of each. */
@@ -130,7 +153,9 @@ html.cn #home .cn-step.is-done b::before { color: var(--cn-text-2); }
   }
   html.cn #home .cn-step { padding-block: 16px 8px; padding-inline: 0; }
   html.cn #home .cn-step-bar { inset-block: 0 auto; inset-inline: 0; inline-size: auto; block-size: 2px; }
-  html.cn #home .cn-step-bar::after { transform: scaleX(var(--p, 0)); transform-origin: 0 50%; }
+  html.cn #home .cn-step-bar::after { transform: scaleX(var(--p, 0)); transform-origin: 0 50%; background: linear-gradient(90deg, #22d3ee, #8b5cf6); }
+  html.cn #home .cn-step.is-done .cn-step-bar::after { background: linear-gradient(90deg, #0e7490, #6d28d9); }
+  html.cn[dir="rtl"] #home .cn-step-bar::after { transform-origin: 100% 50%; }
   html.cn #home .cn-step b { font-size: 1rem; }
 }
 @container cn-demo (max-width: 559px) {
@@ -141,7 +166,19 @@ html.cn #home .cn-step.is-done b::before { color: var(--cn-text-2); }
 /* Pause / Play uses the shared ghost button (02-components.css). Its word carries the state, so it
    is not an aria-pressed toggle: the glyph follows .is-paused (set by 30-demo.js) instead. The
    play triangle always points right, as media controls do in RTL too. */
-html.cn #home .cn-demo [data-cn-demo-toggle] { margin-block-start: clamp(16px, 3cqi, 24px); }
+html.cn #home .cn-demo [data-cn-demo-toggle] {
+  margin-block-start: clamp(18px, 3cqi, 28px);
+  padding-inline: 16px 18px;
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-pill);
+  background: #ffffff;
+  box-shadow: 0 8px 20px -14px rgba(43, 15, 110, .45);
+  color: var(--cn-text);
+  text-decoration-line: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  html.cn #home .cn-demo [data-cn-demo-toggle]:hover { border-color: #c9c0f5; color: #5b2be0; }
+}
 html.cn:not(.cn-js) #home .cn-demo [data-cn-demo-toggle] { display: none; }
 html.cn #home .cn-demo [data-cn-demo-toggle]::before {
   content: "";
@@ -161,16 +198,82 @@ html.cn #home .cn-demo [data-cn-demo-toggle].is-paused::before {
   border-left: 9px solid currentColor;
 }
 
-/* ---------- Console ---------- */
+/* ---------- Console: a dark glass device on the light panel ---------- */
 html.cn #home .cn-console {
+  /* A dark scope inside the light panel: the device restates the dark (root) tokens of
+     00-tokens.css, on slightly deeper surfaces so it reads as an object on the lavender. Every
+     text pair is >= 4.5:1 on its surface (text-3 #b6aee6 is 6.3:1 on surface-3). */
+  --cn-text: #f7f5ff;
+  --cn-text-2: #cfc8f5;
+  --cn-text-3: #b6aee6;
+  --cn-line: rgba(196, 181, 253, .16);
+  --cn-line-2: rgba(196, 181, 253, .28);
+  --cn-surface: #171046;
+  --cn-surface-2: #201857;
+  --cn-surface-3: #2c2370;
+  --cn-bg: #0f0a2f;
+  --cn-bg-2: #120c38;
+  --cn-cyan: #22d3ee;
+  --cn-cyan-2: #67e8f9;
+  --cn-ice: #e6fbff;
+  --cn-teal: #0e7490;
+  --cn-cyan-tint: rgba(34, 211, 238, .12);
+  --cn-cyan-line: rgba(34, 211, 238, .42);
+  --cn-ring: #22d3ee;
+  --cn-violet: #8b5cf6;
+  --cn-violet-2: #c4b5fd;
+  --cn-magenta: #e879f9;
+  --cn-iris: #a992ff;
+  --cn-iris-2: #c9bbff;
+  --cn-safe: #34d399;
+  --cn-safe-tint: rgba(52, 211, 153, .14);
+  --cn-warn: #fbbf24;
+  --cn-warn-tint: rgba(251, 191, 36, .14);
+  --cn-danger: #ff8a9c;
+  --cn-danger-tint: rgba(255, 122, 144, .14);
+  --cn-focus: 0 0 0 3px #0f0a2f, 0 0 0 5px #22d3ee;
+  color-scheme: dark;
   container: cn-console / inline-size;
+  position: relative;
   min-inline-size: 0;
   margin: 0;
-  overflow: hidden;
-  background: var(--cn-surface);
-  border: 1px solid var(--cn-line-2);
-  border-radius: var(--cn-r-panel);
+  /* Not clipped: nothing inside reaches the rounded edge, and the shield sprite sits over it. */
+  overflow: visible;
+  color: var(--cn-text);
+  border: 1px solid transparent;
+  border-radius: clamp(22px, 1rem + 1cqi, 30px);
+  background:
+    linear-gradient(118deg, rgba(255, 255, 255, .07) 0%, transparent 34%) padding-box,
+    radial-gradient(80% 60% at 100% 0%, rgba(139, 92, 246, .30), transparent 70%) padding-box,
+    radial-gradient(70% 60% at 0% 100%, rgba(34, 211, 238, .16), transparent 70%) padding-box,
+    linear-gradient(165deg, #1e1658 0%, #130d3c 58%, #0f0a2f 100%) padding-box,
+    linear-gradient(140deg, rgba(103, 232, 249, .85), rgba(139, 92, 246, .55) 45%, rgba(232, 121, 249, .7)) border-box;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .12),
+    0 60px 100px -50px rgba(43, 15, 110, .75),
+    0 30px 70px -40px rgba(34, 211, 238, .45);
 }
+
+/* A 3D shield (the CyberNet mark) hangs off the device's bottom-end corner, below the progress bar
+   and clear of the text and of the "Example" label (it sits 60% outside the device, so the
+   panel's own padding holds it). Decorative; loads once the section is near (27-bento.js). */
+html.cn #home .cn-console::after {
+  --cn-sz: clamp(76px, 15cqi, 120px);
+  content: "";
+  position: absolute;
+  z-index: 2;
+  inset-block-end: calc(var(--cn-sz) * -.6);
+  inset-inline-end: calc(var(--cn-sz) * -.22);
+  inline-size: var(--cn-sz);
+  aspect-ratio: 1;
+  pointer-events: none;
+  background: no-repeat center / contain;
+  rotate: 10deg;
+  filter: drop-shadow(0 16px 20px rgba(20, 8, 70, .45));
+  opacity: 0;
+  transition: opacity .9s ease;
+}
+html.cn #home .cn-demo.is-near .cn-console::after { background-image: url("/ui/3d/shield-320.webp?v=20261014-1"); opacity: 1; }
 
 /* Top bar: app name, status (centred), example pill. It wraps instead of overlapping, so large
    browser text moves items onto a new line. The status reserves room for its longest word
@@ -376,9 +479,10 @@ html.cn #home .cn-meter {
   row-gap: 12px;
   min-inline-size: 0;
   padding: 16px 16px 18px;
-  background: var(--cn-bg-2);
+  background: linear-gradient(180deg, rgba(10, 6, 34, .55), rgba(10, 6, 34, .25));
   border: 1px solid var(--cn-line);
   border-radius: var(--cn-r-card);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05);
 }
 html.cn #home .cn-meter > .cn-label { grid-area: label; justify-self: start; }
 html.cn #home .cn-arc {
@@ -394,7 +498,7 @@ html.cn #home .cn-arc-val {
   stroke-width: 12;
   stroke-linecap: round;
 }
-html.cn #home .cn-arc-track { stroke: rgba(255, 255, 255, .07); }
+html.cn #home .cn-arc-track { stroke: rgba(196, 181, 253, .14); }
 html.cn #home .cn-arc-val {
   stroke: var(--cn-danger);
   /* Gap longer than the path, so an empty arc leaves no round-cap dot at its end. */
@@ -410,10 +514,13 @@ html.cn #home .cn-meter-num {
   gap: 3px;
   margin-block-end: -2px;
 }
+html.cn #home .cn-meter-num {
+  --cn-num-size: clamp(2.25rem, 1.6rem + 3cqi, 2.75rem);
+}
 html.cn #home .cn-meter-num b {
   min-inline-size: 2ch;
   font-family: var(--cn-font);
-  font-size: clamp(2.25rem, 1.6rem + 3cqi, 2.75rem);
+  font-size: var(--cn-num-size);
   font-weight: 600;
   line-height: 1;
   letter-spacing: -.04em;
@@ -431,7 +538,7 @@ html.cn.cn-js #home .cn-console.is-ready .cn-meter-num b { font-size: 0; }
 html.cn.cn-js #home .cn-console.is-ready .cn-meter-num b::before {
   counter-reset: cn-score var(--cn-score, 0);
   content: counter(cn-score);
-  font-size: clamp(2.25rem, 1.6rem + 3cqi, 2.75rem);
+  font-size: var(--cn-num-size);
 }
 
 /* Where color-mix() exists, the highlight gains a faint tint and the arc warms from amber to rose
@@ -443,6 +550,28 @@ html.cn.cn-js #home .cn-console.is-ready .cn-meter-num b::before {
 
 /* Verdict badge: the shared look (02-components.css), placed under the meter. */
 html.cn #home .cn-console .cn-verdict { grid-area: verdict; }
+
+/* Phones: the meter lies on its side (arc and score at the start, label and verdict beside it),
+   so the result reads at a glance and the console is about 100px shorter. Folded phones keep
+   the stacked meter. */
+@container cn-console (min-width: 300px) and (max-width: 499px) {
+  html.cn #home .cn-meter {
+    grid-template-columns: minmax(0, 8.75rem) minmax(0, 1fr);
+    grid-template-areas: "arc label" "arc verdict";
+    justify-items: start;
+    align-items: center;
+    column-gap: 18px;
+    row-gap: 10px;
+    padding: 14px 16px;
+  }
+  html.cn #home .cn-meter > .cn-label { align-self: end; }
+  html.cn #home .cn-console .cn-meter .cn-verdict { align-self: start; }
+  html.cn #home .cn-arc { inline-size: 100%; }
+  html.cn #home .cn-meter-num { --cn-num-size: 2rem; justify-self: center; }
+}
+@container cn-console (max-width: 299px) {
+  html.cn #home .cn-arc { inline-size: min(100%, 10rem); }
+}
 
 /* Reasons */
 html.cn #home .cn-reasons {
@@ -485,14 +614,14 @@ html.cn #home .cn-console-foot {
 html.cn #home .cn-progress {
   block-size: 3px;
   border-radius: var(--cn-r-pill);
-  background: rgba(255, 255, 255, .06);
+  background: rgba(196, 181, 253, .12);
   overflow: hidden;
 }
 html.cn #home .cn-progress i {
   display: block;
   block-size: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--cn-teal), var(--cn-cyan));
+  background: linear-gradient(90deg, #22d3ee, #8b5cf6 60%, #e879f9);
   transform: scaleX(var(--cn-prog, 1));
   transform-origin: 0 50%;
 }
@@ -566,6 +695,41 @@ html.cn.cn-js #home .cn-console.is-ready.is-snap .cn-c,
 html.cn.cn-js #home .cn-demo.is-snap .cn-step b,
 html.cn.cn-js #home .cn-demo.is-snap .cn-step b::before { transition: none; }
 
+/* ---------- Scroll: the device rises and un-tilts into place as it enters ---------- */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    html.cn:not(.cn-still) #home .cn-demo .cn-console {
+      transform-origin: 50% 100%;
+      animation: cn-console-rise linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 90%;
+    }
+    html.cn:not(.cn-still) #home .cn-demo .cn-steps {
+      animation: cn-steps-rise linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 100%;
+    }
+  }
+}
+@keyframes cn-console-rise {
+  from { transform: perspective(1400px) rotateX(18deg) translateY(72px) scale(.93); }
+  to { transform: none; }
+}
+@keyframes cn-steps-rise {
+  from { translate: 0 40px; }
+  to { translate: none; }
+}
+/* No scroll timelines: 27-bento.js adds .is-in once the console is a quarter on screen. */
+@supports not (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    html.cn.cn-js #home .cn-demo .cn-console {
+      transform-origin: 50% 100%;
+      transition: transform 1.1s var(--cn-ease-out);
+    }
+    html.cn.cn-js #home .cn-demo .cn-console:not(.is-in) { transform: perspective(1400px) rotateX(14deg) translateY(56px) scale(.95); }
+  }
+}
+
 /* Reduced motion: 30-demo.js renders the finished state once (with transitions snapped off). */
 @media (prefers-reduced-motion: reduce) {
   html.cn #home .cn-console .cn-c { transition: none; }
@@ -585,3 +749,8 @@ html.cn.cn-js #home .cn-demo.is-snap .cn-step b::before { transition: none; }
 
 /* Label floor: no text under --cn-step-label (12px), phones included (DESIGN.md rule 6). */
 html.cn #home :is(.cn-console-top .cn-mono, .cn-status, .cn-from) { font-size: var(--cn-step-label); }
+
+/* Decorative sprites are not drawn in forced colours. */
+@media (forced-colors: active) {
+  html.cn #home .cn-console::after { display: none; }
+}

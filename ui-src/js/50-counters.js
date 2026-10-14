@@ -1,6 +1,9 @@
-/* CyberNet UI: count-up numbers (owner: foundation).
+/* CyberNet UI: count-up numbers (owner: aurora).
    <span data-cn-count="442" data-prefix="$" data-suffix="B">$442B</span>
-   counts from 0 (or data-from) to the value once, when it comes into view. Decimals follow the
+   counts from 0 (or data-from) to the value once, when it comes into view (data-cn-count-dur sets
+   the length in ms; 1700 by default), easing out hard so the last digits settle slowly, the way a
+   mechanical counter does. While it runs the number carries .is-counting (a soft glow, 02-components.css)
+   and .is-done after. Decimals follow the
    value as written ("4.5" counts with one decimal) unless data-decimals says otherwise;
    thousands get commas. The text written in the HTML is the source of truth: it is what
    crawlers, no-JS visitors and reduced-motion visitors see, and it is put back exactly at the
@@ -11,7 +14,9 @@
   var CN = window.CN;
   if (!CN) return;
 
-  var DURATION = 1500, STEP_MS = 48;
+  var DURATION = 1700, STEP_MS = 48;
+  // Exponential ease-out: fast through the big digits, a long gentle settle on the last ones.
+  function ease(p) { return p >= 1 ? 1 : 1 - Math.pow(2, -10 * p); }
 
   function format(v, c) {
     return c.pre + v.toLocaleString("en-US", { minimumFractionDigits: c.dec, maximumFractionDigits: c.dec }) + c.suf;
@@ -29,6 +34,7 @@
       dec: Math.min(dec, 4),
       pre: el.getAttribute("data-prefix") || "",
       suf: el.getAttribute("data-suffix") || "",
+      dur: Math.max(400, Math.min(4000, parseInt(el.getAttribute("data-cn-count-dur"), 10) || DURATION)),
       final: el.textContent
     };
   }
@@ -54,7 +60,7 @@
     var start = 0, lastWrite = 0, shown = el.textContent;
     function frame(t) {
       if (!start) start = t;
-      var p = Math.min(1, (t - start) / DURATION);
+      var p = Math.min(1, (t - start) / c.dur);
       if (p >= 1) {
         el.textContent = c.final;
         el.classList.remove("is-counting");
@@ -62,7 +68,7 @@
         return;
       }
       if (t - lastWrite >= STEP_MS) {
-        var v = c.from + (c.to - c.from) * CN.easeOut(p);
+        var v = c.from + (c.to - c.from) * ease(p);
         var s = format(c.dec ? v : Math.round(v), c);
         if (s !== shown) { el.textContent = s; shown = s; }
         lastWrite = t;

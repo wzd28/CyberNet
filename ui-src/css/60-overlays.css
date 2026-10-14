@@ -1,11 +1,16 @@
 /* ==========================================================================
-   60-overlays.css  -  Modals, the how-to walkthrough, the account / API key /
-   business dialogs, the Legal Center shell and the cookie bar.
+   60-overlays.css  -  v4 "Aurora" dialogs: modals, the how-to walkthrough, the
+   account / API key / business dialogs, the Legal Center shell and the cookie bar.
 
-   Shape: a --cn-surface sheet with a hairline, --cn-r-panel corners and the
-   one soft shadow over a rgba(3,4,6,.72) scrim blurred 8px. Desktop shows a
-   centred sheet; phones get a bottom sheet (top corners only, 92dvh, inner
-   scroll, safe-area padding).
+   Shape: a luminous violet glass sheet (deep violet gradient, a cyan light top-right,
+   a magenta glow bottom-left) with a 1px gradient rim, --cn-r-panel corners and one
+   soft shadow, over a violet scrim blurred 10px. Desktop shows a centred sheet;
+   phones get a bottom sheet (top corners only, 92dvh, inner scroll, safe-area padding).
+
+   Inside a dialog the surface, line and text tokens are re-declared (section 0), so
+   every inner panel, field and chip that reads --cn-surface-2, --cn-line or --cn-text
+   (01-base.css and the rules below) takes the violet palette without a rule of its own,
+   whatever the page-level tokens are.
 
    Contracts kept (maps/HAZARDS.md):
    - Modals open and close only through .modal / .modal.show (display). No
@@ -25,6 +30,42 @@
      file only sizes and places them inside the sheets.
    ========================================================================== */
 
+/* ---------- 0. The dialog palette ---------- */
+html.cn :is(.modal, .cn-legal-modal) {
+  --cn-bg: #1c0a58;            /* where the sheet gradient ends (the bottom fades into it) */
+  --cn-bg-2: #190a50;          /* wells inside a sheet */
+  --cn-surface: #240d6a;
+  --cn-surface-2: #2c1380;     /* field fills and raised items (opaque: native option lists use it) */
+  --cn-surface-3: #371a98;
+  --cn-line: rgba(196, 181, 253, .20);
+  --cn-line-2: rgba(196, 181, 253, .34);
+  --cn-line-ctl: rgba(214, 207, 253, .52);   /* field edges: 3.7:1 against the sheet, 3.3:1 over the field fill */
+  --cn-text: #f8f6ff;
+  --cn-text-2: #d6cffd;        /* 10.6:1 on the sheet */
+  --cn-text-3: #b8adf2;        /* 7.7:1 on the sheet; 5.8:1 on surface-3 */
+  --cn-on-cyan: #0b0720;
+  --cn-focus: 0 0 0 3px #1d0b57, 0 0 0 5px var(--cn-cyan);
+  --cn-shadow: 0 44px 90px -34px rgba(8, 3, 28, .9);
+  /* legacy tokens the add-on sheets and JS templates read */
+  --bg: var(--cn-bg);
+  --bg-alt: var(--cn-bg-2);
+  --glass: var(--cn-surface);
+  --glass-strong: var(--cn-surface-2);
+  --glass-border: var(--cn-line);
+  --glass-border-strong: var(--cn-line-2);
+  --glass-border-quiet: var(--cn-line);
+  --text: var(--cn-text);
+  --muted: var(--cn-text-2);
+  --soft: var(--cn-text-2);
+  /* the sheet: two soft lights over a deep violet gradient, inside a gradient rim */
+  --cn-sheet:
+    linear-gradient(90deg, transparent, rgba(103, 232, 249, .95) 30%, rgba(196, 181, 253, .9) 62%, rgba(232, 121, 249, .8) 80%, transparent) 50% 0 / 64% 2px no-repeat padding-box,
+    radial-gradient(72% 46% at 100% 0%, rgba(34, 211, 238, .22), transparent 70%) padding-box,
+    radial-gradient(62% 42% at 0% 100%, rgba(232, 121, 249, .20), transparent 70%) padding-box,
+    linear-gradient(165deg, #3a1599 0%, #280e78 48%, #1c0a58 100%) padding-box,
+    linear-gradient(135deg, rgba(103, 232, 249, .95), rgba(139, 92, 246, .7) 46%, rgba(232, 121, 249, .78)) border-box;
+}
+
 /* ---------- 1. Scrim ---------- */
 html.cn .modal {
   padding:
@@ -32,10 +73,10 @@ html.cn .modal {
     max(var(--cn-6), env(safe-area-inset-right, 0px))
     max(var(--cn-6), env(safe-area-inset-bottom, 0px))
     max(var(--cn-6), env(safe-area-inset-left, 0px));
-  background: rgba(3, 4, 6, .72);
-  background: color-mix(in srgb, var(--cn-bg) 72%, transparent);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  background:
+    radial-gradient(60% 50% at 50% 0%, rgba(124, 77, 255, .46), transparent 70%),
+    radial-gradient(50% 40% at 100% 100%, rgba(232, 121, 249, .16), transparent 70%),
+    rgba(18, 7, 56, .72);
   overscroll-behavior: contain;
 }
 
@@ -56,10 +97,10 @@ html.cn :is(#authModal, #feedbackModal, #accountDetailsModal, #cybernetHowToGetK
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: var(--cn-card-pad) var(--cn-card-pad) var(--cn-card-pb);
-  border: 1px solid var(--cn-line-2);
+  border: 1px solid transparent;
   border-radius: var(--cn-r-panel);
-  background: var(--cn-surface);
-  box-shadow: var(--cn-shadow);
+  background: var(--cn-sheet);
+  box-shadow: var(--cn-shadow), 0 0 90px -28px rgba(124, 77, 255, .75), inset 0 1px 0 rgba(255, 255, 255, .16);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   color: var(--cn-text);
@@ -80,7 +121,7 @@ html.cn :is(#authModal, #feedbackModal, #accountDetailsModal, #cybernetHowToGetK
   display: block;
   height: var(--cn-card-pb);
   margin: 0 calc(var(--cn-card-pad) * -1) calc(var(--cn-card-pb) * -1);
-  background: linear-gradient(to bottom, transparent, var(--cn-surface) 85%);
+  background: linear-gradient(to bottom, transparent, var(--cn-bg) 85%);
   pointer-events: none;
 }
 
@@ -103,10 +144,11 @@ html.cn .modal .close-modal {
   width: 40px;
   height: 40px;
   padding: 0;
-  border: 1px solid var(--cn-line);
+  border: 1px solid var(--cn-line-2);
   border-radius: 50%;
-  background: var(--cn-surface-2);
-  color: var(--cn-text-2);
+  background: rgba(255, 255, 255, .10);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14);
+  color: var(--cn-text);
   font-size: 0;
   line-height: 0;
   cursor: pointer;
@@ -162,9 +204,10 @@ html.cn .modal .account-eyebrow {
   min-height: 24px;
   margin: 0 0 var(--cn-3);
   padding: 0 10px;
+  border: 1px solid rgba(103, 232, 249, .32);
   border-radius: var(--cn-r-pill);
-  background: var(--cn-cyan-tint);
-  color: var(--cn-cyan-2);
+  background: linear-gradient(135deg, rgba(34, 211, 238, .18), rgba(139, 92, 246, .30));
+  color: #eafcff;
   font-family: var(--cn-font-mono);
   font-size: 11px;
   font-weight: 500;
@@ -617,10 +660,10 @@ html.cn #howtoVideoModal .video-player-shell {
   height: min(760px, calc(100dvh - 48px));
   max-height: none;
   padding: var(--cn-5) clamp(20px, 1rem + 1.4vw, 32px) clamp(20px, 1rem + 1vw, 28px);
-  border: 1px solid var(--cn-line-2);
+  border: 1px solid transparent;
   border-radius: var(--cn-r-panel);
-  background: var(--cn-surface);
-  box-shadow: var(--cn-shadow);
+  background: var(--cn-sheet);
+  box-shadow: var(--cn-shadow), 0 0 90px -28px rgba(124, 77, 255, .75), inset 0 1px 0 rgba(255, 255, 255, .16);
   color: var(--cn-text);
   font-family: var(--cn-font);
   animation: cn-ov-in var(--cn-dur-3) var(--cn-ease-out) both;
@@ -846,7 +889,10 @@ html.cn #howtoVideoModal .hw-visual {
   padding: clamp(18px, 1rem + 1vw, 28px);
   border: 1px solid var(--cn-line);
   border-radius: var(--cn-r-card);
-  background: var(--cn-bg-2);
+  background:
+    radial-gradient(80% 60% at 100% 0%, rgba(34, 211, 238, .12), transparent 70%),
+    linear-gradient(160deg, rgba(54, 24, 156, .62), rgba(30, 12, 98, .5));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1);
 }
 
 html.cn #howtoVideoModal .hw-tabs {
@@ -938,9 +984,13 @@ html.cn #howtoVideoModal .hw-nav {
   z-index: 1;
   gap: var(--cn-4);
   margin-top: auto;
-  padding-top: var(--cn-4);
-  border-top: 1px solid var(--cn-line);
-  background: var(--cn-surface);
+  padding: var(--cn-2) var(--cn-3);
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-card);
+  background: rgba(34, 12, 100, .8);
+  box-shadow: 0 -14px 30px -20px rgba(8, 3, 28, .9), inset 0 1px 0 rgba(255, 255, 255, .1);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  backdrop-filter: blur(14px) saturate(140%);
 }
 
 html.cn #howtoVideoModal .hw-btn {
@@ -1625,18 +1675,18 @@ html.cn .cn-legal-modal {
     max(var(--cn-6), env(safe-area-inset-right, 0px))
     max(var(--cn-6), env(safe-area-inset-bottom, 0px))
     max(var(--cn-6), env(safe-area-inset-left, 0px));
-  background: rgba(3, 4, 6, .72);
-  background: color-mix(in srgb, var(--cn-bg) 72%, transparent);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  background:
+    radial-gradient(60% 50% at 50% 0%, rgba(124, 77, 255, .46), transparent 70%),
+    radial-gradient(50% 40% at 100% 100%, rgba(232, 121, 249, .16), transparent 70%),
+    rgba(18, 7, 56, .72);
 }
 
 html.cn .cn-legal-modal .cn-legal-dialog {
   height: min(860px, calc(100dvh - 48px));
-  border: 1px solid var(--cn-line-2);
+  border: 1px solid transparent;
   border-radius: var(--cn-r-panel);
-  background: var(--cn-surface);
-  box-shadow: var(--cn-shadow);
+  background: var(--cn-sheet);
+  box-shadow: var(--cn-shadow), 0 0 90px -28px rgba(124, 77, 255, .75), inset 0 1px 0 rgba(255, 255, 255, .16);
   font-family: var(--cn-font);
   animation: cn-ov-in var(--cn-dur-3) var(--cn-ease-out) both;
 }
@@ -1673,10 +1723,11 @@ html.cn .cn-legal-modal .cn-legal-close {
   width: 40px;
   height: 40px;
   padding: 0;
-  border: 1px solid var(--cn-line);
+  border: 1px solid var(--cn-line-2);
   border-radius: 50%;
-  background: var(--cn-surface-2);
-  color: var(--cn-text-2);
+  background: rgba(255, 255, 255, .10);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14);
+  color: var(--cn-text);
   font-size: 20px;
   line-height: 1;
 }
@@ -1685,7 +1736,7 @@ html.cn .cn-legal-modal .cn-legal-tabs {
   gap: 4px;
   padding: var(--cn-2) var(--cn-4);
   border-bottom: 1px solid var(--cn-line);
-  background: var(--cn-surface);
+  background: transparent;
   scrollbar-width: none;
 }
 
@@ -1709,7 +1760,7 @@ html.cn .cn-legal-modal .cn-legal-tab.active {
 }
 
 html.cn .cn-legal-modal .cn-legal-viewer {
-  background: var(--cn-bg-2);
+  background: rgba(18, 7, 56, .42);
   color: var(--cn-text);
   font-family: var(--cn-font);
   scrollbar-color: var(--cn-line-2) transparent;
@@ -1722,7 +1773,7 @@ html.cn .cn-legal-modal .cn-legal-dialog-foot {
   margin: 0;
   padding: var(--cn-3) var(--cn-4) var(--cn-3) var(--cn-6);
   border-top: 1px solid var(--cn-line);
-  background: var(--cn-surface);
+  background: transparent;
   font-family: var(--cn-font);
   font-size: inherit;
   text-align: start;
@@ -1797,32 +1848,35 @@ html.cn .cn-legal-modal :is(.cn-legal-close, .cn-legal-tab, .cn-legal-done):focu
   box-shadow: var(--cn-focus);
 }
 
-/* ---------- 14. Cookie bar (#cnConsentBar). Fixed, z 150, [hidden] and the body padding stay legacy ---------- */
+/* ---------- 14. Cookie bar (#cnConsentBar). Fixed, z 150, [hidden] and the body padding stay legacy ----------
+   Every colour here is a literal: these rules are also picked into the legal-page bundle
+   (cybernet-ui-legal.css), which carries no chrome palette. The bar is opaque enough (95%)
+   to hold its contrast over a light section as well as the violet stage. */
 html.cn .cn-consent {
-  --cn-consent-accent: var(--cn-cyan-2);
-  --cn-consent-text: var(--cn-text);
-  --cn-consent-muted: var(--cn-text-2);
-  --cn-consent-border: var(--cn-line-2);
+  --cn-consent-accent: #67e8f9;
+  --cn-consent-text: #f8f6ff;
+  --cn-consent-muted: #d6cffd;
+  --cn-consent-border: rgba(196, 181, 253, .34);
   left: max(var(--cn-4), env(safe-area-inset-left, 0px));
   right: max(var(--cn-4), env(safe-area-inset-right, 0px));
   bottom: calc(var(--cn-3) + env(safe-area-inset-bottom, 0px));
   max-width: 720px;
   gap: var(--cn-5);
   padding: var(--cn-4) var(--cn-4) var(--cn-4) var(--cn-5);
-  border: 1px solid var(--cn-line-2);
+  border: 1px solid transparent;
   border-radius: var(--cn-r-card);
-  background: rgba(11, 15, 19, .9);
-  background: color-mix(in srgb, var(--cn-surface) 90%, transparent);
-  -webkit-backdrop-filter: blur(16px) saturate(140%);
-  backdrop-filter: blur(16px) saturate(140%);
-  box-shadow: var(--cn-shadow);
-  color: var(--cn-text);
+  background:
+    radial-gradient(70% 90% at 100% 0%, rgba(34, 211, 238, .20), transparent 70%) padding-box,
+    linear-gradient(160deg, rgba(70, 26, 190, .96), rgba(34, 12, 104, .97)) padding-box,
+    linear-gradient(135deg, rgba(103, 232, 249, .95), rgba(139, 92, 246, .7) 50%, rgba(232, 121, 249, .78)) border-box;
+  box-shadow: 0 26px 60px -26px rgba(8, 3, 28, .9), 0 0 60px -22px rgba(124, 77, 255, .7), inset 0 1px 0 rgba(255, 255, 255, .18);
+  color: var(--cn-consent-text);
   font-family: var(--cn-font);
   animation: cn-consent-in var(--cn-dur-3) var(--cn-ease-out) both;
 }
 
 html.cn .cn-consent-title {
-  color: var(--cn-text);
+  color: var(--cn-consent-text);
   font-family: var(--cn-font);
   font-size: 15px;
   font-weight: 600;
@@ -1830,20 +1884,20 @@ html.cn .cn-consent-title {
 }
 
 html.cn .cn-consent-text {
-  color: var(--cn-text-2);
+  color: var(--cn-consent-muted);
   font-size: 13.5px;
   line-height: 1.5;
 }
 
 html.cn .cn-consent-text a {
-  color: var(--cn-cyan-2);
+  color: var(--cn-consent-accent);
   font-weight: 500;
-  text-decoration-color: var(--cn-cyan-line);
+  text-decoration-color: rgba(103, 232, 249, .45);
   text-underline-offset: 3px;
 }
 
 html.cn .cn-consent-current {
-  color: var(--cn-text-2);
+  color: var(--cn-consent-muted);
   font-family: var(--cn-font);
   font-size: 12.5px;
   font-weight: 500;
@@ -1858,10 +1912,10 @@ html.cn .cn-consent-actions {
 html.cn .cn-consent-btn {
   min-height: 44px;
   padding: 0 16px;
-  border: 1px solid var(--cn-line-2);
+  border: 1px solid rgba(196, 181, 253, .42);
   border-radius: var(--cn-r-pill);
-  background: var(--cn-surface-2);
-  color: var(--cn-text);
+  background: rgba(255, 255, 255, .08);
+  color: var(--cn-consent-text);
   font-family: var(--cn-font);
   font-size: 14px;
   font-weight: 600;
@@ -1870,8 +1924,8 @@ html.cn .cn-consent-btn {
 }
 
 html.cn .cn-consent-btn[aria-pressed="true"] {
-  border-color: var(--cn-cyan-line);
-  background: var(--cn-surface-3);
+  border-color: rgba(103, 232, 249, .65);
+  background: rgba(34, 211, 238, .16);
 }
 
 html.cn .cn-consent-btn:active {
@@ -1881,15 +1935,15 @@ html.cn .cn-consent-btn:active {
 html.cn .cn-consent-btn:focus-visible,
 html.cn .cn-consent-text a:focus-visible {
   outline: none;
-  box-shadow: var(--cn-focus);
+  box-shadow: 0 0 0 3px #1d0b57, 0 0 0 5px #22d3ee;
 }
 
 /* ---------- 15. Hover (fine pointers only) ---------- */
 @media (hover: hover) and (pointer: fine) {
   html.cn .modal .close-modal:hover,
   html.cn .cn-legal-modal .cn-legal-close:hover {
-    background: var(--cn-surface-3);
-    color: var(--cn-text);
+    background: rgba(255, 255, 255, .20);
+    color: #fff;
   }
 
   html.cn #authModal .auth-tab:not(.active):hover,
@@ -1954,12 +2008,12 @@ html.cn .cn-consent-text a:focus-visible {
   }
 
   html.cn .cn-consent-btn:hover {
-    border-color: var(--cn-line-2);
-    background: var(--cn-surface-3);
+    border-color: rgba(196, 181, 253, .7);
+    background: rgba(255, 255, 255, .15);
   }
 
   html.cn .cn-consent-text a:hover {
-    color: var(--cn-ice);
+    color: #e6fbff;
   }
 }
 
@@ -2267,6 +2321,44 @@ html.cn .cn-consent-text a:focus-visible {
   }
 }
 
+/* The scrim blurs the page only on wide screens with a fine pointer: a full-screen backdrop blur is a
+   compositor pass per frame over the moving aurora and the hero scene, which phones and tablets do not
+   need (the sheet covers most of a phone, and the scrim is already 78% dark). */
+@media (min-width: 640px) and (hover: hover) and (pointer: fine) {
+  html.cn .modal,
+  html.cn .cn-legal-modal {
+    background:
+      radial-gradient(60% 50% at 50% 0%, rgba(124, 77, 255, .46), transparent 70%),
+      radial-gradient(50% 40% at 100% 100%, rgba(232, 121, 249, .16), transparent 70%),
+      rgba(18, 7, 56, .6);
+    -webkit-backdrop-filter: blur(8px) saturate(130%);
+    backdrop-filter: blur(8px) saturate(130%);
+  }
+}
+
+/* ---------- 17b. Active segments: one raised glass look for every tab strip in a dialog ---------- */
+html.cn :is(#authModal .auth-tab.active, #accountDetailsModal .cn-account-tab.active, #howtoVideoModal .video-modal-tab.active, #howtoVideoModal .hw-tab.is-active, .cn-legal-modal .cn-legal-tab.active) {
+  border-color: rgba(255, 255, 255, .26);
+  background: linear-gradient(180deg, rgba(255, 255, 255, .24), rgba(255, 255, 255, .10));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .30);
+  color: #fff;
+}
+
+/* Windows high contrast: the drawn cross and the sheets keep an edge and a visible glyph */
+@media (forced-colors: active) {
+  html.cn .modal .close-modal::before {
+    forced-color-adjust: none;
+    background: ButtonText;
+  }
+
+  html.cn :is(#authModal, #feedbackModal, #accountDetailsModal, #cybernetHowToGetKeyModal, #businessTeamModal, #acceptInviteModal, .modal) > .modal-card,
+  html.cn #howtoVideoModal .video-player-shell,
+  html.cn .cn-legal-modal .cn-legal-dialog,
+  html.cn .cn-consent {
+    border: 1px solid CanvasText;
+  }
+}
+
 /* ---------- 18. Motion ---------- */
 @keyframes cn-ov-fade {
   from { opacity: 0; }
@@ -2318,13 +2410,13 @@ html.cn .cn-consent-text a:focus-visible {
 @media (prefers-reduced-transparency: reduce) {
   html.cn .modal,
   html.cn .cn-legal-modal {
-    background: rgba(3, 4, 6, .9);
+    background: rgba(11, 7, 32, .92);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
 
   html.cn .cn-consent {
-    background: var(--cn-surface);
+    background: linear-gradient(#2a0f78, #1b0952) padding-box, linear-gradient(135deg, #67e8f9, #8b5cf6, #e879f9) border-box;
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }

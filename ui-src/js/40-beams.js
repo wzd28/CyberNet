@@ -1,10 +1,12 @@
 /* How it decides (.cn-beams[data-cn="beams"]): signal pulses along the diagram and a vertical
    version for narrow containers. The SVG in index.html stays the single source: pulses are cloned
    from its paths and the vertical version reads its node labels, so editing the SVG updates both.
-   The whole box is aria-hidden (the four cards below carry the meaning). Animation is pure CSS.
-   This file builds the extra shapes, tags the AI lane (.is-ai, iris in CSS) and plays ONE run each
-   time the diagram scrolls into view: data-cn-run is set once about half of it is visible and
-   cleared after it has fully left, so the next visit replays it. Nothing loops (the run is about
+   The whole box is aria-hidden (the four points next to it carry the meaning). Animation is CSS.
+   This file builds the extra shapes, tags each path with its lane (.is-in / .is-out, plus .is-ai
+   for the AI lane, read from the SVG geometry), adds the gradients the light band strokes them
+   with (rules lane into cyan, AI lane into violet, the result lane landing in cyan), and plays ONE
+   run each time the diagram scrolls into view: data-cn-run is set once about half of it is visible
+   and cleared after it has fully left, so the next visit replays it. Nothing loops (a run is about
    4 s), and reduced motion never starts a run. A data attribute, not a class, because legacy
    observers re-scan the page on every class change. */
 (function () {
@@ -60,6 +62,22 @@
 
   function inBox(b, x, y) { return !!b && x >= b.x0 && x <= b.x1 && y >= b.y0 && y <= b.y1; }
 
+  /* Lane gradients (userSpaceOnUse: a straight path has a zero-height box, so objectBoundingBox
+     would not paint it). CSS uses them as url(#cnBeamIn) and friends, with a flat fallback. */
+  function gradients(svg, span) {
+    if (doc.getElementById("cnBeamIn")) return;
+    var defs = svgEl("defs", {});
+    [["cnBeamIn", span.inn, "#a5b4fc", "#22d3ee"], ["cnBeamInAi", span.inn, "#d8b4fe", "#8b5cf6"],
+     ["cnBeamOut", span.out, "#22d3ee", "#06b6d4"], ["cnBeamOutAi", span.out, "#8b5cf6", "#22d3ee"]].forEach(function (g) {
+      if (!isFinite(g[1][0]) || !isFinite(g[1][1])) return;
+      var lg = svgEl("linearGradient", { id: g[0], gradientUnits: "userSpaceOnUse", x1: g[1][0], y1: 0, x2: g[1][1], y2: 0 });
+      lg.appendChild(svgEl("stop", { offset: "0", "stop-color": g[2] }));
+      lg.appendChild(svgEl("stop", { offset: "1", "stop-color": g[3] }));
+      defs.appendChild(lg);
+    });
+    svg.insertBefore(defs, svg.firstChild);
+  }
+
   function build(box) {
     var svg = CN.qs("svg", box);
     if (!svg || box.__cnBeamsBuilt) return;
@@ -71,6 +89,7 @@
     var pulses = svgEl("g", { "class": "cn-beam-pulses" });
     var ports = svgEl("g", { "class": "cn-beam-ports" });
     var seen = {}, kIn = 0, kOut = 0;
+    var span = { inn: [Infinity, -Infinity], out: [Infinity, -Infinity] };
     var ai = aiNode(svg), aiBox = nodeBox(ai);
     if (ai) ai.classList.add("is-ai");
 
@@ -83,6 +102,10 @@
       /* a path that starts or ends on the AI node belongs to the AI lane */
       var isAi = p.classList.contains("is-ai") || inBox(aiBox, e.x0, e.y0) || inBox(aiBox, e.x1, e.y1);
       if (isAi) p.classList.add("is-ai");
+      p.classList.add(out ? "is-out" : "is-in");
+      var lane = out ? span.out : span.inn;
+      lane[0] = Math.min(lane[0], e.x0, e.x1);
+      lane[1] = Math.max(lane[1], e.x0, e.x1);
       ["cn-pulse-tail", "cn-pulse-head"].forEach(function (cls) {
         var c = svgEl("path", { d: d, pathLength: "100", "class": cls + (out ? " is-out" : " is-in") + (isAi ? " is-ai" : "") });
         c.style.setProperty("--k", k);
@@ -97,6 +120,7 @@
       });
     });
     if (nodes) { svg.insertBefore(pulses, nodes); svg.appendChild(ports); }
+    gradients(svg, span);
 
     /* the Verdict's soft ring and its arrival ping, sized from the node's own rect */
     var outNode = CN.qs(".cn-node-out", svg), r = outNode && CN.qs("rect", outNode);

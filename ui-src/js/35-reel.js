@@ -1,13 +1,20 @@
-/* Home 4 \u00B7 Three tools, one flow (#cnFlow): an accessible tabbed reel.
+/* Home 6 · Three tools (#cnFlow): an accessible tabbed reel on a violet stage.
    Tabs follow the WAI-ARIA tabs pattern (aria-selected, roving tabindex, arrow/Home/End keys,
    inactive panels inert + aria-hidden). Auto-advance runs only while the reel is on screen and the
    tab is visible: the active tab's progress line is a CSS animation over data-interval, and its
    animationend moves to the next tab, so pausing just freezes the line. Clicking or arrowing to a
-   tab stops auto-advance; the Pause/Play button pauses or restarts it. The Analysis AI bubble
-   ([data-cn-stream]) streams in word by word whenever its panel shows (a class per word, so a
-   frame restyles one word, not the whole bubble). Each tab's one-line description is copied once
-   into its panel as a visible caption (.cn-reel-cap), since the centred segmented tabs show the
-   tool name only. Reduced motion: no auto-advance, no streaming, instant switches. */
+   tab stops auto-advance. The Analysis AI bubble ([data-cn-stream]) streams in word by word
+   whenever its panel shows (a class per word, so a frame restyles one word, not the whole bubble).
+   Each tab's one-line description is copied once into its panel as a caption (.cn-reel-cap).
+
+   v4 stage: a decorative 3D scene (.cn-flow-stage, aria-hidden) is built next to the tabs: the big
+   shield sprite floats in a tilted orbit of small 3D objects, and takes the active tool's colour
+   (data-cn-tool on the reel: scan cyan, ai violet, rec mint; CSS does the tint and the swap spin).
+   Its loops run only while the stage is on screen, the tab is visible, motion is allowed and the
+   section is not paused (data-cn-play on the stage). The one Pause/Play button pauses all motion
+   in the section (the tour and the stage); Play also restarts a tour stopped by a tab click.
+   CN.pause() / CN.resume() (the page-wide motion control) reach it through CN.register.
+   Reduced motion: no auto-advance, no streaming, no loops, instant switches. */
 (function () {
   "use strict";
   var CN = window.CN;
@@ -41,6 +48,29 @@
     b.classList.toggle("is-paused", word === "Play");
   }
 
+  /* The decorative stage: glow, light rays, a floor light, then a 3D layer holding a tilted orbit
+     (three small objects on arms) and the shield. Built once, before the reel is shown, so it
+     never shifts the page when it scrolls into view. */
+  function buildStage(reel, list) {
+    var st = CN.qs(".cn-flow-stage", reel);
+    if (st) return st;
+    st = document.createElement("div");
+    st.className = "cn-flow-stage";
+    st.setAttribute("aria-hidden", "true");
+    st.innerHTML =
+      '<i class="cn-fs-glow"></i><i class="cn-fs-rays"></i><i class="cn-fs-floor"></i>' +
+      '<span class="cn-fs-3d">' +
+        '<span class="cn-fs-orbit"><i class="cn-fs-path"></i><i class="cn-fs-path cn-fs-path--b"></i>' +
+          '<b class="cn-fs-arm cn-fs-arm--a"><i class="cn-fs-sat cn-fs-orb"></i></b>' +
+          '<b class="cn-fs-arm cn-fs-arm--b"><i class="cn-fs-sat cn-fs-ring"></i></b>' +
+          '<b class="cn-fs-arm cn-fs-arm--c"><i class="cn-fs-sat cn-fs-spark"></i></b>' +
+        '</span>' +
+        '<i class="cn-fs-shield"></i>' +
+      '</span>';
+    list.parentNode.insertBefore(st, list.nextSibling);
+    return st;
+  }
+
   /* Set up eagerly (not lazily like other modules): the tabbed layout replaces the stacked no-JS
      layout, so doing it on scroll-in would shift the page as it comes into view. Playback still
      waits for the reel to be on screen (CN.inView below). */
@@ -52,13 +82,18 @@
     var btn = CN.qs("[data-cn-reel-pause]", reel);
     var interval = Math.max(2500, parseInt(reel.getAttribute("data-interval"), 10) || 6500);
     reel.style.setProperty("--cn-reel-int", interval + "ms");
+    /* the tool key of each panel: cnPanelScan -> "scan", cnPanelAi -> "ai", cnPanelRec -> "rec" */
+    var keys = panels.map(function (p, i) { return (p.id.replace(/^cnPanel/, "") || String(i)).toLowerCase(); });
 
     var idx = 0;
     tabs.forEach(function (t, i) { if (t.getAttribute("aria-selected") === "true") idx = i; });
 
     var stopped = CN.reduced(); // a tab was chosen by hand (or motion is reduced): no auto-advance
-    var paused = false;         // Pause button
-    var inview = false;
+    var paused = false;         // Pause button, or the page-wide motion control
+    var inview = false;         // the reel is properly on screen (tour)
+    var stageOn = false;        // any part of the stage is on screen (ambient loops)
+
+    var stage = buildStage(reel, list);
 
     /* Captions: the tab's description, shown above the miniature. The tab keeps only its name
        for assistive tech, and the caption (inside the panel) is read with the panel. */
@@ -118,7 +153,7 @@
       streamLoop.start();
     }
 
-    /* Keep the active chip visible in the phone chip row without scrolling the page. */
+    /* Keep the active chip visible in a scrolling tab row without scrolling the page. */
     function keepVisible(tab) {
       if (list.scrollWidth <= list.clientWidth + 1) return;
       var lr = list.getBoundingClientRect(), tr = tab.getBoundingClientRect(), pad = 16, d = 0;
@@ -144,29 +179,35 @@
         if (on) { p.removeAttribute("aria-hidden"); p.removeAttribute("inert"); }
         else { p.setAttribute("aria-hidden", "true"); p.setAttribute("inert", ""); }
       });
+      /* the stage takes the tool's colour (a data attribute: legacy observers watch "class") */
+      if (reel.getAttribute("data-cn-tool") !== keys[i]) reel.setAttribute("data-cn-tool", keys[i]);
       if (changed && reel.classList.contains("is-shown")) stream(streams[i]);
       keepVisible(tabs[i]);
     }
 
     var lastLabel = null;
     function sync() {
-      var auto = !stopped && !CN.reduced();
+      var still = CN.reduced();
+      var auto = !stopped && !still;
       var playing = auto && !paused && inview && !document.hidden;
+      var ambient = !still && !paused && stageOn && !document.hidden;
       if (reel.classList.contains("is-auto") !== auto) reel.classList.toggle("is-auto", auto);
       if (reel.classList.contains("is-playing") !== playing) reel.classList.toggle("is-playing", playing);
+      if (stage.hasAttribute("data-cn-play") !== ambient) {
+        if (ambient) stage.setAttribute("data-cn-play", ""); else stage.removeAttribute("data-cn-play");
+      }
       if (btn) {
-        var label = auto && !paused ? "Pause" : "Play";
+        var label = paused ? "Play" : "Pause";
         if (label !== lastLabel) {
           lastLabel = label;
           setLabel(btn, label);
         }
-        btn.hidden = CN.reduced();
+        btn.hidden = still;
       }
     }
 
     function choose(i, focus) {
       stopped = true;
-      paused = false;
       select(i);
       if (focus) { try { tabs[idx].focus({ preventScroll: true }); } catch (e) { tabs[idx].focus(); } }
       sync();
@@ -192,10 +233,10 @@
 
     if (btn) {
       btn.addEventListener("click", function () {
-        if (!stopped && !paused) paused = true;
+        if (!paused) paused = true;
         else {
-          if (stopped) { stopped = false; reel.classList.remove("is-auto"); void reel.offsetWidth; } // restart the line
           paused = false;
+          if (stopped) { stopped = false; reel.classList.remove("is-auto"); void reel.offsetWidth; } // restart the line
         }
         sync();
       });
@@ -207,7 +248,7 @@
       select(idx + 1);
     });
 
-    /* Orientation follows the layout: a column of tabs on wide screens, a chip row on phones. */
+    /* Orientation follows the layout: a column of tabs on wide screens, a row on phones. */
     function orient() {
       var vertical = tabs.length > 1 && tabs[1].offsetTop > tabs[0].offsetTop + 4;
       var v = vertical ? "vertical" : "horizontal";
@@ -230,33 +271,24 @@
       }
       sync();
     }, { threshold: [0, .3, .6] });
-    document.addEventListener("visibilitychange", sync);
-
-    var mq = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
-    function onPref() {
-      if (CN.reduced()) {
+    CN.inView(stage, function (vis) { stageOn = vis; sync(); });
+    CN.onVisibility(sync);
+    CN.onMotion(function (still) {
+      if (still) {
         stopped = true;
-        paused = false;
         if (cur) { var c = cur; cur = null; streamLoop.stop(); finish(c); }
       }
       sync();
-    }
-    if (mq) {
-      if (mq.addEventListener) mq.addEventListener("change", onPref);
-      else if (mq.addListener) mq.addListener(onPref);
-    }
+    });
 
     return {
-      pause: function () { inview = false; sync(); },
-      resume: function () { inview = true; sync(); }
+      pause: function () { paused = true; sync(); },
+      resume: function () { paused = false; sync(); }
     };
   }
 
-  CN.onReady(function () {
-    CN.qsa('[data-cn="reel"]').forEach(function (el) {
-      if (el.__cnInit) return;
-      el.__cnInit = true;
-      try { el.__cn = initReel(el); } catch (err) { if (window.console) console.error("[cn:reel]", err); }
-    });
-  });
+  /* eager: the tabbed layout (and the stage) exist before the visitor reaches the section */
+  CN.register("reel", function (el) {
+    try { return initReel(el); } catch (err) { if (window.console) console.error("[cn:reel]", err); return null; }
+  }, { eager: true });
 })();

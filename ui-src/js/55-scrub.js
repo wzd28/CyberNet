@@ -1,11 +1,18 @@
-/* Statement (.home-quote [data-cn="scrub"]): the words brighten from --cn-text-3 to --cn-text as the
+/* Closing (.home-quote): the statement and the big turning shield.
+   Statement ([data-cn="scrub"]): the words brighten from a soft lilac to their line's colour as the
    block scrolls through the viewport. Not pinned. This file splits the text into word spans once
    (each sentence on its own line) and keeps the full sentence in a visually hidden copy for screen
    readers. CSS drives the brightness from --cn-scrub (0..1):
    - where animation-timeline: view() is supported, a CSS animation on the paragraph sets it;
    - otherwise this file sets it from the paragraph's position, only while it is on screen.
-   Reduced motion: CSS shows every word bright.
-   The Workspace ticker's marquee gate, Pause and list semantics live at the end of this file. */
+   Shield (.cn-close-shield > img): wrapped as .cn-cs-float > .cn-cs-spin with a few darker copies
+   of the render stacked behind it, so the turn shows a solid edge instead of a paper-thin card
+   (fewer copies on touch devices). The sway-and-turn loop and the light rays run only while the
+   shield is on screen, the tab is visible, motion is allowed and nothing paused them: this file
+   sets data-cn-play on .cn-close-shield (a data attribute: legacy observers watch "class").
+   A Pause button (the hero's round control) is added to the stage; CN.pause() / CN.resume() (the
+   page-wide motion control) reach it through the "scrub" controller.
+   Reduced motion: every word is bright, the shield rests, no Pause button. */
 (function () {
   "use strict";
   var CN = window.CN;
@@ -81,44 +88,98 @@
     return { destroy: function () { stop(); bind(false); } };
   }
 
-  CN.onReady(function () { CN.qsa('[data-cn="scrub"]').forEach(split); });
-  CN.register("scrub", function (p) { split(p); return track(p); });
+  /* ---------- the closing shield ---------- */
+  var DEPTH_FINE = 7, DEPTH_COARSE = 4;
 
-  /* Workspace ticker (#wowTicker), the block just above the statement.
-     - The 40s marquee runs only while it is on screen and its Pause (label.cn-ticker-pause >
-       checkbox) is off: this sets --cn-ticker-play on #wowTicker, which the CSS reads. A custom
-       property instead of a class or :has(), so no legacy class observer or large restyle fires.
-     - Screen readers get one list of the scam types: legacy script.js doubles the items for the
-       seamless loop, so every repeat is aria-hidden (re-checked whenever the items are rebuilt). */
-  function ticker(t) {
-    var track = CN.qs(".ticker-track", t);
-    if (!track) return;
-    var wrap = t.parentNode;
-    var cb = wrap ? CN.qs(".cn-ticker-pause input", wrap) : null;
-    var onScreen = false;
-    function sync() {
-      t.style.setProperty("--cn-ticker-play", onScreen && !(cb && cb.checked) ? "running" : "paused");
+  /* Build the depth stack once, at start-up (it only adds absolutely placed layers inside the
+     shield's own fixed-size box, so the page never shifts). */
+  function buildShield(box) {
+    if (!box || box.__cnShield) return box && box.__cnShield;
+    var img = CN.qs("img", box);
+    if (!img) return null;
+    var fl = doc.createElement("span");
+    fl.className = "cn-cs-float";
+    var spin = doc.createElement("span");
+    spin.className = "cn-cs-spin";
+    fl.appendChild(spin);
+    img.parentNode.insertBefore(fl, img);
+    var depth = CN.finePointer() ? DEPTH_FINE : DEPTH_COARSE;
+    /* back to front: the turned-around back, the edge layers, then the original face on top */
+    for (var z = depth; z >= 1; z--) {
+      var c = img.cloneNode(false);
+      c.removeAttribute("id");
+      c.setAttribute("alt", "");
+      c.className = z === depth ? "cn-cs-layer cn-cs-back" : "cn-cs-layer";
+      c.style.setProperty("--z", z);
+      spin.appendChild(c);
     }
-    CN.inView(t, function (v) { onScreen = v; sync(); });
-    if (cb) cb.addEventListener("change", sync);
-
-    track.setAttribute("role", "list");
-    if (!track.hasAttribute("aria-label")) track.setAttribute("aria-label", "Scam types CyberNet AI checks for");
-    function mark() {
-      var seen = {};
-      CN.qsa(".ticker-item", track).forEach(function (it) {
-        var k = (it.textContent || "").replace(/\s+/g, " ").trim();
-        if (it.getAttribute("role") !== "listitem") it.setAttribute("role", "listitem");
-        if (seen[k]) { if (it.getAttribute("aria-hidden") !== "true") it.setAttribute("aria-hidden", "true"); }
-        else { seen[k] = 1; if (it.hasAttribute("aria-hidden")) it.removeAttribute("aria-hidden"); }
-      });
-    }
-    mark();
-    if ("MutationObserver" in win) new MutationObserver(mark).observe(track, { childList: true });
+    spin.appendChild(img);
+    box.__cnShield = { box: box, spin: spin };
+    return box.__cnShield;
   }
 
+  /* The Pause control: the hero's round button in the stage's bottom corner. */
+  function addPause(stage) {
+    var b = CN.qs(".cn-close-pause", stage);
+    if (b) return b;
+    b = doc.createElement("button");
+    b.type = "button";
+    b.className = "cn-close-pause";
+    b.setAttribute("aria-pressed", "false");
+    b.setAttribute("aria-label", "Pause the shield animation");
+    b.title = "Pause the shield animation";
+    b.innerHTML = '<span aria-hidden="true"></span>';
+    stage.appendChild(b);
+    return b;
+  }
+
+  function closing(p) {
+    var stage = p.closest ? p.closest(".home-quote") : null;
+    var box = stage && CN.qs(".cn-close-shield", stage);
+    if (!box || box.__cnPlay) return null;
+    var built = buildShield(box);
+    if (!built) return null;
+    var btn = addPause(stage);
+    var paused = false, on = false;
+    function sync() {
+      var still = CN.reduced();
+      var play = !still && !paused && on && !doc.hidden;
+      if (box.hasAttribute("data-cn-play") !== play) {
+        if (play) box.setAttribute("data-cn-play", ""); else box.removeAttribute("data-cn-play");
+      }
+      btn.hidden = still;
+      var pressed = paused ? "true" : "false";
+      if (btn.getAttribute("aria-pressed") !== pressed) btn.setAttribute("aria-pressed", pressed);
+    }
+    btn.addEventListener("click", function () { paused = !paused; sync(); });
+    CN.inView(box, function (vis) { on = vis; sync(); }, { margin: "80px 0px" });
+    CN.onVisibility(sync);
+    CN.onMotion(sync);
+    box.__cnPlay = sync;
+    sync();
+    return {
+      pause: function () { paused = true; sync(); },
+      resume: function () { paused = false; sync(); }
+    };
+  }
+
+  /* Split and build at start-up (they set up markup the visitor will reach); the scroll
+     fallback and the shield's play gate start lazily with the "scrub" module. */
   CN.onReady(function () {
-    var t = doc.getElementById("wowTicker");
-    if (t) ticker(t);
+    CN.qsa('[data-cn="scrub"]').forEach(function (p) {
+      split(p);
+      var stage = p.closest ? p.closest(".home-quote") : null;
+      if (stage && buildShield(CN.qs(".cn-close-shield", stage))) addPause(stage).hidden = CN.reduced();
+    });
+  });
+  CN.register("scrub", function (p) {
+    split(p);
+    var t = track(p), c = closing(p);
+    if (!t && !c) return null;
+    return {
+      pause: function () { if (c) c.pause(); },
+      resume: function () { if (c) c.resume(); },
+      destroy: function () { if (t) t.destroy(); }
+    };
   });
 })();

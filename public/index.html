@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>CyberNet AI | AI-Powered Cybersecurity</title>
   <meta name="description" content="CyberNet AI provides on-demand threat analysis, deep evidence correlation, account-based AI access, and clear defensive next actions for suspicious messages, links, email headers, QR codes, and screenshots." />
-  <meta name="theme-color" content="#030406" />
+  <meta name="theme-color" content="#160d42" />
   <meta name="ahrefs-site-verification" content="f91bf5f9cc3131a0f67f4880e83a0f06eb6bb66a204164dc0887aaf87f37cd0a">
   <!-- Deep links (/pricing, /learn, ...) load with #home as the active page, and script.js only
        switches to the routed page ~300 ms after DOMContentLoaded. Keep Home hidden until it stops
@@ -15,6 +15,7 @@
   <script>
   (function(){
     var d=document,r=d.documentElement;
+    try{if(localStorage.getItem("cn-still")==="1")r.classList.add("cn-still")}catch(e){}
     if(/^\/(quick-scan|analysis-ai|recovery|learn|pricing|about)\/?$/.test(location.pathname)){
       r.classList.add("cn-deep");
       var t=0,done=function(){clearTimeout(t);r.classList.remove("cn-deep")};
@@ -492,9 +493,11 @@
     <!-- ═══════════ HOME ═══════════ -->
     <section id="home" class="page active-page">
       <div class="hero" id="heroSection">
-        <div class="cn-stage">
-          <canvas class="cn-stage-canvas" data-cn="shader" aria-hidden="true"></canvas>
-          <div class="cn-stage-grid" aria-hidden="true"></div>
+        <div class="cn-stage cn-hero4">
+          <div class="cn-hero4-scene" aria-hidden="true">
+            <img class="cn-hero4-poster" src="/ui/3d/hero-globe.webp?v=20261014-1" srcset="/ui/3d/hero-globe-480.webp?v=20261014-1 480w, /ui/3d/hero-globe-800.webp?v=20261014-1 800w, /ui/3d/hero-globe.webp?v=20261014-1 1200w" sizes="(min-width: 60rem) and (min-height: 521px) min(60vw, 820px), (max-height: 520px) and (orientation: landscape) 420px, min(100vw, 640px)" alt="" width="1200" height="1200" decoding="async" fetchpriority="high" />
+            <canvas class="cn-hero4-canvas" data-cn="hero3d"></canvas>
+          </div>
           <div class="hero-content reveal cn-hero">
             <button class="pill hero-learn-pill hero-learn-pill-filled" id="heroLearnFeaturesBtn" type="button">
               Learn how to use each feature
@@ -629,6 +632,33 @@
           </ul>
           <button class="secondary-btn glass" data-page="about">About CyberNet AI</button>
         </div>
+        </div>
+      </section>
+
+      <!-- THREATS: real-world scam types, with photos (no faces) -->
+      <section class="cn-threats" id="cnThreats" aria-labelledby="cnThreatsTitle">
+        <header class="cn-head reveal">
+          <h2 id="cnThreatsTitle">Scams don’t look like scams. <span>That’s the point.</span></h2>
+          <p>They arrive as a text from your bank, a parcel fee, a job offer or a voice you trust. CyberNet AI checks them before you act.</p>
+        </header>
+        <div class="cn-bento" data-cn="bento">
+          <figure class="cn-tile cn-tile--a reveal">
+            <picture><img src="/ui/img/threat-hacker-4x5-800.webp?v=20261014-1" srcset="/ui/img/threat-hacker-4x5-800.webp?v=20261014-1 800w, /ui/img/threat-hacker-4x5-1200.webp?v=20261014-1 1200w" sizes="(max-width: 1020px) 100vw, (max-width: 1440px) 52vw, 720px" width="1200" height="1500" loading="lazy" decoding="async" alt="A hooded hacker seen from behind as a dark silhouette, facing screens full of code" /></picture>
+            <figcaption><b>Phishing texts and emails</b><span>Fake bank, parcel and toll alerts that push you to tap a link.</span></figcaption>
+          </figure>
+          <figure class="cn-tile cn-tile--b reveal">
+            <picture><source media="(max-width: 700px)" srcset="/ui/img/threat-phone-4x5-800.webp?v=20261014-1 800w, /ui/img/threat-phone-4x5-1200.webp?v=20261014-1 1200w" sizes="100vw" /><img src="/ui/img/threat-phone-800.webp?v=20261014-1" srcset="/ui/img/threat-phone-800.webp?v=20261014-1 800w, /ui/img/threat-phone-1600.webp?v=20261014-1 1600w" sizes="(max-width: 620px) 100vw, (max-width: 1020px) 46vw, (max-width: 1440px) 36vw, 520px" width="1600" height="1067" loading="lazy" decoding="async" alt="A hand holding a glowing phone in a dark room, lit in violet and cyan" /></picture>
+            <figcaption><b>Lookalike links and QR codes</b><span>Addresses that copy a real brand, one letter at a time.</span></figcaption>
+          </figure>
+          <figure class="cn-tile cn-tile--c reveal">
+            <picture><source media="(max-width: 700px)" srcset="/ui/img/threat-ai-4x5-800.webp?v=20261014-1 800w, /ui/img/threat-ai-4x5-1200.webp?v=20261014-1 1200w" sizes="100vw" /><img src="/ui/img/threat-ai-800.webp?v=20261014-1" srcset="/ui/img/threat-ai-800.webp?v=20261014-1 800w, /ui/img/threat-ai-1600.webp?v=20261014-1 1600w" sizes="(max-width: 620px) 100vw, (max-width: 1020px) 46vw, (max-width: 1440px) 50vw, 720px" width="1600" height="1067" loading="lazy" decoding="async" alt="A glowing AI chip on a circuit board in violet and cyan light" /></picture>
+            <figcaption><b>AI-made scams</b><span>Cloned voices, fake videos and perfectly written messages.</span></figcaption>
+          </figure>
+          <div class="cn-tile cn-tile--stat reveal">
+            <span class="cn-stat-num" data-cn-count="442" data-prefix="$" data-suffix="B">$442B</span>
+            <p>lost to scams in one year, by one estimate. That is about $14,000 every second.</p>
+            <small class="cn-src">Source: Global Anti-Scam Alliance, Global State of Scams 2025 (42 countries surveyed).</small>
+          </div>
         </div>
       </section>
 
@@ -768,22 +798,6 @@
         </div>
       </div>
 
-      <!-- EVERYWHERE -->
-      <section class="cn-world" id="cnWorld" aria-labelledby="cnWorldTitle">
-        <div class="cn-world-in">
-          <div class="cn-globe-box"><canvas id="cnGlobe" aria-hidden="true"></canvas><button class="cn-globe-pause" type="button" aria-pressed="false" aria-label="Pause the globe animation" title="Pause the globe animation"><span aria-hidden="true"></span></button></div>
-          <div class="cn-world-copy reveal">
-            <h2 id="cnWorldTitle">Scams cross every border, <span>every second.</span></h2>
-            <div class="cn-big-stat">
-              <span class="cn-stat-num" data-cn-count="442" data-prefix="$" data-suffix="B">$442B</span>
-              <small>lost to scams in one year, by one estimate. That is about $14,000 every second.</small>
-            </div>
-            <p class="cn-src">Source: Global Anti-Scam Alliance, Global State of Scams 2025 (42 countries surveyed). The globe is an illustration, not live data.</p>
-            <p class="cn-world-lead">CyberNet AI checks what lands on your phone, wherever you are.</p>
-          </div>
-        </div>
-      </section>
-
       <div class="wow-section glass reveal">
         <div class="wow-header">
           <h2>Built for the scams <span>people actually get.</span></h2>
@@ -803,7 +817,7 @@
             <div class="wow-stat-label">Evidence types</div>
           </div>
         </div>
-        <div class="wow-ticker glass" id="wowTicker">
+        <div class="wow-ticker glass" id="wowTicker" hidden>
           <div class="ticker-track">
             <span class="ticker-item">Lookalike web addresses</span>
             <span class="ticker-item">“Parcel on hold” fee texts</span>
@@ -815,11 +829,11 @@
             <span class="ticker-item">“Wrong number” chats that turn to money</span>
           </div>
         </div>
-        <label class="cn-ticker-pause"><input type="checkbox" aria-label="Pause the moving list of scam types"><span>Pause</span></label>
       </div>
 
       <!-- STATEMENT -->
       <div class="home-quote glass reveal">
+        <div class="cn-close-shield" aria-hidden="true"><img src="/ui/3d/shield.webp?v=20261014-1" alt="" width="640" height="640" loading="lazy" decoding="async" /></div>
         <p data-cn="scrub">Scammers count on you acting fast. CyberNet AI gives you a second opinion just as fast.</p>
         <div class="cn-close">
           <a class="primary-btn big" href="#cnScanInput">Check a message or link</a>
@@ -2641,6 +2655,7 @@
   <footer>
     <a class="cn-footer-brand" href="/" data-page="home" aria-label="CyberNet AI home">Cyber<span>Net</span> <small>AI</small></a>
     <p>&copy; 2026 CyberNet AI. Secure today. Safer tomorrow. &nbsp;·&nbsp; <a href="mailto:support@cybernetai.app">support@cybernetai.app</a> &nbsp;·&nbsp; <button type="button" class="cn-cookie-settings" data-cn-consent-open>Cookie settings</button></p>
+    <button type="button" class="cn-motion-toggle" data-cn-motion title="Pause the moving background and animations on this site.">Pause motion</button>
   </footer>
 
   <script src="/cybernet-consent.js?v=20260927-2" defer></script>
