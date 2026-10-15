@@ -20,17 +20,25 @@
    soft destination-out pass) and pulses fade out. Anchors and quiet zones are measured in the
    ResizeObserver callback, when layout is already clean (no forced layout).
 
-   Budget (DESIGN.md v4.1):
-   - One 2D canvas per section, no WebGL (the hero globe keeps the one WebGL context).
-   - 30 fps on desktop, 20 on touch screens, paced by a timer so the page only renders the
-     frames that are drawn (a plain rAF loop would run the whole document lifecycle at 60 or
-     120 fps; every frame also re-ticks the page's other running CSS animations). Only layers
-     that are on screen are drawn (IntersectionObserver); nothing runs while none is visible or
-     while the tab is hidden. After load, while the browser is idle, each off-screen layer gets
-     one static frame, so no section scrolls in blank.
-   - Low resolution: about 1 canvas pixel per CSS pixel on desktop (1.25 at most on HiDPI),
-     0.8 on touch devices, and never more than 1.6 M (desktop) / 0.6 M (touch) pixels per canvas.
-     Fewer lines and pulses on touch devices. If drawing gets slow on a weak device, a layer
+   Budget (DESIGN.md v4.1; v4.2 sharpness pass, owner: "the lines background with light passing
+   looks a little off quality on the phone"):
+   - 2D canvases only, no WebGL (the hero globe keeps the one WebGL context).
+   - One band canvas per ribbon: each canvas covers only the strip its ribbon can reach (its
+     centre line, wave, tilt, spread and the pulse glow), not the whole section. A phone section
+     is 2-3 screens tall but a ribbon is about 300-370 CSS px, so the pixels drawn per frame fall
+     by 3-5x, and that budget buys real sharpness instead.
+   - Sharp at the screen's own density: up to 2 canvas pixels per CSS pixel on desktop (HiDPI
+     laptops) and 2.5 on touch screens (a 3x phone is upscaled by 1.2x at most, never the old
+     0.8x canvas stretched 3.75x, which made the hairlines soft and stepped), with a pixel cap
+     per band (2.2 M desktop, 1.1 M touch). Hairlines are 1 CSS px with round joins.
+   - 30 fps everywhere (touch used to run at 20 fps, which made the pulses step), paced by a
+     timer so the page only renders the frames that are drawn (a plain rAF loop would run the
+     whole document lifecycle at 60 or 120 fps; every frame also re-ticks the page's other
+     running CSS animations). Only layers that are on screen are drawn (IntersectionObserver);
+     nothing runs while none is visible or while the tab is hidden. After load, while the
+     browser is idle, each off-screen layer gets one static frame, so no section scrolls in
+     blank.
+   - Fewer lines and pulses on touch devices. If drawing gets slow on a weak device, a layer
      steps its line count and resolution down by itself (twice at most).
    - Each frame touches only canvas pixels, never the DOM, so the legacy body-wide
      MutationObservers never see it.
@@ -46,11 +54,12 @@
   var TAU = Math.PI * 2;
 
   var touch = !CN.finePointer();
-  // 30 fps on desktop; 20 on touch screens, where a pulse moves only a few pixels per frame.
-  var FRAME_MS = 1000 / (touch ? 20 : 30);
-  var MAX_PX = touch ? 6e5 : 1.6e6;
-  // Touch screens are small and bright: thicker, stronger lines so the light still reads there.
-  var LINE_W = touch ? 1.25 : 1, LINE_A = touch ? 1.55 : 1.3;
+  // 30 fps everywhere (a steady cadence; 20 made the pulses step on phones).
+  var FRAME_MS = 1000 / 30;
+  // Canvas density: the screen's own, up to 2 (desktop) / 2.5 (touch), capped per band canvas.
+  var DPR_MAX = touch ? 2.5 : 2, MAX_PX = touch ? 1.1e6 : 2.2e6;
+  // Sharp 1 CSS px hairlines; touch screens get a little more strength so the light still reads.
+  var LINE_W = 1, LINE_A = touch ? 1.4 : 1.3;
 
   /* Presets. Ribbon geometry is in units of S, a size that follows the layer's width
      (clamp(w * .34, 250, 470) CSS px), so a phone gets the same look at its own scale:
@@ -101,7 +110,7 @@
   var dot = null, box = null;
   function glowDot() {
     if (dot) return dot;
-    var c = doc.createElement("canvas"), s = 48;
+    var c = doc.createElement("canvas"), s = 96;
     c.width = c.height = s;
     var g = c.getContext("2d");
     if (!g) return null;
@@ -134,19 +143,25 @@
   }
 
   /* ---------------------------------------------------------------- one layer ---------- */
+  /* A layer: the wrapper over the section, and one band canvas per ribbon inside it. */
   function Field(host, name, opts) {
+    var P = PRESETS[name];
     var wrap = doc.createElement("div");
     wrap.className = "cn-bgfx cn-bgfx--" + name;
     wrap.setAttribute("aria-hidden", "true");
-    var cv = doc.createElement("canvas");
-    wrap.appendChild(cv);
-    var ctx = cv.getContext("2d", { alpha: true });
-    if (!ctx) return null;
+    var bands = [];
+    for (var i = 0; i < P.ribbons.length; i++) {
+      var cv = doc.createElement("canvas");
+      var ctx = cv.getContext("2d", { alpha: true });
+      if (!ctx) return null;
+      wrap.appendChild(cv);
+      bands.push({ i: i, cv: cv, ctx: ctx, top: 0, h: 0, scale: 1, grad: null, gw: 0, shown: false });
+    }
     if (opts && opts.append) host.appendChild(wrap); else host.insertBefore(wrap, host.firstChild);
     return {
-      name: name, host: host, wrap: wrap, cv: cv, ctx: ctx, P: PRESETS[name],
-      w: 0, h: 0, scale: 1, S: 300, on: false, drawn: false, rest: false,
-      quality: 0, cost: 0, slow: 0, pulses: [], grad: null, anchors: [], zones: []
+      name: name, host: host, wrap: wrap, bands: bands, P: P,
+      w: 0, h: 0, S: 300, on: false, drawn: false, rest: false,
+      quality: 0, cost: 0, slow: 0, pulses: [], anchors: [], zones: []
     };
   }
 
@@ -159,22 +174,48 @@
 
   function size(f, w, h) {
     if (w < 2 || h < 2) { f.w = f.h = 0; return; }
-    var dpr = win.devicePixelRatio || 1;
-    var s = touch ? Math.min(dpr, 1) * .8 : Math.min(dpr, 1.25);
-    if (f.quality > 0) s *= Math.pow(.85, f.quality);
-    s = Math.min(s, Math.sqrt(MAX_PX / (w * h)));
-    var bw = Math.max(2, Math.round(w * s)), bh = Math.max(2, Math.round(h * s));
-    f.w = w; f.h = h; f.scale = bw / w;
-    if (f.cv.width !== bw || f.cv.height !== bh) { f.cv.width = bw; f.cv.height = bh; }
+    f.w = w; f.h = h;
     f.S = Math.min(470, Math.max(250, w * .34));
-    // One horizontal gradient shared by every line: the ribbon fades in and out at the edges.
-    var g = f.ctx.createLinearGradient(0, 0, w, 0);
-    g.addColorStop(0, "rgba(" + CYAN + ",0)");
-    g.addColorStop(.12, "rgba(" + CYAN + ",.85)");
-    g.addColorStop(.5, "rgba(125,211,252,1)");
-    g.addColorStop(.88, "rgba(" + BLUE + ",.85)");
-    g.addColorStop(1, "rgba(" + BLUE + ",0)");
-    f.grad = g;
+    f.drawn = false;
+  }
+  /* How far a ribbon can reach above and below its centre line (CSS px): the tilt, the wave,
+     half the spread, the shimmer of each line and the glow round a pulse head. */
+  function reach(f, rb) {
+    var S = f.S;
+    return Math.abs(rb.tilt) * S / 2 + rb.amp * S + rb.width * S / 2 + .022 * S + 24;
+  }
+  /* Place and size each band canvas on its ribbon (after measure(), which finds the anchors).
+     Writes only the canvases' own top/height and bitmap size, and only when they change. */
+  function layoutBands(f) {
+    if (!f.w) return;
+    var dpr = win.devicePixelRatio || 1;
+    for (var k = 0; k < f.bands.length; k++) {
+      var b = f.bands[k], rb = f.P.ribbons[b.i], cy = ribbonY(f, b.i, rb), r = reach(f, rb);
+      var top = Math.max(0, Math.floor(cy - r)), bot = Math.min(f.h, Math.ceil(cy + r));
+      var hh = Math.max(0, bot - top);
+      b.top = top; b.h = hh;
+      if (hh < 2) { b.cv.style.display = "none"; continue; }
+      if (b.cv.style.display) b.cv.style.display = "";
+      var s = Math.min(dpr, DPR_MAX);
+      if (f.quality > 0) s *= Math.pow(.85, f.quality);
+      s = Math.min(s, Math.sqrt(MAX_PX / (f.w * hh)));
+      var bw = Math.max(2, Math.round(f.w * s)), bh = Math.max(2, Math.round(hh * s));
+      b.scale = bw / f.w;
+      var st = b.cv.style, tp = top + "px", hp = hh + "px";
+      if (st.top !== tp) st.top = tp;
+      if (st.height !== hp) st.height = hp;
+      if (b.cv.width !== bw || b.cv.height !== bh) { b.cv.width = bw; b.cv.height = bh; b.grad = null; }
+      if (!b.grad || b.gw !== f.w) {
+        // One horizontal gradient for every line of the band: the ribbon fades in and out at the edges.
+        var g = b.ctx.createLinearGradient(0, 0, f.w, 0);
+        g.addColorStop(0, "rgba(" + CYAN + ",0)");
+        g.addColorStop(.12, "rgba(" + CYAN + ",.85)");
+        g.addColorStop(.5, "rgba(125,211,252,1)");
+        g.addColorStop(.88, "rgba(" + BLUE + ",.85)");
+        g.addColorStop(1, "rgba(" + BLUE + ",0)");
+        b.grad = g; b.gw = f.w;
+      }
+    }
     f.drawn = false;
   }
 
@@ -231,18 +272,19 @@
 
   var cxBuf = new Float32Array(160), spBuf = new Float32Array(160), topBuf = new Float32Array(160), botBuf = new Float32Array(160);
 
-  function drawRibbon(f, i, t, ctx) {
+  function drawRibbon(f, i, t, ctx, grad) {
     var rb = f.P.ribbons[i], cy = ribbonY(f, i, rb), w = f.w, n = lineCount(f, rb);
-    var step = touch ? 18 : 22, m = Math.min(150, Math.max(16, Math.ceil((w + 40) / step)));
+    var step = touch ? 14 : 18, m = Math.min(150, Math.max(16, Math.ceil((w + 40) / step)));
     var dx = (w + 40) / m, j, k, x, y;
     for (j = 0; j <= m; j++) {
       x = -20 + j * dx;
       cxBuf[j] = centre(f, rb, cy, x, t);
       spBuf[j] = spread(f, rb, x, t);
     }
-    ctx.strokeStyle = f.grad;
-    ctx.fillStyle = f.grad;
+    ctx.strokeStyle = grad;
+    ctx.fillStyle = grad;
     ctx.lineWidth = LINE_W;
+    ctx.lineJoin = "round";
     for (k = 0; k < n; k++) {
       var q = k / (n - 1), e = Math.abs(q - .5) * 2;
       // The edges of the ribbon catch more light than its middle, like a fold of silk.
@@ -290,17 +332,23 @@
     };
   }
   var xs = new Float32Array(16), ys = new Float32Array(16);
-  function drawPulses(f, t, ctx, still) {
-    var P = f.P, want = P.pulses[touch ? 1 : 0], list = f.pulses, i, j;
+  /* Keep the pulse list full and replace the finished ones (once per frame, for all bands). */
+  function updatePulses(f, t, still) {
+    var want = f.P.pulses[touch ? 1 : 0], list = f.pulses;
     while (list.length < want) list.push(spawn(f, t, true));
+    if (still) return;
+    for (var i = 0; i < list.length; i++) if ((t - list[i].t0) / list[i].dur >= 1) list[i] = spawn(f, t, false);
+  }
+  /* The pulses that run on ribbon `ri` (drawn into that ribbon's band). */
+  function drawPulses(f, t, ctx, ri) {
+    var P = f.P, list = f.pulses, i, j;
     var img = glowDot(), w = f.w, inMode = P.mode === "in", pa = P.pulseA || 1;
     var tail = Math.min(touch ? 150 : 260, w * .3), N = 14;
     ctx.globalCompositeOperation = "lighter";
     ctx.lineCap = "round";
     for (i = 0; i < list.length; i++) {
       var p = list[i], u = (t - p.t0) / p.dur;
-      if (u >= 1) { if (!still) list[i] = spawn(f, t, false); continue; }
-      if (u <= 0) continue;
+      if (p.i !== ri || u >= 1 || u <= 0) continue;
       var rb = P.ribbons[p.i], cy = ribbonY(f, p.i, rb), q = Math.min(p.k, p.n - 1) / (p.n - 1);
       var hx, env;
       if (inMode) {
@@ -327,11 +375,11 @@
       ctx.beginPath();
       ctx.moveTo(xs[0], ys[0]);
       for (j = 1; j <= N; j++) ctx.lineTo(xs[j], ys[j]);
-      ctx.globalAlpha = .35;
-      ctx.lineWidth = 4;
+      ctx.globalAlpha = .3;
+      ctx.lineWidth = 3.5;
       ctx.stroke();
       ctx.globalAlpha = 1;
-      ctx.lineWidth = 1.4;
+      ctx.lineWidth = 1.25;
       ctx.stroke();
       if (img) {
         var r = 13 + 3 * env;
@@ -345,40 +393,58 @@
 
   function draw(f, t, still) {
     if (!f.w || !f.h) return;
-    var ctx = f.ctx, t0 = CN.now(), i;
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, f.cv.width, f.cv.height);
-    ctx.setTransform(f.scale, 0, 0, f.scale, 0, 0);
-    ctx.globalCompositeOperation = "lighter";
-    for (i = 0; i < f.P.ribbons.length; i++) drawRibbon(f, i, t, ctx);
-    // Quiet zones: dim the lines behind the copy (soft-edged, 72% out).
+    var t0 = CN.now(), i, k;
+    updatePulses(f, t, still);
     var sb = f.zones.length ? softBox() : null;
-    if (sb) {
-      ctx.globalCompositeOperation = "destination-out";
-      ctx.globalAlpha = .72;
-      for (i = 0; i < f.zones.length; i++) {
-        var z = f.zones[i], pad = 56;
-        ctx.drawImage(sb, z.x - pad, z.y - pad, z.w + pad * 2, z.h + pad * 2);
+    for (k = 0; k < f.bands.length; k++) {
+      var b = f.bands[k], ctx = b.ctx;
+      if (b.h < 2 || !b.grad) continue;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, b.cv.width, b.cv.height);
+      // Section coordinates: the band's top edge sits at b.top.
+      ctx.setTransform(b.scale, 0, 0, b.scale, 0, -b.top * b.scale);
+      ctx.globalCompositeOperation = "lighter";
+      drawRibbon(f, b.i, t, ctx, b.grad);
+      // Quiet zones: dim the lines behind the copy (soft-edged, 72% out).
+      if (sb) {
+        ctx.globalCompositeOperation = "destination-out";
+        ctx.globalAlpha = .72;
+        for (i = 0; i < f.zones.length; i++) {
+          var z = f.zones[i], pad = 56;
+          if (z.y + z.h + pad < b.top || z.y - pad > b.top + b.h) continue;
+          ctx.drawImage(sb, z.x - pad, z.y - pad, z.w + pad * 2, z.h + pad * 2);
+        }
+        ctx.globalAlpha = 1;
       }
-      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "source-over";
+      drawPulses(f, t, ctx, b.i);
+      if (!b.shown) { b.shown = true; b.cv.style.opacity = "1"; }
     }
-    ctx.globalCompositeOperation = "source-over";
-    drawPulses(f, t, ctx, still);
-    if (!f.drawn) { f.drawn = true; f.cv.style.opacity = "1"; }
+    f.drawn = true;
     if (still) return;
     // Self-tuning: if a layer keeps costing more than its budget, step it down (twice at most).
     var cost = CN.now() - t0;
     f.cost = f.cost ? f.cost * .9 + cost * .1 : cost;
-    if (f.cost > (touch ? 5 : 4) && f.quality < 2) {
-      if (++f.slow > 45) { f.quality++; f.slow = 0; f.cost = 0; f.pulses.length = 0; size(f, f.w, f.h); }
+    if (f.cost > (touch ? 6 : 4.5) && f.quality < 2) {
+      if (++f.slow > 45) { f.quality++; f.slow = 0; f.cost = 0; f.pulses.length = 0; layoutBands(f); }
     } else f.slow = 0;
   }
 
   /* ---------------------------------------------------------------- the scheduler --------
      A timer waits out most of the frame interval (less 8 ms of slack), then asks for one
-     animation frame, so the next frame lands on the vsync at 33 ms (50 ms on touch) on 60, 90
-     and 120 Hz screens: the browser renders 30 (20) frames a second for this, not 60 or 120. */
+     animation frame, so the next frame lands on the vsync at 33 ms on 60, 90 and 120 Hz
+     screens: the browser renders 30 frames a second for this, not 60 or 120.
+     While the page is scrolling, the lines hold their frame (no animation frames are asked
+     for) and carry on from the same moment 140 ms after the last scroll event: the main thread
+     stays free for the scroll itself (Lenis on desktop, scroll-linked effects everywhere), and
+     a held frame is invisible while the whole page is moving. */
   var fields = [], clock = 7.5, last = 0, running = false, timer = 0, raf = 0;
+  var scrolling = false, scrollT = 0;
+  function onScroll() {
+    scrolling = true;
+    clearTimeout(scrollT);
+    scrollT = setTimeout(function () { scrolling = false; }, 140);
+  }
   function frozen() { return CN.reduced() || CN.saveData(); }
   function frame(now) {
     raf = 0;
@@ -392,10 +458,21 @@
     }
     timer = setTimeout(ask, Math.max(0, FRAME_MS - 8 - (CN.now() - now)));
   }
-  function ask() { timer = 0; if (running && !raf) raf = win.requestAnimationFrame(frame); }
-  function start() { if (running) return; running = true; last = 0; ask(); }
+  function ask() {
+    timer = 0;
+    if (!running || raf) return;
+    if (scrolling) { last = 0; timer = setTimeout(ask, 70); return; }   /* hold while scrolling */
+    raf = win.requestAnimationFrame(frame);
+  }
+  function start() {
+    if (running) return;
+    running = true; last = 0;
+    win.addEventListener("scroll", onScroll, { passive: true });
+    ask();
+  }
   function stop() {
     running = false;
+    win.removeEventListener("scroll", onScroll);
     if (timer) { clearTimeout(timer); timer = 0; }
     if (raf) { win.cancelAnimationFrame(raf); raf = 0; }
   }
@@ -412,11 +489,11 @@
 
   function watch(f) {
     // A GPU reset can drop a 2D canvas's pixels: redraw (the loop does it anyway while running).
-    f.cv.addEventListener("contextrestored", function () { f.drawn = false; update(); });
+    f.bands.forEach(function (b) { b.cv.addEventListener("contextrestored", function () { f.drawn = false; update(); }); });
     var ro = "ResizeObserver" in win ? new ResizeObserver(function () {
       var r = f.wrap.getBoundingClientRect();
       size(f, Math.round(r.width), Math.round(r.height));
-      if (f.w) measure(f);
+      if (f.w) { measure(f); layoutBands(f); }
       if (f.on && (frozen() || f.rest)) draw(f, clock, true);
     }) : null;
     if (ro) {
@@ -433,6 +510,7 @@
     CN.inView(f.wrap, function (vis, entry) {
       if (!ro && vis && entry && entry.boundingClientRect) {
         size(f, Math.round(entry.boundingClientRect.width), Math.round(entry.boundingClientRect.height));
+        layoutBands(f);
       }
       f.on = !!vis;
       update();
@@ -474,6 +552,12 @@
       doc.addEventListener("focusout", typing);
     }
     CN.onStill(function () { update(); });
+    /* for checks and tuning: per layer, its average draw cost (ms), quality step and bands */
+    CN.bgfxStats = function () {
+      return fields.map(function (f) {
+        return { name: f.name, on: f.on, cost: +f.cost.toFixed(2), quality: f.quality, bands: f.bands.map(function (b) { return b.cv.width + "x" + b.cv.height; }) };
+      });
+    };
     CN.onMotion(function () { update(); });
     CN.onVisibility(function () { update(); });
     // Once the page has loaded and the browser is idle, give every sized layer its first frame,

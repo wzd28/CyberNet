@@ -1,16 +1,25 @@
 /* ==========================================================================
-   10-nav.css  -  v4.1 "Midnight" header (.navbar): a calm navy capsule with a hairline,
-   desktop links, account area, the white "Menu" pill and the midnight menu sheet (phones and
-   tablets).
+   10-nav.css  -  v4.2 header (.navbar): a calm navy capsule with a hairline, desktop links
+   with a thin current-page line, the account area, the white "Menu" pill and the menu
+   sheet (phones and tablets).
+
+   v4.2 menu sheet (owner, 15 Oct: "make the menu a little nicer looking", in the language of
+   the owner's motion reference): a near-black full-height sheet, a small "Menu" label, then a
+   large, light link list. Each row has a quiet line icon, the label (the current page in a
+   bolder weight with a cyan icon and a thin cyan hairline under it) and a faint arrow. The rows
+   rise in with a short stagger (transform and opacity only, about 390 ms in all, none under
+   reduced motion). Sign in or the account row and the social links sit in a quiet bar at the
+   bottom. The white Menu pill turns into a round white close button with a centred X (the
+   60-overlays.css method: a 14px mask on ::before, inset:0 + margin:auto).
 
    Contracts kept (maps/HAZARDS.md):
    - The header is in normal flow (legacy made it sticky with top:16px).
-     It only sticks while the menu sheet is open, so the Close pill can
+     It only sticks while the menu sheet is open, so the close button can
      never scroll out of reach. No body or main padding is involved.
    - script.js binds the menu to the first .navbar and toggles .navbar.open.
-     cybernet-final-ui-fix.js rewrites #mobileMenu text to Menu/Close and
-     injects !important pill styles at <=900px after this sheet, so the pill
-     uses #mobileMenu.mobile-menu plus !important. Icons are ::before only.
+     cybernet-final-ui-fix.js rewrites #mobileMenu text to Menu/Close (and its aria-label to
+     "Open/Close navigation menu") and injects !important pill styles at <=900px after this
+     sheet, so the pill uses #mobileMenu.mobile-menu plus !important. Icons are ::before only.
    - #navIndicator keeps its inline width/transform from JS; it is hidden.
    - No display:...!important on anything JS shows or hides: #openAuth,
      #accountSummary and #authCheckingSkeleton stay driven by [hidden].
@@ -19,6 +28,8 @@
      page scrolls under it), so the fixed sheet layers (open state) use the
      viewport as their containing block.
    - Stack: page < header (100) < cookie bar (150) < modals (200..1600).
+   - The link icons are CSS masks keyed on data-page / id (the injected Account link included),
+     so the markup and the scripts' hooks stay exactly as they were.
 
    The chrome palette (--cn-ch-*) is defined here and read by 15-footer.css. It is
    deliberately self-contained (literal values), so the header and the footer look right
@@ -30,10 +41,10 @@ html.cn {
   --cn-ch-mute: #8a95a7;
   --cn-ch-text: #f5f7fa;
   --cn-ch-text-2: #b3bccb;   /* 9.4:1 on the capsule */
-  --cn-ch-text-3: #8f9aab;   /* 5.6:1 on the footer ground */
+  --cn-ch-text-3: #8f9aab;   /* 5.6:1 on the footer ground, 6.6:1 on the sheet */
   --cn-ch-line: rgba(148, 163, 184, .18);
   --cn-ch-line-2: rgba(148, 163, 184, .32);
-  --cn-ch-cap: rgba(12, 18, 32, .94);       /* the capsule and the sheet's bottom bar */
+  --cn-ch-cap: rgba(12, 18, 32, .94);       /* the capsule */
 }
 
 /* The skip link (.cn-skip) is styled in 90-a11y.css, so it also reaches the legal bundle. */
@@ -170,7 +181,7 @@ html.cn header.navbar .nav-social-btn {
   color: var(--cn-ch-text-2);
   box-shadow: none;
   transform: none;
-  transition: color var(--cn-dur-1) ease, background-color var(--cn-dur-1) ease;
+  transition: color var(--cn-dur-1) ease, background-color var(--cn-dur-1) ease, border-color var(--cn-dur-1) ease;
 }
 
 html.cn header.navbar .nav-social-btn svg {
@@ -192,7 +203,7 @@ html.cn header.navbar .nav-social-btn:focus-visible {
   transform: none;
 }
 
-/* Sign in: the one glowing call to action in the bar, cyan with ink text.
+/* Sign in: the one call to action in the bar, cyan with ink text.
    Display stays with [hidden]. */
 html.cn header.navbar #openAuth.login-btn {
   display: inline-flex;
@@ -225,8 +236,8 @@ html.cn header.navbar #openAuth.login-btn:focus-visible {
 }
 
 /* Placeholder while the session is checked: a faint outline the size of the
-   Sign in pill with a soft shimmer, so it reads as "loading", not as an
-   empty button. Sign in then fades in over it (display stays with [hidden]). */
+   Sign in pill, so it reads as "loading", not as an empty button. Sign in then
+   fades in over it (display stays with [hidden]). */
 html.cn header.navbar .auth-checking-skeleton {
   width: 96px;
   height: 44px;
@@ -432,10 +443,11 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
     transition: color var(--cn-dur-1) ease, background-color var(--cn-dur-2) ease, box-shadow var(--cn-dur-2) ease;
   }
 
-  /* the current page: a raised slate capsule with a cyan dot under the label */
+  /* the current page: white text over a thin cyan line (the same marker as the menu sheet);
+     no filled capsule */
   html.cn header.navbar .nav-link.active {
-    background: rgba(148, 163, 184, .12);
-    box-shadow: inset 0 0 0 1px var(--cn-ch-line-2);
+    background: transparent;
+    box-shadow: none;
     color: #fff;
   }
 
@@ -443,13 +455,14 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
     content: "";
     position: absolute;
     inset-inline: 0;
-    bottom: 4px;
-    width: 16px;
+    bottom: 5px;
+    width: 18px;
     height: 2px;
     margin-inline: auto;
     border-radius: 2px;
     background: var(--cn-cyan);
-    animation: cn-nav-dot var(--cn-dur-3) var(--cn-ease-out) both;
+    transform-origin: 50% 50%;
+    animation: cn-nav-dot 360ms cubic-bezier(.16, 1, .3, 1) both;
   }
 
   html.cn header.navbar .nav-link:focus-visible {
@@ -586,7 +599,7 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
 }
 
 /* ==========================================================================
-   Under 1024px: compact capsule, white Menu pill, midnight sheet when open
+   Under 1024px: compact capsule, white Menu pill, the menu sheet when open
    ========================================================================== */
 @media (max-width: 1023.98px) {
   html.cn header.navbar,
@@ -607,13 +620,18 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
   }
 
   /* ---- open: the bar stays as the sheet's top row ----
-     --cn-sheet-foot is the room the link list keeps free above the bottom bar:
-     one row (socials + Sign in, 81px) signed out, two rows signed in. The capsule
-     capsule gives way to the sheet, so the brand and Close pill sit right on it. */
+     --cn-sheet-foot is the room the link list keeps free above the bottom bar: one row
+     (socials + Sign in, 80px) signed out, two rows signed in. The capsule gives way to the
+     sheet, so the brand and the close button sit right on it.
+     --cn-sheet-ps / -pe line the rows up with the brand mark and the close button. */
   html.cn header.navbar.open {
     --cn-sheet-foot: 96px;
     --cn-sheet-top: calc(var(--cn-nav-h) + var(--cn-nav-top) + env(safe-area-inset-top, 0px));
-    --cn-sheet-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 26' fill='none'%3E%3Cg opacity='.2'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2322D3EE'/%3E%3Cstop offset='1' stop-color='%233B82F6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M12 2 L21 6 L20 15 L12 24 L4 15 L3 6 Z' stroke='url(%23g)' stroke-width='.14' stroke-linejoin='round'/%3E%3Cpath d='M12 5 L18.2 7.9 L17.4 14.3 L12 20.7 L6.6 14.3 L5.8 7.9 Z' stroke='url(%23g)' stroke-width='.08' stroke-linejoin='round' stroke-opacity='.7'/%3E%3Cpath d='M12 2 V5 M21 6 L18.2 7.9 M20 15 L17.4 14.3 M12 24 V20.7 M4 15 L6.6 14.3 M3 6 L5.8 7.9' stroke='url(%23g)' stroke-width='.07' stroke-opacity='.55'/%3E%3Crect x='8.3' y='12.5' width='7.4' height='6.2' rx='1.2' stroke='url(%23g)' stroke-width='.12'/%3E%3Cpath d='M9.6 12.5 v-2.3 a2.4 2.4 0 0 1 4.8 0 v2.3' stroke='url(%23g)' stroke-width='.12' stroke-linecap='round'/%3E%3C/g%3E%3C/svg%3E");
+    --cn-sheet-ground: #04070d;
+    --cn-sheet-ps: calc(var(--cn-gutter-l) + var(--cn-hd-ps));
+    --cn-sheet-pe: calc(var(--cn-gutter-r) + var(--cn-hd-pe));
+    --cn-sheet-ease: cubic-bezier(.16, 1, .3, 1);
+    --cn-sheet-label: 36px;   /* the "Menu" label and its margins */
     position: sticky;
     top: calc(var(--cn-nav-top) + env(safe-area-inset-top, 0px));
     flex-direction: row;
@@ -621,32 +639,63 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
     height: var(--cn-nav-h);
   }
 
-  /* the sheet: a full-height midnight panel with one cyan light at the top and a faint
-     shield outline at the bottom */
+  /* the sheet: a near-black full-height panel with one faint cyan light at the top end */
   html.cn header.navbar.open::before {
     position: fixed;
     inset: 0;
     z-index: -1;
     border-radius: 0;
     background:
-      var(--cn-sheet-mark) right -72px bottom calc(var(--cn-sheet-foot) + 4px) / clamp(200px, 64vw, 360px) auto no-repeat,
-      radial-gradient(110% 46% at 100% -8%, rgba(34, 211, 238, .13), transparent 62%),
-      linear-gradient(180deg, #0a101c 0%, #060a14 100%);
+      radial-gradient(90% 34% at 100% 0%, rgba(34, 211, 238, .085), transparent 70%),
+      linear-gradient(180deg, #080d18 0%, var(--cn-sheet-ground) 46%);
     box-shadow: none;
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
-    animation: cn-sheet-fade var(--cn-dur-2) var(--cn-ease-out) both;
+    animation: cn-sheet-fade 200ms ease-out both;
   }
 
-  /* Close: the same white pill with a cross */
+  /* Close: the white Menu pill becomes a round white button with a centred X. The "Close" text
+     stays in the DOM (final-ui-fix.js writes it, the aria-label says "Close navigation menu")
+     but font-size:0 takes it out of layout; the X is a 14px mask placed with inset:0 + margin:auto,
+     so it sits on the centre of the circle whatever the font (60-overlays.css section 3). */
+  html.cn header.navbar.open #mobileMenu.mobile-menu {
+    width: 44px;
+    height: 44px;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    gap: 0;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+    letter-spacing: 0 !important;
+    box-shadow: 0 8px 20px -12px rgba(0, 0, 0, .8);
+    animation: cn-close-in 260ms var(--cn-sheet-ease) both;
+  }
+
   html.cn header.navbar.open #mobileMenu.mobile-menu::before {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23060A14' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M4 4l8 8M12 4l-8 8'/%3E%3C/svg%3E");
+    position: absolute;
+    inset: 0;
+    width: 14px;
+    height: 14px;
+    margin: auto;
+    background: var(--cn-ch-ink);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='%23000' stroke-width='1.9' stroke-linecap='round'%3E%3Cpath d='M2.5 2.5l9 9M11.5 2.5l-9 9'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14' fill='none' stroke='%23000' stroke-width='1.9' stroke-linecap='round'%3E%3Cpath d='M2.5 2.5l9 9M11.5 2.5l-9 9'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+    pointer-events: none;
+  }
+
+  html.cn header.navbar.open #mobileMenu.mobile-menu::after {
+    inset: 0;
+    border-radius: 50%;
   }
 
   /* ---- the link list ---- */
+  /* The list box ends where the bottom bar begins (--cn-sheet-foot is the bar's room), so no row
+     ever shows below the bar, also not in the gap the bar keeps above the cookie bar. */
   html.cn header.navbar.open .nav-tabs {
     position: fixed;
-    inset: calc(var(--cn-sheet-top) + 6px) 0 0 0;
+    inset: calc(var(--cn-sheet-top) + 4px) 0 calc(var(--cn-sheet-foot) + var(--cn-consent-space, 0px) + env(safe-area-inset-bottom, 0px)) 0;
     display: flex;
     flex-direction: column;
     align-items: stretch;
@@ -654,7 +703,7 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
     gap: 0;
     width: auto;
     margin: 0;
-    padding: var(--cn-3) calc(var(--cn-gutter-r) + var(--cn-hd-pe) - 2px) calc(var(--cn-sheet-foot) + var(--cn-consent-space, 0px) + env(safe-area-inset-bottom, 0px)) calc(var(--cn-gutter-l) + var(--cn-hd-ps) - 2px);
+    padding: var(--cn-2) var(--cn-sheet-pe) var(--cn-4) var(--cn-sheet-ps);
     overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -666,53 +715,136 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
     display: none;
   }
 
+  /* a small label over the list (decorative: the alt text after "/" keeps it out of the
+     accessibility tree where supported) */
+  html.cn header.navbar.open .nav-tabs::before {
+    content: "Menu";
+    content: "Menu" / "";
+    display: block;
+    flex: none;
+    box-sizing: border-box;
+    height: calc(var(--cn-sheet-label) - 8px);
+    margin: 0 0 8px;
+    padding-block-start: 6px;
+    color: var(--cn-ch-text-3);
+    font-family: var(--cn-font);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    line-height: 16px;
+    text-transform: uppercase;
+    animation: cn-sheet-fade 240ms ease-out both;
+  }
+
+  /* each row: icon, label, arrow; a hairline underneath (a background, so ::before and ::after
+     stay free for the icon and the arrow) */
   html.cn header.navbar.open .nav-link {
+    --cn-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.6'%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E");
     position: relative;
     display: flex;
     flex: none;
     align-items: center;
     justify-content: flex-start;
-    gap: var(--cn-3);
+    gap: 14px;
     width: 100%;
-    max-width: 640px;
-    /* nine rows share the height the bar leaves, between 46px (still a 44px target) and 60px: on a
-       short phone every entry sits above the bar without scrolling */
-    min-height: 60px;
-    min-height: clamp(46px, calc((100dvh - var(--cn-sheet-top) - var(--cn-sheet-foot) - 20px) / 9), 60px);
+    max-width: none;
+    /* nine rows share the height the bars leave, between 46px (still a 44px target) and 62px:
+       on a short phone every entry sits above the bottom bar without scrolling */
+    min-height: 58px;
+    min-height: clamp(46px, calc((100dvh - var(--cn-sheet-top) - var(--cn-sheet-foot) - var(--cn-sheet-label) - 24px) / 9), 62px);
     margin: 0;
-    padding: 0 2px;
+    padding: 0 2px 1px 0;
     border: 0;
-    border-bottom: 1px solid var(--cn-ch-line);
     border-radius: 0;
-    background: none;
+    background: linear-gradient(var(--cn-ch-line), var(--cn-ch-line)) 0 100% / 100% 1px no-repeat;
+    box-shadow: none;
     color: var(--cn-ch-text);
     font-family: var(--cn-font);
-    font-size: clamp(1.4375rem, 1rem + 3.4vw, 1.875rem);
-    font-weight: 600;
-    letter-spacing: -.03em;
+    font-size: clamp(1.3125rem, .9rem + 2.8vw, 1.75rem);
+    font-weight: 440;
+    letter-spacing: -.028em;
     line-height: 1.1;
     text-align: start;
     white-space: normal;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    animation: cn-sheet-item var(--cn-dur-3) var(--cn-ease-out) both;
+    animation: cn-sheet-item 260ms var(--cn-sheet-ease) both;
+    transition: color var(--cn-dur-1) ease;
   }
 
-  /* a quiet arrow at the end of each row */
+  /* the icon (the injected Account link's glowing dot is replaced by its icon) */
+  html.cn header.navbar.open .nav-link::before,
+  html.cn header.navbar.open .nav-tabs .account-nav-link::before {
+    content: "";
+    flex: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 0;
+    background: var(--cn-ch-text-3);
+    box-shadow: none;
+    opacity: 1;
+    -webkit-mask: var(--cn-ico) center / contain no-repeat;
+    mask: var(--cn-ico) center / contain no-repeat;
+    transition: background-color var(--cn-dur-1) ease;
+  }
+
+  /* a faint arrow at the end of each row */
   html.cn header.navbar.open .nav-link::after {
     content: "";
     flex: none;
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     margin-inline-start: auto;
     background: var(--cn-ch-mute);
-    opacity: .7;
-    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 10h11M11 5.5 15.5 10 11 14.5'/%3E%3C/svg%3E") center / contain no-repeat;
-    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 10h11M11 5.5 15.5 10 11 14.5'/%3E%3C/svg%3E") center / contain no-repeat;
+    opacity: .5;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 10h11M11 5.5 15.5 10 11 14.5'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23000' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 10h11M11 5.5 15.5 10 11 14.5'/%3E%3C/svg%3E") center / contain no-repeat;
+    transition: opacity var(--cn-dur-1) ease, background-color var(--cn-dur-1) ease;
+  }
+
+  html.cn[dir="rtl"] header.navbar.open .nav-link::after {
+    transform: scaleX(-1);
+  }
+
+  /* one icon per destination: thin line glyphs on a 24px grid */
+  html.cn header.navbar.open .nav-link[data-page="home"] {
+    --cn-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 10.4 12 4l8 6.4V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z'/%3E%3C/svg%3E");
+  }
+
+  html.cn header.navbar.open .nav-link[data-page="cybernet"] {
+    --cn-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8.5V6a2 2 0 0 1 2-2h2.5M15.5 4H18a2 2 0 0 1 2 2v2.5M20 15.5V18a2 2 0 0 1-2 2h-2.5M8.5 20H6a2 2 0 0 1-2-2v-2.5M7.5 12h9'/%3E%3C/svg%3E");
+  }
+
+  html.cn header.navbar.open .nav-link[data-page="cybernetai"] {
+    --cn-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.5 3.5c.55 3.9 2.6 5.95 6.5 6.5-3.9.55-5.95 2.6-6.5 6.5-.55-3.9-2.6-5.95-6.5-6.5 3.9-.55 5.95-2.6 6.5-6.5zM18 14.5c.25 1.75 1.1 2.6 2.75 2.85-1.65.25-2.5 1.1-2.75 2.85-.25-1.75-1.1-2.6-2.75-2.85 1.65-.25 2.5-1.1 2.75-2.85z'/%3E%3C/svg%3E");
+  }
+
+  html.cn header.navbar.open .nav-link[data-page="recovery"] {
+    --cn-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.6 13.2A7.6 7.6 0 1 0 6.9 6.4M4.4 3.8v4.1h4.1M12 8.4V12l2.6 1.6'/%3E%3C/svg%3E");
+  }
+
+  html.cn header.navbar.open .nav-link[data-page="learn"] {
+    --cn-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 6.8C10.4 5.4 7.8 4.8 4 4.8v13.4c3.8 0 6.4.6 8 2 1.6-1.4 4.2-2 8-2V4.8c-3.8 0-6.4.6-8 2zM12 6.8v13.4'/%3E%3C/svg%3E");
+  }
+
+  html.cn header.navbar.open #navManageBusinessBtn.nav-link {
+    --cn-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='7' width='17' height='12.5' rx='2'/%3E%3Cpath d='M9 7V5.6A1.6 1.6 0 0 1 10.6 4h2.8A1.6 1.6 0 0 1 15 5.6V7M3.5 12.6h17M10.4 12.6v1.6h3.2v-1.6'/%3E%3C/svg%3E");
+  }
+
+  html.cn header.navbar.open .nav-link[data-page="pricing"] {
+    --cn-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.8 12.6V5A1.2 1.2 0 0 1 5 3.8h7.6l7.6 7.6a1.2 1.2 0 0 1 0 1.7l-6.9 6.9a1.2 1.2 0 0 1-1.7 0z'/%3E%3Ccircle cx='8.4' cy='8.4' r='1.4'/%3E%3C/svg%3E");
+  }
+
+  html.cn header.navbar.open #accountNavBtn.nav-link {
+    --cn-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='8.6' r='3.8'/%3E%3Cpath d='M4.6 20c.9-3.6 3.9-5.7 7.4-5.7s6.5 2.1 7.4 5.7'/%3E%3C/svg%3E");
+  }
+
+  html.cn header.navbar.open .nav-link[data-page="about"] {
+    --cn-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='8.5'/%3E%3Cpath d='M12 11v5.2M12 7.7v.1'/%3E%3C/svg%3E");
   }
 
   html.cn header.navbar.open .nav-link:active {
-    color: var(--cn-cyan);
+    color: var(--cn-cyan-2, #67e8f9);
   }
 
   html.cn header.navbar.open .nav-link:focus-visible {
@@ -721,17 +853,21 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
     box-shadow: var(--cn-focus);
   }
 
-  /* current page: a cyan label and a lit arrow on a quiet slate row */
+  /* the current page: a bolder white label, a cyan icon and arrow, and a thin cyan hairline that
+     fades out along the row */
   html.cn header.navbar.open .nav-link.active {
-    width: calc(100% + var(--cn-hd-ps) + var(--cn-hd-pe) - 4px);
-    max-width: calc(640px + var(--cn-hd-ps) + var(--cn-hd-pe));
-    margin-inline: calc(2px - var(--cn-hd-ps)) 0;
-    padding-inline: var(--cn-hd-ps) var(--cn-hd-pe);
-    border-bottom-color: transparent;
-    border-radius: 18px;
-    background: rgba(34, 211, 238, .08);
-    box-shadow: inset 0 0 0 1px rgba(34, 211, 238, .26);
-    color: #67e8f9;
+    color: #fff;
+    font-weight: 620;
+    background: linear-gradient(90deg, var(--cn-cyan) 0%, rgba(34, 211, 238, .5) 34%, rgba(148, 163, 184, .18) 78%) 0 100% / 100% 1px no-repeat;
+  }
+
+  html.cn[dir="rtl"] header.navbar.open .nav-link.active {
+    background-image: linear-gradient(270deg, var(--cn-cyan) 0%, rgba(34, 211, 238, .5) 34%, rgba(148, 163, 184, .18) 78%);
+  }
+
+  html.cn header.navbar.open .nav-link.active::before,
+  html.cn header.navbar.open .nav-tabs .account-nav-link.active::before {
+    background: var(--cn-cyan);
   }
 
   html.cn header.navbar.open .nav-link.active::after {
@@ -739,22 +875,17 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
     opacity: 1;
   }
 
-  /* injected Account link: no glowing dot, same row as the rest */
-  html.cn header.navbar.open .nav-tabs .account-nav-link::before {
-    content: none;
-  }
+  /* a short stagger, about 390 ms in all: the indicator span is child 1, links start at child 2 */
+  html.cn header.navbar.open .nav-link:nth-child(3) { animation-delay: 16ms; }
+  html.cn header.navbar.open .nav-link:nth-child(4) { animation-delay: 32ms; }
+  html.cn header.navbar.open .nav-link:nth-child(5) { animation-delay: 48ms; }
+  html.cn header.navbar.open .nav-link:nth-child(6) { animation-delay: 64ms; }
+  html.cn header.navbar.open .nav-link:nth-child(7) { animation-delay: 80ms; }
+  html.cn header.navbar.open .nav-link:nth-child(8) { animation-delay: 96ms; }
+  html.cn header.navbar.open .nav-link:nth-child(9) { animation-delay: 112ms; }
+  html.cn header.navbar.open .nav-link:nth-child(n+10) { animation-delay: 128ms; }
 
-  /* gentle stagger: the indicator span is child 1, links start at child 2 */
-  html.cn header.navbar.open .nav-link:nth-child(3) { animation-delay: 25ms; }
-  html.cn header.navbar.open .nav-link:nth-child(4) { animation-delay: 50ms; }
-  html.cn header.navbar.open .nav-link:nth-child(5) { animation-delay: 75ms; }
-  html.cn header.navbar.open .nav-link:nth-child(6) { animation-delay: 100ms; }
-  html.cn header.navbar.open .nav-link:nth-child(7) { animation-delay: 125ms; }
-  html.cn header.navbar.open .nav-link:nth-child(8) { animation-delay: 150ms; }
-  html.cn header.navbar.open .nav-link:nth-child(9) { animation-delay: 175ms; }
-  html.cn header.navbar.open .nav-link:nth-child(n+10) { animation-delay: 200ms; }
-
-  /* ---- bottom bar: socials + Sign in / account ---- */
+  /* ---- bottom bar: socials + Sign in / account, on the sheet's own ground ---- */
   html.cn header.navbar.open .nav-actions {
     position: fixed;
     inset: auto 0 0 0;
@@ -768,10 +899,10 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
     width: auto;
     min-width: 0;
     margin: 0;
-    padding: var(--cn-4) calc(var(--cn-gutter-r) + var(--cn-hd-pe)) calc(var(--cn-4) + env(safe-area-inset-bottom, 0px)) calc(var(--cn-gutter-l) + var(--cn-hd-ps) - 4px);
-    border-top: 1px solid var(--cn-ch-line-2);
-    background: #0a101c;
-    animation: cn-sheet-item var(--cn-dur-3) var(--cn-ease-out) 120ms both;
+    padding: var(--cn-4) var(--cn-sheet-pe) calc(var(--cn-4) + env(safe-area-inset-bottom, 0px)) calc(var(--cn-sheet-ps) - 2px);
+    border-top: 1px solid var(--cn-ch-line);
+    background: var(--cn-sheet-ground);
+    animation: cn-sheet-item 260ms var(--cn-sheet-ease) 120ms both;
   }
 
   /* a soft fade above the bar: when the list is taller than the screen, the
@@ -782,7 +913,7 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
     inset-inline: 0;
     bottom: calc(100% + 1px);
     height: var(--cn-6);
-    background: linear-gradient(to bottom, transparent, rgba(6, 10, 20, .8));
+    background: linear-gradient(to bottom, rgba(4, 7, 13, 0), rgba(4, 7, 13, .85));
     pointer-events: none;
   }
 
@@ -796,7 +927,7 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
     display: flex;
     flex: none;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
     width: auto;
     margin: 0;
     padding: 0;
@@ -807,7 +938,18 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
     width: 44px;
     height: 44px;
     border: 1px solid var(--cn-ch-line-2);
-    background: rgba(255, 255, 255, .05);
+    background: transparent;
+    color: var(--cn-ch-text-2);
+  }
+
+  html.cn header.navbar.open .nav-social-btn svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  html.cn header.navbar.open .nav-social-btn:active {
+    color: #fff;
+    border-color: rgba(148, 163, 184, .6);
   }
 
   html.cn header.navbar.open .nav-social-btn::after,
@@ -832,9 +974,9 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
     --cn-sheet-foot: 148px;
   }
 
-  /* the bar sits 20px above the cookie bar, so the list keeps that room too */
+  /* the bar sits 20px above the cookie bar, so the list ends 20px higher too */
   html.cn.cn-consent-visible header.navbar.open .nav-tabs {
-    padding-bottom: calc(var(--cn-sheet-foot) + var(--cn-consent-space, 0px) + 20px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(var(--cn-sheet-foot) + var(--cn-consent-space, 0px) + 20px + env(safe-area-inset-bottom, 0px));
   }
 
   /* signed in: greeting, plan chip and Sign Out get their own row above the icons */
@@ -875,6 +1017,40 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
   html.cn.cn-menu-open {
     overflow: hidden;
   }
+
+  html.cn.cn-menu-open body {
+    overscroll-behavior: none;
+  }
+}
+
+/* tablets: the same list, set larger, with more air between the rows */
+@media (min-width: 600px) and (max-width: 1023.98px) {
+  html.cn header.navbar.open {
+    --cn-sheet-label: 44px;
+  }
+
+  html.cn header.navbar.open .nav-tabs::before {
+    padding-block-start: 10px;
+  }
+
+  html.cn header.navbar.open .nav-link {
+    gap: 18px;
+    min-height: 66px;
+    min-height: clamp(52px, calc((100dvh - var(--cn-sheet-top) - var(--cn-sheet-foot) - var(--cn-sheet-label) - 32px) / 9), 76px);
+    font-size: clamp(1.75rem, .75rem + 3vw, 2.375rem);
+    letter-spacing: -.032em;
+  }
+
+  html.cn header.navbar.open .nav-link::before,
+  html.cn header.navbar.open .nav-tabs .account-nav-link::before {
+    width: 26px;
+    height: 26px;
+  }
+
+  html.cn header.navbar.open .nav-link::after {
+    width: 22px;
+    height: 22px;
+  }
 }
 
 /* phones: tighter bar */
@@ -898,6 +1074,10 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
   html.cn header.navbar.open #openAuth.login-btn,
   html.cn header.navbar.open .auth-checking-skeleton {
     flex-basis: 120px;
+  }
+
+  html.cn header.navbar.open .nav-social-links {
+    gap: 4px;
   }
 }
 
@@ -925,6 +1105,12 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
     padding: 0 13px 0 11px !important;
   }
 
+  /* "Manage Business" keeps one line at 280px */
+  html.cn header.navbar.open .nav-link {
+    gap: 12px;
+    font-size: 1.1875rem;
+  }
+
   /* Sign in takes what the three icons leave (about 96px at 280), so the bar
      stays one row and every link sits above it */
   html.cn header.navbar.open #openAuth.login-btn,
@@ -935,18 +1121,43 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
   }
 }
 
-/* small phones: the shield outline steps aside (the rows shrink with the height, see .nav-link) */
-@media (max-width: 1023.98px) and (max-height: 760px) {
+/* short phones (320 x 640, 360 x 640): the "Menu" label gives its room to the rows */
+@media (max-width: 1023.98px) and (max-height: 680px) {
   html.cn header.navbar.open {
-    --cn-sheet-mark: none;
+    --cn-sheet-label: 0px;
+  }
+
+  html.cn header.navbar.open .nav-tabs::before {
+    content: none;
   }
 }
 
-/* short screens (landscape phones): denser rows, two columns when wide enough */
+/* short screens (landscape phones): the label goes, denser rows, two or three columns */
 @media (max-width: 1023.98px) and (max-height: 560px) {
+  html.cn header.navbar.open {
+    --cn-sheet-foot: 84px;
+    --cn-sheet-label: 0px;
+  }
+
+  html.cn header.navbar.open .nav-tabs::before {
+    content: none;
+  }
+
   html.cn header.navbar.open .nav-link {
+    gap: 12px;
     min-height: 48px;
     font-size: 1.25rem;
+  }
+
+  html.cn header.navbar.open .nav-link::before,
+  html.cn header.navbar.open .nav-tabs .account-nav-link::before {
+    width: 20px;
+    height: 20px;
+  }
+
+  html.cn header.navbar.open .nav-link::after {
+    width: 16px;
+    height: 16px;
   }
 
   /* a slimmer bar: 12 + 44 + 12 */
@@ -958,10 +1169,6 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
   html.cn header.navbar.open #openAuth.login-btn,
   html.cn header.navbar.open .auth-checking-skeleton {
     height: 44px;
-  }
-
-  html.cn header.navbar.open {
-    --cn-sheet-foot: 84px;
   }
 
   html.cn header.navbar.open:has(#accountSummary:not([hidden])) {
@@ -1024,11 +1231,6 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
 
 /* ---------- hover (fine pointers only) ---------- */
 @media (hover: hover) and (pointer: fine) {
-  html.cn header.navbar .nav-link:not(.active):hover {
-    background: rgba(255, 255, 255, .07);
-    color: #fff;
-  }
-
   html.cn header.navbar .nav-social-btn:hover {
     color: #fff;
     background: rgba(255, 255, 255, .12);
@@ -1058,6 +1260,26 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
   }
 }
 
+/* the bar's links: a faint pill on hover */
+@media (hover: hover) and (pointer: fine) and (min-width: 1024px) {
+  html.cn header.navbar .nav-link:not(.active):hover {
+    background: rgba(255, 255, 255, .06);
+    color: #fff;
+  }
+}
+
+/* the sheet's rows (a small window with a mouse): the icon and the arrow light up */
+@media (hover: hover) and (pointer: fine) and (max-width: 1023.98px) {
+  html.cn header.navbar.open .nav-link:not(.active):hover::before {
+    background: var(--cn-ch-text);
+  }
+
+  html.cn header.navbar.open .nav-link:not(.active):hover::after {
+    background: var(--cn-ch-text);
+    opacity: .9;
+  }
+}
+
 /* ---------- motion ---------- */
 /* The entrance is a plain fade: a transform, `translate` or filter on the header would make it the
    containing block of the fixed menu-sheet layers while it runs, so a tap on Menu in the first half
@@ -1078,12 +1300,19 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
 }
 
 @keyframes cn-sheet-item {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translate3d(0, 12px, 0); }
   to { opacity: 1; transform: none; }
+}
+
+@keyframes cn-close-in {
+  from { transform: rotate(-90deg) scale(.86); }
+  to { transform: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   html.cn header.navbar .nav-link,
+  html.cn header.navbar .nav-link::before,
+  html.cn header.navbar .nav-link::after,
   html.cn header.navbar .nav-social-btn,
   html.cn header.navbar #openAuth.login-btn,
   html.cn header.navbar .account-action-btn,
@@ -1095,6 +1324,8 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
   html.cn header.navbar .nav-link.active::after,
   html.cn header.navbar #openAuth.login-btn:not([hidden]),
   html.cn header.navbar.open::before,
+  html.cn header.navbar.open #mobileMenu.mobile-menu,
+  html.cn header.navbar.open .nav-tabs::before,
   html.cn header.navbar.open .nav-link,
   html.cn header.navbar.open .nav-actions,
   html.cn header.navbar .auth-checking-skeleton {
@@ -1106,18 +1337,41 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
 @media (prefers-reduced-transparency: reduce) {
   html.cn header.navbar::before { background: #0c1220; }
 
-  html.cn header.navbar.open::before { background: #060a14; }
+  html.cn header.navbar.open::before { background: #04070d; }
 }
 
-/* Windows high contrast: the system drops gradients and shadows, so the capsule gets a real edge */
+/* Windows high contrast: the system drops gradients and shadows, so the capsule gets a real edge,
+   the sheet's rows get a system hairline and the icons a system colour */
 @media (forced-colors: active) {
   html.cn header.navbar,
   html.cn header.navbar.glass {
     border: 1px solid CanvasText;
   }
 
+  html.cn header.navbar.open .nav-link {
+    border-bottom: 1px solid CanvasText;
+  }
+
+  html.cn header.navbar.open .nav-link::before,
+  html.cn header.navbar.open .nav-link::after {
+    background: CanvasText;
+  }
+
   html.cn header.navbar.open .nav-link.active {
     color: Highlight;
+  }
+
+  html.cn header.navbar.open .nav-link.active::before,
+  html.cn header.navbar.open .nav-link.active::after {
+    background: Highlight;
+  }
+
+  html.cn header.navbar.open #mobileMenu.mobile-menu {
+    border: 1px solid ButtonText !important;
+  }
+
+  html.cn header.navbar.open #mobileMenu.mobile-menu::before {
+    background: ButtonText;
   }
 
   html.cn header.navbar .nav-link.active {

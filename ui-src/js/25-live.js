@@ -1,19 +1,17 @@
 /* Home 2 \u00B7 Live band. Real numbers only.
    The legacy script (initLiveHeroCounters) fetches /api/public-stats once ~650 ms after load and counts
    #liveScansCount / #liveThreatsCount / #liveRecoveriesCount up. This module waits for that fill and
-   reads the settled numbers (no second request at load), then draws the funnel bars and the
-   threats-per-100-scans ring and marks the section .is-live (the eyebrow then reads "Live").
+   reads the settled numbers (no second request at load), then draws the funnel bars and marks the
+   section .is-live (the eyebrow then reads "Live").
    Each part plays when it is itself on screen: the totals count up from zero if they were filled
-   while off screen (if the visitor already watched the legacy count, they are left alone), the
-   gradient bars grow when the bars are seen, and the ring fills when the ring card is seen.
-   The ring's gradient stroke (#cnRingGrad) is added to its SVG once, at boot.
+   while off screen (if the visitor already watched the legacy count, they are left alone) and the
+   gradient bars grow when the bars are seen.
    While the section is on screen and the tab is visible it polls /api/public-stats every 60 s (at
    most 10 times per page view) and updates the numbers with a short count.
-   Honesty: threats are counted only in saved Pro and Business analyses, while scans count every
-   Quick Scan and analysis, so the ring is a rate per 100 scans, not a share of scans, and the
-   funnel rows show counts, not percentages. If the API fails nothing is invented: the section
-   gets .is-down (no "Live" claim, no empty charts), the counters keep their dash and the legacy
-   note explains it. */
+   Honesty: the funnel rows show counts on one shared scale, never percentages. If the API fails
+   nothing is invented: the section gets .is-down (no "Live" claim, no empty bars), the counters
+   keep their dash and the legacy note explains it. (The threats-per-100-scans ring was removed on
+   the owner's request, 15 Oct 2026.) */
 (function () {
   "use strict";
   var CN = window.CN;
@@ -22,7 +20,9 @@
   var POLL_MS = 60000, MAX_POLLS = 10, LEGACY_WAIT_MS = 6500;
   var IDS = ["liveScansCount", "liveThreatsCount", "liveRecoveriesCount"];
   var KEYS = ["scans", "threats", "recoveries"];
-  var OK_NOTE = "Straight from CyberNet AI\u2019s database. Nothing here is estimated.";
+  // The second sentence keeps the caveat the removed ring card carried (Quick Scans and free
+  // results are never saved, so they can never be counted as flagged).
+  var OK_NOTE = "Straight from CyberNet AI\u2019s database. Nothing here is estimated. Threats flagged counts saved Pro and Business analyses only.";
   var booted = false;
 
   // The note's markup text ("Loading..."), read before the legacy fill can replace it. If this
@@ -35,7 +35,6 @@
     try { return new Intl.NumberFormat(undefined, opts); } catch (e) { return { format: function (n) { return String(n); } }; }
   }
   var nf = fmt();
-  var nf1 = fmt({ minimumFractionDigits: 1, maximumFractionDigits: 1 });
   var tf;
   try { tf = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }); } catch (e) { tf = null; }
 
@@ -56,29 +55,6 @@
 
   function valid(n) { return typeof n === "number" && isFinite(n) && n >= 0; }
 
-  /* The ring stroke is a cyan -> blue gradient. The SVG ships without <defs>, so one
-     <linearGradient id="cnRingGrad"> is added once (the CSS falls back to solid teal without it). */
-  function addRingGradient(circle) {
-    var svg = circle && circle.ownerSVGElement;
-    if (!svg || document.getElementById("cnRingGrad")) return;
-    var NS = "http://www.w3.org/2000/svg";
-    var defs = document.createElementNS(NS, "defs");
-    var g = document.createElementNS(NS, "linearGradient");
-    g.setAttribute("id", "cnRingGrad");
-    // The circle is drawn rotated -90deg, so in its own box the stroke starts at the right edge and
-    // runs clockwise through the bottom. A diagonal from top-right to bottom-left therefore starts
-    // the visible arc in cyan and turns to the supporting blue (the brand gradient, cyan -> blue).
-    g.setAttribute("x1", "1"); g.setAttribute("y1", "0"); g.setAttribute("x2", "0"); g.setAttribute("y2", "1");
-    [[".2", "#22d3ee"], [".9", "#3b82f6"]].forEach(function (st) {
-      var stop = document.createElementNS(NS, "stop");
-      stop.setAttribute("offset", st[0]);
-      stop.setAttribute("stop-color", st[1]);
-      g.appendChild(stop);
-    });
-    defs.appendChild(g);
-    svg.insertBefore(defs, svg.firstChild);
-  }
-
   function boot(hook) {
     if (booted) return null;
     var sec = hook.closest ? hook.closest(".cn-live") : null;
@@ -89,27 +65,22 @@
     var note = document.getElementById("heroStatsNote");
     var timeEl = CN.qs("[data-cn-live-time]", sec);
     var rows = KEYS.map(function (k) { return CN.qs('.cn-funnel-row[data-key="' + k + '"]', sec); });
-    var ringVal = CN.qs(".cn-ring-val", sec);
-    var ringNum = CN.qs("[data-cn-ring-num]", sec);
     var liveLabel = CN.qs("[data-cn-live-label]", sec);
 
     var statsPanel = CN.qs(".hero-stats-panel", sec);
     var funnel = CN.qs(".cn-funnel", sec);
-    var ringCard = CN.qs(".cn-ring-card", sec);
-    addRingGradient(ringVal);
 
     var data = null, painted = null, ready = false;
-    // barsShown / ringShown: that part has been on screen. numsSeen: the totals were on screen
-    // (before or after data); numsPlayed: their count-up has run (or was not needed).
-    var barsShown = false, ringShown = false, numsSeen = false, numsPlayed = false;
+    // barsShown: the bars have been on screen. numsSeen: the totals were on screen (before or
+    // after data); numsPlayed: their count-up has run (or was not needed).
+    var barsShown = false, numsSeen = false, numsPlayed = false;
     var polls = 0, lastAt = 0, timer = 0, busy = false, inview = false, active = false;
-    var ringAt = null;
 
     /* ---- painting ---- */
     function setText(el, text) { if (el && el.textContent !== text) el.textContent = text; }
 
     /* Up: real numbers arrived, the eyebrow may say "Live". Down: no data could be read, so the
-       section drops the claim and the empty charts (22-live.css), keeping the dashes and the note. */
+       section drops the claim and the empty bars (22-live.css), keeping the dashes and the note. */
     function state(up) {
       sec.classList.toggle("is-live", up);
       sec.classList.toggle("is-down", !up);
@@ -142,7 +113,6 @@
       // Numbers that arrived while the totals were off screen count up once, when they are seen.
       if (!numsSeen) numsPlayed = false; else numsPlayed = true;
       paintBars();
-      paintRing();
       painted = data;
     }
 
@@ -169,22 +139,6 @@
         if (bar) bar.style.setProperty("--v", (v > 0 ? Math.max(v, .012) : 0).toFixed(4));
         setText(row.querySelector("em"), top > 0 ? nf.format(data[KEYS[i]]) : "\u2014");
       });
-    }
-
-    function paintRing() {
-      if (!data || !ringShown) return;
-      var s = data.scans;
-      if (s > 0) {
-        var pct = CN.clamp(data.threats / s, 0, 1);
-        if (ringVal) ringVal.style.strokeDashoffset = String(100 - pct * 100);
-        var from = ringAt === null ? 0 : ringAt;
-        ringAt = pct;
-        // Threats flagged per 100 scans, one decimal ("22.5"); the label carries the unit.
-        countTo(ringNum, from, pct, 1400, function (v) { return nf1.format(v * 100); });
-      } else {
-        if (ringVal) ringVal.style.strokeDashoffset = "100";
-        setText(ringNum, "\u2014");
-      }
     }
 
     function adopt(next, withCount) {
@@ -320,7 +274,6 @@
       stopNear();
     }, { threshold: .3 });
     CN.once(funnel || sec, function () { barsShown = true; paintBars(); }, { threshold: .5 });
-    CN.once(ringCard || sec, function () { ringShown = true; paintRing(); }, { threshold: .4 });
     CN.inView(sec, function (vis) { inview = vis; sync(); });
     document.addEventListener("visibilitychange", sync);
 
@@ -331,5 +284,4 @@
   }
 
   CN.register("funnel", boot);
-  CN.register("threat-ring", boot);
 })();

@@ -15,7 +15,8 @@
      hidden on Home (inline display, set by 09-bgfx.js on a page switch).
 
    Cost: the layers are positioned boxes with contain:strict (their size never depends on the
-   page, and their paint never leaks out). No blend modes, filters or backdrop blur: the canvas
+   page, and their paint never leaks out). Inside, each ribbon has its own band canvas covering
+   only the strip it can reach (v4.2), drawn sharp at the screen's density. No blend modes, filters or backdrop blur: the canvas
    is composited as a plain layer. The page band's mask is a static gradient. The canvas fades in
    once, on its first drawn frame (an opacity transition on the compositor). The copy stays clean
    because 09-bgfx.js dims the lines behind each headline and paragraph inside the canvas itself
@@ -28,7 +29,12 @@ html.cn .cn-bgfx {
   pointer-events: none;
   contain: strict;
 }
+/* v4.2: one band canvas per ribbon, placed on its ribbon by 09-bgfx.js (inline top and height,
+   written only on resize), so each canvas holds only the strip its light lines can reach. */
 html.cn .cn-bgfx > canvas {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 0;
   display: block;
   inline-size: 100%;
   block-size: 100%;

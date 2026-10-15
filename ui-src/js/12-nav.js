@@ -14,6 +14,12 @@
    - html.cn-menu-open mirrors .navbar.open (a MutationObserver on the nav's class), so the
      scroll lock in 10-nav.css needs no root-anchored :has() (DESIGN.md, Performance). The
      class sits on <html>, outside the body-wide legacy observers.
+   - No scroll bleed behind the sheet: html.cn-menu-open sets overflow:hidden, and while the
+     sheet is open (and only then) a touchmove guard stops a drag that starts on the sheet's
+     ground, its top row or its bottom bar from scrolling the page underneath on browsers that
+     ignore overflow on the root (older iOS). The link list itself scrolls natively.
+   - The current page is mirrored into aria-current="page" on the nav links (script.js only sets
+     the .active class), so the sheet's marker is also announced.
    (The footer's drifting glow and its "chrome-fx" module are gone: v4.1 chrome does not move.)
    Focus containment for the sheet and the dialogs lives in 08-focus.js (platform owner). */
 (function () {
@@ -26,12 +32,44 @@
     var menuBtn = document.getElementById("mobileMenu");
     var mqSheet = window.matchMedia ? window.matchMedia("(max-width: 1023.98px)") : null;
 
+    /* touchmove guard, attached only while the sheet is open */
+    var guarding = false;
+    function onTouchMove(e) {
+      var t = e.target;
+      if (!t || !t.closest) return;
+      var list = t.closest(".navbar.open .nav-tabs");
+      if (list && list.scrollHeight > list.clientHeight + 1) return;
+      if (t.closest(".modal, .cn-legal-modal, #cnConsentBar, .cn-consent")) return;
+      if (e.cancelable) e.preventDefault();
+    }
+    function guard(on) {
+      if (on === guarding) return;
+      guarding = on;
+      if (on) document.addEventListener("touchmove", onTouchMove, { passive: false });
+      else document.removeEventListener("touchmove", onTouchMove, { passive: false });
+    }
+
     if (nav && "MutationObserver" in window) {
       var syncOpen = function () {
-        document.documentElement.classList.toggle("cn-menu-open", nav.classList.contains("open"));
+        var open = nav.classList.contains("open");
+        document.documentElement.classList.toggle("cn-menu-open", open);
+        guard(open && (!mqSheet || mqSheet.matches));
       };
       syncOpen();
       new MutationObserver(syncOpen).observe(nav, { attributes: true, attributeFilter: ["class"] });
+
+      var tabs = CN.qs(".nav-tabs", nav);
+      if (tabs) {
+        var syncCurrent = function () {
+          CN.qsa(".nav-link", tabs).forEach(function (a) {
+            var cur = a.classList.contains("active") && a.hasAttribute("data-page");
+            if (cur) { if (a.getAttribute("aria-current") !== "page") a.setAttribute("aria-current", "page"); }
+            else if (a.hasAttribute("aria-current")) a.removeAttribute("aria-current");
+          });
+        };
+        syncCurrent();
+        new MutationObserver(syncCurrent).observe(tabs, { attributes: true, attributeFilter: ["class"], subtree: true });
+      }
     }
 
     function sheetOpen() {

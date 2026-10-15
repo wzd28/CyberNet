@@ -83,6 +83,17 @@
           <span class="cn-team-tier-badge" id="cnTeamTier">—</span>
         </div>
 
+        <div class="cn-team-loader" id="cnTeamLoader" tabindex="-1" hidden>
+          <span class="cn-team-loader-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 26" fill="none" width="40" height="44"><path d="M12 2 L21 6 L20 15 L12 24 L4 15 L3 6 Z" stroke="#22D3EE" stroke-width="1.8" stroke-linejoin="round"/><rect x="8.3" y="12.5" width="7.4" height="6.2" rx="1.2" fill="#22D3EE"/><path d="M9.6 12.5v-2.3a2.4 2.4 0 0 1 4.8 0v2.3" stroke="#22D3EE" stroke-width="1.6" fill="none" stroke-linecap="round"/><circle cx="12" cy="15.2" r="1" fill="#08152a"/><path d="M12 15.9v1.4" stroke="#08152a" stroke-width="1" stroke-linecap="round"/></svg>
+          </span>
+          <p class="cn-team-loader-title" id="cnTeamLoaderTitle">Loading your team</p>
+          <p class="cn-team-loader-text" id="cnTeamLoaderText">Seats, invites and today's usage are on their way.</p>
+          <span class="cn-team-loader-line" aria-hidden="true"><span></span></span>
+          <button class="primary-btn cn-team-retry" id="cnTeamRetry" type="button" hidden>Try again</button>
+        </div>
+        <p class="cn-team-status" id="cnTeamStatus" role="status" aria-live="polite" style="position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0"></p>
+
         <div class="cn-team-stats">
           <div class="cn-team-stat">
             <span>Seats used</span>
@@ -245,6 +256,9 @@
     const inviteMessage = document.getElementById("cnInviteMessage");
 
     let session = null;
+    // False until the first answer from Supabase: until then "no session"
+    // does not yet mean "signed out".
+    let sessionKnown = false;
     let team = null;
     let autoOpened = false;
 
@@ -254,6 +268,9 @@
     let clockSkew = 0;
     let expiryRefreshTimer = null;
     let lastExpiryRefresh = 0;
+
+    const INTRO_OWNER = "Add teammates, see exactly who used what today, and review every analysis your team has run.";
+    const INTRO_MEMBER = "You're a member of this team. Your Business access and daily limits come from the team's shared pool.";
 
     function setMessage(text = "", tone = "") {
       if (!message) return;
@@ -267,11 +284,34 @@
       inviteMessage.className = `cn-team-message ${tone}`.trim();
     }
 
+    // Every change of signed-in user drops what was loaded for the previous one.
+    function setSession(next) {
+      const previous = session?.user?.id || "";
+      session = next || null;
+      sessionKnown = true;
+      if ((session?.user?.id || "") !== previous) forgetTeamData();
+      return previous;
+    }
+
     async function getSession() {
-      if (!client) return null;
+      if (!client) {
+        sessionKnown = true;
+        return null;
+      }
       const { data } = await client.auth.getSession();
-      session = data?.session || null;
+      setSession(data?.session || null);
       return session;
+    }
+
+    // The session in memory is used as it is while its token has more than
+    // 90 seconds left (Supabase keeps it current through onAuthStateChange);
+    // otherwise Supabase is asked, which refreshes a token that is expiring.
+    async function readySession() {
+      const expiresAt = Number(session?.expires_at) * 1000;
+      if (session?.access_token && Number.isFinite(expiresAt) && expiresAt - Date.now() > 90 * 1000) {
+        return session;
+      }
+      return getSession();
     }
 
     function authHeaders(extra = {}) {
@@ -490,11 +530,7 @@
       if (recoveryEl) recoveryEl.textContent = String(Number(team.recoveryPoolLimit) || 0);
 
       const introEl = document.getElementById("cnTeamIntro");
-      if (introEl) {
-        introEl.textContent = isOwner
-          ? "Add teammates, see exactly who used what today, and review every analysis your team has run."
-          : "You're a member of this team. Your Business access and daily limits come from the team's shared pool.";
-      }
+      if (introEl) introEl.textContent = isOwner ? INTRO_OWNER : INTRO_MEMBER;
 
       if (inviteSection) inviteSection.hidden = !isOwner;
       if (activitySection) activitySection.hidden = !isOwner;
@@ -748,8 +784,270 @@
       });
     }
 
+    /* ─── Loading the team ───
+       Opening the panel used to wait for a membership check, then repeat the
+       same request from the panel, then ask for the activity log: three round
+       trips one after another before the panel was complete, and nothing on
+       screen for the whole first one. Now the panel opens in the frame of the
+       tap, showing the last good answer when there is one (refreshed behind
+       it) or the loading state while one request runs. Owners' activity log is
+       requested alongside it, and identical requests are shared. */
+
+    const TEAM_FRESH_MS = 30 * 1000;       // reused as it is, no new request
+    const TEAM_KEEP_MS = 10 * 60 * 1000;   // shown at once while a refresh runs behind it
+    const TEAM_TIMEOUT_MS = 15 * 1000;     // then an error with Try again
+    const TEAM_SLOW_MS = 5 * 1000;         // then the loader says it is still working
+
+    let teamCache = null;        // { userId, data, seq, skew, at }
+    let activityCache = null;    // { userId, feed, at }
+    let teamRequest = null;      // { key, seq, promise }
+    let activityRequest = null;  // { key, promise }
+    let teamRequestSeq = 0;
+    let renderedTeamSeq = 0;
+    let renderedTeamSig = "";
+    let renderedActivitySig = "";
+    let openSeq = 0;
+    let slowTimer = null;
+    let revealTimer = null;
+    let lastAccount = null;      // { userId, profile, isAdmin } from cybernet:account-refreshed
+
+    function currentUserId() {
+      return session?.user?.id || "";
+    }
+
+    function cacheAge(entry) {
+      return entry && entry.userId && entry.userId === currentUserId() ? Date.now() - entry.at : Infinity;
+    }
+
+    function forgetTeamData() {
+      teamCache = null;
+      activityCache = null;
+      renderedTeamSig = "";
+      renderedActivitySig = "";
+      team = null;
+    }
+
+    // fetch + JSON with a time limit, so the panel can never wait forever.
+    // A server's own error message is kept; a timeout or a lost connection
+    // becomes the plain-language message given.
+    function fetchJson(url, options, messages) {
+      const controller = typeof AbortController === "function" ? new AbortController() : null;
+      const timer = setTimeout(() => controller?.abort(), TEAM_TIMEOUT_MS);
+
+      return fetch(url, { ...options, signal: controller?.signal })
+        .then(async (response) => {
+          const data = await response.json().catch((error) => {
+            if (error?.name === "AbortError") throw error;
+            return {};
+          });
+          if (!response.ok) {
+            const failure = new Error(data.error || messages.failed);
+            failure.fromServer = true;
+            throw failure;
+          }
+          return data;
+        })
+        .catch((error) => {
+          if (error?.fromServer) throw error;
+          throw new Error(error?.name === "AbortError" ? messages.timeout : messages.offline);
+        })
+        .finally(() => clearTimeout(timer));
+    }
+
+    // One /api/business-account request per access token at a time; force
+    // starts a new one (after a change, an older answer is out of date).
+    function requestTeam({ force = false } = {}) {
+      const key = session?.access_token || "";
+      if (!force && teamRequest && teamRequest.key === key) return teamRequest.promise;
+
+      const seq = ++teamRequestSeq;
+      const userId = currentUserId();
+      const promise = fetchJson("/api/business-account", {
+        headers: authHeaders({ Accept: "application/json" }),
+        cache: "no-store"
+      }, {
+        failed: "Could not load your team.",
+        timeout: "Your team is taking longer than usual to load. Check your connection and try again.",
+        offline: "Could not reach CyberNet AI. Check your connection and try again."
+      })
+        .then((data) => {
+          const serverTime = Date.parse(data.serverTime || "");
+          const result = {
+            userId, data, seq,
+            skew: Number.isFinite(serverTime) ? serverTime - Date.now() : 0,
+            at: Date.now()
+          };
+          // Answers can arrive out of order: only a newer one replaces the cache.
+          if (userId && userId === currentUserId() && seq > (teamCache?.seq || 0)) teamCache = result;
+          return result;
+        })
+        .finally(() => {
+          if (teamRequest?.seq === seq) teamRequest = null;
+        });
+
+      teamRequest = { key, seq, promise };
+      return promise;
+    }
+
+    function requestActivity({ force = false } = {}) {
+      const key = session?.access_token || "";
+      if (!force && activityRequest && activityRequest.key === key) return activityRequest.promise;
+
+      const userId = currentUserId();
+      const promise = fetchJson("/api/business-activity?limit=30", {
+        headers: authHeaders({ Accept: "application/json" })
+      }, {
+        failed: "Could not load team activity.",
+        timeout: "Team activity is taking longer than usual to load. Close and reopen the panel to try again.",
+        offline: "Could not load team activity."
+      })
+        .then((data) => {
+          const feed = data.feed || [];
+          if (userId && userId === currentUserId()) activityCache = { userId, feed, at: Date.now() };
+          return feed;
+        })
+        .finally(() => {
+          if (activityRequest?.promise === promise) activityRequest = null;
+        });
+
+      // Nobody may be waiting for it yet (it starts alongside the team request).
+      promise.catch(() => {});
+      activityRequest = { key, promise };
+      return promise;
+    }
+
+    // What the account check (script.js, or the account dialog's own copy)
+    // says about the signed-in user, or null while that isn't known yet.
+    function accountProfile() {
+      const userId = currentUserId();
+      if (!userId) return null;
+
+      const app = window.CyberNetAccount?.appState;
+      if (app?.accountReady && !app.accountStatusError && app.accountUserId === userId && app.profile) {
+        return { ...app.profile, isAdmin: Boolean(app.isAdmin) };
+      }
+      if (lastAccount?.userId === userId) return { ...lastAccount.profile, isAdmin: lastAccount.isAdmin };
+      return null;
+    }
+
+    function teamSignature(data) {
+      try {
+        const { serverTime, ...rest } = data || {};
+        return JSON.stringify(rest);
+      } catch {
+        return "";
+      }
+    }
+
+    // Draws a team answer unless a newer one is already on screen. An answer
+    // identical to what is shown is not redrawn, so a quiet refresh never
+    // collapses an open entry or moves keyboard focus.
+    function applyTeam(result) {
+      if (!result?.data?.onTeam || result.seq < renderedTeamSeq) return false;
+      renderedTeamSeq = result.seq;
+      clockSkew = result.skew || 0;
+      team = result.data;
+
+      const sig = teamSignature(result.data);
+      if (sig && sig === renderedTeamSig) syncCountdown();
+      else {
+        renderedTeamSig = sig;
+        renderTeam();
+      }
+      setLoading(false);
+      return true;
+    }
+
+    function applyActivity(feed) {
+      let sig = "";
+      try {
+        sig = JSON.stringify(feed || []);
+      } catch {
+        sig = "";
+      }
+      if (sig && sig === renderedActivitySig) return;
+      renderedActivitySig = sig;
+      renderActivity(feed);
+    }
+
+    function showActivityPlaceholder() {
+      const host = document.getElementById("cnTeamActivity");
+      if (!host || host.querySelector(".cn-activity-item")) return;
+      renderedActivitySig = "";
+      host.innerHTML = '<div class="cn-team-empty cn-team-activity-loading">Loading team activity…</div>';
+    }
+
+    function announce(text) {
+      const status = document.getElementById("cnTeamStatus");
+      if (status) status.textContent = text;
+    }
+
+    // The loading state: the CyberNet shield, a calm progress line and the
+    // panel's own heading. mode: "loading", "error" or false (the content).
+    function setLoading(mode, text = "") {
+      const card = modal?.querySelector(".cn-team-card");
+      const loader = document.getElementById("cnTeamLoader");
+      const title = document.getElementById("cnTeamLoaderTitle");
+      const body = document.getElementById("cnTeamLoaderText");
+      const retry = document.getElementById("cnTeamRetry");
+      const wasLoading = Boolean(card?.classList.contains("is-loading"));
+
+      clearTimeout(slowTimer);
+      slowTimer = null;
+
+      if (!mode) {
+        if (!wasLoading) return;
+        card?.classList.remove("is-loading", "is-error-state");
+        if (loader) {
+          loader.hidden = true;
+          loader.classList.remove("is-error");
+        }
+        if (retry) retry.hidden = true;
+        // The figures settle in once, instead of popping in.
+        card?.classList.add("is-revealing");
+        clearTimeout(revealTimer);
+        revealTimer = setTimeout(() => card?.classList.remove("is-revealing"), 700);
+        announce("Your team is ready.");
+        return;
+      }
+
+      card?.classList.add("is-loading");
+      card?.classList.toggle("is-error-state", mode === "error");
+      card?.classList.remove("is-revealing", "is-refreshing");
+      if (loader) {
+        loader.hidden = false;
+        loader.classList.toggle("is-error", mode === "error");
+      }
+
+      if (mode === "error") {
+        if (title) title.textContent = "We couldn't load your team";
+        if (body) body.textContent = text || "Could not load your team.";
+        if (retry) retry.hidden = false;
+        announce(`We couldn't load your team. ${text || ""}`.trim());
+        return;
+      }
+
+      if (title) title.textContent = "Loading your team";
+      if (body) body.textContent = "Seats, invites and today's usage are on their way.";
+      if (retry) retry.hidden = true;
+      announce("Loading your team…");
+      slowTimer = setTimeout(() => {
+        if (body && card?.classList.contains("is-loading") && !card.classList.contains("is-error-state")) {
+          body.textContent = "Still working on it. The first load of the day can take a few seconds.";
+        }
+      }, TEAM_SLOW_MS);
+    }
+
+    // A thin progress line along the top of the panel while figures that are
+    // already on screen are being refreshed.
+    function setRefreshing(on) {
+      modal?.querySelector(".cn-team-card")?.classList.toggle("is-refreshing", Boolean(on));
+    }
+
+    // Used after an invite, a cancellation, a removal and an expired invite:
+    // always a new request, drawn into the open panel.
     async function loadTeam({ quiet = false, activity = true } = {}) {
-      if (!(await getSession())) {
+      if (!(await readySession())) {
         openExistingAuth();
         return null;
       }
@@ -757,29 +1055,21 @@
       if (!quiet) setMessage("Loading your team…");
 
       try {
-        const response = await fetch("/api/business-account", {
-          headers: authHeaders({ Accept: "application/json" })
-        });
-        const data = await response.json().catch(() => ({}));
+        const result = await requestTeam({ force: true });
 
-        if (!response.ok) throw new Error(data.error || "Could not load your team.");
-
-        if (!data.onTeam) {
+        if (!result.data.onTeam) {
           team = null;
+          setLoading(false);
           setMessage("This account isn't on a Business team.", "warning");
           return null;
         }
 
-        const serverTime = Date.parse(data.serverTime || "");
-        clockSkew = Number.isFinite(serverTime) ? serverTime - Date.now() : 0;
-
-        team = data;
-        renderTeam();
+        applyTeam(result);
         if (!quiet) setMessage("");
 
-        if (team.role === "owner" && activity) loadActivity();
+        if (team?.role === "owner" && activity) loadActivity();
 
-        return data;
+        return result.data;
       } catch (error) {
         setMessage(error?.message || "Could not load your team.", "error");
         return null;
@@ -788,14 +1078,9 @@
 
     async function loadActivity() {
       try {
-        const response = await fetch("/api/business-activity?limit=30", {
-          headers: authHeaders({ Accept: "application/json" })
-        });
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data.error || "Could not load team activity.");
-        renderActivity(data.feed || []);
+        applyActivity(await requestActivity({ force: true }));
       } catch (error) {
-        renderActivity([]);
+        applyActivity([]);
         setMessage(error?.message || "Could not load team activity.", "error");
       }
     }
@@ -913,18 +1198,178 @@
       }
     }
 
-    function openTeam() {
+    let lastOpenFromNav = false;
+
+    // Opens the panel in the frame of the tap: with the last good answer when
+    // there is one, otherwise with the loading state. fromNav: the navigation
+    // entry, where someone who turns out not to be on a team is taken to the
+    // Business plan (as before) instead of an empty panel.
+    function openTeam(options) {
+      const fromNav = Boolean(options?.fromNav);
+      const seq = ++openSeq;
+      lastOpenFromNav = fromNav;
+
       modal?.classList.add("show");
       modal?.setAttribute("aria-hidden", "false");
       document.body.style.overflow = "hidden";
-      loadTeam();
+      setMessage("");
+
+      const kept = cacheAge(teamCache) < TEAM_KEEP_MS && teamCache.data?.onTeam ? teamCache : null;
+      if (kept) {
+        applyTeam(kept);
+        if (kept.data.role === "owner" && cacheAge(activityCache) < TEAM_KEEP_MS) applyActivity(activityCache.feed);
+      } else {
+        const role = accountProfile()?.teamRole || "";
+        modal?.querySelector(".cn-team-card")?.classList.toggle("is-member-hint", role === "member");
+        const introEl = document.getElementById("cnTeamIntro");
+        if (introEl && role) introEl.textContent = role === "owner" ? INTRO_OWNER : INTRO_MEMBER;
+        setLoading("loading");
+      }
+
+      loadPanel(seq, { fromNav, kept: Boolean(kept) });
+    }
+
+    async function loadPanel(seq, { fromNav = false, kept = false } = {}) {
+      const stillOpen = () => seq === openSeq && panelOpen();
+
+      let current = null;
+      try {
+        current = await readySession();
+      } catch {
+        current = null;
+      }
+      if (!stillOpen()) return;
+      if (!current) {
+        closeTeam();
+        openExistingAuth();
+        return;
+      }
+
+      const fresh = cacheAge(teamCache) < TEAM_FRESH_MS ? teamCache : null;
+      const role = ((kept || fresh) && teamCache?.data?.role) || accountProfile()?.teamRole || "";
+      const activityFresh = cacheAge(activityCache) < TEAM_FRESH_MS;
+      // An owner's activity log is asked for alongside the team, not after it.
+      const earlyActivity = role === "owner" && !activityFresh ? requestActivity() : null;
+
+      if (kept && !fresh) setRefreshing(true);
+
+      let result;
+      try {
+        result = fresh || await requestTeam();
+      } catch (error) {
+        if (!stillOpen()) return;
+        setRefreshing(false);
+        // Figures already on screen stay; otherwise the error takes the loader's place.
+        if (kept) setMessage(error?.message || "Could not load your team.", "error");
+        else setLoading("error", error?.message || "Could not load your team.");
+        return;
+      }
+      if (!stillOpen()) return;
+      setRefreshing(false);
+
+      if (!result.data?.onTeam) {
+        team = null;
+        if (fromNav) {
+          closeTeam();
+          showBusinessPlan();
+        } else {
+          setLoading(false);
+          announce("");
+          setMessage("This account isn't on a Business team.", "warning");
+        }
+        return;
+      }
+
+      applyTeam(result);
+      if (result.data.role !== "owner") return;
+
+      if (activityFresh && !earlyActivity) {
+        applyActivity(activityCache.feed);
+        return;
+      }
+
+      const feedRequest = earlyActivity || requestActivity();
+      showActivityPlaceholder();
+      try {
+        const feed = await feedRequest;
+        if (stillOpen()) applyActivity(feed);
+      } catch (error) {
+        if (!stillOpen()) return;
+        applyActivity([]);
+        setMessage(error?.message || "Could not load team activity.", "error");
+      }
+    }
+
+    function retryTeam() {
+      const seq = ++openSeq;
+      setLoading("loading");
+      // The Try again button is hidden now: keep keyboard focus in the panel.
+      try {
+        document.getElementById("cnTeamLoader")?.focus({ preventScroll: true });
+      } catch {
+        // Older browsers: focus stays where the browser puts it.
+      }
+      loadPanel(seq, { fromNav: lastOpenFromNav });
     }
 
     function closeTeam() {
+      openSeq += 1; // anything still loading for this opening is dropped
       modal?.classList.remove("show");
       modal?.setAttribute("aria-hidden", "true");
       document.body.style.overflow = "";
       stopCountdown();
+      setRefreshing(false);
+      clearTimeout(slowTimer);
+      slowTimer = null;
+    }
+
+    // Not on a team: the Business plan, with a note saying why.
+    function showBusinessPlan() {
+      document.querySelector('.nav-tabs .nav-link[data-page="pricing"]')?.click();
+      const notice = document.getElementById("pricingNotice");
+      if (notice) {
+        notice.textContent = "Manage Business comes with the Business plan. Upgrade below to create your team.";
+        notice.className = "pricing-notice glass show";
+      }
+      setTimeout(() => {
+        document.querySelector(".business-price-card")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 350);
+    }
+
+    // Asks for the team before the tap lands, when the account check says this
+    // person is on one (or is an admin, whose check doesn't say): on hover or
+    // focus of Manage Business, when the phone menu or the account dialog
+    // opens, and once when the page is idle. Visitors who aren't on a team
+    // never cause a request this way.
+    function prefetchTeam({ activity = false } = {}) {
+      if (!session || panelOpen()) return;
+      const profile = accountProfile();
+      if (!profile || !(profile.isTeamMember || profile.isAdmin)) return;
+
+      readySession()
+        .then((current) => {
+          if (!current || panelOpen()) return;
+          if (cacheAge(teamCache) >= TEAM_FRESH_MS) requestTeam().catch(() => {});
+          if (activity && profile.teamRole === "owner" && cacheAge(activityCache) >= TEAM_FRESH_MS) requestActivity();
+        })
+        .catch(() => {});
+    }
+
+    let idlePrefetchedFor = "";
+    function prefetchWhenIdle() {
+      const userId = currentUserId();
+      const profile = accountProfile();
+      if (!userId || idlePrefetchedFor === userId || !profile || !(profile.isTeamMember || profile.isAdmin)) return;
+
+      const connection = navigator.connection;
+      if (connection && (connection.saveData || /(^|-)2g$/.test(connection.effectiveType || ""))) return;
+
+      idlePrefetchedFor = userId;
+      if (typeof window.requestIdleCallback === "function") {
+        window.requestIdleCallback(() => prefetchTeam(), { timeout: 4000 });
+      } else {
+        setTimeout(() => prefetchTeam(), 2500);
+      }
     }
 
     /* ─── Accept invite ─── */
@@ -1086,41 +1531,71 @@
     // The "Manage Business" entry in the main navigation. Team members get the
     // panel; everyone else is pointed at the Business plan rather than shown an
     // empty panel, and visitors who aren't signed in get the sign-in modal.
-    async function openTeamFromNav() {
+    // Every branch answers in the frame of the tap: nothing here waits for the
+    // network before something appears.
+    function openTeamFromNav() {
       document.querySelector(".navbar")?.classList.remove("open");
 
-      if (!(await getSession())) {
+      if (sessionKnown && !session) {
         openExistingAuth();
         return;
       }
 
-      try {
-        const response = await fetch("/api/business-account", {
-          headers: authHeaders({ Accept: "application/json" })
-        });
-        const data = await response.json().catch(() => ({}));
-        if (response.ok && data.onTeam) {
-          openTeam();
+      // Known not to be on a team (a recent answer, or the account check of a
+      // non-admin): the Business plan at once. Membership is still confirmed
+      // behind it, as before, and the panel opens if the answer differs.
+      if (session) {
+        const recent = cacheAge(teamCache) < TEAM_KEEP_MS ? teamCache.data : null;
+        const profile = accountProfile();
+        const notOnTeam = recent
+          ? !recent.onTeam
+          : Boolean(profile && !profile.isAdmin && profile.isTeamMember === false);
+        if (notOnTeam) {
+          showBusinessPlan();
+          confirmNoTeam();
           return;
         }
-      } catch {}
-
-      document.querySelector('.nav-tabs .nav-link[data-page="pricing"]')?.click();
-      const notice = document.getElementById("pricingNotice");
-      if (notice) {
-        notice.textContent = "Manage Business comes with the Business plan. Upgrade below to create your team.";
-        notice.className = "pricing-notice glass show";
       }
-      setTimeout(() => {
-        document.querySelector(".business-price-card")?.scrollIntoView({ behavior: "smooth", block: "center" });
-      }, 350);
+
+      openTeam({ fromNav: true });
+    }
+
+    function confirmNoTeam() {
+      if (cacheAge(teamCache) < TEAM_FRESH_MS) return;
+      const askedAt = Date.now();
+      readySession()
+        .then((current) => (current ? requestTeam() : null))
+        .then((result) => {
+          if (!result?.data?.onTeam || Date.now() - askedAt > 20000) return;
+          if (document.querySelector(".modal.show, .cn-legal-modal.show")) return;
+          openTeam({ fromNav: true });
+        })
+        .catch(() => {});
+    }
+
+    function watchIntent(button) {
+      const intent = () => prefetchTeam({ activity: true });
+      button.addEventListener("pointerenter", intent, { passive: true });
+      button.addEventListener("pointerdown", intent, { passive: true });
+      button.addEventListener("focus", intent);
     }
 
     const navManageBtn = document.getElementById("navManageBusinessBtn");
     if (navManageBtn && !navManageBtn.dataset.wired) {
       navManageBtn.dataset.wired = "1";
       navManageBtn.addEventListener("click", openTeamFromNav);
+      watchIntent(navManageBtn);
     }
+
+    // The phone menu and the account dialog both lead to Manage Business.
+    document.getElementById("mobileMenu")?.addEventListener("click", () => {
+      setTimeout(() => {
+        if (document.querySelector(".navbar.open")) prefetchTeam();
+      }, 0);
+    });
+    document.getElementById("accountNavBtn")?.addEventListener("click", () => prefetchTeam());
+
+    document.getElementById("cnTeamRetry")?.addEventListener("click", retryTeam);
 
     function syncManageButton(account) {
       if (!injectManageButton()) return;
@@ -1140,6 +1615,7 @@
           document.getElementById("accountDetailsModal")?.classList.remove("show");
           openTeam();
         });
+        watchIntent(button);
       }
 
       // Right after a Business checkout, take the owner straight into the
@@ -1165,7 +1641,17 @@
     }
 
     window.addEventListener("cybernet:account-refreshed", (event) => {
-      syncManageButton(event.detail);
+      const account = event.detail || {};
+      if (account.profile && currentUserId()) {
+        lastAccount = { userId: currentUserId(), profile: account.profile, isAdmin: Boolean(account.isAdmin) };
+      }
+      syncManageButton(account);
+      prefetchWhenIdle();
+      // Opened before the account check answered: an owner's activity log
+      // starts now instead of after the team request.
+      if (panelOpen() && account.profile?.teamRole === "owner" && cacheAge(activityCache) >= TEAM_FRESH_MS) {
+        readySession().then((current) => { if (current && panelOpen()) requestActivity(); }).catch(() => {});
+      }
     });
 
     closeBtn?.addEventListener("click", closeTeam);
@@ -1197,7 +1683,10 @@
 
     if (client) {
       client.auth.onAuthStateChange((_event, nextSession) => {
-        session = nextSession || null;
+        const previous = setSession(nextSession);
+        // Signed out, or another account signed in: the open panel showed the
+        // previous person's team.
+        if (previous && previous !== currentUserId() && panelOpen()) closeTeam();
         if (inviteToken()) refreshInviteGate();
         else resumeStoredInvite();
       });

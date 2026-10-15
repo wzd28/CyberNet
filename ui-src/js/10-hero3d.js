@@ -17,9 +17,10 @@
    - Never under reduced motion, the global Pause motion (html.cn-still; CN.reduced() is true
      then) or Save-Data: the poster stays. No WebGL, a failed load, a software renderer
      (failIfMajorPerformanceCaveat), slow frames or a lost context also leave the poster.
-   - DPR <= 1.5 on desktop, 1.25 on touch screens, with a pixel cap; about 30 fps on touch
-     screens. A governor lowers the resolution, then the frame rate (and drops the extras),
-     then gives up.
+   - DPR <= 1.5 on desktop and <= 2 on touch screens (v4.2: phones are 2-3x screens, and at
+     the old 1.25 the light lines and their travelling pulses were stretched 2.4x and looked
+     soft), with a pixel cap (2 M desktop, 1.15 M touch); about 30 fps on touch screens. A
+     governor lowers the resolution, then the frame rate (and drops the extras), then gives up.
    - Pauses off screen, while the tab is hidden (rAF), while Home is not shown and while
      the hero's Pause button is pressed (20-scanbox.js dispatches "cn-hero-motion").
    - Desktop (fine pointer): drag the globe to turn it (it coasts, then eases back to its slow
@@ -63,8 +64,8 @@
   function smooth(t) { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); }
   /* ============================================================== runtime */
   var SETTLE_MS = 1400;       /* after Home is opened from another page */
-  var DPR_FINE = 1.5, DPR_COARSE = 1.25;
-  var MAX_PX_FINE = 2000000, MAX_PX_COARSE = 700000;
+  var DPR_FINE = 1.5, DPR_COARSE = 2;
+  var MAX_PX_FINE = 2000000, MAX_PX_COARSE = 1150000;
   var FRAME_COARSE = 33;      /* ~30 fps on touch screens */
   var LINK_WAIT_MS = 400, LINK_GIVEUP_MS = 10000;
   var HOLD_MS = 450, RAMP_MS = 1100;  /* the poster frame holds, then time eases in */

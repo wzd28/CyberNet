@@ -57,7 +57,7 @@ const args = Object.fromEntries(process.argv.slice(2).map(a => { const m = /^--(
 const OUT = path.resolve(REPO, typeof args.out === "string" ? args.out : "public/ui/3d");
 const CACHE = path.join(os.tmpdir(), "cn-render-3d");
 const PORT = Number(args.port) || 5390, DBG = PORT + 1;
-const ALL = ["hero", "shield", "lock", "chip", "cube", "orb", "ring", "aiglobe", "recovery"];
+const ALL = ["hero", "shield", "lock", "chip", "cube", "orb", "ring", "aiglobe", "recovery", "core"];
 const REVIEW = args.land || args.stamp || args.strip || args.stage;
 const ONLY = typeof args.only === "string" ? args.only.split(",").map(s => s.trim()).filter(Boolean) : (REVIEW && !args.all ? [] : ALL);
 /* only a run that renders from the kit's scene (or bakes into it) minifies and stamps it; a
@@ -688,8 +688,191 @@ function models(T, H) {
     g.add(restoreArrow(K, { r: 1.36, tube: .055, arc: Math.PI * 1.62, rot: Math.PI * .66, head: .2 }));
     return g;
   }
+  /* ---- The AI core (Home, "What CyberNet AI does", v4.2): a highly detailed processor in the
+     spirit of the owner's motion reference. A dark PCB with fine traces and vias, a ring of
+     ceramic capacitors, a dark anodised package with fine champagne gull-wing leads (26 a side),
+     a chrome bezel round a glass window, and under it the die: compute tiles, teal routing and,
+     at its heart, the CyberNet shield drawn in light (the core the globe protects). A smoked
+     glass lid with a chrome rim floats just above the window. Layers (same camera, so they
+     stack exactly in the page): "base" (everything but the lid), "lid" (the lid alone). The
+     page adds the energy plume (canvas particles) and the scroll motion. ---- */
+  function hexPts(cx, cy, s) {
+    return [[12, 2], [21, 6], [20, 15], [12, 24], [4, 15], [3, 6]].map(function (p) { return [cx + (p[0] - 12) * s, cy + (p[1] - 13) * s]; });
+  }
+  function polyPath(x, pts) { x.beginPath(); pts.forEach(function (p, i) { if (i) x.lineTo(p[0], p[1]); else x.moveTo(p[0], p[1]); }); x.closePath(); }
+  function coreDieTex() {
+    var n = 1024, c = canvasEl(n), x = c.getContext("2d"), r = rng(77), i, j;
+    x.fillStyle = "#02050a"; x.fillRect(0, 0, n, n);
+    /* compute tiles: a 14 x 14 grid of blocks, each with fine internal rows (dim slate) */
+    var m = 14, pad = 46, cell = (n - pad * 2) / m;
+    for (i = 0; i < m; i++) for (j = 0; j < m; j++) {
+      var x0 = pad + i * cell, y0 = pad + j * cell, dc = Math.hypot(i - (m - 1) / 2, j - (m - 1) / 2) / (m / 2);
+      if (dc < .42) continue; /* the core's clearing */
+      var lit = r() < .12;
+      x.fillStyle = lit ? "rgba(34,211,238,.2)" : "rgba(120,140,165,.12)";
+      x.fillRect(x0 + 3, y0 + 3, cell - 6, cell - 6);
+      x.strokeStyle = lit ? "rgba(103,232,249,.55)" : "rgba(150,170,195,.28)"; x.lineWidth = 1.4;
+      x.strokeRect(x0 + 3.5, y0 + 3.5, cell - 7, cell - 7);
+      x.fillStyle = lit ? "rgba(165,243,252,.45)" : "rgba(170,188,210,.22)";
+      var rows = 3 + (r() * 4 | 0);
+      for (var k = 0; k < rows; k++) x.fillRect(x0 + 9, y0 + 9 + k * ((cell - 18) / rows), (cell - 18) * (.4 + r() * .6), 1.6);
+    }
+    /* routing: teal Manhattan traces from the core out to the die edge */
+    x.lineCap = "round"; x.lineJoin = "round";
+    for (i = 0; i < 64; i++) {
+      var a = i / 64 * TAU + r() * .05, rr = 150 + r() * 30, px = n / 2 + Math.cos(a) * rr, py = n / 2 + Math.sin(a) * rr;
+      var ex = n / 2 + Math.cos(a) * (n * .47), ey = n / 2 + Math.sin(a) * (n * .47);
+      x.strokeStyle = r() < .3 ? "rgba(103,232,249,.8)" : "rgba(34,211,238,.38)"; x.lineWidth = r() < .3 ? 2.2 : 1.6;
+      x.beginPath(); x.moveTo(px, py);
+      if (Math.abs(Math.cos(a)) > Math.abs(Math.sin(a))) { var mx = (px + ex) / 2; x.lineTo(mx, py); x.lineTo(mx + (ey - py) * .0, ey); x.lineTo(ex, ey); }
+      else { var my = (py + ey) / 2; x.lineTo(px, my); x.lineTo(ex, my + 0); x.lineTo(ex, ey); }
+      x.stroke();
+    }
+    /* the core: the CyberNet shield in light, with concentric outlines and a bright heart */
+    var cx = n / 2, cy = n / 2 + 6;
+    var halo = x.createRadialGradient(cx, cy, 0, cx, cy, 300);
+    halo.addColorStop(0, "rgba(230,251,255,.85)"); halo.addColorStop(.16, "rgba(165,243,252,.5)");
+    halo.addColorStop(.42, "rgba(34,211,238,.24)"); halo.addColorStop(1, "rgba(34,211,238,0)");
+    x.fillStyle = halo; x.fillRect(0, 0, n, n);
+    [[15, .45, 2.4], [12, .7, 3], [9.2, 1, 3.6]].forEach(function (h) {
+      polyPath(x, hexPts(cx, cy, h[0])); x.strokeStyle = "rgba(165,243,252," + h[1] + ")"; x.lineWidth = h[2]; x.stroke();
+    });
+    polyPath(x, hexPts(cx, cy, 6.6));
+    var fill = x.createRadialGradient(cx, cy - 14, 0, cx, cy, 100);
+    fill.addColorStop(0, "#ffffff"); fill.addColorStop(.5, "#c9f7fe"); fill.addColorStop(1, "#5ee6f8");
+    x.fillStyle = fill; x.fill();
+    /* the die's sealed edge */
+    x.strokeStyle = "rgba(103,232,249,.4)"; x.lineWidth = 3; x.strokeRect(22, 22, n - 44, n - 44);
+    var t = new T.CanvasTexture(c); t.encoding = T.sRGBEncoding; t.anisotropy = 8;
+    return t;
+  }
+  function coreBoardTex() {
+    var n = 1024, c = canvasEl(n), x = c.getContext("2d"), r = rng(91), i, s, k;
+    x.fillStyle = "#000"; x.fillRect(0, 0, n, n);
+    /* a faint dot grid */
+    x.fillStyle = "rgba(150,170,195,.08)";
+    for (i = 8; i < n; i += 16) for (k = 8; k < n; k += 16) x.fillRect(i, k, 1.6, 1.6);
+    x.lineCap = "round"; x.lineJoin = "round";
+    /* per side: the lead lands, then traces fanning out to the edge with vias */
+    for (s = 0; s < 4; s++) {
+      x.save(); x.translate(n / 2, n / 2); x.rotate(s * Math.PI / 2); x.translate(-n / 2, -n / 2);
+      for (k = 0; k < 26; k++) {
+        var u = n / 2 + (k - 12.5) * (n * .6 * .86 / 26);
+        x.fillStyle = "rgba(205,215,228,.34)"; x.fillRect(u - 4, n * .105, 8, n * .07);  /* land */
+        var y1 = n * .1, kink = (k - 12.5) * 4.2 + (r() - .5) * 6;
+        x.strokeStyle = (k % 7 === 3) ? "rgba(103,232,249,.5)" : "rgba(170,188,210,.22)"; x.lineWidth = 2.2;
+        x.beginPath(); x.moveTo(u, y1); x.lineTo(u, y1 - 22); x.lineTo(u + kink, y1 - 22 - Math.abs(kink)); x.lineTo(u + kink, 8); x.stroke();
+        if (k % 3 === 1) { x.fillStyle = "rgba(220,228,238,.42)"; x.beginPath(); x.arc(u + kink, y1 - 34 - Math.abs(kink), 4.2, 0, TAU); x.fill(); x.fillStyle = "#000"; x.beginPath(); x.arc(u + kink, y1 - 34 - Math.abs(kink), 1.8, 0, TAU); x.fill(); }
+      }
+      /* silkscreen: corner marks */
+      x.strokeStyle = "rgba(200,210,224,.3)"; x.lineWidth = 2;
+      x.beginPath(); x.moveTo(n * .2, n * .24); x.lineTo(n * .2, n * .2); x.lineTo(n * .24, n * .2); x.stroke();
+      x.restore();
+    }
+    var t = new T.CanvasTexture(c); t.encoding = T.sRGBEncoding; t.anisotropy = 8;
+    return t;
+  }
+  /* the package's top face: a fine machined border, a pin-1 dot and a small etched line of type */
+  function corePkgTex() {
+    var n = 1024, c = canvasEl(n), x = c.getContext("2d");
+    x.fillStyle = "#000"; x.fillRect(0, 0, n, n);
+    x.strokeStyle = "rgba(190,200,214,.16)"; x.lineWidth = 2; x.strokeRect(18, 18, n - 36, n - 36);
+    x.fillStyle = "rgba(200,210,222,.5)"; x.beginPath(); x.arc(52, n - 52, 9, 0, TAU); x.fill();
+    x.fillStyle = "rgba(190,200,214,.34)"; x.font = "500 26px 'Cascadia Mono', Consolas, 'Courier New', monospace";
+    x.textBaseline = "middle"; x.fillText("CYBERNET AI  ·  CORE 01", 84, n - 52);
+    var t = new T.CanvasTexture(c); t.encoding = T.sRGBEncoding; t.anisotropy = 8;
+    return t;
+  }
+  function coreChip(K, part) {
+    var g = new T.Group(), lin = K.lin;
+    var BW = 2.5, PW = 1.5, LEADS = 26;
+    var boardTop = .03, pkgH = .15, pkgTop = boardTop + pkgH, winW = 1.02;
+    var showBase = part !== "lid", showLid = part !== "base";
+    var CORE_Z = pkgTop + .003;
+    g.userData.core = new T.Vector3(0, 0, CORE_Z);
+    g.userData.lidZ = pkgTop + .06;
+    if (showBase) {
+      /* the board */
+      var board = new T.Mesh(
+        new T.ExtrudeGeometry(roundRect(BW, BW, .12), { depth: .03, bevelEnabled: true, bevelThickness: .015, bevelSize: .015, bevelSegments: 3, curveSegments: 10 }),
+        K.mat({ color: "#121821", metal: .55, rough: .36, envK: 1 })
+      );
+      board.position.z = -.015; g.add(board);
+      var bface = new T.Mesh(new T.PlaneGeometry(BW - .04, BW - .04), K.mat({ color: "#0b0f15", metal: .4, rough: .3, envK: .9, emissive: "#ffffff", ei: .85, emap: coreBoardTex() }));
+      bface.position.z = boardTop + .0005; g.add(bface);
+      /* ceramic capacitors round the package */
+      var capBody = [], capEnd = [], q = new T.Quaternion(), e = new T.Euler(), v = new T.Vector3(), one = new T.Vector3(1, 1, 1);
+      var rc = rng(5);
+      for (var sd = 0; sd < 4; sd++) {
+        for (var ci = 0; ci < 9; ci++) {
+          var along = -.92 + ci * .23 + (rc() - .5) * .03, out = 1.09 + (ci % 2) * .055, a0 = sd * Math.PI / 2;
+          var ca = Math.cos(a0), sa = Math.sin(a0);
+          v.set(ca * out - sa * along, sa * out + ca * along, boardTop + .016);
+          e.set(0, 0, a0); q.setFromEuler(e);
+          capBody.push(new T.Matrix4().compose(v.clone(), q.clone(), one));
+          [-1, 1].forEach(function (k) {
+            var w = new T.Vector3(ca * (out + k * .036), sa * (out + k * .036), 0).add(new T.Vector3(-sa * along, ca * along, boardTop + .016));
+            capEnd.push(new T.Matrix4().compose(w, q.clone(), one));
+          });
+        }
+      }
+      g.add(new T.Mesh(K.merge(new T.BoxGeometry(.05, .045, .03), capBody), K.mat({ color: "#2e2b28", metal: .1, rough: .5, envK: .7 })));
+      g.add(new T.Mesh(K.merge(new T.BoxGeometry(.022, .047, .033), capEnd), K.mat({ color: "#8f99a5", metal: 1, rough: .3, envK: .75 })));
+      /* the package: dark anodised metal with a soft bevel */
+      var pkg = new T.Mesh(
+        new T.ExtrudeGeometry(roundRect(PW, PW, .07), { depth: pkgH - .05, bevelEnabled: true, bevelThickness: .025, bevelSize: .03, bevelSegments: 5, curveSegments: 10 }),
+        K.mat({ color: "#2b323c", metal: .92, rough: .26, envK: 1.25 })
+      );
+      pkg.position.z = boardTop + .025; g.add(pkg);
+      var ptop = new T.Mesh(new T.PlaneGeometry(PW - .07, PW - .07), K.mat({ color: "#2b323c", metal: .92, rough: .24, envK: 1.25, emissive: "#ffffff", ei: .6, emap: corePkgTex() }));
+      ptop.position.z = pkgTop + .0006; g.add(ptop);
+      /* the leads: champagne gull-wings (a shoulder out of the package, a foot on the land) */
+      var sh = [], ft = [];
+      for (var s2 = 0; s2 < 4; s2++) {
+        for (var k2 = 0; k2 < LEADS; k2++) {
+          var t2 = (k2 - (LEADS - 1) / 2) * (PW * .86 / LEADS), a2 = s2 * Math.PI / 2, c2 = Math.cos(a2), s3 = Math.sin(a2);
+          e.set(0, 0, a2 + Math.PI / 2); q.setFromEuler(e);
+          var shoulder = new T.Matrix4().compose(new T.Vector3(c2 * (PW / 2 + .04) - s3 * t2, s3 * (PW / 2 + .04) + c2 * t2, boardTop + .07), q.clone(), one);
+          shoulder.multiply(new T.Matrix4().makeRotationX(-.0));
+          sh.push(shoulder);
+          ft.push(new T.Matrix4().compose(new T.Vector3(c2 * (PW / 2 + .135) - s3 * t2, s3 * (PW / 2 + .135) + c2 * t2, boardTop + .012), q.clone(), one));
+        }
+      }
+      var gold = K.mat({ color: "#c9b48c", metal: 1, rough: .2, envK: 1.25 });
+      /* shoulder: runs out and down (a sloped box); foot: flat on the board */
+      var shGeo = new T.BoxGeometry(.024, .11, .012); shGeo.rotateX(.62);
+      g.add(new T.Mesh(K.merge(shGeo, sh.map(function (m) { return m.clone().multiply(new T.Matrix4().makeTranslation(0, -.02, -.012)); })), gold));
+      g.add(new T.Mesh(K.merge(new T.BoxGeometry(.024, .085, .01), ft), gold));
+      /* the chrome bezel round the window */
+      var bz = roundRect(winW + .1, winW + .1, .055); bz.holes.push(roundRect(winW, winW, .035, new T.Path()));
+      var bezel = new T.Mesh(new T.ExtrudeGeometry(bz, { depth: .012, bevelEnabled: true, bevelThickness: .01, bevelSize: .01, bevelSegments: 4, curveSegments: 10 }), K.mat({ color: "#9aa4b0", metal: 1, rough: .2, envK: .85 }));
+      bezel.position.z = pkgTop - .004; g.add(bezel);
+      /* the window well and the die */
+      var well = new T.Mesh(new T.PlaneGeometry(winW, winW), K.mat({ color: "#03060b", metal: .5, rough: .5, envK: .35 }));
+      well.position.z = pkgTop + .001; g.add(well);
+      var die = new T.Mesh(new T.PlaneGeometry(.92, .92), K.mat({ color: "#05080d", metal: .5, rough: .18, envK: .7, emissive: "#ffffff", ei: 1.15, emap: coreDieTex(), toneMapped: false }));
+      die.position.z = CORE_Z; g.add(die);
+      /* the core's light: a soft cyan bloom and a small white heart just over the die */
+      var bloom = K.sprite("#22d3ee", .5, 1.55); bloom.position.set(0, 0, CORE_Z + .03); bloom.renderOrder = 5; g.add(bloom);
+      var heart = K.sprite("#e6fbff", .6, .22); heart.position.set(0, 0, CORE_Z + .04); heart.renderOrder = 6; g.add(heart);
+    }
+    if (showLid) {
+      /* the lid: smoked glass with a chrome rim, floating just above the window */
+      var lz = g.userData.lidZ;
+      var glass = new T.Mesh(
+        new T.ExtrudeGeometry(roundRect(1.06, 1.06, .045), { depth: .02, bevelEnabled: true, bevelThickness: .01, bevelSize: .01, bevelSegments: 3, curveSegments: 10 }),
+        K.mat({ color: "#7d8fa3", metal: .2, rough: .04, envK: .55, transparent: true, opacity: .1, depthWrite: false })
+      );
+      glass.position.z = lz; glass.renderOrder = 8; g.add(glass);
+      var rim = roundRect(1.08, 1.08, .05); rim.holes.push(roundRect(1.03, 1.03, .035, new T.Path()));
+      var rimM = new T.Mesh(new T.ExtrudeGeometry(rim, { depth: .01, bevelEnabled: true, bevelThickness: .006, bevelSize: .006, bevelSegments: 3, curveSegments: 10 }), K.mat({ color: "#b3bcc7", metal: 1, rough: .14, envK: .9 }));
+      rimM.position.z = lz + .004; rimM.renderOrder = 9; g.add(rimM);
+    }
+    return g;
+  }
   /* framing: [builder, rotation x/y/z, camera distance] (fov 24) */
   var POSE = {
+    core: [coreChip, [-1.0, 0, .64], 8.6],
     shield: [shield, [.1, -.42, .04], 7.4],
     lock: [padlock, [.16, -.5, .05], 5.6],
     chip: [chip, [-.72, .1, .42], 5.4],
@@ -720,13 +903,28 @@ function scaled(src, n) {
 /* PNG out (lossless): Node encodes the WebP with sharp when it is installed (smaller), else
    the browser's own WebP encoder is used (see "q", the quality for either path) */
 function webp(c, q) { return window.__png ? [c.toDataURL("image/png"), q] : [c.toDataURL("image/webp", q), q]; }
-function sprite(name, n) {
+function sprite(name, n, part, meta) {
   var cv = canvas(n);
   var R = new T.WebGLRenderer({ canvas: cv, antialias: true, alpha: true, premultipliedAlpha: true, preserveDrawingBuffer: true });
   R.setClearColor(0x000000, 0); R.outputEncoding = T.sRGBEncoding; R.toneMapping = T.NoToneMapping; R.debug.checkShaderErrors = true;
   R.setPixelRatio(1); R.setSize(n, n, false);
   var K = M.makeStudio(R), p = M.POSE[name], scene = new T.Scene();
-  var obj = p[0](K); obj.rotation.set(p[1][0], p[1][1], p[1][2]);
+  var obj = p[0](K, part); obj.rotation.set(p[1][0], p[1][1], p[1][2]);
+  if (meta && obj.userData.core) {
+    /* where the core lands in the image (0..1 from the top left), for the page's energy plume */
+    var cam0 = new T.PerspectiveCamera(24, 1, .1, 60); cam0.position.set(0, 0, p[2]); cam0.lookAt(0, 0, 0); cam0.updateMatrixWorld();
+    obj.updateMatrixWorld(true);
+    var c = obj.userData.core.clone().applyMatrix4(obj.matrixWorld).project(cam0);
+    var l = new T.Vector3(0, 0, obj.userData.lidZ).applyMatrix4(obj.matrixWorld).project(cam0);
+    meta.core = [+((c.x + 1) / 2).toFixed(4), +((1 - c.y) / 2).toFixed(4)];
+    meta.lid = [+((l.x + 1) / 2).toFixed(4), +((1 - l.y) / 2).toFixed(4)];
+    /* the chip's own x and y axes at the core (0.5 world units each), projected: the page draws
+       its scan rings flat on the chip with these */
+    [["u", 0.5, 0], ["v", 0, 0.5]].forEach(function (a) {
+      var q = obj.userData.core.clone().add(new T.Vector3(a[1], a[2], 0)).applyMatrix4(obj.matrixWorld).project(cam0);
+      meta[a[0]] = [+(((q.x + 1) / 2) - meta.core[0]).toFixed(4), +(((1 - q.y) / 2) - meta.core[1]).toFixed(4)];
+    });
+  }
   /* point sprites (the AI globe's land dots) are sized in pixels: scale them to this canvas */
   (obj.userData.dots || []).forEach(function (d) { d.userData.u.uScale.value = n / (2 * Math.tan(12 * Math.PI / 180)); d.userData.u.uMin.value = n / 640; });
   scene.add(obj);
@@ -748,6 +946,17 @@ window.__render = function (name) {
     out.push(["hero-globe-800.webp", webp(scaled(cv, 800), .8)]);
     out.push(["hero-globe-480.webp", webp(scaled(cv, 480), .8)]);
     G.dispose();
+    return out;
+  }
+  if (name === "core") {
+    /* two layers from one camera (base, lid), 1200 and 720 wide, rendered at 2x and scaled */
+    var meta = {}, base = sprite("core", 2400, "base", meta), lid = sprite("core", 2400, "lid");
+    window.__coreMeta = meta;
+    out.push(["core-chip.webp", webp(scaled(base, 1200), .86)]);
+    out.push(["core-chip-720.webp", webp(scaled(base, 720), .86)]);
+    out.push(["core-lid.webp", webp(scaled(lid, 1200), .86)]);
+    out.push(["core-lid-720.webp", webp(scaled(lid, 720), .86)]);
+    if (window.__preview) { var pv = canvas(1200), px = pv.getContext("2d"); px.fillStyle = "#060a14"; px.fillRect(0, 0, 1200, 1200); px.drawImage(scaled(base, 1200), 0, 0); px.drawImage(scaled(lid, 1200), 0, 0); window.__corePreview = pv.toDataURL("image/jpeg", .92); }
     return out;
   }
   var size = name === "shield" ? 640 : 512;
@@ -888,8 +1097,13 @@ try {
     await jpg(args.stage, await evaluate(`window.__stage(${w}, ${h}, ${JSON.stringify(args.mode === "stack" ? "stack" : "side")}, ${t}, ${args.lite ? "true" : "false"})`));
     console.log("[stage]", args.stage, `${w}x${h}`, args.mode || "side", "t=" + t);
   }
+  if (typeof args.preview === "string") await evaluate("window.__preview = true");
   for (const name of ONLY) {
     const files = await evaluate(`window.__render(${JSON.stringify(name)})`);
+    if (name === "core") {
+      console.log("[3d] core position in the image (x, y from the top left):", JSON.stringify(await evaluate("window.__coreMeta")));
+      if (typeof args.preview === "string") await jpg(args.preview, await evaluate("window.__corePreview"));
+    }
     for (const [file, [url, q]] of files) {
       let buf = Buffer.from(url.split(",")[1], "base64");
       if (sharp) buf = await sharp(buf).webp({ quality: Math.round(q * 100), alphaQuality: name === "hero" ? 80 : 85, effort: 6, smartSubsample: true }).toBuffer();

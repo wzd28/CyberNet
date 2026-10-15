@@ -651,6 +651,71 @@ function investmentPitch(t){
   return IP_PITCH.test(p)||IP_PITCH_AR.test(p);
 }
 
+// ── False alarms the owner asked to fix (15 Oct 2026) ──
+// Each is fixed where the misreading starts; the scam versions of the same
+// messages keep their signals (tests/cases/owner-oct15.mjs).
+// 1. Everyday senses of a few group words, masked for that one group only, so
+//    every other rule still reads the full text: a wallet someone found is a
+//    leather one, not a crypto wallet; "police station" is a place unless a
+//    consequence comes with it; "police arrested a gang" is news, not a threat
+//    to the reader; "urgent sale" is the seller's hurry unless it comes with a
+//    bargain or a payment ask; "there is no guaranteed return" denies the
+//    promise; "I made 6% trading" is not "you won a prize"; and the sextortion
+//    material words ("on cam", "video of you", "webcam") need a payment demand
+//    or an "or else", and whole words ("valuation came", "on campus" are not).
+const GM_WALLET=/\b(?:found|find|lost|left|dropped|forgot|forgotten|misplaced|stole|stolen|picked up|handed in|hand in|collect|recovered)\s+(?:your|my|his|her|their|a|the|our)\s+wallets?\b(?!\s+(?:address\w*|id|key|keys|balance|seed|phrase|recovery|app|account|password|pin|connect\w*))|\bwallets?\s+(?:with|containing|full of)\s+(?:the\s+|some\s+|your\s+)?(?:cash|cards?|money|id|keys|phone|licen[cs]e|documents?)\b/g;
+const GM_ARREST_NEWS=/\b(?:arrest(?:ed|s)|apprehended|detained|nabbed|busted)\s+(?:a|an|the|two|three|four|five|six|seven|eight|nine|ten|dozens of|several|many|members of|\d+)?\s*(?:[a-z]+\s+)?(?:gangs?|suspects?|men|man|woman|women|people|persons|individuals|fraudsters|scammers|criminals|thieves|members|culprits|accused|youths?|ring|network|group|cell)\b/g;
+const GM_STATION=/\bpolice station\b/g;
+const GM_STATION_THREAT=/\b(?:arrest\w*|warrant|summon\w*|charges?|charged|court|legal action|detain\w*|jail|prison|custody|penalt(?:y|ies)|fines?|violations?|complaint|investigation|wanted|accused|crime|criminal|or else|or you will|failure to)\b|\bcase\s+(?:against|filed|registered|opened)\b/;
+// The arrest is news only when nothing in the message is asked of the reader.
+const GM_READER_ASK=/\b(?:you|u)\s+(?:must|need to|have to|should|are required to|will need to|will be)\b|\b(?:pay|transfer|send|deposit|settle|wire|bail)\b|\bagainst you\b|\byour (?:name|id|emirates id|passport|account|case|arrest|son|daughter|husband|wife|brother|sister|father|mother|child)\b/;
+const GM_SELLER_RUSH=/\b(?:urgent(?:ly)?\s+(?:sale|sell(?:ing)?|for sale)|sell(?:ing)?\s+urgently|motivated seller|distress(?:ed)? sale)\b/g;
+const GM_RUSH_KEEP=/\b(?:pay|payment|deposit|transfer|wire|advance|booking fee|reservation fee|below\s+(?:the\s+)?(?:market|lbma|spot|official|retail)|cheap|discount\w*|low(?:est)? price|half price|bargain|fire sale)\b/;
+const GM_WIN_SELF=/(?:أنا|انا)\s?ربحت/gu;
+const GM_CAM_BITS=/\Bon cam|\bon cam(?!(?:era)?s?\b)/g;
+const GM_SEX_MATERIAL=/\b(?:private photos|intimate video|on cam(?:era)?|webcam|recorded you|video of you|sees the video|see the video|send the video)\b|صور خاصة/gu;
+const GM_EXTORT=/\b(?:pay|payment|ransom|bitcoin|btc|crypto|usdt|transfer|wire)\b|[$€£]\s?\d|\d\s?[$€£]|\b\d[\d,.]*\s?(?:usd|aed|sar|dollars?|dirhams?|euros?|pounds|riyals?)\b|\b(?:usd|aed|sar)\s?\d|\b(?:or else|or i will|or i'll|or we will|or we'll|unless|otherwise|if you don'?t (?:pay|send|transfer))\b|\b(?:i will|i'll|i shall|we will|we'll|going to|gonna|before i|before we|will be)\s+(?:\w+\s+)?(?:send|share|forward|show|post|leak|upload|publish|expose|release|sent|shared|forwarded|shown|posted|leaked|uploaded|published|exposed|released)\b[^.!?]{0,50}\b(?:(?:your|all your)\s+(?:contacts|family|friends|wife|husband|parents|colleagues|boss|followers|relatives)|everyone|the internet|social media|online)\b|ادفع|تدفع|حول|حوّل|تحويل|بيتكوين|درهم|دولار|ريال|وإلا|والا|إذا لم|اذا لم|إذا ما|اذا ما|سأنشر|سانشر|سأرسل|سارسل|سأفضحك|سافضحك|فضيحة/u;
+function groupVariants(id,variants,clean){
+  let masks=null;
+  if(id==="finance")masks=[GM_WALLET];
+  else if(id==="threat"){const news=GM_READER_ASK.test(clean)?[]:[GM_ARREST_NEWS];const v0=news.length?clean.replace(GM_ARREST_NEWS," "):clean;masks=GM_STATION_THREAT.test(v0)?news:[...news,GM_STATION]}
+  else if(id==="urgency"&&!GM_RUSH_KEEP.test(clean))masks=[GM_SELLER_RUSH];
+  else if(id==="job")masks=[IP_NO_GUARANTEE];
+  else if(id==="prize")masks=[GM_WIN_SELF];
+  else if(id==="sextortion")masks=GM_EXTORT.test(clean)?[GM_CAM_BITS]:[GM_CAM_BITS,GM_SEX_MATERIAL];
+  return masks?variants.map(v=>masks.reduce((s,re)=>s.replace(re," "),v)):variants;
+}
+// 2. A bank's or authority's own service line (UAE 600 and 800 numbers, Saudi
+//    9200) in a notice that asks for nothing risky is how real notices sign
+//    off: "for enquiries call us on 800 5 1234", "we will never ask for your
+//    PIN, call us on 600 54 0000 if in doubt". Vishing gives a mobile, landline
+//    or foreign number, or pairs the call with an alarm, a code, a link, a
+//    payment or a prize, and keeps the support-phone signal.
+const OFFICIAL_LINE=/^(?:\+?971|00971|\+?966|00966)?0?(?:600\d{6}|800\d{3,6}|9200\d{5})$/;
+const CALL_ALARM=/\b(?:block(?:ed|s)?|unblock|lock(?:ed)?|suspend(?:ed|ion)?|frozen|freeze|deactivat\w*|restrict\w*|limited|on hold|unusual|suspicious|unauthori[sz]ed|fraudulent (?:transaction|charge|activity|payment)|compromised|hacked|infected|virus\w*|malware|expir\w*|reactivat\w*|new device|unknown device|press\s+(?:\d|one|nine|zero)|immediately|urgent\w*|within \d+|refund\w*|prize|won|winner|reward|claim|cashback|bonus|gift|fines?|penalt(?:y|ies)|arrest\w*|warrant|legal|case)\b|موقوف|إيقاف|ايقاف|محظور|حظر|مجمد|تجميد|تعليق|مشبوه|غير مصرح|احتيالي|تفعيل|فوراً|فورا|عاجل|غرامة|مخالفة|قضية|جائزة|استرداد/u;
+// Sign-in and code words are the point of a "we will never ask for your
+// password" notice; anywhere else they make the call a verification call.
+const CALL_SIGNIN=/\b(?:verify|verification|update (?:your|the)|confirm (?:your|the)|log ?in|sign ?in|password)\b|تحقق|التحقق|تحديث|كلمة المرور/u;
+const CALL_PAY_ASK=/\b(?:pay|payment|transfer|send|deposit|wire|remit)\b|ادفع|سداد|حول|حوّل|أرسل|ارسل/u;
+const CALL_RISK_IDS=["urgency","deadline-pressure","threat","prize","delivery","remote","fine-demand","secret-request","irreversible-payment","install","recovery","mule","sextortion","secrecy"];
+// 3. "Work from home" is a job-scam cue when work is offered with pay, not when
+//    the sender is looking for work or asking about someone's Friday.
+const WFH_SEEKING=/\b(?:i'?m|i am|am|i was|she is|she's|he is|he's|my (?:wife|husband|sister|brother|daughter|son|mother|mum|mom|friend) is)\s+(?:also\s+|now\s+|currently\s+|still\s+)?(?:looking|searching|seeking|hoping)\s+(?:for\s+)?(?:a\s+|some\s+)?(?:part[- ]time\s+|full[- ]time\s+|remote\s+|online\s+|freelance\s+)?(?:work|job|jobs|position|role|opportunit\w*)\b(?!\s+(?:from home\s+)?(?:staff|agents?|assistants?|people|candidates|workers|freelancers|partners|members|employees|reps?|representatives)\b)/;
+const WFH_PAY=/\b(?:earn\w*|income|salary|paid|pay(?:s|ment)?|per (?:day|week|hour|month|task)|daily|weekly|monthly|commission|hiring|recruit\w*|vacanc\w*|apply|join|register|sign up|jobs?|opportunit\w*|positions?|no experience|tasks?|bonus|usdt|usd|aed|dirhams?|dollars?)\b|[$€£]\s?\d|\d\s?[$€£]/;
+// 4. "I'd love to learn from you" is not a love line.
+const NOT_ROMANTIC_LOVE=/\b(?:i'?d|we'?d|you'?d|would)\s+(?:really\s+|so\s+|just\s+)?love\b|\blove\s+to\b|\bgloves?\b/g;
+// 5. A deadline is pressure when it is the reader's; "you will receive the
+//    refund within 7 days" is the sender's own service time.
+const SERVICE_TIME=/\b(?:you(?:'ll| will)\s+(?:receive|get|hear|be (?:refunded|credited|paid|reimbursed|contacted|notified))|(?:will|should|would)\s+be\s+(?:credited|refunded|processed|delivered|reviewed|completed|resolved|shipped|dispatched|paid|reimbursed|reversed|issued|approved|back)|(?:we|i|our (?:team|agent|staff))(?:'ll| will| shall)\s+(?:reply|respond|get back|contact you|call you|process|refund|deliver|send|ship|credit|confirm|review|be in touch)|(?:refunds?|deliver(?:y|ies)|shipping|processing|replacements?|repairs?)\s+(?:(?:is|are|will be|usually|normally|typically)\s+)*(?:processed|made|completed|credited|issued|delivered|done|takes?|arrives?))\b/;
+const SERVICE_TIME_THREAT=/\b(?:unless|otherwise|or (?:else|your|you|we will|it will)|if you (?:don'?t|do not|fail))\b/;
+// 6. A notice whose only ask is a visit to a branch or office in person, with
+//    no link, number, reply or payment, gives the sender no channel to steal
+//    through: that is how real banks write about dormant accounts.
+const IN_PERSON_ONLY=/\b(?:visit|go to|come to|drop by|walk into|call at|stop by|pop into)\s+(?:any\s+|your\s+|the\s+|our\s+|a\s+|one of our\s+)?(?:nearest\s+|nearby\s+|local\s+)?(?:branch|branches|office|service cent(?:er|re)|customer (?:service|happiness) cent(?:er|re)|counter)\b|(?:زيارة|زر|قم بزيارة|توجه إلى|توجه الى)\s?(?:أقرب|اقرب|أي|اي)?\s?(?:فرع|فروع|مركز خدمة)/u;
+const REMOTE_ASK=/\b(?:click|tap|open|log ?in|sign ?in|reply|respond|send|share|provide|submit|upload|forward|call|whatsapp|text|email|pay|transfer|deposit|enter)\b/;
+// 7. "Send a trusted person with your Emirates ID" sends a person, not the ID.
+const SEND_PERSON=/\bsend\s+(?:a|an|your|someone|somebody|one)\s+(?:trusted\s+|family\s+)?(?:person|someone|representative|relative|member|friend|driver|colleague|agent)\b/g;
+
 function analyzeTextRulesCore(text){
   const raw=String(text||"");
   // deobfuscate() reads 1 as i; "detai1s" and "acc0unt" need 1 as l too.
@@ -688,9 +753,10 @@ function analyzeTextRulesCore(text){
     {id:"authority",terms:["uae pass","emirates id","ministry of","federal authority","traffic fine","government services","الهوية الإماراتية","هوية الإمارات","الهيئة الاتحادية","وزارة الداخلية","الحكومة","مخالفة مرورية","غرامة","الهوية الوطنية","أبشر","هويتي","الخدمات الحكومية"],weight:13,reason:"Invokes government, police, tax, immigration, or another authority.",type:"Authority impersonation scam",category:"impersonation"},
     {id:"finance",terms:["iban","new bank details","درهم","ريال","حوالة","آيبان","رقم الحساب","تحويل"],weight:9,reason:"Mentions money, banking, payment, refund, tax debt, or crypto activity.",type:"Financial scam",category:"money"}
   ];
-  groups.forEach(g=>{if(hasTerm(variants,g.terms))addSignal(state,g.id,g.weight,g.reason,g.type,g.category,g.strong)});
+  groups.forEach(g=>{if(hasTerm(groupVariants(g.id,variants,clean),g.terms))addSignal(state,g.id,g.weight,g.reason,g.type,g.category,g.strong)});
   const deadline=clean.match(/\bwithin\s+(?:the\s+next\s+)?(\d{1,3})\s*(hours?|hrs?|minutes?|mins?|days?)\b/i);
-  if(deadline&&!(deadline[2].startsWith("day")&&Number(deadline[1])>7)&&!state.signals.has("urgency"))addSignal(state,"deadline-pressure",10,"Uses a specific time deadline to reduce careful thinking.","Urgency-based social engineering","pressure");
+  const serviceTime=deadline&&SERVICE_TIME.test(clean.slice(0,deadline.index).split(/[.!?;]/).pop())&&!SERVICE_TIME_THREAT.test(clean.slice(deadline.index).split(/[.!?;]/)[0]);
+  if(deadline&&!serviceTime&&!(deadline[2].startsWith("day")&&Number(deadline[1])>7)&&!state.signals.has("urgency"))addSignal(state,"deadline-pressure",10,"Uses a specific time deadline to reduce careful thinking.","Urgency-based social engineering","pressure");
   // "A police report / criminal case has been filed against you": an authority claim aimed at the
   // reader, the opener of "digital arrest" and fine-settlement scams (with the threat cue it forms
   // the govt-authority-threat combo below).
@@ -747,16 +813,22 @@ function analyzeTextRulesCore(text){
   if(countMatches(raw,/!/g)>=4)addSignal(state,"punctuation",4,"Uses excessive exclamation marks to create pressure.","Manipulative language","style");
   if(countMatches(raw,/[A-Z]{5,}/g)>=2)addSignal(state,"caps",4,"Uses repeated all-capital words for alarm or urgency.","Manipulative language","style");
   if(countMatches(raw,/[$€£]\s?\d|\d\s?[$€£]|\b(?:usd|eur|gbp|aed|sar|qar|kwd|bhd|omr|egp|usdt)\s?\d|\d+\s?(?:usd|usdt|eur|gbp|aed|sar|qar|kwd|bhd|omr|egp|btc|dollars?|euros?|dirhams?|riyals?|درهم|دراهم|ريال|دولار|دينار|جنيه)(?![\p{L}])/giu)>=1)addSignal(state,"amount",5,"Includes a specific monetary amount.","Financial request","money");
-  if(phones.length&&hasTerm(variants,["support","call now","helpline","microsoft","apple","bank","toll-free","toll free","technician","viruses","infected","اتصل","الدعم"]))addSignal(state,"support-phone",19,"Provides a phone number in a support or security-alert context.","Tech-support / vishing scam","impersonation",true);
+  const officialLineOnly=phones.length>0&&phones.every(p=>OFFICIAL_LINE.test(p.replace(/[\s().-]/g,"")));
+  const calmServiceLine=officialLineOnly&&!urls.length&&!emails.length&&!directSecretRequest&&!CALL_RISK_IDS.some(id=>state.signals.has(id))&&!CALL_ALARM.test(clean)&&(protective||!(state.signals.has("otp")||state.signals.has("job")||CALL_SIGNIN.test(clean)||CALL_PAY_ASK.test(clean)));
+  const supportCall=phones.length>0&&hasTerm(variants,["support","call now","helpline","microsoft","apple","bank","toll-free","toll free","technician","viruses","infected","اتصل","الدعم"]);
+  if(supportCall&&calmServiceLine)state.counterEvidence.push("The only number given is an organisation's own 600 / 800 service line, and the message asks for nothing risky.");
+  if(supportCall&&!calmServiceLine)addSignal(state,"support-phone",19,"Provides a phone number in a support or security-alert context.","Tech-support / vishing scam","impersonation",true);
   if(emails.some(e=>/@(gmail|yahoo|outlook|hotmail|protonmail)\./i.test(e))&&hasTerm(variants,["bank","support","security team","government","microsoft","apple","paypal","procurement","purchase order","accounts payable","finance department","hr department","البنك","الدعم","المشتريات"]))addSignal(state,"public-email",25,"Claims to represent an organization while using a public email provider.","Brand impersonation","impersonation",true);
-  if((/\b(paypal|microsoft|apple|google|amazon|netflix|instagram|facebook|whatsapp|dhl|fedex|bank|adcb|enbd|emirates nbd|mashreq|rakbank|hsbc|al ?rajhi|riyad bank|qnb|nbk|kfh|etisalat|stc|mobily|zain|ooredoo|dewa|sewa|salik|uae pass|emirates id|emirates post|aramex|smsa|noon|careem|talabat)\b/i.test(noUrlText)||/(بنك|الراجحي|اتصالات|بريد الإمارات|أرامكس|الهوية|هيئة كهرباء|سالك)/u.test(clean))&&hasTerm(variants,["verify","locked","suspended","refund","security alert","reactivate","restore access","account limited","will be closed","deactivated","customs","blocked","تحقق من حسابك","تحقق من بياناتك","تأكيد حسابك","موقوف","استرداد","تفعيل","تعليق","إيقاف","تحديث","رسوم","إغلاق","تعطيل"]))addSignal(state,"brand-pressure",18,"Combines a well-known brand with account or payment pressure.","Brand impersonation phishing","impersonation");
+  const inPersonOnly=IN_PERSON_ONLY.test(clean)&&!urls.length&&!phones.length&&!emails.length&&!directSecretRequest&&!REMOTE_ASK.test(clean);
+  if(inPersonOnly)state.counterEvidence.push("The only thing it asks is a visit to a branch or office in person.");
+  if(!inPersonOnly&&(/\b(paypal|microsoft|apple|google|amazon|netflix|instagram|facebook|whatsapp|dhl|fedex|bank|adcb|enbd|emirates nbd|mashreq|rakbank|hsbc|al ?rajhi|riyad bank|qnb|nbk|kfh|etisalat|stc|mobily|zain|ooredoo|dewa|sewa|salik|uae pass|emirates id|emirates post|aramex|smsa|noon|careem|talabat)\b/i.test(noUrlText)||/(بنك|الراجحي|اتصالات|بريد الإمارات|أرامكس|الهوية|هيئة كهرباء|سالك)/u.test(clean))&&hasTerm(variants,["verify","locked","suspended","refund","security alert","reactivate","restore access","account limited","will be closed","deactivated","customs","blocked","تحقق من حسابك","تحقق من بياناتك","تأكيد حسابك","موقوف","استرداد","تفعيل","تعليق","إيقاف","تحديث","رسوم","إغلاق","تعطيل"]))addSignal(state,"brand-pressure",18,"Combines a well-known brand with account or payment pressure.","Brand impersonation phishing","impersonation");
   if(hiddenChars)addSignal(state,"hidden-chars",16,"Contains hidden bidirectional or zero-width Unicode characters that can disguise content.","Obfuscated phishing","style",true);
   if(containsAny(clean,["unpaid toll","outstanding toll","toll balance","e-zpass","ezpass","toll invoice"])&&containsAny(clean,["pay","suspend","fine","fee","link","click"]))addSignal(state,"toll-smishing",30,"Claims an unpaid road toll and pressures payment or a link click — a widely-reported smishing pattern.","Toll-fee smishing scam","impersonation",true);
   if(!settled&&containsAny(clean,["package could not be delivered","delivery failed","parcel is on hold","redelivery fee","customs fee","shipment is on hold","update your delivery"]))addSignal(state,"delivery-smishing",26,"Claims a package or delivery problem requiring a fee or link click.","Package-delivery smishing scam","impersonation",true);
-  if(containsAny(clean,["work from home","earn $","rate products","rating products","rate and review products","no experience needed","no experience required","flexible hours easy money","daily payout","task completion bonus","product boosting","earn per task","بدون خبرة","راتب يومي","دخل يومي","أرباح يومية","وظيفة بدوام جزئي براتب","أرسل نعم","أرسل 'نعم'","عمل من المنزل براتب"]))addSignal(state,"job-scam",24,"Uses work-from-home or easy-money task language typical of job and task scams.","Job / task scam","money",true);
+  if((/work from home/.test(clean)&&WFH_PAY.test(clean)&&!WFH_SEEKING.test(clean))||containsAny(clean,["earn $","rate products","rating products","rate and review products","no experience needed","no experience required","flexible hours easy money","daily payout","task completion bonus","product boosting","earn per task","بدون خبرة","راتب يومي","دخل يومي","أرباح يومية","وظيفة بدوام جزئي براتب","أرسل نعم","أرسل 'نعم'","عمل من المنزل براتب"]))addSignal(state,"job-scam",24,"Uses work-from-home or easy-money task language typical of job and task scams.","Job / task scam","money",true);
   if(containsAny(clean,["arrest warrant","failure to appear","legal action will be taken","this call is being recorded for legal purposes","stay on the line","do not hang up","identity was used in a crime","federal investigation"]))addSignal(state,"authority-impersonation",34,"Impersonates law enforcement or a government agency with legal threats — a common impersonation/\"digital arrest\" scam pattern.","Government / law-enforcement impersonation scam","impersonation",true);
   if(containsAny(clean,["grandma its me","grandpa its me","ive been in an accident","i need bail money","dont tell mom","dont tell my parents","im in trouble and need money"]))addSignal(state,"family-emergency",30,"Uses a family-emergency plea combined with urgency and secrecy — a pattern seen in impersonation and AI voice-cloning scams.","Family-emergency impersonation scam","impersonation",true);
-  if(containsAny(clean,["investment opportunity","guaranteed returns","double your money","crypto trading platform","trading platform","gold trading","my broker","trading mentor","withdraw your profits","teach you step by step","i made"])&&containsAny(clean,["love","miss you","my dear","sweetheart","darling","relationship","our future","future together"]))addSignal(state,"romance-investment",36,"Combines romantic language with an investment or crypto-trading pitch — the classic \"pig butchering\" scam pattern.","Romance / investment (\"pig butchering\") scam","money",true);
+  if(containsAny(clean,["investment opportunity","guaranteed returns","double your money","crypto trading platform","trading platform","gold trading","my broker","trading mentor","withdraw your profits","teach you step by step","i made"])&&containsAny(clean.replace(NOT_ROMANTIC_LOVE," "),["love","miss you","my dear","sweetheart","darling","relationship","our future","future together"]))addSignal(state,"romance-investment",36,"Combines romantic language with an investment or crypto-trading pitch — the classic \"pig butchering\" scam pattern.","Romance / investment (\"pig butchering\") scam","money",true);
 
   // ── 2026 patterns ──
   if(/\bearn(?:ing|s)?\s+up\s+to\s+[$€£]?\d/.test(clean)&&/\b(?:telegram|whatsapp|dm me|dm us|message (?:us|me|our|the)|contact|register|apply|join|sign up|hr\b|from (?:your )?(?:phone|home)|online|reply|click|link)\b/.test(clean)&&!/\b(?:i|he|she|they|we)\s+(?:earn|earns|make|makes|made)\b/.test(clean))addSignal(state,"job-scam",24,"Uses work-from-home or easy-money task language typical of job and task scams.","Job / task scam","money",true);
@@ -841,7 +913,7 @@ function analyzeTextRulesCore(text){
   // Landlord abroad: cannot show the property, wants the deposit first, will courier the keys.
   if(/\b(?:i'?m|i am|currently|we are|we'?re)\s(?:currently\s)?(?:abroad|overseas|out of the country|in another country|working overseas)\b/i.test(clean)&&/\b(?:can'?t|cannot|unable to|not able to)\s(?:show|meet you|do a viewing|arrange a viewing)\b|\b(?:courier|mail|ship|post|send)\s(?:you\s)?the keys\b|\bkeys\s(?:will be|by)\s(?:courier|couriered|dhl|fedex|mail|post)\b/i.test(clean))addSignal(state,"landlord-abroad",26,"The 'owner' is abroad, cannot show the property and wants a deposit before you have seen it — the classic rental scam.","Rental deposit scam","money");
   // Personal data and documents requested in a message (ID copies, bank details, tax forms).
-  if(!protective&&/\b(?:reply|respond|send|provide|submit|email|fill in|confirm|upload|attach|forward)\b.{0,40}\b(?:full name|your name|home address|full address|date of birth|phone number|mobile number|cell number|personal (?:cell|number|mobile)|whatsapp number|passport|id copy|copy of your id|emirates id|national id|id card|bank details|banking details|account details|your bank card)\b/i.test(clean))addSignal(state,"personal-data-request",12,"Asks for personal details or identity documents in a message.","Identity data request","credentials");
+  if(!protective&&/\b(?:reply|respond|send|provide|submit|email|fill in|confirm|upload|attach|forward)\b.{0,40}\b(?:full name|your name|home address|full address|date of birth|phone number|mobile number|cell number|personal (?:cell|number|mobile)|whatsapp number|passport|id copy|copy of your id|emirates id|national id|id card|bank details|banking details|account details|your bank card)\b/i.test(clean.replace(SEND_PERSON," ")))addSignal(state,"personal-data-request",12,"Asks for personal details or identity documents in a message.","Identity data request","credentials");
   if(/\b(?:need|send|forward|share|provide|email|attach)\b.{0,40}\b(?:w-?2s?|w-?9s?|1099s?|tax forms?|payslips?|pay stubs?|payroll (?:records|data|report)|employee (?:records|data|list|details)|staff records|ssns?|social security numbers?|salary details)\b.{0,160}\b(?:as soon as|asap|urgent|urgently|today|this morning|right away|right now|sent from my)\b/i.test(clean))addSignal(state,"records-request",28,"Asks for staff tax forms or payroll records by message — the shape of W-2 and payroll-data fraud.","Payroll data theft","credentials",true);
   // BEC opener: "are you available", a discreet favour, cannot take calls.
   if(/\b(?:are you (?:available|free|at your desk|in the office)|do you have a (?:moment|minute|sec)|i need (?:you to|a favou?r)|need you to (?:handle|take care of|do) something)\b.{0,220}\b(?:discreet|discreetly|confidential|urgent|quickly|can'?t (?:talk|take calls)|cannot (?:talk|take calls)|in a (?:meeting|conference)|conference|board meetings?|text you|your (?:personal |cell |mobile )?(?:number|cell))\b/i.test(clean))addSignal(state,"bec-opener",22,"Opens like a boss asking a quick discreet favour while unreachable by phone — how gift-card and wire fraud starts.","Executive impersonation (BEC)","pressure");
@@ -876,8 +948,15 @@ function analyzeTextRulesCore(text){
   const combo=(id,needs,weight,reason,type,category)=>{if(needs.every(x=>state.signals.has(x)))addSignal(state,id,weight,reason,type,category,true)};
   combo("credential-chain",["credentials","urgency","links"],28,"Combines account pressure, urgency, and a clickable link.","Credential phishing","credentials");
   combo("otp-chain",["otp","urgency"],18,"Combines authentication-code language with urgency.","OTP theft scam","credentials");
-  combo("govt-authority-threat",["authority","threat"],26,"Combines government/tax-authority impersonation with a legal or arrest threat — a classic pattern in IRS, police, and \"digital arrest\" impersonation scams.","Government / tax-authority impersonation scam","impersonation");
-  combo("govt-authority-finance",["authority","finance"],24,"Combines government/tax-authority impersonation with a financial demand — a classic pattern in IRS and tax-scam messages.","Government / tax-authority impersonation scam","impersonation");
+  // A police or bank warning about scams (rule E) describes the money and the
+  // threats fraudsters use; the authority combinations below need the threat
+  // or the money in the sender's own words. A case, fine or arrest aimed at
+  // the reader ("a report has been filed against you for fraud") is never a
+  // warning, whatever words it uses.
+  const readerHit=/\b(?:against you|you (?:will|shall|must|may|could|would) (?:be|face|pay|lose)|you (?:have|owe) (?:an? )?(?:unpaid|outstanding|pending|overdue)|your (?:arrest|case|fine|fines|penalty|warrant|summons))\b/.test(clean);
+  const ownCue=(id)=>!warned||readerHit||hasTerm([ruleText],groups.filter(g=>g.id===id).flatMap(g=>g.terms));
+  if(ownCue("threat"))combo("govt-authority-threat",["authority","threat"],26,"Combines government/tax-authority impersonation with a legal or arrest threat — a classic pattern in IRS, police, and \"digital arrest\" impersonation scams.","Government / tax-authority impersonation scam","impersonation");
+  if(ownCue("finance"))combo("govt-authority-finance",["authority","finance"],24,"Combines government/tax-authority impersonation with a financial demand — a classic pattern in IRS and tax-scam messages.","Government / tax-authority impersonation scam","impersonation");
   if(state.categories.has("money")&&state.categories.has("pressure"))addSignal(state,"money-pressure",20,"Combines financial activity with fear, secrecy, or urgency.","Financial social engineering","money",true);
   if(state.categories.has("impersonation")&&state.categories.has("action"))addSignal(state,"impersonation-action",19,"Combines impersonation clues with a requested click, call, or reply.","Impersonation phishing","impersonation",true);
   // The owner-approved rules name the scam more precisely than the generic
@@ -1354,7 +1433,7 @@ function plainSummary(result,options={}){
 }
 
 return {
-  VERSION: "2026-10-14",
+  VERSION: "2026-10-15",
   analyzeText: analyzeTextRules,
   analyzeTextRules,
   analyzeTextRulesCore,

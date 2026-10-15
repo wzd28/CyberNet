@@ -1,0 +1,43 @@
+/* Line-by-line mask reveals for the big Home headings (v4.2, owner: aurora; the owner's motion
+   reference: headings slide up out of a mask, one line after another).
+
+   05-reveal.js wraps each word of the headings in its LINES list once at start-up:
+   h2.cn-lines > span.cn-lm (the mask) > span.cn-lm-i (the word). The spaces between words stay
+   plain text, so the heading wraps exactly as before and reads the same to screen readers and
+   find-in-page. When the heading first scrolls into view it gets .is-in, and each word rises out
+   of its mask with a delay set by its line (--cn-ln, 110 ms a line): the lines arrive one after
+   another, like type set by hand. Transform and opacity only, once per heading.
+   The hidden state exists only once the UI script has run (html.cn-js) and only until .is-in,
+   so a heading can never get stuck hidden. Reduced motion and Pause motion show it at once. */
+
+/* The masks are spans, so the two-tone rules (".cn-head h2 > span": the grey continuation) would
+   catch the lead phrase's words too. They inherit instead: the continuation's own <span> still
+   matches and its words take its colour. (Specificity 1,4,3 beats those rules' 1,3,3.) */
+html.cn #home .cn-head h2.cn-lines > span.cn-lm { color: inherit; }
+html.cn .cn-lines .cn-lm {
+  display: inline-block;
+  vertical-align: top;
+  /* the mask: room for ascenders and descenders, given back by the negative margins */
+  padding-block: .1em .2em;
+  margin-block: -.1em -.2em;
+  overflow: hidden;
+  overflow: clip;
+}
+html.cn .cn-lines .cn-lm-i {
+  display: inline-block;
+  transition:
+    transform 1.05s cubic-bezier(.16, 1, .3, 1) calc(var(--cn-ln, 0) * 110ms + 40ms),
+    opacity .5s ease calc(var(--cn-ln, 0) * 110ms + 40ms);
+}
+html.cn.cn-js .cn-lines:not(.is-in) .cn-lm-i {
+  opacity: 0;
+  transform: translate3d(0, 112%, 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.cn.cn-js .cn-lines .cn-lm-i { opacity: 1; transform: none; transition: none; }
+}
+html.cn.cn-js.cn-still .cn-lines .cn-lm-i { opacity: 1; transform: none; transition: none; }
+@media print {
+  html.cn.cn-js .cn-lines .cn-lm-i { opacity: 1; transform: none; }
+}

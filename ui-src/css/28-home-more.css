@@ -746,12 +746,12 @@ html.cn #home .wow-stat-label {
 }
 
 /* ---- scroll-linked reveals inside the light sheet (rise and fade in; transform and opacity
-   only, on the compositor). Fill "forwards", not "both": below the viewport a block shows its
+   only, on the compositor). The head is not in this list: its heading reveals line by line
+   (29-lines.css) and its lead fades up after it (05-reveal.js). Fill "forwards", not "both": below the viewport a block shows its
    resting state (so full-page captures and find-in-page see it), it takes the start state only
    as its top edge crosses the viewport bottom, and it rests fully shown after. ---- */
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
-    html.cn #home > .why-choose > .cn-head,
     html.cn #home .cn-beams,
     html.cn #home .wow-header,
     html.cn #home .wow-stats {
