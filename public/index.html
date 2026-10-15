@@ -39,7 +39,7 @@
   <link rel="stylesheet" href="/cybernet-howto.css?v=20260905-1" />
   <link id="cybernetBusinessTeamStylesheet" rel="stylesheet" href="/cybernet-business-team.css?v=20260927-2" />
   <link rel="stylesheet" href="/cybernet-consent.css?v=20260927-2" />
-  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261014-5" />
+  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261015-1" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=20260830-5">
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=20260830-5">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=20260830-5">
@@ -578,6 +578,23 @@
         </div>
       </div>
 
+      <!-- WHAT CYBERNET AI DOES: the AI core and the manifesto (27-core.css, 57-core.js) -->
+      <section class="cn-core" id="cnCore" aria-labelledby="cnCoreTitle">
+        <h2 class="cn-core-label" id="cnCoreTitle">What CyberNet AI does</h2>
+        <p class="cn-core-tag cn-core-tag--top">Rules first. Then AI.</p>
+        <div class="cn-core-visual" data-cn="core" aria-hidden="true">
+          <div class="cn-core-rig">
+            <div class="cn-core-float">
+              <img class="cn-core-base" src="/ui/3d/core-chip-720.webp?v=20261015-1" srcset="/ui/3d/core-chip-720.webp?v=20261015-1 720w, /ui/3d/core-chip.webp?v=20261015-1 1200w" sizes="(min-width: 62rem) min(50vw, 680px), min(100vw, 560px)" alt="" width="1200" height="1200" loading="lazy" decoding="async" />
+              <img class="cn-core-lid" src="/ui/3d/core-lid-720.webp?v=20261015-1" srcset="/ui/3d/core-lid-720.webp?v=20261015-1 720w, /ui/3d/core-lid.webp?v=20261015-1 1200w" sizes="(min-width: 62rem) min(50vw, 680px), min(100vw, 560px)" alt="" width="1200" height="1200" loading="lazy" decoding="async" />
+              <canvas class="cn-core-plume"></canvas>
+            </div>
+          </div>
+        </div>
+        <p class="cn-manifesto" data-cn="manifesto">CyberNet AI reads the message <b>before you act</b>. Its own <b>scam rules</b> check a text, link or QR code in seconds. <b>Analysis AI</b> explains the warning signs in plain words. And if something already went wrong, <b>Recovery</b> gives you a plan, step by step.</p>
+        <p class="cn-core-tag cn-core-tag--end">Texts, links and QR codes</p>
+      </section>
+
       <!-- LIVE ACTIVITY: real numbers from /api/public-stats -->
       <section class="cn-live" aria-labelledby="cnLiveTitle">
         <header class="cn-head reveal">
@@ -611,15 +628,6 @@
               <div class="cn-funnel-row" data-key="recoveries"><span>Recovery cases</span><i><b></b></i><em>—</em></div>
             </div>
             <p class="hero-stats-note" id="heroStatsNote"><strong>Loading…</strong></p>
-          </div>
-
-          <div class="cn-ring-card glass" data-cn="threat-ring" data-mode="live">
-            <span class="cn-label">Threats flagged per 100 scans</span>
-            <div class="cn-ring">
-              <svg viewBox="0 0 120 120" aria-hidden="true"><circle class="cn-ring-track" cx="60" cy="60" r="52"/><circle class="cn-ring-val" cx="60" cy="60" r="52" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/></svg>
-              <b data-cn-ring-num>—</b>
-            </div>
-            <p class="cn-ring-note">Only saved Pro and Business analyses count as flagged. Free results and Quick Scans are never saved.</p>
           </div>
 
           <div class="hero-why-panel glass">
@@ -2668,14 +2676,14 @@
   <script src="/cybernet-consent.js?v=20260927-2" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" defer></script>
   <script src="/config.js?v=20260830-3" defer></script>
-  <script src="/cybernet-engine.js?v=20261014-3" defer></script>
+  <script src="/cybernet-engine.js?v=20261015-1" defer></script>
   <script src="/script.js?v=20261014-1" defer></script>
   <script src="/cybernet-account-api-upgrade.js?v=20261005-2" defer></script>
   <script src="/cybernet-howto.js?v=20261005-2" defer></script>
-<script src="/cybernet-business-team.js?v=20260930-2" defer></script>
+<script src="/cybernet-business-team.js?v=20261015-1" defer></script>
   <script src="/cybernet-final-ui-fix.js?v=20260930-2" defer></script>
       <script src="/cybernet-legal-upgrade.js?v=20260930-2" defer></script>
-  <script src="/ui/cybernet-ui.js?v=20261014-5" defer></script>
+  <script src="/ui/cybernet-ui.js?v=20261015-1" defer></script>
 </body>
 </html>
 

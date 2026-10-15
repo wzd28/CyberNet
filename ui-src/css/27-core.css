@@ -1,0 +1,304 @@
+/* Home 1b - "What CyberNet AI does" (#cnCore), v4.2 (owner: aurora).
+   The owner's motion reference (15 Oct): a near-black page where the colour lives only in one
+   highly detailed 3D object, a scroll-scrubbed manifesto whose words light up as you read, and
+   small thin labels set in the corners. Here the globe stays the hero's identity; this section
+   is what it protects: the AI core.
+
+   Markup (public/index.html, right after the hero): h2.cn-core-label (a small thin corner label,
+   the section's heading), p.cn-core-tag--top, .cn-core-visual[data-cn="core"] > .cn-core-rig >
+   .cn-core-float > (img.cn-core-base, img.cn-core-lid, canvas.cn-core-plume), then
+   p.cn-manifesto[data-cn="manifesto"] (bold key words in <b>) and p.cn-core-tag--end.
+   The chip is two pre-rendered layers from one camera (scripts/render-3d.mjs --only=core):
+   the board, package, leads and glowing die, and the glass lid on its own, so the lid can lift
+   off as the section scrolls. 57-core.js draws the cyan energy plume rising from the core
+   (canvas, 30 fps, only while on screen) and lights the manifesto word by word.
+
+   Motion (transform and opacity only):
+   - The rig drifts against the scroll, turns a few degrees and grows slightly (a view timeline
+     on the compositor; 57-core.js does the same from the scroll position where view timelines
+     are missing). The lid lifts as the section crosses the middle of the screen.
+   - The chip floats a few pixels while on screen (data-cn-play, set by 57-core.js).
+   - Reduced motion and Pause motion: the chip rests, the plume is one still frame and every word
+     of the manifesto is lit.
+   No panel: the section sits on the page ground, so the chip's light is the only colour. */
+
+html.cn #home > .cn-core {
+  --cn-text: #f5f7fa;
+  --cn-text-2: #aab4c3;
+  --cn-text-3: #8a95a7;
+  --cn-core-dim: #6e7a8c;            /* the manifesto's unlit words: 4.6:1 on the ground */
+  container: cn-core / inline-size;
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "label top"
+    "visual visual"
+    "copy copy"
+    "end end";
+  align-items: start;
+  column-gap: 16px;
+  margin-block: clamp(56px, 1.5rem + 6vw, 136px) clamp(36px, 1rem + 4vw, 96px);
+  margin-inline:
+    max(var(--cn-gutter-l), calc((100% - var(--cn-max-wide)) / 2))
+    max(var(--cn-gutter-r), calc((100% - var(--cn-max-wide)) / 2));
+  padding-inline: clamp(0px, -1rem + 3vw, 40px);
+  color: var(--cn-text);
+  color-scheme: dark;
+  font-family: var(--cn-font);
+}
+@container cn-core (max-width: 299.98px) {
+  html.cn #home > .cn-core > * { min-inline-size: 0; }
+}
+@media (max-width: 340px) {
+  html.cn #home > .cn-core {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "label" "top" "visual" "copy" "end";
+  }
+}
+
+/* ---- the editorial labels: small, thin, sentence case ---- */
+html.cn #home .cn-core-label,
+html.cn #home .cn-core-tag {
+  margin: 0;
+  color: var(--cn-text-2);              /* 9:1 on the ground */
+  font-family: var(--cn-font);
+  font-size: .875rem;
+  font-weight: 450;
+  line-height: 1.35;
+  letter-spacing: .005em;
+  text-transform: none;
+}
+html.cn #home .cn-core-label {
+  grid-area: label;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--cn-text);
+}
+html.cn #home .cn-core-label::before {
+  content: "";
+  flex: none;
+  inline-size: 28px;
+  block-size: 1px;
+  background: linear-gradient(90deg, #22d3ee, rgba(34, 211, 238, .2));
+}
+html.cn #home .cn-core-tag--top {
+  grid-area: top;
+  justify-self: end;
+  text-align: end;
+}
+@media (max-width: 340px) {
+  /* stacked under the label, it lines up with the label's words (past the 28px line + 12px gap) */
+  html.cn #home .cn-core-tag--top { justify-self: start; text-align: start; margin-block-start: 4px; padding-inline-start: 40px; }
+}
+html.cn #home .cn-core-tag--end {
+  grid-area: end;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-block-start: clamp(20px, 1rem + 1.5vw, 40px);
+}
+html.cn #home .cn-core-tag--end::before {
+  content: "";
+  flex: none;
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: 50%;
+  background: #22d3ee;
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, .14);
+}
+
+/* ---- the visual: a square stage for the chip; the plume uses the empty top of the square ---- */
+html.cn #home .cn-core-visual {
+  grid-area: visual;
+  position: relative;
+  z-index: 0;
+  /* the square's side; the margins trim its empty bottom by its own size (a percentage margin
+     would follow the grid area instead, which is wider than the square on tablets) */
+  --cn-core-s: min(100%, 560px);
+  inline-size: var(--cn-core-s);
+  margin-block: calc(var(--cn-core-s) * -.02) calc(var(--cn-core-s) * -.15);
+  margin-inline: auto;
+  pointer-events: none;
+}
+@supports (width: 1cqi) {
+  html.cn #home .cn-core-visual { --cn-core-s: min(100cqi, 560px); }
+}
+/* landscape phones and short windows: the square never outgrows the screen's height */
+@media (max-height: 600px) and (orientation: landscape) {
+  html.cn #home .cn-core-visual { --cn-core-s: min(100%, 560px, 110vh); }
+  @supports (width: 1cqi) and (height: 1svh) {
+    html.cn #home .cn-core-visual { --cn-core-s: min(100cqi, 560px, 110svh); }
+  }
+}
+/* the core's light on the ground (static) */
+html.cn #home .cn-core-visual::before {
+  content: "";
+  position: absolute;
+  inset: 4% -4% 10%;
+  z-index: -1;
+  background: radial-gradient(44% 34% at 50% 48%, rgba(34, 211, 238, .15), rgba(34, 211, 238, .045) 48%, transparent 74%);
+}
+html.cn #home .cn-core-rig {
+  position: relative;
+  inline-size: 100%;
+  aspect-ratio: 1;
+  transform-origin: 50% 56%;
+}
+/* the contact shadow under the board */
+html.cn #home .cn-core-rig::after {
+  content: "";
+  position: absolute;
+  inset: 72% 4% 6%;
+  z-index: -1;
+  background: radial-gradient(50% 50% at 50% 50%, rgba(0, 0, 0, .55), transparent 72%);
+}
+html.cn #home .cn-core-float {
+  position: absolute;
+  inset: 0;
+}
+html.cn #home .cn-core-float > img,
+html.cn #home .cn-core-float > canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  max-inline-size: none;
+  object-fit: contain;
+}
+/* the plume covers the top middle of the square only (57-core.js: BOX), so it costs few pixels */
+html.cn #home .cn-core-float > .cn-core-plume {
+  inset: 0 18% 36%;
+  inline-size: 64%;
+  block-size: 64%;
+  opacity: 0;
+  transition: opacity 1.2s var(--cn-ease-out);
+}
+html.cn #home .cn-core-float > .cn-core-plume.is-on { opacity: 1; }
+
+/* ---- the manifesto ---- */
+html.cn #home .cn-manifesto {
+  grid-area: copy;
+  max-inline-size: 22em;
+  margin: 0;
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: clamp(1.5rem, .95rem + 2.2vw, 2.75rem);
+  font-weight: 420;
+  line-height: 1.17;
+  letter-spacing: -.024em;
+  text-wrap: pretty;
+}
+html.cn #home .cn-manifesto b {
+  color: #ffffff;
+  font-weight: 650;
+}
+/* 57-core.js splits the words (span.cn-mw); until then (and if it never runs) the paragraph
+   reads in full colour. Each word lights over its own slice of the paragraph's pass through
+   the screen (--cn-a .. --cn-b, cover percent, written once by 57-core.js): on a named view
+   timeline where supported (no script while scrolling), otherwise 57-core.js writes the colour. */
+html.cn #home .cn-manifesto .cn-mw { color: var(--cn-core-dim); }
+@supports (animation-timeline: view()) and (animation-range: cover 10% cover 50%) {
+  @media (prefers-reduced-motion: no-preference) {
+    html.cn:not(.cn-still) #home .cn-manifesto.is-timeline { view-timeline: --cn-man block; }
+    html.cn:not(.cn-still) #home .cn-manifesto.is-timeline .cn-mw {
+      animation: cn-mw-lit linear both;
+      animation-timeline: --cn-man;
+      animation-range: cover var(--cn-a, 10%) cover var(--cn-b, 54%);
+    }
+    html.cn:not(.cn-still) #home .cn-manifesto.is-timeline b .cn-mw { animation-name: cn-mw-lit-b; }
+  }
+}
+@keyframes cn-mw-lit {
+  from { color: var(--cn-core-dim, #6e7a8c); }
+  to { color: #f5f7fa; }
+}
+@keyframes cn-mw-lit-b {
+  from { color: var(--cn-core-dim, #6e7a8c); }
+  to { color: #ffffff; }
+}
+
+/* ---- side by side from 62rem (a media query: the section is its own grid) ---- */
+@media (min-width: 62rem) {
+  html.cn #home > .cn-core {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+      "label top"
+      "visual copy"
+      "visual end";
+    column-gap: clamp(32px, 4vw, 72px);
+  }
+  html.cn #home .cn-core-visual {
+    --cn-core-s: 100%;
+    inline-size: 100%;
+    max-inline-size: 680px;
+    margin: -1% 0 -6%;
+    justify-self: center;
+  }
+  html.cn #home .cn-manifesto {
+    align-self: end;
+    padding-block-start: 12%;
+  }
+  html.cn #home .cn-core-tag--end { align-self: start; }
+}
+
+/* ---- motion ---- */
+html.cn #home .cn-core-float {
+  animation: cn-core-float 9s ease-in-out infinite;
+  animation-play-state: paused;
+}
+html.cn #home .cn-core-visual[data-cn-play] .cn-core-float { animation-play-state: running; }
+@keyframes cn-core-float {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -1.4%, 0); }
+}
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    html.cn:not(.cn-still) #home .cn-core-rig {
+      animation: cn-core-drift linear both;
+      animation-timeline: view();
+      animation-range: cover 0% cover 100%;
+    }
+    html.cn:not(.cn-still) #home .cn-core-lid {
+      animation: cn-core-lift linear both;
+      animation-timeline: view();
+      animation-range: cover 22% cover 62%;
+    }
+  }
+}
+@keyframes cn-core-drift {
+  from { transform: translate3d(0, 8%, 0) rotate(-3.5deg) scale(.93); }
+  to { transform: translate3d(0, -6%, 0) rotate(2.5deg) scale(1.03); }
+}
+@keyframes cn-core-lift {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(0, -5.5%, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.cn #home .cn-core-float,
+  html.cn #home .cn-core-rig,
+  html.cn #home .cn-core-lid { animation: none; transform: none; }
+  html.cn #home .cn-core-plume { transition: none; }
+  html.cn #home .cn-manifesto .cn-mw { color: inherit !important; }
+}
+/* Pause motion: the end state, as under reduced motion */
+html.cn.cn-still #home .cn-core-float { animation-play-state: paused; }
+html.cn.cn-still #home :is(.cn-core-rig, .cn-core-lid) { transform: none !important; }
+html.cn.cn-still #home .cn-manifesto .cn-mw { color: inherit !important; }
+
+@media (forced-colors: active) {
+  html.cn #home .cn-core-visual::before,
+  html.cn #home .cn-core-rig::after,
+  html.cn #home .cn-core-label::before,
+  html.cn #home .cn-core-tag--end::before { display: none; }
+  html.cn #home .cn-manifesto .cn-mw { color: CanvasText !important; }
+}
+@media print {
+  html.cn #home .cn-core-visual { display: none; }
+}
