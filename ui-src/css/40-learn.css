@@ -19,13 +19,26 @@
    - All decoration is ::before/::after (search reads h3, the first .rm-node-info p and textContent).
    - Counters live on .roadmap (a query container); no counter is incremented on a container. */
 
-/* ---------- header ---------- */
+/* ---------- header (v4.3, the owner's motion reference: editorial and asymmetric) ----------
+     Learn Center ————————————————————————————————— 7 modules, 33 lessons   (.cn-edrow)
+     Master cyber safety                          Follow the roadmap below. Open any
+     step by step.                                topic to read the full lesson ...
+     [ search field ............ Search ]
+     Fundamentals  Scams  Malware  ...                                       (module jump links)
+   A large light headline with one bold phrase ("cyber safety") and its grey continuation; the
+   lead sits at the end of the headline's row on wide screens and under it elsewhere. The search
+   field and the chips start at the same edge as the headline. The h1 has data-cn-lines="head"
+   (05-reveal.js): opened from another page it slides up line by line and the label row and the
+   lead fade in after it; a deep link to /learn shows it at once. The search field never moves. */
+html.cn #learn.page { --cn-glow-x: 30%; }
+html.cn[dir="rtl"] #learn.page { --cn-glow-x: 70%; }
+
 html.cn #learn .learn-hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  justify-items: center;
-  gap: clamp(28px, 4vw, 44px);
-  max-width: 920px;
+  justify-items: stretch;
+  gap: clamp(24px, 2.6vw, 36px);
+  max-width: var(--cn-max);
   min-height: 0;
   margin: 0 auto;
   padding: 0;
@@ -35,41 +48,49 @@ html.cn #learn .learn-hero {
   box-shadow: none;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
-  text-align: center;
+  text-align: start;
 }
 
-html.cn #learn .learn-hero > div:first-child {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+html.cn #learn .learn-hero > .cn-learn-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "row"
+    "title"
+    "lead";
   min-width: 0;
 }
 
-/* eyebrow pill ("Learn Center" is the course name in the page's JSON-LD) */
-html.cn #learn .learn-hero > div:first-child::before {
-  content: "Learn Center";
-  display: inline-flex;
-  align-items: center;
-  min-height: 28px;
-  margin-block-end: var(--cn-6);
-  padding: 0 var(--cn-3);
-  border-radius: var(--cn-r-pill);
-  background: var(--cn-cyan-tint);
-  color: var(--cn-cyan-2);
-  font: 500 var(--cn-step-label)/1 var(--cn-font-mono);
-  letter-spacing: var(--cn-track-label);
-  text-transform: uppercase;
+html.cn #learn .cn-learn-edrow {
+  grid-area: row;
+  margin-block-end: clamp(32px, 1rem + 4vw, 72px);
 }
 
+/* the labels are <p>: legacy ".learn-hero p" (19px, 56ch, muted) loses to .cn-edlabel's type;
+   the measure is reset here */
+html.cn #learn .cn-learn-edrow > .cn-edlabel { max-width: none; }
+/* the end label keeps to the end edge, also when the row wraps on a narrow phone */
+html.cn #learn .cn-learn-edrow > .cn-edlabel--end { margin-inline-start: auto; }
+
 html.cn #learn .learn-hero h1 {
-  margin: 0 0 var(--cn-5);
+  grid-area: title;
+  max-width: 15ch;
+  margin: 0;
   color: var(--cn-text);
   font-family: var(--cn-font);
-  font-size: var(--cn-step-h1);
-  font-weight: 600;
+  font-size: min(clamp(2.625rem, 1.45rem + 4vw, 5rem), 12vw);
+  font-weight: 300;
   line-height: 1.02;
-  letter-spacing: -.03em;
+  letter-spacing: -.04em;
   text-wrap: balance;
+  overflow-wrap: break-word;
+}
+
+/* the bold phrase in white; the continuation stays light and grey (two-tone) */
+html.cn #learn .learn-hero h1 b {
+  color: #fff;
+  font-weight: 620;
+  letter-spacing: -.045em;
 }
 
 html.cn #learn .learn-hero h1 span {
@@ -77,15 +98,57 @@ html.cn #learn .learn-hero h1 span {
   text-shadow: none;
 }
 
-html.cn #learn .learn-hero > div:first-child > p {
-  max-width: 46ch;
-  margin: 0;
+html.cn #learn .learn-hero .cn-learn-lead {
+  grid-area: lead;
+  max-width: 40ch;
+  margin: var(--cn-5) 0 0;
   color: var(--cn-text-2);
   font-family: var(--cn-font);
   font-size: var(--cn-step-lead);
+  font-weight: 400;
   line-height: 1.45;
   letter-spacing: var(--cn-track-body);
   text-wrap: pretty;
+}
+
+@media (min-width: 64rem) {
+  html.cn #learn .learn-hero > .cn-learn-head {
+    grid-template-columns: minmax(0, 8fr) minmax(0, 4fr);
+    grid-template-areas:
+      "row   row"
+      "title lead";
+    column-gap: clamp(32px, 4.5vw, 72px);
+    align-items: end;
+  }
+  /* the lead's last line sits on the headline's last baseline (the h1's descender room) */
+  html.cn #learn .learn-hero .cn-learn-lead {
+    justify-self: end;
+    max-width: 34ch;
+    margin: 0;
+    padding-block-end: .25em;
+  }
+}
+
+/* landscape phones: the wide head (lead beside the headline) at a height-based size, so the search
+   field is on the first screen */
+@media (orientation: landscape) and (max-height: 500px) and (min-width: 600px) {
+  html.cn #learn .learn-hero { gap: var(--cn-5); }
+  html.cn #learn .learn-hero > .cn-learn-head {
+    grid-template-columns: minmax(0, 8fr) minmax(0, 4fr);
+    grid-template-areas:
+      "row   row"
+      "title lead";
+    column-gap: var(--cn-8);
+    align-items: end;
+  }
+  html.cn #learn .cn-learn-edrow { margin-block-end: var(--cn-5); }
+  html.cn #learn .learn-hero h1 { max-width: none; font-size: min(11vh, 3rem); }
+  html.cn #learn .learn-hero .cn-learn-lead {
+    justify-self: end;
+    margin: 0;
+    padding-block-end: .2em;
+    font-size: 1rem;
+  }
 }
 
 /* ---------- search: one quiet field with the button inside ---------- */
@@ -93,7 +156,7 @@ html.cn #learn .learn-search-card {
   container: cn-learn-search / inline-size;
   width: 100%;
   max-width: 680px;
-  margin: 0 auto;
+  margin: clamp(4px, 1vw, 12px) 0 0;
   padding: 0;
   background: none;
   border: 0;
@@ -253,15 +316,16 @@ html.cn #learn .search-result-item > strong {
   letter-spacing: var(--cn-track-body);
 }
 
+/* the module name over each result: a thin label (12px is the floor for any text) */
 html.cn #learn .search-result-item > span {
   grid-area: module;
   margin-bottom: var(--cn-1);
   color: var(--cn-text-2) !important;
-  font-family: var(--cn-font-mono);
-  font-size: 11px !important;
+  font-family: var(--cn-font);
+  font-size: var(--cn-step-label) !important;
   font-weight: 500;
-  letter-spacing: var(--cn-track-label);
-  text-transform: uppercase;
+  letter-spacing: .01em;
+  text-transform: none;
 }
 
 /* stops the ".learn-hero p" 19px / 56ch leak */
@@ -308,10 +372,10 @@ html.cn #learn .search-result-item > button {
 html.cn #learn .cn-learn-chips {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: flex-start;
   gap: var(--cn-2);
   max-width: 100%;
-  margin: calc(var(--cn-2) * -1) auto 0;
+  margin: calc(var(--cn-2) * -1) 0 0;
 }
 
 html.cn #learn .cn-learn-chips .cn-chip {
@@ -364,30 +428,39 @@ html.cn #learn .rm-module-head {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--cn-3);
-  margin: 0 0 clamp(20px, 2.6vw, 32px);
+  gap: clamp(14px, 1.6vw, 20px);
+  margin: 0 0 clamp(24px, 3vw, 40px);
   padding: 0;
 }
 
 /* "// Module 0N" is never read by JS; the head shows the same number without the code-comment slashes */
 html.cn #learn .rm-module-head > span { display: none; }
 
+/* the module number as an editorial label (the .cn-edlabel look, 27-core.css 6c: 14px, thin,
+   sentence case, a 28px cyan hairline in front) */
 html.cn #learn .rm-module-head::before {
   content: "Module " counter(cn-module, decimal-leading-zero);
+  padding-inline-start: 40px;
+  background: linear-gradient(90deg, var(--cn-cyan), transparent 130%) 0 50% / 28px 1px no-repeat;
   color: var(--cn-text-2);
-  font: 500 var(--cn-step-label)/1.2 var(--cn-font-mono);
-  letter-spacing: var(--cn-track-label);
-  text-transform: uppercase;
+  font-family: var(--cn-font);
+  font-size: .875rem;
+  font-weight: 450;
+  line-height: 1.35;
+  letter-spacing: .005em;
 }
+html.cn[dir="rtl"] #learn .rm-module-head::before { background-position: 100% 50%; }
 
+/* light and large; data-cn-lines slides it up line by line the first time it scrolls in. The
+   search reads this heading's textContent, which the line masks leave unchanged. */
 html.cn #learn .rm-module-head h2 {
   margin: 0;
   color: var(--cn-text);
   font-family: var(--cn-font);
-  font-size: calc(var(--cn-step-h2) * .72);
-  font-weight: 600;
-  line-height: 1.1;
-  letter-spacing: var(--cn-track-h2);
+  font-size: clamp(1.75rem, 1.2rem + 1.9vw, 2.875rem);
+  font-weight: 340;
+  line-height: 1.06;
+  letter-spacing: -.032em;
   text-wrap: balance;
 }
 
@@ -456,14 +529,18 @@ html.cn #learn .rm-node-info {
   padding-inline-end: calc(var(--cn-learn-pad) + 44px);
 }
 
-/* mono tag: lesson number within its module */
+/* the lesson number within its module: a thin sentence-case label (proportional figures: Mona
+   Sans's tabular zero is slashed, which read as code) */
 html.cn #learn .rm-node-info::before {
   content: "Lesson " counter(cn-module) "." counter(cn-lesson);
   margin-bottom: var(--cn-1);
   color: var(--cn-text-2);
-  font: 500 var(--cn-step-label)/16px var(--cn-font-mono);
-  letter-spacing: var(--cn-track-label);
-  text-transform: uppercase;
+  font-family: var(--cn-font);
+  font-size: .8125rem;
+  font-weight: 450;
+  line-height: 16px;
+  letter-spacing: .01em;
+  text-transform: none;
   transition: color var(--cn-dur-2) var(--cn-ease-out);
 }
 
@@ -489,9 +566,9 @@ html.cn #learn .rm-node-info h3 {
   color: var(--cn-text);
   font-family: var(--cn-font);
   font-size: 1.125rem;
-  font-weight: 600;
+  font-weight: 560;
   line-height: 1.3;
-  letter-spacing: -.012em;
+  letter-spacing: -.014em;
   text-wrap: balance;
 }
 
@@ -640,9 +717,12 @@ html.cn #learn .rm-tip > strong:first-child {
   gap: var(--cn-2);
   margin-bottom: var(--cn-2);
   color: var(--cn-text);
-  font: 500 var(--cn-step-label)/1.4 var(--cn-font-mono);
-  letter-spacing: var(--cn-track-label);
-  text-transform: uppercase;
+  font-family: var(--cn-font);
+  font-size: .8125rem;
+  font-weight: 550;
+  line-height: 1.4;
+  letter-spacing: .005em;
+  text-transform: none;
 }
 
 html.cn #learn .rm-tip > strong:first-child { color: var(--cn-cyan-2); }
@@ -709,56 +789,11 @@ html.cn #learn .rm-tip > strong:first-child::before { background: var(--cn-cyan)
 }
 
 /* ==========================================================================
-   v4.1 "Midnight": the orb sprite and a quiet header (kit: 30-tools.css section 17).
-   Every lesson card, chip and module head is the calm system above: one accent (cyan), no
-   colour-coded modules, no gradient borders, no per-card shadows (33 cards, so none).
+   v4.1 "Midnight", kept in v4.3: every lesson card, chip and module head is the calm system above:
+   one accent (cyan), no colour-coded modules, no gradient borders, no per-card shadows (33 cards,
+   so none). v4.3 retired the header's orb sprite and its pill: the head is now the editorial label
+   row and the light headline above (the page's one 3D object would have competed with the type).
    ========================================================================== */
-html.cn #learn {
-  --cn-pg-sprite: url("/ui/3d/orb.webp?v=20261014-5");
-  --cn-pg-sprite-glow: rgba(148, 163, 184, .1);
-}
-
-/* header */
-html.cn #learn .learn-hero {
-  position: relative;
-  isolation: isolate;
-}
-html.cn #learn .learn-hero > div:first-child::before {
-  padding: 0 14px 0 28px;
-  background:
-    radial-gradient(circle at 14px 50%, var(--cn-cyan) 0 3px, transparent 3.5px),
-    linear-gradient(var(--cn-fill-1), var(--cn-fill-1)),
-    var(--cn-surface); /* solid, so the section motion lines pass behind it, not through the words */
-  box-shadow: inset 0 0 0 1px var(--cn-line-2);
-  color: var(--cn-text-2);
-}
-html.cn #learn .learn-hero::after {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  inset-block-start: -44px;
-  inset-inline-end: -4px;
-  width: 88px;
-  aspect-ratio: 1;
-  background: var(--cn-pg-sprite) center / contain no-repeat, radial-gradient(closest-side, var(--cn-pg-sprite-glow), transparent 78%) center / 100% 100% no-repeat;
-  pointer-events: none;
-  animation: cn-pg-in .9s var(--cn-ease-out) .15s backwards;
-}
-@media (min-width: 560px) {
-  html.cn #learn .learn-hero::after { inset-block-start: -38px; inset-inline-end: -8px; width: 106px; }
-}
-@media (min-width: 1100px) {
-  /* The orb sits outside the 920px header: it may use the space beside it, never more than that
-     (the viewport minus the header, halved, minus a margin), so it is never cut by the screen edge. */
-  html.cn #learn .learn-hero::after {
-    inset-block-start: -30px;
-    inset-inline-end: calc(-1 * min(150px, max(0px, max(var(--cn-gutter), (100vw - 15px - 920px) / 2) - 8px)));
-    width: 190px;
-  }
-}
-@media (max-width: 359.98px) {
-  html.cn #learn .learn-hero::after { display: none; }
-}
 
 /* search: the field lifts a little and takes a cyan hairline while it is in use */
 html.cn #learn .learn-search-row { box-shadow: var(--cn-pg-lift); }
@@ -767,10 +802,7 @@ html.cn #learn .learn-search-row:focus-within {
   box-shadow: var(--cn-pg-lift), 0 0 0 3px var(--cn-cyan-tint);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  html.cn #learn .learn-hero::after { animation: none; }
-}
 @media (forced-colors: active) {
-  html.cn #learn .learn-hero::after { display: none; }
+  html.cn #learn .rm-module-head::before { background: none; padding-inline-start: 0; }
   html.cn #learn .rm-node { border-color: CanvasText; }
 }

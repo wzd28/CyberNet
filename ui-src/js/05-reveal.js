@@ -1,4 +1,34 @@
-/* CyberNet UI: scroll reveals, page-switch motion and the live-dot pulse (owner: aurora). v4.1.
+/* CyberNet UI: scroll reveals, page-switch motion, the live-dot pulse and line-by-line heading
+   reveals (owner: aurora). v4.1, line reveals v4.2, reusable on any page v4.3.
+
+   REUSABLE HOOK (v4.3) - line-by-line heading reveal: [data-cn-lines]
+     <h2 data-cn-lines>Check it. Understand it. <span>Fix it.</span></h2>
+     <div class="my-head">
+       <p class="cn-edlabel">Pricing</p>
+       <h1 data-cn-lines="head">Simple plans, <b>honest</b> limits</h1>   <- "head": the parent's
+       <p>Lead paragraph</p>                                                 other children fade
+     </div>                                                                  up 260 ms after it
+   - Any element with text (normally an h1/h2/h3). Each word rises out of an invisible mask, one
+     line after another (110 ms a line), the first time the heading scrolls into view, or the
+     first time its SPA page is opened. Transform and opacity only, once per heading.
+   - A heading that is already on screen when the script starts (an above-the-fold title on a deep
+     link) is left exactly as it is: no split, no hiding, no flash, nothing to wait for. Headings
+     further down, or on a page that is not showing yet, are split on the observer's first report
+     and wait hidden for their reveal.
+   - Words become <cn-lm class="cn-lm"><cn-lm-i class="cn-lm-i">word</cn-lm-i></cn-lm> (custom
+     element names, so no "h1 span" rule in legacy or page CSS can restyle them); spaces stay
+     plain text, so wrapping, copy, find-in-page and screen readers are unchanged. Inline children
+     (<span>, <b>, <em>, <a>) are kept and their text is wrapped inside them, so the two-tone
+     <span> and a bold word keep their colour and weight. <br> is kept.
+   - Do not use it on the typewriter titles of Quick Scan, Analysis AI and Recovery
+     (#cybernet/#cybernetai/#recovery > .feature-page-header h1; they are skipped automatically),
+     on headings with gradient text (.cn-sweep, .cn-grad), or inside a [data-cn-reveal] block
+     (the two entrances would stack).
+   - Reduced motion and Pause motion: nothing is split, the heading is simply there.
+   - Markup rendered later: call CN.lines(el).
+   CSS: 29-lines.css.
+
+   Also in this file:
    - [data-cn-reveal]: the element fades and rises in once when it scrolls into view (opacity
      and translate only; v4.1 dropped the blur). Variants: "fade", "scale", "clip" (01-base.css);
      "off" opts out.
@@ -21,14 +51,11 @@
      (02-components.css), so the pulse is finite and never runs where nobody can see it.
    - html.cn-navigated: set on the first navigation (a [data-page] click or back/forward), so the
      page-switch animation in 80-perf.css never delays the first paint of a page.
-   - Line-by-line mask reveals (v4.2, the owner's motion reference): the big Home headings listed
-     in LINES slide up out of an invisible mask, one line after another, the first time they
-     scroll into view; the head's eyebrow and lead fade up just after. The words are wrapped once
-     at start-up (span.cn-lm > span.cn-lm-i; spaces stay plain text, so line breaks, copy and
-     screen readers are unchanged). The line of each word is read from offsetTop in the
-     observer's callback, when layout is fresh, and written as --cn-ln on the inner span (an
-     inline style, not a class). CSS: 29-lines.css (transform and opacity only). Reduced motion
-     and Pause motion: shown at once.
+   - Home's line reveals (v4.2): the big Home headings listed in LINES are split at start-up (they
+     sit below the fold) and slide up line by line the first time they scroll into view; the
+     head's eyebrow and lead fade up just after. The line of each word is read from offsetTop
+     while the browser is idle, and written as --cn-ln on the inner element (an inline style, not
+     a class).
    Other modules can call CN.reveal(el) for markup they render later. */
 (function () {
   "use strict";
@@ -70,6 +97,8 @@
     "#home > .support-box.reveal, #home > .home-limits-note.reveal";
   // Headings that reveal line by line (their head's other children fade up after them).
   var LINES = "#home > :is(.cn-threats, .cn-flow, .why-choose) > .cn-head > h2";
+  // Typewriter titles (60-typewriter.js measures their characters): never split.
+  var TYPEWRITER = ":is(#cybernet, #cybernetai, #recovery) > .feature-page-header h1";
   function tagHome() {
     var list, lines = [];
     try { list = CN.qsa(TAG); lines = CN.qsa(LINES); } catch (e) { return; } // :is() missing: keep the legacy cascade
@@ -89,7 +118,10 @@
     });
   }
 
-  /* Wrap each word of a heading in a mask (once). Returns the masks, or null. */
+  /* Wrap each word of a heading in a mask (once). Returns the masks, or null.
+     cn-lm / cn-lm-i are custom element names: inline by default, and no "h1 span" type rule
+     (legacy style.css paints ".about-top h1 span" cyan, for one) can reach them. */
+  var SKIP = /^(BR|SVG|IMG|PICTURE|VIDEO|CANVAS|MATH|SCRIPT|STYLE|TEMPLATE|TEXTAREA|INPUT|SELECT|BUTTON|CN-LM|CN-LM-I)$/;
   function splitLines(h) {
     if (h.__cnLines) return h.__cnLines;
     var masks = [];
@@ -100,13 +132,13 @@
           parts.forEach(function (s) {
             if (!s) return;
             if (/^[ \t\n\r]+$/.test(s)) { frag.appendChild(doc.createTextNode(s)); return; }
-            var o = doc.createElement("span"), i = doc.createElement("span");
+            var o = doc.createElement("cn-lm"), i = doc.createElement("cn-lm-i");
             o.className = "cn-lm"; i.className = "cn-lm-i";
             i.textContent = s;
             o.appendChild(i); frag.appendChild(o); masks.push(o);
           });
           node.replaceChild(frag, k);
-        } else if (k.nodeType === 1 && k.nodeName !== "BR") walk(k);
+        } else if (k.nodeType === 1 && !SKIP.test(k.nodeName.toUpperCase())) walk(k);
       });
     })(h);
     if (!masks.length) return null;
@@ -156,10 +188,54 @@
       done = true;
       if (stop) stop();
       if (h.__cnLnW) { h.classList.add("is-in"); return; }
-      /* not measured yet (a jump straight to it): measure in the next frame, then reveal */
+      /* not measured yet (a jump straight to it, or its page just opened): measure in the next
+         frame, then reveal */
       window.requestAnimationFrame(function () { measureLines(h); h.classList.add("is-in"); });
     }, { threshold: 0.01, margin: "0px 0px -8% 0px" });
     if (done && stop) stop();
+  }
+
+  /* The reusable hook: [data-cn-lines] on any page (see the header). The first observer report
+     decides: on screen -> left as it is; off screen or on a hidden page -> split now (new nodes,
+     so the hidden state applies with no transition and nothing on screen moves) and armed. */
+  function linesHook(h) {
+    if (!h || h.nodeType !== 1 || h.__cnLinesHook || h.__cnLines) return;
+    h.__cnLinesHook = true;
+    try { if (h.matches(TYPEWRITER)) return; } catch (e) { /* :is() missing */ }
+    if (CN.reduced()) return;
+    var first = true, stop = null;
+    stop = CN.inView(h, function (vis) {
+      if (!first) return;
+      first = false;
+      if (stop) stop();
+      if (vis || CN.reduced() || !splitLines(h)) return;
+      if (h.getAttribute("data-cn-lines") === "head") headFollows(h);
+      lineReveal(h);
+    });
+    if (!first && stop) stop();
+  }
+  /* data-cn-lines="head": the heading's siblings (eyebrow, lead, actions) fade up just after it.
+     Each one is tagged only if its own first observer report finds it off screen (an eyebrow
+     can sit on screen above a heading that is just below the fold), so the hidden state never
+     shows as a blink. */
+  function headFollows(h) {
+    var head = h.parentNode;
+    if (!head || !head.children) return;
+    Array.prototype.forEach.call(head.children, function (k) {
+      if (k === h || k.hasAttribute("data-cn-reveal") || k.hasAttribute("data-cn-stagger") || k.hasAttribute("data-cn-lines")) return;
+      if (/^(SCRIPT|STYLE|TEMPLATE|CANVAS)$/.test(k.nodeName.toUpperCase())) return;
+      var first = true, stop = null;
+      stop = CN.inView(k, function (vis) {
+        if (!first) return;
+        first = false;
+        if (stop) stop();
+        if (vis || CN.reduced() || k.hasAttribute("data-cn-reveal")) return;
+        k.setAttribute("data-cn-reveal", "");
+        k.style.setProperty("--cn-d", "260ms");
+        reveal(k);
+      });
+      if (!first && stop) stop();
+    });
   }
 
   function scan(ctx) { CN.qsa("[data-cn-reveal], [data-cn-stagger]", ctx).forEach(reveal); }
@@ -176,10 +252,18 @@
   }
 
   CN.reveal = reveal;
+  /* CN.lines(el): the [data-cn-lines] hook for markup rendered later (el itself, or every
+     [data-cn-lines] inside it). */
+  CN.lines = function (el) {
+    if (!el) return;
+    if (el.hasAttribute && el.hasAttribute("data-cn-lines")) linesHook(el);
+    else CN.qsa("[data-cn-lines]", el).forEach(linesHook);
+  };
   CN.onReady(function () {
     tagHome();
-    CN.qsa("h2.cn-lines").forEach(lineReveal);
+    CN.qsa(".cn-lines").forEach(lineReveal);
     scan();
     CN.qsa(".cn-live-dot").forEach(liveDot);
+    CN.qsa("[data-cn-lines]").forEach(linesHook);
   });
 })();

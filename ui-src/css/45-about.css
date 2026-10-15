@@ -1,85 +1,198 @@
 /* 45-about: the About page (section#about). Restyle only; see ui-src/DESIGN.md "About".
-   An editorial page in the spirit of an Apple "About": a big quiet headline (one cyan word), a row
-   of large numbers, a fact sheet, four numbered story blocks on a clean 2-column grid, the "is and
-   isn't" note, the value cards, the support box and, last, the operator footnote.
+
+   v4.3 (owner: learn-about), in the language of the owner's motion reference: a near-black page,
+   large light type with one bold word, small thin labels in the corners, generous space, and the
+   colour living in one 3D object. The page is one editorial grid:
+
+     About CyberNet AI ———————————————————————— Quick Scan, Analysis AI, Recovery   (.cn-edrow)
+     Built to make                                  [ chrome shield, subtle glow ]
+     cybersecurity simple.                                  Secure today. Safer tomorrow.
+     3 | 5 | 15                                                         (stats on hairlines)
+     — Our mission
+     Protect people before threats become real damage. We believe ...   (scroll-lit manifesto)
+     — 01  What is CyberNet AI   |  paragraph                          (story rows: a label column
+     — 02  What it does          |  paragraph                           and a reading column)
+     — 03  Who it helps          |  paragraph
+     — At a glance               |  product / mission / approach / data policy
+                                 |  What CyberNet AI is, and isn't: ...
+     — What we value             |  four values, two by two
+     support box, then the operator footnote (Marks Events FZ LLE), last thing on the page.
+
+   Every row shares one grid: a label column of (W - gap) / 3 and the reading column after it (the
+   same 4/8 split as twelve columns), so the labels, story headings and value names line up down
+   the page. Under 860px every row is one column (the label above its content).
+
+   Hooks used (27-core.css section 6, 05-reveal.js, 57-core.js): .cn-edlabel / .cn-edrow (labels),
+   data-cn-lines (the h1 and the story h2s slide up line by line; "head" also fades the label
+   row, the shield and the tag in after the h1), data-cn="manifesto" (the mission's words light up
+   in reading order as it scrolls; every word lit under reduced motion and Pause motion) and
+   data-cn-glow (a very faint cyan light breathing behind the shield; still under reduced motion,
+   held under Pause motion and off screen).
 
    Legacy traps handled here (maps/HAZARDS.md "04-pricing" covers About):
-   - .hero-stats-row strong[data-count] is animated by script.js (textContent per frame): the row
-     keeps its class and tag; numbers are tabular so nothing shifts while counting.
+   - .hero-stats-row strong[data-count] is animated by script.js 300 ms after About opens
+     (textContent per frame): the row keeps its class and tag. The numbers start each cell
+     (left-aligned), so a digit changing width while counting moves nothing else. They are not
+     set in tabular figures: Mona Sans draws a slashed zero there, which read as code.
    - .about-block / .about-value are .tilt-card: script.js writes an inline transform on
      mousemove. 01-base.css neutralises it site-wide (transform:none!important); nothing here
      sets a transform on them.
-   - .about-values had content-visibility:auto with a 700px placeholder (left a blank block in
-     phone captures): set visible.
-   - .about-top, the stats row, .fetch-panel, .about-grid, .home-limits-note, .about-values and
-     .support-box are .reveal elements: no opacity/transform here.
-   - .pill, .home-limits-note and .support-box are shared with other pages: scoped to #about.
-   - The fetch panel's terminal chrome (traffic-light dots and "whoami") is decorative and has no
-     JS; it is hidden and the panel reads as a plain fact sheet. */
+   - .about-values had content-visibility:auto with a 700px placeholder: set visible.
+   - .about-top, the stats row, .about-grid, .fetch-panel, .home-limits-note, .about-values and
+     .support-box are .reveal elements (a page-open cascade): no opacity/transform on them here.
+     80-perf.css keeps .about-top painted on the first frame.
+   - .home-limits-note and .support-box are shared with other pages: scoped to #about. The
+     support box keeps its one shared look (02-components.css).
+   - Legacy ".about-top h1 span" paints cyan with a glow; the h1's bold word is a <b>, and the
+     line masks are custom elements (cn-lm), so that rule reaches nothing. */
 
-html.cn #about { counter-reset: cn-about; }
+html.cn #about {
+  --cn-ab-gap: clamp(24px, 4.5vw, 72px);                   /* the grid's column gap */
+  --cn-ab-label: calc((100% - var(--cn-ab-gap)) / 3);     /* the label column (4 of 12) */
+  --cn-ab-sp: clamp(88px, 4rem + 6vw, 168px);             /* space between the page's rows */
+  --cn-ab-row: clamp(28px, 3.4vw, 48px);                  /* a story row's vertical padding */
+  --cn-ab-h1: min(clamp(2.75rem, 1.55rem + 4.9vw, 5.75rem), 12.2vw);   /* the headline's size */
+  counter-reset: cn-about;
+}
+
+/* The identity glow (01-base.css) follows the headline to the start side */
+html.cn #about.page { --cn-glow-x: 30%; }
+html.cn[dir="rtl"] #about.page { --cn-glow-x: 70%; }
 
 /* ---------- the page's top: About opens on its headline (the operator note is a footnote at the end,
    see "operator footnote" below), so it takes the same top padding as the other inner pages.
    02-components.css gives #about and #pricing a short top padding for the banner Pricing still opens
-   with; here About goes back to the shared inner-page value (01-base.css) and the head sits right under it. ---------- */
+   with; here About goes back to the shared inner-page value (01-base.css). ---------- */
 html.cn section#about.page { padding-block-start: clamp(40px, 1rem + 3vw, 72px); }
 
-/* ---------- header ---------- */
+/* ---------- 1. Head: label row, a large light headline with one bold word, the shield ---------- */
 html.cn #about .about-top {
-  display: flex;
-  flex-direction: column;
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "row"
+    "title"
+    "mark"
+    "tag";
   align-items: center;
-  gap: var(--cn-6);
-  max-width: 1040px;
-  margin: 0 auto clamp(64px, 8vw, 120px);
-  text-align: center;
+  max-width: var(--cn-max);
+  margin: 0 auto;
+  text-align: start;
 }
 
-html.cn #about .about-top .pill {
-  display: inline-flex;
-  align-items: center;
-  min-height: 28px;
-  margin: 0;
-  padding: 0 var(--cn-3);
-  border: 0;
-  border-radius: var(--cn-r-pill);
-  background: var(--cn-cyan-tint);
-  box-shadow: none;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-  color: var(--cn-cyan-2);
-  font: 500 var(--cn-step-label)/1 var(--cn-font-mono);
-  letter-spacing: var(--cn-track-label);
-  text-transform: uppercase;
+html.cn #about .cn-about-edrow {
+  grid-area: row;
+  margin-block-end: clamp(36px, 1rem + 4.4vw, 88px);
 }
+/* the end label keeps to the end edge, also when the row wraps on a narrow phone */
+html.cn #about .cn-about-edrow > .cn-edlabel--end { margin-inline-start: auto; }
 
 html.cn #about .about-top h1 {
-  max-width: 15ch;
+  grid-area: title;
+  position: relative;
+  z-index: 1;   /* over the shield, which tucks up beside the short last line on phones */
+  max-width: 12ch;
   margin: 0;
   color: var(--cn-text);
   font-family: var(--cn-font);
-  font-size: min(var(--cn-step-hero), 12vw);
-  font-weight: 600;
-  line-height: 1;
-  letter-spacing: var(--cn-track-hero);
+  font-size: var(--cn-ab-h1);
+  font-weight: 300;
+  line-height: 1.02;
+  letter-spacing: -.04em;
   text-wrap: balance;
   overflow-wrap: break-word;
 }
 
-/* the page's one cyan word: plain cyan text (gradient text is for the Home hero word only) */
-html.cn #about .about-top h1 span {
-  color: var(--cn-cyan-2);
-  text-shadow: none;
+/* the one bold word, in white (the colour lives in the shield) */
+html.cn #about .about-top h1 b {
+  color: #fff;
+  font-weight: 620;
+  letter-spacing: -.045em;
 }
 
-/* ---------- stats row: three large numbers on hairlines ---------- */
+/* the shield: the chrome emblem with a very faint cyan light behind it (data-cn-glow). On phones
+   and portrait tablets it sits at the end side under the headline and rises about one line, into
+   the empty space beside the short last line ("simple."); the h1 stays above it. */
+html.cn #about .cn-about-mark {
+  grid-area: mark;
+  justify-self: end;
+  position: relative;
+  isolation: isolate;
+  inline-size: clamp(140px, 42vw, 220px);
+  aspect-ratio: 1;
+  margin-block-start: calc(-.85 * var(--cn-ab-h1));
+  pointer-events: none;
+  --cn-gl-scale: .92;
+}
+html.cn #about .cn-about-mark > img {
+  display: block;
+  inline-size: 100%;
+  block-size: auto;
+  aspect-ratio: 1;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* the small line under the shield, set like the reference's corner captions */
+html.cn #about .cn-about-tag {
+  grid-area: tag;
+  justify-self: end;
+  max-width: 18ch;
+  margin: var(--cn-3) 0 0;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: .9375rem;
+  font-weight: 400;
+  line-height: 1.4;
+  letter-spacing: -.005em;
+  text-align: end;
+  text-wrap: balance;
+}
+
+/* desktop and wide tablets: the headline on the start side, the shield beside it */
+@media (min-width: 64rem) {
+  html.cn #about .about-top {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    grid-template-areas:
+      "row   row"
+      "title mark"
+      ".     tag";
+    column-gap: var(--cn-ab-gap);
+  }
+  html.cn #about .cn-about-mark {
+    justify-self: center;
+    inline-size: clamp(260px, 25vw, 360px);
+    margin-block-start: 0;
+  }
+  html.cn #about .cn-about-tag { margin-block-start: clamp(-24px, -1.6vw, -12px); }
+}
+@media (max-width: 63.99rem) {
+  html.cn #about .cn-about-tag { margin-block-start: var(--cn-1); font-size: .875rem; }
+}
+/* landscape phones: the headline and the shield side by side, sized by the screen's height */
+@media (orientation: landscape) and (max-height: 500px) and (min-width: 600px) {
+  html.cn #about .about-top {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "row   row"
+      "title mark"
+      ".     tag";
+    column-gap: var(--cn-8);
+  }
+  html.cn #about .cn-about-edrow { margin-block-end: var(--cn-5); }
+  html.cn #about { --cn-ab-h1: min(12vh, 3.25rem); }
+  html.cn #about .cn-about-mark { inline-size: min(44vh, 200px); margin-block-start: 0; }
+}
+
+/* ---------- 2. Stats: three large light numbers on hairlines ---------- */
 html.cn #about .about-stats-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0;
   max-width: var(--cn-max);
-  margin: 0 auto clamp(72px, 9vw, 136px);
+  margin: clamp(48px, 1.5rem + 5vw, 112px) auto 0;
   border-top: 1px solid var(--cn-line);
   border-bottom: 1px solid var(--cn-line);
 }
@@ -87,28 +200,31 @@ html.cn #about .about-stats-row {
 html.cn #about .about-stats-row > div {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   min-width: 0;
   margin: 0;
-  padding: clamp(28px, 4vw, 56px) var(--cn-4);
+  padding: clamp(24px, 3.4vw, 48px) clamp(14px, 2.4vw, 36px);
   border: 0;
   border-inline-start: 1px solid var(--cn-line);
-  text-align: center;
+  text-align: start;
 }
 
-html.cn #about .about-stats-row > div:first-child { border-inline-start: 0; }
+html.cn #about .about-stats-row > div:first-child {
+  border-inline-start: 0;
+  padding-inline-start: 0;
+}
 
 html.cn #about .about-stats-row strong {
   display: block;
   min-width: 0;
   color: var(--cn-text);
   font-family: var(--cn-font);
-  font-size: clamp(3rem, 2rem + 4.6vw, 6rem);
-  font-weight: 600;
-  line-height: 1;
-  letter-spacing: -.045em;
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum" 1;
+  font-size: clamp(3rem, 1.9rem + 4.4vw, 6rem);
+  font-weight: 300;
+  line-height: .95;
+  letter-spacing: -.05em;
+  font-variant-numeric: normal;   /* legacy sets tabular figures (see the header) */
+  font-feature-settings: normal;
 }
 
 html.cn #about .about-stats-row span {
@@ -117,6 +233,7 @@ html.cn #about .about-stats-row span {
   color: var(--cn-text-2);
   font-family: var(--cn-font);
   font-size: .9375rem;
+  font-weight: 400;
   line-height: 1.35;
   text-wrap: balance;
 }
@@ -132,54 +249,154 @@ html.cn #about .about-stats-row span {
     padding: var(--cn-4) 0;
     border-inline-start: 0;
     border-top: 1px solid var(--cn-line);
-    text-align: start;
   }
   html.cn #about .about-stats-row > div:first-child { border-top: 0; }
-  html.cn #about .about-stats-row strong { font-size: 2.5rem; }
+  html.cn #about .about-stats-row strong { font-size: 2.75rem; }
   html.cn #about .about-stats-row span { margin-top: 0; font-size: 1rem; }
 }
 
-/* ---------- fact sheet (legacy "whoami" panel) ---------- */
-/* 860px: every standalone card on About (fact sheet, limits note, support) shares one
-   measure, and every grid (stats, story, values) shares the 1200px column. */
-html.cn #about .fetch-panel {
-  max-width: 860px;
-  margin: 0 auto clamp(72px, 9vw, 136px);
-  padding: clamp(24px, 4vw, 44px);
-  overflow: visible;
-  border: 1px solid var(--cn-line);
-  border-radius: var(--cn-r-panel);
-  background: var(--cn-surface);
+/* ---------- 3. Our mission: the scroll-lit manifesto ---------- */
+html.cn #about .cn-about-mission {
+  max-width: var(--cn-max);
+  margin: var(--cn-ab-sp) auto 0;
+}
+
+html.cn #about .cn-about-mission > .cn-edlabel { margin-block-end: clamp(24px, 3vw, 40px); }
+
+html.cn #about .cn-about-mission > .cn-manifesto {
+  max-inline-size: 23em;
+  font-size: clamp(1.625rem, .95rem + 2.5vw, 3.125rem);
+  font-weight: 380;
+  line-height: 1.16;
+  letter-spacing: -.028em;
+}
+
+/* ---------- 4. Story: numbered rows, the heading in the label column, the text beside it ---------- */
+html.cn #about .about-grid {
+  display: block;
+  max-width: var(--cn-max);
+  margin: var(--cn-ab-sp) auto 0;
+  border-bottom: 1px solid var(--cn-line);
+}
+
+html.cn #about .about-block {
+  counter-increment: cn-about;
+  display: grid;
+  grid-template-columns: var(--cn-ab-label) minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: var(--cn-ab-gap);
+  row-gap: var(--cn-4);
+  align-items: start;
+  min-width: 0;
+  margin: 0;
+  padding: var(--cn-ab-row) 0 calc(var(--cn-ab-row) * 1.2);
+  border: 0;
+  border-top: 1px solid var(--cn-line);
+  border-radius: 0;
+  background: none;
   box-shadow: none;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
 
+/* the index: a thin label with the cyan hairline (decorative, hidden from assistive tech where the
+   alt syntax is supported) */
+html.cn #about .about-block::before {
+  content: counter(cn-about, decimal-leading-zero);
+  content: counter(cn-about, decimal-leading-zero) / "";
+  grid-column: 1;
+  grid-row: 1;
+  padding-inline-start: 40px;
+  background: linear-gradient(90deg, var(--cn-cyan), transparent 130%) 0 50% / 28px 1px no-repeat;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: .875rem;
+  font-weight: 450;
+  line-height: 1.35;
+}
+html.cn[dir="rtl"] #about .about-block::before { background-position: 100% 50%; }
+
+html.cn #about .about-block h2 {
+  grid-column: 1;
+  grid-row: 2;
+  min-width: 0;
+  margin: 0;
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: clamp(1.625rem, 1.15rem + 1.5vw, 2.5rem);
+  font-weight: 360;
+  line-height: 1.08;
+  letter-spacing: -.03em;
+  text-wrap: balance;
+}
+
+html.cn #about .about-block p {
+  grid-column: 2;
+  grid-row: 2;
+  max-width: 60ch;
+  margin: .3em 0 0;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: clamp(1rem, .95rem + .25vw, 1.125rem);
+  line-height: 1.65;
+  letter-spacing: var(--cn-track-body);
+  text-wrap: pretty;
+}
+
+html.cn #about .about-block p strong {
+  color: var(--cn-text);
+  font-weight: 600;
+}
+
+/* ---------- 5. At a glance (legacy "whoami" panel): a quiet table on hairlines ---------- */
+html.cn #about .fetch-panel {
+  display: grid;
+  grid-template-columns: var(--cn-ab-label) minmax(0, 1fr);
+  column-gap: var(--cn-ab-gap);
+  align-items: start;
+  max-width: var(--cn-max);
+  margin: var(--cn-ab-sp) auto 0;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+html.cn #about .fetch-panel::before {
+  content: "At a glance";
+  grid-column: 1;
+  padding-block-start: var(--cn-5);
+  padding-inline-start: 40px;
+  background: linear-gradient(90deg, var(--cn-cyan), transparent 130%) 0 calc(var(--cn-5) + .675em) / 28px 1px no-repeat;
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: .875rem;
+  font-weight: 450;
+  line-height: 1.35;
+}
+html.cn[dir="rtl"] #about .fetch-panel::before { background-position: 100% calc(var(--cn-5) + .675em); }
+
 html.cn #about .fetch-panel .term-chrome { display: none; }
 
 html.cn #about .fetch-body {
+  grid-column: 2;
   display: block;
+  min-width: 0;
   padding: 0;
   color: var(--cn-text);
   font-family: var(--cn-font);
   font-size: 1rem;
 }
 
-html.cn #about .fetch-body::before {
-  content: "At a glance";
-  display: block;
-  margin-bottom: var(--cn-4);
-  color: var(--cn-text-2);
-  font: 500 var(--cn-step-label)/1.3 var(--cn-font-mono);
-  letter-spacing: var(--cn-track-label);
-  text-transform: uppercase;
-}
-
 html.cn #about .fetch-line {
   display: grid;
-  grid-template-columns: minmax(0, 11rem) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 10rem) minmax(0, 1fr);
   align-items: baseline;
-  gap: var(--cn-2) var(--cn-6);
+  gap: var(--cn-1) var(--cn-6);
   padding: var(--cn-5) 0;
   border-top: 1px solid var(--cn-line);
   color: var(--cn-text);
@@ -187,23 +404,30 @@ html.cn #about .fetch-line {
   text-align: start;
 }
 
-html.cn #about .fetch-line:last-child { padding-bottom: 0; }
+html.cn #about .fetch-line:last-child { border-bottom: 1px solid var(--cn-line); }
 
+/* the keys are written in lower case ("data policy"): small, thin, sentence case */
 html.cn #about .fetch-key {
+  display: block;
   color: var(--cn-text-2);
-  font: 500 var(--cn-step-label)/1.5 var(--cn-font-mono);
-  letter-spacing: var(--cn-track-label);
-  text-transform: uppercase;
+  font-family: var(--cn-font);
+  font-size: .875rem;
+  font-weight: 450;
+  line-height: 1.5;
+  letter-spacing: 0;
+  text-transform: none;
 }
+html.cn #about .fetch-key::first-letter { text-transform: uppercase; }
 
 html.cn #about .fetch-line > span:last-child {
   min-width: 0;
   font-size: 1.0625rem;
+  font-weight: 400;
   letter-spacing: var(--cn-track-body);
   text-wrap: pretty;
 }
 
-/* the values are written in lower case ("rule-based + ..."): sentence case on screen */
+/* the values are written in lower case too ("rule-based + ..."): sentence case on screen */
 html.cn #about .fetch-line > span:last-child::first-letter { text-transform: uppercase; }
 
 html.cn #about .fetch-line .safe-text {
@@ -220,73 +444,17 @@ html.cn #about .fetch-line .safe-text {
   html.cn #about .fetch-line > span:last-child { font-size: 1rem; }
 }
 
-/* ---------- story: four numbered blocks on a quiet grid ---------- */
-html.cn #about .about-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: clamp(48px, 6vw, 88px) clamp(32px, 6vw, 96px);
-  max-width: var(--cn-max);
-  margin: 0 auto clamp(72px, 9vw, 136px);
-}
-
-html.cn #about .about-block {
-  counter-increment: cn-about;
-  min-width: 0;
-  padding: var(--cn-6) 0 0;
-  border: 0;
-  border-top: 1px solid var(--cn-line);
-  border-radius: 0;
-  background: none;
-  box-shadow: none;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-}
-
-html.cn #about .about-block h2 {
-  margin: 0 0 var(--cn-4);
-  color: var(--cn-text);
-  font-family: var(--cn-font);
-  font-size: calc(var(--cn-step-h2) * .66);
-  font-weight: 600;
-  line-height: 1.15;
-  letter-spacing: var(--cn-track-h2);
-  text-wrap: balance;
-}
-
-/* decorative index (hidden from assistive tech where the alt syntax is supported) */
-html.cn #about .about-block h2::before {
-  content: counter(cn-about, decimal-leading-zero);
-  content: counter(cn-about, decimal-leading-zero) / "";
-  display: block;
-  margin-bottom: var(--cn-6);
-  color: var(--cn-text-2);
-  font: 500 var(--cn-step-label)/1.3 var(--cn-font-mono);
-  letter-spacing: var(--cn-track-label);
-}
-
-html.cn #about .about-block p {
-  max-width: 58ch;
-  margin: 0;
-  color: var(--cn-text-2);
-  font-family: var(--cn-font);
-  font-size: 1.0625rem;
-  line-height: 1.65;
-  letter-spacing: var(--cn-track-body);
-  text-wrap: pretty;
-}
-
-html.cn #about .about-block p strong {
-  color: var(--cn-text);
-  font-weight: 600;
-}
-
-/* ---------- "what it is and isn't" ---------- */
+/* ---------- 6. "What it is and isn't": fine print in the reading column ---------- */
 html.cn #about .home-limits-note {
-  max-width: 860px;
-  margin: 0 auto clamp(72px, 9vw, 136px);
-  padding: clamp(20px, 3vw, 32px) clamp(20px, 4vw, 40px);
-  border: 1px solid var(--cn-line);
-  border-radius: var(--cn-r-card);
+  box-sizing: border-box;
+  max-width: var(--cn-max);
+  margin: clamp(28px, 3vw, 44px) auto 0;
+  padding: 0;
+  /* the reading column of a grid as wide as this block: (W - gap) / 3 + gap, where W is
+     min(container, --cn-max) (a padding percentage reads the containing block's width) */
+  padding-inline-start: calc((min(100%, var(--cn-max)) - var(--cn-ab-gap)) / 3 + var(--cn-ab-gap));
+  border: 0;
+  border-radius: 0;
   background: transparent;
   color: var(--cn-text-2);
   font-family: var(--cn-font);
@@ -302,40 +470,47 @@ html.cn #about .home-limits-note strong {
   font-weight: 600;
 }
 
-/* ---------- values: 2 x 2 cards, icon beside the copy (the Privacy text is four times longer
-   than the others, so four narrow columns left three mostly empty cards) ---------- */
+/* ---------- 7. Values: the label column, then the four values two by two on hairlines ---------- */
 html.cn #about .about-values {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--cn-4);
+  grid-template-columns: var(--cn-ab-label) repeat(2, minmax(0, 1fr));
+  column-gap: var(--cn-ab-gap);
+  row-gap: clamp(28px, 3vw, 44px);
   max-width: var(--cn-max);
-  margin: 0 auto clamp(72px, 9vw, 136px);
+  margin: var(--cn-ab-sp) auto 0;
   content-visibility: visible;
   contain-intrinsic-size: none;
 }
 
 html.cn #about .about-values::before {
   content: "What we value";
-  grid-column: 1 / -1;
-  margin-bottom: var(--cn-2);
-  color: var(--cn-text-2);
-  font: 500 var(--cn-step-label)/1.3 var(--cn-font-mono);
-  letter-spacing: var(--cn-track-label);
-  text-transform: uppercase;
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  align-self: start;
+  padding-block-start: var(--cn-5);
+  padding-inline-start: 40px;
+  background: linear-gradient(90deg, var(--cn-cyan), transparent 130%) 0 calc(var(--cn-5) + .675em) / 28px 1px no-repeat;
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: .875rem;
+  font-weight: 450;
+  line-height: 1.35;
 }
+html.cn[dir="rtl"] #about .about-values::before { background-position: 100% calc(var(--cn-5) + .675em); }
 
 html.cn #about .about-value {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr);
+  grid-template-columns: 24px minmax(0, 1fr);
   grid-template-rows: auto 1fr;
   align-content: start;
-  column-gap: clamp(16px, 2vw, 24px);
-  row-gap: var(--cn-2);
+  column-gap: var(--cn-3);
+  row-gap: var(--cn-3);
   min-width: 0;
-  padding: clamp(20px, 2.6vw, 32px);
-  border: 1px solid var(--cn-line);
-  border-radius: var(--cn-r-card);
-  background: var(--cn-surface);
+  padding: var(--cn-5) 0 0;
+  border: 0;
+  border-top: 1px solid var(--cn-line);
+  border-radius: 0;
+  background: none;
   box-shadow: none;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
@@ -343,145 +518,72 @@ html.cn #about .about-value {
 }
 
 html.cn #about .av-icon {
-  grid-row: 1 / span 2;
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
+  grid-row: 1;
+  align-self: center;
+  display: block;
+  width: 22px;
+  height: 22px;
   margin: 0;
-  border: 1px solid var(--cn-line);
-  border-radius: var(--cn-r-ctl);
-  background: var(--cn-surface-2);
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
   color: var(--cn-cyan-2);
 }
 
 html.cn #about .av-icon svg {
+  display: block;
   width: 22px;
   height: 22px;
 }
 
 html.cn #about .about-value h3 {
   grid-column: 2;
+  grid-row: 1;
   align-self: center;
-  min-height: 44px;
-  display: flex;
-  align-items: center;
   margin: 0;
   color: var(--cn-text);
   font-family: var(--cn-font);
   font-size: 1.1875rem;
-  font-weight: 600;
+  font-weight: 550;
   line-height: 1.25;
   letter-spacing: -.015em;
 }
 
 html.cn #about .about-value p {
-  grid-column: 2;
+  grid-column: 1 / -1;
+  grid-row: 2;
+  max-width: 46ch;
   margin: 0;
   color: var(--cn-text-2);
   font-family: var(--cn-font);
   font-size: .9375rem;
-  line-height: 1.55;
+  line-height: 1.6;
   letter-spacing: var(--cn-track-body);
   text-wrap: pretty;
 }
 
-/* ---------- support box: the one component in 02-components.css ---------- */
+/* ---------- support box: the one component in 02-components.css (only the space above it) ---------- */
+html.cn #about { --cn-support-mt: var(--cn-ab-sp); }
 
-/* ---------- responsive (page-level grids) ---------- */
-@media (max-width: 760px) {
-  /* story: one column */
-  html.cn #about .about-grid { grid-template-columns: minmax(0, 1fr); }
-  html.cn #about .about-block h2 { font-size: var(--cn-step-h3); }
-  html.cn #about .about-block h2::before { margin-bottom: var(--cn-4); }
-  html.cn #about .about-block p { font-size: 1rem; }
-}
-
-@media (max-width: 720px) {
-  html.cn #about .about-values { grid-template-columns: minmax(0, 1fr); gap: var(--cn-3); }
-}
-
-/* narrow phones: icon beside the title, the text below at full width */
-@media (max-width: 420px) {
-  html.cn #about .about-value {
-    grid-template-rows: auto auto;
-    column-gap: var(--cn-4);
-    padding: var(--cn-5);
+/* ---------- responsive: one column under 860px (each label above its content) ---------- */
+@media (max-width: 859.98px) {
+  html.cn #about .about-block,
+  html.cn #about .fetch-panel {
+    grid-template-columns: minmax(0, 1fr);
   }
-  html.cn #about .av-icon { grid-row: 1; }
-  html.cn #about .about-value p { grid-column: 1 / -1; margin-top: var(--cn-2); }
+  html.cn #about .about-block { row-gap: var(--cn-3); }
+  html.cn #about .about-block p { grid-column: 1; grid-row: 3; margin-top: var(--cn-2); }
+  html.cn #about .fetch-body { grid-column: 1; margin-top: var(--cn-5); }
+  html.cn #about .home-limits-note { padding-inline-start: 0; }
+  html.cn #about .about-values { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  html.cn #about .about-values::before { grid-column: 1 / -1; grid-row: auto; padding-block-start: 0; background-position: 0 .675em; }
+  html.cn[dir="rtl"] #about .about-values::before { background-position: 100% .675em; }
 }
 
-/* ==========================================================================
-   v4.1 "Midnight": the shield sprite and a quiet pill (kit: 30-tools.css section 17; the
-   operator banner is styled in 50-pricing.css for Pricing only; About carries that sentence as the
-   footnote below). The page is the editorial layout above: hairlines, big plain numbers, one
-   cyan word.
-   ========================================================================== */
-html.cn #about {
-  --cn-pg-sprite: url("/ui/3d/shield-320.webp?v=20261014-5");
-  --cn-pg-sprite-glow: rgba(34, 211, 238, .09);
-}
-@media (min-width: 1100px) {
-  html.cn #about { --cn-pg-sprite: url("/ui/3d/shield.webp?v=20261014-5"); }
-}
-
-/* header: the pill with its dot, the shield */
-html.cn #about .about-top {
-  position: relative;
-  isolation: isolate;
-}
-html.cn #about .about-top .pill {
-  padding: 0 14px 0 28px;
-  background:
-    radial-gradient(circle at 14px 50%, var(--cn-cyan) 0 3px, transparent 3.5px),
-    linear-gradient(var(--cn-fill-1), var(--cn-fill-1)),
-    var(--cn-surface); /* solid, so the section motion lines pass behind it, not through the words */
-  box-shadow: inset 0 0 0 1px var(--cn-line-2);
-  color: var(--cn-text-2);
-}
-html.cn #about .about-top::after {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  inset-block-start: -22px;
-  inset-inline-end: -2px;
-  width: 78px;
-  aspect-ratio: 1;
-  background: var(--cn-pg-sprite) center / contain no-repeat, radial-gradient(closest-side, var(--cn-pg-sprite-glow), transparent 78%) center / 100% 100% no-repeat;
-  pointer-events: none;
-  animation: cn-pg-in .9s var(--cn-ease-out) .15s backwards;
-}
-@media (min-width: 560px) {
-  html.cn #about .about-top::after { inset-block-start: -14px; width: 130px; }
-}
-@media (min-width: 1100px) {
-  /* The shield sits outside the header column (1200px at most): it uses the space beside it, never
-     more than that, so it is never cut by the screen edge. */
-  html.cn #about .about-top::after {
-    inset-block-start: -20px;
-    inset-inline-end: calc(-1 * min(110px, max(0px, max(var(--cn-gutter), (100vw - 15px - 1200px) / 2) - 8px)));
-    width: 230px;
-  }
-}
-@media (max-width: 359.98px) {
-  html.cn #about .about-top::after { display: none; }
-}
-
-/* the fact sheet and the value cards: the hairline and one soft lift */
-html.cn #about .fetch-panel { box-shadow: var(--cn-pg-lift); }
-html.cn #about .fetch-key { color: var(--cn-cyan-2); }
-html.cn #about .av-icon {
-  border: 0;
-  background: var(--cn-cyan-tint);
-  box-shadow: inset 0 0 0 1px var(--cn-cyan-line);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  html.cn #about .about-top::after { animation: none; }
-}
-@media (forced-colors: active) {
-  html.cn #about .about-top::after { display: none; }
+@media (max-width: 560px) {
+  html.cn #about .about-values { grid-template-columns: minmax(0, 1fr); row-gap: var(--cn-6); }
+  html.cn #about .about-value p { max-width: none; }
 }
 
 /* ---------- operator footnote: the last thing in #about, right before the footer ----------
@@ -534,7 +636,10 @@ html.cn #about > .cn-operator strong {
   html.cn #about > .cn-operator { border-radius: 0; text-align: center; }
   html.cn #about > .cn-operator strong { display: inline; }
 }
+
+/* ---------- modes ---------- */
 @media (forced-colors: active) {
+  html.cn #about :is(.about-block, .fetch-panel, .about-values)::before { background: none; padding-inline-start: 0; }
   html.cn #about > .cn-operator { border-block-start-color: CanvasText; }
   html.cn #about > .cn-operator::before { forced-color-adjust: none; background: CanvasText; }
 }

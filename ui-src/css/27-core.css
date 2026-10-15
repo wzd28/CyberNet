@@ -1,32 +1,51 @@
-/* Home 1b - "What CyberNet AI does" (#cnCore), v4.2 (owner: aurora).
+/* Home 1b - "What CyberNet AI does" (#cnCore), v4.2 (owner: aurora), and the editorial kit any
+   page can use (v4.3).
    The owner's motion reference (15 Oct): a near-black page where the colour lives only in one
    highly detailed 3D object, a scroll-scrubbed manifesto whose words light up as you read, and
-   small thin labels set in the corners. Here the globe stays the hero's identity; this section
-   is what it protects: the AI core.
+   small thin labels set in the corners.
+
+   v4.3: the owner rejected the pre-rendered chip and its cyan flame plume. Their rules are gone
+   (the image rig, float, drift, lid lift, contact shadow, plume canvas and the static cyan
+   light under the chip). .cn-core-visual stays a sized square stage that the photoreal chip
+   sequence fills (58-chipseq.js, 28-chipseq.css). See "the stage" below for its hooks.
+
+   REUSABLE HOOKS (v4.3; section 6 below; the JS for 1 and 2 is in 57-core.js)
+   1. Scroll-lit manifesto: <p class="cn-manifesto" data-cn="manifesto">Words <b>key words</b></p>
+      data-cn="manifesto" makes the words light up in reading order as it scrolls. The class
+      "cn-manifesto" adds the big light editorial type (leave it off to keep your own). Colours:
+      --cn-mw-dim / --cn-mw-lit / --cn-mw-bold on the paragraph or any ancestor; light bands
+      (.cn-light, [data-cn-tone="light"]) get a light set automatically.
+   2. Subtle glow behind a 3D object: <figure data-cn-glow="50 46"><img ...></figure>
+      (light centre x% y% of the box; default "50 50"; data-cn-glow-motes="off" drops the
+      motes). A very faint cyan light (its soft rim reaches a little past the host, so it shows
+      round the object) that breathes and drifts slowly, plus four tiny motes, on the compositor
+      only, playing only while on screen. The host becomes position:relative (unless it is
+      positioned) and isolation:isolate; the layer is cn-glow.cn-glow (cn-gl lights inside),
+      its first child. Tune with --cn-gl-scale (size, 1), --cn-gl-k (strength, 1),
+      --cn-gl-rgb ("34, 211, 238") and --cn-gl-rise (44px).
+   3. Editorial corner label: <p class="cn-edlabel">Pricing</p> - small thin sentence-case text
+      with a short cyan hairline at the start. Modifiers: --muted (secondary grey), --end (the
+      hairline after the text, aligned to the end: a top-right label), --dot (a cyan dot instead of
+      the hairline), --plain (no mark). Works on any element (p, span, h2 as a section's small
+      heading, a). .cn-edrow lays a start label and an end label out on one row (they wrap on
+      narrow screens):
+        <div class="cn-edrow">
+          <h2 class="cn-edlabel">Plans</h2>
+          <p class="cn-edlabel cn-edlabel--muted cn-edlabel--end">Prices in US dollars</p>
+        </div>
+   4. Line-by-line heading reveal: data-cn-lines on a heading (05-reveal.js, 29-lines.css).
 
    Markup (public/index.html, right after the hero): h2.cn-core-label (a small thin corner label,
-   the section's heading), p.cn-core-tag--top, .cn-core-visual[data-cn="core"] > .cn-core-rig >
-   .cn-core-float > (img.cn-core-base, img.cn-core-lid, canvas.cn-core-plume), then
-   p.cn-manifesto[data-cn="manifesto"] (bold key words in <b>) and p.cn-core-tag--end.
-   The chip is two pre-rendered layers from one camera (scripts/render-3d.mjs --only=core):
-   the board, package, leads and glowing die, and the glass lid on its own, so the lid can lift
-   off as the section scrolls. 57-core.js draws the cyan energy plume rising from the core
-   (canvas, 30 fps, only while on screen) and lights the manifesto word by word.
-
-   Motion (transform and opacity only):
-   - The rig drifts against the scroll, turns a few degrees and grows slightly (a view timeline
-     on the compositor; 57-core.js does the same from the scroll position where view timelines
-     are missing). The lid lifts as the section crosses the middle of the screen.
-   - The chip floats a few pixels while on screen (data-cn-play, set by 57-core.js).
-   - Reduced motion and Pause motion: the chip rests, the plume is one still frame and every word
-     of the manifesto is lit.
-   No panel: the section sits on the page ground, so the chip's light is the only colour. */
+   the section's heading), p.cn-core-tag--top, .cn-core-visual (the chip sequence's stage), p.cn-manifesto[data-cn="manifesto"] (bold key words in <b>) and
+   p.cn-core-tag--end. No panel: the section sits on the page ground, so the chip's light is the
+   only colour. */
 
 html.cn #home > .cn-core {
   --cn-text: #f5f7fa;
   --cn-text-2: #aab4c3;
   --cn-text-3: #8a95a7;
   --cn-core-dim: #6e7a8c;            /* the manifesto's unlit words: 4.6:1 on the ground */
+  --cn-mw-dim: var(--cn-core-dim);
   container: cn-core / inline-size;
   position: relative;
   isolation: isolate;
@@ -111,16 +130,25 @@ html.cn #home .cn-core-tag--end::before {
   box-shadow: 0 0 0 3px rgba(34, 211, 238, .14);
 }
 
-/* ---- the visual: a square stage for the chip; the plume uses the empty top of the square ---- */
+/* ---- the stage: a sized square for the chip sequence (58-chipseq.js, 28-chipseq.css) ----
+   The box keeps the v4.2 geometry: a square (aspect-ratio) up to 560px wide, centred on phones
+   and tablets (28-chipseq.css sets the 5:4 box and the side-by-side layout from 62rem), with its
+   empty top and bottom trimmed by its own size. The sequence fills it (position:absolute; inset:0 inside works) and may tune
+   it with custom properties on .cn-core-visual (or by overriding these rules in 28-chipseq.css,
+   which loads later): --cn-core-ratio (aspect-ratio, default 1), --cn-core-trim-start /
+   --cn-core-trim-end (the margins as a fraction of the side on phones and tablets, default -.02
+   and -.15). It is aria-hidden in the markup and takes no pointer events. */
 html.cn #home .cn-core-visual {
   grid-area: visual;
   position: relative;
   z-index: 0;
-  /* the square's side; the margins trim its empty bottom by its own size (a percentage margin
-     would follow the grid area instead, which is wider than the square on tablets) */
+  box-sizing: border-box;
+  /* the square's side; the margins trim it by its own size (a percentage margin would follow
+     the grid area instead, which is wider than the square on tablets) */
   --cn-core-s: min(100%, 560px);
   inline-size: var(--cn-core-s);
-  margin-block: calc(var(--cn-core-s) * -.02) calc(var(--cn-core-s) * -.15);
+  aspect-ratio: var(--cn-core-ratio, 1);
+  margin-block: calc(var(--cn-core-s) * var(--cn-core-trim-start, -.02)) calc(var(--cn-core-s) * var(--cn-core-trim-end, -.15));
   margin-inline: auto;
   pointer-events: none;
 }
@@ -134,53 +162,12 @@ html.cn #home .cn-core-visual {
     html.cn #home .cn-core-visual { --cn-core-s: min(100cqi, 560px, 110svh); }
   }
 }
-/* the core's light on the ground (static) */
-html.cn #home .cn-core-visual::before {
-  content: "";
-  position: absolute;
-  inset: 4% -4% 10%;
-  z-index: -1;
-  background: radial-gradient(44% 34% at 50% 48%, rgba(34, 211, 238, .15), rgba(34, 211, 238, .045) 48%, transparent 74%);
-}
-html.cn #home .cn-core-rig {
-  position: relative;
-  inline-size: 100%;
-  aspect-ratio: 1;
-  transform-origin: 50% 56%;
-}
-/* the contact shadow under the board */
-html.cn #home .cn-core-rig::after {
-  content: "";
-  position: absolute;
-  inset: 72% 4% 6%;
-  z-index: -1;
-  background: radial-gradient(50% 50% at 50% 50%, rgba(0, 0, 0, .55), transparent 72%);
-}
-html.cn #home .cn-core-float {
-  position: absolute;
-  inset: 0;
-}
-html.cn #home .cn-core-float > img,
-html.cn #home .cn-core-float > canvas {
-  position: absolute;
-  inset: 0;
-  display: block;
-  inline-size: 100%;
-  block-size: 100%;
-  max-inline-size: none;
-  object-fit: contain;
-}
-/* the plume covers the top middle of the square only (57-core.js: BOX), so it costs few pixels */
-html.cn #home .cn-core-float > .cn-core-plume {
-  inset: 0 18% 36%;
-  inline-size: 64%;
-  block-size: 64%;
-  opacity: 0;
-  transition: opacity 1.2s var(--cn-ease-out);
-}
-html.cn #home .cn-core-float > .cn-core-plume.is-on { opacity: 1; }
+/* The words always paint above the stage. Its trimmed margins let the frame's lower edge reach
+   under the manifesto's first line on phones (and its top under the label row), and the stage is
+   positioned (z-index 0), so without this the chip's dark body would cover those letters. */
+html.cn #home > .cn-core > :is(.cn-core-label, .cn-core-tag, .cn-manifesto) { position: relative; z-index: 1; }
 
-/* ---- the manifesto ---- */
+/* ---- the manifesto (Home's place in the grid; the type is shared, section 6) ---- */
 html.cn #home .cn-manifesto {
   grid-area: copy;
   max-inline-size: 22em;
@@ -197,108 +184,243 @@ html.cn #home .cn-manifesto b {
   color: #ffffff;
   font-weight: 650;
 }
-/* 57-core.js splits the words (span.cn-mw); until then (and if it never runs) the paragraph
-   reads in full colour. Each word lights over its own slice of the paragraph's pass through
-   the screen (--cn-a .. --cn-b, cover percent, written once by 57-core.js): on a named view
-   timeline where supported (no script while scrolling), otherwise 57-core.js writes the colour. */
-html.cn #home .cn-manifesto .cn-mw { color: var(--cn-core-dim); }
+
+/* ---- side by side from 62rem: the chip's layout owns it (28-chipseq.css) ---- */
+
+@media (forced-colors: active) {
+  html.cn #home .cn-core-label::before,
+  html.cn #home .cn-core-tag--end::before { display: none; }
+}
+@media print {
+  html.cn #home .cn-core-visual { display: none; }
+}
+
+/* ==========================================================================================
+   6. The editorial kit, on any page (v4.3). See the header for the markup.
+   ========================================================================================== */
+
+/* ---- 6a. Scroll-lit manifesto: [data-cn="manifesto"] (behaviour) and .cn-manifesto (type) ----
+   57-core.js splits the words (span.cn-mw); until then (and if it never runs) the paragraph
+   reads in full colour. Each word lights over its own slice of the paragraph's pass through the
+   screen (--cn-a .. --cn-b, cover percent, written once by 57-core.js): on a named view timeline
+   where supported (no script while scrolling), otherwise 57-core.js writes the colour.
+   Colours are inherited custom properties with defaults in the var() fallbacks, so a page sets
+   them on the paragraph or on any ancestor. Unlit words stay at 4.5:1 or more. */
+html.cn .cn-manifesto {
+  max-inline-size: 22em;
+  margin: 0;
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: clamp(1.5rem, .95rem + 2.2vw, 2.75rem);
+  font-weight: 420;
+  line-height: 1.17;
+  letter-spacing: -.024em;
+  text-wrap: pretty;
+}
+html.cn .cn-manifesto :is(b, strong) {
+  color: var(--cn-mw-bold, #ffffff);
+  font-weight: 650;
+}
+/* light bands: ink when lit, slate #66707f unlit (4.7:1 on #f5f7fa, 5:1 on white) */
+html.cn :is(.cn-light, [data-cn-tone="light"]) {
+  --cn-mw-dim: #66707f;
+  --cn-mw-bold: var(--cn-text);
+}
+html.cn [data-cn="manifesto"] .cn-mw { color: var(--cn-mw-dim, #6e7a8c); }
 @supports (animation-timeline: view()) and (animation-range: cover 10% cover 50%) {
   @media (prefers-reduced-motion: no-preference) {
-    html.cn:not(.cn-still) #home .cn-manifesto.is-timeline { view-timeline: --cn-man block; }
-    html.cn:not(.cn-still) #home .cn-manifesto.is-timeline .cn-mw {
+    html.cn:not(.cn-still) [data-cn="manifesto"].is-timeline { view-timeline: --cn-man block; }
+    html.cn:not(.cn-still) [data-cn="manifesto"].is-timeline .cn-mw {
       animation: cn-mw-lit linear both;
       animation-timeline: --cn-man;
       animation-range: cover var(--cn-a, 10%) cover var(--cn-b, 54%);
     }
-    html.cn:not(.cn-still) #home .cn-manifesto.is-timeline b .cn-mw { animation-name: cn-mw-lit-b; }
+    html.cn:not(.cn-still) [data-cn="manifesto"].is-timeline :is(b, strong) .cn-mw { animation-name: cn-mw-lit-b; }
   }
 }
 @keyframes cn-mw-lit {
-  from { color: var(--cn-core-dim, #6e7a8c); }
-  to { color: #f5f7fa; }
+  from { color: var(--cn-mw-dim, #6e7a8c); }
+  to { color: var(--cn-mw-lit, var(--cn-text, #f5f7fa)); }
 }
 @keyframes cn-mw-lit-b {
-  from { color: var(--cn-core-dim, #6e7a8c); }
-  to { color: #ffffff; }
+  from { color: var(--cn-mw-dim, #6e7a8c); }
+  to { color: var(--cn-mw-bold, #ffffff); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html.cn [data-cn="manifesto"] .cn-mw { color: inherit !important; }
+}
+/* Pause motion: every word lit, as under reduced motion */
+html.cn.cn-still [data-cn="manifesto"] .cn-mw { color: inherit !important; }
+@media (forced-colors: active) {
+  html.cn [data-cn="manifesto"] .cn-mw { color: CanvasText !important; }
 }
 
-/* ---- side by side from 62rem (a media query: the section is its own grid) ---- */
-@media (min-width: 62rem) {
-  html.cn #home > .cn-core {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: auto 1fr auto;
-    grid-template-areas:
-      "label top"
-      "visual copy"
-      "visual end";
-    column-gap: clamp(32px, 4vw, 72px);
-  }
-  html.cn #home .cn-core-visual {
-    --cn-core-s: 100%;
-    inline-size: 100%;
-    max-inline-size: 680px;
-    margin: -1% 0 -6%;
-    justify-self: center;
-  }
-  html.cn #home .cn-manifesto {
-    align-self: end;
-    padding-block-start: 12%;
-  }
-  html.cn #home .cn-core-tag--end { align-self: start; }
+/* ---- 6b. Subtle glow: [data-cn-glow] (57-core.js adds cn-glow.cn-glow when the host nears) ----
+   The owner on cyan energy: "only if it's subtle". So: a soft light behind the object that
+   breathes (11 s), a second, fainter light that drifts round it (29 s) and four 3px motes near
+   the object's edges that rise a few dozen pixels and fade (14 to 19 s each). Peak opacity
+   stays near .12; no column, no shards, no flicker. Transform and opacity only, on the compositor.
+   Everything holds its frame unless 57-core.js sets data-cn-play (on screen, tab visible,
+   motion allowed).
+   An object usually fills its box, so a light that stayed inside the box would be hidden behind
+   it. Each light is therefore a small disc inside the host whose soft box-shadow reaches past
+   the host's edges. A box-shadow is ink overflow: it never counts towards the page's scroll
+   width, so it cannot make a phone pan sideways (every border box here, motes included, stays
+   inside the host). Its sizes are in px from the host's shorter side (--cn-gl-s, written by
+   57-core.js on resize; 320px until then) times --cn-gl-scale.
+   Paint order: under the host's in-flow content and ::after, over a z-index:-1 ::before. */
+:where(html.cn [data-cn-glow]) { position: relative; isolation: isolate; }   /* zero specificity: any page rule wins */
+html.cn .cn-glow {
+  --cn-gl-u: calc(var(--cn-gl-s, 320px) * var(--cn-gl-scale, 1));   /* the light's unit */
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  pointer-events: none;
+  opacity: var(--cn-gl-k, 1);
 }
-
-/* ---- motion ---- */
-html.cn #home .cn-core-float {
-  animation: cn-core-float 9s ease-in-out infinite;
+/* (no margin or padding here: each light centres itself with its own margins below) */
+html.cn .cn-glow > cn-gl {
+  position: absolute;
+  display: block;
+  border-radius: 50%;
+  pointer-events: none;
   animation-play-state: paused;
 }
-html.cn #home .cn-core-visual[data-cn-play] .cn-core-float { animation-play-state: running; }
-@keyframes cn-core-float {
-  0%, 100% { transform: translate3d(0, 0, 0); }
-  50% { transform: translate3d(0, -1.4%, 0); }
+html.cn .cn-glow[data-cn-play] > cn-gl { animation-play-state: running; }
+/* the light: a disc of .35u blurred with sigma .18u, centred on the point (about .12 of cyan
+   in the middle). Round an object that fills ~85% of its box (edge at ~.42u) it adds about .035
+   just outside the silhouette, .02 at the host's edge and nothing by .7u. */
+html.cn .cn-glow-light {
+  inset-block-start: var(--cn-gl-y, 50%);
+  left: var(--cn-gl-x, 50%);
+  inline-size: calc(var(--cn-gl-u) * .1);
+  block-size: calc(var(--cn-gl-u) * .1);
+  margin: calc(var(--cn-gl-u) * -.05) 0 0 calc(var(--cn-gl-u) * -.05);
+  /* the fill matches the blurred shadow at the disc's rim (.84 of it), so the disc never shows
+     as a step where nothing covers it */
+  background: rgba(var(--cn-gl-rgb, 34, 211, 238), .117);
+  box-shadow: 0 0 calc(var(--cn-gl-u) * .36) calc(var(--cn-gl-u) * .3) rgba(var(--cn-gl-rgb, 34, 211, 238), .14);
+  opacity: .82;
+  transform: scale(.95);
+  animation: cn-glow-breathe 11s ease-in-out infinite;
 }
-@supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    html.cn:not(.cn-still) #home .cn-core-rig {
-      animation: cn-core-drift linear both;
-      animation-timeline: view();
-      animation-range: cover 0% cover 100%;
-    }
-    html.cn:not(.cn-still) #home .cn-core-lid {
-      animation: cn-core-lift linear both;
-      animation-timeline: view();
-      animation-range: cover 22% cover 62%;
-    }
-  }
+/* the drifting light: smaller and fainter, it slides slowly round the object's edge */
+html.cn .cn-glow-drift {
+  inset-block-start: var(--cn-gl-y, 50%);
+  left: var(--cn-gl-x, 50%);
+  inline-size: calc(var(--cn-gl-u) * .06);
+  block-size: calc(var(--cn-gl-u) * .06);
+  margin: calc(var(--cn-gl-u) * -.03) 0 0 calc(var(--cn-gl-u) * -.03);
+  background: rgba(var(--cn-gl-rgb, 34, 211, 238), .062);   /* .68 of the shadow: no step at the rim */
+  box-shadow: 0 0 calc(var(--cn-gl-u) * .3) calc(var(--cn-gl-u) * .2) rgba(var(--cn-gl-rgb, 34, 211, 238), .09);
+  opacity: .7;
+  animation: cn-glow-drift 29s ease-in-out infinite;
 }
-@keyframes cn-core-drift {
-  from { transform: translate3d(0, 8%, 0) rotate(-3.5deg) scale(.93); }
-  to { transform: translate3d(0, -6%, 0) rotate(2.5deg) scale(1.03); }
+/* the motes: 3px points of light near the object's edges, each on its own slow clock */
+html.cn .cn-glow-mote {
+  inset-block-start: calc(var(--cn-gl-y, 50%) + var(--cn-m-y, 0%));
+  left: calc(var(--cn-gl-x, 50%) + var(--cn-m-x, 0%));
+  inline-size: 3px;
+  block-size: 3px;
+  margin: -1.5px 0 0 -1.5px;
+  background: radial-gradient(circle, rgba(236, 254, 255, .95), rgba(var(--cn-gl-rgb, 34, 211, 238), .4) 48%, rgba(var(--cn-gl-rgb, 34, 211, 238), 0) 75%);
+  opacity: 0;
+  animation: cn-glow-mote var(--cn-m-t, 16s) linear var(--cn-m-d, 0s) infinite;
 }
-@keyframes cn-core-lift {
-  from { transform: translate3d(0, 0, 0); }
-  to { transform: translate3d(0, -5.5%, 0); }
+html.cn .cn-glow-mote:nth-child(3) { --cn-m-x: -40%; --cn-m-y: 12%; --cn-m-t: 15s; --cn-m-d: -3s; --cn-m-dx: -6px; }
+html.cn .cn-glow-mote:nth-child(4) { --cn-m-x: 38%; --cn-m-y: 24%; --cn-m-t: 18.5s; --cn-m-d: -10s; --cn-m-dx: 6px; }
+html.cn .cn-glow-mote:nth-child(5) { --cn-m-x: -26%; --cn-m-y: 38%; --cn-m-t: 16.5s; --cn-m-d: -13.5s; --cn-m-dx: 4px; }
+html.cn .cn-glow-mote:nth-child(6) { --cn-m-x: 33%; --cn-m-y: -28%; --cn-m-t: 14s; --cn-m-d: -6.5s; --cn-m-dx: -5px; }
+@keyframes cn-glow-breathe {
+  0%, 100% { opacity: .62; transform: scale(.9); }
+  50% { opacity: 1; transform: scale(1); }
 }
-
+/* percentages of the drift disc's own size (.06u): about .12u each way, so its border box
+   stays well inside the host */
+@keyframes cn-glow-drift {
+  0%, 100% { opacity: .5; transform: translate3d(-200%, 130%, 0); }
+  32% { opacity: 1; transform: translate3d(180%, -150%, 0); }
+  64% { opacity: .72; transform: translate3d(120%, 190%, 0); }
+}
+@keyframes cn-glow-mote {
+  0% { opacity: 0; transform: translate3d(0, 0, 0); }
+  20% { opacity: .62; }
+  72% { opacity: .4; }
+  100% { opacity: 0; transform: translate3d(var(--cn-m-dx, 0px), calc(var(--cn-gl-rise, 44px) * -1), 0); }
+}
+/* Pause motion: hold the frame (57-core.js also drops data-cn-play) */
+html.cn.cn-still .cn-glow > cn-gl { animation-play-state: paused !important; }
+/* Reduced motion: a still light, the motes at rest and faint */
 @media (prefers-reduced-motion: reduce) {
-  html.cn #home .cn-core-float,
-  html.cn #home .cn-core-rig,
-  html.cn #home .cn-core-lid { animation: none; transform: none; }
-  html.cn #home .cn-core-plume { transition: none; }
-  html.cn #home .cn-manifesto .cn-mw { color: inherit !important; }
+  html.cn .cn-glow > cn-gl { animation: none !important; }
+  html.cn .cn-glow-mote { opacity: .3; }
 }
-/* Pause motion: the end state, as under reduced motion */
-html.cn.cn-still #home .cn-core-float { animation-play-state: paused; }
-html.cn.cn-still #home :is(.cn-core-rig, .cn-core-lid) { transform: none !important; }
-html.cn.cn-still #home .cn-manifesto .cn-mw { color: inherit !important; }
+@media (forced-colors: active), print {
+  html.cn .cn-glow { display: none; }
+}
 
-@media (forced-colors: active) {
-  html.cn #home .cn-core-visual::before,
-  html.cn #home .cn-core-rig::after,
-  html.cn #home .cn-core-label::before,
-  html.cn #home .cn-core-tag--end::before { display: none; }
-  html.cn #home .cn-manifesto .cn-mw { color: CanvasText !important; }
+/* ---- 6c. Editorial corner label: .cn-edlabel ----
+   The look of the #cnCore labels: 14px Mona Sans 450, sentence case, a 28px cyan hairline that
+   fades towards the words. --cn-text by default (17:1 on the ground), --muted is --cn-text-2
+   (9:1); both follow light bands through the tokens. Margins are left to the page. */
+html.cn .cn-edlabel {
+  display: inline-flex;
+  align-items: baseline;   /* the words set the label's baseline (the mark centres itself) */
+  gap: 12px;
+  margin: 0;
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: .875rem;
+  font-weight: 450;
+  font-style: normal;
+  line-height: 1.35;
+  letter-spacing: .005em;
+  text-transform: none;
+  text-decoration: none;
 }
-@media print {
-  html.cn #home .cn-core-visual { display: none; }
+html.cn .cn-edlabel::before {
+  content: "";
+  flex: none;
+  align-self: center;
+  inline-size: 28px;
+  block-size: 1px;
+  background: linear-gradient(90deg, var(--cn-cyan, #22d3ee), transparent 130%);
+}
+html.cn [dir="rtl"] .cn-edlabel::before,
+html.cn[dir="rtl"] .cn-edlabel::before { transform: scaleX(-1); }
+html.cn .cn-edlabel--muted { color: var(--cn-text-2); }
+/* a top-right (inline-end) label: the hairline after the words, bright at the far end */
+html.cn .cn-edlabel--end {
+  flex-direction: row-reverse;
+  justify-self: end;
+  text-align: end;
+}
+html.cn .cn-edlabel--end::before { transform: scaleX(-1); }
+html.cn [dir="rtl"] .cn-edlabel--end::before,
+html.cn[dir="rtl"] .cn-edlabel--end::before { transform: none; }
+html.cn .cn-edlabel--dot { gap: 10px; }
+html.cn .cn-edlabel--dot::before {
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: 50%;
+  background: var(--cn-cyan, #22d3ee);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, .14);
+  transform: none;
+}
+html.cn .cn-edlabel--plain::before { content: none; }
+/* a start label and an end label on one row, on one baseline (each label's baseline is its
+   words', so a hairline or a dot never shifts it); they stack (both at the start) when narrow */
+html.cn .cn-edrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 24px;
+}
+@media (forced-colors: active) {
+  html.cn .cn-edlabel::before { display: none; }
 }

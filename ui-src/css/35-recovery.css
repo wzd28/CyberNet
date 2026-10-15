@@ -61,49 +61,89 @@ html.cn #recovery {
 }
 
 /* ==========================================================================
-   1. HEADER: eyebrow, title (typography from 01-base; typed by 60-typewriter),
-      lead, and the daily usage meter
+   1. HEADER (v4.3 editorial, the owner's reference: a large light headline with one bold
+      word, a thin corner label, calm space, the colour only in the one 3D object).
+      Markup: div.cn-rec-visual[data-cn-glow] (the shield on a faint mint light, section 8),
+      p.cn-edlabel.cn-rec-label, the H1 (typed by 60-typewriter; never split into lines),
+      p.cn-rec-lead and the daily usage meter.
+      Phones and tablets: one start-aligned column, the shield small in the top end corner.
+      From 900px: the headline and lead on the start side, the shield beside the headline
+      and the meter under it in the end column (the reference's small bottom-right note).
+      The header is no taller than before, so the intake field still starts above the fold
+      of a 1280x720 laptop.
    ========================================================================== */
 
 html.cn #recovery .recovery-header {
-  max-width: 880px;
-  margin: 0 auto clamp(32px, 4vw, 56px);
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  max-width: 860px;               /* the intake column: the title lines up with the form */
+  margin: 0 auto clamp(28px, 3vw, 40px);
   padding-inline: 0;
-  text-align: center;
+  text-align: start;
 }
 
-/* eyebrow pill, the same as Learn's and Pricing's (there is no markup for it) */
-html.cn #recovery .recovery-header::before {
-  content: "Recovery";
-  display: inline-flex;
-  align-items: center;
-  min-height: 28px;
-  margin-block-end: var(--cn-5);
-  padding: 0 var(--cn-3);
-  border-radius: var(--cn-r-pill);
-  background: var(--cn-id-tint);
-  color: var(--cn-id-2);
-  font: 500 var(--cn-step-label)/1 var(--cn-font-mono);
-  letter-spacing: var(--cn-track-label);
-  text-transform: uppercase;
+/* the legacy pill and the old pseudo-element sprite are gone (markup label + .cn-rec-visual) */
+html.cn #recovery .recovery-header::before,
+html.cn #recovery .recovery-header::after { content: none; }
+
+/* the corner label (.cn-edlabel, 27-core.css 6c) with Recovery's mint hairline; the page's
+   "> p" lead rules (01-base) are reset here */
+html.cn #recovery .recovery-header > .cn-rec-label {
+  max-width: none;
+  margin: 0 0 clamp(16px, 1.5vw, 22px);
+  color: var(--cn-text);
+  font-size: .875rem;
+  line-height: 1.35;
+  letter-spacing: .005em;
+}
+html.cn #recovery .cn-edlabel::before {
+  background: linear-gradient(90deg, var(--cn-mint), transparent 130%);
 }
 
+/* the title: large and light, "Take a breath." in white, the continuation in the second grey
+   with "fix" as the one bold word */
 html.cn #recovery .recovery-header h1 {
-  max-width: 15em;
-  margin: 0 auto var(--cn-5);
+  max-width: none;
+  margin: 0 0 clamp(16px, 1.5vw, 22px);
+  font-size: clamp(2.375rem, 1.45rem + 3.1vw, 4.375rem);   /* 38 -> 70px */
+  font-weight: 300;
+  line-height: 1.04;
+  letter-spacing: -.034em;
+  text-wrap: balance;
 }
 
 /* the two-tone continuation always starts its own line, so the title never breaks
-   mid-phrase on phones: "You're Safe Now." / "Let's Fix What Happened." (60-typewriter
-   measures lines from layout, so the caret follows) */
-html.cn #recovery .recovery-header h1 > span { display: block; }
+   mid-phrase on phones (60-typewriter measures lines from layout, so the caret follows) */
+html.cn #recovery .recovery-header h1 > span {
+  display: block;
+  color: var(--cn-text-2);
+}
+html.cn #recovery .recovery-header h1 b {
+  color: var(--cn-text);
+  font-weight: 600;
+  letter-spacing: -.03em;
+}
+/* "what happened." moves to the next line as one phrase ("Let's fix / what happened.");
+   an inline-block still wraps inside itself if a very large text setting needs it */
+html.cn #recovery .recovery-header h1 .cn-rec-keep { display: inline-block; }
 
-html.cn #recovery .recovery-header > p { margin: 0 auto; }
+html.cn #recovery .recovery-header > .cn-rec-lead {
+  max-width: 46ch;
+  margin: 0;
+  color: var(--cn-text-2);
+  font-size: clamp(1.0625rem, 1rem + .25vw, 1.1875rem);
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: -.008em;
+  text-wrap: pretty;
+}
 
 /* daily usage meter: a slim bar card (only this one; the account panel keeps its own) */
 html.cn #recovery #recoveryUsageCard {
+  box-sizing: border-box;
   max-width: 380px;
-  margin: var(--cn-8) auto 0;
+  margin: var(--cn-6) 0 0;
   padding: 14px 16px 12px;
   border: 1px solid var(--cn-line);
   border-radius: 16px;
@@ -821,9 +861,11 @@ html.cn #recovery .recovery-case-progress span {
    4. DASHBOARD (the plan)
    ========================================================================== */
 
+/* 860px since v4.3: the header, the plan, the closing statement and the support box share one
+   column edge (the status strip and the facts keep their 4 and 3 columns at this width) */
 html.cn #recovery .recovery-dashboard {
   container: cn-rec-dash / inline-size;
-  max-width: 960px;
+  max-width: 860px;
   margin-inline: auto;
   gap: var(--cn-4);
 }
@@ -1705,7 +1747,7 @@ html.cn #recovery { --cn-support-mt: clamp(48px, 6vw, 96px); }
 
 @media (max-width: 480px) {
   html.cn #recovery .recovery-header { margin-block-end: var(--cn-8); }
-  html.cn #recovery #recoveryUsageCard { margin-block-start: var(--cn-6); }
+  html.cn #recovery #recoveryUsageCard { max-width: none; margin-block-start: var(--cn-6); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1715,59 +1757,19 @@ html.cn #recovery { --cn-support-mt: clamp(48px, 6vw, 96px); }
 }
 
 /* ==========================================================================
-   7. v4.1 "Midnight": a quiet header with the Recovery sprite, lifted cards
-   (kit: 30-tools.css section 17). Mint marks Recovery's own things (the eyebrow dot, ticks,
-   the timeline fill, progress); no gradient title, no coloured glows.
+   7. v4.1 "Midnight": lifted cards (kit: 30-tools.css section 17). Mint marks Recovery's own
+   things (the label hairline, ticks, the timeline fill, progress); no gradient title. The
+   header and its shield moved to sections 1 and 8 (v4.3).
    ========================================================================== */
 html.cn #recovery {
   /* the shield ringed by a mint restore arrow (render-3d.mjs "recovery") */
   --cn-pg-sprite: url("/ui/3d/recovery-320.webp?v=20261014-5");
-  --cn-pg-sprite-glow: rgba(94, 234, 212, .08);
 }
-
-/* header: a pill with a mint dot, the title, the sprite (static, settles in once) */
-html.cn #recovery .recovery-header {
-  position: relative;
-  isolation: isolate;
-}
-html.cn #recovery .recovery-header::before {
-  padding: 0 14px 0 28px;
-  background:
-    radial-gradient(circle at 14px 50%, var(--cn-id) 0 3px, transparent 3.5px),
-    linear-gradient(var(--cn-fill-1), var(--cn-fill-1)),
-    var(--cn-surface); /* solid, so the section motion lines pass behind it, not through the words */
-  box-shadow: inset 0 0 0 1px var(--cn-line-2);
-  color: var(--cn-text-2);
-}
-html.cn #recovery .recovery-header::after {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  inset-block-start: -34px;
-  inset-inline-end: -4px;
-  width: 88px;
-  aspect-ratio: 1;
-  background: var(--cn-pg-sprite) center / contain no-repeat, radial-gradient(closest-side, var(--cn-pg-sprite-glow), transparent 78%) center / 100% 100% no-repeat;
-  pointer-events: none;
-  animation: cn-pg-in .9s var(--cn-ease-out) .15s backwards;
-}
-@media (min-width: 560px) {
-  html.cn #recovery .recovery-header::after { inset-block-start: -32px; inset-inline-end: -10px; width: 120px; }
-}
-@media (min-width: 1100px) {
+@media (min-width: 900px) {
   html.cn #recovery { --cn-pg-sprite: url("/ui/3d/recovery.webp?v=20261014-5"); }
-  html.cn #recovery .recovery-header::after { inset-block-start: -40px; inset-inline-end: -84px; width: 176px; }
-}
-@media (max-width: 359.98px) {
-  html.cn #recovery .recovery-header::after { display: none; }
 }
 
-/* a little tighter than v3, so the intake field starts higher on a 1280x720 laptop */
-html.cn #recovery .recovery-header { margin-block-end: clamp(24px, 3vw, 36px); }
-html.cn #recovery #recoveryUsageCard {
-  margin-block-start: var(--cn-5);
-  box-shadow: var(--cn-pg-lift);
-}
+html.cn #recovery #recoveryUsageCard { box-shadow: var(--cn-pg-lift); }
 
 /* cards: the hairline and one soft lift */
 html.cn #recovery :is(.recovery-intake-card, .recovery-cases-card, .recovery-summary-card,
@@ -1794,9 +1796,153 @@ html.cn #recovery #recoveryCaseList > .recovery-empty-note:only-child::before {
 html.cn #recovery #recoveryCaseList > .recovery-empty-note:only-child::after { background: var(--cn-mint); }
 html.cn #recovery .recovery-case-progress span { background: var(--cn-id); }
 
-@media (prefers-reduced-motion: reduce) {
-  html.cn #recovery .recovery-header::after { animation: none; }
+/* ==========================================================================
+   8. v4.3 editorial (the owner's reference video): the shield on a very faint mint light,
+      the desktop header grid, a closing statement that lights up as it scrolls, and thin
+      sentence-case labels in the plan (no uppercase mono labels; the risk badge and the
+      priority tags keep theirs, they are risk content).
+   ========================================================================== */
+
+/* 8.1 The shield. A still 3D render that settles in once when the page opens, on the
+   subtle-glow hook (data-cn-glow: 57-core.js, 27-core.css 6b) tinted mint. The owner on cyan
+   energy: "only if it's subtle", so: a faint light that breathes (11 s), a fainter one that
+   drifts round the shield (29 s) and four tiny motes; transform and opacity only, playing only
+   while on screen, still under reduced motion and Pause motion. The render is the host's
+   ::after, so it paints over the light (the glow layer is the host's first child, z-index -1).
+   The host sits under the header's text (z-index -1 in the header's isolated context). */
+html.cn #recovery .cn-rec-visual {
+  --cn-gl-rgb: 94, 234, 212;
+  --cn-gl-k: .9;
+  --cn-gl-scale: 1.15;
+  --cn-gl-rise: 28px;
+  position: absolute;
+  z-index: -1;
+  inset-block-start: -10px;
+  inset-inline-end: -6px;
+  inline-size: 92px;
+  aspect-ratio: 1;
+  isolation: isolate;
+  pointer-events: none;
 }
+html.cn #recovery .cn-rec-visual::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--cn-pg-sprite) center / contain no-repeat;
+  animation: cn-pg-in .9s var(--cn-ease-out) .15s backwards;
+}
+@media (min-width: 560px) {
+  html.cn #recovery .cn-rec-visual { inset-block-start: -14px; inline-size: 124px; }
+}
+/* the page's static mint wash (01-base) sits towards the shield's side, not mid-page */
+html.cn #recovery.page { --cn-glow-x: 66%; }
+html.cn[dir="rtl"] #recovery.page { --cn-glow-x: 34%; }
+@media (max-width: 359.98px) {
+  html.cn #recovery .cn-rec-visual { display: none; }
+  /* folded phones: "what happened." still fits on one line */
+  html.cn #recovery .recovery-header h1 { font-size: 2.125rem; }
+}
+
+/* 8.2 From 900px: the label, headline and lead on the start side; the shield beside the
+   headline and the usage meter under it, in a 300px end column. Every child keeps its
+   markup order (label, title, lead, meter), so reading and tab order are unchanged. */
+@media (min-width: 900px) {
+  html.cn #recovery .recovery-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
+    grid-template-areas:
+      "label visual"
+      "title visual"
+      "lead  meter";
+    column-gap: clamp(32px, 4vw, 56px);
+    align-items: end;
+  }
+  html.cn #recovery .recovery-header > .cn-rec-label { grid-area: label; justify-self: start; }
+  html.cn #recovery .recovery-header > h1 { grid-area: title; }
+  html.cn #recovery .recovery-header > .cn-rec-lead { grid-area: lead; }
+  html.cn #recovery .recovery-header > #recoveryUsageCard {
+    grid-area: meter;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+  }
+  /* in flow here; the negative block margins keep the render from setting the rows' height */
+  html.cn #recovery .cn-rec-visual {
+    grid-area: visual;
+    position: relative;
+    inset: auto;
+    align-self: center;
+    justify-self: center;
+    inline-size: min(100%, 236px);
+    margin-block: -28px 4px;
+  }
+}
+
+/* 8.3 The closing statement: a corner label and a manifesto whose words light from slate to
+   white in reading order as it scrolls (data-cn="manifesto": 57-core.js, 27-core.css 6a).
+   Reduced motion, Pause motion and no script: every word lit. */
+html.cn #recovery .cn-rec-note {
+  box-sizing: border-box;
+  max-width: 860px;
+  margin: clamp(64px, 8vw, 128px) auto 0;
+}
+html.cn #recovery .cn-rec-note > .cn-edlabel { margin: 0 0 clamp(18px, 2vw, 28px); }
+html.cn #recovery .cn-rec-manifesto {
+  max-inline-size: 23em;
+  font-size: clamp(1.5rem, 1.05rem + 1.9vw, 2.5rem);
+}
+
+/* 8.4 Calmer type in the form and the plan: lighter headings, sentence-case labels */
+html.cn #recovery .recovery-label-lg {
+  font-size: clamp(1.5rem, 1.25rem + .9vw, 1.875rem);
+  font-weight: 450;
+  letter-spacing: -.026em;
+}
+html.cn #recovery .recovery-label-lg::after { margin-block-start: 8px; }
+html.cn #recovery .recovery-cases-card h4 { font-weight: 500; letter-spacing: -.012em; }
+html.cn #recovery :is(.recovery-immediate-card, .recovery-timeline-card, .recovery-remaining-card,
+  .recovery-resources-card, .recovery-update-card, .recovery-history-card) h3 {
+  font-weight: 500;
+  letter-spacing: -.026em;
+}
+html.cn #recovery .recovery-pro-upsell-body h4 { font-weight: 500; letter-spacing: -.022em; }
+
+html.cn #recovery .recovery-status-label,
+html.cn #recovery .recovery-summary-card::before {
+  color: var(--cn-text-2);
+  font: 450 .875rem/1.3 var(--cn-font);
+  letter-spacing: .005em;
+  text-transform: none;
+}
+html.cn #recovery .recovery-fact-card h5 {
+  color: var(--cn-text);
+  font: 500 .875rem/1.3 var(--cn-font);
+  letter-spacing: .005em;
+  text-transform: none;
+}
+html.cn #recovery #recoveryConfidenceOut {
+  font: 500 .875rem/1.4 var(--cn-font);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  text-transform: none;
+}
+html.cn #recovery :is(.recovery-action-why, .recovery-action-verify) strong {
+  color: var(--cn-text);
+  font: 500 var(--cn-step-small)/1.5 var(--cn-font);
+  letter-spacing: 0;
+  text-transform: none;
+}
+html.cn #recovery .recovery-pro-upsell-body::before {
+  font: 500 .75rem/1 var(--cn-font);
+  letter-spacing: .01em;
+  text-transform: none;
+}
+
+/* 8.5 Reduced motion, Pause motion, forced colours */
+@media (prefers-reduced-motion: reduce) {
+  html.cn #recovery .cn-rec-visual::after { animation: none; }
+}
+html.cn.cn-still #recovery .cn-rec-visual::after { animation: none; }
 @media (forced-colors: active) {
-  html.cn #recovery .recovery-header::after { display: none; }
+  html.cn #recovery .cn-rec-visual { display: none; }
 }
