@@ -19,7 +19,7 @@
 
 html.cn #pricing {
   /* Icons are masks, coloured with tokens through background-color. */
-  --cn-pr-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5.5 12.5l4.2 4.2L18.5 8'/%3E%3C/svg%3E");
+  --cn-pr-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5.5 12.5l4.2 4.2L18.5 8'/%3E%3C/svg%3E");
   --cn-pr-dash: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M7.5 12h9'/%3E%3C/svg%3E");
   /* Price-change animation names: swapped by :has() below (on the head and on the Business card) so the
      animation restarts. */
@@ -47,86 +47,105 @@ html.cn #pricing > .cn-operator {
   margin-inline: auto;
 }
 
-/* ---------- head ---------- */
+/* ---------- head (v4.3 editorial, after the owner's motion reference) ----------
+   Two thin corner labels on one row (.cn-edrow / .cn-edlabel, 27-core.css 6c), then a large light
+   title with one bold word that slides up line by line when Pricing is opened ([data-cn-lines="head"],
+   05-reveal.js: the labels, the lead and the toggle fade up just after it; a deep link to /pricing
+   paints it at once). From 1024px the title takes the start column and the lead and the
+   Monthly/Yearly toggle sit in the end column on its last line; narrower, everything stacks at the
+   start. The head spans the plan tray's width, so the title and the tray share one edge. */
 html.cn #pricing .pricing-head {
   container: cn-pr-head / inline-size;
-  max-inline-size: 820px;
-  margin: clamp(var(--cn-8), 1.5rem + 2vw, var(--cn-12)) auto clamp(var(--cn-10), 1.75rem + 2.5vw, var(--cn-12));
-  text-align: center;
+  max-inline-size: 600px;   /* the stacked tray's width; --cn-max from 1024px (below) */
+  margin: clamp(var(--cn-8), 1.5rem + 2vw, var(--cn-12)) auto clamp(var(--cn-10), 1.5rem + 3vw, var(--cn-16));
+  text-align: start;
 }
 
-html.cn #pricing .pricing-head .pill {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--cn-2);
-  min-height: 28px;
-  margin: 0 auto var(--cn-6);
-  padding: 0 var(--cn-3);
-  border: 0;
-  border-radius: var(--cn-r-pill);
-  background: var(--cn-cyan-tint);
-  box-shadow: none;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-  color: var(--cn-cyan-2);
-  font-family: var(--cn-font-mono);
-  font-size: var(--cn-step-label);
-  font-weight: 500;
-  line-height: 1;
-  letter-spacing: var(--cn-track-label);
-  text-transform: uppercase;
+html.cn #pricing .pricing-head > .cn-pr-labels {
+  margin: 0 0 clamp(var(--cn-6), 1rem + 2vw, var(--cn-12));
+}
+
+/* legacy ".section-head p" (15px, centred, 56ch) reaches the labels: undo the width only */
+html.cn #pricing .pricing-head > .cn-pr-labels > .cn-edlabel { max-inline-size: none; }
+
+/* Phones: one label. The end label repeats the lead ("Start free") and the FAQ (cancelling), and two
+   stacked labels under the operator banner read as a list. */
+@media (max-width: 639.98px) {
+  html.cn #pricing .pricing-head > .cn-pr-labels > .cn-edlabel--end { display: none; }
 }
 
 html.cn #pricing .pricing-head h1 {
-  max-inline-size: 12em;
-  margin: 0 auto var(--cn-5);
+  max-inline-size: 11.5em;
+  margin: 0;
   color: var(--cn-text);
   font-family: var(--cn-font);
-  font-size: var(--cn-step-h1);
-  font-weight: 600;
+  font-size: clamp(2.5rem, 1.55rem + 3.7vw, 5.25rem);
+  font-weight: 300;
   font-stretch: 100%;
-  line-height: 1.04;
-  letter-spacing: -.03em;
+  line-height: 1.02;
+  letter-spacing: -.038em;
   text-wrap: balance;
 }
 
-html.cn #pricing .pricing-head h1 span {
-  color: var(--cn-text-2);
+html.cn #pricing .pricing-head h1 :is(b, span) {
+  color: #ffffff;
   -webkit-text-fill-color: currentColor;
   background: none;
+  font-weight: 600;
+  letter-spacing: -.042em;
   text-shadow: none;
 }
 
-html.cn #pricing .pricing-head > p {
-  max-inline-size: 50ch;
-  margin: 0 auto;
+html.cn #pricing .pricing-head > p.cn-pr-lead {
+  max-inline-size: 44ch;
+  margin: clamp(var(--cn-5), .9rem + 1vw, var(--cn-8)) 0 0;
   color: var(--cn-text-2);
   font-family: var(--cn-font);
   font-size: var(--cn-step-lead);
-  line-height: 1.45;
+  font-weight: 400;
+  line-height: 1.5;
   letter-spacing: var(--cn-track-body);
   text-wrap: pretty;
 }
 
-/* ---------- Monthly / Yearly segmented control ---------- */
-html.cn #pricing .pricing-toggle-wrap {
-  position: relative;
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--cn-3);
-  margin-top: var(--cn-8);
+/* Landscape phones: a two-line title, so the toggle is one short scroll away. */
+@media (orientation: landscape) and (max-height: 500px) {
+  html.cn #pricing .pricing-head h1 {
+    max-inline-size: 16em;
+    font-size: clamp(2.25rem, 1.4rem + 2.4vw, 3rem);
+  }
 }
 
-/* Wide enough: the save tag hangs beside the toggle (out of flow), so the toggle stays on the centre axis. */
-@container cn-pr-head (min-width: 520px) {
-  html.cn #pricing .pricing-toggle-wrap { flex-direction: row; }
-  html.cn #pricing .pricing-toggle-wrap > .save-tag.save-tag {
-    position: absolute;
-    inset-inline-start: calc(100% + var(--cn-3));
-    top: 50%;
-    translate: 0 -50%;
+@media (min-width: 1024px) {
+  html.cn #pricing .pricing-head {
+    display: grid;
+    max-inline-size: var(--cn-max);
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+      "labels labels"
+      "title  lead"
+      "title  toggle";
+    column-gap: clamp(48px, 5vw, 104px);
   }
+  html.cn #pricing .pricing-head > .cn-pr-labels { grid-area: labels; }
+  html.cn #pricing .pricing-head h1 { grid-area: title; align-self: end; }
+  html.cn #pricing .pricing-head > p.cn-pr-lead { grid-area: lead; align-self: end; margin: 0; }
+  html.cn #pricing .pricing-head > .pricing-toggle-wrap { grid-area: toggle; align-self: end; }
+}
+
+/* ---------- Monthly / Yearly segmented control ---------- */
+/* In flow at the start of the column: the save tag sits beside the toggle and wraps under it when
+   the row is narrow (folded phones). */
+html.cn #pricing .pricing-toggle-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: row;   /* legacy turns it into a centred column on phones */
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--cn-3) var(--cn-4);
+  margin: clamp(var(--cn-6), 1rem + 1.5vw, var(--cn-8)) 0 0;
 }
 
 html.cn #pricing .pricing-toggle {
@@ -325,6 +344,19 @@ html.cn #pricing .pricing-grid-three .price-card {
    animated beam repainted the card every frame, and nothing here moves. */
 html.cn #pricing .pricing-grid-three .pro-price-card {
   border-color: var(--cn-cyan-line);
+  /* v4.3: a very faint cyan light breathes at the top of the recommended plan ([data-cn-glow] on the
+     card, 57-core.js / 27-core.css 6b: transform and opacity only, plays only while on screen, holds
+     still under Pause motion and reduced motion). Kept small and weak: owner, "only if it's subtle". */
+  --cn-gl-scale: .8;
+  --cn-gl-k: .75;
+}
+
+/* Stacked cards: Pro sits right under Free's button, so the light moves into the card (past its top
+   row) and its faint rim stops short of the card above. (The light's centre is an inline custom
+   property written by 57-core.js from data-cn-glow; purely visual, hence !important.) */
+@media (max-width: 1023.98px) {
+  html.cn #pricing .pricing-grid-three .pro-price-card { --cn-gl-scale: .62; }
+  html.cn #pricing .pricing-grid-three .pro-price-card > .cn-glow { --cn-gl-y: 132px !important; }
 }
 
 html.cn #pricing .pricing-grid-three .pro-price-card::before {
@@ -349,18 +381,37 @@ html.cn #pricing .price-card-topline {
 
 html.cn #pricing .price-card-topline .plan-badge { display: none; }
 
+/* The plan label: a thin editorial corner label (the .cn-edlabel look, 27-core.css 6c) in sentence
+   case, with a short hairline at its start; Pro's hairline and words are cyan. */
 html.cn #pricing .price-plan-label {
-  display: block;
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 10px;
   margin: 0;
   color: var(--cn-text-2);
-  font-family: var(--cn-font-mono);
-  font-size: var(--cn-step-label);
-  font-weight: 500;
-  line-height: 1.4;
-  letter-spacing: var(--cn-track-label);
-  text-transform: uppercase;
+  font-family: var(--cn-font);
+  font-size: .875rem;
+  font-weight: 450;
+  line-height: 1.35;
+  letter-spacing: .005em;
+  text-transform: none;
 }
 
+html.cn #pricing .price-plan-label::before {
+  content: "";
+  flex: none;
+  inline-size: 20px;
+  block-size: 1px;
+  margin-top: .675em;   /* centred on the first line, also when the label wraps */
+  background: linear-gradient(90deg, var(--cn-text-3), transparent 140%);
+}
+
+html.cn[dir="rtl"] #pricing .price-plan-label::before { transform: scaleX(-1); }
+
+html.cn #pricing .pro-price-card .price-plan-label { color: var(--cn-cyan-2); }
+html.cn #pricing .pro-price-card .price-plan-label::before { background: linear-gradient(90deg, var(--cn-cyan), transparent 140%); }
+
+/* "Recommended": a quiet hairline pill in sentence case (its text is in the markup; aria-hidden). */
 html.cn #pricing .pricing-grid-three .pro-price-card .popular-ribbon {
   position: absolute;
   top: var(--cn-pr-pad) !important;
@@ -371,29 +422,39 @@ html.cn #pricing .pricing-grid-three .pro-price-card .popular-ribbon {
   transform: none;
   display: inline-flex;
   align-items: center;
-  block-size: 24px;
-  padding: 0 10px;
+  gap: 7px;
+  block-size: 25px;
+  padding: 0 11px 0 9px;
   border-radius: var(--cn-r-pill);
-  background: var(--cn-cyan-tint);
-  box-shadow: inset 0 0 0 1px rgba(34, 211, 238, .22);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--cn-cyan-line);
   color: var(--cn-cyan-2);
-  font-family: var(--cn-font-mono);
-  font-size: var(--cn-step-label);
+  font-family: var(--cn-font);
+  font-size: .8125rem;
   font-weight: 500;
   line-height: 1;
-  letter-spacing: var(--cn-track-label);
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
   white-space: nowrap;
 }
 
-html.cn #pricing .pro-price-card .price-card-topline { padding-inline-end: 124px; }
+html.cn #pricing .pricing-grid-three .pro-price-card .popular-ribbon::before {
+  content: "";
+  flex: none;
+  inline-size: 5px;
+  block-size: 5px;
+  border-radius: 50%;
+  background: var(--cn-cyan);
+}
+
+html.cn #pricing .pro-price-card .price-card-topline { padding-inline-end: 128px; }
 
 /* Narrow 3-up cards: the Pro label wraps beside the ribbon, so every top row keeps two lines and the plan
    names and prices stay on one line across the tray. */
 @media (min-width: 1024px) {
-  @container cn-plan (max-width: 295px) {
-    html.cn #pricing .price-card-topline { min-height: 2.8em; align-items: flex-start; }
-    html.cn #pricing .price-plan-label { padding-top: 3px; }
+  @container cn-plan (max-width: 292px) {   /* content box: the Pro label (about 161px) plus the ribbon's 128px */
+    html.cn #pricing .price-card-topline { min-height: 2.7em; align-items: flex-start; }
+    html.cn #pricing .pricing-grid-three .pro-price-card .popular-ribbon { top: calc(var(--cn-pr-pad) - 3px) !important; }
   }
 }
 
@@ -412,7 +473,7 @@ html.cn #pricing .pricing-grid-three .price-card h3 {
   color: var(--cn-text);
   font-family: var(--cn-font);
   font-size: clamp(1.125rem, 1.05rem + .3vw, 1.3125rem);
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.25;
   letter-spacing: -.015em;
   text-transform: none;
@@ -425,7 +486,7 @@ html.cn #pricing .pricing-grid-three .price-card h2 {
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0 var(--cn-2);
-  margin: var(--cn-5) 0 0;
+  margin: var(--cn-6) 0 0;
   font-family: var(--cn-font);
   line-height: 1;
 }
@@ -434,10 +495,11 @@ html.cn #pricing .pricing-grid-three .price-card .price-amount {
   color: var(--cn-text);
   -webkit-text-fill-color: currentColor;
   font-family: var(--cn-font);
-  font-size: clamp(2.5rem, 15cqi, 3.5rem);
-  font-weight: 600;
+  /* large and light, like the editorial titles */
+  font-size: clamp(2.75rem, 17cqi, 4rem);
+  font-weight: 300;
   line-height: 1;
-  letter-spacing: -.045em;
+  letter-spacing: -.05em;
   /* Mona Sans draws a slashed zero in its tabular figures; prices use proportional lining figures. */
   font-variant-numeric: lining-nums proportional-nums;
   text-shadow: none;
@@ -494,14 +556,14 @@ html.cn #pricing .cn-seat-picker { margin: var(--cn-6) 0 0; }
 
 html.cn #pricing .cn-seat-picker-label {
   display: block;
-  margin: 0 0 var(--cn-2);
+  margin: 0 0 var(--cn-3);
   color: var(--cn-text-2);
-  font-family: var(--cn-font-mono);
-  font-size: var(--cn-step-label);
-  font-weight: 500;
-  line-height: 1.4;
-  letter-spacing: var(--cn-track-label);
-  text-transform: uppercase;
+  font-family: var(--cn-font);
+  font-size: .875rem;
+  font-weight: 450;
+  line-height: 1.35;
+  letter-spacing: .005em;
+  text-transform: none;
 }
 
 html.cn #pricing .cn-seat-options {
@@ -602,15 +664,18 @@ html.cn #pricing .cn-seat-custom a {
   overflow-wrap: anywhere;
 }
 
+/* The team note: quiet text on a thin inline-start rule (no box). */
 html.cn #pricing .pricing-grid-three .price-card > .business-email-note {
-  margin: var(--cn-4) 0 0;
-  padding: var(--cn-3) var(--cn-4);
-  border: 1px solid var(--cn-line);
-  border-radius: var(--cn-r-ctl);
-  background: var(--cn-surface-2);
+  margin: var(--cn-5) 0 0;
+  padding: 2px 0 2px var(--cn-4);
+  padding-inline: var(--cn-4) 0;
+  border: 0;
+  border-inline-start: 1px solid var(--cn-line-2);
+  border-radius: 0;
+  background: none;
   color: var(--cn-text-2);
   font-size: .875rem;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 /* Three-up tray: every feature list starts on the same line. The copy under the price gets
@@ -645,7 +710,7 @@ html.cn #pricing .pricing-grid-three .price-card ul {
 html.cn #pricing .pricing-grid-three .price-card li {
   position: relative;
   margin: 0;
-  padding-inline-start: 30px;
+  padding-inline-start: 28px;
   color: var(--cn-text-2);
   line-height: 1.45;
   text-wrap: pretty;
@@ -653,36 +718,25 @@ html.cn #pricing .pricing-grid-three .price-card li {
 
 html.cn #pricing .pricing-grid-three .price-card li strong {
   color: var(--cn-text);
-  font-weight: 600;
+  font-weight: 550;
 }
 
-/* Tick: a tinted disc (::before) with a check mask (::after). */
-html.cn #pricing .pricing-grid-three .price-card li::before,
+/* Tick: a thin cyan check (a mask on ::after), no disc; a grey dash for what a plan leaves out. */
+html.cn #pricing .pricing-grid-three .price-card li::before { content: none; }
+
 html.cn #pricing .pricing-grid-three .price-card li::after {
   content: "";
   position: absolute;
   inset-inline-start: 0;
-  top: calc(.725em - 9px);
-  inline-size: 18px;
-  block-size: 18px;
-}
-
-html.cn #pricing .pricing-grid-three .price-card li::before {
-  border-radius: 50%;
-  background: var(--cn-cyan-tint);
-  color: transparent;
-}
-
-html.cn #pricing .pricing-grid-three .price-card li::after {
+  top: calc(.725em - 8px);
+  inline-size: 16px;
+  block-size: 16px;
   background: var(--cn-cyan-2);
-  -webkit-mask: var(--cn-pr-check) center / 14px 14px no-repeat;
-  mask: var(--cn-pr-check) center / 14px 14px no-repeat;
+  -webkit-mask: var(--cn-pr-check) center / 16px 16px no-repeat;
+  mask: var(--cn-pr-check) center / 16px 16px no-repeat;
 }
 
-html.cn #pricing .pricing-grid-three .price-card li.feature-unavailable::before {
-  background: transparent;
-  box-shadow: inset 0 0 0 1px var(--cn-line-2);
-}
+html.cn #pricing .pricing-grid-three .price-card li.feature-unavailable { color: var(--cn-text-3); }
 
 html.cn #pricing .pricing-grid-three .price-card li.feature-unavailable::after {
   background: var(--cn-text-3);
@@ -913,6 +967,24 @@ html.cn #pricing .pricing-notice.success {
   color: var(--cn-safe);
 }
 
+/* ---------- the statement between the plans and the questions (v4.3) ----------
+   One short paragraph whose words light from grey to white in reading order as it crosses the
+   screen (data-cn="manifesto": 57-core.js, 27-core.css 6a; .cn-manifesto gives the large light
+   type). Reduced motion and Pause motion show every word lit. It sits in the reading column the
+   FAQ and the fine print share, so the three blocks line up under the plans. */
+html.cn #pricing > .cn-pr-statement {
+  box-sizing: border-box;
+  max-inline-size: var(--cn-pr-col);
+  margin: clamp(var(--cn-20), 3.5rem + 5vw, 160px) auto 0;
+  font-size: clamp(1.5rem, 1.1rem + 1.5vw, 2.375rem);
+  font-weight: 350;
+  line-height: 1.22;
+  letter-spacing: -.022em;
+  text-wrap: pretty;
+}
+
+html.cn #pricing > .cn-pr-statement + .cn-faq { margin-top: clamp(var(--cn-16), 3rem + 4vw, 120px); }
+
 /* ---------- FAQ (styles ready for the .cn-faq markup requested from the owner of index.html) ---------- */
 /* One reading column, shared with the fine print below, so the two blocks line up. */
 html.cn #pricing .cn-faq {
@@ -920,32 +992,28 @@ html.cn #pricing .cn-faq {
   margin: clamp(var(--cn-16), 3rem + 4vw, var(--cn-24)) auto 0;
 }
 
-html.cn #pricing .cn-faq-head .cn-eyebrow,
-html.cn #pricing .cn-faq-eyebrow {
-  display: block;
-  margin: 0 0 var(--cn-3);
-  color: var(--cn-cyan-2);
-  font-family: var(--cn-font-mono);
-  font-size: var(--cn-step-label);
-  font-weight: 500;
-  letter-spacing: var(--cn-track-label);
-  text-transform: uppercase;
-}
+/* the corner label (.cn-edlabel, 27-core.css 6c), then a light title with one bold word that
+   slides up line by line ([data-cn-lines="head"]) */
+html.cn #pricing .cn-faq-head > .cn-faq-eyebrow { margin: 0 0 var(--cn-5); }
 
 html.cn #pricing .cn-faq-head h2 {
-  margin: 0 0 var(--cn-3);
+  margin: 0 0 var(--cn-4);
   color: var(--cn-text);
   font-family: var(--cn-font);
-  font-size: clamp(1.625rem, 1.3rem + 1.3vw, 2.375rem);
-  font-weight: 600;
-  line-height: 1.08;
-  letter-spacing: var(--cn-track-h2);
+  font-size: clamp(2rem, 1.45rem + 2vw, 3.25rem);
+  font-weight: 300;
+  line-height: 1.04;
+  letter-spacing: -.034em;
   text-wrap: balance;
 }
 
-html.cn #pricing .cn-faq-head h2 span { color: var(--cn-text-2); }
+html.cn #pricing .cn-faq-head h2 :is(b, span) {
+  color: #ffffff;
+  font-weight: 600;
+  letter-spacing: -.038em;
+}
 
-html.cn #pricing .cn-faq-head p {
+html.cn #pricing .cn-faq-head > p:not(.cn-edlabel) {
   max-inline-size: 52ch;
   margin: 0 0 var(--cn-8);
   color: var(--cn-text-2);
@@ -1185,21 +1253,8 @@ html.cn #pricing > .cn-operator strong {
   html.cn #pricing > .cn-operator::before { inset-inline-start: 14px; width: 26px; height: 28px; }
 }
 
-/* ---------- head ---------- */
-html.cn #pricing .pricing-head .pill {
-  padding: 0 14px 0 28px;
-  background:
-    radial-gradient(circle at 14px 50%, var(--cn-cyan) 0 3px, transparent 3.5px),
-    linear-gradient(var(--cn-fill-1), var(--cn-fill-1)),
-    var(--cn-surface); /* solid, so the section motion lines pass behind it, not through the words */
-  box-shadow: inset 0 0 0 1px var(--cn-line-2);
-  color: var(--cn-text-2);
-}
-
 /* ---------- plan cards: the hairline and one soft lift; Pro has its cyan edge (above) ---------- */
 html.cn #pricing .pricing-grid-three .price-card { box-shadow: var(--cn-pg-lift); }
-html.cn #pricing .price-plan-label { color: var(--cn-text-2); }
-html.cn #pricing .pro-price-card .price-plan-label { color: var(--cn-cyan-2); }
 
 html.cn #pricing .plan-select-btn { border-color: var(--cn-line-ctl); }
 @media (hover: hover) and (pointer: fine) {

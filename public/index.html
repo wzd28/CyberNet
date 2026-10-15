@@ -39,7 +39,7 @@
   <link rel="stylesheet" href="/cybernet-howto.css?v=20260905-1" />
   <link id="cybernetBusinessTeamStylesheet" rel="stylesheet" href="/cybernet-business-team.css?v=20260927-2" />
   <link rel="stylesheet" href="/cybernet-consent.css?v=20260927-2" />
-  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261015-1" />
+  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261015-2" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=20260830-5">
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=20260830-5">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=20260830-5">
@@ -578,17 +578,20 @@
         </div>
       </div>
 
-      <!-- WHAT CYBERNET AI DOES: the AI core and the manifesto (27-core.css, 57-core.js) -->
+      <!-- WHAT CYBERNET AI DOES: the AI chip and the manifesto (27-core.css + 57-core.js, 28-chipseq.css + 58-chipseq.js) -->
       <section class="cn-core" id="cnCore" aria-labelledby="cnCoreTitle">
         <h2 class="cn-core-label" id="cnCoreTitle">What CyberNet AI does</h2>
         <p class="cn-core-tag cn-core-tag--top">Rules first. Then AI.</p>
-        <div class="cn-core-visual" data-cn="core" aria-hidden="true">
-          <div class="cn-core-rig">
-            <div class="cn-core-float">
-              <img class="cn-core-base" src="/ui/3d/core-chip-720.webp?v=20261015-1" srcset="/ui/3d/core-chip-720.webp?v=20261015-1 720w, /ui/3d/core-chip.webp?v=20261015-1 1200w" sizes="(min-width: 62rem) min(50vw, 680px), min(100vw, 560px)" alt="" width="1200" height="1200" loading="lazy" decoding="async" />
-              <img class="cn-core-lid" src="/ui/3d/core-lid-720.webp?v=20261015-1" srcset="/ui/3d/core-lid-720.webp?v=20261015-1 720w, /ui/3d/core-lid.webp?v=20261015-1 1200w" sizes="(min-width: 62rem) min(50vw, 680px), min(100vw, 560px)" alt="" width="1200" height="1200" loading="lazy" decoding="async" />
-              <canvas class="cn-core-plume"></canvas>
-            </div>
+        <div class="cn-core-visual" aria-hidden="true">
+          <!-- the chip assembles as you scroll: 60 pre-rendered frames on one canvas (28-chipseq.css,
+               58-chipseq.js, scripts/render-chipseq.mjs); the poster is the last frame -->
+          <div class="cn-chipseq" data-cn="chipseq" data-cn-seq="/ui/3d/chipseq/" data-cn-seq-n="60" data-cn-seq-v="20261015-2">
+            <span class="cn-chipseq-pool"></span>
+            <picture class="cn-chipseq-poster">
+              <source media="(min-width: 480px)" srcset="/ui/3d/chipseq/d/059.webp?v=20261015-2" width="1000" height="800" />
+              <img src="/ui/3d/chipseq/m/059.webp?v=20261015-2" alt="" width="560" height="448" loading="lazy" decoding="async" />
+            </picture>
+            <canvas class="cn-chipseq-canvas" width="560" height="448"></canvas>
           </div>
         </div>
         <p class="cn-manifesto" data-cn="manifesto">CyberNet AI reads the message <b>before you act</b>. Its own <b>scam rules</b> check a text, link or QR code in seconds. <b>Analysis AI</b> explains the warning signs in plain words. And if something already went wrong, <b>Recovery</b> gives you a plan, step by step.</p>
@@ -874,7 +877,11 @@
     <!-- ═══════════ CYBERNET ═══════════ -->
     <section id="cybernet" class="page">
       <div class="feature-page-header reveal">
-        <h1>Quick Scan</h1>
+        <div class="cn-edrow">
+          <p class="cn-edlabel">Instant verdict</p>
+          <p class="cn-edlabel cn-edlabel--muted cn-edlabel--end">Texts, links and QR codes</p>
+        </div>
+        <h1>Quick <b>Scan</b></h1>
         <p>Paste a message or link, or upload a QR code, and get an instant scam verdict.</p>
         <p class="feature-crosslink">Prefer a conversational back-and-forth instead of picking a tab? Try <button class="inline-link-btn" data-page="cybernetai" type="button">Analysis AI</button>.</p>
 
@@ -1145,10 +1152,15 @@
         </div>
       </div>
 
+      <div class="cn-tl-statement">
+        <p class="cn-edlabel cn-edlabel--muted">What Quick Scan looks for</p>
+        <p class="cn-manifesto" data-cn="manifesto">Scams lean on the same few tricks: <b>urgency</b>, a <b>payment</b> request, a <b>lookalike link</b>. Quick Scan checks for them in seconds and tells you what to do next.</p>
+      </div>
+
       <div class="support-box glass reveal">
         <div class="support-box-copy">
           <span class="account-eyebrow">Support and feedback</span>
-          <h2>Think a Quick Scan result was wrong?</h2>
+          <h2 data-cn-lines>Think a Quick Scan result was wrong?</h2>
           <p>If a scan called something safe that wasn't (or the other way around), tell us. It helps us improve. Contact <a href="mailto:support@cybernetai.app">support@cybernetai.app</a> or send a structured report through the survey.</p>
         </div>
         <div class="support-box-actions">
@@ -1161,9 +1173,15 @@
     <!-- ═══════════ CYBERNET AI ═══════════ -->
     <section id="cybernetai" class="page">
       <div class="feature-page-header reveal">
-        <h1>Analysis AI</h1>
+        <div class="cn-edrow">
+          <p class="cn-edlabel">AI diagnostic</p>
+        </div>
+        <h1>Analysis <b>AI</b></h1>
         <p>A deeper AI check of messages, links and screenshots, explained in plain language. On Pro, see where a link or QR code leads before you open it.</p>
         <p class="feature-crosslink">Just want a fast, instant verdict without chatting? Try <button class="inline-link-btn" data-page="cybernet" type="button">Quick Scan</button>.</p>
+
+        <!-- the AI chip in the glass globe, with the subtle glow (data-cn-glow, 27-core.css 6b) -->
+        <figure class="cn-tl-orb" data-cn-glow="50 50" aria-hidden="true"><img src="/ui/3d/ai-globe-320.webp?v=20261014-5" srcset="/ui/3d/ai-globe-320.webp?v=20261014-5 320w, /ui/3d/ai-globe.webp?v=20261014-5 512w" sizes="(min-width: 960px) 168px, (min-width: 560px) 150px, 104px" alt="" width="320" height="320" loading="lazy" decoding="async" /></figure>
 
         <div class="usage-meter-card" id="analysisAiHeaderUsageCard">
           <div class="usage-meter-labels">
@@ -1271,10 +1289,15 @@
         </div>
       </div>
 
+      <div class="cn-tl-statement">
+        <p class="cn-edlabel cn-edlabel--muted">In plain language</p>
+        <p class="cn-manifesto" data-cn="manifesto">Not just a verdict. Analysis AI explains <b>why</b> something looks risky, shows the evidence and tells you <b>what to do next</b>.</p>
+      </div>
+
       <div class="support-box glass reveal">
         <div class="support-box-copy">
           <span class="account-eyebrow">Support and feedback</span>
-          <h2>Question about an Analysis AI result?</h2>
+          <h2 data-cn-lines>Question about an Analysis AI result?</h2>
           <p>Confused by a verdict, or think the AI got something wrong? Contact <a href="mailto:support@cybernetai.app">support@cybernetai.app</a> or send a structured report through the survey.</p>
         </div>
         <div class="support-box-actions">
@@ -1285,8 +1308,11 @@
     </section>    <!-- ═══════════ RECOVERY ═══════════ -->
     <section id="recovery" class="page recovery-page">
       <div class="feature-page-header reveal recovery-header">
-        <h1>Take a breath. <span>Let’s fix what happened.</span></h1>
-        <p>CyberNet AI turns what happened into a clear recovery plan: what to do now, what to secure next, and what risks remain.</p>
+        <!-- the Recovery shield (a still 3D render) on a very faint mint light (35-recovery.css section 8) -->
+        <div class="cn-rec-visual" data-cn-glow="50 50" aria-hidden="true"></div>
+        <p class="cn-edlabel cn-rec-label">Recovery</p>
+        <h1>Take a breath. <span>Let’s <b>fix</b> <span class="cn-rec-keep">what happened.</span></span></h1>
+        <p class="cn-rec-lead">CyberNet AI turns what happened into a clear recovery plan: what to do now, what to secure next, and what risks remain.</p>
 
         <div class="usage-meter-card" id="recoveryUsageCard">
           <div class="usage-meter-labels">
@@ -1497,10 +1523,16 @@
         <button class="secondary-btn full" id="recoveryDownloadBtn" type="button" hidden>Download Recovery Report</button>
       </div>
 
+      <!-- a calm closing statement: its words light up as it scrolls (data-cn="manifesto", 57-core.js) -->
+      <div class="cn-rec-note">
+        <p class="cn-edlabel cn-edlabel--muted">You are not alone</p>
+        <p class="cn-manifesto cn-rec-manifesto" data-cn="manifesto">Scams catch careful people every day, and it is not your fault. Recovery works through it <b>one calm step at a time</b>, starting with what matters most.</p>
+      </div>
+
       <div class="support-box glass reveal">
         <div class="support-box-copy">
           <span class="account-eyebrow">Support and feedback</span>
-          <h2>Need help with your recovery case?</h2>
+          <h2 data-cn-lines>Need help with your recovery case?</h2>
           <p>If something in your recovery plan doesn't feel right, or you're not sure what to do next, reach out. We’re here to help. Contact <a href="mailto:support@cybernetai.app">support@cybernetai.app</a> or send a structured report through the survey.</p>
         </div>
         <div class="support-box-actions">
@@ -1511,9 +1543,13 @@
     </section>    <!-- ═══════════ LEARN ═══════════ -->
     <section id="learn" class="page">
       <div class="learn-hero glass reveal">
-        <div>
-          <h1>Master cyber safety<br/><span>step by step.</span></h1>
-          <p>Follow the roadmap below. Open any topic to read the full lesson, with examples and tips.</p>
+        <div class="cn-learn-head">
+          <div class="cn-edrow cn-learn-edrow">
+            <p class="cn-edlabel">Learn Center</p>
+            <p class="cn-edlabel cn-edlabel--muted cn-edlabel--end">7 modules, 33 lessons</p>
+          </div>
+          <h1 data-cn-lines="head">Master <b>cyber safety</b><br/><span>step by step.</span></h1>
+          <p class="cn-learn-lead">Follow the roadmap below. Open any topic to read the full lesson, with examples and tips.</p>
         </div>
 
         <div class="learn-search-card glass">
@@ -1543,7 +1579,7 @@
         <div class="rm-module" id="cn-module-1">
           <div class="rm-module-head">
             <span>// Module 01</span>
-            <h2>Cybersecurity Fundamentals</h2>
+            <h2 data-cn-lines>Cybersecurity Fundamentals</h2>
           </div>
 
           <div class="rm-nodes">
@@ -1672,7 +1708,7 @@
         <div class="rm-module" id="cn-module-2">
           <div class="rm-module-head">
             <span>// Module 02</span>
-            <h2>Scams &amp; Social Engineering</h2>
+            <h2 data-cn-lines>Scams &amp; Social Engineering</h2>
           </div>
 
           <div class="rm-nodes">
@@ -1835,7 +1871,7 @@
         <div class="rm-module" id="cn-module-3">
           <div class="rm-module-head">
             <span>// Module 03</span>
-            <h2>Malware Deep Dive</h2>
+            <h2 data-cn-lines>Malware Deep Dive</h2>
           </div>
 
           <div class="rm-nodes">
@@ -1976,7 +2012,7 @@
         <div class="rm-module" id="cn-module-4">
           <div class="rm-module-head">
             <span>// Module 04</span>
-            <h2>Passwords &amp; Authentication</h2>
+            <h2 data-cn-lines>Passwords &amp; Authentication</h2>
           </div>
 
           <div class="rm-nodes">
@@ -2074,7 +2110,7 @@
         <div class="rm-module" id="cn-module-5">
           <div class="rm-module-head">
             <span>// Module 05</span>
-            <h2>Safe Browsing &amp; Networks</h2>
+            <h2 data-cn-lines>Safe Browsing &amp; Networks</h2>
           </div>
 
           <div class="rm-nodes">
@@ -2159,7 +2195,7 @@
         <div class="rm-module" id="cn-module-6">
           <div class="rm-module-head">
             <span>// Module 06</span>
-            <h2>Privacy &amp; Data Protection</h2>
+            <h2 data-cn-lines>Privacy &amp; Data Protection</h2>
           </div>
 
           <div class="rm-nodes">
@@ -2244,7 +2280,7 @@
         <div class="rm-module" id="cn-module-7">
           <div class="rm-module-head">
             <span>// Module 07</span>
-            <h2>Prevention &amp; Response</h2>
+            <h2 data-cn-lines>Prevention &amp; Response</h2>
           </div>
 
           <div class="rm-nodes">
@@ -2347,9 +2383,12 @@
     <section id="pricing" class="page">
       <p class="cn-operator">CyberNet AI is operated under <strong>Marks Events FZ LLE</strong></p>
       <div class="section-head reveal pricing-head">
-        <div class="pill glass center">Simple, transparent pricing</div>
-        <h1>Choose the protection that <span>fits you</span></h1>
-        <p>Start free with accurate protection. Upgrade when you need deeper analysis, saved history, and reports.</p>
+        <div class="cn-edrow cn-pr-labels">
+          <p class="cn-edlabel">Simple, transparent pricing</p>
+          <p class="cn-edlabel cn-edlabel--muted cn-edlabel--end">Start free, cancel anytime</p>
+        </div>
+        <h1 data-cn-lines="head">Choose the <b>protection</b> that fits you</h1>
+        <p class="cn-pr-lead">Start free with accurate protection. Upgrade when you need deeper analysis, saved history, and reports.</p>
 
         <div class="pricing-toggle-wrap">
           <div class="pricing-toggle glass" id="pricingToggle" data-cycle="monthly">
@@ -2364,7 +2403,7 @@
       <div class="pricing-grid pricing-grid-three">
         <article class="price-card glass reveal free-price-card">
           <div class="price-card-topline">
-            <span class="price-plan-label">FREE FOREVER</span>
+            <span class="price-plan-label">Free forever</span>
             <span class="plan-badge plan-badge-free">FREE</span>
           </div>
           <h3>CyberNet AI Free</h3>
@@ -2384,10 +2423,10 @@
           <button class="primary-btn full plan-select-btn" id="freePlanBtn" data-plan="free">Start Free</button>
         </article>
 
-        <article class="price-card featured-price glass reveal pro-price-card">
+        <article class="price-card featured-price glass reveal pro-price-card" data-cn-glow="50 0" data-cn-glow-motes="off">
           <span class="popular-ribbon" aria-hidden="true">Recommended</span>
           <div class="price-card-topline">
-            <span class="price-plan-label">TOP-LEVEL PROTECTION</span>
+            <span class="price-plan-label">Top-level protection</span>
             <span class="plan-badge plan-badge-pro">PRO</span>
           </div>
           <h3>CyberNet AI Pro</h3>
@@ -2415,7 +2454,7 @@
 
         <article class="price-card glass reveal business-price-card">
           <div class="price-card-topline">
-            <span class="price-plan-label">FOR TEAMS &amp; ORGANIZATIONS</span>
+            <span class="price-plan-label">For teams &amp; organizations</span>
             <span class="plan-badge plan-badge-business">BUSINESS</span>
           </div>
           <h3>CyberNet AI Business</h3>
@@ -2458,11 +2497,13 @@
 
       <div id="pricingNotice" class="pricing-notice glass" aria-live="polite"></div>
 
+      <p class="cn-manifesto cn-pr-statement" data-cn="manifesto">Start <b>free</b> and stay free for as long as you like. Upgrade only when you want deeper analysis, saved history and reports, or <b>one subscription</b> for your whole team.</p>
+
       <section class="cn-faq reveal" aria-labelledby="cnPricingFaqTitle">
         <div class="cn-faq-inner">
           <div class="cn-faq-head">
-            <span class="cn-faq-eyebrow">Questions</span>
-            <h2 id="cnPricingFaqTitle">Before you choose <span>a plan</span></h2>
+            <p class="cn-edlabel cn-faq-eyebrow">Questions</p>
+            <h2 id="cnPricingFaqTitle" data-cn-lines="head">Before you <b>choose</b> a plan</h2>
             <p>Straight answers about plans, limits and teams. For anything else, email <a href="mailto:support@cybernetai.app">support@cybernetai.app</a>.</p>
           </div>
           <div class="cn-faq-list">
@@ -2515,11 +2556,18 @@
     <!-- ═══════════ ABOUT ═══════════ -->
     <section id="about" class="page">
       <div class="about-top reveal">
-        <div class="pill glass">
-          About CyberNet AI
+        <div class="cn-edrow cn-about-edrow">
+          <p class="cn-edlabel">About CyberNet AI</p>
+          <p class="cn-edlabel cn-edlabel--muted cn-edlabel--end">Quick Scan, Analysis AI, Recovery</p>
         </div>
 
-        <h1>Built to make cybersecurity <span>simple</span>.</h1>
+        <h1 data-cn-lines="head">Built to make cybersecurity <b>simple</b>.</h1>
+
+        <div class="cn-about-mark" data-cn-glow="50 50" aria-hidden="true">
+          <img src="/ui/3d/shield-320.webp?v=20261014-5" srcset="/ui/3d/shield-320.webp?v=20261014-5 320w, /ui/3d/shield.webp?v=20261014-5 640w" sizes="(min-width: 64rem) 340px, 200px" alt="" width="640" height="640" decoding="async" />
+        </div>
+
+        <p class="cn-about-tag">Secure today. Safer tomorrow.</p>
       </div>
 
       <div class="hero-stats-row about-stats-row reveal">
@@ -2536,6 +2584,52 @@
         <div>
           <strong data-count="15" data-suffix="">15</strong>
           <span>Threat categories</span>
+        </div>
+      </div>
+
+      <div class="cn-about-mission">
+        <h2 class="cn-edlabel">Our mission</h2>
+        <p class="cn-manifesto" data-cn="manifesto">Protect people <b>before threats become real damage</b>. We believe cybersecurity shouldn't be complicated or expensive. CyberNet AI puts professional-grade protection in everyone's hands through <b>simple tools</b>, clear explanations, and clear defensive next actions, explained in <b>plain language</b>, not jargon.</p>
+      </div>
+
+      <div class="about-grid reveal">
+        <div class="about-block glass tilt-card">
+          <h2 data-cn-lines>What is CyberNet AI</h2>
+
+          <p>
+            CyberNet AI is a cybersecurity platform built around three tools: Quick Scan,
+            Analysis AI, and Recovery. Together they help you check whether something
+            suspicious is a scam, understand why, and know exactly what to do next, before
+            or after something goes wrong. An account is required to use any of the three,
+            so your usage and history stay tied securely to you.
+          </p>
+        </div>
+
+        <div class="about-block glass tilt-card">
+          <h2 data-cn-lines>What it does</h2>
+
+          <p>
+            <strong>Quick Scan</strong> gives an instant verdict on suspicious text, links or
+            QR codes using CyberNet AI’s own detection rules, with no AI needed and results in
+            under a second. <strong>Analysis AI</strong> goes deeper: it combines those same rules with
+            real AI reasoning for a more thorough, detailed explanation, and Pro users can see a
+            preview of what a link or QR code actually leads to before ever opening it.
+            <strong>Recovery</strong> is for after something has already happened. It turns
+            "I think I got scammed" into a real, trackable recovery plan with immediate actions
+            that are always free.
+          </p>
+        </div>
+
+        <div class="about-block glass tilt-card">
+          <h2 data-cn-lines>Who it helps</h2>
+
+          <p>
+            Students learning about online safety. Parents protecting their
+            families from scams. Professionals who handle sensitive
+            communications daily. Small businesses that can't afford dedicated
+            security teams. Anyone who's ever wondered “is this message real or
+            fake?”
+          </p>
         </div>
       </div>
 
@@ -2561,59 +2655,6 @@
             <span class="fetch-key">data policy</span>
             <span>secure processing; Free scans are not saved; Pro history is private to you; Business owners see team activity</span>
           </div>
-        </div>
-      </div>
-
-      <div class="about-grid reveal">
-        <div class="about-block glass tilt-card">
-          <h2>What is CyberNet AI</h2>
-
-          <p>
-            CyberNet AI is a cybersecurity platform built around three tools: Quick Scan,
-            Analysis AI, and Recovery. Together they help you check whether something
-            suspicious is a scam, understand why, and know exactly what to do next, before
-            or after something goes wrong. An account is required to use any of the three,
-            so your usage and history stay tied securely to you.
-          </p>
-        </div>
-
-        <div class="about-block glass tilt-card">
-          <h2>Our mission</h2>
-
-          <p>
-            Protect people before threats become real damage. We believe
-            cybersecurity shouldn't be complicated or expensive. CyberNet AI puts
-            professional-grade protection in everyone's hands through simple tools,
-            clear explanations, and clear defensive next actions, explained in plain
-            language, not jargon.
-          </p>
-        </div>
-
-        <div class="about-block glass tilt-card">
-          <h2>What it does</h2>
-
-          <p>
-            <strong>Quick Scan</strong> gives an instant verdict on suspicious text, links or
-            QR codes using CyberNet AI’s own detection rules, with no AI needed and results in
-            under a second. <strong>Analysis AI</strong> goes deeper: it combines those same rules with
-            real AI reasoning for a more thorough, detailed explanation, and Pro users can see a
-            preview of what a link or QR code actually leads to before ever opening it.
-            <strong>Recovery</strong> is for after something has already happened. It turns
-            "I think I got scammed" into a real, trackable recovery plan with immediate actions
-            that are always free.
-          </p>
-        </div>
-
-        <div class="about-block glass tilt-card">
-          <h2>Who it helps</h2>
-
-          <p>
-            Students learning about online safety. Parents protecting their
-            families from scams. Professionals who handle sensitive
-            communications daily. Small businesses that can't afford dedicated
-            security teams. Anyone who's ever wondered “is this message real or
-            fake?”
-          </p>
         </div>
       </div>
 
@@ -2683,7 +2724,7 @@
 <script src="/cybernet-business-team.js?v=20261015-1" defer></script>
   <script src="/cybernet-final-ui-fix.js?v=20260930-2" defer></script>
       <script src="/cybernet-legal-upgrade.js?v=20260930-2" defer></script>
-  <script src="/ui/cybernet-ui.js?v=20261015-1" defer></script>
+  <script src="/ui/cybernet-ui.js?v=20261015-2" defer></script>
 </body>
 </html>
 

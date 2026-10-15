@@ -82,22 +82,34 @@ html.cn :is(#cybernet, #cybernetai) :is(
   mask: var(--cn-tl-ic) center / contain no-repeat;
 }
 
-/* Mono captions: one look for every small label on these pages (eyebrows aside). */
-html.cn #cybernet .detect-side > .scan-status-text::before,
-html.cn #cybernet .hiw-steps-stacked::before,
-html.cn #cybernet .detect-side > h4,
-html.cn #cybernet .recent-scans > h4,
+/* Mono captions: the small labels inside a report (the verdict, the score, its columns). */
 html.cn :is(#cybernet, #cybernetai) .verdict-headline-text::before,
 html.cn :is(#cybernet, #cybernetai) :is(.score-display, .diagnostic-score)::before,
 html.cn :is(#cybernet, #cybernetai) :is(.report-col-title, .diagnostic-col h5),
-html.cn :is(#cybernet, #cybernetai) :is(.counter-evidence, .diagnostic-counter) strong,
-html.cn #cybernetai :is(.ai-status-block, .pro-history-head) h5,
-html.cn #cybernetai .chat-bubble::before {
+html.cn :is(#cybernet, #cybernetai) :is(.counter-evidence, .diagnostic-counter) strong {
   font-family: var(--cn-font-mono);
   font-size: .6875rem;
   font-weight: 500;
   letter-spacing: var(--cn-track-label);
   text-transform: uppercase;
+}
+/* Thin labels (v4.3, the owner's reference: small, thin, sentence case): the page's own
+   captions round the tools ("Status", "How it works", "What we check", "Example results",
+   "Your access", "Service status", "Scan history") and the chat's speaker labels. Mona Sans
+   13px at 500 in the grey text colour; no mono capitals (they read as a terminal). */
+html.cn #cybernet .detect-side > .scan-status-text::before,
+html.cn #cybernet .hiw-steps-stacked::before,
+html.cn #cybernet .detect-side > h4,
+html.cn #cybernet .recent-scans > h4,
+html.cn #cybernetai .account-access-head .account-eyebrow,
+html.cn #cybernetai :is(.ai-status-block, .pro-history-head) h5,
+html.cn #cybernetai .chat-bubble::before {
+  font-family: var(--cn-font);
+  font-size: .8125rem;
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: .005em;
+  text-transform: none;
 }
 
 /* ==========================================================================================
@@ -115,52 +127,48 @@ html.cn :is(#cybernet, #cybernetai) > .support-box {
 }
 
 /* ==========================================================================================
-   2. Page header: eyebrow, H1, lead, cross-link, usage meter (beside it on wide screens)
+   2. Page header (v4.3, the owner's motion reference: an editorial head)
+   Two thin corner labels on one row (div.cn-edrow > p.cn-edlabel, 27-core.css 6c), a large
+   light title with one bold word (<b>; 60-typewriter.js still types it out), the lead, the
+   cross-link and the usage meter at the end (beside the text on wide screens). Analysis AI
+   adds its glass globe with the subtle glow (figure.cn-tl-orb[data-cn-glow], section 17.1).
+   Quick Scan has no object: the scan box is the hero of that page.
    ========================================================================================== */
 html.cn :is(#cybernet, #cybernetai) > .feature-page-header {
   margin-block: 0 clamp(var(--cn-8), 1.5rem + 2vw, var(--cn-12));
   padding: 0;
   text-align: start;
 }
-html.cn :is(#cybernet, #cybernetai) > .feature-page-header::before {
-  justify-self: start;
-  display: inline-flex;
-  align-items: center;
-  min-height: 28px;
-  margin-block-end: var(--cn-5);
-  padding: 4px 12px;
-  border-radius: var(--cn-r-pill);
-  background: var(--cn-id-tint, var(--cn-cyan-tint));
-  color: var(--cn-id-2, var(--cn-cyan-2));
-  font-family: var(--cn-font-mono);
-  font-size: var(--cn-step-label);
-  font-weight: 500;
-  line-height: 1.3;
-  letter-spacing: var(--cn-track-label);
-  text-transform: uppercase;
-}
-html.cn #cybernet > .feature-page-header::before {
-  content: "Instant verdict";
-  content: "Instant verdict" / "";
-}
-html.cn #cybernetai > .feature-page-header::before {
-  content: "AI diagnostic";
-  content: "AI diagnostic" / "";
+/* the v4.1 mono pill eyebrow (a ::before) is now the corner label in the markup */
+html.cn :is(#cybernet, #cybernetai) > .feature-page-header::before { content: none; }
+html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .cn-edrow {
+  margin: 0 0 clamp(var(--cn-5), .85rem + 1.2vw, var(--cn-8));
 }
 html.cn :is(#cybernet, #cybernetai) > .feature-page-header > h1 {
-  max-width: 18ch;
-  margin: 0 0 var(--cn-4);
-  font-size: var(--cn-step-h1);
-  line-height: 1.02;
+  max-width: none;
+  margin: 0 0 clamp(var(--cn-4), .7rem + .7vw, var(--cn-6));
+  color: var(--cn-text);
+  font-size: clamp(2.625rem, 1.5rem + 3.4vw, 4.5rem);   /* 42px on phones, 72px at 1440 */
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -.042em;
   text-align: start;
 }
+html.cn :is(#cybernet, #cybernetai) > .feature-page-header > h1 b {
+  color: var(--cn-text);
+  font-weight: 600;
+  letter-spacing: -.036em;
+}
 html.cn :is(#cybernet, #cybernetai) > .feature-page-header > p:not(.feature-crosslink) {
-  max-width: 54ch;
+  max-width: 50ch;
   margin: 0;
   color: var(--cn-text-2);
   font-size: var(--cn-step-lead);
+  font-weight: 400;
   line-height: 1.45;
+  letter-spacing: -.012em;
   text-align: start;
+  text-wrap: pretty;
 }
 /* legacy: .feature-crosslink{font-size:12.5px!important} */
 html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .feature-crosslink {
@@ -171,18 +179,35 @@ html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .feature-crosslink 
   line-height: 1.5;
   text-align: start;
 }
+/* Phones: the end label ("Texts, links and QR codes") would only stack under the start label.
+   (Analysis AI has none: its globe holds that corner.) */
+@media (max-width: 559.98px) {
+  html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .cn-edrow > .cn-edlabel--end { display: none; }
+}
 
-/* Usage meter: a slim bar card. The bar width is written inline by script.js. */
+/* Usage meter (v4.3): a slim instrument, two lines high. The label, the reset note and the
+   count on one line, a 2px track under them. A solid card, so the section's motion lines pass
+   behind the words, not through them. The bar width is written inline by script.js. */
 html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .usage-meter-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "label note count"
+    "track track track";
+  align-items: baseline;
+  column-gap: 10px;
   max-width: 440px;
   margin: var(--cn-8) 0 0;
-  padding: var(--cn-4) 18px 14px;
+  padding: 13px var(--cn-4) var(--cn-4);
   border: 1px solid var(--cn-line);
-  border-radius: var(--cn-r-card);
+  border-radius: 16px;
   background: var(--cn-surface);
   box-shadow: none;
   text-align: start;
 }
+html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .usage-meter-card > .usage-meter-labels { display: contents; }
+html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .usage-meter-card > .usage-meter-labels > span { grid-area: label; }
+html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .usage-meter-card > .usage-meter-labels > strong { grid-area: count; }
 html.cn :is(#cybernet, #cybernetai) .usage-meter-labels {
   display: flex;
   align-items: baseline;
@@ -212,6 +237,12 @@ html.cn :is(#cybernet, #cybernetai) .usage-meter-track {
   box-shadow: none;
   overflow: hidden;
 }
+html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .usage-meter-card > .usage-meter-track {
+  grid-area: track;
+  height: 2px;
+  margin: var(--cn-3) 0 0;
+  background: var(--cn-line-2);
+}
 html.cn :is(#cybernet, #cybernetai) .usage-meter-track span {
   background: var(--cn-id, var(--cn-cyan));
   box-shadow: none;
@@ -220,27 +251,47 @@ html.cn :is(#cybernet, #cybernetai) .usage-meter-track span {
 html.cn :is(#cybernet, #cybernetai) .usage-meter-card small {
   display: block;
   color: var(--cn-text-3);
-  font-family: var(--cn-font-mono);
-  font-size: .6875rem;
-  font-weight: 500;
-  letter-spacing: .06em;
-  text-transform: uppercase;
+  font-family: var(--cn-font);
+  font-size: .8125rem;
+  font-weight: 450;
+  line-height: 1.35;
+  letter-spacing: .005em;
+  text-transform: none;
+}
+/* the reset note sits after the label, set off by a short hairline */
+html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .usage-meter-card > small {
+  grid-area: note;
+  justify-self: start;
+  min-width: 0;
+  max-width: 100%;
+  padding-inline-start: 10px;
+  border-inline-start: 1px solid var(--cn-line-2);
+  line-height: 1.05;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
+/* Wide screens: the corner labels span the top; the title, lead and cross-link hold the start
+   column and the usage meter (with the globe on Analysis AI) the end column, on the last line. */
 @media (min-width: 960px) {
   html.cn :is(#cybernet, #cybernetai) > .feature-page-header {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+    grid-template-areas:
+      "labels labels"
+      "title  aside"
+      "lead   aside"
+      "link   aside";
     column-gap: clamp(var(--cn-8), 4vw, var(--cn-20));
     align-items: end;
   }
-  html.cn :is(#cybernet, #cybernetai) > .feature-page-header::before { grid-column: 1; grid-row: 1; }
-  html.cn :is(#cybernet, #cybernetai) > .feature-page-header > h1 { grid-column: 1; grid-row: 2; }
-  html.cn :is(#cybernet, #cybernetai) > .feature-page-header > p:not(.feature-crosslink) { grid-column: 1; grid-row: 3; }
-  html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .feature-crosslink { grid-column: 1; grid-row: 4; }
+  html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .cn-edrow { grid-area: labels; }
+  html.cn :is(#cybernet, #cybernetai) > .feature-page-header > h1 { grid-area: title; }
+  html.cn :is(#cybernet, #cybernetai) > .feature-page-header > p:not(.feature-crosslink) { grid-area: lead; max-width: 54ch; }
+  html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .feature-crosslink { grid-area: link; }
   html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .usage-meter-card {
-    grid-column: 2;
-    grid-row: 1 / span 4;
+    grid-area: aside;
     align-self: end;
     max-width: none;
     margin: 0;
@@ -351,18 +402,16 @@ html.cn #cybernet .detect-tab:focus-visible { outline-offset: 1px; }
    "Resets daily" caption repeats the label's "Daily", so it is left out here only. */
 @media (max-width: 559px) {
   html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .usage-meter-card {
-    display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "label count"
+      "track track";
     align-items: center;
     column-gap: var(--cn-3);
     margin-block-start: var(--cn-6);
-    padding: var(--cn-3) var(--cn-4);
+    padding: var(--cn-3) var(--cn-4) 14px;
   }
-  html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .usage-meter-card > .usage-meter-labels { display: contents; }
-  html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .usage-meter-card > .usage-meter-track {
-    grid-column: 1 / -1;
-    margin: var(--cn-2) 0 2px;
-  }
+  html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .usage-meter-card > .usage-meter-track { margin: 10px 0 0; }
   html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .usage-meter-card > small { display: none; }
 }
 
@@ -2134,12 +2183,12 @@ html.cn #cybernetai .chat-messages:has(> .chat-bubble:only-child)::after {
   margin-block-start: auto;
   padding-block-start: var(--cn-4);
   color: var(--cn-text-3);
-  font-family: var(--cn-font-mono);
-  font-size: .6875rem;
-  font-weight: 500;
-  letter-spacing: .06em;
+  font-family: var(--cn-font);
+  font-size: .8125rem;
+  font-weight: 450;
+  letter-spacing: .005em;
   text-align: center;
-  text-transform: uppercase;
+  text-transform: none;
 }
 html.cn #cybernetai .chat-bubble {
   display: flex;
@@ -2633,11 +2682,8 @@ html.cn #cybernetai #chatSendBtn.send-btn:active { scale: .97; translate: none; 
    16. Label floor: these small labels measured 11px; nothing is under --cn-step-label (12px).
    Each selector outranks the rule that set the smaller size above.
    ========================================================================================== */
-html.cn :is(#cybernet, #cybernetai) .usage-meter-card :is(#quickScanUsageReset, #analysisAiHeaderUsageReset),
 html.cn #cybernetai .ai-config #aiPlanBadge,
-html.cn #cybernetai #cybernetByokPill,
-html.cn #cybernet .recent-scans > h4,
-html.cn #cybernetai .ai-status-block h5 {
+html.cn #cybernetai #cybernetByokPill {
   font-size: var(--cn-step-label);
 }
 
@@ -2660,68 +2706,58 @@ html.cn :is(#cybernet, #cybernetai, #recovery, #learn, #pricing, #about) {
   to { opacity: 1; translate: 0 0; scale: 1; }
 }
 
-/* 17.1 Header: a quiet pill with the identity dot, a plain title, the sprite, the usage meter */
+/* 17.1 Header (v4.3): the corner labels and the light title are in section 2. Quick Scan carries
+   no object (its scan box is the hero). Analysis AI keeps its glass globe with the AI chip inside,
+   now a real element (figure.cn-tl-orb > img, lazy, so Home never downloads it) so it can hold the
+   subtle glow (data-cn-glow: a very faint cyan light that breathes and drifts, and four tiny
+   motes; 27-core.css 6b, 57-core.js; still under reduced motion and Pause motion). The globe sits
+   under the header's text (z-index -1 in the header's isolated stack) and settles in once when
+   the page opens (cn-pg-in). */
 html.cn :is(#cybernet, #cybernetai) > .feature-page-header {
   position: relative;
   isolation: isolate;
 }
-html.cn :is(#cybernet, #cybernetai) > .feature-page-header::before {
-  padding: 4px 14px 4px 28px;
-  background:
-    radial-gradient(circle at 14px 50%, var(--cn-id) 0 3px, transparent 3.5px),
-    linear-gradient(var(--cn-fill-1), var(--cn-fill-1)),
-    var(--cn-surface); /* solid, so the section motion lines pass behind it, not through the words */
-  box-shadow: inset 0 0 0 1px var(--cn-line-2);
-  color: var(--cn-text-2);
-}
-html.cn :is(#cybernet, #cybernetai) > .feature-page-header::after {
-  content: "";
+html.cn #cybernetai > .feature-page-header > .cn-tl-orb {
+  --cn-gl-k: .8;                   /* the owner: cyan energy "only if it's subtle" */
   position: absolute;
   z-index: -1;
-  inset-block-start: -34px;
-  inset-inline-end: -6px;
+  inset-block-start: -22px;
+  inset-inline-end: -4px;
   width: 104px;
-  aspect-ratio: 1;
-  background: var(--cn-pg-sprite) center / contain no-repeat, radial-gradient(closest-side, var(--cn-pg-sprite-glow), transparent 78%) center / 100% 100% no-repeat;
+  margin: 0;
   pointer-events: none;
+}
+html.cn #cybernetai > .feature-page-header > .cn-tl-orb > img {
+  display: block;
+  width: 100%;
+  height: auto;
   animation: cn-pg-in .9s var(--cn-ease-out) .15s backwards;
 }
-html.cn #cybernet { --cn-pg-sprite: url("/ui/3d/shield-320.webp?v=20261014-5"); }
-@media (min-width: 960px) {
-  html.cn #cybernet { --cn-pg-sprite: url("/ui/3d/shield.webp?v=20261014-5"); }
-}
-/* Analysis AI: the glass globe with the AI chip inside (the hero globe's language) */
-html.cn #cybernetai { --cn-pg-sprite: url("/ui/3d/ai-globe-320.webp?v=20261014-5"); --cn-pg-sprite-glow: rgba(59, 130, 246, .08); }
-@media (min-width: 960px) {
-  html.cn #cybernetai { --cn-pg-sprite: url("/ui/3d/ai-globe.webp?v=20261014-5"); }
-}
 @media (min-width: 560px) {
-  html.cn :is(#cybernet, #cybernetai) > .feature-page-header::after { inset-block-start: -34px; width: 150px; }
+  html.cn #cybernetai > .feature-page-header > .cn-tl-orb { inset-block-start: -34px; width: 150px; }
 }
 @media (max-width: 359.98px) {
-  html.cn :is(#cybernet, #cybernetai) > .feature-page-header::after { display: none; }
+  html.cn #cybernetai > .feature-page-header > .cn-tl-orb { display: none; }
 }
-/* Wide screens: the header is a grid with the usage card at the end, so the sprite stands on top
-   of that card instead (a pseudo-element of the card, anchored to its top edge): the whole object
-   is always visible, whatever the height of the text beside it. The shield's lower tip rests on
-   the card, the globe sinks a little behind it, as if resting on the card. */
+/* Wide screens: the globe holds the top end corner and rests on the usage meter (its lower rim
+   sinks a little behind the card), whatever the height of the text beside it. It may rise into
+   the label row: Analysis AI has no end label (the globe is that corner). --cn-tl-meter-h is the
+   meter card's height. */
 @media (min-width: 960px) {
-  html.cn :is(#cybernet, #cybernetai) > .feature-page-header::after { display: none; }
-  html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .usage-meter-card { position: relative; }
-  html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .usage-meter-card::before {
-    content: "";
-    position: absolute;
-    z-index: -1;
-    inset-block-end: calc(100% - var(--cn-pg-sink, 0px));
-    inset-inline-end: var(--cn-pg-x, 9%);
-    width: var(--cn-pg-w, clamp(140px, 50%, 190px));
-    aspect-ratio: 1;
-    background: var(--cn-pg-sprite) center / contain no-repeat, radial-gradient(closest-side, var(--cn-pg-sprite-glow), transparent 78%) center / 100% 100% no-repeat;
-    pointer-events: none;
-    animation: cn-pg-in .9s var(--cn-ease-out) .15s backwards;
+  html.cn #cybernetai > .feature-page-header > .cn-tl-orb {
+    position: relative;
+    inset: auto;
+    grid-column: 2;
+    grid-row: 1 / -1;
+    align-self: end;
+    justify-self: end;
+    width: clamp(140px, 46%, 168px);
+    margin-block: 0 calc(var(--cn-tl-meter-h, 68px) - 14px);
+    margin-inline: 0 10%;
   }
-  /* the globe fills its render, so it stays smaller than the old orb (which had a ring round it) */
-  html.cn #cybernetai { --cn-pg-w: clamp(150px, 50%, 192px); --cn-pg-sink: 16px; --cn-pg-x: 8%; }
+}
+@media (forced-colors: active) {
+  html.cn #cybernetai > .feature-page-header > .cn-tl-orb { display: none; }
 }
 
 html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .feature-crosslink .inline-link-btn { color: var(--cn-cyan-2); }
@@ -2793,11 +2829,44 @@ html.cn #cybernetai #aiApiStatus { background: var(--cn-pg-inset); }
 html.cn #cybernetai .diagnostic-spinner { border-top-color: var(--cn-cyan-2); }
 
 @media (prefers-reduced-motion: reduce) {
-  html.cn :is(#cybernet, #cybernetai) > .feature-page-header::after,
-  html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .usage-meter-card::before { animation: none; }
+  html.cn #cybernetai > .feature-page-header > .cn-tl-orb > img { animation: none; }
 }
+html.cn.cn-still #cybernetai > .feature-page-header > .cn-tl-orb > img { animation: none; }
 @media (forced-colors: active) {
-  html.cn :is(#cybernet, #cybernetai) > .feature-page-header::after,
-  html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .usage-meter-card::before { display: none; }
   html.cn :is(#cybernet .detect-main, #cybernet .detect-side, #cybernetai .ai-chat, #cybernetai .ai-config) { border-color: CanvasText; }
+}
+
+/* ==========================================================================================
+   18. v4.3 closing statement (div.cn-tl-statement, between the workspace and the support box)
+   A thin corner label and one short scroll-lit statement (p.cn-manifesto[data-cn="manifesto"],
+   27-core.css 6a, 57-core.js): its words light from slate to white in reading order as it
+   scrolls up, the key words in bold. Reduced motion, Pause motion and no script: all lit.
+   Wide screens set it editorially: the label in a narrow start column, the statement beside
+   it. The support box heading under it rises in line by line (data-cn-lines, 05-reveal.js).
+   ========================================================================================== */
+html.cn :is(#cybernet, #cybernetai) > .cn-tl-statement {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: baseline;
+  gap: var(--cn-5);
+  max-width: var(--cn-max);
+  margin: clamp(var(--cn-16), 2.5rem + 5vw, 136px) auto 0;
+  padding: 0;
+}
+html.cn :is(#cybernet, #cybernetai) > .cn-tl-statement > .cn-manifesto {
+  max-inline-size: 24em;
+  font-size: clamp(1.5rem, .95rem + 1.9vw, 2.5rem);   /* 24px on phones, 40px at 1440 */
+  font-weight: 380;
+  line-height: 1.2;
+  letter-spacing: -.026em;
+}
+@media (min-width: 960px) {
+  html.cn :is(#cybernet, #cybernetai) > .cn-tl-statement {
+    grid-template-columns: minmax(180px, 1fr) minmax(0, 3fr);
+    column-gap: clamp(var(--cn-8), 4vw, var(--cn-20));
+  }
+}
+/* the support box keeps its own look; only the space above it follows the statement */
+html.cn :is(#cybernet, #cybernetai) > .cn-tl-statement + .support-box {
+  margin-block-start: clamp(var(--cn-12), 2rem + 4vw, 112px);
 }
