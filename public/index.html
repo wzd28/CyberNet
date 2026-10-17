@@ -39,7 +39,7 @@
   <link rel="stylesheet" href="/cybernet-howto.css?v=20260905-1" />
   <link id="cybernetBusinessTeamStylesheet" rel="stylesheet" href="/cybernet-business-team.css?v=20260927-2" />
   <link rel="stylesheet" href="/cybernet-consent.css?v=20260927-2" />
-  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261015-3" />
+  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261017-2" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=20260830-5">
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=20260830-5">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=20260830-5">
@@ -578,19 +578,64 @@
         </div>
       </div>
 
-      <!-- WHAT CYBERNET AI DOES: the AI core and the manifesto (27-core.css, 57-core.js) -->
+      <!-- WHAT CYBERNET AI DOES: the shield story and the manifesto (27-core.css, 28-shield.css, 57-core.js, 58-shield.js) -->
       <section class="cn-core" id="cnCore" aria-labelledby="cnCoreTitle">
         <h2 class="cn-core-label" id="cnCoreTitle">What CyberNet AI does</h2>
         <p class="cn-core-tag cn-core-tag--top">Rules first. Then AI.</p>
-        <div class="cn-core-visual" data-cn="core" aria-hidden="true">
-          <div class="cn-core-rig">
-            <div class="cn-core-float">
-              <img class="cn-core-base" src="/ui/3d/core-chip-720.webp?v=20261015-1" srcset="/ui/3d/core-chip-720.webp?v=20261015-1 720w, /ui/3d/core-chip.webp?v=20261015-1 1200w" sizes="(min-width: 62rem) min(50vw, 680px), min(100vw, 560px)" alt="" width="1200" height="1200" loading="lazy" decoding="async" />
-              <img class="cn-core-lid" src="/ui/3d/core-lid-720.webp?v=20261015-1" srcset="/ui/3d/core-lid-720.webp?v=20261015-1 720w, /ui/3d/core-lid.webp?v=20261015-1 1200w" sizes="(min-width: 62rem) min(50vw, 680px), min(100vw, 560px)" alt="" width="1200" height="1200" loading="lazy" decoding="async" />
-              <canvas class="cn-core-plume"></canvas>
+        <figure class="cn-core-visual cn-shield" data-cn="shield">
+          <p class="cn-sr">Example: a text message says your card is blocked and asks you to unlock it at a link. The CyberNet AI shield opens, scans the message, flags it as a scam and locks shut.</p>
+          <div class="cn-sh-stage" aria-hidden="true">
+            <span class="cn-sh-mark"></span>
+            <svg class="cn-sh-back" viewBox="0 0 360 440" focusable="false">
+              <defs>
+                <linearGradient id="cnShGlass" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="440"><stop offset="0" stop-color="#16213a"/><stop offset=".55" stop-color="#0c1322"/><stop offset="1" stop-color="#070b15"/></linearGradient>
+                <radialGradient id="cnShSheen" gradientUnits="userSpaceOnUse" cx="96" cy="36" r="250"><stop offset="0" stop-color="#67e8f9" stop-opacity=".15"/><stop offset="1" stop-color="#67e8f9" stop-opacity="0"/></radialGradient>
+                <linearGradient id="cnShEdge" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="440"><stop offset="0" stop-color="#e6fbff"/><stop offset=".42" stop-color="#22d3ee" stop-opacity=".85"/><stop offset="1" stop-color="#22d3ee" stop-opacity=".32"/></linearGradient>
+                <linearGradient id="cnShLitEdge" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="440"><stop offset="0" stop-color="#ecfeff"/><stop offset=".45" stop-color="#a5f3fc"/><stop offset="1" stop-color="#67e8f9" stop-opacity=".6"/></linearGradient>
+                <radialGradient id="cnShCav" gradientUnits="userSpaceOnUse" cx="180" cy="190" r="250"><stop offset="0" stop-color="#0a1828"/><stop offset="1" stop-color="#03060c"/></radialGradient>
+                <pattern id="cnShDots" width="12" height="12" patternUnits="userSpaceOnUse"><circle cx="6" cy="6" r=".9" fill="#67e8f9" fill-opacity=".16"/></pattern>
+              </defs>
+              <path d="M180 0 L360 80 L340 260 L180 440 L20 260 L0 80 Z" fill="url(#cnShCav)"/>
+              <path d="M180 17.5 L342.8 89.9 L324.7 253.2 L180 415.9 L35.3 253.2 L17.2 89.9 Z" fill="url(#cnShDots)" stroke="#22d3ee" stroke-opacity=".22" vector-effect="non-scaling-stroke"/>
+              <path d="M180 0 L360 80 L340 260 L180 440 L20 260 L0 80 Z" fill="none" stroke="#94a3b8" stroke-opacity=".3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+            </svg>
+            <div class="cn-sh-cardpos">
+              <div class="cn-sh-card">
+                <p class="cn-sh-from"><span>Text message</span><span class="cn-ex">Example</span></p>
+                <p class="cn-sh-text">Your card is blocked. Unlock it now: <span class="cn-sh-link"><span class="cn-sh-ok">card-unlock.invalid</span><span class="cn-sh-bad">card-unlock.invalid</span></span></p>
+                <p class="cn-sh-verdict"><span class="cn-sh-wait"><span class="cn-sh-pill">Checking</span></span><span class="cn-sh-res"><span class="cn-sh-pill">Scam</span><span class="cn-sh-why">Fake bank link</span></span></p>
+                <span class="cn-sh-scan"></span>
+              </div>
+            </div>
+            <div class="cn-sh-front">
+              <svg class="cn-sh-half cn-sh-half--l" viewBox="0 0 180 440" focusable="false">
+                <path d="M180 0 L0 80 L20 260 L180 440 Z" fill="url(#cnShGlass)"/>
+                <path d="M180 0 L0 80 L20 260 L180 440 Z" fill="url(#cnShSheen)"/>
+                <path d="M180 17.5 L17.2 89.9 L35.3 253.2 L180 415.9" fill="none" stroke="#94a3b8" stroke-opacity=".3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+                <path d="M180 0 V150 M180 296 V440" fill="none" stroke="#67e8f9" stroke-opacity=".2" vector-effect="non-scaling-stroke"/>
+                <path d="M180 0 L0 80 L20 260 L180 440" fill="none" stroke="url(#cnShEdge)" stroke-width="1.25" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+              </svg>
+              <svg class="cn-sh-half cn-sh-half--r" viewBox="180 0 180 440" focusable="false">
+                <path d="M180 0 L360 80 L340 260 L180 440 Z" fill="url(#cnShGlass)"/>
+                <path d="M180 0 L360 80 L340 260 L180 440 Z" fill="url(#cnShSheen)"/>
+                <path d="M180 17.5 L342.8 89.9 L324.7 253.2 L180 415.9" fill="none" stroke="#94a3b8" stroke-opacity=".3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+                <path d="M180 0 V150 M180 296 V440" fill="none" stroke="#67e8f9" stroke-opacity=".2" vector-effect="non-scaling-stroke"/>
+                <path d="M180 0 L360 80 L340 260 L180 440" fill="none" stroke="url(#cnShEdge)" stroke-width="1.25" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+              </svg>
+              <svg class="cn-sh-edge" viewBox="0 0 360 440" focusable="false">
+                <path d="M180 0 L360 80 L340 260 L180 440 L20 260 L0 80 Z" fill="none" stroke="#67e8f9" stroke-opacity=".07" stroke-width="7" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+                <path d="M180 0 L360 80 L340 260 L180 440 L20 260 L0 80 Z" fill="none" stroke="#67e8f9" stroke-opacity=".12" stroke-width="3.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+                <path d="M180 0 L360 80 L340 260 L180 440 L20 260 L0 80 Z" fill="none" stroke="url(#cnShLitEdge)" stroke-width="1.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+              </svg>
+              <div class="cn-sh-lock">
+                <svg class="cn-sh-shackle" viewBox="0 0 100 120" focusable="false"><path d="M31 78 V40 a19 19 0 0 1 38 0 V62" fill="none" stroke="#67e8f9" stroke-width="1.6" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>
+                <svg class="cn-sh-body" viewBox="0 0 100 120" focusable="false"><rect x="15" y="56" width="70" height="56" rx="12" fill="#0a1526" stroke="#67e8f9" stroke-width="1.6" vector-effect="non-scaling-stroke"/><circle cx="50" cy="80" r="5" fill="none" stroke="#67e8f9" stroke-width="1.6" vector-effect="non-scaling-stroke"/><path d="M50 85 V95" fill="none" stroke="#67e8f9" stroke-width="1.6" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>
+                <svg class="cn-sh-solid" viewBox="0 0 100 120" focusable="false"><defs><radialGradient id="cnShLight"><stop offset="0" stop-color="#22d3ee" stop-opacity=".22"/><stop offset=".55" stop-color="#22d3ee" stop-opacity=".07"/><stop offset="1" stop-color="#22d3ee" stop-opacity="0"/></radialGradient><linearGradient id="cnShLockGlass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22d3ee" stop-opacity=".3"/><stop offset="1" stop-color="#22d3ee" stop-opacity=".1"/></linearGradient></defs><circle cx="50" cy="84" r="58" fill="url(#cnShLight)"/><path d="M31 62 V40 a19 19 0 0 1 38 0 V62" fill="none" stroke="#cffafe" stroke-width="2" stroke-linecap="round" vector-effect="non-scaling-stroke"/><rect x="15" y="56" width="70" height="56" rx="12" fill="#0a1526"/><rect x="15" y="56" width="70" height="56" rx="12" fill="url(#cnShLockGlass)" stroke="#cffafe" stroke-width="2" vector-effect="non-scaling-stroke"/><path d="M37 84 L46 93 L64 75" fill="none" stroke="#ecfeff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>
+              </div>
             </div>
           </div>
-        </div>
+          <figcaption class="cn-sh-msg">Let’s <b>protect</b> you from a scam.<span class="cn-sh-lit" aria-hidden="true">Let’s <b>protect</b> you from a scam.</span></figcaption>
+        </figure>
         <p class="cn-manifesto" data-cn="manifesto">CyberNet AI reads the message <b>before you act</b>. Its own <b>scam rules</b> check a text, link or QR code in seconds. <b>Analysis AI</b> explains the warning signs in plain words. And if something already went wrong, <b>Recovery</b> gives you a plan, step by step.</p>
         <p class="cn-core-tag cn-core-tag--end">Texts, links and QR codes</p>
       </section>
@@ -2721,7 +2766,7 @@
 <script src="/cybernet-business-team.js?v=20261015-1" defer></script>
   <script src="/cybernet-final-ui-fix.js?v=20260930-2" defer></script>
       <script src="/cybernet-legal-upgrade.js?v=20261015-3" defer></script>
-  <script src="/ui/cybernet-ui.js?v=20261015-3" defer></script>
+  <script src="/ui/cybernet-ui.js?v=20261017-2" defer></script>
 </body>
 </html>
 

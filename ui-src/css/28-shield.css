@@ -1,0 +1,386 @@
+/* Home 1b - the shield story in "What CyberNet AI does" (#cnCore), v4.5 (17 Oct 2026).
+   The owner, on the v4.2 chip: "i hate this picture make it a shield that does something when
+   your scrolling like opening to closing with a message like lets protect you from a scam".
+   Already turned down before this: toy 3D shields (v4), the photoreal chip sequence ("too fake")
+   and the chip picture. Liked: calm navy and cyan, clean editorial type, smooth motion, the brand
+   shield (the header logo: a shield outline with a lock) and Recovery's shield sprite.
+
+   So the visual is the brand shield itself, drawn as crisp vector hairlines (inline SVG, no
+   pictures, no 3D models): a fine cyan-to-white edge, an engraved inner line and a dark glass
+   fill, the brand lock at its centre. As the section scrolls through the screen it tells one
+   short story, scrubbed by the scroll in both directions (58-shield.js):
+     1. closed, the lock shut (an outline lock, the seam faintly drawn: the shield will split);
+     2. the shackle lifts (one leg stays in the body, like a real padlock), the lock steps back
+        and the shield's two halves swing open inwards like vault doors, hinged at the outer
+        edges, to about 80 degrees: the open shield is a clean shield-shaped window with the
+        doors as thin blades along its sides. Behind them, inside, is a text message (an
+        "Example" card: "Your card is blocked. Unlock it now: card-unlock.invalid", with a grey
+        "Checking" row), which the opening doors reveal as it comes forward;
+     3. a soft band of cyan light passes down over the card, the link turns coral as the light
+        crosses it, and the "Checking" row becomes "Scam · Fake bank link";
+     4. the doors close over the card, the lock returns, the shackle drops shut and the lock
+        turns bright (a glass body with a hairline check, in the drawing's own language), and the
+        shield's outer edge lights up once and stays a little brighter;
+     5. the message under the shield, dim until then (like the manifesto's unlit words), lights
+        up: "Let's protect you from a scam."
+   Tried and dropped (17 Oct): the halves sliding apart (they ran off a phone's screen), the
+   front plate folding up like a hatch (it squashed the lock), the card in front of the doors
+   (it ghosted over the closed glass), doors at 64 degrees (two "horns"), a solid cyan lock (it
+   read as an app icon or a button) and a glow ring round the lock (it read as a radar disc).
+
+   Markup (public/index.html):
+     figure.cn-core-visual.cn-shield[data-cn="shield"]
+       p.cn-sr                              (the story in words, for screen readers)
+       .cn-sh-stage[aria-hidden]            (360:440, the shield's own box)
+         span.cn-sh-mark                    (a 1px point at the stage's centre: the timeline)
+         svg.cn-sh-back                     (the inside: a dark cavity with a dot grid)
+         .cn-sh-cardpos > .cn-sh-card       (the example text, its link, the verdict row
+                                             (.cn-sh-wait "Checking" / .cn-sh-res "Scam") and the
+                                             scan light; BEHIND the doors, which reveal it)
+         .cn-sh-front
+           svg.cn-sh-half--l, svg.cn-sh-half--r   (the two doors; the seam breaks behind the lock)
+           svg.cn-sh-edge                   (the lit outer edge, shown when the lock shuts)
+           .cn-sh-lock > svg.cn-sh-shackle + svg.cn-sh-body + svg.cn-sh-solid
+       figcaption.cn-sh-msg                 ("Let's <b>protect</b> you from a scam.", dim, plus
+                                             span.cn-sh-lit[aria-hidden]: the same words, lit)
+
+   Resting state (this file alone): the END of the story, fully readable: the shield closed, its
+   edge lit, the bright lock with its check, the message shown, the card hidden inside. That is
+   what reduced motion, Pause motion, no script, print and browsers without the Web Animations
+   API show. 58-shield.js plays the story over it with Web Animations on a ViewTimeline
+   (compositor, no script while scrolling) or, where ViewTimeline is missing, scrubs the same
+   animations from one rAF while the section is on screen.
+
+   Cost: every moving part is its own small box and moves with transform and opacity only.
+   Strokes are 1 to 2.2 CSS px at any size (vector-effect: non-scaling-stroke), so the art stays
+   sharp on any screen. No filters or blurred shadows that change. Nothing loops and nothing
+   draws when the page is still.
+   Type: stacked (phones, tablets) the message leads (about 1.4x the manifesto); side by side
+   (from 62rem) it is the shield's caption (about 0.75x the manifesto), and its last line sits on
+   the manifesto's last baseline (27-core.css). Never within 20% of the manifesto's size.
+   Layout: phones and tablets stack the stage and the message (centred) above the manifesto;
+   landscape phones put the message beside a smaller shield, so both stay on the short screen;
+   from 62rem they sit in the left column (27-core.css). */
+
+html.cn #home .cn-shield {
+  /* the shield's width: from the section's width (cn-core container), capped */
+  --cn-sh-w: min(80%, 340px);
+  position: relative;
+  z-index: 0;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: clamp(22px, .9rem + 1.6vw, 40px);
+  margin: clamp(36px, 1.2rem + 3vw, 64px) 0 clamp(40px, 1.4rem + 3vw, 72px);
+  padding: 0;
+  min-inline-size: 0;
+}
+@supports (width: 1cqi) {
+  html.cn #home .cn-shield { --cn-sh-w: min(80cqi, 340px); }
+}
+
+/* ---- the stage: the shield's box ---- */
+html.cn #home .cn-sh-stage {
+  container: cn-sh / inline-size;
+  position: relative;
+  isolation: isolate;
+  inline-size: var(--cn-sh-w);
+  aspect-ratio: 360 / 440;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+/* the shield's light on the ground (static; its box stays well inside the section, so it never
+   widens the page) */
+html.cn #home .cn-sh-stage::before {
+  content: "";
+  position: absolute;
+  inset: -6% -5% -4%;
+  z-index: -1;
+  background: radial-gradient(50% 46% at 50% 50%, rgba(34, 211, 238, .12), rgba(34, 211, 238, .04) 55%, rgba(34, 211, 238, 0) 78%);
+}
+html.cn #home .cn-sh-mark {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  inline-size: 1px;
+  block-size: 1px;
+  visibility: hidden;
+}
+html.cn #home .cn-sh-back,
+html.cn #home .cn-sh-front,
+html.cn #home .cn-sh-cardpos {
+  position: absolute;
+  inset: 0;
+}
+html.cn #home .cn-sh-stage svg {
+  display: block;
+  overflow: visible;
+  max-inline-size: none;
+}
+html.cn #home .cn-sh-back {
+  inline-size: 100%;
+  block-size: 100%;
+  z-index: 0;
+}
+html.cn #home .cn-sh-cardpos { z-index: 1; }   /* inside: the doors pass over it */
+html.cn #home .cn-sh-front { z-index: 2; }
+
+/* ---- the doors ---- */
+html.cn #home .cn-sh-half {
+  position: absolute;
+  inset-block: 0;
+  inline-size: 50%;
+  block-size: 100%;
+  backface-visibility: hidden;
+}
+html.cn #home .cn-sh-half--l { left: 0; transform-origin: 0 50%; }
+html.cn #home .cn-sh-half--r { left: 50%; transform-origin: 100% 50%; }
+
+/* ---- the lit edge: a brighter copy of the outline (and two faint wider strokes as its light),
+   faded in when the lock shuts; it stays at .35 at rest ---- */
+html.cn #home .cn-sh-edge {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  opacity: .35;
+}
+
+/* ---- the lock (the brand lock, centred on the seam) ---- */
+/* 30% of the shield's width; the body's centre (70% down the lock's box) sits at 55% */
+html.cn #home .cn-sh-lock {
+  position: absolute;
+  left: 35%;
+  inset-block-start: 34.4%;
+  inline-size: 30%;
+  aspect-ratio: 100 / 120;
+}
+html.cn #home .cn-sh-lock > svg {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+}
+html.cn #home .cn-sh-body { opacity: 0; }            /* the end state shows the bright lock */
+/* (the bright lock's soft light is a radial gradient inside its SVG: no filter, no blur) */
+
+/* ---- the example text inside ---- */
+/* the card's box: 21% to 71% of the shield's height, 9% in from each side (padding percentages
+   are of the width: 21% and 29% of the height are 25.67% and 35.44% of the width). A static
+   clip to the shield's outline (halfway between its edge and the engraved line) keeps the card
+   inside the shield's silhouette on every screen, even where it is wider than the window. */
+html.cn #home .cn-sh-cardpos {
+  box-sizing: border-box;
+  display: grid;
+  align-items: center;
+  padding: 25.67% 9% 35.44%;
+  -webkit-clip-path: polygon(50% 1.99%, 97.61% 19.32%, 92.33% 58.32%, 50% 97.27%, 7.67% 58.32%, 2.39% 19.32%);
+  clip-path: polygon(50% 1.99%, 97.61% 19.32%, 92.33% 58.32%, 50% 97.27%, 7.67% 58.32%, 2.39% 19.32%);
+}
+html.cn #home .cn-sh-card {
+  --cn-sh-f: clamp(12px, 4.15cqi, 15.5px);
+  position: relative;
+  overflow: hidden;
+  overflow: clip;
+  box-sizing: border-box;
+  display: grid;
+  padding: calc(var(--cn-sh-f) * .95) calc(var(--cn-sh-f) * 1.05) calc(var(--cn-sh-f) * 1.05);
+  border: 1px solid rgba(148, 163, 184, .26);
+  border-radius: calc(var(--cn-sh-f) * 1.05);
+  background: linear-gradient(180deg, #162036, #0f1727);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .05) inset, 0 18px 40px -20px rgba(0, 0, 0, .8);
+  color: #f5f7fa;
+  font-family: var(--cn-font);
+  font-size: var(--cn-sh-f);
+  line-height: 1.38;
+  text-align: start;
+  opacity: 0;                                          /* inside the closed shield */
+}
+html.cn #home .cn-sh-card p {
+  position: relative;
+  z-index: 1;                     /* the words stay over the scan light, which passes behind them */
+  margin: 0;
+  max-inline-size: none;
+  font: inherit;
+  color: inherit;
+}
+/* the header groups with the text it labels: a smaller gap above the text than below it */
+html.cn #home .cn-sh-from {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-block-end: calc(var(--cn-sh-f) * .45) !important;
+  color: #aab4c3 !important;
+  font-size: max(12px, .86em) !important;
+  font-weight: 500 !important;
+}
+/* the Example tag, quieter inside the card than the words it labels */
+html.cn #home .cn-sh-from .cn-ex {
+  min-height: 0;
+  padding: 1px 7px;
+  border-color: rgba(148, 163, 184, .16);
+  color: #8a95a7;
+  font-size: 10.5px;
+  letter-spacing: .06em;
+}
+html.cn #home .cn-sh-text { font-weight: 450 !important; }
+/* the link: span.cn-sh-ok (blue, in flow) and span.cn-sh-bad (the same words in coral, over it);
+   the story swaps them as the scan light crosses the link */
+html.cn #home .cn-sh-link {
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
+}
+html.cn #home .cn-sh-ok,
+html.cn #home .cn-sh-bad {
+  display: block;
+  text-decoration: underline;
+  text-underline-offset: .18em;
+}
+html.cn #home .cn-sh-ok {
+  color: #93c5fd;
+  text-decoration-color: rgba(147, 197, 253, .5);
+  opacity: 0;
+}
+html.cn #home .cn-sh-bad {
+  position: absolute;
+  inset: 0;
+  color: #ff8a9c;
+  text-decoration-color: rgba(255, 138, 156, .85);
+}
+/* the verdict row: "Checking" (grey) until the scan has passed, then "Scam · Fake bank link".
+   Both states share one grid cell, so the card keeps its size in every frame. */
+html.cn #home .cn-sh-verdict {
+  display: grid;
+  margin-block-start: calc(var(--cn-sh-f) * .8) !important;
+  color: #aab4c3 !important;
+  font-size: max(12px, .86em) !important;
+}
+html.cn #home .cn-sh-wait,
+html.cn #home .cn-sh-res {
+  grid-area: 1 / 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-inline-size: 0;
+}
+html.cn #home .cn-sh-wait { opacity: 0; }            /* the end state shows the verdict */
+html.cn #home .cn-sh-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border: 1px solid rgba(255, 138, 156, .3);
+  border-radius: 999px;
+  background: rgba(255, 122, 144, .12);
+  color: #ff8a9c;
+  font-weight: 600;
+  line-height: 1.3;
+}
+html.cn #home .cn-sh-wait .cn-sh-pill {
+  border-color: rgba(148, 163, 184, .26);
+  background: rgba(148, 163, 184, .12);
+  color: #aab4c3;
+  font-weight: 500;
+}
+/* folded phones and landscape phones (a shield under 225px): the card takes more of the shield
+   and its header keeps only the Example tag, so no line wraps */
+@container cn-sh (max-width: 224.98px) {
+  html.cn #home .cn-sh-cardpos { padding: 20.78% 4% 37.89%; }   /* 17% to 69% of the height */
+  html.cn #home .cn-sh-from { justify-content: flex-end; }
+  html.cn #home .cn-sh-from > span:first-child { display: none; }
+  html.cn #home .cn-sh-why { white-space: nowrap; }
+}
+/* the scan light: a soft band of cyan with a bright 1px leading edge, swept down the card behind
+   its words (so it never strikes them through). Its ends fade out (a static mask), so it reads as
+   light, not as a border. */
+html.cn #home .cn-sh-scan {
+  position: absolute;
+  z-index: 0;
+  inset-inline: 0;
+  inset-block-start: 0;
+  block-size: 46%;
+  background: linear-gradient(180deg, rgba(34, 211, 238, 0) 62%, rgba(34, 211, 238, .055) 87%, rgba(34, 211, 238, .13) 97%, rgba(207, 250, 254, .75) 98.6%, rgba(207, 250, 254, 0));
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---- the message: the words in flow are dim (#6e7a8c, 4.6:1, the manifesto's unlit colour);
+   span.cn-sh-lit lays the same words, lit, exactly over them, and the story fades it in. At
+   rest it is shown, so the message reads lit.
+   Stacked (phones, tablets) it leads: 28 to 44px against the manifesto's 24 to 34px. ---- */
+html.cn #home .cn-sh-msg {
+  position: relative;
+  max-inline-size: 13em;
+  margin: 0;
+  color: #6e7a8c;
+  font-family: var(--cn-font);
+  font-size: clamp(1.75rem, 1.05rem + 4.4vw, 2.75rem);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -.025em;
+  text-align: center;
+  text-wrap: balance;
+}
+html.cn #home .cn-sh-msg b {
+  color: #7d899b;
+  font-weight: 600;
+}
+html.cn #home .cn-sh-lit {
+  position: absolute;
+  inset: 0;
+  color: #f5f7fa;
+  user-select: none;              /* a copy of the words takes them once */
+  -webkit-user-select: none;
+}
+html.cn #home .cn-sh-lit b { color: #ffffff; }
+
+/* ---- landscape phones and short tablets (stacked layout, a short screen): the message sits
+   beside a smaller shield (62% of the screen's height), so the shield and its message are on
+   screen together for the whole story ---- */
+@media (max-height: 600px) and (orientation: landscape) and (max-width: 61.99rem) {
+  html.cn #home .cn-shield {
+    --cn-sh-w: min(340px, 50.7vh);
+    grid-template-columns: auto minmax(0, 1fr);
+    justify-items: start;
+    align-items: center;
+    column-gap: clamp(28px, 5vw, 64px);
+    padding-inline-start: clamp(0px, 4vw, 48px);
+  }
+  @supports (width: 1cqi) and (height: 1svh) {
+    html.cn #home .cn-shield { --cn-sh-w: min(42cqi, 340px, 50.7svh); }
+  }
+  html.cn #home .cn-sh-msg {
+    max-inline-size: 9em;
+    text-align: start;
+  }
+}
+
+/* ---- side by side from 62rem: the shield and its message fill the left column; the message
+   is the shield's caption (28 to 36px against the manifesto's 37 to 44px) ---- */
+@media (min-width: 62rem) {
+  html.cn #home .cn-shield {
+    --cn-sh-w: min(72%, 400px);
+    margin-block: clamp(28px, 3vw, 56px) 0;
+  }
+  @supports (width: 1cqi) {
+    /* on short windows (laptops with browser bars) the shield also stays under about 63% of the
+       screen's height, so the whole story plays with the shield on screen */
+    html.cn #home .cn-shield { --cn-sh-w: min(30cqi, 400px, 52vh); }
+  }
+  html.cn #home .cn-sh-msg {
+    font-size: clamp(1.75rem, .9rem + 1.4vw, 2.25rem);
+  }
+}
+
+/* Reduced motion and Pause motion: the resting state above (58-shield.js plays nothing). */
+@media (forced-colors: active) {
+  html.cn #home .cn-sh-stage { forced-color-adjust: none; }
+  html.cn #home .cn-sh-stage::before { display: none; }
+}
+@media print {
+  html.cn #home .cn-sh-stage { display: none; }
+}
