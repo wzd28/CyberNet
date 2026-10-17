@@ -4,10 +4,12 @@
    highly detailed 3D object, a scroll-scrubbed manifesto whose words light up as you read, and
    small thin labels set in the corners.
 
-   v4.3: the owner rejected the pre-rendered chip and its cyan flame plume. Their rules are gone
-   (the image rig, float, drift, lid lift, contact shadow, plume canvas and the static cyan
-   light under the chip). .cn-core-visual stays a sized square stage that the photoreal chip
-   sequence fills (58-chipseq.js, 28-chipseq.css). See "the stage" below for its hooks.
+   v4.4 (15 Oct evening): the owner turned the v4.3 photoreal chip sequence down ("I hate the new
+   AI chip, bring back the first one and leave it, it looks too fake"). The v4.2 chip is back
+   exactly as it went live (e227aee): the two-layer image rig with its float, tilt and lid lift,
+   the static cyan light under it, the contact shadow and the cyan plume canvas (57-core.js). The
+   sequence (28-chipseq.css, 58-chipseq.js, /ui/3d/chipseq/) is gone. The editorial kit (section
+   6) stays as v4.3 built it.
 
    REUSABLE HOOKS (v4.3; section 6 below; the JS for 1 and 2 is in 57-core.js)
    1. Scroll-lit manifesto: <p class="cn-manifesto" data-cn="manifesto">Words <b>key words</b></p>
@@ -36,9 +38,22 @@
    4. Line-by-line heading reveal: data-cn-lines on a heading (05-reveal.js, 29-lines.css).
 
    Markup (public/index.html, right after the hero): h2.cn-core-label (a small thin corner label,
-   the section's heading), p.cn-core-tag--top, .cn-core-visual (the chip sequence's stage), p.cn-manifesto[data-cn="manifesto"] (bold key words in <b>) and
-   p.cn-core-tag--end. No panel: the section sits on the page ground, so the chip's light is the
-   only colour. */
+   the section's heading), p.cn-core-tag--top, .cn-core-visual[data-cn="core"] > .cn-core-rig >
+   .cn-core-float > (img.cn-core-base, img.cn-core-lid, canvas.cn-core-plume), then
+   p.cn-manifesto[data-cn="manifesto"] (bold key words in <b>) and p.cn-core-tag--end.
+   The chip is two pre-rendered layers from one camera (scripts/render-3d.mjs --only=core):
+   the board, package, leads and glowing die, and the glass lid on its own, so the lid can lift
+   off as the section scrolls. 57-core.js draws the cyan energy plume rising from the core
+   (canvas, 30 fps, only while on screen) and lights the manifesto word by word.
+
+   Motion (transform and opacity only):
+   - The rig drifts against the scroll, turns a few degrees and grows slightly (a view timeline
+     on the compositor; 57-core.js does the same from the scroll position where view timelines
+     are missing). The lid lifts as the section crosses the middle of the screen.
+   - The chip floats a few pixels while on screen (data-cn-play, set by 57-core.js).
+   - Reduced motion and Pause motion: the chip rests, the plume is one still frame and every word
+     of the manifesto is lit.
+   No panel: the section sits on the page ground, so the chip's light is the only colour. */
 
 html.cn #home > .cn-core {
   --cn-text: #f5f7fa;
@@ -130,25 +145,16 @@ html.cn #home .cn-core-tag--end::before {
   box-shadow: 0 0 0 3px rgba(34, 211, 238, .14);
 }
 
-/* ---- the stage: a sized square for the chip sequence (58-chipseq.js, 28-chipseq.css) ----
-   The box keeps the v4.2 geometry: a square (aspect-ratio) up to 560px wide, centred on phones
-   and tablets (28-chipseq.css sets the 5:4 box and the side-by-side layout from 62rem), with its
-   empty top and bottom trimmed by its own size. The sequence fills it (position:absolute; inset:0 inside works) and may tune
-   it with custom properties on .cn-core-visual (or by overriding these rules in 28-chipseq.css,
-   which loads later): --cn-core-ratio (aspect-ratio, default 1), --cn-core-trim-start /
-   --cn-core-trim-end (the margins as a fraction of the side on phones and tablets, default -.02
-   and -.15). It is aria-hidden in the markup and takes no pointer events. */
+/* ---- the visual: a square stage for the chip; the plume uses the empty top of the square ---- */
 html.cn #home .cn-core-visual {
   grid-area: visual;
   position: relative;
   z-index: 0;
-  box-sizing: border-box;
-  /* the square's side; the margins trim it by its own size (a percentage margin would follow
-     the grid area instead, which is wider than the square on tablets) */
+  /* the square's side; the margins trim its empty bottom by its own size (a percentage margin
+     would follow the grid area instead, which is wider than the square on tablets) */
   --cn-core-s: min(100%, 560px);
   inline-size: var(--cn-core-s);
-  aspect-ratio: var(--cn-core-ratio, 1);
-  margin-block: calc(var(--cn-core-s) * var(--cn-core-trim-start, -.02)) calc(var(--cn-core-s) * var(--cn-core-trim-end, -.15));
+  margin-block: calc(var(--cn-core-s) * -.02) calc(var(--cn-core-s) * -.15);
   margin-inline: auto;
   pointer-events: none;
 }
@@ -162,10 +168,57 @@ html.cn #home .cn-core-visual {
     html.cn #home .cn-core-visual { --cn-core-s: min(100cqi, 560px, 110svh); }
   }
 }
-/* The words always paint above the stage. Its trimmed margins let the frame's lower edge reach
-   under the manifesto's first line on phones (and its top under the label row), and the stage is
-   positioned (z-index 0), so without this the chip's dark body would cover those letters. */
-html.cn #home > .cn-core > :is(.cn-core-label, .cn-core-tag, .cn-manifesto) { position: relative; z-index: 1; }
+/* the core's light on the ground (static) */
+html.cn #home .cn-core-visual::before {
+  content: "";
+  position: absolute;
+  inset: 4% -4% 10%;
+  z-index: -1;
+  background: radial-gradient(44% 34% at 50% 48%, rgba(34, 211, 238, .15), rgba(34, 211, 238, .045) 48%, transparent 74%);
+}
+html.cn #home .cn-core-rig {
+  position: relative;
+  inline-size: 100%;
+  aspect-ratio: 1;
+  transform-origin: 50% 56%;
+}
+/* the contact shadow under the board */
+html.cn #home .cn-core-rig::after {
+  content: "";
+  position: absolute;
+  inset: 72% 4% 6%;
+  z-index: -1;
+  background: radial-gradient(50% 50% at 50% 50%, rgba(0, 0, 0, .55), transparent 72%);
+}
+html.cn #home .cn-core-float {
+  position: absolute;
+  inset: 0;
+}
+html.cn #home .cn-core-float > img,
+html.cn #home .cn-core-float > canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  max-inline-size: none;
+  object-fit: contain;
+}
+/* the plume covers the top middle of the square only (57-core.js: BOX), so it costs few pixels */
+html.cn #home .cn-core-float > .cn-core-plume {
+  inset: 0 18% 36%;
+  inline-size: 64%;
+  block-size: 64%;
+  opacity: 0;
+  transition: opacity 1.2s var(--cn-ease-out);
+}
+html.cn #home .cn-core-float > .cn-core-plume.is-on { opacity: 1; }
+/* The words always paint above the stage: its trimmed bottom margin lets the square's empty
+   lower edge (and the contact shadow) reach under the manifesto's first line on phones, and the
+   stage is positioned (z-index 0). */
+html.cn #home > .cn-core > .cn-core-label,
+html.cn #home > .cn-core > .cn-core-tag,
+html.cn #home > .cn-core > .cn-manifesto { position: relative; z-index: 1; }
 
 /* ---- the manifesto (Home's place in the grid; the type is shared, section 6) ---- */
 html.cn #home .cn-manifesto {
@@ -185,9 +238,78 @@ html.cn #home .cn-manifesto b {
   font-weight: 650;
 }
 
-/* ---- side by side from 62rem: the chip's layout owns it (28-chipseq.css) ---- */
+/* ---- side by side from 62rem (a media query: the section is its own grid) ---- */
+@media (min-width: 62rem) {
+  html.cn #home > .cn-core {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+      "label top"
+      "visual copy"
+      "visual end";
+    column-gap: clamp(32px, 4vw, 72px);
+  }
+  html.cn #home .cn-core-visual {
+    --cn-core-s: 100%;
+    inline-size: 100%;
+    max-inline-size: 680px;
+    margin: -1% 0 -6%;
+    justify-self: center;
+  }
+  html.cn #home .cn-manifesto {
+    align-self: end;
+    padding-block-start: 12%;
+  }
+  html.cn #home .cn-core-tag--end { align-self: start; }
+}
+
+/* ---- motion ---- */
+html.cn #home .cn-core-float {
+  animation: cn-core-float 9s ease-in-out infinite;
+  animation-play-state: paused;
+}
+html.cn #home .cn-core-visual[data-cn-play] .cn-core-float { animation-play-state: running; }
+@keyframes cn-core-float {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -1.4%, 0); }
+}
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    html.cn:not(.cn-still) #home .cn-core-rig {
+      animation: cn-core-drift linear both;
+      animation-timeline: view();
+      animation-range: cover 0% cover 100%;
+    }
+    html.cn:not(.cn-still) #home .cn-core-lid {
+      animation: cn-core-lift linear both;
+      animation-timeline: view();
+      animation-range: cover 22% cover 62%;
+    }
+  }
+}
+@keyframes cn-core-drift {
+  from { transform: translate3d(0, 8%, 0) rotate(-3.5deg) scale(.93); }
+  to { transform: translate3d(0, -6%, 0) rotate(2.5deg) scale(1.03); }
+}
+@keyframes cn-core-lift {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(0, -5.5%, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.cn #home .cn-core-float,
+  html.cn #home .cn-core-rig,
+  html.cn #home .cn-core-lid { animation: none; transform: none; }
+  html.cn #home .cn-core-plume { transition: none; }
+}
+/* Pause motion: the end state, as under reduced motion */
+html.cn.cn-still #home .cn-core-float { animation-play-state: paused; }
+html.cn.cn-still #home .cn-core-rig,
+html.cn.cn-still #home .cn-core-lid { transform: none !important; }
 
 @media (forced-colors: active) {
+  html.cn #home .cn-core-visual::before,
+  html.cn #home .cn-core-rig::after,
   html.cn #home .cn-core-label::before,
   html.cn #home .cn-core-tag--end::before { display: none; }
 }
@@ -217,12 +339,14 @@ html.cn .cn-manifesto {
   letter-spacing: -.024em;
   text-wrap: pretty;
 }
-html.cn .cn-manifesto :is(b, strong) {
+html.cn .cn-manifesto b,
+html.cn .cn-manifesto strong {
   color: var(--cn-mw-bold, #ffffff);
   font-weight: 650;
 }
 /* light bands: ink when lit, slate #66707f unlit (4.7:1 on #f5f7fa, 5:1 on white) */
-html.cn :is(.cn-light, [data-cn-tone="light"]) {
+html.cn .cn-light,
+html.cn [data-cn-tone="light"] {
   --cn-mw-dim: #66707f;
   --cn-mw-bold: var(--cn-text);
 }

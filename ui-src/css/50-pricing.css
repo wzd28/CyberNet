@@ -87,7 +87,8 @@ html.cn #pricing .pricing-head h1 {
   text-wrap: balance;
 }
 
-html.cn #pricing .pricing-head h1 :is(b, span) {
+html.cn #pricing .pricing-head h1 b,
+html.cn #pricing .pricing-head h1 span {
   color: #ffffff;
   -webkit-text-fill-color: currentColor;
   background: none;
@@ -1007,7 +1008,8 @@ html.cn #pricing .cn-faq-head h2 {
   text-wrap: balance;
 }
 
-html.cn #pricing .cn-faq-head h2 :is(b, span) {
+html.cn #pricing .cn-faq-head h2 b,
+html.cn #pricing .cn-faq-head h2 span {
   color: #ffffff;
   font-weight: 600;
   letter-spacing: -.038em;

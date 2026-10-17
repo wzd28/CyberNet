@@ -32,7 +32,8 @@
    ========================================================================== */
 
 /* ---------- 0. The dialog palette ---------- */
-html.cn :is(.modal, .cn-legal-modal) {
+html.cn .modal,
+html.cn .cn-legal-modal {
   --cn-bg: #0c1220;            /* where the sheet gradient ends (the bottom fades into it) */
   --cn-bg-2: #0a101c;          /* wells inside a sheet */
   --cn-surface: #101829;
@@ -140,7 +141,8 @@ html.cn #acceptInviteModal > .modal-card { width: min(560px, 100%); }
    The "×" in the markup (some of it injected by scripts we do not own) only survives as a fallback label:
    font-size:0 takes it out of layout and paint, and aria-label carries the accessible name.
    ::after pads the hit area to 44px (the button itself stays a calm 40px circle). */
-html.cn :is(.modal .close-modal, .cn-legal-modal .cn-legal-close) {
+html.cn :is(.modal .close-modal),
+html.cn :is(.cn-legal-modal .cn-legal-close) {
   position: relative;
   box-sizing: border-box;
   flex: none;
@@ -172,7 +174,8 @@ html.cn .modal .close-modal {
   z-index: 3;
 }
 
-html.cn :is(.modal .close-modal, .cn-legal-modal .cn-legal-close)::before {
+html.cn :is(.modal .close-modal)::before,
+html.cn :is(.cn-legal-modal .cn-legal-close)::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -186,14 +189,16 @@ html.cn :is(.modal .close-modal, .cn-legal-modal .cn-legal-close)::before {
 }
 
 /* 44px hit area (the padding box is 38px; 3px out on every side) */
-html.cn :is(.modal .close-modal, .cn-legal-modal .cn-legal-close)::after {
+html.cn :is(.modal .close-modal)::after,
+html.cn :is(.cn-legal-modal .cn-legal-close)::after {
   content: "";
   position: absolute;
   inset: -3px;
   border-radius: 50%;
 }
 
-html.cn :is(.modal .close-modal, .cn-legal-modal .cn-legal-close):focus-visible {
+html.cn :is(.modal .close-modal):focus-visible,
+html.cn :is(.cn-legal-modal .cn-legal-close):focus-visible {
   outline: none;
   color: var(--cn-text);
   box-shadow: var(--cn-focus);
@@ -272,12 +277,18 @@ html.cn .modal .modal-card small {
 }
 
 /* live regions collapse until JS writes into them (legacy left a ~34px hole) */
-html.cn .modal :is(#authMessage, #feedbackMessage, #accountDetailsMessage, #cnInviteMessage, #cnTeamMessage):empty {
+html.cn .modal #authMessage:empty,
+html.cn .modal #feedbackMessage:empty,
+html.cn .modal #accountDetailsMessage:empty,
+html.cn .modal #cnInviteMessage:empty,
+html.cn .modal #cnTeamMessage:empty {
   min-height: 0;
   margin-top: 0;
 }
 
-html.cn .modal :is(.auth-message, .cybernet-account-message, .cn-team-message) {
+html.cn .modal .auth-message,
+html.cn .modal .cybernet-account-message,
+html.cn .modal .cn-team-message {
   color: var(--cn-text-2);
   font-family: var(--cn-font);
   font-size: 14px;
@@ -289,7 +300,10 @@ html.cn .modal :is(.auth-message, .cybernet-account-message, .cn-team-message).s
 html.cn .modal :is(.auth-message, .cybernet-account-message, .cn-team-message).warning { color: var(--cn-warn); }
 
 /* ---------- 5. Fields inside sheets (look from 01-base; size and rhythm here) ---------- */
-html.cn .modal .modal-card :is(input[type="text"], input[type="email"], input[type="password"], select) {
+html.cn .modal .modal-card input[type="text"],
+html.cn .modal .modal-card input[type="email"],
+html.cn .modal .modal-card input[type="password"],
+html.cn .modal .modal-card :where(select):is(select, input[type="text"]) {
   box-sizing: border-box;
   width: 100%;
   min-height: 48px;
@@ -324,7 +338,8 @@ html.cn .modal :is(.auth-name-grid, .feedback-name-grid) label {
   text-transform: none;
 }
 
-html.cn .modal :is(.auth-name-grid, .feedback-name-grid) {
+html.cn .modal .auth-name-grid,
+html.cn .modal .feedback-name-grid {
   gap: 0 var(--cn-3);
 }
 
@@ -499,7 +514,8 @@ html.cn #authModal .auth-text-btn {
 }
 
 /* style.css:5972 colours these with !important */
-html.cn #authModal :is(.auth-create-link, .auth-login-link) {
+html.cn #authModal .auth-create-link,
+html.cn #authModal .auth-login-link {
   color: var(--cn-cyan-2) !important;
 }
 
@@ -548,7 +564,9 @@ html.cn #authModal #signupBtn.cn-consent-pending {
 }
 
 /* ---------- 7. Legal pieces inside sheets (cybernet-legal-upgrade.js) ---------- */
-html.cn :is(#authModal, #accountDetailsModal, .cn-legal-modal) {
+html.cn #authModal,
+html.cn #accountDetailsModal,
+html.cn :where(.cn-legal-modal):is(.cn-legal-modal, #authModal) {
   --cn-legal-bg: var(--cn-surface);
   --cn-legal-panel: var(--cn-surface);
   --cn-legal-panel-soft: var(--cn-surface-2);
@@ -719,7 +737,9 @@ html.cn #howtoVideoModal .video-player-shell {
 }
 
 /* the shell is a fixed-height flex column: only the player may shrink */
-html.cn #howtoVideoModal :is(.video-player-topbar, .video-modal-tabs, .video-player-controls) {
+html.cn #howtoVideoModal .video-player-topbar,
+html.cn #howtoVideoModal .video-modal-tabs,
+html.cn #howtoVideoModal .video-player-controls {
   flex: none;
 }
 
@@ -740,7 +760,8 @@ html.cn #howtoVideoModal .video-player-topbar h3 {
   line-height: 1.2;
 }
 
-html.cn #howtoVideoModal :is(.video-exit-btn, .video-control-btn) {
+html.cn #howtoVideoModal .video-exit-btn,
+html.cn #howtoVideoModal .video-control-btn {
   min-height: 40px;
   padding: 0 16px;
   gap: 8px;
@@ -767,7 +788,9 @@ html.cn #howtoVideoModal .video-exit-btn::after {
   inset: -3px; /* the padding box is 38px high: 44px hit area */
 }
 
-html.cn #howtoVideoModal :is(.video-exit-btn, .video-control-btn, .video-modal-tab):focus-visible {
+html.cn #howtoVideoModal .video-exit-btn:focus-visible,
+html.cn #howtoVideoModal .video-control-btn:focus-visible,
+html.cn #howtoVideoModal .video-modal-tab:focus-visible {
   outline: none;
   box-shadow: var(--cn-focus);
 }
@@ -994,13 +1017,16 @@ html.cn #howtoVideoModal .hw-verdict-text {
 }
 
 html.cn #howtoVideoModal .hw-verdict-danger { border: 1px solid transparent; background: var(--cn-danger-tint); }
-html.cn #howtoVideoModal .hw-verdict-danger :is(.hw-verdict-icon, .hw-verdict-text) { color: var(--cn-danger); }
+html.cn #howtoVideoModal .hw-verdict-danger .hw-verdict-icon,
+html.cn #howtoVideoModal .hw-verdict-danger .hw-verdict-text { color: var(--cn-danger); }
 html.cn #howtoVideoModal .hw-verdict-danger .hw-verdict-icon { background: var(--cn-danger-tint); }
 html.cn #howtoVideoModal .hw-verdict-safe { border: 1px solid transparent; background: var(--cn-safe-tint); }
-html.cn #howtoVideoModal .hw-verdict-safe :is(.hw-verdict-icon, .hw-verdict-text) { color: var(--cn-safe); }
+html.cn #howtoVideoModal .hw-verdict-safe .hw-verdict-icon,
+html.cn #howtoVideoModal .hw-verdict-safe .hw-verdict-text { color: var(--cn-safe); }
 html.cn #howtoVideoModal .hw-verdict-safe .hw-verdict-icon { background: var(--cn-safe-tint); }
 html.cn #howtoVideoModal .hw-verdict-info { border: 1px solid transparent; background: var(--cn-cyan-tint); }
-html.cn #howtoVideoModal .hw-verdict-info :is(.hw-verdict-icon, .hw-verdict-text) { color: var(--cn-cyan-2); }
+html.cn #howtoVideoModal .hw-verdict-info .hw-verdict-icon,
+html.cn #howtoVideoModal .hw-verdict-info .hw-verdict-text { color: var(--cn-cyan-2); }
 html.cn #howtoVideoModal .hw-verdict-info .hw-verdict-icon { background: var(--cn-cyan-tint); }
 
 html.cn #howtoVideoModal .hw-list:first-child {
@@ -1070,7 +1096,8 @@ html.cn #howtoVideoModal .hw-btn:not(:disabled):active {
   scale: .98;
 }
 
-html.cn #howtoVideoModal :is(.hw-btn, .hw-dot):focus-visible {
+html.cn #howtoVideoModal .hw-btn:focus-visible,
+html.cn #howtoVideoModal .hw-dot:focus-visible {
   outline: none;
   box-shadow: var(--cn-focus);
 }
@@ -1203,7 +1230,8 @@ html.cn #accountDetailsModal .cybernet-account-grid {
   gap: var(--cn-3);
 }
 
-html.cn :is(#accountDetailsModal, #businessTeamModal) :is(.cybernet-account-item, .cn-team-stat) {
+html.cn :is(#accountDetailsModal, #businessTeamModal) .cybernet-account-item,
+html.cn :is(#accountDetailsModal, #businessTeamModal) .cn-team-stat {
   padding: var(--cn-4);
   border: 1px solid var(--cn-line);
   border-radius: var(--cn-r-ctl);
@@ -1243,7 +1271,8 @@ html.cn #accountDetailsModal .cybernet-account-plan-badge {
 }
 
 /* usage bars: JS scales the fill; only paint changes here */
-html.cn :is(#accountDetailsModal, #businessTeamModal) :is(.cybernet-account-usage-track, .cn-team-track) {
+html.cn :is(#accountDetailsModal, #businessTeamModal) .cybernet-account-usage-track,
+html.cn :is(#accountDetailsModal, #businessTeamModal) .cn-team-track {
   height: 6px;
   background: var(--cn-surface-3);
 }
@@ -1307,7 +1336,8 @@ html.cn #accountDetailsModal .cybernet-account-actions {
   margin-top: var(--cn-5);
 }
 
-html.cn #accountDetailsModal .cybernet-account-actions :is(.primary-btn, .secondary-btn) {
+html.cn #accountDetailsModal .cybernet-account-actions .primary-btn,
+html.cn #accountDetailsModal .cybernet-account-actions .secondary-btn {
   flex: 1 1 170px;
   min-height: 48px;
 }
@@ -1340,7 +1370,8 @@ html.cn #accountDetailsModal .cn-account-legal-links {
   gap: var(--cn-2);
 }
 
-html.cn #accountDetailsModal .cn-account-legal-links :is(button, a) {
+html.cn #accountDetailsModal .cn-account-legal-links button,
+html.cn #accountDetailsModal .cn-account-legal-links a {
   min-height: 36px;
   padding: 0 14px;
   border: 1px solid var(--cn-line-2);
@@ -1353,7 +1384,8 @@ html.cn #accountDetailsModal .cn-account-legal-links :is(button, a) {
   letter-spacing: -.005em;
 }
 
-html.cn #accountDetailsModal .cn-account-legal-links :is(button, a):focus-visible {
+html.cn #accountDetailsModal .cn-account-legal-links button:focus-visible,
+html.cn #accountDetailsModal .cn-account-legal-links a:focus-visible {
   outline: none;
   box-shadow: var(--cn-focus);
 }
@@ -1403,7 +1435,9 @@ html.cn #accountDetailsModal .protect-saved-case {
   background: var(--cn-surface);
 }
 
-html.cn #accountDetailsModal :is(.protect-primary, .protect-secondary, .protect-danger-btn) {
+html.cn #accountDetailsModal .protect-primary,
+html.cn #accountDetailsModal .protect-secondary,
+html.cn #accountDetailsModal .protect-danger-btn {
   min-height: 40px;
   padding: 0 16px;
   border-radius: var(--cn-r-pill);
@@ -1492,7 +1526,8 @@ html.cn #businessTeamModal .cn-team-head p {
   line-height: 1.6;
 }
 
-html.cn #businessTeamModal :is(.cn-team-tier-badge, .cn-team-pending-badge) {
+html.cn #businessTeamModal .cn-team-tier-badge,
+html.cn #businessTeamModal .cn-team-pending-badge {
   min-height: 28px;
   padding: 0 11px;
   border: 1px solid var(--cn-line-2);
@@ -1560,7 +1595,9 @@ html.cn #businessTeamModal .cn-team-invite-row .primary-btn {
   min-height: 48px;
 }
 
-html.cn #businessTeamModal :is(.cn-team-member, .cn-team-pending-item, .cn-activity-item) {
+html.cn #businessTeamModal .cn-team-member,
+html.cn #businessTeamModal .cn-team-pending-item,
+html.cn #businessTeamModal .cn-activity-item {
   border-color: var(--cn-line);
   border-radius: var(--cn-r-ctl);
   background: var(--cn-surface-2);
@@ -1570,7 +1607,9 @@ html.cn #businessTeamModal .cn-team-member {
   padding: 12px 14px;
 }
 
-html.cn #businessTeamModal :is(.cn-team-member-usage small, .cn-team-member-email, .cn-activity-meta) {
+html.cn #businessTeamModal :is(.cn-team-member-usage small),
+html.cn #businessTeamModal :where(.cn-team-member-email):is(.cn-team-member-email, .cn-team-member-usage small),
+html.cn #businessTeamModal :where(.cn-activity-meta):is(.cn-activity-meta, .cn-team-member-usage small) {
   color: var(--cn-text-2);
 }
 
@@ -1584,7 +1623,9 @@ html.cn #businessTeamModal .cn-team-member-usage small {
 }
 
 /* chips: neutral by default; colour only where it carries meaning, always with a word */
-html.cn #businessTeamModal :is(.cn-role-badge, .cn-activity-kind, .cn-activity-verdict) {
+html.cn #businessTeamModal .cn-role-badge,
+html.cn #businessTeamModal .cn-activity-kind,
+html.cn #businessTeamModal .cn-activity-verdict {
   align-items: center;
   min-height: 22px;
   padding: 0 9px;
@@ -1603,7 +1644,9 @@ html.cn #businessTeamModal .cn-activity-kind.is-scan {
   color: var(--cn-cyan-2);
 }
 
-html.cn #businessTeamModal :is(.cn-role-badge.is-you, .cn-activity-kind.is-recovery, .cn-activity-verdict.is-safe) {
+html.cn #businessTeamModal .cn-role-badge.is-you,
+html.cn #businessTeamModal .cn-activity-kind.is-recovery,
+html.cn #businessTeamModal .cn-activity-verdict.is-safe {
   background: var(--cn-safe-tint);
   color: var(--cn-safe);
 }
@@ -1825,7 +1868,8 @@ html.cn .cn-legal-modal .cn-legal-viewer .cn-legal-hero {
   box-shadow: none;
 }
 
-html.cn .cn-legal-modal .cn-legal-viewer :is(.cn-legal-toc, .cn-legal-section) {
+html.cn .cn-legal-modal .cn-legal-viewer .cn-legal-toc,
+html.cn .cn-legal-modal .cn-legal-viewer .cn-legal-section {
   border: 1px solid var(--cn-line);
   background: var(--cn-surface);
 }
@@ -1847,7 +1891,8 @@ html.cn .cn-legal-modal .cn-legal-viewer .cn-legal-callout {
   font-size: 13px;
 }
 
-html.cn .cn-legal-modal .cn-legal-viewer .cn-legal-data-table :is(th, td) {
+html.cn .cn-legal-modal .cn-legal-viewer .cn-legal-data-table th,
+html.cn .cn-legal-modal .cn-legal-viewer .cn-legal-data-table td {
   border-color: var(--cn-line);
 }
 
@@ -1874,7 +1919,9 @@ html.cn .cn-legal-modal .cn-legal-done {
   text-transform: none;
 }
 
-html.cn .cn-legal-modal :is(.cn-legal-close, .cn-legal-tab, .cn-legal-done):focus-visible {
+html.cn .cn-legal-modal .cn-legal-close:focus-visible,
+html.cn .cn-legal-modal .cn-legal-tab:focus-visible,
+html.cn .cn-legal-modal .cn-legal-done:focus-visible {
   outline: none;
   box-shadow: var(--cn-focus);
 }
@@ -1992,7 +2039,8 @@ html.cn .cn-consent-text a:focus-visible {
     color: var(--cn-text);
   }
 
-  html.cn #authModal :is(.auth-create-link, .auth-login-link):hover {
+  html.cn #authModal .auth-create-link:hover,
+  html.cn #authModal .auth-login-link:hover {
     color: var(--cn-ice) !important;
   }
 
@@ -2000,7 +2048,8 @@ html.cn .cn-consent-text a:focus-visible {
     color: var(--cn-ice);
   }
 
-  html.cn #howtoVideoModal :is(.video-exit-btn, .video-control-btn):hover {
+  html.cn #howtoVideoModal .video-exit-btn:hover,
+  html.cn #howtoVideoModal .video-control-btn:hover {
     border-color: var(--cn-line-2);
     background: var(--cn-surface-2);
     color: var(--cn-text);
@@ -2025,7 +2074,8 @@ html.cn .cn-consent-text a:focus-visible {
     background: var(--cn-text-2);
   }
 
-  html.cn #accountDetailsModal .cn-account-legal-links :is(button, a):hover,
+  html.cn #accountDetailsModal .cn-account-legal-links button:hover,
+  html.cn #accountDetailsModal .cn-account-legal-links a:hover,
   html.cn #accountDetailsModal .protect-secondary:hover {
     border-color: var(--cn-line-2);
     background: var(--cn-surface-3);
@@ -2143,11 +2193,13 @@ html.cn .cn-consent-text a:focus-visible {
     border-radius: 14px;
   }
 
-  html.cn .modal :is(.auth-name-grid, .feedback-name-grid) {
+  html.cn .modal .auth-name-grid,
+  html.cn .modal .feedback-name-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  html.cn #accountDetailsModal .cybernet-account-actions :is(.primary-btn, .secondary-btn),
+  html.cn #accountDetailsModal .cybernet-account-actions .primary-btn,
+  html.cn #accountDetailsModal .cybernet-account-actions .secondary-btn,
   html.cn #acceptInviteModal .cn-invite-actions > button {
     flex: 1 1 100%;
   }
@@ -2353,7 +2405,11 @@ html.cn .cn-consent-text a:focus-visible {
    section canvases is a compositor pass for no gain (the page behind is locked and mostly covered). */
 
 /* ---------- 17b. Active segments: one raised slate look for every tab strip in a dialog ---------- */
-html.cn :is(#authModal .auth-tab.active, #accountDetailsModal .cn-account-tab.active, #howtoVideoModal .video-modal-tab.active, #howtoVideoModal .hw-tab.is-active, .cn-legal-modal .cn-legal-tab.active) {
+html.cn :is(#authModal .auth-tab.active),
+html.cn :is(#accountDetailsModal .cn-account-tab.active),
+html.cn :is(#howtoVideoModal .video-modal-tab.active),
+html.cn :is(#howtoVideoModal .hw-tab.is-active),
+html.cn :where(.cn-legal-modal .cn-legal-tab.active):is(.cn-legal-modal .cn-legal-tab.active, #authModal .auth-tab.active) {
   border-color: var(--cn-line-2);
   background: var(--cn-surface-3);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06);
@@ -2362,7 +2418,9 @@ html.cn :is(#authModal .auth-tab.active, #accountDetailsModal .cn-account-tab.ac
 
 /* Windows high contrast: the drawn cross and the sheets keep an edge and a visible glyph */
 @media (forced-colors: active) {
-  html.cn :is(.modal .close-modal, .cn-legal-modal .cn-legal-close, #cybernetai .chat-attach-remove)::before {
+  html.cn :where(.modal .close-modal):is(.modal .close-modal, #cybernetai .chat-attach-remove)::before,
+  html.cn :where(.cn-legal-modal .cn-legal-close):is(.cn-legal-modal .cn-legal-close, #cybernetai .chat-attach-remove)::before,
+  html.cn :is(#cybernetai .chat-attach-remove)::before {
     forced-color-adjust: none;
     background: ButtonText;
   }
@@ -2416,7 +2474,10 @@ html.cn :is(#authModal .auth-tab.active, #accountDetailsModal .cn-account-tab.ac
   html.cn #authModal .auth-tab,
   html.cn #authModal .google-auth-btn,
   html.cn #authModal .auth-text-btn,
-  html.cn #howtoVideoModal :is(.video-exit-btn, .video-control-btn, .video-modal-tab, .hw-btn),
+  html.cn #howtoVideoModal .video-exit-btn,
+  html.cn #howtoVideoModal .video-control-btn,
+  html.cn #howtoVideoModal .video-modal-tab,
+  html.cn #howtoVideoModal .hw-btn,
   html.cn .cn-consent-btn {
     transition: none;
   }

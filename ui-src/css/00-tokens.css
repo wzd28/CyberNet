@@ -254,7 +254,12 @@ html.cn {
    surface-3) and --cn-cyan (marks, bars, dots) becomes #0e7490. The primary button keeps its
    bright cyan pill through --cn-brand.
    ========================================================================================== */
-html.cn :is(.cn-light, [data-cn-tone="light"], #home > .cn-live, #home > .cn-demo, #home > .why-choose, #home > .wow-section) {
+html.cn :where(.cn-light):is(.cn-light, #home > .cn-live),
+html.cn :where([data-cn-tone="light"]):is([data-cn-tone="light"], #home > .cn-live),
+html.cn :is(#home > .cn-live),
+html.cn :is(#home > .cn-demo),
+html.cn :is(#home > .why-choose),
+html.cn :is(#home > .wow-section) {
   --cn-bg: #f5f7fa;
   --cn-bg-2: #eef2f6;
   --cn-surface: #ffffff;
@@ -327,7 +332,12 @@ html.cn :is(.cn-light, [data-cn-tone="light"], #home > .cn-live, #home > .cn-dem
 /* Tokens derived from others. Declared on the root and again on every light scope, so each
    resolves against its own ground (a var() is resolved where it is declared, then inherited). */
 html.cn,
-html.cn :is(.cn-light, [data-cn-tone="light"], #home > .cn-live, #home > .cn-demo, #home > .why-choose, #home > .wow-section) {
+html.cn :where(.cn-light):is(.cn-light, #home > .cn-live),
+html.cn :where([data-cn-tone="light"]):is([data-cn-tone="light"], #home > .cn-live),
+html.cn :is(#home > .cn-live),
+html.cn :is(#home > .cn-demo),
+html.cn :is(#home > .why-choose),
+html.cn :is(#home > .wow-section) {
   /* Tool identity. Each tool page sets these to its own accent (Quick Scan cyan, Analysis AI
      iris, Recovery mint); identity marks read them, so a mark never hard-codes a tool colour.
      Buttons, focus rings and verdicts never use them. */

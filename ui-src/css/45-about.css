@@ -639,7 +639,9 @@ html.cn #about > .cn-operator strong {
 
 /* ---------- modes ---------- */
 @media (forced-colors: active) {
-  html.cn #about :is(.about-block, .fetch-panel, .about-values)::before { background: none; padding-inline-start: 0; }
+  html.cn #about .about-block::before,
+  html.cn #about .fetch-panel::before,
+  html.cn #about .about-values::before { background: none; padding-inline-start: 0; }
   html.cn #about > .cn-operator { border-block-start-color: CanvasText; }
   html.cn #about > .cn-operator::before { forced-color-adjust: none; background: CanvasText; }
 }

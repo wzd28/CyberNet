@@ -354,7 +354,8 @@ html.cn #home .cn-threats .cn-qr-tag {
   letter-spacing: .06em;
   text-transform: uppercase;
 }
-html.cn #home .cn-threats .cn-qr-links :is(a, .cn-qr-fake) {
+html.cn #home .cn-threats .cn-qr-links :where(a):is(a, .cn-qr-fake),
+html.cn #home .cn-threats .cn-qr-links .cn-qr-fake {
   grid-area: url;
   min-inline-size: 0;
   font-family: var(--cn-font-mono);
@@ -419,7 +420,8 @@ html.cn #home .cn-threats .cn-tile--qr figcaption::after { content: none; }
   }
   html.cn #home .cn-threats .cn-qr-links li::before,
   html.cn #home .cn-threats .cn-qr-links li::after { content: none; }
-  html.cn #home .cn-threats .cn-qr-links :is(a, .cn-qr-fake) { font-size: .8125rem; }
+  html.cn #home .cn-threats .cn-qr-links :where(a):is(a, .cn-qr-fake),
+  html.cn #home .cn-threats .cn-qr-links .cn-qr-fake { font-size: .8125rem; }
 }
 /* Wide QR tiles (tablets in landscape, large text): the code beside the two addresses. */
 @container cn-qr (min-width: 470px) {
@@ -554,13 +556,17 @@ html.cn #home .cn-threats .cn-tile--stat .cn-src {
    tiles are simply shown. */
 @media (prefers-reduced-motion: no-preference) {
   html.cn.cn-js:not(.cn-still) #home .cn-threats .cn-bento.is-armed figure.cn-tile:not(.cn-tile--qr, .is-in) img { opacity: 0; scale: 1.04; }
-  html.cn.cn-js:not(.cn-still) #home .cn-threats .cn-bento.is-armed .cn-tile:not(.is-in) :is(figcaption, .cn-qr) { opacity: 0; translate: 0 12px; }
+  html.cn.cn-js:not(.cn-still) #home .cn-threats .cn-bento.is-armed .cn-tile:not(.is-in) :where(figcaption):is(figcaption, .cn-qr),
+  html.cn.cn-js:not(.cn-still) #home .cn-threats .cn-bento.is-armed .cn-tile:not(.is-in) .cn-qr { opacity: 0; translate: 0 12px; }
   html.cn #home .cn-threats figure.cn-tile:not(.cn-tile--qr) img { transition: scale 1.2s var(--cn-ease-out), opacity .8s ease; }
-  html.cn #home .cn-threats .cn-tile :is(figcaption, .cn-qr) { transition: translate .7s var(--cn-ease-out), opacity .6s ease; }
+  html.cn #home .cn-threats .cn-tile :where(figcaption):is(figcaption, .cn-qr),
+  html.cn #home .cn-threats .cn-tile .cn-qr { transition: translate .7s var(--cn-ease-out), opacity .6s ease; }
   html.cn #home .cn-threats .cn-bento.is-armed .cn-tile.is-in figcaption { transition-delay: .2s; }
   html.cn:not(.cn-still) #home .cn-threats .cn-bento.is-armed figure.cn-tile:not(.cn-tile--qr).is-in::before { animation: cn-tile-scan 1.5s var(--cn-ease-in-out) .25s 1 both; }
   html.cn:not(.cn-still) #home .cn-threats .cn-bento.is-armed figure.cn-tile--c.is-in::before { animation-delay: .45s; }
-  html.cn.cn-still #home .cn-threats .cn-tile :is(img, figcaption, .cn-qr) { transition: none; }
+  html.cn.cn-still #home .cn-threats .cn-tile :where(img):is(img, .cn-qr),
+  html.cn.cn-still #home .cn-threats .cn-tile :where(figcaption):is(figcaption, .cn-qr),
+  html.cn.cn-still #home .cn-threats .cn-tile .cn-qr { transition: none; }
 }
 @keyframes cn-tile-scan {
   0% { opacity: 0; translate: 0 -100%; }
@@ -569,7 +575,10 @@ html.cn #home .cn-threats .cn-tile--stat .cn-src {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html.cn #home .cn-threats .cn-tile :is(img, figcaption, .cn-qr, .cn-qr-code) { transition: none; }
+  html.cn #home .cn-threats .cn-tile :where(img):is(img, .cn-qr),
+  html.cn #home .cn-threats .cn-tile :where(figcaption):is(figcaption, .cn-qr),
+  html.cn #home .cn-threats .cn-tile .cn-qr,
+  html.cn #home .cn-threats .cn-tile .cn-qr-code { transition: none; }
 }
 
 @media (forced-colors: active) {

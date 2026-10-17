@@ -192,9 +192,16 @@ html.cn #recovery #recoveryUsageCaseReset {
 
 /* cards: the look comes from the shared .glass card; Recovery adds padding and makes
    each card a size container so its insides respond to its own width */
-html.cn #recovery :is(.recovery-intake-card, .recovery-cases-card, .recovery-summary-card,
-  .recovery-immediate-card, .recovery-timeline-card, .recovery-remaining-card,
-  .recovery-resources-card, .recovery-update-card, .recovery-history-card, .recovery-pro-upsell) {
+html.cn #recovery .recovery-intake-card,
+html.cn #recovery .recovery-cases-card,
+html.cn #recovery .recovery-summary-card,
+html.cn #recovery .recovery-immediate-card,
+html.cn #recovery .recovery-timeline-card,
+html.cn #recovery .recovery-remaining-card,
+html.cn #recovery .recovery-resources-card,
+html.cn #recovery .recovery-update-card,
+html.cn #recovery .recovery-history-card,
+html.cn #recovery .recovery-pro-upsell {
   position: relative;
   container-type: inline-size;
   padding: var(--cn-rec-pad);
@@ -217,7 +224,10 @@ html.cn #recovery .recovery-primary-btn:hover { filter: none; }
 
 /* text fields: legacy id rules (green focus, 13.5px, margins, height:140px) reset;
    focus is the same 2px outline as every other field on the site */
-html.cn #recovery :is(#recoveryDescription, #recoveryUpdateText, #recoveryAccounts, .recovery-field-grid select) {
+html.cn #recovery #recoveryDescription,
+html.cn #recovery #recoveryUpdateText,
+html.cn #recovery #recoveryAccounts,
+html.cn #recovery :where(.recovery-field-grid select):is(.recovery-field-grid select, #recoveryDescription) {
   box-sizing: border-box;
   width: 100%;
   margin: 0;
@@ -232,12 +242,18 @@ html.cn #recovery :is(#recoveryDescription, #recoveryUpdateText, #recoveryAccoun
 }
 
 @media (hover: hover) and (pointer: fine) {
-  html.cn #recovery :is(#recoveryDescription, #recoveryUpdateText, #recoveryAccounts, .recovery-field-grid select):hover {
+  html.cn #recovery #recoveryDescription:hover,
+  html.cn #recovery #recoveryUpdateText:hover,
+  html.cn #recovery #recoveryAccounts:hover,
+  html.cn #recovery :where(.recovery-field-grid select):is(.recovery-field-grid select, #recoveryDescription):hover {
     border-color: var(--cn-rec-hover);
   }
 }
 
-html.cn #recovery :is(#recoveryDescription, #recoveryUpdateText, #recoveryAccounts, .recovery-field-grid select):focus {
+html.cn #recovery #recoveryDescription:focus,
+html.cn #recovery #recoveryUpdateText:focus,
+html.cn #recovery #recoveryAccounts:focus,
+html.cn #recovery :where(.recovery-field-grid select):is(.recovery-field-grid select, #recoveryDescription):focus {
   border-color: var(--cn-line-2);
   background-color: var(--cn-surface-2);
   box-shadow: none;
@@ -245,7 +261,8 @@ html.cn #recovery :is(#recoveryDescription, #recoveryUpdateText, #recoveryAccoun
   outline-offset: 2px;
 }
 
-html.cn #recovery :is(#recoveryDescription, #recoveryUpdateText) {
+html.cn #recovery #recoveryDescription,
+html.cn #recovery #recoveryUpdateText {
   display: block;
   height: auto;
   min-height: 9.5rem;
@@ -258,7 +275,8 @@ html.cn #recovery :is(#recoveryDescription, #recoveryUpdateText) {
 
 /* where the field grows with its text, the resize grip is not needed */
 @supports (field-sizing: content) {
-  html.cn #recovery :is(#recoveryDescription, #recoveryUpdateText) { resize: none; }
+  html.cn #recovery #recoveryDescription,
+  html.cn #recovery #recoveryUpdateText { resize: none; }
 }
 
 /* room for the Clear pill in the bottom corner */
@@ -429,7 +447,8 @@ html.cn #recovery .recovery-field-grid label {
   text-transform: none;
 }
 
-html.cn #recovery :is(#recoveryAccounts, .recovery-field-grid select) {
+html.cn #recovery #recoveryAccounts,
+html.cn #recovery :where(.recovery-field-grid select):is(.recovery-field-grid select, #recoveryAccounts) {
   height: 48px;
   min-height: 48px;
   padding: 0 14px;
@@ -619,7 +638,8 @@ html.cn #recovery #recoveryImageInput:not([hidden]) {
 }
 
 /* ---------- messages from script.js (className is rewritten, so style the ids) ---------- */
-html.cn #recovery :is(#recoveryIntakeMessage, #recoveryUpdateMessage) {
+html.cn #recovery #recoveryIntakeMessage,
+html.cn #recovery #recoveryUpdateMessage {
   position: relative;
   min-height: 0;
   margin: var(--cn-5) 0 0;
@@ -630,9 +650,11 @@ html.cn #recovery :is(#recoveryIntakeMessage, #recoveryUpdateMessage) {
   text-align: start;
 }
 
-html.cn #recovery :is(#recoveryIntakeMessage, #recoveryUpdateMessage):empty { margin: 0; }
+html.cn #recovery #recoveryIntakeMessage:empty,
+html.cn #recovery #recoveryUpdateMessage:empty { margin: 0; }
 
-html.cn #recovery :is(#recoveryIntakeMessage, #recoveryUpdateMessage):not(:empty) {
+html.cn #recovery #recoveryIntakeMessage:not(:empty),
+html.cn #recovery #recoveryUpdateMessage:not(:empty) {
   padding: 12px 14px 12px 42px;
   border: 1px solid var(--cn-line);
   border-radius: var(--cn-r-ctl);
@@ -640,7 +662,8 @@ html.cn #recovery :is(#recoveryIntakeMessage, #recoveryUpdateMessage):not(:empty
   animation: cn-rec-note var(--cn-dur-2) var(--cn-ease-out) both;
 }
 
-html.cn #recovery :is(#recoveryIntakeMessage, #recoveryUpdateMessage):not(:empty)::before {
+html.cn #recovery #recoveryIntakeMessage:not(:empty)::before,
+html.cn #recovery #recoveryUpdateMessage:not(:empty)::before {
   content: "";
   position: absolute;
   inset-inline-start: 14px;
@@ -688,7 +711,8 @@ html.cn #recovery :is(#recoveryIntakeMessage, #recoveryUpdateMessage).error:not(
 }
 
 /* ---------- Start / Update: the big cyan pill; the guest label wraps ---------- */
-html.cn #recovery :is(#recoveryStartBtn, #recoveryUpdateBtn) {
+html.cn #recovery #recoveryStartBtn,
+html.cn #recovery #recoveryUpdateBtn {
   width: 100%;
   min-height: 52px;
   padding: 12px 24px;
@@ -700,7 +724,8 @@ html.cn #recovery :is(#recoveryStartBtn, #recoveryUpdateBtn) {
 html.cn #recovery #recoveryStartBtn { margin-block-start: var(--cn-6); }
 html.cn #recovery #recoveryUpdateBtn { margin-block-start: var(--cn-4); }
 
-html.cn #recovery :is(#recoveryStartBtn, #recoveryUpdateBtn)::after {
+html.cn #recovery #recoveryStartBtn::after,
+html.cn #recovery #recoveryUpdateBtn::after {
   content: "";
   flex: none;
   width: 18px;
@@ -711,18 +736,23 @@ html.cn #recovery :is(#recoveryStartBtn, #recoveryUpdateBtn)::after {
   transition: translate var(--cn-dur-2) var(--cn-ease-out);
 }
 
-html.cn[dir="rtl"] #recovery :is(#recoveryStartBtn, #recoveryUpdateBtn)::after { scale: -1 1; }
+html.cn[dir="rtl"] #recovery #recoveryStartBtn::after,
+html.cn[dir="rtl"] #recovery #recoveryUpdateBtn::after { scale: -1 1; }
 
 @media (hover: hover) and (pointer: fine) {
-  html.cn #recovery :is(#recoveryStartBtn, #recoveryUpdateBtn):hover:not(:disabled)::after { translate: 2px 0; }
-  html.cn[dir="rtl"] #recovery :is(#recoveryStartBtn, #recoveryUpdateBtn):hover:not(:disabled)::after { translate: -2px 0; }
+  html.cn #recovery #recoveryStartBtn:hover:not(:disabled)::after,
+  html.cn #recovery #recoveryUpdateBtn:hover:not(:disabled)::after { translate: 2px 0; }
+  html.cn[dir="rtl"] #recovery #recoveryStartBtn:hover:not(:disabled)::after,
+  html.cn[dir="rtl"] #recovery #recoveryUpdateBtn:hover:not(:disabled)::after { translate: -2px 0; }
 }
 
 /* busy (spinner inside) or narrow (the long guest label wraps and the arrow would drift) */
-html.cn #recovery :is(#recoveryStartBtn, #recoveryUpdateBtn):disabled::after { content: none; }
+html.cn #recovery #recoveryStartBtn:disabled::after,
+html.cn #recovery #recoveryUpdateBtn:disabled::after { content: none; }
 
 @container (max-width: 420px) {
-  html.cn #recovery :is(#recoveryStartBtn, #recoveryUpdateBtn)::after { content: none; }
+  html.cn #recovery #recoveryStartBtn::after,
+  html.cn #recovery #recoveryUpdateBtn::after { content: none; }
 }
 
 html.cn #recovery .recovery-usage-note:empty { display: none; }
@@ -1093,7 +1123,8 @@ html.cn #recovery .recovery-fact-card li {
 
 /* the markers say what kind of statement it is: solid = known, ring = inferred,
    grey ring = unknown (the heading carries the same mark as a legend) */
-html.cn #recovery .recovery-fact-card :is(h5, li)::before {
+html.cn #recovery .recovery-fact-card h5::before,
+html.cn #recovery .recovery-fact-card li::before {
   content: "";
   box-sizing: border-box;
   flex: none;
@@ -1109,12 +1140,14 @@ html.cn #recovery .recovery-fact-card li::before {
   top: .55em;
 }
 
-html.cn #recovery .recovery-fact-card:nth-child(2) :is(h5, li)::before {
+html.cn #recovery .recovery-fact-card:nth-child(2) h5::before,
+html.cn #recovery .recovery-fact-card:nth-child(2) li::before {
   border: 1.5px solid var(--cn-id-2);
   background: transparent;
 }
 
-html.cn #recovery .recovery-fact-card:nth-child(3) :is(h5, li)::before {
+html.cn #recovery .recovery-fact-card:nth-child(3) h5::before,
+html.cn #recovery .recovery-fact-card:nth-child(3) li::before {
   border: 1.5px solid var(--cn-text-2);
   background: transparent;
 }
@@ -1296,7 +1329,8 @@ html.cn #recovery .recovery-action-instruction {
   transition: color var(--cn-dur-2) ease;
 }
 
-html.cn #recovery :is(.recovery-action-why, .recovery-action-verify) {
+html.cn #recovery .recovery-action-why,
+html.cn #recovery .recovery-action-verify {
   max-width: 64ch;
   margin: 8px 0 0;
   color: var(--cn-text-2);
@@ -1753,7 +1787,8 @@ html.cn #recovery { --cn-support-mt: clamp(48px, 6vw, 96px); }
 @media (prefers-reduced-motion: reduce) {
   html.cn #recovery .recovery-toggle:active,
   html.cn #recovery .recovery-action-check input:active { scale: none; }
-  html.cn #recovery :is(#recoveryStartBtn, #recoveryUpdateBtn):hover::after { translate: none; }
+  html.cn #recovery #recoveryStartBtn:hover::after,
+  html.cn #recovery #recoveryUpdateBtn:hover::after { translate: none; }
 }
 
 /* ==========================================================================
@@ -1772,12 +1807,21 @@ html.cn #recovery {
 html.cn #recovery #recoveryUsageCard { box-shadow: var(--cn-pg-lift); }
 
 /* cards: the hairline and one soft lift */
-html.cn #recovery :is(.recovery-intake-card, .recovery-cases-card, .recovery-summary-card,
-  .recovery-immediate-card, .recovery-timeline-card, .recovery-remaining-card,
-  .recovery-resources-card, .recovery-update-card, .recovery-history-card) {
+html.cn #recovery .recovery-intake-card,
+html.cn #recovery .recovery-cases-card,
+html.cn #recovery .recovery-summary-card,
+html.cn #recovery .recovery-immediate-card,
+html.cn #recovery .recovery-timeline-card,
+html.cn #recovery .recovery-remaining-card,
+html.cn #recovery .recovery-resources-card,
+html.cn #recovery .recovery-update-card,
+html.cn #recovery .recovery-history-card {
   box-shadow: var(--cn-pg-lift);
 }
-html.cn #recovery :is(#recoveryDescription, #recoveryUpdateText, #recoveryAccounts, .recovery-field-grid select) {
+html.cn #recovery #recoveryDescription,
+html.cn #recovery #recoveryUpdateText,
+html.cn #recovery #recoveryAccounts,
+html.cn #recovery :where(.recovery-field-grid select):is(.recovery-field-grid select, #recoveryDescription) {
   background-color: var(--cn-pg-inset);
 }
 html.cn #recovery .recovery-upload-row .upload-icon-sm,

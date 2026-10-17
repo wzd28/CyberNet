@@ -39,7 +39,7 @@
   <link rel="stylesheet" href="/cybernet-howto.css?v=20260905-1" />
   <link id="cybernetBusinessTeamStylesheet" rel="stylesheet" href="/cybernet-business-team.css?v=20260927-2" />
   <link rel="stylesheet" href="/cybernet-consent.css?v=20260927-2" />
-  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261015-2" />
+  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261015-3" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=20260830-5">
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=20260830-5">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=20260830-5">
@@ -578,20 +578,17 @@
         </div>
       </div>
 
-      <!-- WHAT CYBERNET AI DOES: the AI chip and the manifesto (27-core.css + 57-core.js, 28-chipseq.css + 58-chipseq.js) -->
+      <!-- WHAT CYBERNET AI DOES: the AI core and the manifesto (27-core.css, 57-core.js) -->
       <section class="cn-core" id="cnCore" aria-labelledby="cnCoreTitle">
         <h2 class="cn-core-label" id="cnCoreTitle">What CyberNet AI does</h2>
         <p class="cn-core-tag cn-core-tag--top">Rules first. Then AI.</p>
-        <div class="cn-core-visual" aria-hidden="true">
-          <!-- the chip assembles as you scroll: 60 pre-rendered frames on one canvas (28-chipseq.css,
-               58-chipseq.js, scripts/render-chipseq.mjs); the poster is the last frame -->
-          <div class="cn-chipseq" data-cn="chipseq" data-cn-seq="/ui/3d/chipseq/" data-cn-seq-n="60" data-cn-seq-v="20261015-2">
-            <span class="cn-chipseq-pool"></span>
-            <picture class="cn-chipseq-poster">
-              <source media="(min-width: 480px)" srcset="/ui/3d/chipseq/d/059.webp?v=20261015-2" width="1000" height="800" />
-              <img src="/ui/3d/chipseq/m/059.webp?v=20261015-2" alt="" width="560" height="448" loading="lazy" decoding="async" />
-            </picture>
-            <canvas class="cn-chipseq-canvas" width="560" height="448"></canvas>
+        <div class="cn-core-visual" data-cn="core" aria-hidden="true">
+          <div class="cn-core-rig">
+            <div class="cn-core-float">
+              <img class="cn-core-base" src="/ui/3d/core-chip-720.webp?v=20261015-1" srcset="/ui/3d/core-chip-720.webp?v=20261015-1 720w, /ui/3d/core-chip.webp?v=20261015-1 1200w" sizes="(min-width: 62rem) min(50vw, 680px), min(100vw, 560px)" alt="" width="1200" height="1200" loading="lazy" decoding="async" />
+              <img class="cn-core-lid" src="/ui/3d/core-lid-720.webp?v=20261015-1" srcset="/ui/3d/core-lid-720.webp?v=20261015-1 720w, /ui/3d/core-lid.webp?v=20261015-1 1200w" sizes="(min-width: 62rem) min(50vw, 680px), min(100vw, 560px)" alt="" width="1200" height="1200" loading="lazy" decoding="async" />
+              <canvas class="cn-core-plume"></canvas>
+            </div>
           </div>
         </div>
         <p class="cn-manifesto" data-cn="manifesto">CyberNet AI reads the message <b>before you act</b>. Its own <b>scam rules</b> check a text, link or QR code in seconds. <b>Analysis AI</b> explains the warning signs in plain words. And if something already went wrong, <b>Recovery</b> gives you a plan, step by step.</p>
@@ -2718,13 +2715,13 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" defer></script>
   <script src="/config.js?v=20260830-3" defer></script>
   <script src="/cybernet-engine.js?v=20261015-1" defer></script>
-  <script src="/script.js?v=20261014-1" defer></script>
+  <script src="/script.js?v=20261015-3" defer></script>
   <script src="/cybernet-account-api-upgrade.js?v=20261005-2" defer></script>
   <script src="/cybernet-howto.js?v=20261005-2" defer></script>
 <script src="/cybernet-business-team.js?v=20261015-1" defer></script>
   <script src="/cybernet-final-ui-fix.js?v=20260930-2" defer></script>
-      <script src="/cybernet-legal-upgrade.js?v=20260930-2" defer></script>
-  <script src="/ui/cybernet-ui.js?v=20261015-2" defer></script>
+      <script src="/cybernet-legal-upgrade.js?v=20261015-3" defer></script>
+  <script src="/ui/cybernet-ui.js?v=20261015-3" defer></script>
 </body>
 </html>
 

@@ -23,7 +23,9 @@
    columns (640-999px), a list on phones. Down: totals 7 / glance 5 from 640px, one column below. */
 
 /* ---------- Panel shell (shared: .cn-live, .cn-threats, .cn-demo) ---------- */
-html.cn #home > :is(.cn-live, .cn-threats, .cn-demo) {
+html.cn #home > .cn-live,
+html.cn #home > .cn-threats,
+html.cn #home > .cn-demo {
   --cn-panel-r: var(--cn-r-band, clamp(28px, 1rem + 3vw, 56px));
   --cn-panel-px: clamp(16px, .25rem + 3.6vw, 72px);
   position: relative;
@@ -46,7 +48,8 @@ html.cn #home > .hero + .cn-live { margin-block-start: clamp(28px, 1rem + 3vw, 6
 /* Light panels: ground and edge (tokens: 00-tokens.css light scope). One faint cyan light at the
    top, a white top edge and a slate hairline. No outer shadow: on the navy ground it would only
    cost raster memory. No dot grid and no floating sprite: the band stays quiet. */
-html.cn #home > :is(.cn-live, .cn-demo) {
+html.cn #home > .cn-live,
+html.cn #home > .cn-demo {
   --cn-l-shadow: 0 1px 2px rgba(15, 23, 42, .05), 0 16px 32px -24px rgba(15, 23, 42, .22);
   color-scheme: light;
   color: var(--cn-text);
@@ -552,5 +555,6 @@ html.cn #home .cn-live .hero-why-panel .secondary-btn:focus-visible { outline: 2
 }
 
 /* Label floor: no text under --cn-step-label (12px), phones included (DESIGN.md rule 6). */
-html.cn #home .cn-live :is(.hero-live-stat span, .cn-funnel-row > span) { font-size: var(--cn-step-label); }
+html.cn #home .cn-live :is(.hero-live-stat span),
+html.cn #home .cn-live :is(.cn-funnel-row > span) { font-size: var(--cn-step-label); }
 

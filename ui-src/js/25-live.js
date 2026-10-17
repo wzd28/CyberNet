@@ -77,7 +77,7 @@
     var polls = 0, lastAt = 0, timer = 0, busy = false, inview = false, active = false;
 
     /* ---- painting ---- */
-    function setText(el, text) { if (el && el.textContent !== text) el.textContent = text; }
+    function setText(el, text) { CN.text(el, text); } /* in place: the legacy observers ignore it */
 
     /* Up: real numbers arrived, the eyebrow may say "Live". Down: no data could be read, so the
        section drops the claim and the empty bars (22-live.css), keeping the dashes and the note. */

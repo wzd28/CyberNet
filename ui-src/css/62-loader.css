@@ -19,7 +19,9 @@
    ========================================================================== */
 
 /* ---------- 1. While loading, only the head and the loader show ---------- */
-html.cn #businessTeamModal .cn-team-card.is-loading > :is(.cn-team-stats, .cn-team-section, .cn-team-message) {
+html.cn #businessTeamModal .cn-team-card.is-loading > .cn-team-stats,
+html.cn #businessTeamModal .cn-team-card.is-loading > .cn-team-section,
+html.cn #businessTeamModal .cn-team-card.is-loading > .cn-team-message {
   display: none;
 }
 
@@ -188,7 +190,8 @@ html.cn #businessTeamModal .cn-team-loader.is-error .cn-team-loader-line {
 }
 
 /* ---------- 4. The figures settle in once ---------- */
-html.cn #businessTeamModal .cn-team-card.is-revealing > :is(.cn-team-stats, .cn-team-section) {
+html.cn #businessTeamModal .cn-team-card.is-revealing > .cn-team-stats,
+html.cn #businessTeamModal .cn-team-card.is-revealing > .cn-team-section {
   animation: cn-ld-in var(--cn-dur-3) var(--cn-ease-out) both;
 }
 
@@ -246,7 +249,8 @@ html.cn #businessTeamModal .cn-team-activity-loading {
 /* Reduced motion and Pause motion: a still mark and a still segment of the line. The global
    catch-all (90-a11y.css) would leave every loop on its last frame, which here is invisible. */
 @media (prefers-reduced-motion: reduce) {
-  html.cn #businessTeamModal :is(.cn-team-loader-mark svg, .cn-team-loader-line > span) {
+  html.cn #businessTeamModal :is(.cn-team-loader-mark svg),
+  html.cn #businessTeamModal :is(.cn-team-loader-line > span) {
     animation: none;
   }
 
@@ -265,7 +269,8 @@ html.cn #businessTeamModal .cn-team-activity-loading {
   }
 }
 
-html.cn.cn-still #businessTeamModal :is(.cn-team-loader-mark svg, .cn-team-loader-line > span) {
+html.cn.cn-still #businessTeamModal :is(.cn-team-loader-mark svg),
+html.cn.cn-still #businessTeamModal :is(.cn-team-loader-line > span) {
   animation: none;
 }
 

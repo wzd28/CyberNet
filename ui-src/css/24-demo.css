@@ -726,5 +726,7 @@ html.cn.cn-js #home .cn-demo.is-snap .cn-step b::before { transition: none; }
 }
 
 /* Label floor: no text under --cn-step-label (12px), phones included (DESIGN.md rule 6). */
-html.cn #home :is(.cn-console-top .cn-mono, .cn-status, .cn-from) { font-size: var(--cn-step-label); }
+html.cn #home :is(.cn-console-top .cn-mono),
+html.cn #home :where(.cn-status):is(.cn-status, .cn-console-top .cn-mono),
+html.cn #home :where(.cn-from):is(.cn-from, .cn-console-top .cn-mono) { font-size: var(--cn-step-label); }
 

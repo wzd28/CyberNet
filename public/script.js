@@ -1026,6 +1026,9 @@ document.addEventListener("DOMContentLoaded",()=>{
 
   /* ─── Stable counters (fixed-width + requestAnimationFrame) ─── */
   const reduceCounterMotion=window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  /* Count-up frames edit the counter's one text node in place: replacing it (textContent=) on every frame made the
+     body-wide MutationObservers in cybernet-final-ui-fix.js and cybernet-legal-upgrade.js re-run their set-up 60 times a second. */
+  function setCounterText(el,text){const n=el.firstChild;if(n&&n===el.lastChild&&n.nodeType===3){if(n.nodeValue!==text)n.nodeValue=text}else el.textContent=text}
 
   function animateNumberElement(el,target,{decimal=false,suffix="",duration=850}={}){
     if(!el||el.dataset.animated==="true")return;
@@ -1040,9 +1043,9 @@ document.addEventListener("DOMContentLoaded",()=>{
       const raw=Math.min(1,(now-startTime)/duration);
       const eased=1-Math.pow(1-raw,3);
       const value=numericTarget*eased;
-      el.textContent=(decimal?value.toFixed(1):Math.round(value).toLocaleString())+suffix;
+      setCounterText(el,(decimal?value.toFixed(1):Math.round(value).toLocaleString())+suffix);
       if(raw<1)requestAnimationFrame(frame);
-      else el.textContent=(decimal?numericTarget.toFixed(1):Math.round(numericTarget).toLocaleString())+suffix;
+      else setCounterText(el,(decimal?numericTarget.toFixed(1):Math.round(numericTarget).toLocaleString())+suffix);
     }
     requestAnimationFrame(frame);
   }
@@ -1059,9 +1062,9 @@ document.addEventListener("DOMContentLoaded",()=>{
     function frame(now){
       const raw=Math.min(1,(now-startTime)/duration);
       const eased=1-Math.pow(1-raw,3);
-      el.textContent=Math.round(target*eased).toLocaleString();
+      setCounterText(el,Math.round(target*eased).toLocaleString());
       if(raw<1)requestAnimationFrame(frame);
-      else el.textContent=target.toLocaleString();
+      else setCounterText(el,target.toLocaleString());
     }
     requestAnimationFrame(frame);
   }

@@ -32,7 +32,8 @@
 /* ==========================================================================================
    0. Icons (stroke SVG masks painted with currentColor)
    ========================================================================================== */
-html.cn :is(#cybernet, #cybernetai) {
+html.cn #cybernet,
+html.cn #cybernetai {
   --cn-tl-i-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
   --cn-tl-i-x: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M7 7l10 10M17 7L7 17'/%3E%3C/svg%3E");
   --cn-tl-i-help: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9.1 9.2a3 3 0 0 1 5.8 1c0 2-2.9 2.5-2.9 4.5M12 18.4h.01'/%3E%3C/svg%3E");
@@ -72,20 +73,30 @@ html.cn #cybernetai {
   --cn-id-line: var(--cn-iris-line, rgba(165, 180, 252, .34));
 }
 
-/* Mask painter shared by every icon pseudo-element below (each sets --cn-tl-ic). */
-html.cn :is(#cybernet, #cybernetai) :is(
-  .detect-tab, .upload-icon, .wwc-item .wwc-icon, .result-box,
-  .verdict-headline-icon, .verdict-note > span, .details-toggle, .chat-attach-btn,
-  .send-btn, .plan-benefit-list > div > span
-)::before {
+/* Mask painter shared by every icon pseudo-element below (each sets --cn-tl-ic). Written out
+   one selector per element; ":where(x):is(x, .wwc-item .wwc-icon)" keeps the specificity the
+   old shared :is() list gave every branch (DESIGN.md, Performance: "the rightmost compound
+   needs a class"). */
+html.cn :is(#cybernet, #cybernetai) :where(.detect-tab):is(.detect-tab, .wwc-item .wwc-icon)::before,
+html.cn :is(#cybernet, #cybernetai) :where(.upload-icon):is(.upload-icon, .wwc-item .wwc-icon)::before,
+html.cn :is(#cybernet, #cybernetai) :is(.wwc-item .wwc-icon)::before,
+html.cn :is(#cybernet, #cybernetai) :where(.result-box):is(.result-box, .wwc-item .wwc-icon)::before,
+html.cn :is(#cybernet, #cybernetai) :where(.verdict-headline-icon):is(.verdict-headline-icon, .wwc-item .wwc-icon)::before,
+html.cn :is(#cybernet, #cybernetai) :where(.verdict-note > span):is(.verdict-note > span, .wwc-item .wwc-icon)::before,
+html.cn :is(#cybernet, #cybernetai) :where(.details-toggle):is(.details-toggle, .wwc-item .wwc-icon)::before,
+html.cn :is(#cybernet, #cybernetai) :where(.chat-attach-btn):is(.chat-attach-btn, .wwc-item .wwc-icon)::before,
+html.cn :is(#cybernet, #cybernetai) :where(.send-btn):is(.send-btn, .wwc-item .wwc-icon)::before,
+html.cn :is(#cybernet, #cybernetai) :where(.plan-benefit-list > div > span):is(.plan-benefit-list > div > span, .wwc-item .wwc-icon)::before {
   -webkit-mask: var(--cn-tl-ic) center / contain no-repeat;
   mask: var(--cn-tl-ic) center / contain no-repeat;
 }
 
 /* Mono captions: the small labels inside a report (the verdict, the score, its columns). */
 html.cn :is(#cybernet, #cybernetai) .verdict-headline-text::before,
-html.cn :is(#cybernet, #cybernetai) :is(.score-display, .diagnostic-score)::before,
-html.cn :is(#cybernet, #cybernetai) :is(.report-col-title, .diagnostic-col h5),
+html.cn :is(#cybernet, #cybernetai) .score-display::before,
+html.cn :is(#cybernet, #cybernetai) .diagnostic-score::before,
+html.cn :is(#cybernet, #cybernetai) :where(.report-col-title):is(.report-col-title, .diagnostic-col h5),
+html.cn :is(#cybernet, #cybernetai) :is(.diagnostic-col h5),
 html.cn :is(#cybernet, #cybernetai) :is(.counter-evidence, .diagnostic-counter) strong {
   font-family: var(--cn-font-mono);
   font-size: .6875rem;
@@ -117,8 +128,11 @@ html.cn #cybernetai .chat-bubble::before {
    ========================================================================================== */
 /* The support box is not in these lists: it keeps the one 860px look from 02-components. */
 html.cn #cybernet > .feature-page-header,
-html.cn #cybernetai > :is(.feature-page-header, .ai-layout),
-html.cn #cybernet .detect-panel > :is(.detect-panel-grid, .what-we-check, .recent-scans) {
+html.cn #cybernetai > .feature-page-header,
+html.cn #cybernetai > .ai-layout,
+html.cn #cybernet .detect-panel > .detect-panel-grid,
+html.cn #cybernet .detect-panel > .what-we-check,
+html.cn #cybernet .detect-panel > .recent-scans {
   max-width: var(--cn-max);
   margin-inline: auto;
 }
@@ -1111,7 +1125,8 @@ html.cn :is(#cybernet, #cybernetai) .scan-dots span {
 }
 
 /* Verdict tone variables (on the box, or on the chat bubble holding a report). */
-html.cn :is(#cybernet .result-box, #cybernetai .chat-bubble-inner) {
+html.cn :is(#cybernet .result-box),
+html.cn :is(#cybernetai .chat-bubble-inner) {
   --cn-tl-vi: var(--cn-tl-i-info);
   --cn-tl-vlabel: "Verdict";
 }
@@ -1165,7 +1180,8 @@ html.cn #cybernet .result-box[class*="result-has-"] {
        .diagnostic-report in Analysis AI). One entrance per new report (fill: backwards,
        so no transform lingers).
    ========================================================================================== */
-html.cn :is(#cybernet, #cybernetai) :is(.scan-report, .diagnostic-report) {
+html.cn :is(#cybernet, #cybernetai) .scan-report,
+html.cn :is(#cybernet, #cybernetai) .diagnostic-report {
   padding: 0;
   color: var(--cn-text-2);
   animation: cn-tl-report .45s var(--cn-ease-out) backwards;
@@ -1289,7 +1305,9 @@ html.cn :is(#cybernet, #cybernetai) .plain-action strong {
 }
 
 /* Where a link or QR code goes (and the paid live picture of the page). */
-html.cn :is(#cybernet, #cybernetai) :is(.dest-preview, .qr-preview, .links-found) {
+html.cn :is(#cybernet, #cybernetai) .dest-preview,
+html.cn :is(#cybernet, #cybernetai) .qr-preview,
+html.cn :is(#cybernet, #cybernetai) .links-found {
   margin: 0 0 var(--cn-4);
   padding: var(--cn-4);
   border: 1px solid var(--cn-line);
@@ -1311,7 +1329,8 @@ html.cn :is(#cybernet, #cybernetai) :is(.dest-preview, .qr-preview, .links-found
   font-weight: 600;
   letter-spacing: 0;
 }
-html.cn :is(#cybernet, #cybernetai) :is(.dest-url, .qr-raw) {
+html.cn :is(#cybernet, #cybernetai) .dest-url,
+html.cn :is(#cybernet, #cybernetai) .qr-raw {
   display: block;
   margin: 0;
   padding: 10px var(--cn-3);
@@ -1387,7 +1406,9 @@ html.cn :is(#cybernet, #cybernetai) .dest-shot img {
   border: 1px solid var(--cn-line);
   border-radius: 10px;
 }
-html.cn :is(#cybernet, #cybernetai) :is(.dest-shot-note, .screenshot-disclaimer, .screenshot-loading) {
+html.cn :is(#cybernet, #cybernetai) .dest-shot-note,
+html.cn :is(#cybernet, #cybernetai) .screenshot-disclaimer,
+html.cn :is(#cybernet, #cybernetai) .screenshot-loading {
   color: var(--cn-text-2);
   font-size: .8125rem;
   line-height: 1.55;
@@ -1442,7 +1463,8 @@ html.cn :is(#cybernet, #cybernetai) .report-details {
   margin-block-start: var(--cn-5);
   animation: cn-tl-fade .3s var(--cn-ease-out) backwards;
 }
-html.cn :is(#cybernet, #cybernetai) :is(.report-top-row, .diagnostic-report-head) {
+html.cn :is(#cybernet, #cybernetai) .report-top-row,
+html.cn :is(#cybernet, #cybernetai) .diagnostic-report-head {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -1451,7 +1473,8 @@ html.cn :is(#cybernet, #cybernetai) :is(.report-top-row, .diagnostic-report-head
   padding: 0 0 var(--cn-4);
   border-block-end: 1px solid var(--cn-line);
 }
-html.cn :is(#cybernet, #cybernetai) :is(.scam-type-tag, .diagnostic-scam-type) {
+html.cn :is(#cybernet, #cybernetai) .scam-type-tag,
+html.cn :is(#cybernet, #cybernetai) .diagnostic-scam-type {
   display: inline-flex;
   align-items: center;
   min-width: 0;
@@ -1464,7 +1487,8 @@ html.cn :is(#cybernet, #cybernetai) :is(.scam-type-tag, .diagnostic-scam-type) {
   font-weight: 500;
   line-height: 1.3;
 }
-html.cn :is(#cybernet, #cybernetai) :is(.score-display, .diagnostic-score) {
+html.cn :is(#cybernet, #cybernetai) .score-display,
+html.cn :is(#cybernet, #cybernetai) .diagnostic-score {
   display: inline-flex;
   align-items: baseline;
   gap: 2px;
@@ -1477,7 +1501,8 @@ html.cn :is(#cybernet, #cybernetai) :is(.score-display, .diagnostic-score) {
   letter-spacing: -.03em;
   font-variant-numeric: tabular-nums;
 }
-html.cn :is(#cybernet, #cybernetai) :is(.score-display, .diagnostic-score)::before {
+html.cn :is(#cybernet, #cybernetai) .score-display::before,
+html.cn :is(#cybernet, #cybernetai) .diagnostic-score::before {
   content: "Risk score";
   margin-inline-end: 10px;
   color: var(--cn-text-3);
@@ -1504,7 +1529,8 @@ html.cn :is(#cybernet, #cybernetai) .analysis-sources span {
   font-size: .75rem;
   font-weight: 500;
 }
-html.cn :is(#cybernet, #cybernetai) :is(.verdict-note, .diagnostic-note) {
+html.cn :is(#cybernet, #cybernetai) .verdict-note,
+html.cn :is(#cybernet, #cybernetai) .diagnostic-note {
   display: flex;
   align-items: flex-start;
   gap: 10px;
@@ -1540,7 +1566,8 @@ html.cn :is(#cybernet, #cybernetai) :is(.verdict-note, .diagnostic-note) p {
   font-size: .875rem;
   line-height: 1.55;
 }
-html.cn :is(#cybernet, #cybernetai) :is(.counter-evidence, .diagnostic-counter) {
+html.cn :is(#cybernet, #cybernetai) .counter-evidence,
+html.cn :is(#cybernet, #cybernetai) .diagnostic-counter {
   margin: 0 0 14px;
   padding: var(--cn-3) 14px 4px;
   border: 1px solid color-mix(in srgb, var(--cn-safe) 24%, transparent);
@@ -1585,25 +1612,29 @@ html.cn :is(#cybernet, #cybernetai) :is(.counter-evidence, .diagnostic-counter) 
 /* Evidence and safety steps: two columns when the card is wide enough. The query container
    is the result box (Quick Scan) or the conversation (Analysis AI): both have a definite
    width, so a report never depends on :has() to size its bubble. */
-html.cn :is(#cybernet, #cybernetai) :is(.report-body, .diagnostic-body) {
+html.cn :is(#cybernet, #cybernetai) .report-body,
+html.cn :is(#cybernet, #cybernetai) .diagnostic-body {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: var(--cn-5);
 }
 @container cn-report (min-width: 560px) {
-  html.cn :is(#cybernet, #cybernetai) :is(.report-body, .diagnostic-body) {
+  html.cn :is(#cybernet, #cybernetai) .report-body,
+  html.cn :is(#cybernet, #cybernetai) .diagnostic-body {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--cn-6);
   }
 }
-html.cn :is(#cybernet, #cybernetai) :is(.report-col, .diagnostic-col) {
+html.cn :is(#cybernet, #cybernetai) .report-col,
+html.cn :is(#cybernet, #cybernetai) .diagnostic-col {
   min-width: 0;
   padding: 0;
   border: 0;
   border-radius: 0;
   background: none;
 }
-html.cn :is(#cybernet, #cybernetai) :is(.report-col-title, .diagnostic-col h5) {
+html.cn :is(#cybernet, #cybernetai) :where(.report-col-title):is(.report-col-title, .diagnostic-col h5),
+html.cn :is(#cybernet, #cybernetai) :is(.diagnostic-col h5) {
   display: flex;
   align-items: center;
   gap: var(--cn-2);
@@ -1611,7 +1642,8 @@ html.cn :is(#cybernet, #cybernetai) :is(.report-col-title, .diagnostic-col h5) {
   color: var(--cn-text-2);
   line-height: 1.3;
 }
-html.cn :is(#cybernet, #cybernetai) :is(.col-warn, .col-safe) {
+html.cn :is(#cybernet, #cybernetai) .col-warn,
+html.cn :is(#cybernet, #cybernetai) .col-safe {
   display: block;
   flex: none;
   width: 7px;
@@ -1630,7 +1662,8 @@ html.cn #cybernetai .diagnostic-col h5::before {
   background: var(--cn-v);
 }
 html.cn #cybernetai .diagnostic-col:has(> .diagnostic-actions) h5::before { background: var(--cn-cyan-2); }
-html.cn :is(#cybernet, #cybernetai) :is(.report-list, .diagnostic-col ul) {
+html.cn :is(#cybernet, #cybernetai) :where(.report-list):is(.report-list, .diagnostic-col ul),
+html.cn :is(#cybernet, #cybernetai) :is(.diagnostic-col ul) {
   display: block;
   margin: 0;
   padding: 0;
@@ -1868,13 +1901,15 @@ html.cn #cybernetai #aiApiStatus {
   font-size: .875rem;
   line-height: 1.5;
 }
-html.cn #cybernetai #aiApiStatus > :is(.warning, .safe) {
+html.cn #cybernetai #aiApiStatus > .warning,
+html.cn #cybernetai #aiApiStatus > .safe {
   display: flex;
   align-items: baseline;
   gap: 10px;
   color: var(--cn-text-2);
 }
-html.cn #cybernetai #aiApiStatus > :is(.warning, .safe)::before {
+html.cn #cybernetai #aiApiStatus > .warning::before,
+html.cn #cybernetai #aiApiStatus > .safe::before {
   content: "";
   flex: none;
   width: 7px;
@@ -1906,7 +1941,8 @@ html.cn #cybernetai .ai-status-row {
   font-size: .875rem;
 }
 html.cn #cybernetai .ai-status-row > span:first-child { color: var(--cn-text-2); }
-html.cn #cybernetai :is(#aiModelName, #aiReqLeft) {
+html.cn #cybernetai #aiModelName,
+html.cn #cybernetai #aiReqLeft {
   font-family: var(--cn-font-mono);
   font-size: .8125rem;
   font-variant-numeric: tabular-nums;
@@ -2517,7 +2553,8 @@ html.cn #cybernetai .chat-clear-btn {
   color: var(--cn-text-3);
 }
 @media (hover: hover) and (pointer: fine) {
-  html.cn #cybernetai :is(.chat-attach-btn, .chat-clear-btn):hover {
+  html.cn #cybernetai .chat-attach-btn:hover,
+  html.cn #cybernetai .chat-clear-btn:hover {
     background: rgba(255, 255, 255, .05);
     color: var(--cn-text);
   }
@@ -2580,7 +2617,8 @@ html.cn #cybernetai #chatSendBtn.send-btn:active { scale: .97; translate: none; 
    13. Small screens
    ========================================================================================== */
 @media (max-width: 700px) {
-  html.cn #cybernet :is(.detect-main, .detect-side) { border-radius: var(--cn-r-card); }
+  html.cn #cybernet .detect-main,
+  html.cn #cybernet .detect-side { border-radius: var(--cn-r-card); }
   html.cn #cybernetai .ai-config { border-radius: var(--cn-r-card); }
   html.cn #cybernet #cyberTextInput { min-height: 160px; padding: var(--cn-4); font-size: 1rem; }
   html.cn #cybernetai .ai-chat { --cn-tl-side: var(--cn-4); }
@@ -2588,7 +2626,8 @@ html.cn #cybernetai #chatSendBtn.send-btn:active { scale: .97; translate: none; 
   html.cn #cybernetai .chat-input-row.chat-input-row-unified { margin: 0 10px 10px; }
 }
 @media (max-width: 480px) {
-  html.cn #cybernet :is(.detect-main, .detect-side) { padding: 18px; }
+  html.cn #cybernet .detect-main,
+  html.cn #cybernet .detect-side { padding: 18px; }
   html.cn #cybernet .result-box[class*="result-has-"] { padding: 18px var(--cn-4); }
   /* The welcome bubble says the same thing; the conversation gets the room. */
   html.cn #cybernetai .ai-chat-lead p { display: none; }
@@ -2627,7 +2666,8 @@ html.cn #cybernetai #chatSendBtn.send-btn:active { scale: .97; translate: none; 
   html.cn #cybernet .result-box[class*="result-has-"] { padding: var(--cn-4); }
   html.cn :is(#cybernet, #cybernetai) .verdict-headline { gap: var(--cn-3); }
   html.cn :is(#cybernet, #cybernetai) .verdict-headline-icon { width: 40px; height: 40px; }
-  html.cn :is(#cybernet, #cybernetai) :is(.score-display, .diagnostic-score)::before { content: "Risk"; }
+  html.cn :is(#cybernet, #cybernetai) .score-display::before,
+  html.cn :is(#cybernet, #cybernetai) .diagnostic-score::before { content: "Risk"; }
 }
 
 /* ==========================================================================================
@@ -2655,7 +2695,10 @@ html.cn #cybernetai #chatSendBtn.send-btn:active { scale: .97; translate: none; 
 
 @media (prefers-reduced-motion: reduce) {
   html.cn #cybernet .detect-panel.active,
-  html.cn :is(#cybernet, #cybernetai) :is(.scan-report, .diagnostic-report, .verdict-headline-icon, .report-details) {
+  html.cn :is(#cybernet, #cybernetai) .scan-report,
+  html.cn :is(#cybernet, #cybernetai) .diagnostic-report,
+  html.cn :is(#cybernet, #cybernetai) .verdict-headline-icon,
+  html.cn :is(#cybernet, #cybernetai) .report-details {
     animation: none;
   }
   html.cn #cybernet .scan-ring-fill { transition: none; }
@@ -2666,16 +2709,23 @@ html.cn #cybernetai #chatSendBtn.send-btn:active { scale: .97; translate: none; 
    15. Forced colours: icons painted with a system colour so they never vanish
    ========================================================================================== */
 @media (forced-colors: active) {
-  html.cn :is(#cybernet, #cybernetai) :is(
-    .detect-tab, .upload-icon, .wwc-item .wwc-icon, .result-box,
-    .verdict-headline-icon, .verdict-note > span, .details-toggle, .chat-attach-btn,
-    .send-btn, .plan-benefit-list > div > span
-  )::before {
+  html.cn :is(#cybernet, #cybernetai) :where(.detect-tab):is(.detect-tab, .wwc-item .wwc-icon)::before,
+  html.cn :is(#cybernet, #cybernetai) :where(.upload-icon):is(.upload-icon, .wwc-item .wwc-icon)::before,
+  html.cn :is(#cybernet, #cybernetai) :is(.wwc-item .wwc-icon)::before,
+  html.cn :is(#cybernet, #cybernetai) :where(.result-box):is(.result-box, .wwc-item .wwc-icon)::before,
+  html.cn :is(#cybernet, #cybernetai) :where(.verdict-headline-icon):is(.verdict-headline-icon, .wwc-item .wwc-icon)::before,
+  html.cn :is(#cybernet, #cybernetai) :where(.verdict-note > span):is(.verdict-note > span, .wwc-item .wwc-icon)::before,
+  html.cn :is(#cybernet, #cybernetai) :where(.details-toggle):is(.details-toggle, .wwc-item .wwc-icon)::before,
+  html.cn :is(#cybernet, #cybernetai) :where(.chat-attach-btn):is(.chat-attach-btn, .wwc-item .wwc-icon)::before,
+  html.cn :is(#cybernet, #cybernetai) :where(.send-btn):is(.send-btn, .wwc-item .wwc-icon)::before,
+  html.cn :is(#cybernet, #cybernetai) :where(.plan-benefit-list > div > span):is(.plan-benefit-list > div > span, .wwc-item .wwc-icon)::before {
     forced-color-adjust: none;
     background-color: CanvasText;
   }
   html.cn #cybernet .detect-tab.active { outline: 2px solid Highlight; }
-  html.cn :is(#cybernet, #cybernetai) :is(.risk-tag, .status-pill, .dest-badge) { border: 1px solid CanvasText; }
+  html.cn :is(#cybernet, #cybernetai) .risk-tag,
+  html.cn :is(#cybernet, #cybernetai) .status-pill,
+  html.cn :is(#cybernet, #cybernetai) .dest-badge { border: 1px solid CanvasText; }
 }
 
 /* ==========================================================================================
@@ -2693,7 +2743,12 @@ html.cn #cybernetai #cybernetByokPill {
    Analysis AI a small violet mark, Recovery mint. No gradient borders, no coloured glows, no
    gradient headlines, no big blurred shadows, no scroll-timeline motion, no infinite loops.
    ========================================================================================== */
-html.cn :is(#cybernet, #cybernetai, #recovery, #learn, #pricing, #about) {
+html.cn #cybernet,
+html.cn #cybernetai,
+html.cn #recovery,
+html.cn #learn,
+html.cn #pricing,
+html.cn #about {
   --cn-pg-inset: rgba(6, 10, 20, .5);                 /* wells: fields, the plan's raised cells */
   --cn-pg-lift: inset 0 1px 0 rgba(255, 255, 255, .045), 0 16px 32px -26px rgba(0, 0, 0, .6);
   --cn-pg-sprite-glow: rgba(34, 211, 238, .09);       /* a faint cool haze behind the chrome object */
@@ -2773,10 +2828,11 @@ html.cn :is(#cybernet, #cybernetai) .usage-meter-track span {
 html.cn #cybernet > .detect-tabs { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04); }
 html.cn #cybernet .detect-tab.active::before { background-color: var(--cn-cyan-2); }
 
-html.cn :is(
-  #cybernet .detect-main, #cybernet .detect-side, #cybernet .recent-scans,
-  #cybernetai .ai-config, #cybernetai .ai-chat
-) {
+html.cn :is(#cybernet .detect-main),
+html.cn :is(#cybernet .detect-side),
+html.cn :is(#cybernet .recent-scans),
+html.cn :is(#cybernetai .ai-config),
+html.cn :is(#cybernetai .ai-chat) {
   box-shadow: var(--cn-pg-lift);
 }
 html.cn #cybernet .detect-main {
@@ -2784,7 +2840,8 @@ html.cn #cybernet .detect-main {
   background: linear-gradient(90deg, var(--cn-cyan-line), transparent 46%) top left / 100% 1px no-repeat, var(--cn-surface);
 }
 
-html.cn #cybernet :is(#cyberTextInput, #cyberLinkInput) { background: var(--cn-pg-inset); }
+html.cn #cybernet #cyberTextInput,
+html.cn #cybernet #cyberLinkInput { background: var(--cn-pg-inset); }
 html.cn #cybernet .real-upload-box { background: var(--cn-pg-inset); }
 @media (hover: hover) and (pointer: fine) {
   html.cn #cybernet .real-upload-box:hover {
@@ -2811,11 +2868,16 @@ html.cn :is(#cybernet, #cybernetai) .verdict-headline-icon {
   background: color-mix(in srgb, var(--cn-v) 16%, transparent);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cn-v) 40%, transparent);
 }
-html.cn :is(#cybernet, #cybernetai) :is(.plain-action, .verdict-note, .diagnostic-note),
-html.cn :is(#cybernet, #cybernetai) :is(.dest-preview, .qr-preview, .links-found) {
+html.cn :is(#cybernet, #cybernetai) .plain-action,
+html.cn :is(#cybernet, #cybernetai) .verdict-note,
+html.cn :is(#cybernet, #cybernetai) .diagnostic-note,
+html.cn :is(#cybernet, #cybernetai) .dest-preview,
+html.cn :is(#cybernet, #cybernetai) .qr-preview,
+html.cn :is(#cybernet, #cybernetai) .links-found {
   background: var(--cn-pg-inset);
 }
-html.cn :is(#cybernet, #cybernetai) :is(.dest-url, .qr-raw) { background: rgba(3, 6, 14, .6); }
+html.cn :is(#cybernet, #cybernetai) .dest-url,
+html.cn :is(#cybernet, #cybernetai) .qr-raw { background: rgba(3, 6, 14, .6); }
 html.cn #cybernet .upload-preview-label { background: rgba(6, 10, 20, .88); }
 
 /* 17.4 Analysis AI: the conversation. The only violet is the small mark: the AI bubble's
@@ -2833,7 +2895,10 @@ html.cn #cybernetai .diagnostic-spinner { border-top-color: var(--cn-cyan-2); }
 }
 html.cn.cn-still #cybernetai > .feature-page-header > .cn-tl-orb > img { animation: none; }
 @media (forced-colors: active) {
-  html.cn :is(#cybernet .detect-main, #cybernet .detect-side, #cybernetai .ai-chat, #cybernetai .ai-config) { border-color: CanvasText; }
+  html.cn :is(#cybernet .detect-main),
+  html.cn :is(#cybernet .detect-side),
+  html.cn :is(#cybernetai .ai-chat),
+  html.cn :is(#cybernetai .ai-config) { border-color: CanvasText; }
 }
 
 /* ==========================================================================================

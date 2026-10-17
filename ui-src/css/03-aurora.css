@@ -55,7 +55,8 @@ html.cn body::after {
    .cn-stage-band / [data-cn-tone="stage"]: the dark stage (--cn-grad-stage).
    Zero specificity, so a section's own shell always wins.
    ------------------------------------------------------------------------------------------ */
-:where(html.cn) :where(.cn-light, [data-cn-tone="light"]) {
+:where(html.cn) :where(.cn-light),
+:where(html.cn) :where([data-cn-tone="light"]) {
   background-color: var(--cn-bg);
   background-image: radial-gradient(60% 50% at 50% 0%, rgba(34, 211, 238, .07), transparent 72%);
   border-radius: var(--cn-r-band);
@@ -64,7 +65,8 @@ html.cn body::after {
     0 0 0 1px rgba(15, 23, 42, .07),
     0 30px 60px -40px rgba(2, 6, 23, .45);
 }
-:where(html.cn) :where(.cn-stage-band, [data-cn-tone="stage"]) {
+:where(html.cn) :where(.cn-stage-band),
+:where(html.cn) :where([data-cn-tone="stage"]) {
   background: var(--cn-grad-stage);
   border-radius: var(--cn-r-band);
   box-shadow:
