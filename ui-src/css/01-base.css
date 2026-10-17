@@ -72,22 +72,38 @@ html.cn .tilt-card {
 /* ------------------------------------------------------------------------------------------
    3. Type
    ------------------------------------------------------------------------------------------ */
-:where(html.cn) :where(button, input, select, textarea) {
+:where(html.cn) :where(button),
+:where(html.cn) :where(input),
+:where(html.cn) :where(select),
+:where(html.cn) :where(textarea) {
   font-family: inherit;
   letter-spacing: inherit;
 }
 /* Without this, buttons that set no colour use the UA buttontext colour. */
 :where(html.cn) button { color: inherit; }
 
-html.cn :where(h1, h2, h3, h4, h5, h6) {
+html.cn :where(h1),
+html.cn :where(h2),
+html.cn :where(h3),
+html.cn :where(h4),
+html.cn :where(h5),
+html.cn :where(h6) {
   font-family: var(--cn-font);
   font-weight: 600;
   letter-spacing: var(--cn-track-h2);
   text-wrap: balance;
 }
-html.cn :where(h3, h4, h5, h6) { letter-spacing: -.015em; }
-html.cn :where(p, li, dd, blockquote, figcaption) { text-wrap: pretty; }
-html.cn :where(strong, b) { font-weight: 600; }
+html.cn :where(h3),
+html.cn :where(h4),
+html.cn :where(h5),
+html.cn :where(h6) { letter-spacing: -.015em; }
+html.cn :where(p),
+html.cn :where(li),
+html.cn :where(dd),
+html.cn :where(blockquote),
+html.cn :where(figcaption) { text-wrap: pretty; }
+html.cn :where(strong),
+html.cn :where(b) { font-weight: 600; }
 
 /* Two-tone headlines: the lead phrase in --cn-text, the continuation (the plain <span> inside
    a page h1/h2) in --cn-text-2. Legacy painted these spans cyan with a glow; this also clears
@@ -131,14 +147,42 @@ html.cn :where(.page) :is(.feature-page-header, .section-head) > p:where(:not(.f
 
 /* Labels and numbers keep JetBrains Mono (the legacy mono token now maps to the sans).
    (0,1,1): beats the legacy single-class rules, loses to any component rule. */
-html.cn :where(code, kbd, samp, pre,
-  .account-eyebrow, .price-plan-label, .plan-badge, .usage-chip, .save-tag, .char-count,
-  .api-key-label, .term-path, .term-body, .fetch-body, .qr-raw, .qr-kind, .dest-url, .dest-badge,
-  .diagnostic-followup-tag, .cybernet-account-live-badge, .cybernet-account-plan-badge,
-  .cybernet-byok-status-pill, .cn-team-tier-badge, .cn-role-badge, .cn-team-pending-badge,
-  .cn-team-pending-countdown, .cn-activity-kind, .cn-activity-verdict, .cn-activity-url,
-  .hw-step-count, .hw-callout-label, .hw-tag, .hw-score, .hw-meter-label, .hw-tl-when,
-  .brand-text) {
+html.cn :where(code),
+html.cn :where(kbd),
+html.cn :where(samp),
+html.cn :where(pre),
+html.cn :where(.account-eyebrow),
+html.cn :where(.price-plan-label),
+html.cn :where(.plan-badge),
+html.cn :where(.usage-chip),
+html.cn :where(.save-tag),
+html.cn :where(.char-count),
+html.cn :where(.api-key-label),
+html.cn :where(.term-path),
+html.cn :where(.term-body),
+html.cn :where(.fetch-body),
+html.cn :where(.qr-raw),
+html.cn :where(.qr-kind),
+html.cn :where(.dest-url),
+html.cn :where(.dest-badge),
+html.cn :where(.diagnostic-followup-tag),
+html.cn :where(.cybernet-account-live-badge),
+html.cn :where(.cybernet-account-plan-badge),
+html.cn :where(.cybernet-byok-status-pill),
+html.cn :where(.cn-team-tier-badge),
+html.cn :where(.cn-role-badge),
+html.cn :where(.cn-team-pending-badge),
+html.cn :where(.cn-team-pending-countdown),
+html.cn :where(.cn-activity-kind),
+html.cn :where(.cn-activity-verdict),
+html.cn :where(.cn-activity-url),
+html.cn :where(.hw-step-count),
+html.cn :where(.hw-callout-label),
+html.cn :where(.hw-tag),
+html.cn :where(.hw-score),
+html.cn :where(.hw-meter-label),
+html.cn :where(.hw-tl-when),
+html.cn :where(.brand-text) {
   font-family: var(--cn-font-mono);
 }
 
@@ -300,7 +344,9 @@ html.cn [data-cn-stagger].is-done > * {
    Lift and press use the independent translate/scale properties, so no legacy transform rule
    and no JS-set transform is fought. Buttons never move toward the pointer.
    ------------------------------------------------------------------------------------------ */
-html.cn :is(.primary-btn, .secondary-btn, .cn-btn) {
+html.cn .primary-btn,
+html.cn .secondary-btn,
+html.cn .cn-btn {
   align-items: center;
   justify-content: center;
   gap: var(--cn-2);
@@ -331,18 +377,21 @@ html.cn :is(.primary-btn, .secondary-btn, .cn-btn) {
 }
 html.cn .cn-btn { display: inline-flex; }
 
-html.cn :is(.primary-btn, .cn-btn) {
+html.cn .primary-btn,
+html.cn .cn-btn {
   background: var(--cn-brand);
   color: var(--cn-on-brand);
   border: 1px solid transparent;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), inset 0 -1px 0 rgba(2, 6, 23, .16);
 }
 /* The primary CTA glows: a soft cyan halo, no motion. */
-html.cn :is(.primary-btn, .cn-btn):is(.big, .cn-cta) {
+html.cn .primary-btn:is(.big, .cn-cta),
+html.cn .cn-btn:is(.big, .cn-cta) {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), inset 0 -1px 0 rgba(2, 6, 23, .16), var(--cn-glow-cta);
 }
 /* On a light band the pill gets a teal edge, so it reads against the pale ground (1.6:1 alone). */
-html.cn :is(.cn-light, [data-cn-tone="light"], #home > .cn-live, #home > .cn-demo, #home > .why-choose, #home > .wow-section) :is(.primary-btn, .cn-btn) {
+html.cn :is(.cn-light, [data-cn-tone="light"], #home > .cn-live, #home > .cn-demo, #home > .why-choose, #home > .wow-section) .primary-btn,
+html.cn :is(.cn-light, [data-cn-tone="light"], #home > .cn-live, #home > .cn-demo, #home > .why-choose, #home > .wow-section) .cn-btn {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), 0 0 0 1px rgba(14, 116, 144, .4), 0 8px 18px -10px rgba(15, 23, 42, .3);
 }
 html.cn .secondary-btn {
@@ -360,13 +409,17 @@ html.cn :is(.primary-btn, .secondary-btn, .cn-btn).big {
 }
 
 /* Legacy hover lifts with transform; that is replaced by the 1px translate below. */
-html.cn :is(.primary-btn, .secondary-btn, .cn-btn):hover { transform: none; }
+html.cn .primary-btn:hover,
+html.cn .secondary-btn:hover,
+html.cn .cn-btn:hover { transform: none; }
 @media (hover: hover) and (pointer: fine) {
-  html.cn :is(.primary-btn, .cn-btn):not(:disabled):hover {
+  html.cn .primary-btn:not(:disabled):hover,
+  html.cn .cn-btn:not(:disabled):hover {
     background: var(--cn-brand-2);
     translate: 0 -1px;
   }
-  html.cn :is(.primary-btn, .cn-btn):is(.big, .cn-cta):not(:disabled):hover {
+  html.cn .primary-btn:is(.big, .cn-cta):not(:disabled):hover,
+  html.cn .cn-btn:is(.big, .cn-cta):not(:disabled):hover {
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6), inset 0 -1px 0 rgba(2, 6, 23, .14), var(--cn-glow-cta-hover);
   }
   html.cn .secondary-btn:not(:disabled):hover {
@@ -376,11 +429,15 @@ html.cn :is(.primary-btn, .secondary-btn, .cn-btn):hover { transform: none; }
     translate: 0 -1px;
   }
 }
-html.cn :is(.primary-btn, .secondary-btn, .cn-btn):not(:disabled):active {
+html.cn .primary-btn:not(:disabled):active,
+html.cn .secondary-btn:not(:disabled):active,
+html.cn .cn-btn:not(:disabled):active {
   scale: .98;
   translate: none;
 }
-html.cn :is(.primary-btn, .secondary-btn, .cn-btn):disabled,
+html.cn .primary-btn:disabled,
+html.cn .secondary-btn:disabled,
+html.cn .cn-btn:disabled,
 html.cn :is(.primary-btn, .secondary-btn, .cn-btn)[aria-disabled="true"] {
   opacity: .45;
   cursor: not-allowed;
@@ -389,7 +446,9 @@ html.cn :is(.primary-btn, .secondary-btn, .cn-btn)[aria-disabled="true"] {
 }
 /* A button that is busy (script.js puts a spinner inside and disables it) reads as working,
    not as unavailable. */
-html.cn :is(.primary-btn, .secondary-btn, .cn-btn):disabled:has(.btn-spinner) {
+html.cn .primary-btn:disabled:has(.btn-spinner),
+html.cn .secondary-btn:disabled:has(.btn-spinner),
+html.cn .cn-btn:disabled:has(.btn-spinner) {
   opacity: .85;
   cursor: progress;
 }
@@ -503,8 +562,9 @@ html.cn .home-limits-note strong { color: var(--cn-text); }
    the one non-text contrast a field needs, since its fill barely differs from the card.
    (0,1,1)/(0,2,1): any component rule wins.
    ------------------------------------------------------------------------------------------ */
-html.cn :where(textarea, select,
-  input:is([type="text"], [type="email"], [type="password"], [type="search"], [type="url"],
+html.cn :where(textarea),
+html.cn :where(select),
+html.cn :where(input:is([type="text"], [type="email"], [type="password"], [type="search"], [type="url"],
     [type="tel"], [type="number"], [type="date"], :not([type]))) {
   background-color: var(--cn-surface-2);
   border: 1px solid var(--cn-line-ctl);
@@ -519,14 +579,16 @@ html.cn :where(textarea, select,
   transition: border-color var(--cn-dur-1) ease, background-color var(--cn-dur-1) ease;
 }
 @media (hover: hover) and (pointer: fine) {
-  html.cn :where(textarea, select,
-    input:is([type="text"], [type="email"], [type="password"], [type="search"], [type="url"],
+  html.cn :where(textarea):hover,
+  html.cn :where(select):hover,
+  html.cn :where(input:is([type="text"], [type="email"], [type="password"], [type="search"], [type="url"],
       [type="tel"], [type="number"], [type="date"], :not([type]))):hover {
     border-color: color-mix(in srgb, var(--cn-text) 58%, transparent);
   }
 }
-html.cn :where(textarea, select,
-  input:is([type="text"], [type="email"], [type="password"], [type="search"], [type="url"],
+html.cn :where(textarea):focus,
+html.cn :where(select):focus,
+html.cn :where(input:is([type="text"], [type="email"], [type="password"], [type="search"], [type="url"],
     [type="tel"], [type="number"], [type="date"], :not([type]))):focus {
   background-color: var(--cn-surface-2);
   border-color: var(--cn-line-ctl);
@@ -534,12 +596,15 @@ html.cn :where(textarea, select,
   outline: 2px solid var(--cn-ring);
   outline-offset: 2px;
 }
-html.cn :where(textarea, input)::placeholder {
+html.cn :where(textarea)::placeholder,
+html.cn :where(input)::placeholder {
   color: var(--cn-text-3);
   font-family: var(--cn-font);
   opacity: 1;
 }
-html.cn :where(textarea, select, input):disabled {
+html.cn :where(textarea):disabled,
+html.cn :where(select):disabled,
+html.cn :where(input):disabled {
   opacity: .55;
   cursor: not-allowed;
 }
@@ -564,7 +629,8 @@ html.cn :where(select) option {
 /* Checkbox and radio fallback skin. Zero specificity on purpose: every component skin (the
    recovery checklist, the legal consent boxes) wins without a fight. The native input stays
    in place (JS reads .checked); only its paint changes. Switches keep their own skin. */
-:where(html.cn input[type="checkbox"]:not([role="switch"]), html.cn input[type="radio"]) {
+:where(html.cn input[type="checkbox"]:not([role="switch"])),
+:where(html.cn input[type="radio"]) {
   -webkit-appearance: none;
   appearance: none;
   flex: none;
@@ -593,10 +659,12 @@ html.cn :where(select) option {
   background-size: 100% 100%;
 }
 /* legacy input:focus paints a cyan glow on every input, boxes included */
-html.cn :where(input[type="checkbox"]:not([role="switch"]), input[type="radio"]):focus {
+html.cn :where(input[type="checkbox"]:not([role="switch"])):focus,
+html.cn :where(input[type="radio"]):focus {
   box-shadow: none;
 }
-:where(html.cn input[type="checkbox"], html.cn input[type="radio"]):disabled {
+:where(html.cn input[type="checkbox"]):disabled,
+:where(html.cn input[type="radio"]):disabled {
   opacity: .45;
   cursor: not-allowed;
 }
@@ -623,7 +691,8 @@ html.cn :where(table) {
   font-size: var(--cn-step-small);
   font-variant-numeric: tabular-nums;
 }
-html.cn :where(th, td) {
+html.cn :where(th),
+html.cn :where(td) {
   padding: var(--cn-3) var(--cn-4);
   border-bottom: 1px solid var(--cn-line);
   text-align: start;
@@ -638,7 +707,9 @@ html.cn :where(th) {
   text-transform: uppercase;
 }
 
-html.cn :where(code, kbd, samp) {
+html.cn :where(code),
+html.cn :where(kbd),
+html.cn :where(samp) {
   padding: .12em .4em;
   border: 1px solid var(--cn-line);
   border-radius: 6px;

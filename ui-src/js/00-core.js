@@ -19,19 +19,26 @@
    - CN.reduced(): prefers-reduced-motion. CN.onMotion(cb) -> off(): cb(reduced) on a change.
    - CN.hidden(): the tab is hidden. CN.onVisibility(cb) -> off(): cb(visible) on a change.
    - CN.loop(fn): a requestAnimationFrame loop { start, stop, running }; fn(t, dt). Every loop is
-     suspended while the tab is hidden and resumes when it is shown.
+     suspended while the tab is hidden or the page is covered, and resumes after.
+   - CN.covered(): the page is hidden under a full-screen opaque layer (the phone menu sheet;
+     12-nav.js calls CN.setCovered). CN.onCover(cb) -> off(): cb(covered) on a change. Anything
+     that keeps drawing (canvases, timers) should rest while covered.
    - CN.pause(scope) / CN.resume(scope): calls pause() / resume() on the controllers of the
      modules inside scope (an element; the whole page when omitted).
 
    Viewport and pages
    - CN.inView(el, cb, opts) -> stop(): cb(visible, entry) whenever el enters or leaves the
      viewport (opts.margin, opts.threshold). Without IntersectionObserver, cb(true) once, async.
+     Watches with the same options share one observer (see pool() below); always call stop()
+     when a watch is no longer needed, so the element leaves the observer.
    - CN.once(el, fn, opts) -> stop(), alias CN.onVisible: fn() the first time el is visible
      (threshold .15 unless opts.threshold).
    - CN.onPage(cb): cb(id) for the legacy page now showing ("home", "cybernet", ...), then on
      every switch.
 
-   Small helpers: now, saveData, finePointer, qs, qsa, clamp, lerp, easeOut. Adds html.cn-js,
+   Small helpers: now, saveData, finePointer, qs, qsa, clamp, lerp, easeOut, and text(el, s) for
+   repeated text writes (counters): it edits the one text node in place, which the legacy
+   body-wide MutationObservers ignore (a replaced text node re-runs their set-up). Adds html.cn-js,
    which enables the hidden "before" states of reveals (so nothing hides without JS). */
 (function () {
   "use strict";
@@ -48,6 +55,16 @@
   function hidden() { return !!doc.hidden; }
   function qs(sel, ctx) { return (ctx || doc).querySelector(sel); }
   function qsa(sel, ctx) { return Array.prototype.slice.call((ctx || doc).querySelectorAll(sel)); }
+  /* text(el, s): write text by changing the element's one text node in place (a characterData
+     change) instead of replacing its children: the legacy body-wide observers re-run their
+     whole set-up for every added node, but ignore in-place text edits. */
+  function text(el, s) {
+    if (!el) return;
+    s = String(s);
+    var n = el.firstChild;
+    if (n && n === el.lastChild && n.nodeType === 3) { if (n.nodeValue !== s) n.nodeValue = s; }
+    else if (el.textContent !== s) el.textContent = s;
+  }
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
   function lerp(a, b, t) { return a + (b - a) * t; }
   function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
@@ -67,7 +84,18 @@
       fire: function (v) { list.slice().forEach(function (cb) { try { cb(v); } catch (e) { report("listener", e); } }); }
     };
   }
-  var motion = channel(), visibility = channel();
+  var motion = channel(), visibility = channel(), cover = channel();
+  /* Covered: a full-screen opaque layer (the phone menu sheet, 12-nav.js) hides the whole page,
+     so nothing under it needs to move. Loops (CN.loop) suspend while covered, and canvases
+     (10-hero3d.js, 09-bgfx.js) listen through CN.onCover. */
+  var covered = false;
+  function setCovered(v) {
+    v = !!v;
+    if (v === covered) return;
+    covered = v;
+    loops.forEach(function (l) { if (covered) l._suspend(); else l._resume(); });
+    cover.fire(covered);
+  }
   if (mqReduce) {
     var onReduce = function () { motion.fire(reduced()); };
     if (mqReduce.addEventListener) mqReduce.addEventListener("change", onReduce);
@@ -85,10 +113,10 @@
       raf = requestAnimationFrame(frame);
     }
     var api = {
-      start: function () { wanted = true; if (on || doc.hidden) return; on = true; last = 0; raf = requestAnimationFrame(frame); },
+      start: function () { wanted = true; if (on || doc.hidden || covered) return; on = true; last = 0; raf = requestAnimationFrame(frame); },
       stop: function () { wanted = false; on = false; cancelAnimationFrame(raf); },
       _suspend: function () { on = false; cancelAnimationFrame(raf); },
-      _resume: function () { if (wanted && !on) { on = true; last = 0; raf = requestAnimationFrame(frame); } },
+      _resume: function () { if (wanted && !on && !doc.hidden && !covered) { on = true; last = 0; raf = requestAnimationFrame(frame); } },
       running: function () { return on; }
     };
     loops.push(api);
@@ -146,20 +174,51 @@
   }
 
   /* ---------- viewport ---------- */
+  /* One shared IntersectionObserver per (margin, threshold), not one per call: the page asks for
+     about a hundred watches, and every observer is worked out again on every scrolled frame.
+     A pool holds each element once; a second watch on the same element with the same options
+     goes to a second pool, so it still gets its own first report. Stopping a watch unobserves
+     the element once nothing else in that pool needs it. */
+  var pools = {};
+  function pool(margin, threshold, el) {
+    var key = margin + "|" + String(threshold), list = pools[key] || (pools[key] = []);
+    for (var i = 0; i < list.length; i++) if (!list[i].map.has(el)) return list[i];
+    var p = { map: new Map(), io: null };
+    p.io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        var cbs = p.map.get(e.target);
+        if (!cbs) return;
+        cbs.slice().forEach(function (f) {
+          if (cbs.indexOf(f) < 0) return; /* stopped by an earlier callback in this batch */
+          try { f(e.isIntersecting, e); } catch (err) { report("inView", err); }
+        });
+      });
+    }, { rootMargin: margin, threshold: threshold });
+    list.push(p);
+    return p;
+  }
   function inView(el, cb, opts) {
     opts = opts || {};
     if (!el) return function () {};
-    if (!("IntersectionObserver" in win)) {
+    if (!("IntersectionObserver" in win) || typeof Map !== "function") {
       /* Old in-app WebViews: treat it as visible, once, after the caller has its stop(). */
       var off = false;
       setTimeout(function () { if (!off) cb(true, null); }, 0);
       return function () { off = true; };
     }
-    var io = new IntersectionObserver(function (entries) {
-      entries.forEach(function (e) { cb(e.isIntersecting, e); });
-    }, { rootMargin: opts.margin || "0px", threshold: opts.threshold || 0 });
-    io.observe(el);
-    return function () { io.disconnect(); };
+    var p = pool(opts.margin || "0px", opts.threshold || 0, el);
+    p.map.set(el, [cb]);
+    p.io.observe(el);
+    var stopped = false;
+    return function () {
+      if (stopped) return;
+      stopped = true;
+      var cbs = p.map.get(el);
+      if (!cbs) return;
+      var i = cbs.indexOf(cb);
+      if (i >= 0) cbs.splice(i, 1);
+      if (!cbs.length) { p.map.delete(el); p.io.unobserve(el); }
+    };
   }
   function once(el, fn, opts) {
     var done = false, stop = null;
@@ -238,9 +297,10 @@
 
   win.CN = {
     now: now, reduced: reduced, saveData: saveData, finePointer: finePointer, hidden: hidden,
-    qs: qs, qsa: qsa, clamp: clamp, lerp: lerp, easeOut: easeOut,
+    qs: qs, qsa: qsa, clamp: clamp, lerp: lerp, easeOut: easeOut, text: text,
     inView: inView, once: once, onVisible: once, loop: loop,
     onMotion: motion.add, onVisibility: visibility.add,
+    covered: function () { return covered; }, onCover: cover.add, setCovered: setCovered,
     register: register, mount: mount,
     pause: function (scope) { control(scope, "pause"); },
     resume: function (scope) { control(scope, "resume"); },

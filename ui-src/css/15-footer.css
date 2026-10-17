@@ -190,7 +190,8 @@ html.cn body > footer .cn-footer-legal button {
 }
 
 /* ---------- the "Pause motion" control: a quiet outlined pill ---------- */
-html.cn body > footer :is(.cn-motion-toggle, [data-cn-motion]) {
+html.cn body > footer .cn-motion-toggle,
+html.cn body > footer [data-cn-motion] {
   box-sizing: border-box;
   min-height: 40px;
   margin: 0;
@@ -212,7 +213,9 @@ html.cn body > footer :is(.cn-motion-toggle, [data-cn-motion]).is-paused {
 }
 
 /* as a direct child of the footer it takes the fine-print row, at the inline end */
-html.cn body > footer > :is(.cn-motion-toggle, [data-cn-motion], .cn-footer-tools) {
+html.cn body > footer > .cn-motion-toggle,
+html.cn body > footer > [data-cn-motion],
+html.cn body > footer > .cn-footer-tools {
   grid-column: 2;
   grid-row: 3;
   justify-self: end;
@@ -240,7 +243,8 @@ html.cn body > footer .cn-footer-brand:focus-visible {
     text-decoration-color: currentColor;
   }
 
-  html.cn body > footer :is(.cn-motion-toggle, [data-cn-motion]):hover {
+  html.cn body > footer .cn-motion-toggle:hover,
+  html.cn body > footer [data-cn-motion]:hover {
     border-color: rgba(148, 163, 184, .6);
     background: rgba(255, 255, 255, .09);
     color: #fff;
@@ -291,7 +295,9 @@ html.cn body > footer .cn-footer-brand:focus-visible {
     padding-top: var(--cn-2);
   }
 
-  html.cn body > footer > :is(.cn-motion-toggle, [data-cn-motion], .cn-footer-tools) {
+  html.cn body > footer > .cn-motion-toggle,
+  html.cn body > footer > [data-cn-motion],
+  html.cn body > footer > .cn-footer-tools {
     grid-column: 1;
     grid-row: 5;
     justify-self: start;
@@ -326,7 +332,8 @@ html.cn body > footer .cn-footer-brand:focus-visible {
     border-top: 1px solid CanvasText;
   }
 
-  html.cn body > footer :is(.cn-motion-toggle, [data-cn-motion]) {
+  html.cn body > footer .cn-motion-toggle,
+  html.cn body > footer [data-cn-motion] {
     border: 1px solid ButtonText;
   }
 }

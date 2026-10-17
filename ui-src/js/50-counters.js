@@ -7,8 +7,9 @@
    value as written ("4.5" counts with one decimal) unless data-decimals says otherwise;
    thousands get commas. The text written in the HTML is the source of truth: it is what
    crawlers, no-JS visitors and reduced-motion visitors see, and it is put back exactly at the
-   end. Text is written at most every 48 ms, and only when it changes, because a body-wide
-   MutationObserver in cybernet-final-ui-fix.js reacts to every text change. */
+   end. Text is written at most every 48 ms, and only when it changes, and in place (CN.text: the
+   one text node's value changes), because the body-wide MutationObservers in
+   cybernet-final-ui-fix.js and cybernet-legal-upgrade.js re-run their set-up for every added node. */
 (function () {
   "use strict";
   var CN = window.CN;
@@ -46,13 +47,43 @@
     var cs = window.getComputedStyle(el);
     if (cs.display !== "inline" && cs.display !== "inline-block") { el.__cnLocked = true; return; }
     var now = el.textContent;
-    el.textContent = c.final;
+    CN.text(el, c.final);
     var w = el.getBoundingClientRect().width;
-    el.textContent = now;
+    CN.text(el, now);
     if (!w) return;
     if (cs.display === "inline") el.style.display = "inline-block";
     el.style.minWidth = Math.ceil(w) + "px";
     el.__cnLocked = true;
+  }
+  /* The same for every number that comes near in one go: all reads first, then all writes, in
+     one animation frame (numbers that come near together, like the four Home stats, used to force
+     a page layout each, from inside the observer's callbacks). The text is the final one then. */
+  var lockQueue = [];
+  function lockSoon(el, c, then) {
+    lockQueue.push({ el: el, c: c, then: then });
+    if (lockQueue.length === 1) requestAnimationFrame(flushLocks);
+  }
+  function flushLocks() {
+    var list = lockQueue;
+    lockQueue = [];
+    list.forEach(function (x) {
+      if (x.el.__cnLocked || x.el.textContent !== x.c.final) return;
+      var d = window.getComputedStyle(x.el).display;
+      x.inline = d === "inline" || d === "inline-block";
+      x.d = d;
+      x.w = x.inline ? x.el.getBoundingClientRect().width : 0;
+    });
+    list.forEach(function (x) {
+      if (!x.el.__cnLocked && x.d) {
+        if (!x.inline) x.el.__cnLocked = true;
+        else if (x.w) {
+          if (x.d === "inline") x.el.style.display = "inline-block";
+          x.el.style.minWidth = Math.ceil(x.w) + "px";
+          x.el.__cnLocked = true;
+        }
+      }
+      x.then();
+    });
   }
 
   function run(el, c) {
@@ -62,7 +93,7 @@
       if (!start) start = t;
       var p = Math.min(1, (t - start) / c.dur);
       if (p >= 1) {
-        el.textContent = c.final;
+        CN.text(el, c.final);
         el.classList.remove("is-counting");
         el.classList.add("is-done");
         return;
@@ -70,7 +101,7 @@
       if (t - lastWrite >= STEP_MS) {
         var v = c.from + (c.to - c.from) * ease(p);
         var s = format(c.dec ? v : Math.round(v), c);
-        if (s !== shown) { el.textContent = s; shown = s; }
+        if (s !== shown) { CN.text(el, s); shown = s; }
         lastWrite = t;
       }
       requestAnimationFrame(frame);
@@ -103,14 +134,16 @@
       if (started) return;
       if (near && !primed) {
         primed = true;
-        lockWidth(el, c);
-        el.textContent = format(c.from, c);
-        stopStart = CN.inView(el, function (vis) { if (vis) begin(); }, { margin: "0px 0px -12% 0px" });
-        if (started && stopStart) stopStart();
+        lockSoon(el, c, function () {
+          if (!primed || started || stopStart) return;
+          CN.text(el, format(c.from, c));
+          stopStart = CN.inView(el, function (vis) { if (vis) begin(); }, { margin: "0px 0px -12% 0px" });
+          if (started && stopStart) stopStart();
+        });
       } else if (!near && primed) {
         primed = false;
         if (stopStart) { stopStart(); stopStart = null; }
-        el.textContent = c.final;
+        CN.text(el, c.final);
       }
     }, { margin: "40% 0px 40% 0px" });
     if (started && stopNear) stopNear();

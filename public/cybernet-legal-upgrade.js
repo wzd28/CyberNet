@@ -568,8 +568,17 @@
     });
     refresh();
 
+    // refresh() depends only on which elements exist (added nodes), the pricing data-cycle, hidden, and two class
+    // lookups (.cn-analysis-disclaimer, .cybernet-account-card). A class change anywhere else (scroll reveals,
+    // animation states, counters) cannot change its result, and used to re-run it on nearly every frame.
+    const relevant = mutation => {
+      if (mutation.type !== "attributes") return mutation.addedNodes.length > 0;
+      if (mutation.attributeName !== "class") return true;
+      const target = mutation.target;
+      return !!target.closest?.(".modal, .cn-legal-modal, form, #pricingToggle, #proPlanBtn, .cn-analysis-disclaimer, .cybernet-account-card");
+    };
     const observer = new MutationObserver(mutations => {
-      if (mutations.some(mutation => mutation.addedNodes.length || mutation.type === "attributes")) queueRefresh();
+      if (mutations.some(relevant)) queueRefresh();
     });
     observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-cycle", "class", "hidden"] });
 

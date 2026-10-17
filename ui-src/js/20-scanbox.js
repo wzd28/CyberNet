@@ -8,8 +8,8 @@
    c) The textarea grows with its text, from two rows up to five.
    d) Placeholder typer: types and deletes the examples in
       data-cn-placeholders. It stops (and shows the static placeholder) while
-      the box is focused, filled, off-screen, the tab is hidden, or motion is
-      reduced.
+      the box is focused, filled, off-screen, the tab is hidden, the phone menu
+      sheet covers the page, or motion is reduced.
    e) The one cyan sweep across "seconds", 600ms after load, once.
    f) An optional Pause button (.cn-stage-pause) stops the hero's motion.
    g) On Home, the skip link (.cn-skip) lands in the scan box; on every other
@@ -167,7 +167,7 @@
 
       function allowed() {
         return started && visible && !focused && !motionPaused && doc.activeElement !== input && !doc.hidden &&
-          !input.value && !CN.reduced() && phrases.length > 0;
+          !CN.covered() && !input.value && !CN.reduced() && phrases.length > 0;
       }
       function show(s) { shown = s; input.setAttribute("placeholder", s); }
       function schedule(ms) { clearTimeout(timer); timer = setTimeout(tick, ms); }
@@ -201,6 +201,7 @@
         input.addEventListener("blur", function () { focused = false; sync(); });
         input.addEventListener("input", function () { if (input.value) halt(); });
         doc.addEventListener("visibilitychange", sync);
+        CN.onCover(sync);
         CN.inView(box, function (vis) { visible = vis; sync(); });
         CN.afterLoad(function () {
           started = true;

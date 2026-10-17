@@ -27,7 +27,9 @@
 }
 
 /* The sheet shell: same edges, radius and side padding as the other home panels. */
-html.cn #home > :is(.why-choose, .wow-section, .home-quote) {
+html.cn #home > .why-choose,
+html.cn #home > .wow-section,
+html.cn #home > .home-quote {
   --cn-panel-r: clamp(24px, .9rem + 1.6vw, 40px);
   --cn-panel-px: clamp(16px, .25rem + 3.6vw, 72px);
   --cn-panel-py: clamp(56px, 2.25rem + 4vw, 112px);
@@ -52,7 +54,10 @@ html.cn #home > :is(.why-choose, .wow-section, .home-quote) {
    different device pixels, leaving a 1px step at their seam. Rounding the side margins puts every
    sheet edge on a whole pixel (well under 1px from the hero and the other panels). */
 @supports (margin-inline: round(1.5px, 1px)) {
-  html.cn #home > :is(.cn-flow, .why-choose, .wow-section, .home-quote) {
+  html.cn #home > .cn-flow,
+  html.cn #home > .why-choose,
+  html.cn #home > .wow-section,
+  html.cn #home > .home-quote {
     margin-inline:
       round(max(var(--cn-gutter-l), calc((100% - var(--cn-max-wide)) / 2)), 1px)
       round(max(var(--cn-gutter-r), calc((100% - var(--cn-max-wide)) / 2)), 1px);
@@ -73,7 +78,8 @@ html.cn #home > .home-quote {
 /* The light scope for both parts of the sheet: the same values 00-tokens.css gives its light
    bands (.cn-light), so every shared component inside reads ink text, white cards and deep
    cyan marks (the AI mark in indigo). Every pair is at least 4.5:1 (ratios in 00-tokens.css). */
-html.cn #home > :is(.why-choose, .wow-section) {
+html.cn #home > .why-choose,
+html.cn #home > .wow-section {
   --cn-bg: #f5f7fa;
   --cn-bg-2: #eef2f6;
   --cn-surface: #ffffff;
@@ -407,7 +413,8 @@ html.cn #home .cn-node-out rect:not(.cn-node-ring):not(.cn-node-ping) { --cn-nod
 html.cn #home .cn-beams[data-cn-run] .cn-beam-pulses path {
   animation: var(--cn-beam-anim, none) var(--cn-beam-dur) linear var(--cn-beam-delay, 0ms) 1 both;
 }
-html.cn #home .cn-beams[data-cn-run] :is(.cn-node-engine rect, .cn-node-out rect:not(.cn-node-ring):not(.cn-node-ping)) {
+html.cn #home .cn-beams[data-cn-run] :where(.cn-node-engine rect):is(.cn-node-engine rect, .cn-node-out rect:not(.cn-node-ring):not(.cn-node-ping)),
+html.cn #home .cn-beams[data-cn-run] :is(.cn-node-out rect:not(.cn-node-ring):not(.cn-node-ping)) {
   animation: var(--cn-node-anim, none) var(--cn-beam-dur) linear var(--cn-beam-delay, 0ms) 1 both;
 }
 html.cn #home .cn-beams[data-cn-run] .cn-node-ping {

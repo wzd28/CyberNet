@@ -346,7 +346,8 @@ html.cn.cn-still .cn-live-dot.is-on::after { animation: none; }
    card. Containers that clip (content-visibility, overflow) never clip it: the ring sits inside
    the border box.
    ------------------------------------------------------------------------------------------ */
-html.cn :is(.cn-card, .cn-glass) {
+html.cn .cn-card,
+html.cn .cn-glass {
   position: relative;
   padding: clamp(20px, 3cqi, 32px);
   border: 1px solid transparent;
@@ -355,7 +356,8 @@ html.cn :is(.cn-card, .cn-glass) {
   box-shadow: inset 0 1px 0 var(--cn-hi), var(--cn-shadow-card);
   color: var(--cn-text);
 }
-html.cn :is(.cn-card, .cn-glass)::before {
+html.cn .cn-card::before,
+html.cn .cn-glass::before {
   content: "";
   position: absolute;
   inset: -1px;
@@ -567,7 +569,11 @@ html.cn #home.page {
   padding-inline: 0;
   padding-block-end: clamp(48px, 1.5rem + 3vw, 80px);
 }
-html.cn #home > :is(.cn-live, .cn-threats, .cn-demo, .cn-flow, .why-choose) {
+html.cn #home > .cn-live,
+html.cn #home > .cn-threats,
+html.cn #home > .cn-demo,
+html.cn #home > .cn-flow,
+html.cn #home > .why-choose {
   box-sizing: border-box;
   width: auto;
   max-width: calc(var(--cn-max) + var(--cn-gutter-l) + var(--cn-gutter-r));
@@ -576,7 +582,10 @@ html.cn #home > :is(.cn-live, .cn-threats, .cn-demo, .cn-flow, .why-choose) {
   padding-inline: var(--cn-gutter-l) var(--cn-gutter-r);
   padding-block: calc(var(--cn-section) / 2);
 }
-html.cn #home > :is(.wow-section, .home-quote, .home-limits-note, .support-box) {
+html.cn #home > .wow-section,
+html.cn #home > .home-quote,
+html.cn #home > .home-limits-note,
+html.cn #home > .support-box {
   --cn-block-max: var(--cn-max);
   box-sizing: border-box;
   width: auto;
@@ -586,10 +595,12 @@ html.cn #home > :is(.wow-section, .home-quote, .home-limits-note, .support-box) 
     max(var(--cn-gutter-l), calc((100% - var(--cn-block-max)) / 2))
     max(var(--cn-gutter-r), calc((100% - var(--cn-block-max)) / 2));
 }
-html.cn #home > :is(.wow-section, .home-quote) + :is(.wow-section, .home-quote) {
+html.cn #home > :is(.wow-section, .home-quote) + .wow-section,
+html.cn #home > :is(.wow-section, .home-quote) + .home-quote {
   margin-block-start: var(--cn-section);
 }
-html.cn #home > :is(.home-limits-note, .support-box) { --cn-block-max: 860px; }
+html.cn #home > .home-limits-note,
+html.cn #home > .support-box { --cn-block-max: 860px; }
 html.cn #home > .home-limits-note { margin-block-end: var(--cn-6); }
 html.cn #home > .home-limits-note + .support-box { margin-block-start: var(--cn-6); }
 html.cn #home > :last-child { margin-block-end: 0; }
@@ -597,7 +608,10 @@ html.cn #home > :last-child { margin-block-end: 0; }
 /* A light band placed directly in Home (.cn-light / [data-cn-tone="light"] on a section):
    an inset sheet lined up with the hero stage (--cn-max-wide, gutter margins), its content held
    to --cn-max inside. Phones under 560px: the band runs edge to edge, its corners still round. */
-html.cn #home > :is(.cn-light, [data-cn-tone="light"], .cn-stage-band, [data-cn-tone="stage"]) {
+html.cn #home > .cn-light,
+html.cn #home > [data-cn-tone="light"],
+html.cn #home > .cn-stage-band,
+html.cn #home > [data-cn-tone="stage"] {
   --cn-band-in: clamp(20px, .25rem + 3.6vw, 72px);
   max-width: none;
   margin-block: clamp(14px, .5rem + 1vw, 24px);
@@ -608,7 +622,10 @@ html.cn #home > :is(.cn-light, [data-cn-tone="light"], .cn-stage-band, [data-cn-
   padding-inline: max(var(--cn-band-in), calc((100% - 2 * max(var(--cn-gutter), (100% - var(--cn-max-wide)) / 2) - var(--cn-max)) / 2));
 }
 @media (max-width: 559.98px) {
-  html.cn #home > :is(.cn-light, [data-cn-tone="light"], .cn-stage-band, [data-cn-tone="stage"]) {
+  html.cn #home > .cn-light,
+  html.cn #home > [data-cn-tone="light"],
+  html.cn #home > .cn-stage-band,
+  html.cn #home > [data-cn-tone="stage"] {
     margin-inline: 0;
     padding-inline: var(--cn-gutter-l) var(--cn-gutter-r);
   }

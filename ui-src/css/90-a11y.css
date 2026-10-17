@@ -76,7 +76,11 @@ html.cn #cnMain:focus {
   html.cn .cn-live-dot::after,
   html.cn .cn-live-dot.is-on::after { animation: none; opacity: 0; }
 
-  html.cn :is(.primary-btn, .secondary-btn, .cn-btn, .cn-chip, .cn-motion-toggle):is(:hover, :active) {
+  html.cn .primary-btn:is(:hover, :active),
+  html.cn .secondary-btn:is(:hover, :active),
+  html.cn .cn-btn:is(:hover, :active),
+  html.cn .cn-chip:is(:hover, :active),
+  html.cn .cn-motion-toggle:is(:hover, :active) {
     translate: none;
     scale: none;
   }
@@ -100,7 +104,8 @@ html.cn.cn-still.cn-js [data-cn-stagger]:not(.is-in) > * {
   opacity: 1;
 }
 html.cn.cn-still :where(.page) .reveal { transform: none; filter: none; }
-html.cn.cn-still :is([data-cn-reveal].is-in, [data-cn-stagger].is-in > *) { animation: none; }
+html.cn.cn-still [data-cn-reveal].is-in,
+html.cn.cn-still :is([data-cn-stagger].is-in > *) { animation: none; }
 html.cn.cn-still .cn-live-dot::after { animation: none; opacity: 0; }
 html.cn.cn-still body *:not([class*="spinner"]),
 html.cn.cn-still body *:not([class*="spinner"])::before,
@@ -121,17 +126,35 @@ html.cn.cn-still body [class*="spinner"] {
    visually hidden input (upload boxes, Recovery toggles) carry the ring for it.
    ------------------------------------------------------------------------------------------ */
 @media (forced-colors: active) {
-  html.cn :is(.primary-btn, .secondary-btn, .cn-btn, .cn-chip, .cn-ghost-btn, .inline-link-btn) {
+  html.cn .primary-btn,
+  html.cn .secondary-btn,
+  html.cn .cn-btn,
+  html.cn .cn-chip,
+  html.cn .cn-ghost-btn,
+  html.cn .inline-link-btn {
     border: 1px solid ButtonText;
   }
-  html.cn :is(.pill, .cn-eyebrow, .cn-verdict, .cn-ex, .cn-card, .cn-glass, .cn-motion-toggle, .home-limits-note, .cn-light, [data-cn-tone]),
+  html.cn .pill,
+  html.cn .cn-eyebrow,
+  html.cn .cn-verdict,
+  html.cn .cn-ex,
+  html.cn .cn-card,
+  html.cn .cn-glass,
+  html.cn .cn-motion-toggle,
+  html.cn .home-limits-note,
+  html.cn .cn-light,
+  html.cn [data-cn-tone],
   html.cn :where(main) .glass {
     border: 1px solid CanvasText;
   }
-  html.cn :is(.cn-card, .cn-glass, .page > .support-box)::before { display: none; }
+  html.cn :where(.cn-card):is(.cn-card, .page > .support-box)::before,
+  html.cn :where(.cn-glass):is(.cn-glass, .page > .support-box)::before,
+  html.cn :is(.page > .support-box)::before { display: none; }
   html.cn .cn-motion-toggle::before { border-color: ButtonText; }
   html.cn :focus-visible,
-  html.cn :is(.real-upload-box, .recovery-toggle, .recovery-upload-row):has(input:focus-visible) {
+  html.cn .real-upload-box:has(input:focus-visible),
+  html.cn .recovery-toggle:has(input:focus-visible),
+  html.cn .recovery-upload-row:has(input:focus-visible) {
     outline: 2px solid Highlight !important;
     outline-offset: 3px !important;
   }
@@ -142,7 +165,8 @@ html.cn.cn-still body [class*="spinner"] {
   html.cn .cn-live-dot::after { display: none; }
   html.cn .cn-verdict::before { background: CanvasText; }
   /* hand checkboxes and radios back to the system so their state stays visible */
-  :where(html.cn input[type="checkbox"], html.cn input[type="radio"]) {
+  :where(html.cn input[type="checkbox"]),
+  :where(html.cn input[type="radio"]) {
     -webkit-appearance: auto;
     appearance: auto;
   }
@@ -161,7 +185,12 @@ html.cn.cn-still body [class*="spinner"] {
    ------------------------------------------------------------------------------------------ */
 @media (prefers-contrast: more) {
   html.cn,
-  html.cn :is(.cn-light, [data-cn-tone="light"], #home > .cn-live, #home > .cn-demo, #home > .why-choose, #home > .wow-section) {
+  html.cn :where(.cn-light):is(.cn-light, #home > .cn-live),
+  html.cn :where([data-cn-tone="light"]):is([data-cn-tone="light"], #home > .cn-live),
+  html.cn :is(#home > .cn-live),
+  html.cn :is(#home > .cn-demo),
+  html.cn :is(#home > .why-choose),
+  html.cn :is(#home > .wow-section) {
     --cn-text-2: color-mix(in srgb, var(--cn-text) 86%, var(--cn-bg));
     --cn-text-3: color-mix(in srgb, var(--cn-text) 72%, var(--cn-bg));
     --cn-line: color-mix(in srgb, var(--cn-text) 26%, transparent);
@@ -172,13 +201,19 @@ html.cn.cn-still body [class*="spinner"] {
     --cn-glass-2: var(--cn-surface-2);
   }
   html.cn :focus-visible { outline-width: 3px; }
-  html.cn :where(textarea, input)::placeholder { color: var(--cn-text-2); }
+  html.cn :where(textarea)::placeholder,
+  html.cn :where(input)::placeholder { color: var(--cn-text-2); }
 }
 
 /* Less transparency: glass becomes a solid surface (the text then sits on a known colour). */
 @media (prefers-reduced-transparency: reduce) {
   html.cn,
-  html.cn :is(.cn-light, [data-cn-tone="light"], #home > .cn-live, #home > .cn-demo, #home > .why-choose, #home > .wow-section) {
+  html.cn :where(.cn-light):is(.cn-light, #home > .cn-live),
+  html.cn :where([data-cn-tone="light"]):is([data-cn-tone="light"], #home > .cn-live),
+  html.cn :is(#home > .cn-live),
+  html.cn :is(#home > .cn-demo),
+  html.cn :is(#home > .why-choose),
+  html.cn :is(#home > .wow-section) {
     --cn-glass: var(--cn-surface);
     --cn-glass-2: var(--cn-surface-2);
   }
@@ -192,7 +227,10 @@ html.cn.cn-still body [class*="spinner"] {
   html.cn body {
     padding-top: env(safe-area-inset-top, 0px);
   }
-  html.cn :is(button, a, [role="button"], [role="tab"]) {
+  html.cn :where(button):is(button, [role="button"]),
+  html.cn :where(a):is(a, [role="button"]),
+  html.cn [role="button"],
+  html.cn [role="tab"] {
     -webkit-touch-callout: none;
   }
 }
@@ -215,17 +253,36 @@ html.cn.cn-still body [class*="spinner"] {
     animation: none !important;
     transition: none !important;
   }
-  html.cn :is(h1, h2, h3, h4, p, li, strong, span, small, td, th) {
+  html.cn h1,
+  html.cn h2,
+  html.cn h3,
+  html.cn h4,
+  html.cn p,
+  html.cn li,
+  html.cn strong,
+  html.cn span,
+  html.cn small,
+  html.cn td,
+  html.cn th {
     color: CanvasText !important;
   }
-  html.cn :is(h1, h2, h3, h4) { break-after: avoid; }
-  html.cn :is(.cn-card, table, pre, blockquote, figure) { break-inside: avoid; }
+  html.cn h1,
+  html.cn h2,
+  html.cn h3,
+  html.cn h4 { break-after: avoid; }
+  html.cn .cn-card,
+  html.cn :where(table):is(table, .cn-card),
+  html.cn :where(pre):is(pre, .cn-card),
+  html.cn :where(blockquote):is(blockquote, .cn-card),
+  html.cn :where(figure):is(figure, .cn-card) { break-inside: avoid; }
   html.cn :where(main) .glass,
   html.cn .cn-card {
     background: none !important;
     border-color: GrayText !important;
   }
-  html.cn :is(canvas, video, .cn-live-dot) { display: none; }
+  html.cn :where(canvas):is(canvas, .cn-live-dot),
+  html.cn :where(video):is(video, .cn-live-dot),
+  html.cn .cn-live-dot { display: none; }
   html.cn .reveal { opacity: 1 !important; transform: none !important; }
   html.cn :where(a[href^="http"]:not([class]))::after {
     content: " (" attr(href) ")";

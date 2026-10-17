@@ -77,7 +77,9 @@ html.cn main *::after {
    placeholder is far from their real height (the page jumps while scrolling, deep links land
    in the wrong place) and the paint containment clipped anything that overflowed them.
    ------------------------------------------------------------------------------------------ */
-html.cn :is(.wow-section, .pricing-grid, .about-values) {
+html.cn .wow-section,
+html.cn .pricing-grid,
+html.cn .about-values {
   content-visibility: visible;
   contain-intrinsic-size: none;
 }
@@ -98,7 +100,9 @@ html.cn :is(.wow-section, .pricing-grid, .about-values) {
    overflows on purpose. Wins over the content-visibility:visible list in 28-home-more.css by
    source order at equal specificity.
    ------------------------------------------------------------------------------------------ */
-html.cn #home > :is(.cn-demo, .cn-flow, .why-choose) {
+html.cn #home > .cn-demo,
+html.cn #home > .cn-flow,
+html.cn #home > .why-choose {
   content-visibility: auto;
   contain-intrinsic-size: auto 880px;
 }

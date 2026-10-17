@@ -14,6 +14,8 @@
    - html.cn-menu-open mirrors .navbar.open (a MutationObserver on the nav's class), so the
      scroll lock in 10-nav.css needs no root-anchored :has() (DESIGN.md, Performance). The
      class sits on <html>, outside the body-wide legacy observers.
+   - While the sheet is open on a phone or tablet it covers the whole page, so CN.setCovered(true)
+     rests the hero globe, the signal lines and every CN.loop under it (00-core.js).
    - No scroll bleed behind the sheet: html.cn-menu-open sets overflow:hidden, and while the
      sheet is open (and only then) a touchmove guard stops a drag that starts on the sheet's
      ground, its top row or its bottom bar from scrolling the page underneath on browsers that
@@ -50,13 +52,32 @@
     }
 
     if (nav && "MutationObserver" in window) {
+      /* The sheet is opaque and covers the whole screen: the canvases and loops under it rest at
+         once, and carry on just after the first frame without it (waking them reads layout,
+         which must not happen inside the tap that closes the sheet and switches the page). */
+      var uncoverRaf = 0;
+      var cover = function (on) {
+        if (!CN.setCovered) return;
+        if (uncoverRaf) { cancelAnimationFrame(uncoverRaf); uncoverRaf = 0; }
+        if (on) { CN.setCovered(true); return; }
+        if (!CN.covered()) return;
+        uncoverRaf = requestAnimationFrame(function () {
+          uncoverRaf = 0;
+          setTimeout(function () { if (!sheetOpen()) CN.setCovered(false); }, 0);
+        });
+      };
       var syncOpen = function () {
-        var open = nav.classList.contains("open");
+        var open = nav.classList.contains("open"), sheet = open && (!mqSheet || mqSheet.matches);
         document.documentElement.classList.toggle("cn-menu-open", open);
-        guard(open && (!mqSheet || mqSheet.matches));
+        guard(sheet);
+        cover(sheet);
       };
       syncOpen();
       new MutationObserver(syncOpen).observe(nav, { attributes: true, attributeFilter: ["class"] });
+      if (mqSheet) {
+        if (mqSheet.addEventListener) mqSheet.addEventListener("change", syncOpen);
+        else if (mqSheet.addListener) mqSheet.addListener(syncOpen);
+      }
 
       var tabs = CN.qs(".nav-tabs", nav);
       if (tabs) {

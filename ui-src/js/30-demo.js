@@ -170,7 +170,7 @@
 
       var label = STATUS[0][1];
       STATUS.forEach(function (s) { if (t >= s[0]) label = s[1]; });
-      if (statusText && statusText.textContent !== label) statusText.textContent = label;
+      CN.text(statusText, label);
 
       steps.forEach(function (li, n) {
         var span = STEPS[n] || STEPS[STEPS.length - 1];

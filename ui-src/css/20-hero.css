@@ -566,7 +566,8 @@ html.cn #home #cnScanBox .hero-buttons {
   margin: 0;
   margin-inline-start: auto;
 }
-html.cn #home #cnScanBox .hero-buttons :is(.primary-btn, .secondary-btn) {
+html.cn #home #cnScanBox .hero-buttons .primary-btn,
+html.cn #home #cnScanBox .hero-buttons .secondary-btn {
   display: inline-flex;
   box-sizing: border-box;
   height: 44px;
@@ -591,7 +592,9 @@ html.cn #home #cnScanBox .hero-buttons .primary-btn::after {
   background: rgba(3, 6, 13, .14) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8h9M8.5 4.5 12 8l-3.5 3.5' fill='none' stroke='%23051018' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 14px no-repeat;
 }
 html.cn[dir="rtl"] #home #cnScanBox .hero-buttons .primary-btn::after { transform: scaleX(-1); }
-html.cn #home #cnScanBox :is(.cn-chip, .primary-btn, .secondary-btn):focus-visible {
+html.cn #home #cnScanBox .cn-chip:focus-visible,
+html.cn #home #cnScanBox .primary-btn:focus-visible,
+html.cn #home #cnScanBox .secondary-btn:focus-visible {
   outline: 2px solid var(--h4-cyan);
   outline-offset: 3px;
 }
@@ -794,9 +797,11 @@ html.cn #home .hero-content .cn-hero-recovery-btn::after {
   html.cn #home #cnScanBox .cn-try-label { display: none; }
   html.cn #home #cnScanBox .cn-try { padding-inline-start: 0; }
   html.cn #home #cnScanBox .hero-buttons { gap: 0; }
-  html.cn #home #cnScanBox .hero-buttons :is(.primary-btn, .secondary-btn) { flex-basis: 100%; }
+  html.cn #home #cnScanBox .hero-buttons .primary-btn,
+  html.cn #home #cnScanBox .hero-buttons .secondary-btn { flex-basis: 100%; }
   html.cn #home #cnScanBox .hero-buttons .primary-btn { order: -1; }
-  html.cn #home #cnScanBox .hero-buttons :is(.primary-btn, .secondary-btn) { min-width: 0; height: auto; padding-block: 7px; white-space: normal; }
+  html.cn #home #cnScanBox .hero-buttons .primary-btn,
+  html.cn #home #cnScanBox .hero-buttons .secondary-btn { min-width: 0; height: auto; padding-block: 7px; white-space: normal; }
 }
 /* folds */
 @container cn-hero (max-width: 236px) {
@@ -980,7 +985,9 @@ html.cn #home .hero .hero-video-btn:active { scale: .98; }
    same round button, added by 55-scrub.js) and the footer "Pause motion" stay in the page for keyboard
    users and appear only while focused; visitors with the system "reduce motion" setting are still
    stilled automatically (90-a11y.css, 07-aurora.js). */
-html.cn :is(.cn-stage-pause, .cn-close-pause, .cn-motion-toggle):not(:focus-visible) {
+html.cn .cn-stage-pause:not(:focus-visible),
+html.cn .cn-close-pause:not(:focus-visible),
+html.cn .cn-motion-toggle:not(:focus-visible) {
   position: absolute !important;
   width: 1px !important;
   height: 1px !important;

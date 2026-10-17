@@ -21,8 +21,9 @@
      the old 1.25 the light lines and their travelling pulses were stretched 2.4x and looked
      soft), with a pixel cap (2 M desktop, 1.15 M touch); about 30 fps on touch screens. A
      governor lowers the resolution, then the frame rate (and drops the extras), then gives up.
-   - Pauses off screen, while the tab is hidden (rAF), while Home is not shown and while
-     the hero's Pause button is pressed (20-scanbox.js dispatches "cn-hero-motion").
+   - Pauses off screen, while the tab is hidden (rAF), while Home is not shown, while the phone
+     menu sheet covers it (CN.onCover) and while the hero's Pause button is pressed
+     (20-scanbox.js dispatches "cn-hero-motion").
    - Desktop (fine pointer): drag the globe to turn it (it coasts, then eases back to its slow
      spin). No pointer parallax: nothing follows the cursor. Touch screens keep native
      scrolling.
@@ -353,12 +354,17 @@
       try { G.frame(s * ramp); } catch (e) { fail(e); }
     }
     function play() {
-      if (state !== "ready" || held || !visible || !allowed() || !homeShown()) return;
+      if (state !== "ready" || held || !visible || !allowed() || !homeShown() || CN.covered()) return;
       slow.last = 0;
       loop.start();
     }
     function pause() { loop.stop(); slow.last = 0; }
 
+    /* the phone menu sheet covers the stage: rest under it, carry on when it closes */
+    offs.push(CN.onCover(function (on) {
+      if (on) { endDrag(); pause(); }
+      else if (state === "ready") play();
+    }));
     offs.push(CN.onMotion(function (reduced) {
       if (reduced) { endDrag(); pause(); box.classList.remove("is-live"); return; }
       if (state === "ready") { box.classList.add("is-live"); play(); } else maybe();

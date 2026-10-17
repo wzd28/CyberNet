@@ -16,7 +16,10 @@
    - When a layer closes and focus was lost on the way (on <body> or inside the closed layer),
      focus returns to the control that opened it, or else to the layer underneath.
    Layers stack: the Legal Center over the sign-in dialog, the sign-in dialog opened from the
-   sheet. Only the top layer is live; closing it hands focus back to the one below. */
+   sheet. Only the top layer is live; closing it hands focus back to the one below.
+   Timing (v4.4): a class change is handled right after the next frame (schedule()), so the
+   layer appears first and the page-wide restyle that inert causes never delays that frame. Tab,
+   Escape and focusin handle it at once (they call refresh()). */
 (function () {
   "use strict";
   var CN = window.CN;
@@ -148,7 +151,26 @@
     if (under) { var first = tabbables(under)[0]; if (first) focus(first); }
   }
 
+  /* Class changes are handled just after the next frame, not inside the tap that made them:
+     the sheet or dialog paints first, then the rest of the page goes inert and focus moves
+     (both restyle the whole page, which used to hold that first frame back). The element that
+     had focus when the layer opened is remembered at once, so focus still returns to it.
+     Keys (Tab, Escape) and focus checks call refresh() directly, so containment is exact. */
+  var pending = false, openerHint = null;
+  function schedule() {
+    if (!openerHint) openerHint = doc.activeElement;
+    if (pending) return;
+    pending = true;
+    var done = false;
+    var run = function () { if (done) return; done = true; if (pending) refresh(); };
+    requestAnimationFrame(function () { setTimeout(run, 0); });
+    setTimeout(run, 150); /* a hidden tab runs no frames */
+  }
+
   function refresh() {
+    pending = false;
+    var hint = openerHint;
+    openerHint = null;
     var wasTop = top(), gone = [], fresh = [];
     for (var i = stack.length - 1; i >= 0; i--) {
       if (!isOpen(stack[i])) gone.push(stack.splice(i, 1)[0]);
@@ -163,7 +185,9 @@
     if (!gone.length && !fresh.length) return;
     fresh.sort(function (x, y) { return zIndex(x.el) - zIndex(y.el); });
     fresh.forEach(function (c) {
-      var a = doc.activeElement;
+      /* the control that had focus when the layer opened (legacy may have moved focus into the
+         dialog since) */
+      var a = hint && hint.isConnected && !c.el.contains(hint) ? hint : doc.activeElement;
       var layer = {
         el: c.el,
         kind: c.kind,
@@ -255,7 +279,7 @@
   CN.onReady(function () {
     nav = CN.qs("header.navbar") || CN.qs(".navbar");
     menuBtn = doc.getElementById("mobileMenu");
-    mo = new MutationObserver(refresh);
+    mo = new MutationObserver(schedule);
     watch(nav);
     adopt(doc.body);
     /* the add-on scripts append their dialogs to <body> later */
@@ -264,11 +288,11 @@
       records.forEach(function (r) {
         for (var i = 0; i < r.addedNodes.length; i++) if (adopt(r.addedNodes[i])) found = true;
       });
-      if (found) refresh();
+      if (found) schedule();
     }).observe(doc.body, { childList: true });
     if (mqSheet) {
-      if (mqSheet.addEventListener) mqSheet.addEventListener("change", refresh);
-      else if (mqSheet.addListener) mqSheet.addListener(refresh);
+      if (mqSheet.addEventListener) mqSheet.addEventListener("change", schedule);
+      else if (mqSheet.addListener) mqSheet.addListener(schedule);
     }
     doc.addEventListener("keydown", onTab, true);
     win.addEventListener("keydown", onEscape, true);

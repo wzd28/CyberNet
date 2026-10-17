@@ -150,8 +150,15 @@
       streamLoop.start();
     }
 
-    /* Keep the active chip visible in a scrolling tab row without scrolling the page. */
+    /* Keep the active chip visible in a scrolling tab row without scrolling the page. Read in the
+       next frame, after this tab change has been written (a read right here forced an extra
+       layout of the page in the middle of the change). */
+    var keepRaf = 0;
     function keepVisible(tab) {
+      if (keepRaf) cancelAnimationFrame(keepRaf);
+      keepRaf = requestAnimationFrame(function () { keepRaf = 0; keepVisibleNow(tab); });
+    }
+    function keepVisibleNow(tab) {
       if (list.scrollWidth <= list.clientWidth + 1) return;
       var lr = list.getBoundingClientRect(), tr = tab.getBoundingClientRect(), pad = 16, d = 0;
       if (tr.left < lr.left + pad) d = tr.left - lr.left - pad;

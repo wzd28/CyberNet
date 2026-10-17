@@ -96,19 +96,25 @@
 
   // Modules start lazily as they come near (CN.register). While paused, pause each one again
   // shortly after it comes near, so one that started after the switch is caught too, and one
-  // that resumed itself on scroll is stopped again.
-  function watch(el) {
-    if (el.__cnStillWatch) return;
-    el.__cnStillWatch = true;
-    CN.inView(el, function (vis) {
-      if (!vis || !still) return;
-      setTimeout(function () { if (still) CN.pause(el); }, 60);
-    }, { margin: "240px 0px" });
+  // that resumed itself on scroll is stopped again. The watches exist only while motion is
+  // paused (an observed element costs a little on every scrolled frame).
+  var watches = [], ready = false;
+  function watchAll() {
+    if (watches.length || !still || !ready) return;
+    CN.qsa("[data-cn]").forEach(function (el) {
+      watches.push(CN.inView(el, function (vis) {
+        if (!vis || !still) return;
+        setTimeout(function () { if (still) CN.pause(el); }, 60);
+      }, { margin: "240px 0px" }));
+    });
   }
+  function unwatchAll() { watches.forEach(function (stop) { stop(); }); watches = []; }
+  CN.onStill(function (v) { if (v) watchAll(); else unwatchAll(); });
 
   CN.onReady(function () {
     paint();
-    CN.qsa("[data-cn]").forEach(watch);
+    ready = true;
+    watchAll();
     // Behind every other module's start-up job (the queue is first in, first out).
     CN.onReady(function () {
       if (!still) return;

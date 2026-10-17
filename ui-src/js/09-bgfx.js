@@ -35,7 +35,8 @@
      timer so the page only renders the frames that are drawn (a plain rAF loop would run the
      whole document lifecycle at 60 or 120 fps; every frame also re-ticks the page's other
      running CSS animations). Only layers that are on screen are drawn (IntersectionObserver);
-     nothing runs while none is visible or while the tab is hidden. After load, while the
+     nothing runs while none is visible, while the tab is hidden or while the phone menu sheet
+     covers the page (CN.onCover). After load, while the
      browser is idle, each off-screen layer gets one static frame, so no section scrolls in
      blank.
    - Fewer lines and pulses on touch devices. If drawing gets slow on a weak device, a layer
@@ -484,7 +485,7 @@
       // A layer that comes into view while motion is off gets one calm frame, then rests.
       if (f.on && !f.drawn && (frozen() || f.rest)) draw(f, clock, true);
     }
-    if (any && !frozen() && !CN.hidden()) start(); else stop();
+    if (any && !frozen() && !CN.hidden() && !CN.covered()) start(); else stop();
   }
 
   function watch(f) {
@@ -560,6 +561,7 @@
     };
     CN.onMotion(function () { update(); });
     CN.onVisibility(function () { update(); });
+    CN.onCover(function () { update(); });
     // Once the page has loaded and the browser is idle, give every sized layer its first frame,
     // so a section never scrolls in blank and then fades its light in (one draw per layer).
     CN.afterLoad(function () {
