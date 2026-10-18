@@ -1,35 +1,11 @@
 /* Home "What CyberNet AI does" (#cnCore) and two motion hooks any page can use (owner: aurora;
-   v4.2, reusable from v4.3, the v4.2 chip restored in v4.4; CSS in 27-core.css).
+   v4.2, reusable from v4.3; CSS in 27-core.css).
 
-   v4.4 (15 Oct evening): the owner turned the v4.3 photoreal chip sequence down ("I hate the new
-   AI chip, bring back the first one and leave it, it looks too fake"). The v4.2 chip is back as
-   it went live (e227aee): the core-chip / core-lid image rig with its float, tilt and lid lift,
-   and the cyan plume canvas below. The sequence (58-chipseq.js, 28-chipseq.css, /ui/3d/chipseq/)
-   is gone. The owner also found the site a bit laggy, so the plume (same look) now draws in a
-   Worker through OffscreenCanvas (/ui/3d/core-plume.js; no main-thread work per frame), allocates
-   nothing per frame (a fixed particle pool and ring slots), renders at most 2 device pixels per
-   CSS pixel, and still draws only while the chip is on screen, the tab is visible, motion is
-   allowed and the phone menu sheet does not cover the page.
-
-   #cnCore (public/index.html, right after the hero; the chip from scripts/render-3d.mjs --only=core)
-   - Plume (canvas.cn-core-plume over the top of the chip, data-cn="core" on .cn-core-visual):
-     crystalline cyan shards and fine sparks rise from the core, a soft column of light stands
-     over it, and every few seconds a scan ring in the shape of the CyberNet shield spreads flat
-     across the chip (drawn in the chip's own plane with the axes render-3d.mjs measured). Its
-     energy grows as the section comes fully into view (an IntersectionObserver ratio, eased per
-     frame). 30 fps, only while the chip is on screen (an IntersectionObserver), the tab is
-     visible and the phone menu sheet does not cover the page (CN.onCover); DPR up to 2 with a
-     pixel cap. Reduced motion, Pause motion and Save-Data: one still frame. Nothing follows the
-     pointer. The drawing is in /ui/3d/core-plume.js, run in a Worker that owns the canvas
-     (transferControlToOffscreen, handed over only once the worker reports it can draw), or
-     loaded on the page where a worker cannot draw (same code, same look). This file measures
-     the canvas (ResizeObserver) and tells the renderer when to play.
-   - Chip: CSS runs its drift and the lid's lift on view timelines. Where those are missing, this
-     file writes the same transforms from the scroll position (rig and lid only, while near the
-     screen; positions read in a ResizeObserver, so a scroll frame reads nothing but scrollY).
-     The idle float runs only while on screen (data-cn-play on .cn-core-visual; a data
-     attribute, because legacy observers watch "class").
-   - The manifesto is HOOK 1 below.
+   v4.5 (17 Oct): the owner turned the chip down for good ("i hate this picture make it a shield
+   that does something when your scrolling ..."). The chip rig, its scroll motion and the plume
+   (the worker renderer and /ui/3d/core-plume.js) are gone; the section's visual is now the
+   shield story in 58-shield.js and 28-shield.css. This file builds the section's manifesto and
+   the two hooks below, unchanged since v4.3.
 
    HOOK 1 - scroll-lit manifesto: data-cn="manifesto"
      <p class="cn-manifesto" data-cn="manifesto">We read the message <b>before you act</b>, then
@@ -330,202 +306,20 @@
   }
 
   /* ------------------------------------------------------------------ the section */
-  /* #cnCore: the manifesto (HOOK 1) and, where view timelines are missing, the chip's scroll
-     motion (the same drift, tilt, growth and lid lift as the CSS keyframes in 27-core.css). */
-  function Rig(section) {
-    if (cssTimeline) return;               /* CSS runs it on the compositor */
-    var visual = CN.qs(".cn-core-visual", section);
-    var rig = visual && CN.qs(".cn-core-rig", visual);
-    var lid = visual && CN.qs(".cn-core-lid", visual);
-    if (!rig) return;
-    var top = 0, h = 0, raf = 0, near = false, bound = false, lastU = -1;
-    function read() { var r = visual.getBoundingClientRect(); top = r.top + scrollY(); h = r.height; }
-    function paint() {
-      raf = 0;
-      if (CN.reduced()) return;
-      var vh = viewH(), u = CN.clamp((vh - (top - scrollY())) / (vh + h), 0, 1);
-      u = Math.round(u * 500) / 500;       /* sub-pixel steps: skip the write */
-      if (u === lastU) return;
-      lastU = u;
-      rig.style.transform = "translate3d(0," + (8 - 14 * u).toFixed(2) + "%,0) rotate(" + (-3.5 + 6 * u).toFixed(2) + "deg) scale(" + (.93 + .1 * u).toFixed(4) + ")";
-      if (lid) lid.style.transform = "translate3d(0," + (-5.5 * CN.clamp((u - .22) / .4, 0, 1)).toFixed(2) + "%,0)";
-    }
-    function frame() { if (!raf && bound) raf = win.requestAnimationFrame(paint); }
-    function bind() {
-      var want = near && !CN.reduced();
-      if (want !== bound) {
-        bound = want;
-        var f = want ? "addEventListener" : "removeEventListener";
-        win[f]("scroll", frame, { passive: true });
-        win[f]("resize", frame, { passive: true });
-      }
-      if (want) frame();
-    }
-    function sync() {
-      lastU = -1;
-      /* at rest (CSS also holds the end state); drop any written transforms */
-      if (CN.reduced()) { rig.style.transform = ""; if (lid) lid.style.transform = ""; }
-      bind();
-    }
-    if ("ResizeObserver" in win) {
-      var ro = new ResizeObserver(function () { read(); lastU = -1; frame(); });
-      ro.observe(section);
-      ro.observe(doc.body);   /* anything above that changes height moves the section */
-    } else { read(); win.addEventListener("load", function () { read(); lastU = -1; frame(); }); }
-    CN.inView(section, function (vis) { near = !!vis; bind(); }, { margin: "25% 0px" });
-    CN.onMotion(sync);
-    if (CN.onStill) CN.onStill(sync);
-  }
+  /* #cnCore: the manifesto (HOOK 1). The shield story beside it is 58-shield.js. */
   function Core(section) {
     var p = CN.qs('[data-cn="manifesto"]', section);
     if (p) Manifesto(p);
-    Rig(section);
     return {};
   }
 
-  /* ------------------------------------------------------------------ the plume */
-  /* The drawing lives in /ui/3d/core-plume.js (one source): in a Worker that draws into the
-     canvas through OffscreenCanvas, so the main thread does no work per plume frame; or, where a
-     worker cannot draw, the same file loaded on the page. This part decides when it plays and
-     measures the canvas. Bump the ?v= after changing that file. */
-  var PLUME_SRC = "/ui/3d/core-plume.js?v=20261015-3";
-
-  /* the page-side engine (fallback): the same file as a classic script, loaded once */
-  var engineWaits = null;
-  function loadEngine(cb) {
-    if (win.CNPlumeEngine) { cb(win.CNPlumeEngine); return; }
-    if (engineWaits) { engineWaits.push(cb); return; }
-    engineWaits = [cb];
-    var s = doc.createElement("script"), done = function () {
-      var list = engineWaits; engineWaits = null;
-      list.forEach(function (f) { f(win.CNPlumeEngine || null); });
-    };
-    s.src = PLUME_SRC; s.async = true; s.onload = done; s.onerror = done;
-    (doc.head || doc.documentElement).appendChild(s);
-  }
-  /* A worker renderer: the canvas is handed over only after the worker said it can draw into an
-     OffscreenCanvas, so a worker that fails to load (or cannot draw) leaves the canvas to the
-     page-side engine. cb(renderer or null). */
-  function workerRenderer(canvas, touch, onDrawn, cb) {
-    if (typeof win.Worker !== "function" || typeof canvas.transferControlToOffscreen !== "function") { cb(null); return; }
-    var wk, settled = false, to = 0;
-    try { wk = new Worker(PLUME_SRC); } catch (e) { cb(null); return; }
-    function fail() {
-      if (settled) return;
-      settled = true; clearTimeout(to);
-      try { wk.terminate(); } catch (e) { /* gone */ }
-      cb(null);
-    }
-    to = setTimeout(fail, 10000);
-    wk.onerror = function (e) { if (!settled) { if (e && e.preventDefault) e.preventDefault(); fail(); } };
-    wk.onmessage = function (e) {
-      var m = e.data || {};
-      if (m.t === "drawn") { onDrawn(); return; }
-      if (m.t !== "ready" || settled) return;
-      if (!m.ok) { fail(); return; }
-      var off;
-      try { off = canvas.transferControlToOffscreen(); } catch (err) { fail(); return; }
-      settled = true; clearTimeout(to);
-      wk.postMessage({ t: "init", canvas: off, touch: touch }, [off]);
-      var post = function (m2) { try { wk.postMessage(m2); } catch (err) { /* terminated */ } };
-      cb({
-        size: function (cw, ch, dpr) { post({ t: "size", cw: cw, ch: ch, dpr: dpr }); },
-        play: function (v) { post({ t: "play", v: !!v }); },
-        still: function () { post({ t: "still" }); },
-        goal: function (v) { post({ t: "goal", v: v }); },
-        destroy: function () { post({ t: "stop" }); try { wk.terminate(); } catch (err) { /* gone */ } }
-      });
-    };
-  }
-
-  function Plume(canvas, visual) {
-    var touch = !CN.finePointer();
-    var on = false, paused = false, drawn = false, gone = false;
-    var r = null, sz = null, playing = null, goal = .55, sentGoal = null;
-
-    function still() { return CN.reduced() || CN.saveData(); }
-    function onDrawn() { if (!drawn && !gone) { drawn = true; canvas.classList.add("is-on"); } }
-    /* hand the latest state to the renderer (only what changed) */
-    function push() {
-      if (!r) return;
-      if (goal !== sentGoal) { sentGoal = goal; r.goal(goal); }
-      var move = on && !paused && !still() && !CN.hidden();
-      /* under the phone menu sheet (opaque, full screen: CN.covered) the canvas rests on its
-         frame and carries on when the sheet closes */
-      var run = move && !(CN.covered && CN.covered());
-      if (run !== playing) { playing = run; r.play(run); }
-      if (!run && on && !drawn) r.still();   /* a still frame */
-    }
-    function update() {
-      var move = on && !paused && !still() && !CN.hidden();
-      if (visual.hasAttribute("data-cn-play") !== move) {
-        if (move) visual.setAttribute("data-cn-play", ""); else visual.removeAttribute("data-cn-play");
-      }
-      push();
-    }
-    /* layout size (the rig's scroll transform must not change the bitmap), read when layout is
-       clean (ResizeObserver) */
-    function measure() {
-      sz = [canvas.clientWidth, canvas.clientHeight, win.devicePixelRatio || 1];
-      if (r) r.size(sz[0], sz[1], sz[2]);
-    }
-    function ready(renderer) {
-      if (gone) { if (renderer) renderer.destroy(); return; }
-      r = renderer;
-      if (!r) return;
-      sentGoal = null; playing = null;
-      if (sz) r.size(sz[0], sz[1], sz[2]);
-      push();
-    }
-    workerRenderer(canvas, touch, onDrawn, function (wr) {
-      if (wr) { ready(wr); return; }
-      loadEngine(function (Engine) {
-        var e = null;
-        try { e = Engine ? Engine(canvas, touch, onDrawn) : null; } catch (err) { e = null; }
-        ready(e);
-      });
-    });
-
-    var ro = "ResizeObserver" in win ? new ResizeObserver(measure) : null;
-    var onResize = function () { measure(); };
-    if (ro) ro.observe(canvas);
-    else { measure(); win.addEventListener("resize", onResize, { passive: true }); }
-    var offs = [];
-    offs.push(CN.inView(visual, function (vis) { on = !!vis; update(); }, { margin: "40px 0px" }));
-    /* energy follows how much of the chip is in view (no layout reads: the observer's ratio) */
-    var io = null;
-    if ("IntersectionObserver" in win) {
-      io = new IntersectionObserver(function (es) { for (var i = 0; i < es.length; i++) goal = .4 + .6 * Math.min(1, es[i].intersectionRatio * 1.25); push(); },
-        { threshold: [0, .2, .4, .6, .8, 1] });
-      io.observe(visual);
-    }
-    offs.push(CN.onVisibility(update), CN.onMotion(update), CN.onStill ? CN.onStill(update) : null, CN.onCover ? CN.onCover(update) : null);
-    return {
-      pause: function () { paused = true; update(); },
-      resume: function () { paused = false; update(); },
-      destroy: function () {
-        gone = true;
-        if (r) r.destroy();
-        r = null;
-        if (ro) ro.disconnect(); else win.removeEventListener("resize", onResize);
-        if (io) io.disconnect();
-        offs.forEach(function (off) { if (typeof off === "function") off(); });
-      }
-    };
-  }
-
-  /* Build the words at start-up (markup the visitor will reach); the glow and the plume start
-     lazily, near the screen. */
+  /* Build the words at start-up (markup the visitor will reach); the glow starts lazily, near
+     the screen. */
   CN.manifesto = Manifesto;
   CN.glow = glow;
   CN.onReady(function () {
     CN.qsa("#home > .cn-core").forEach(function (sec) { sec.__cnCore = Core(sec); });
     CN.qsa('[data-cn="manifesto"]').forEach(Manifesto);
     CN.qsa(GLOW).forEach(glowHook);
-  });
-  CN.register("core", function (visual) {
-    var canvas = CN.qs("canvas.cn-core-plume", visual);
-    if (!canvas) return null;
-    return Plume(canvas, visual);
   });
 })();

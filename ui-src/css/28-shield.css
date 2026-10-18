@@ -1,0 +1,542 @@
+/* Home 1b - the shield story in "What CyberNet AI does" (#cnCore), v4.6 "Holo-vault" (17 Oct 2026).
+   The owner, on v4.5: "make it super high resolution and super clear and cool design dont make it
+   boring". Turned down before: toy 3D shields, the photoreal chip ("too fake"), the chip picture
+   ("hate"). Liked: premium navy and cyan, the brand shield, smooth motion, things that look
+   expensive. So the brand shield is now a holographic vault, all vector (inline SVG and CSS, no
+   pictures, no canvas), razor sharp at any DPR, and its story is scrubbed by the scroll both ways
+   (58-shield.js):
+     1. ignite: a point of light flares at the apex, splits and runs down both sides to the tip,
+        drawing the lit edge behind it; the door lattice charges; the two lights meet in a flash;
+     2. the shackle lifts, the lock steps back and each door fans open as three sheets (glass slab,
+        lit hex lattice, edge frame) to about 80 degrees; behind them, inside the vault, is an
+        Example text: "Your card is blocked. Unlock it now: card-unlock.invalid";
+     3. four cyan brackets lock on to the card; a scan plane sweeps the vault top to bottom (its
+        contact points glow on the walls, the cavity lattice lights up behind it); the link turns
+        coral as the scan crosses it and a coral ring is drawn round it; "Checking" becomes
+        "Scam · Fake bank link";
+     4. the doors re-stack and close, the seam zips from both tips to the lock, the shackle snaps
+        down and the lock turns bright with a hairline check: a flash, sparks, one shockwave, two
+        lights race up the edge, the vault dial lands on its marks, a specular sweep;
+     5. "Let's protect you from a scam." lights word by word.
+   Markup (public/index.html; viewBox units: the shield 0 0 360 440, the doors 0 0 180 440 and
+   180 0 180 440):
+     figure.cn-core-visual.cn-shield[data-cn="shield"]
+       p.cn-sr                                    the story in words, for screen readers
+       .cn-sh-stage[aria-hidden]                  360:440, container "cn-sh"
+         span.cn-sh-mark                          1px point at the centre (the timeline subject)
+         svg.cn-sh-defs                           gradients + #cnShHexL/R/C (the lattice, d set by JS)
+         .cn-sh-dialbox > svg.cn-sh-dial, svg.cn-sh-marks   the vault dial and its two markers
+         svg.cn-sh-back                           the cavity, its faint lattice, rim and walls
+         .cn-sh-curtain > .cn-sh-curtain-in > svg the lit cavity lattice, uncovered by the scan
+         .cn-sh-cardpos > .cn-sh-card             the Example text (link .cn-sh-ok/.cn-sh-bad and
+                                                  svg.cn-sh-ring; verdict .cn-sh-wait/.cn-sh-res)
+         i.cn-sh-focus                            the lock-on brackets (placed round the card by JS)
+         .cn-sh-scanclip > .cn-sh-scan            the scan plane
+         .cn-sh-front                             doors (svg.cn-sh-sheet x6), zip, trace, edge,
+                                                  emit, race, shock, flare, flash, lock, sparks, spec
+       figcaption.cn-sh-msg                       dim words (span.cn-sh-w), with span.cn-sh-lit:
+                                                  the same words, lit, laid exactly over them
+   Resting state (this file alone) = the END of the story, fully readable: the vault shut, doors
+   flat, its lattice softly lit, the lit edge at .4, the bright lock with its check, the dial on its
+   marks, the message lit; the card is hidden inside (already flagged, so a forced reveal reads
+   right). Reduced motion, Pause motion, no Web Animations and print show exactly this.
+   Cost: animated properties are transform, opacity and stroke-dashoffset only; no filters, no
+   blur, no backdrop-filter, no loops. Static strokes are CSS px (non-scaling-stroke), so hairlines
+   stay 0.75 to 2.6px at any size; the dash-drawn lines are in user units and live in small SVGs of
+   their own. Nothing is upscaled above 1 at rest: parts that grow are drawn at their final size.
+   Layout: as v4.5. Phones and tablets stack the shield and its message (centred, about 1.4x the
+   manifesto) above the manifesto; landscape phones put the message beside a smaller shield; from
+   62rem they fill the left column (27-core.css lines the message up with the manifesto). */
+
+html.cn #home .cn-shield {
+  --cn-sh-w: min(80%, 340px);
+  position: relative;
+  z-index: 0;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: clamp(22px, .9rem + 1.6vw, 40px);
+  margin: clamp(44px, 1.4rem + 3vw, 72px) 0 clamp(40px, 1.4rem + 3vw, 72px);
+  padding: 0;
+  min-inline-size: 0;
+}
+@supports (width: 1cqi) {
+  html.cn #home .cn-shield { --cn-sh-w: min(80cqi, 340px); }
+}
+
+/* ---- the stage: the shield's box ---- */
+html.cn #home .cn-sh-stage {
+  --cn-sh-f: clamp(12px, 4.15cqi, 15.5px);   /* the card's type (resolved inside the stage) */
+  container: cn-sh / inline-size;
+  position: relative;
+  isolation: isolate;
+  inline-size: var(--cn-sh-w);
+  aspect-ratio: 360 / 440;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+/* the shield's light on the ground (static, well inside the section) */
+html.cn #home .cn-sh-stage::before {
+  content: "";
+  position: absolute;
+  inset: -7% -6% -5%;
+  z-index: -2;
+  background: radial-gradient(48% 44% at 50% 50%, rgba(34, 211, 238, .13), rgba(34, 211, 238, .045) 55%, rgba(34, 211, 238, 0) 78%);
+}
+html.cn #home .cn-sh-mark {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  inline-size: 1px;
+  block-size: 1px;
+  visibility: hidden;
+}
+html.cn #home .cn-sh-stage svg {
+  display: block;
+  overflow: visible;
+  max-inline-size: none;
+}
+html.cn #home .cn-sh-stage .cn-sh-defs {
+  position: absolute;
+  inline-size: 0;
+  block-size: 0;
+  overflow: hidden;
+}
+html.cn #home .cn-sh-back,
+html.cn #home .cn-sh-curtain,
+html.cn #home .cn-sh-cardpos,
+html.cn #home .cn-sh-scanclip,
+html.cn #home .cn-sh-front,
+html.cn #home .cn-sh-zip,
+html.cn #home .cn-sh-trace,
+html.cn #home .cn-sh-edge,
+html.cn #home .cn-sh-emit,
+html.cn #home .cn-sh-race,
+html.cn #home .cn-sh-sparks,
+html.cn #home .cn-sh-specclip {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  inline-size: 100%;
+  block-size: 100%;
+}
+html.cn #home .cn-sh-back,
+html.cn #home .cn-sh-curtain { z-index: 0; }
+html.cn #home .cn-sh-cardpos,
+html.cn #home .cn-sh-scanclip { z-index: 1; }
+html.cn #home .cn-sh-front { z-index: 2; }
+html.cn #home .cn-sh-focus { z-index: 3; }        /* a lock-on overlay: over the open doors' blades */
+
+/* ---- the vault dial: a ring of fine ticks behind the shield (r 200 in shield units); it turns
+   with the scroll and rests at 0 deg, its index ticks on the two fixed markers. It turns inside
+   its own clipped square (its ticks stay inside the inscribed circle), so it never widens the page. */
+html.cn #home .cn-sh-dialbox,
+html.cn #home .cn-sh-marks {
+  position: absolute;
+  z-index: -1;
+  inset-inline-start: -5.5556%;
+  inset-block-start: 4.5455%;
+  inline-size: 111.1111%;
+  block-size: 90.9091%;
+}
+html.cn #home .cn-sh-dialbox { overflow: hidden; }
+html.cn #home .cn-sh-dial {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+}
+html.cn #home .cn-sh-marks { opacity: .9; }
+
+/* ---- inside the vault: the lit lattice behind a curtain (two opposite translations uncover it
+   down to the scan's edge) ---- */
+html.cn #home .cn-sh-curtain {
+  overflow: hidden;
+  opacity: 0;
+}
+html.cn #home .cn-sh-curtain-in {
+  position: absolute;
+  inset: 0;
+}
+html.cn #home .cn-sh-curtain-in > svg {
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+/* ---- the Example text: its box is 21% to 71% of the shield's height, 8% in from each side
+   (padding percentages are of the width: 25.67% and 35.44%). A static clip to the shield's
+   outline keeps it (and the scan, and the spec sweep) inside the silhouette on every screen. ---- */
+html.cn #home .cn-sh-cardpos,
+html.cn #home .cn-sh-scanclip,
+html.cn #home .cn-sh-specclip {
+  -webkit-clip-path: polygon(50% 1.99%, 97.61% 19.32%, 92.33% 58.32%, 50% 97.27%, 7.67% 58.32%, 2.39% 19.32%);
+  clip-path: polygon(50% 1.99%, 97.61% 19.32%, 92.33% 58.32%, 50% 97.27%, 7.67% 58.32%, 2.39% 19.32%);
+}
+html.cn #home .cn-sh-cardpos {
+  display: grid;
+  align-items: center;
+  padding: 25.67% 8% 35.44%;
+}
+html.cn #home .cn-sh-card {
+  position: relative;
+  overflow: hidden;
+  overflow: clip;
+  box-sizing: border-box;
+  display: grid;
+  padding: calc(var(--cn-sh-f) * .95) calc(var(--cn-sh-f) * 1.05) calc(var(--cn-sh-f) * 1.05);
+  border: 1px solid rgba(103, 232, 249, .2);
+  border-radius: calc(var(--cn-sh-f) * .9);
+  background: linear-gradient(180deg, rgba(25, 37, 62, .97), rgba(13, 21, 37, .97));
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .06) inset, 0 0 0 1px rgba(2, 6, 14, .6), 0 22px 44px -20px rgba(0, 0, 0, .9);
+  color: #f5f7fa;
+  font-family: var(--cn-font);
+  font-size: var(--cn-sh-f);
+  line-height: 1.38;
+  text-align: start;
+  opacity: 0;                                   /* inside the shut vault */
+}
+html.cn #home .cn-sh-card p {
+  position: relative;
+  margin: 0;
+  max-inline-size: none;
+  font: inherit;
+  color: inherit;
+}
+/* the header groups with the text it labels: a smaller gap above the text than below it */
+html.cn #home .cn-sh-from {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-block-end: calc(var(--cn-sh-f) * .45) !important;
+  color: #aab4c3 !important;
+  font-size: max(12px, .86em) !important;
+  font-weight: 500 !important;
+}
+html.cn #home .cn-sh-from .cn-ex {
+  min-height: 0;
+  padding: 1px 7px;
+  border-color: rgba(148, 163, 184, .16);
+  color: #8a95a7;
+  font-size: 10.5px;
+  letter-spacing: .06em;
+}
+html.cn #home .cn-sh-text { font-weight: 450 !important; }
+/* the link: span.cn-sh-ok (blue, in flow) and span.cn-sh-bad (the same words in coral, over it),
+   swapped as the scan crosses the link; then the coral evidence ring is drawn round it (pathLength
+   100; no viewBox, so its units are CSS px) */
+html.cn #home .cn-sh-link {
+  position: relative;
+  display: inline-block;
+  margin-inline-start: .18em;         /* the ring clears the colon (~.13em) when the link shares a line */
+  white-space: nowrap;
+}
+html.cn #home .cn-sh-ok,
+html.cn #home .cn-sh-bad {
+  display: block;
+  text-decoration: underline;
+  text-underline-offset: .18em;
+}
+html.cn #home .cn-sh-ok {
+  color: #93c5fd;
+  text-decoration-color: rgba(147, 197, 253, .5);
+  opacity: 0;
+}
+html.cn #home .cn-sh-bad {
+  position: absolute;
+  inset: 0;
+  color: #ff8a9c;
+  text-decoration-color: rgba(255, 138, 156, .85);
+}
+html.cn #home .cn-sh-stage .cn-sh-ring {
+  position: absolute;
+  left: -.26em;
+  top: -.14em;
+  inline-size: calc(100% + .52em);
+  block-size: calc(100% + .3em);
+}
+html.cn #home .cn-sh-ring rect {
+  width: calc(100% - 1.5px);
+  height: calc(100% - 1.5px);
+  fill: none;
+  stroke: #ff8a9c;
+  stroke-opacity: .85;
+  stroke-width: 1.1;
+  stroke-dasharray: 101 101;
+  stroke-dashoffset: 0;
+}
+/* the verdict row: "Checking" until the scan has passed, then "Scam · Fake bank link". Both
+   states share one grid cell, so the card keeps its size in every frame. */
+html.cn #home .cn-sh-verdict {
+  display: grid;
+  margin-block-start: calc(var(--cn-sh-f) * .85) !important;
+  color: #c3ccd8 !important;
+  font-size: max(12px, .86em) !important;
+}
+html.cn #home .cn-sh-wait,
+html.cn #home .cn-sh-res {
+  grid-area: 1 / 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-inline-size: 0;
+}
+html.cn #home .cn-sh-wait { opacity: 0; }       /* the end state shows the verdict */
+html.cn #home .cn-sh-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border: 1px solid rgba(148, 163, 184, .26);
+  border-radius: 999px;
+  background: rgba(148, 163, 184, .12);
+  color: #aab4c3;
+  font-weight: 500;
+  line-height: 1.3;
+}
+html.cn #home .cn-sh-pill.is-scam {
+  position: relative;
+  border-color: rgba(255, 138, 156, .3);
+  background: rgba(255, 122, 144, .12);
+  color: #ff8a9c;
+  font-weight: 600;
+}
+/* the pill's impact: a 1.5x copy of its border (drawn at full size, shown from .667 so it starts
+   exactly on the pill's border and springs out without ever being upscaled) */
+html.cn #home .cn-sh-impact {
+  position: absolute;
+  inset: -25%;
+  border: 1.5px solid #ff8a9c;
+  border-radius: 999px;
+  opacity: 0;
+}
+html.cn #home .cn-sh-dot { color: #6e7a8c; }
+html.cn #home .cn-sh-why { white-space: nowrap; }
+
+/* ---- the lock-on brackets: four cyan corners .5em outside the card's box (58-shield.js writes
+   the box, --cn-sh-fx/fy/fw/fh, in percent of the stage). Not clipped, never coral. ---- */
+html.cn #home .cn-sh-focus {
+  --c: linear-gradient(#67e8f9, #67e8f9);
+  --l: .95em;
+  --t: 1.5px;
+  position: absolute;
+  inset-inline-start: calc(var(--cn-sh-fx, 8%) - .5em);
+  inset-block-start: calc(var(--cn-sh-fy, 30%) - .5em);
+  inline-size: calc(var(--cn-sh-fw, 84%) + 1em);
+  block-size: calc(var(--cn-sh-fh, 32%) + 1em);
+  font-size: var(--cn-sh-f);
+  background:
+    var(--c) left top / var(--l) var(--t), var(--c) left top / var(--t) var(--l),
+    var(--c) right top / var(--l) var(--t), var(--c) right top / var(--t) var(--l),
+    var(--c) left bottom / var(--l) var(--t), var(--c) left bottom / var(--t) var(--l),
+    var(--c) right bottom / var(--l) var(--t), var(--c) right bottom / var(--t) var(--l);
+  background-repeat: no-repeat;
+  opacity: 0;
+}
+
+/* ---- the scan: a holographic plane (24% of the shield tall) whose bottom is its bright leading
+   edge, with fine scanlines in its trail; it sweeps the whole vault, clipped to the shield ---- */
+html.cn #home .cn-sh-scanclip { overflow: hidden; }
+html.cn #home .cn-sh-scan {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 0;
+  block-size: 24%;
+  background:
+    repeating-linear-gradient(180deg, rgba(103, 232, 249, .09) 0 1px, transparent 1px 4px),
+    linear-gradient(180deg, rgba(34, 211, 238, 0), rgba(34, 211, 238, .05) 55%, rgba(34, 211, 238, .16) 92%, rgba(165, 243, 252, .34) 99%);
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 70%);
+  mask-image: linear-gradient(180deg, transparent, #000 70%);
+  opacity: 0;
+  transform: translate3d(0, 300%, 0);
+}
+html.cn #home .cn-sh-scan-edge {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: -4px;
+  block-size: 9px;
+  background: linear-gradient(180deg, rgba(103, 232, 249, 0), rgba(103, 232, 249, .35) 40%, #f0fdff 50%, rgba(103, 232, 249, .35) 60%, rgba(103, 232, 249, 0));
+}
+
+/* ---- the doors: three sheets each (glass slab, lit lattice, edge frame), hinged at the outer
+   edges; flat (transform: none) whenever they are shut ---- */
+html.cn #home .cn-sh-sheet {
+  position: absolute;
+  inset-block: 0;
+  inline-size: 50%;
+  block-size: 100%;
+  backface-visibility: hidden;
+}
+html.cn #home .cn-sh-sheet.is-l { left: 0; transform-origin: 0 50%; }
+html.cn #home .cn-sh-sheet.is-r { left: 50%; transform-origin: 100% 50%; }
+html.cn #home .cn-sh-holo { opacity: .4; }          /* the lattice glows softly at rest */
+
+/* ---- light on the outline. Dash lengths are in user units (no non-scaling-stroke here). Both
+   sides are one path of two subpaths (the dash restarts on each), half outline = 618.92 ---- */
+html.cn #home .cn-sh-zip,
+html.cn #home .cn-sh-trace,
+html.cn #home .cn-sh-emit,
+html.cn #home .cn-sh-race,
+html.cn #home .cn-sh-sparks { opacity: 0; }
+html.cn #home .cn-sh-zip path { stroke-dasharray: 160 160; }
+html.cn #home .cn-sh-t-flare { stroke-dasharray: 44 300; stroke-dashoffset: 46; }
+html.cn #home .cn-sh-t-tail { stroke-dasharray: 150 2000; stroke-dashoffset: 153; }
+html.cn #home .cn-sh-t-body { stroke-dasharray: 66 2000; stroke-dashoffset: 69; }
+html.cn #home .cn-sh-t-head { stroke-dasharray: 24 2000; stroke-dashoffset: 27; }
+html.cn #home .cn-sh-edge { opacity: .4; }          /* the lit edge, a little brighter ever after */
+html.cn #home .cn-sh-edge path { stroke-dasharray: 619 619; stroke-dashoffset: 0; }
+html.cn #home .cn-sh-e-core { stroke-dasharray: 6 2000; stroke-dashoffset: 3; }
+html.cn #home .cn-sh-e-halo { stroke-dasharray: 16 2000; stroke-dashoffset: 8; }
+html.cn #home .cn-sh-r-core { stroke-dasharray: 30 2000; stroke-dashoffset: 30; }
+html.cn #home .cn-sh-r-halo { stroke-dasharray: 44 2000; stroke-dashoffset: 44; }
+html.cn #home .cn-sh-s-line { stroke-dasharray: 10 400; stroke-dashoffset: 10; }
+html.cn #home .cn-sh-s-dot { stroke-dasharray: .01 400; }
+/* the shockwave: drawn at 1.16x the shield, shown from .862 (so it is never upscaled) */
+html.cn #home .cn-sh-stage .cn-sh-shock {
+  position: absolute;
+  inset-block-start: -8%;
+  inset-inline-start: -8%;
+  inline-size: 116%;
+  block-size: 116%;
+  opacity: 0;
+  transform-origin: 50% 52%;
+}
+/* the ignite's light: a soft radial spot centred on the apex (it moves to the tip for the meet) */
+html.cn #home .cn-sh-flare {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  inline-size: 26%;
+  aspect-ratio: 1;
+  margin: -13% 0 0 -13%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255, 255, 255, .95), rgba(207, 250, 254, .7) 10%, rgba(103, 232, 249, .26) 34%, rgba(34, 211, 238, .08) 60%, rgba(34, 211, 238, 0));
+  opacity: 0;
+}
+/* the click's light behind the lock (a static gradient; only its opacity moves) */
+html.cn #home .cn-sh-flash {
+  position: absolute;
+  inset-inline-start: 18%;
+  inset-block-start: 25.6%;
+  inline-size: 64%;
+  block-size: 52.36%;
+  background: radial-gradient(closest-side, rgba(207, 250, 254, .5), rgba(103, 232, 249, .2) 38%, rgba(34, 211, 238, .06) 70%, rgba(34, 211, 238, 0));
+  opacity: 0;
+}
+
+/* ---- the lock: 30% of the shield's width, its body's centre 55% down ---- */
+html.cn #home .cn-sh-lock {
+  position: absolute;
+  left: 35%;
+  inset-block-start: 34.4%;
+  inline-size: 30%;
+  aspect-ratio: 100 / 120;
+}
+html.cn #home .cn-sh-lock > svg {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+}
+html.cn #home .cn-sh-body { opacity: 0; }           /* the end state shows the bright lock */
+
+/* ---- the specular sweep: a narrow diagonal band of light, off the shield at rest ---- */
+html.cn #home .cn-sh-specclip { overflow: hidden; }
+html.cn #home .cn-sh-spec {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: 60%;
+  background: linear-gradient(104deg, rgba(224, 250, 255, 0) 30%, rgba(224, 250, 255, .07) 42%, rgba(240, 253, 255, .2) 49%, rgba(240, 253, 255, .24) 50%, rgba(224, 250, 255, .07) 57%, rgba(224, 250, 255, 0) 70%);
+  opacity: 0;
+  transform: translate3d(180%, 0, 0);
+}
+
+/* the rAF-scrubbed path (no ViewTimeline): the boxes that only rotate or slide keep their raster
+   (nothing that scales is listed: a pinned raster would blur as it grows) */
+html.cn #home .cn-shield[data-sh-scrub] .cn-sh-sheet,
+html.cn #home .cn-shield[data-sh-scrub] .cn-sh-dial,
+html.cn #home .cn-shield[data-sh-scrub] .cn-sh-scan,
+html.cn #home .cn-shield[data-sh-scrub] .cn-sh-curtain,
+html.cn #home .cn-shield[data-sh-scrub] .cn-sh-curtain-in,
+html.cn #home .cn-shield[data-sh-scrub] .cn-sh-shackle,
+html.cn #home .cn-shield[data-sh-scrub] .cn-sh-spec { will-change: transform; }
+
+/* narrow shields (folded phones, landscape phones): more card, the header keeps only the
+   Example tag, so no line wraps */
+@container cn-sh (max-width: 224.98px) {
+  html.cn #home .cn-sh-cardpos { padding: 20.78% 4% 37.89%; }   /* 17% to 69% of the height */
+  html.cn #home .cn-sh-from { justify-content: flex-end; }
+  html.cn #home .cn-sh-from > span:first-child { display: none; }
+  html.cn #home .cn-sh-wait,
+  html.cn #home .cn-sh-res { gap: 6px; }
+}
+
+/* ---- the message: dim words in flow (#6e7a8c, 4.6:1, the manifesto's unlit colour) and
+   span.cn-sh-lit, the same words lit, laid exactly over them. Every word is its own inline-block
+   in both copies, so they wrap identically; the story lights the lit words one by one. ---- */
+html.cn #home .cn-sh-msg {
+  position: relative;
+  max-inline-size: 13em;
+  margin: 0;
+  color: #6e7a8c;
+  font-family: var(--cn-font);
+  font-size: clamp(1.75rem, 1.05rem + 4.4vw, 2.75rem);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -.025em;
+  text-align: center;
+  text-wrap: balance;
+}
+html.cn #home .cn-sh-msg b {
+  color: #7d899b;
+  font-weight: 600;
+}
+html.cn #home .cn-sh-w { display: inline-block; }
+html.cn #home .cn-sh-lit {
+  position: absolute;
+  inset: 0;
+  color: #f5f7fa;
+  user-select: none;
+  -webkit-user-select: none;
+}
+html.cn #home .cn-sh-lit b { color: #ffffff; }
+
+/* ---- landscape phones and short tablets: the message beside a smaller shield ---- */
+@media (max-height: 600px) and (orientation: landscape) and (max-width: 61.99rem) {
+  html.cn #home .cn-shield {
+    --cn-sh-w: min(340px, 50.7vh);
+    grid-template-columns: auto minmax(0, 1fr);
+    justify-items: start;
+    align-items: center;
+    column-gap: clamp(28px, 5vw, 64px);
+    padding-inline-start: clamp(0px, 4vw, 48px);
+  }
+  @supports (width: 1cqi) and (height: 1svh) {
+    html.cn #home .cn-shield { --cn-sh-w: min(42cqi, 340px, 50.7svh); }
+  }
+  html.cn #home .cn-sh-msg {
+    max-inline-size: 9em;
+    text-align: start;
+  }
+}
+
+/* ---- side by side from 62rem: the shield and its message fill the left column ---- */
+@media (min-width: 62rem) {
+  html.cn #home .cn-shield {
+    --cn-sh-w: min(72%, 400px);
+    margin-block: clamp(40px, 3.4vw, 64px) 0;
+  }
+  @supports (width: 1cqi) {
+    html.cn #home .cn-shield { --cn-sh-w: min(30cqi, 400px, 52vh); }
+  }
+  html.cn #home .cn-sh-msg { font-size: clamp(1.75rem, .9rem + 1.4vw, 2.25rem); }
+}
+
+@media (forced-colors: active) {
+  html.cn #home .cn-sh-stage { forced-color-adjust: none; }
+  html.cn #home .cn-sh-stage::before { display: none; }
+}
+@media print {
+  html.cn #home .cn-sh-stage { display: none; }
+}

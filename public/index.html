@@ -39,7 +39,7 @@
   <link rel="stylesheet" href="/cybernet-howto.css?v=20260905-1" />
   <link id="cybernetBusinessTeamStylesheet" rel="stylesheet" href="/cybernet-business-team.css?v=20260927-2" />
   <link rel="stylesheet" href="/cybernet-consent.css?v=20260927-2" />
-  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261015-3" />
+  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261017-3" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=20260830-5">
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=20260830-5">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=20260830-5">
@@ -578,19 +578,132 @@
         </div>
       </div>
 
-      <!-- WHAT CYBERNET AI DOES: the AI core and the manifesto (27-core.css, 57-core.js) -->
+      <!-- WHAT CYBERNET AI DOES: the shield story and the manifesto (27-core.css, 28-shield.css, 57-core.js, 58-shield.js) -->
       <section class="cn-core" id="cnCore" aria-labelledby="cnCoreTitle">
         <h2 class="cn-core-label" id="cnCoreTitle">What CyberNet AI does</h2>
         <p class="cn-core-tag cn-core-tag--top">Rules first. Then AI.</p>
-        <div class="cn-core-visual" data-cn="core" aria-hidden="true">
-          <div class="cn-core-rig">
-            <div class="cn-core-float">
-              <img class="cn-core-base" src="/ui/3d/core-chip-720.webp?v=20261015-1" srcset="/ui/3d/core-chip-720.webp?v=20261015-1 720w, /ui/3d/core-chip.webp?v=20261015-1 1200w" sizes="(min-width: 62rem) min(50vw, 680px), min(100vw, 560px)" alt="" width="1200" height="1200" loading="lazy" decoding="async" />
-              <img class="cn-core-lid" src="/ui/3d/core-lid-720.webp?v=20261015-1" srcset="/ui/3d/core-lid-720.webp?v=20261015-1 720w, /ui/3d/core-lid.webp?v=20261015-1 1200w" sizes="(min-width: 62rem) min(50vw, 680px), min(100vw, 560px)" alt="" width="1200" height="1200" loading="lazy" decoding="async" />
-              <canvas class="cn-core-plume"></canvas>
+        <figure class="cn-core-visual cn-shield" data-cn="shield">
+          <p class="cn-sr">Example: a text message says your card is blocked and asks you to unlock it at a link. The CyberNet AI shield opens, scans the message, flags it as a scam and locks shut.</p>
+          <div class="cn-sh-stage" aria-hidden="true">
+            <span class="cn-sh-mark"></span>
+            <svg class="cn-sh-defs" width="0" height="0" focusable="false">
+              <defs>
+                <linearGradient id="cnShGlass" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="440"><stop offset="0" stop-color="#17233d"/><stop offset=".5" stop-color="#0c1424"/><stop offset="1" stop-color="#060a14"/></linearGradient>
+                <radialGradient id="cnShSheen" gradientUnits="userSpaceOnUse" cx="92" cy="30" r="260"><stop offset="0" stop-color="#67e8f9" stop-opacity=".16"/><stop offset=".6" stop-color="#67e8f9" stop-opacity=".03"/><stop offset="1" stop-color="#67e8f9" stop-opacity="0"/></radialGradient>
+                <radialGradient id="cnShSheenR" gradientUnits="userSpaceOnUse" cx="268" cy="30" r="260"><stop offset="0" stop-color="#67e8f9" stop-opacity=".08"/><stop offset="1" stop-color="#67e8f9" stop-opacity="0"/></radialGradient>
+                <linearGradient id="cnShEdge" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="440"><stop offset="0" stop-color="#f0fdff"/><stop offset=".4" stop-color="#22d3ee" stop-opacity=".9"/><stop offset="1" stop-color="#22d3ee" stop-opacity=".35"/></linearGradient>
+                <linearGradient id="cnShLitEdge" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="440"><stop offset="0" stop-color="#f0fdff"/><stop offset=".45" stop-color="#a5f3fc"/><stop offset="1" stop-color="#67e8f9" stop-opacity=".65"/></linearGradient>
+                <radialGradient id="cnShCav" gradientUnits="userSpaceOnUse" cx="180" cy="200" r="260"><stop offset="0" stop-color="#0b1b2e"/><stop offset=".7" stop-color="#050b16"/><stop offset="1" stop-color="#03060c"/></radialGradient>
+                <radialGradient id="cnShLat" gradientUnits="userSpaceOnUse" cx="180" cy="214" r="235"><stop offset=".22" stop-color="#22d3ee" stop-opacity=".05"/><stop offset=".55" stop-color="#22d3ee" stop-opacity=".38"/><stop offset=".85" stop-color="#67e8f9" stop-opacity=".7"/><stop offset="1" stop-color="#cffafe" stop-opacity=".9"/></radialGradient>
+                <radialGradient id="cnShLatC" gradientUnits="userSpaceOnUse" cx="180" cy="215" r="240"><stop offset=".2" stop-color="#22d3ee" stop-opacity=".1"/><stop offset=".6" stop-color="#22d3ee" stop-opacity=".3"/><stop offset="1" stop-color="#a5f3fc" stop-opacity=".62"/></radialGradient>
+                <path id="cnShHexL" d="" vector-effect="non-scaling-stroke"/>
+                <path id="cnShHexR" d="" vector-effect="non-scaling-stroke"/>
+                <path id="cnShHexC" d="" vector-effect="non-scaling-stroke"/>
+              </defs>
+            </svg>
+            <div class="cn-sh-dialbox"><svg class="cn-sh-dial" viewBox="-200 -200 400 400" focusable="false">
+              <circle r="199.5" fill="none" stroke="#67e8f9" stroke-opacity=".16" vector-effect="non-scaling-stroke"/>
+              <circle r="186" fill="none" stroke="#67e8f9" stroke-opacity=".07" vector-effect="non-scaling-stroke"/>
+              <path class="cn-sh-ticks" d="" fill="none" stroke="#67e8f9" stroke-opacity=".2" vector-effect="non-scaling-stroke"/>
+              <path class="cn-sh-ticks-maj" d="" fill="none" stroke="#a5f3fc" stroke-opacity=".42" vector-effect="non-scaling-stroke"/>
+              <path d="M184 -2.2L198.5 -2.2M184 2.2L198.5 2.2M-184 -2.2L-198.5 -2.2M-184 2.2L-198.5 2.2" fill="none" stroke="#e6fbff" stroke-opacity=".9" stroke-width="1.2" vector-effect="non-scaling-stroke"/>
+            </svg></div>
+            <svg class="cn-sh-marks" viewBox="-200 -200 400 400" focusable="false"><path d="M214 -4.5 L206 0 L214 4.5 Z M-214 -4.5 L-206 0 L-214 4.5 Z" fill="#a5f3fc"/></svg>
+            <svg class="cn-sh-back" viewBox="0 0 360 440" focusable="false">
+              <path d="M180 0 L360 80 L340 260 L180 440 L20 260 L0 80 Z" fill="url(#cnShCav)"/>
+              <use href="#cnShHexC" fill="none" stroke="#67e8f9" stroke-opacity=".055"/>
+              <path d="M180 0 L180 17.5 M360 80 L342.8 89.9 M340 260 L324.7 253.2 M180 440 L180 415.9 M20 260 L35.3 253.2 M0 80 L17.2 89.9" fill="none" stroke="#67e8f9" stroke-opacity=".22" vector-effect="non-scaling-stroke"/>
+              <path d="M180 17.5 L342.8 89.9 L324.7 253.2 L180 415.9 L35.3 253.2 L17.2 89.9 Z" fill="none" stroke="#22d3ee" stroke-opacity=".26" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+              <path d="M180 0 L360 80 L340 260 L180 440 L20 260 L0 80 Z" fill="none" stroke="#94a3b8" stroke-opacity=".34" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+            </svg>
+            <div class="cn-sh-curtain"><div class="cn-sh-curtain-in"><svg viewBox="0 0 360 440" focusable="false">
+              <use href="#cnShHexC" fill="none" stroke="url(#cnShLatC)" stroke-width=".75"/>
+              <path class="cn-sh-gl-c" d="" fill="none" stroke="#e6fbff" stroke-width="2.6" stroke-linecap="round"/>
+            </svg></div></div>
+            <div class="cn-sh-cardpos">
+              <div class="cn-sh-card">
+                <p class="cn-sh-from"><span>Text message</span><span class="cn-ex">Example</span></p>
+                <p class="cn-sh-text">Your card is blocked. Unlock it now: <span class="cn-sh-link"><span class="cn-sh-ok">card-unlock.invalid</span><span class="cn-sh-bad">card-unlock.invalid</span><svg class="cn-sh-ring" focusable="false"><rect x=".75" y=".75" rx="5" pathLength="100"/></svg></span></p>
+                <p class="cn-sh-verdict"><span class="cn-sh-wait"><span class="cn-sh-pill">Checking</span></span><span class="cn-sh-res"><span class="cn-sh-pill is-scam">Scam<i class="cn-sh-impact"></i></span><span class="cn-sh-dot">·</span><span class="cn-sh-why">Fake bank link</span></span></p>
+              </div>
+            </div>
+            <i class="cn-sh-focus"></i>
+            <div class="cn-sh-scanclip"><div class="cn-sh-scan"><i class="cn-sh-scan-edge"></i></div></div>
+            <div class="cn-sh-front">
+              <svg class="cn-sh-sheet cn-sh-slab is-l" viewBox="0 0 180 440" focusable="false">
+                <path d="M180 0 L0 80 L20 260 L180 440 Z" fill="url(#cnShGlass)"/>
+                <path d="M180 0 L0 80 L20 260 L180 440 Z" fill="url(#cnShSheen)"/>
+                <use href="#cnShHexL" transform="translate(0 .7)" fill="none" stroke="#000" stroke-opacity=".45"/>
+                <use href="#cnShHexL" fill="none" stroke="#67e8f9" stroke-opacity=".06"/>
+                <path d="M180 17.5 L17.2 89.9 L35.3 253.2 L180 415.9" fill="none" stroke="#94a3b8" stroke-opacity=".3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+                <path d="M180 0 L0 80 L20 260 L180 440" fill="none" stroke="#22d3ee" stroke-opacity=".3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+              </svg>
+              <svg class="cn-sh-sheet cn-sh-slab is-r" viewBox="180 0 180 440" focusable="false">
+                <path d="M180 0 L360 80 L340 260 L180 440 Z" fill="url(#cnShGlass)"/>
+                <path d="M180 0 L360 80 L340 260 L180 440 Z" fill="url(#cnShSheenR)"/>
+                <use href="#cnShHexR" transform="translate(0 .7)" fill="none" stroke="#000" stroke-opacity=".45"/>
+                <use href="#cnShHexR" fill="none" stroke="#67e8f9" stroke-opacity=".06"/>
+                <path d="M180 17.5 L342.8 89.9 L324.7 253.2 L180 415.9" fill="none" stroke="#94a3b8" stroke-opacity=".3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+                <path d="M180 0 L360 80 L340 260 L180 440" fill="none" stroke="#22d3ee" stroke-opacity=".3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+              </svg>
+              <svg class="cn-sh-sheet cn-sh-holo is-l" viewBox="0 0 180 440" focusable="false">
+                <use href="#cnShHexL" fill="none" stroke="url(#cnShLat)" stroke-width=".75"/>
+                <path class="cn-sh-gl-l" d="" fill="none" stroke="#e6fbff" stroke-width="2.6" stroke-linecap="round"/>
+              </svg>
+              <svg class="cn-sh-sheet cn-sh-holo is-r" viewBox="180 0 180 440" focusable="false">
+                <use href="#cnShHexR" fill="none" stroke="url(#cnShLat)" stroke-width=".75"/>
+                <path class="cn-sh-gl-r" d="" fill="none" stroke="#e6fbff" stroke-width="2.6" stroke-linecap="round"/>
+              </svg>
+              <svg class="cn-sh-sheet cn-sh-frame is-l" viewBox="0 0 180 440" focusable="false">
+                <path d="M180 8.6 L8.7 84.9 L27.9 256.8 L180 427.6" fill="none" stroke="#67e8f9" stroke-opacity=".2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+                <path d="M180 0 V150 M180 296 V440" fill="none" stroke="#67e8f9" stroke-opacity=".24" vector-effect="non-scaling-stroke"/>
+                <path d="M180 0 L0 80 L20 260 L180 440" fill="none" stroke="url(#cnShEdge)" stroke-width="1.3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+              </svg>
+              <svg class="cn-sh-sheet cn-sh-frame is-r" viewBox="180 0 180 440" focusable="false">
+                <path d="M180 8.6 L351.3 84.9 L332.1 256.8 L180 427.6" fill="none" stroke="#67e8f9" stroke-opacity=".2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+                <path d="M180 0 V150 M180 296 V440" fill="none" stroke="#67e8f9" stroke-opacity=".24" vector-effect="non-scaling-stroke"/>
+                <path d="M180 0 L360 80 L340 260 L180 440" fill="none" stroke="url(#cnShEdge)" stroke-width="1.3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+              </svg>
+              <svg class="cn-sh-zip" viewBox="0 0 360 440" focusable="false"><path d="M180 0 V150 M180 440 V296" fill="none" stroke="#ecfeff" stroke-width="1.4" stroke-linecap="round"/></svg>
+              <svg class="cn-sh-trace" viewBox="0 0 360 440" focusable="false">
+                <path class="cn-sh-t-flare" d="M180 0 H112 M180 0 H248 M180 0 V-44 M180 0 V40" pathLength="100" fill="none" stroke="#ecfeff" stroke-opacity=".9" stroke-width="1.1" stroke-linecap="round"/>
+                <path class="cn-sh-t-tail" d="M180 0 L0 80 L20 260 L180 440 M180 0 L360 80 L340 260 L180 440" fill="none" stroke="#22d3ee" stroke-opacity=".14" stroke-width="1.5" stroke-linejoin="round"/>
+                <path class="cn-sh-t-body" d="M180 0 L0 80 L20 260 L180 440 M180 0 L360 80 L340 260 L180 440" fill="none" stroke="#67e8f9" stroke-opacity=".34" stroke-width="1.7" stroke-linejoin="round"/>
+                <path class="cn-sh-t-head" d="M180 0 L0 80 L20 260 L180 440 M180 0 L360 80 L340 260 L180 440" fill="none" stroke="#a5f3fc" stroke-opacity=".85" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <svg class="cn-sh-edge" viewBox="0 0 360 440" focusable="false">
+                <path d="M180 0 L0 80 L20 260 L180 440 M180 0 L360 80 L340 260 L180 440" fill="none" stroke="#67e8f9" stroke-opacity=".07" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M180 0 L0 80 L20 260 L180 440 M180 0 L360 80 L340 260 L180 440" fill="none" stroke="#67e8f9" stroke-opacity=".14" stroke-width="3.7" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M180 0 L0 80 L20 260 L180 440 M180 0 L360 80 L340 260 L180 440" fill="none" stroke="url(#cnShLitEdge)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <svg class="cn-sh-emit" viewBox="0 0 360 440" focusable="false">
+                <path class="cn-sh-e-halo" d="M180 0 L360 80 L340 260 L180 440 M180 0 L0 80 L20 260 L180 440" fill="none" stroke="#67e8f9" stroke-opacity=".3" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+                <path class="cn-sh-e-core" d="M180 0 L360 80 L340 260 L180 440 M180 0 L0 80 L20 260 L180 440" fill="none" stroke="#f0fdff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <svg class="cn-sh-race" viewBox="0 0 360 440" focusable="false">
+                <path class="cn-sh-r-halo" d="M180 440 L20 260 L0 80 L180 0 M180 440 L340 260 L360 80 L180 0" fill="none" stroke="#67e8f9" stroke-opacity=".28" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+                <path class="cn-sh-r-core" d="M180 440 L20 260 L0 80 L180 0 M180 440 L340 260 L360 80 L180 0" fill="none" stroke="#f0fdff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <svg class="cn-sh-shock" viewBox="0 0 360 440" focusable="false">
+                <path d="M180 0 L360 80 L340 260 L180 440 L20 260 L0 80 Z" fill="none" stroke="#67e8f9" stroke-opacity=".22" stroke-width="5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+                <path d="M180 0 L360 80 L340 260 L180 440 L20 260 L0 80 Z" fill="none" stroke="#cffafe" stroke-width="1.3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+              </svg>
+              <i class="cn-sh-flare"></i>
+              <i class="cn-sh-flash"></i>
+              <div class="cn-sh-lock">
+                <svg class="cn-sh-shackle" viewBox="0 0 100 120" focusable="false"><path d="M31 78 V40 a19 19 0 0 1 38 0 V62" fill="none" stroke="#67e8f9" stroke-width="1.6" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>
+                <svg class="cn-sh-body" viewBox="0 0 100 120" focusable="false"><rect x="15" y="56" width="70" height="56" rx="12" fill="#0a1526" stroke="#67e8f9" stroke-width="1.6" vector-effect="non-scaling-stroke"/><circle cx="50" cy="80" r="5" fill="none" stroke="#67e8f9" stroke-width="1.6" vector-effect="non-scaling-stroke"/><path d="M50 85 V95" fill="none" stroke="#67e8f9" stroke-width="1.6" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>
+                <svg class="cn-sh-solid" viewBox="0 0 100 120" focusable="false"><defs><radialGradient id="cnShLight"><stop offset="0" stop-color="#22d3ee" stop-opacity=".26"/><stop offset=".55" stop-color="#22d3ee" stop-opacity=".08"/><stop offset="1" stop-color="#22d3ee" stop-opacity="0"/></radialGradient><linearGradient id="cnShLockGlass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22d3ee" stop-opacity=".34"/><stop offset="1" stop-color="#22d3ee" stop-opacity=".08"/></linearGradient></defs><circle cx="50" cy="84" r="60" fill="url(#cnShLight)"/><path d="M31 62 V40 a19 19 0 0 1 38 0 V62" fill="none" stroke="#cffafe" stroke-width="2" stroke-linecap="round" vector-effect="non-scaling-stroke"/><path d="M36.5 62 V40.5 a13.5 13.5 0 0 1 27 0 V62" fill="none" stroke="#67e8f9" stroke-opacity=".35" stroke-width="1" vector-effect="non-scaling-stroke"/><rect x="15" y="56" width="70" height="56" rx="12" fill="#0a1526"/><rect x="15" y="56" width="70" height="56" rx="12" fill="url(#cnShLockGlass)" stroke="#cffafe" stroke-width="2" vector-effect="non-scaling-stroke"/><rect x="20" y="61" width="60" height="46" rx="8" fill="none" stroke="#a5f3fc" stroke-opacity=".28" stroke-width="1" vector-effect="non-scaling-stroke"/><path d="M37 84 L46 93 L64 75" fill="none" stroke="#ecfeff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>
+              </div>
+              <svg class="cn-sh-sparks" viewBox="0 0 360 440" focusable="false">
+                <path class="cn-sh-s-line" d="" fill="none" stroke="#cffafe" stroke-width="1.3" stroke-linecap="round"/>
+                <path class="cn-sh-s-dot" d="" fill="none" stroke="#f0fdff" stroke-width="2.2" stroke-linecap="round"/>
+              </svg>
+              <div class="cn-sh-specclip"><i class="cn-sh-spec"></i></div>
             </div>
           </div>
-        </div>
+          <figcaption class="cn-sh-msg"><span class="cn-sh-w">Let’s</span> <b class="cn-sh-w">protect</b> <span class="cn-sh-w">you</span> <span class="cn-sh-w">from</span> <span class="cn-sh-w">a</span> <span class="cn-sh-w">scam.</span><span class="cn-sh-lit" aria-hidden="true"><span class="cn-sh-w">Let’s</span> <b class="cn-sh-w">protect</b> <span class="cn-sh-w">you</span> <span class="cn-sh-w">from</span> <span class="cn-sh-w">a</span> <span class="cn-sh-w">scam.</span></span></figcaption>
+        </figure>
         <p class="cn-manifesto" data-cn="manifesto">CyberNet AI reads the message <b>before you act</b>. Its own <b>scam rules</b> check a text, link or QR code in seconds. <b>Analysis AI</b> explains the warning signs in plain words. And if something already went wrong, <b>Recovery</b> gives you a plan, step by step.</p>
         <p class="cn-core-tag cn-core-tag--end">Texts, links and QR codes</p>
       </section>
@@ -2721,7 +2834,7 @@
 <script src="/cybernet-business-team.js?v=20261015-1" defer></script>
   <script src="/cybernet-final-ui-fix.js?v=20260930-2" defer></script>
       <script src="/cybernet-legal-upgrade.js?v=20261015-3" defer></script>
-  <script src="/ui/cybernet-ui.js?v=20261015-3" defer></script>
+  <script src="/ui/cybernet-ui.js?v=20261017-3" defer></script>
 </body>
 </html>
 
