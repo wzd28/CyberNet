@@ -13,7 +13,7 @@ CyberNet AI runs on the Supabase free plan, which makes no backups of its own. T
 
 In the backup:
 
-- Every table in the database's `public` schema: profiles and plans, usage counters, scan history, Recovery cases, their versions and tasks, Business teams, members and invites, legal acceptances and rate-limit counters.
+- Every table in the database's `public` schema: profiles and plans, usage counters, scan history, Recovery cases, their versions and tasks, Business teams, members and invites, legal acceptances and the checkout error log.
 - Every sign-in account: id, email, phone, when it was created, confirmed and last used, whether it is banned, its metadata, and which sign-in methods it used (email, Google).
 
 Not in the backup:
@@ -22,6 +22,7 @@ Not in the backup:
 - **The database structure** (tables, functions, security rules). That lives in `supabase/schema.sql` in this repository, plus the extra SQL in "Step 3" below.
 - **Supabase settings**: email templates, sign-in providers, redirect addresses, SMTP. Step 6 of the restore lists them.
 - **Stored files.** The project has no Supabase Storage files today.
+- **Rate-limit counters** (`api_rate_limits`). They only count recent requests, so a restore does not need them: the counters start again from zero. The table can also grow faster than the weekly job could read it. The daily `rate-limit-cleanup` function deletes rows that have not been used for 90 days, as the Privacy Policy says.
 
 ## One-time setup
 
@@ -46,7 +47,13 @@ Not in the backup:
 
    The answer lists the row counts, never the data.
 6. **Check that it opens.** Within a minute an email titled "CyberNet AI weekly backup <date>" arrives. Save the attachment and follow "Open a backup" below once, to prove the passphrase works. Then delete the opened `.json` file.
-7. **Keep the emails.** In Gmail, create a filter for the subject "CyberNet AI weekly backup", give it a label such as "Backups", and tick "Never send it to Spam". Do not set it to delete or archive automatically. Keeping every email is simplest; at the very least keep the last 8 weeks plus one per month.
+7. **Keep each backup for 8 weeks, then delete it.** The Privacy Policy tells users that backups are kept for 8 weeks and then deleted, so that data someone deleted is gone from the backups too. In Gmail, create a filter for the subject "CyberNet AI weekly backup", give it a label such as "Backups", and tick "Never send it to Spam". Then add a monthly reminder to your calendar ("Delete old CyberNet backups"). Each month:
+   1. In Gmail's search box, paste `subject:"CyberNet AI weekly backup" older_than:56d` and press Enter. (56 days is 8 weeks.) This finds the backups and the FAILED notices that are more than 8 weeks old.
+   2. Tick the box above the list to select them all (and "Select all conversations that match this search" if Gmail offers it), then press Delete.
+   3. Open Trash, select the same emails and choose "Delete forever". Gmail would empty Trash by itself after 30 days, which is too long for the promise above.
+   4. If you ever saved a backup file or an opened `.json` to your computer, delete those the same way once they are 8 weeks old.
+
+   Keep at least the newest backup, so there is always one to restore from. If you would like to keep older copies (for example one per month for a year), that is a change to the Privacy Policy first: ask for the wording to be updated before you start keeping them.
 
 Optional: `BACKUP_EMAIL_TO` sends the backups to another address instead of support@cybernetai.app.
 
@@ -133,7 +140,7 @@ Creating the accounts also creates an empty profile for each one (the `on_auth_u
 
 The file:
 
-- loads the tables in this order, so every row comes after the rows it points to: profiles, business_accounts, business_members, business_invites, business_daily_usage, business_recovery_usage, daily_usage, quickscan_usage, recovery_usage, legal_acceptances, scan_history, recovery_cases, recovery_versions, recovery_tasks, api_rate_limits, checkout_debug_log, then any newer tables;
+- loads the tables in this order, so every row comes after the rows it points to: profiles, business_accounts, business_members, business_invites, business_daily_usage, business_recovery_usage, daily_usage, quickscan_usage, recovery_usage, legal_acceptances, scan_history, recovery_cases, recovery_versions, recovery_tasks, checkout_debug_log, then any newer tables;
 - runs as one transaction: if anything fails, nothing is changed, and you can fix the problem and run it again;
 - adds rows and sets rows with the same key back to the saved values, and never deletes anything;
 - moves the numbering of `scan_history`, `recovery_versions`, `recovery_tasks` and `checkout_debug_log` past the restored rows;
@@ -171,7 +178,7 @@ If a backup goes over a limit, no backup is sent; a "FAILED" email explains why.
 
 ## Keeping the table list current
 
-The tables are listed in `TABLES` at the top of `netlify/lib/backup.mjs`, in restore order. A new table is still backed up automatically, and the weekly email names it in the "Please note" box until it is added to the list. To add it:
+The tables are listed in `TABLES` at the top of `netlify/lib/backup.mjs`, in restore order. Tables in `EXCLUDED_TABLES` just below it (today only `api_rate_limits`) are left out on purpose. A new table is still backed up automatically, and the weekly email names it in the "Please note" box until it is added to the list. To add it:
 
 1. Run the read-only query in the comment above `TABLES` in the Supabase SQL Editor.
 2. Add the table with its primary key (and `identity` if its id is a generated number), after every table it references.

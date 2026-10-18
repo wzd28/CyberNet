@@ -13,9 +13,11 @@
 // Limits: 10 reports a minute per address in each warm instance, then 30 an
 // hour per address and 300 an hour for everyone together through the
 // existing consume_api_quota RPC (fails open, like the other quota checks).
+// The per-address limit uses one of 256 fixed keys (cn_cerr:ip:00 to ff, from
+// the hashed address), so new addresses never add rows to api_rate_limits.
 
 import { createHmac } from "node:crypto";
-import { reportError, scrubText, consumeQuota } from "../lib/report-error.mjs";
+import { reportError, scrubText, consumeQuota, CLIENT_FILE, CLIENT_UA } from "../lib/report-error.mjs";
 
 const MAX_BODY_BYTES = 8 * 1024;
 const PER_ADDRESS_PER_MINUTE = 10;
@@ -85,7 +87,11 @@ export function validateReport(body) {
   if (message.startsWith(prefix)) message = message.slice(prefix.length) || message;
   const line = int(body.line);
   const col = int(body.col);
-  let file = str(body.file, 300);
+  // Only a script on this site (/script.js, /ui/cybernet-ui.js): anything else
+  // is dropped rather than passed on to the log and the alert email.
+  const rawFile = str(body.file, 300);
+  let file = rawFile.split(/[?#]/)[0];
+  if (!CLIENT_FILE.test(file)) file = "";
   if (file && line !== undefined) file += `:${line}${col !== undefined ? `:${col}` : ""}`;
   let page = str(body.page, 400).split(/[?#]/)[0];
   if (!page.startsWith("/")) page = "/";
@@ -96,9 +102,10 @@ export function validateReport(body) {
     message,
     stack: str(body.stack, 2048),
     file,
+    rawFile,
     page,
-    version: /^[\w.-]{1,32}$/.test(str(body.version, 32)) ? body.version : "",
-    ua: /^[A-Za-z][A-Za-z0-9 .]{0,59}$/.test(str(body.ua, 60)) ? body.ua : "",
+    version: /^[\w-]{1,32}$/.test(str(body.version, 32)) ? body.version : "",
+    ua: CLIENT_UA.test(str(body.ua, 60)) ? body.ua : "",
     where: str(body.where, 80),
     ts
   };
@@ -109,8 +116,8 @@ const EXTENSION = /\b(?:chrome|moz|safari|safari-web|ms-browser)-extension:\/\/|
 // Noise the browser script already drops; checked again for old or forged senders.
 export function isNoise(report) {
   if (/ResizeObserver loop/i.test(report.message)) return true;
-  if (/^Script error\.?$/i.test(report.message) && !report.file && !report.stack) return true;
-  if (EXTENSION.test(report.file) || EXTENSION.test(report.stack.split("\n").slice(0, 3).join("\n"))) return true;
+  if (/^Script error\.?$/i.test(report.message) && !report.rawFile && !report.stack) return true;
+  if (EXTENSION.test(report.rawFile || report.file || "") || EXTENSION.test(report.stack.split("\n").slice(0, 3).join("\n"))) return true;
   return false;
 }
 
@@ -129,6 +136,13 @@ function addressBucket(request, context) {
   }
   const pepper = env("ERROR_REPORT_SALT") || env("SUPABASE_SERVICE_ROLE_KEY") || env("SUPABASE_SECRET_KEY") || "cybernet-client-error";
   return createHmac("sha256", pepper).update(address).digest("hex").slice(0, 24);
+}
+
+// The durable per-address key: the first byte of the hashed bucket, so there
+// are at most 256 such rows however many addresses send reports. Addresses
+// that share a byte share the hourly limit, which is harmless here.
+export function durableAddressKey(bucket) {
+  return `cn_cerr:ip:${String(bucket).slice(0, 2)}`;
 }
 
 const recent = new Map(); // bucket -> { windowStart, count }
@@ -184,7 +198,7 @@ export default async (request, context) => {
   const bucket = addressBucket(request, context);
   if (!withinMemoryLimit(bucket)) return reply(429, { error: "Too many reports. Try again in a minute." });
 
-  const perAddress = await consumeQuota(`cn_cerr:ip:${bucket}`, 3600, PER_ADDRESS_PER_HOUR);
+  const perAddress = await consumeQuota(durableAddressKey(bucket), 3600, PER_ADDRESS_PER_HOUR);
   if (perAddress && !perAddress.allowed) return reply(429, { error: "Too many reports. Try again later." });
   const everyone = await consumeQuota("cn_cerr:all", 3600, ALL_PER_HOUR);
   if (everyone && !everyone.allowed) return reply(429, { error: "Too many reports. Try again later." });

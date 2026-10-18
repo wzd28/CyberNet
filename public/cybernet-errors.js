@@ -2,7 +2,8 @@
    Sends a short, scrubbed summary of uncaught browser errors to /api/client-error
    (same origin) so they reach the owner instead of disappearing.
    Sent: message, stack (at most 2 KB), file:line:col, the page path without its
-   query or hash, the UI bundle version, the browser family and a timestamp.
+   query or hash, the UI bundle version, the browser name with its main version
+   number and the operating system ("Chrome 141 on Android") and a timestamp.
    Never sent: anything typed into the page, page content, cookies, storage,
    emails, tokens or query strings.
    At most 5 reports per page load, each distinct error once. Extension errors,
@@ -35,11 +36,17 @@
       .replace(/\b(?:https?|wss?):\/\/[^\s"'<>()[\]{}`,]+/gi, cleanUrl)
       .replace(/\b(?:data|blob):[^\s"'<>()]+/gi, "<data-url>")
       .replace(/(^|[\s(@"'=])(\/[^\s?#"'<>()]*)[?#][^\s"'<>()]*?((?::\d+){1,2})?(?=$|[\s"'<>()])/g, "$1$2$3")
+      .replace(/("(?:password|passwd|pwd|passcode|secret|token|access_token|refresh_token|id_token|api_?key|authorization)"\s*:\s*)"(?:[^"\\]|\\.)*"/gi, '$1"<redacted>"')
+      .replace(/\b(password|passwd|pwd|passcode)(\s*[:=]\s*)(?!<)[^\s,;&"'<>]+/gi, "$1$2<redacted>")
       .replace(/[A-Z0-9._%+-]{1,64}(?:@|%40)[A-Z0-9-]{1,63}(?:\.[A-Z0-9-]{1,63}){0,8}\.[A-Z]{2,24}/gi, "<email>")
       .replace(/\beyJ[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}(?:\.[A-Za-z0-9_-]*)?/g, "<token>")
       .replace(/\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]+/gi, "$1 <token>")
       .replace(/\b[A-Za-z0-9_-]{32,}\b/g, function (m) { return /\d/.test(m) && /[A-Za-z]/.test(m) ? "<token>" : m; })
-      .replace(/(^|[^\w:./#-])(\+?\d(?:[\s().-]{0,2}\d){7,})(?!\w)/g, "$1<number>");
+      .replace(/\b[A-Z]{2}\d{2}(?:\s?[A-Z0-9]{4}){2,7}(?:\s?[A-Z0-9]{1,4})?\b/g, "<iban>")
+      // 8 or more digits (phone, card and account numbers), separators allowed. Stack line and
+      // column numbers are never that long, so runs after ":", "/", "-" or "." go too (tel:, wa.me/).
+      .replace(/(^|[^\w])(\+?\d(?:[\s().-]{0,2}\d){7,})(?!\w)/g, "$1<number>")
+      .replace(/\d{12,}/g, "<number>");
     return text.length > max ? text.slice(0, max - 1) + "…" : text;
   }
 

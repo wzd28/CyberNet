@@ -107,6 +107,7 @@ const err = (message, extra = {}) => Object.assign(new Error(message), extra);
   const cases = [
     ["creds-code", err("Invalid login credentials", { code: "invalid_credentials", status: 400 }), "login", /don't match an account/],
     ["creds-text", err("Invalid login credentials"), "login", /don't match an account/],
+    ["creds-google-hint", err("Invalid login credentials", { code: "invalid_credentials", status: 400 }), "login", /If you used Continue with Google before, choose it again/],
     ["unconfirmed", err("Email not confirmed", { code: "email_not_confirmed" }), "login", /isn't confirmed yet.*Resend confirmation email/],
     ["exists", err("User already registered", { code: "user_already_exists" }), "signup", /already exists for this email/],
     ["same-password", err("New password should be different from the old password.", { code: "same_password", status: 422 }), "recovery", /password you use now/],
@@ -225,6 +226,8 @@ const err = (message, extra = {}) => Object.assign(new Error(message), extra);
   check("recovery-url", (recovery.match(/\{\{ \.ConfirmationURL \}\}/g) || []).length >= 2, "ConfirmationURL");
   check("recovery-contact", recovery.includes("mailto:support@cybernetai.app") && !recovery.includes("cybernetai.26"), "contact");
   check("recovery-no-emoji", !/\p{Extended_Pictographic}/u.test(recovery), "emoji in the recovery template");
+  check("confirm-no-emoji", !/\p{Extended_Pictographic}/u.test(confirm), "emoji in the confirm template");
+  check("templates-same-shield", confirm.includes('src="https://cybernetai.app/cybernetshield.png"') && recovery.includes('src="https://cybernetai.app/cybernetshield.png"'), "shield image");
   check("script-no-old-contact", !script.includes("cybernetai.26@gmail.com"), "script.js");
 }
 
@@ -232,7 +235,8 @@ const err = (message, extra = {}) => Object.assign(new Error(message), extra);
 {
   const html = read("public/index.html");
   for (const id of ["authLoginForm", "authSignupForm", "authResetForm", "authNewPasswordForm"])
-    check(`form-${id}`, new RegExp(`<form id="${id}" class="auth-form[^"]*" novalidate>`).test(html), id);
+    // method="post": a submit that skips script.js must never put the email or password in the URL.
+    check(`form-${id}`, new RegExp(`<form id="${id}" class="auth-form[^"]*" method="post" action="/" novalidate>`).test(html), id);
   for (const id of ["loginEmail", "loginPassword", "signupFirstName", "signupLastName", "signupEmail", "signupPassword", "resetEmail", "authNewPassword", "authNewPasswordConfirm"]) {
     const tag = (html.match(new RegExp(`<input[^>]*id="${id}"[^>]*>`)) || [""])[0];
     check(`input-${id}`, / required/.test(tag) && new RegExp(`aria-describedby="[^"]*${id}Error`).test(tag) && html.includes(`id="${id}Error"`) && html.includes(`<label for="${id}">`), tag);

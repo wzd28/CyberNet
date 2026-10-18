@@ -17,6 +17,7 @@ function env(name: string): string {
 
 // Invites can be accepted for 24 hours after they are sent.
 const INVITE_TTL_MS = 24 * 60 * 60 * 1000;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)*\.[a-z0-9-]{2,}$/i;
 
 function randomToken(): string {
   const bytes = new Uint8Array(32);
@@ -106,8 +107,10 @@ export default async (request: Request) => {
 
     const body = await request.json().catch(() => ({}));
     const email = String(body.email || "").trim().toLowerCase();
-    if (!email || !email.includes("@") || email.length > 254) {
-      return json({ error: "A valid email address is required." }, 400);
+    // The same pattern as the sign-in form (public/script.js EMAIL_PATTERN): a name, an @, and a
+    // domain with a dot and an ending of two or more characters.
+    if (!email || email.length > 254 || !EMAIL_PATTERN.test(email)) {
+      return json({ error: "Enter a full email address, like name@company.com." }, 400);
     }
 
     await expireStaleInvites(team.businessAccountId);

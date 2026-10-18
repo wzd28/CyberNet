@@ -53,7 +53,10 @@ const OTHER_USER = "22222222-2222-4222-8222-222222222222";
 const TEAM = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const OTHER_TEAM = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const CASE = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
-const OPEN = "subscription_status=not.in.(active,trialing,past_due,unpaid)";
+const CLOSED = "subscription_status=in.(inactive,canceled,incomplete_expired)";
+const CLOSED_STATUSES = ["inactive", "canceled", "incomplete_expired"];
+// The two deletes that come first for every account (no foreign key to auth.users).
+const FIRST = [`DELETE /rest/v1/checkout_debug_log?user_id=eq.${USER}`, `DELETE /rest/v1/api_rate_limits?rate_key=like.*${USER}`];
 
 const fullEnv = () => ({ SUPABASE_URL: BASE, SUPABASE_ANON_KEY: ANON, SUPABASE_SERVICE_ROLE_KEY: SERVICE });
 
@@ -66,6 +69,8 @@ function install(db = {}) {
     owned: [],
     teamDeleteReturns: null, // rows returned by the business_accounts DELETE (default: the team)
     teamStillThere: [],
+    teamNow: null, // the owned teams as the re-read just before the clean-up sees them (default: owned)
+    deleted: {}, // "path-prefix" -> rows a DELETE reports (Content-Range), default 0
     authDelete: 200,
     fail: {},
     ...db
@@ -78,7 +83,7 @@ function install(db = {}) {
     const target = decodeURIComponent(url.pathname + url.search);
     const call = { method, target, apikey: headers.apikey, auth: headers.Authorization, prefer: headers.Prefer, body: init.body ? JSON.parse(init.body) : undefined };
     calls.push(call);
-    const respond = (status, body) => new Response(body === undefined ? null : JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
+    const respond = (status, body, extra = {}) => new Response(body === undefined ? null : JSON.stringify(body), { status, headers: { "Content-Type": "application/json", ...extra } });
 
     for (const [key, status] of Object.entries(state.fail)) {
       const [m, prefix] = key.split(" ");
@@ -91,6 +96,11 @@ function install(db = {}) {
     if (target.startsWith("/auth/v1/admin/users/")) return respond(state.authDelete, {});
     if (method === "GET" && target.startsWith(`/rest/v1/profiles?id=eq.${USER}`)) return respond(200, state.profile ? [state.profile] : []);
     if (method === "GET" && target.startsWith(`/rest/v1/business_accounts?owner_user_id=eq.${USER}`)) return respond(200, state.owned);
+    if (method === "GET" && target.startsWith("/rest/v1/business_accounts?id=eq.") && target.includes(`&owner_user_id=eq.${USER}&${CLOSED}`)) {
+      const teamId = target.match(/id=eq\.([^&]+)/)[1];
+      const row = (state.teamNow ?? state.owned).find(team => team.id === teamId);
+      return respond(200, row && CLOSED_STATUSES.includes(String(row.subscription_status).toLowerCase()) ? [{ id: teamId }] : []);
+    }
     if (method === "GET" && target.startsWith("/rest/v1/business_accounts?id=eq.")) return respond(200, state.teamStillThere);
     if (method === "DELETE" && target.startsWith("/rest/v1/business_accounts?id=eq.")) {
       const teamId = target.match(/id=eq\.([^&]+)/)[1];
@@ -101,7 +111,11 @@ function install(db = {}) {
     if (method === "GET" && target.startsWith("/rest/v1/recovery_tasks?")) return respond(200, [{ case_id: CASE, title: "Call the bank" }]);
     if (method === "GET" && target.startsWith(`/rest/v1/business_members?user_id=eq.${USER}`)) return respond(200, [{ business_account_id: OTHER_TEAM, role: "member", status: "active" }]);
     if (method === "GET") return respond(200, []);
-    if (method === "DELETE" || method === "PATCH" || method === "POST") return respond(204);
+    if (method === "DELETE") {
+      const hit = Object.entries(state.deleted).find(([prefix]) => target.startsWith(prefix));
+      return respond(204, undefined, { "Content-Range": `*/${hit ? hit[1] : 0}` });
+    }
+    if (method === "PATCH" || method === "POST") return respond(204);
     return respond(404, { message: "unexpected" });
   };
 }
@@ -134,6 +148,7 @@ function ownOnly(name, allowedTeams = []) {
   const ok = writes().every(w =>
     w.includes(`user_id=eq.${USER}`) ||
     w.includes(`invited_by_user_id=eq.${USER}`) ||
+    w.includes(`rate_key=like.*${USER}`) ||
     w.includes(`/auth/v1/admin/users/${USER}`) ||
     allowedTeams.some(t => w.includes(`business_account_id=eq.${t}`) || w.includes(`business_accounts?id=eq.${t}&owner_user_id=eq.${USER}`))
   );
@@ -146,6 +161,7 @@ install();
 let r = await call({ action: "delete-account", confirmation: "DELETE" });
 check("free user: 200 deleted", r.status === 200 && r.data.deleted === true && r.data.closedTeams === 0, r);
 check("free user: write order", same(writes(), [
+  ...FIRST,
   `DELETE /rest/v1/business_members?user_id=eq.${USER}`,
   `DELETE /rest/v1/business_invites?invited_by_user_id=eq.${USER}`,
   `DELETE /auth/v1/admin/users/${USER}`
@@ -156,13 +172,14 @@ check("free user: invites sent to the user's email by other teams are left alone
 ownOnly("free user");
 
 // ── 2. an open personal subscription blocks deletion ──
-for (const status of ["active", "trialing", "past_due", "unpaid", "ACTIVE"]) {
+// Deny by default: incomplete and paused can still turn into a bill.
+for (const status of ["active", "trialing", "past_due", "unpaid", "ACTIVE", "incomplete", "paused", "PAUSED", "some_new_status"]) {
   install({ profile: { id: USER, plan: "pro", subscription_status: status } });
   r = await call({ action: "delete-account", confirmation: "DELETE" });
   check(`subscription ${status}: 409 SUBSCRIPTION_ACTIVE`, r.status === 409 && r.data.code === "SUBSCRIPTION_ACTIVE" && /Manage Billing/.test(r.data.error), r);
   check(`subscription ${status}: nothing written`, writes().length === 0, writes());
 }
-for (const status of ["canceled", "incomplete_expired", "inactive", ""]) {
+for (const status of ["canceled", "incomplete_expired", "inactive", "", "CANCELED"]) {
   install({ profile: { id: USER, plan: "free", subscription_status: status } });
   r = await call({ action: "delete-account", confirmation: "DELETE" });
   check(`subscription "${status}": deletion goes ahead`, r.status === 200 && r.data.deleted === true, r);
@@ -172,7 +189,7 @@ r = await call({ action: "delete-account", confirmation: "DELETE" });
 check("no profile row: deletion goes ahead", r.status === 200 && r.data.deleted === true, r);
 
 // ── 3. an owned team with an open plan blocks deletion ──
-for (const status of ["active", "trialing", "past_due", "unpaid"]) {
+for (const status of ["active", "trialing", "past_due", "unpaid", "incomplete", "paused"]) {
   install({ owned: [{ id: TEAM, subscription_status: status }] });
   r = await call({ action: "delete-account", confirmation: "DELETE" });
   check(`team ${status}: 409 TEAM_ACTIVE`, r.status === 409 && r.data.code === "TEAM_ACTIVE" && /Manage Billing/.test(r.data.error), r);
@@ -187,26 +204,32 @@ install({ owned: [{ id: TEAM, subscription_status: "canceled" }] });
 r = await call({ action: "delete-account", confirmation: "DELETE" });
 check("closed-team owner: 200 deleted, 1 team closed", r.status === 200 && r.data.deleted === true && r.data.closedTeams === 1, r);
 check("closed-team owner: exact call order", same(writes(), [
+  ...FIRST,
   `DELETE /rest/v1/business_members?business_account_id=eq.${TEAM}`,
   `DELETE /rest/v1/business_invites?business_account_id=eq.${TEAM}`,
   `DELETE /rest/v1/business_daily_usage?business_account_id=eq.${TEAM}`,
   `DELETE /rest/v1/business_recovery_usage?business_account_id=eq.${TEAM}`,
   `PATCH /rest/v1/scan_history?business_account_id=eq.${TEAM}`,
   `PATCH /rest/v1/recovery_cases?business_account_id=eq.${TEAM}`,
-  `DELETE /rest/v1/business_accounts?id=eq.${TEAM}&owner_user_id=eq.${USER}&${OPEN}`,
+  `DELETE /rest/v1/business_accounts?id=eq.${TEAM}&owner_user_id=eq.${USER}&${CLOSED}`,
   `DELETE /rest/v1/business_members?user_id=eq.${USER}`,
   `DELETE /rest/v1/business_invites?invited_by_user_id=eq.${USER}`,
   `DELETE /auth/v1/admin/users/${USER}`
 ]), writes());
 const unlinks = calls.filter(c => c.method === "PATCH");
 check("closed-team owner: history and cases are unlinked, not deleted", unlinks.length === 2 && unlinks.every(c => same(c.body, { business_account_id: null })), unlinks);
-check("closed-team owner: the team row is deleted only while it is closed and still theirs", calls.some(c => c.method === "DELETE" && c.target.includes(`business_accounts?id=eq.${TEAM}&owner_user_id=eq.${USER}&${OPEN}`)));
+check("closed-team owner: the team row is deleted only while it is closed and still theirs", calls.some(c => c.method === "DELETE" && c.target.includes(`business_accounts?id=eq.${TEAM}&owner_user_id=eq.${USER}&${CLOSED}`)));
+check("closed-team owner: the team is read again, closed and theirs, before anything is removed", (() => {
+  const reread = calls.findIndex(c => c.method === "GET" && c.target.startsWith(`/rest/v1/business_accounts?id=eq.${TEAM}&owner_user_id=eq.${USER}&${CLOSED}`));
+  const firstTeamWrite = calls.findIndex(c => c.method !== "GET" && c.target.includes(`business_account_id=eq.${TEAM}`));
+  return reread >= 0 && reread < firstTeamWrite;
+})(), calls.map(c => `${c.method} ${c.target}`));
 ownOnly("closed-team owner", [TEAM]);
 
 // two closed teams: both are closed before the user is touched
 install({ owned: [{ id: TEAM, subscription_status: "canceled" }, { id: OTHER_TEAM, subscription_status: "incomplete_expired" }] });
 r = await call({ action: "delete-account", confirmation: "DELETE" });
-const firstUserWrite = writes().findIndex(w => w.includes(`user_id=eq.${USER}`) && !w.includes("owner_user_id"));
+const firstUserWrite = writes().findIndex(w => w.includes(`business_members?user_id=eq.${USER}`));
 const lastTeamWrite = writes().map(w => w.includes(OTHER_TEAM)).lastIndexOf(true);
 check("two closed teams: both closed, then the user", r.status === 200 && r.data.closedTeams === 2 && lastTeamWrite >= 0 && lastTeamWrite < firstUserWrite, writes());
 
@@ -215,13 +238,13 @@ install({ owned: [] });
 r = await call({ action: "delete-account", confirmation: "DELETE" });
 check("member of another team: 200 deleted", r.status === 200 && r.data.deleted === true, r);
 check("member of another team: the other team is never touched", !calls.some(c => c.method !== "GET" && (c.target.includes(OTHER_TEAM) || c.target.includes("business_account_id=") || c.target.includes("business_accounts?"))), writes());
-check("member of another team: own membership removed before the auth user", writes().indexOf(`DELETE /rest/v1/business_members?user_id=eq.${USER}`) === 0 && writes().at(-1) === `DELETE /auth/v1/admin/users/${USER}`, writes());
+check("member of another team: own membership removed before the auth user", writes().indexOf(`DELETE /rest/v1/business_members?user_id=eq.${USER}`) === FIRST.length && writes().at(-1) === `DELETE /auth/v1/admin/users/${USER}`, writes());
 ownOnly("member of another team");
 
 // ── 6. stops at the first failure, with a clear code ──
 install({ owned: [{ id: TEAM, subscription_status: "canceled" }], fail: { [`DELETE /rest/v1/business_invites?business_account_id=eq.${TEAM}`]: 500 } });
 r = await call({ action: "delete-account", confirmation: "DELETE" });
-check("team cleanup fails: 502 TEAM_CLEANUP_FAILED", r.status === 502 && r.data.code === "TEAM_CLEANUP_FAILED" && /still open/.test(r.data.error), r);
+check("team cleanup fails after a row went: 502 PARTIAL_DELETE that says the account still works", r.status === 502 && r.data.code === "PARTIAL_DELETE" && /sign-in still work/.test(r.data.error) && /Delete again/.test(r.data.error), r);
 check("team cleanup fails: nothing after the failing step", writes().at(-1) === `DELETE /rest/v1/business_invites?business_account_id=eq.${TEAM}` && !writes().some(w => w.includes("/auth/v1/admin")), writes());
 
 install({ fail: { [`DELETE /rest/v1/business_members?user_id=eq.${USER}`]: 500 } });
@@ -230,7 +253,24 @@ check("membership cleanup fails: 502 MEMBERSHIP_CLEANUP_FAILED, auth user kept",
 
 install({ authDelete: 500 });
 r = await call({ action: "delete-account", confirmation: "DELETE" });
-check("auth delete fails: 502 AUTH_DELETE_FAILED", r.status === 502 && r.data.code === "AUTH_DELETE_FAILED", r);
+check("auth delete fails, nothing else changed: 502 AUTH_DELETE_FAILED (account still open)", r.status === 502 && r.data.code === "AUTH_DELETE_FAILED" && /still open/.test(r.data.error), r);
+
+// The review's case: the user's links to another team went, then the auth delete failed.
+install({ authDelete: 500, deleted: { [`/rest/v1/business_members?user_id=eq.${USER}`]: 1 } });
+r = await call({ action: "delete-account", confirmation: "DELETE" });
+check("auth delete fails after team links went: 502 PARTIAL_DELETE", r.status === 502 && r.data.code === "PARTIAL_DELETE" && /sign-in still work/.test(r.data.error), r);
+install({ authDelete: 500, owned: [{ id: TEAM, subscription_status: "canceled" }] });
+r = await call({ action: "delete-account", confirmation: "DELETE" });
+check("auth delete fails after a closed team was removed: 502 PARTIAL_DELETE", r.status === 502 && r.data.code === "PARTIAL_DELETE", r);
+
+install({ fail: { [`DELETE /rest/v1/checkout_debug_log`]: 500 } });
+r = await call({ action: "delete-account", confirmation: "DELETE" });
+check("checkout log cleanup fails: 502, nothing else touched", r.status === 502 && r.data.code === "CHECKOUT_LOG_CLEANUP_FAILED" && /still open/.test(r.data.error) && writes().length === 1, { r, w: writes() });
+
+// Re-read before the team clean-up: the plan restarted after Gate 2.
+install({ owned: [{ id: TEAM, subscription_status: "canceled" }], teamNow: [{ id: TEAM, subscription_status: "active" }], teamStillThere: [{ id: TEAM, subscription_status: "active" }] });
+r = await call({ action: "delete-account", confirmation: "DELETE" });
+check("team active again at the re-read: 409 TEAM_ACTIVE, no team row touched", r.status === 409 && r.data.code === "TEAM_ACTIVE" && !writes().some(w => w.includes(TEAM)) && !writes().some(w => w.includes("/auth/v1/admin")), { r, w: writes() });
 
 install({ fail: { [`GET /rest/v1/profiles`]: 500 } });
 r = await call({ action: "delete-account", confirmation: "DELETE" });
@@ -241,13 +281,15 @@ install({ authDelete: 404 });
 r = await call({ action: "delete-account", confirmation: "DELETE" });
 check("auth user already gone (404): still a success", r.status === 200 && r.data.deleted === true, r);
 
-install({ owned: [{ id: TEAM, subscription_status: "canceled" }], teamDeleteReturns: [], teamStillThere: [] });
+install({ owned: [{ id: TEAM, subscription_status: "canceled" }], teamNow: [], teamDeleteReturns: [], teamStillThere: [] });
 r = await call({ action: "delete-account", confirmation: "DELETE" });
 check("team row already gone on a retry: continues to the user", r.status === 200 && r.data.deleted === true && writes().at(-1) === `DELETE /auth/v1/admin/users/${USER}`, { r, w: writes() });
 
 install({ owned: [{ id: TEAM, subscription_status: "canceled" }], teamDeleteReturns: [], teamStillThere: [{ id: TEAM, subscription_status: "active" }] });
 r = await call({ action: "delete-account", confirmation: "DELETE" });
-check("team reactivated mid-request: 409 TEAM_ACTIVE, auth user kept", r.status === 409 && r.data.code === "TEAM_ACTIVE" && !writes().some(w => w.includes("/auth/v1/admin")), { r, w: writes() });
+// The plan restarted in the moment between the re-read and the guarded DELETE: the team row stays,
+// the account stays, and the reply says that some team details already went.
+check("team reactivated after the re-read: 502 PARTIAL_DELETE, team row and auth user kept", r.status === 502 && r.data.code === "PARTIAL_DELETE" && !writes().some(w => w.includes("/auth/v1/admin")), { r, w: writes() });
 
 // ── 8. confirmation, method and action guards ──
 install();
@@ -298,7 +340,8 @@ ENV = fullEnv();
 install({ owned: [{ id: TEAM, seat_tier: 5, subscription_status: "canceled" }] });
 r = await call({ action: "export" });
 const d = r.data.data || {};
-check("export: 200 with every section", r.status === 200 && ["account", "profile", "dailyUsage", "savedHistory", "legalAcceptances", "recoveryCases", "recoveryVersions", "recoveryTasks", "recoveryUsage", "quickscanUsage", "teamMemberships", "ownedTeams"].every(k => k in d), Object.keys(d));
+check("export: 200 with every section", r.status === 200 && ["account", "profile", "dailyUsage", "savedHistory", "legalAcceptances", "recoveryCases", "recoveryVersions", "recoveryTasks", "recoveryUsage", "quickscanUsage", "teamMemberships", "ownedTeams", "checkoutErrors", "usageCounters"].every(k => k in d), Object.keys(d));
+check("export: checkout error log and usage counters are read for this user", calls.some(c => c.target.startsWith(`/rest/v1/checkout_debug_log?user_id=eq.${USER}`)) && calls.some(c => c.target.startsWith(`/rest/v1/api_rate_limits?rate_key=like.*${USER}`)), calls.map(c => c.target));
 check("export: account is the caller", d.account?.id === USER && d.account?.email === "person@example.com", d.account);
 check("export: Recovery versions and tasks of the user's cases", d.recoveryVersions?.length === 1 && d.recoveryTasks?.length === 1 && calls.some(c => c.target.startsWith(`/rest/v1/recovery_tasks?case_id=in.(${CASE})`)), d);
 check("export: memberships and owned teams included", d.teamMemberships?.[0]?.business_account_id === OTHER_TEAM && d.ownedTeams?.[0]?.id === TEAM, d);

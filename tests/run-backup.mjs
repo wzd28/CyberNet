@@ -235,7 +235,8 @@ try {
   // ── Config of the two functions ──
   check("weekly-schedule", weekly.config?.schedule === "@weekly" && !("path" in weekly.config), weekly.config);
   check("now-path", now.config?.path === "/api/backup-now" && !("schedule" in now.config), now.config);
-  check("table-list", lib.TABLES.length === 16 && new Set(lib.TABLES.map((t) => t.name)).size === 16 && lib.TABLES.every((t) => t.key.length), lib.TABLES.map((t) => t.name));
+  check("table-list", lib.TABLES.length === 15 && new Set(lib.TABLES.map((t) => t.name)).size === 15 && lib.TABLES.every((t) => t.key.length), lib.TABLES.map((t) => t.name));
+  check("rate-limits-excluded", JSON.stringify(lib.EXCLUDED_TABLES) === '["api_rate_limits"]' && !lib.TABLES.some((t) => t.name === "api_rate_limits"), lib.EXCLUDED_TABLES);
   check("restore-order-fk", ["business_accounts", "business_members", "recovery_cases", "recovery_versions", "recovery_tasks"].map((n) => lib.TABLES.findIndex((t) => t.name === n)).every((v, i, a) => !i || v > a[i - 1]), lib.TABLES.map((t) => t.name));
 
   // ── Refusal without a passphrase: nothing read, nothing sent ──
@@ -315,9 +316,12 @@ try {
   }
   const docText = JSON.stringify(doc);
   check("doc-manifest", doc.manifest.format === "cybernet-ai-backup" && doc.manifest.formatVersion === 1 && doc.manifest.schemaVersion === lib.SCHEMA_VERSION && /^[0-9a-f]{16}$/.test(doc.manifest.schemaFingerprint || "") && doc.manifest.source === "testproj.supabase.co" && !Number.isNaN(Date.parse(doc.manifest.createdAt)), doc.manifest);
-  check("doc-row-counts", Object.entries(tables).every(([name, list]) => doc.manifest.tables[name]?.rows === list.length && doc.tables[name]?.length === list.length) && doc.manifest.authUsers.rows === 5, doc.manifest.tables);
-  check("doc-rows-complete", Object.entries(tables).every(([name, list]) => JSON.stringify(sortById(doc.tables[name])) === JSON.stringify(sortById(list))), null);
+  const backedUp = Object.entries(tables).filter(([name]) => !lib.EXCLUDED_TABLES.includes(name));
+  check("doc-row-counts", backedUp.every(([name, list]) => doc.manifest.tables[name]?.rows === list.length && doc.tables[name]?.length === list.length) && doc.manifest.authUsers.rows === 5, doc.manifest.tables);
+  check("doc-rows-complete", backedUp.every(([name, list]) => JSON.stringify(sortById(doc.tables[name])) === JSON.stringify(sortById(list))), null);
   check("doc-rows-ordered", JSON.stringify(doc.tables.recovery_tasks.map((r) => r.id)) === "[1,2,3,4,5,6,7]", doc.tables.recovery_tasks.map((r) => r.id));
+  check("doc-excluded-table-absent", !("api_rate_limits" in doc.tables) && !doc.manifest.restoreOrder.includes("api_rate_limits") && !server.calls.some((c) => c.url.includes("/rest/v1/api_rate_limits")), doc.manifest.restoreOrder);
+  check("email-retention-line", email.text?.includes("Keep this email for 8 weeks, then delete it.") && email.html?.includes("Keep this email for 8 weeks, then delete it"), email.text);
   check("doc-restore-order", doc.manifest.restoreOrder.join(",") === [...lib.TABLES.map((t) => t.name), "client_errors"].join(","), doc.manifest.restoreOrder);
   check("doc-extra-table", doc.manifest.tables.client_errors?.found === "auto" && JSON.stringify(doc.manifest.tables.client_errors?.key) === '["id"]', doc.manifest.tables.client_errors);
   check("doc-identity-info", doc.manifest.tables.recovery_tasks.identity === "id" && doc.manifest.tables.checkout_debug_log.identityAlways === true, doc.manifest.tables.checkout_debug_log);
@@ -500,12 +504,12 @@ try {
   // ── One table gone, the REST table list unavailable ──
   {
     setEnv({});
-    const s = useServer({ missing: ["api_rate_limits"], openapi: false });
+    const s = useServer({ missing: ["checkout_debug_log"], openapi: false });
     quiet();
     const r = await lib.runBackup();
     loud();
     const text = s.emails[0]?.body.text || "";
-    check("missing-table-note", r.status === "sent" && text.includes("no longer exist were skipped: api_rate_limits"), text);
+    check("missing-table-note", r.status === "sent" && text.includes("no longer exist were skipped: checkout_debug_log"), text);
     check("no-openapi-note", text.includes("could not be checked this week") && !text.includes("client_errors"), text);
   }
 

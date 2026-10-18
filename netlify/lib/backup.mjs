@@ -76,12 +76,16 @@ export const TABLES = [
   { name: "recovery_cases", key: ["id"] },
   { name: "recovery_versions", key: ["id"], identity: "id" },
   { name: "recovery_tasks", key: ["id"], identity: "id" },
-  { name: "api_rate_limits", key: ["rate_key"] },
   { name: "checkout_debug_log", key: ["id"], identity: "id", identityAlways: true }
 ];
 
-// Public tables that are deliberately left out of the backup (none today).
-export const EXCLUDED_TABLES = [];
+// Public tables that are deliberately left out of the backup:
+//   api_rate_limits  short-lived rate-limit counters (consume_api_quota). A
+//                    restore does not need them (the counters simply start
+//                    again), and the table can grow faster than the weekly
+//                    job could read it. Old rows are removed by
+//                    netlify/functions/rate-limit-cleanup.mjs.
+export const EXCLUDED_TABLES = ["api_rate_limits"];
 
 // The newest database migration when TABLES was last checked. Bump it
 // together with TABLES. The manifest also carries a fingerprint of the
@@ -598,7 +602,7 @@ export function buildBackupEmail(manifest, { filename, bytes }) {
     `Your ${manifest.trigger === "manual" ? "" : "weekly "}CyberNet AI backup is attached: ${filename} (${formatBytes(bytes)}).`,
     "",
     "It is encrypted. Only the backup passphrase (BACKUP_PASSPHRASE, kept in your password manager) can open it.",
-    "Keep this email. Deleting it deletes this copy of the backup.",
+    "Keep this email for 8 weeks, then delete it. Our Privacy Policy says backups are deleted after 8 weeks (docs/BACKUPS.md, step 7, has a monthly Gmail search for old backups).",
     "",
     "WHAT IS INSIDE",
     `Sign-in accounts (no passwords): ${manifest.authUsers.rows}`,
@@ -620,7 +624,7 @@ export function buildBackupEmail(manifest, { filename, bytes }) {
     CARD_OPEN +
     `<h1 ${H1}>${manifest.trigger === "manual" ? "Your CyberNet AI backup" : "Your weekly CyberNet AI backup"}</h1>` +
     `<p ${P}>The backup is attached: <strong style="color:#eaf6ff;">${escapeHtml(filename)}</strong> (${escapeHtml(formatBytes(bytes))}).</p>` +
-    `<p ${P}>It is encrypted. Only the backup passphrase (BACKUP_PASSPHRASE, kept in your password manager) can open it. Keep this email: deleting it deletes this copy of the backup.</p>` +
+    `<p ${P}>It is encrypted. Only the backup passphrase (BACKUP_PASSPHRASE, kept in your password manager) can open it. Keep this email for 8 weeks, then delete it: our Privacy Policy says backups are deleted after 8 weeks. Step 7 of docs/BACKUPS.md has a monthly Gmail search that finds the old ones.</p>` +
     (manifest.notes.length
       ? `<div style="background:rgba(250,204,21,0.08);border:1px solid rgba(250,204,21,0.35);border-radius:12px;padding:12px 14px;margin:16px 0 4px 0;">` +
         `<p style="color:#fde68a;font-size:13px;font-weight:700;margin:0 0 6px 0;">Please note</p>` +

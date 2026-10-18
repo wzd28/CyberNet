@@ -7,7 +7,9 @@
                          DELETE confirmation, a busy state and plain copy for every refusal
                          code, then {action:"delete-account", confirmation:"DELETE"}
    After a deletion it signs out on this device, clears the cybernet* browser storage and
-   goes to /?account=deleted, where a calm notice says the account has been deleted.
+   goes to /?account=deleted, where a calm notice says the account has been deleted. The
+   notice shows only right after a deletion on this device (a short-lived sessionStorage
+   mark, and no session left), so a shared link to /?account=deleted shows nothing.
 
    It only injects: the tabs (cybernet-final-ui-fix.js) and the modal
    (cybernet-account-api-upgrade.js) are left as they are. The dialogs are ordinary
@@ -50,8 +52,10 @@
     NETWORK: "We could not reach CyberNet AI. Check your internet connection and try again.",
     TIMEOUT: "This is taking longer than usual. Check your internet connection and try again.",
     NOT_CONFIGURED: `This is not available right now. Please try again later, or email ${SUPPORT}.`,
-    SERVER: "Something went wrong on our side. Please try again in a few minutes."
+    SERVER: "Something went wrong on our side. Please try again in a few minutes.",
+    CLEAR_FAILED: "Please try again in a few minutes."
   };
+  const EXPORT_FAILED_TEXT = "We could not prepare your data file.";
   const DELETE_COPY = {
     SUBSCRIPTION_ACTIVE: {
       tone: "warn",
@@ -74,6 +78,11 @@
       text: "This took longer than usual. Refresh the page and try to sign in. If you can still sign in, your account was not deleted and you can try again."
     },
     NOT_CONFIGURED: { tone: "error", title: "Not available right now", text: `Account deletion is not available right now. Please try again later, or email ${SUPPORT}.` },
+    PARTIAL_DELETE: {
+      tone: "warn",
+      title: "Your account is not fully deleted yet",
+      text: `We could not finish. Some of your Business team details were already removed (your place in other teams, or a closed team you owned), but your account and sign-in still work. Press Delete my account again in a few minutes to finish. If this keeps happening, email ${SUPPORT} and we will remove it for you.`
+    },
     DEFAULT: {
       tone: "error",
       title: "Your account is still open",
@@ -399,10 +408,53 @@
     });
   }
 
+  // The Legal Center opened from inside the Account panel ("Privacy Policy" on this tab):
+  // remember the button, and give focus back to it when the Legal Center closes, however
+  // it closes (Escape, the close button, Done or a click outside).
+  let legalOpener = null;
+  let legalWatch = null;
+  function watchLegalClose() {
+    const legal = byId("cnLegalModal");
+    if (!legal || legalWatch) return;
+    legalWatch = new MutationObserver(() => {
+      if (legal.classList.contains("show") || !legalOpener) return;
+      const back = legalOpener;
+      legalOpener = null;
+      // ui-src/js/08-focus.js keeps the Account panel inert until a frame after the Legal
+      // Center closes, so this tries again for up to a second.
+      const started = Date.now();
+      (function attempt() {
+        if (!back.isConnected || !byId("accountDetailsModal")?.classList.contains("show")) return;
+        if (!back.closest("[inert]")) {
+          try { back.focus({ preventScroll: true }); } catch { back.focus(); }
+          if (document.activeElement === back) return;
+        }
+        if (Date.now() - started < 1000) setTimeout(attempt, 40);
+      })();
+    });
+    legalWatch.observe(legal, { attributes: true, attributeFilter: ["class"] });
+  }
+  document.addEventListener("click", event => {
+    const opener = event.target.closest?.("#accountDetailsModal [data-open-legal]");
+    if (!opener) return;
+    legalOpener = opener;
+    setTimeout(watchLegalClose, 0);
+  }, true);
+
   // Escape closes the top privacy dialog (never while it is working), and stops there:
   // the Account panel underneath has its own Escape handler on document.
   document.addEventListener("keydown", event => {
     if (event.key !== "Escape" && event.key !== "Esc") return;
+    // The Legal Center on top of the Account panel: one Escape closes only the Legal
+    // Center (the Account panel's own handler would close both at once).
+    if (document.querySelector("#cnLegalModal.show") && byId("accountDetailsModal")?.classList.contains("show")) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (!legalOpener) legalOpener = byId(IDS.pane)?.querySelector("[data-open-legal]") || null;
+      watchLegalClose();
+      byId("cnLegalClose")?.click();
+      return;
+    }
     const open = [...openDialogs].filter(modal => modal.classList.contains("show"));
     if (!open.length) return;
     event.preventDefault();
@@ -511,7 +563,9 @@
     const result = await send("export", {}, 25000);
     setBusy(button, false);
     if (result.status !== 200 || !result.data?.data) {
-      paneMessage(`We could not prepare your data file. ${commonText(result)}`, "error");
+      // The server's own EXPORT_FAILED message already starts with the same sentence.
+      const detail = commonText(result);
+      paneMessage(detail.startsWith(EXPORT_FAILED_TEXT) ? detail : `${EXPORT_FAILED_TEXT} ${detail}`, "error");
       return;
     }
     const filename = `cybernet-ai-data-${new Date().toISOString().slice(0, 10)}.json`;
@@ -644,6 +698,9 @@
       }
       clearAllCyberNetStorage();
       await signOutHere();
+      // The one-time mark that lets the next page show the "deleted" notice (it does not
+      // start with "cybernet", so the clean-up above leaves it).
+      try { sessionStorage.setItem(DELETED_MARK, String(Date.now())); } catch { /* the notice is skipped */ }
       window.location.replace("/?account=deleted");
       return;
     }
@@ -679,6 +736,26 @@
     document.body.appendChild(notice);
   }
 
+  // Shown only right after a deletion on this device: anyone can open a link to
+  // /?account=deleted, and on an anti-scam site a real-looking "your account was deleted"
+  // message would be a ready-made lure.
+  const DELETED_MARK = "cn_account_deleted";
+  const DELETED_MARK_MAX_AGE_MS = 2 * 60 * 1000;
+
+  function hasStoredSession() {
+    return storageKeys(window.localStorage).some(key => /^sb-.+-auth-token/.test(key));
+  }
+
+  function takeDeletedMark() {
+    let mark = null;
+    try {
+      mark = sessionStorage.getItem(DELETED_MARK);
+      sessionStorage.removeItem(DELETED_MARK);
+    } catch { return false; }
+    const at = Number(mark);
+    return Number.isFinite(at) && at > 0 && Date.now() - at >= 0 && Date.now() - at < DELETED_MARK_MAX_AGE_MS;
+  }
+
   function handleDeletedLanding() {
     let params;
     try { params = new URLSearchParams(window.location.search); } catch { return; }
@@ -688,7 +765,7 @@
     try {
       history.replaceState(history.state, "", window.location.pathname + (query ? `?${query}` : "") + window.location.hash);
     } catch { /* keep the URL */ }
-    showDeletedNotice();
+    if (takeDeletedMark() && !hasStoredSession()) showDeletedNotice();
   }
 
   /* ---------- test hook ---------- */

@@ -15,6 +15,12 @@
    - On each "cybernet:session" event (script.js fires it after every sign-in change, once the
      account status has loaded), for a signed-in user whose email is confirmed, when
      user_metadata.onboarded !== true and localStorage cybernet_onboarded_<uid> is absent.
+   - Only for new accounts: one created more than NEW_ACCOUNT_DAYS ago is an existing user, who
+     gets the browser flag quietly instead ("existing").
+   - Only on the Home page. Someone who signs in on another page (for example to start a Recovery
+     case) sees it when they next land on Home. If the sign-in was started from a tool (the
+     dialog was opened from Recovery, Analysis AI or Quick Scan, or the Recovery or chat box
+     already holds text), it waits for the next page load ("task").
    - Not on page loads that have their own job: /accept-invite or a saved team invite waiting
      (cybernet-business-team.js sends the visitor back to it), password recovery (?reset=1,
      #type=recovery or appState.recoveryMode) and ?checkout= returns. script.js and Supabase
@@ -50,6 +56,8 @@
   const POLL_MS = 600;          // while waiting for another dialog or the cookie bar to close
   const WAIT_LIMIT_MS = 15 * 60 * 1000;
   const STEPS = 3;
+  const NEW_ACCOUNT_DAYS = 7;   // older accounts are existing users: no welcome
+  const TOOL_PAGES = "#recovery, #cybernetai, #cybernet";
 
   const doc = document;
   const mqReduce = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
@@ -81,23 +89,28 @@
   const START = readStart(startHrefs());
 
   /* ---------- the decision (pure; see _test) ---------- */
-  // s: { user, flag, invitePage, pendingInvite, recovery, checkout, blocked, typing }
-  // Returns "show", "wait", or the reason it does not show.
+  // s: { user, flag, invitePage, pendingInvite, recovery, checkout, task, blocked, away, typing, now }
+  // Returns "show", "wait", "away", or the reason it does not show.
   function decide(s) {
     const user = s && s.user;
     if (!user || !user.id) return "signed-out";
     if (user.user_metadata && user.user_metadata.onboarded === true) return "done-account";
     if (s.flag) return "done-browser";
+    const created = Date.parse(user.created_at || "");
+    const now = Number.isFinite(s.now) ? s.now : Date.now();
+    if (Number.isFinite(created) && now - created > NEW_ACCOUNT_DAYS * 24 * 60 * 60 * 1000) return "existing";
     if (!(user.email_confirmed_at || user.confirmed_at)) return "unconfirmed";
     if (s.invitePage || s.pendingInvite) return "invite";
     if (s.recovery) return "recovery";
     if (s.checkout) return "checkout";
+    if (s.task) return "task";
     if (s.blocked) return "wait";
+    if (s.away) return "away";
     if (s.typing) return "busy";
     return "show";
   }
   // Reasons that hold for the rest of this page load.
-  const LATCH = ["invite", "recovery", "checkout", "busy"];
+  const LATCH = ["invite", "recovery", "checkout", "busy", "task", "existing"];
 
   /* ---------- the plan summary (pure; see _test) ---------- */
   // Pricing card lines -> { quickScans, analyses, recovery } (numbers, or Infinity for Unlimited).
@@ -201,6 +214,50 @@
     return !!doc.hidden || otherLayerOpen();
   }
 
+  // The card belongs on Home: on a tool page it would pull someone away from what they came to do.
+  function onHome() {
+    const home = doc.getElementById("home");
+    return !home || home.classList.contains("active-page");
+  }
+
+  // Was the sign-in started by a tool? The sign-in dialog's opener is remembered when it opens
+  // (see watchAuthOpener), and a Recovery description or chat message already typed counts too.
+  let authOpenedFromTool = false;
+  let visitedRecovery = false;
+  function taskInProgress() {
+    if (authOpenedFromTool) return true;
+    return ["recoveryDescription", "chatInput"].some(id => {
+      const field = doc.getElementById(id);
+      return !!(field && String(field.value || "").trim());
+    });
+  }
+  function watchAuthOpener() {
+    const modal = doc.getElementById("authModal");
+    if (!modal || !("MutationObserver" in window)) return;
+    let shown = modal.classList.contains("show");
+    // Safari does not focus a button on click, so the last tap counts as well as the focus.
+    let lastTap = null;
+    let lastTapAt = 0;
+    doc.addEventListener("pointerdown", event => { lastTap = event.target; lastTapAt = Date.now(); }, true);
+    new MutationObserver(() => {
+      const now = modal.classList.contains("show");
+      if (now && !shown) {
+        const a = doc.activeElement;
+        const tap = Date.now() - lastTapAt < 2000 ? lastTap : null;
+        if ([a, tap].some(el => el && el.closest && el.closest(TOOL_PAGES))) authOpenedFromTool = true;
+      }
+      shown = now;
+    }).observe(modal, { attributes: true, attributeFilter: ["class"] });
+  }
+  function watchPages() {
+    const recovery = doc.getElementById("recovery");
+    if (!recovery || !("MutationObserver" in window)) return;
+    if (recovery.classList.contains("active-page")) visitedRecovery = true;
+    new MutationObserver(() => {
+      if (recovery.classList.contains("active-page")) visitedRecovery = true;
+    }).observe(recovery, { attributes: true, attributeFilter: ["class"] });
+  }
+
   // Someone already typing in a field on the page (not inside a dialog): the field has focus
   // and already holds text. An empty field that merely has focus (the skip link puts the cursor
   // in the scan box) does not count.
@@ -223,8 +280,11 @@
       pendingInvite: !!store(s => s.getItem(PENDING_INVITE_KEY)),
       recovery: START.recovery || !!(st && st.recoveryMode),
       checkout: START.checkout,
+      task: taskInProgress(),
       blocked: blockedNow(),
-      typing: typingNow()
+      away: !onHome(),
+      typing: typingNow(),
+      now: Date.now()
     };
   }
 
@@ -243,7 +303,7 @@
     waitStarted = Date.now();
     waitTimer = setInterval(() => {
       if (Date.now() - waitStarted > WAIT_LIMIT_MS) { stopWaiting(); return; }
-      if (!blockedNow()) { stopWaiting(); schedule(); }
+      if (!blockedNow() && onHome()) { stopWaiting(); schedule(); }
     }, POLL_MS);
   }
 
@@ -252,12 +312,15 @@
     const s = snapshot();
     const verdict = decide(s);
     lastVerdict = verdict;
-    if (verdict === "wait") { startWaiting(); return; }
+    if (verdict === "wait" || verdict === "away") { startWaiting(); return; }
     stopWaiting();
     if (verdict === "show") { open({ user: s.user }); return; }
     if (LATCH.includes(verdict)) latched = verdict;
-    // Already done on the account (another browser): remember it here too.
-    if (verdict === "done-account") store(st => st.setItem(flagKey(s.user.id), JSON.stringify({ at: new Date().toISOString(), how: "account" })));
+    // Already done on the account (another browser), or an account from before the welcome
+    // existed: remember it here, so the card never shows on this browser.
+    if (verdict === "done-account" || verdict === "existing") {
+      store(st => st.setItem(flagKey(s.user.id), JSON.stringify({ at: new Date().toISOString(), how: verdict === "existing" ? "existing" : "account" })));
+    }
   }
 
   function onSession() {
@@ -402,9 +465,11 @@
     );
     const tip = el("p", "cn-onboard-tip");
     tip.append(el("strong", "", "Good to know: "), doc.createTextNode("Recovery Mode never needs your passwords, one-time codes or card numbers, so leave them out."));
-    const alt = el("button", "secondary-btn cn-onboard-alt", "Open Recovery Mode");
+    // Someone who came from Recovery gets it as the main button, and scanning as the other one.
+    const fromRecovery = !!(current && current.fromRecovery);
+    const alt = el("button", "secondary-btn cn-onboard-alt", fromRecovery ? "Start scanning" : "Open Recovery Mode");
     alt.type = "button";
-    alt.dataset.cnOnboard = "recovery";
+    alt.dataset.cnOnboard = fromRecovery ? "scan" : "recovery";
     box.append(tip, alt);
   }
 
@@ -429,8 +494,9 @@
     back.textContent = step === 1 ? "Skip intro" : "Back";
     back.dataset.cnOnboard = step === 1 ? "skip" : "back";
     const next = root.querySelector("#cnOnboardNext");
-    next.textContent = step === STEPS ? "Start scanning" : "Next";
-    next.dataset.cnOnboard = step === STEPS ? "scan" : "next";
+    const last = current.fromRecovery ? ["Open Recovery Mode", "recovery"] : ["Start scanning", "scan"];
+    next.textContent = step === STEPS ? last[0] : "Next";
+    next.dataset.cnOnboard = step === STEPS ? last[1] : "next";
     root.querySelectorAll(".cn-onboard-dots li").forEach((dot, i) => dot.classList.toggle("is-active", i === step - 1));
 
     if (!reduced() && opts && opts.animate) {
@@ -455,7 +521,7 @@
     return raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : "";
   }
 
-  function open({ user, fake = false, state = null, step = 1, name, confirmed }) {
+  function open({ user, fake = false, state = null, step = 1, name, confirmed, fromRecovery }) {
     build();
     const active = doc.activeElement;
     current = {
@@ -465,7 +531,8 @@
       step,
       opener: active && active !== doc.body && !root.contains(active) ? active : null,
       name: name !== undefined ? String(name || "").slice(0, 40) : displayName(user),
-      confirmed: confirmed !== undefined ? !!confirmed : START.confirmed
+      confirmed: confirmed !== undefined ? !!confirmed : START.confirmed,
+      fromRecovery: fromRecovery !== undefined ? !!fromRecovery : visitedRecovery
     };
     render(step, { focus: false });
     root.classList.add("show");
@@ -606,7 +673,8 @@
         state: fake ? fakeState(o.plan) : null,
         step: Math.max(1, Math.min(STEPS, Number(o.step) || 1)),
         name: o.name !== undefined ? o.name : (fake ? "" : undefined),
-        confirmed: o.confirmed
+        confirmed: o.confirmed,
+        fromRecovery: o.fromRecovery
       });
       return true;
     },
@@ -619,6 +687,9 @@
   });
 
   window.addEventListener("cybernet:session", onSession);
+  const watch = () => { try { watchAuthOpener(); watchPages(); } catch { /* no page to watch */ } };
+  if (doc.readyState === "loading") doc.addEventListener("DOMContentLoaded", watch, { once: true });
+  else watch();
   // Safety net: if this file loads after the first session event (it is meant to load after
   // script.js, which fires it only once the account status has arrived), look once anyway.
   const early = appState();

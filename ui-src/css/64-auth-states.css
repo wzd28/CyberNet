@@ -94,6 +94,12 @@ html.cn #authModal .modal-card .cn-pw-field > input {
   padding-inline-end: 76px;
 }
 
+/* Edge adds its own eye (and clear) button inside password fields; the Show button replaces it. */
+html.cn #authModal .cn-pw-field > input::-ms-reveal,
+html.cn #authModal .cn-pw-field > input::-ms-clear {
+  display: none;
+}
+
 html.cn #authModal .cn-pw-toggle {
   position: absolute;
   inset-block: 2px;
@@ -219,6 +225,22 @@ html.cn #authModal .cn-auth-actions .auth-text-btn {
 html.cn #authModal #signupResendBtn {
   justify-content: center;
   width: 100%;
+}
+
+/* The message takes focus when it says what happens next (script.js revealAuthMessage), so it
+   needs the same visible ring as a control, and room above it when it is scrolled into view. */
+html.cn #authModal #authMessage,
+html.cn #authModal .cn-auth-actions {
+  scroll-margin-block: var(--cn-5);
+}
+
+html.cn #authModal #authMessage:focus {
+  outline: none;
+}
+
+html.cn #authModal #authMessage:focus-visible {
+  border-radius: 6px;
+  box-shadow: var(--cn-focus);
 }
 
 /* ---------- 6. Busy buttons ---------- */

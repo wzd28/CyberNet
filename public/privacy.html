@@ -19,7 +19,7 @@
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Mona+Sans:wdth,wght@75..125,300..800&amp;family=JetBrains+Mono:wght@400..700&amp;display=swap" onload="this.onload=null;this.rel='stylesheet'" />
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mona+Sans:wdth,wght@75..125,300..800&amp;family=JetBrains+Mono:wght@400..700&amp;display=swap" /></noscript>
   <link rel="stylesheet" href="/ui/cybernet-ui-legal.css?v=20261015-3" />
-  <script src="/cybernet-errors.js?v=20261018-h1" defer></script>
+  <script src="/cybernet-errors.js?v=20261018-h2" defer></script>
 </head>
 <body class="cn-legal-page">
   <main class="cn-legal-page-shell">
@@ -92,7 +92,7 @@
 <h3>Payments</h3>
 <p>Stripe processes payment details and returns customer, subscription, invoice, and status information needed to unlock, renew, cancel, refund, or troubleshoot Pro or Business access. For a Business team, billing information belongs to the team owner's account; members do not have access to it.</p>
 <h3>Error diagnostics</h3>
-<p>When part of the website or one of CyberNet’s server functions fails, CyberNet records a short technical report so the problem can be found and fixed: the error message, where in the code it happened, which page it was on (without the parts of the address that can hold private details), the browser family, the site version, and the time. CyberNet collects these reports itself; no outside error-tracking company is involved. The reports are designed to contain no personal data: anything you typed or scanned, page content, cookies, and stored data are never included, and email addresses, sign-in codes, access tokens, IP addresses, and long numbers are removed before a report is kept. Your connection address is used only in scrambled (hashed) form, to limit how many reports one connection can send. Reports are kept in CyberNet’s hosting logs and in alert emails sent to CyberNet’s support inbox.</p>
+<p>When part of the website or one of CyberNet’s server functions fails, CyberNet records a short technical report so the problem can be found and fixed: the error message, where in the code it happened, which page it was on (without the parts of the address that can hold private details), the browser, its main version number and the operating system (for example, Chrome 141 on Android), the site version, and the time. CyberNet collects these reports itself; no outside error-tracking company is involved. The reports are designed to contain no personal data: anything you typed or scanned, page content, cookies, and stored data are never included, and email addresses, sign-in codes, access tokens, IP addresses, and long numbers are removed before a report is kept. Your connection address is used only in scrambled (hashed) form, to limit how many reports one connection can send. Reports are kept in CyberNet’s hosting logs and in alert emails sent to CyberNet’s support inbox.</p>
     </section>
 <section class="cn-legal-section" id="purposes">
       <h2>4. Why CyberNet uses information</h2>
@@ -154,8 +154,8 @@
 <table class="cn-legal-data-table"><thead><tr><th>Category</th><th>Typical retention</th></tr></thead><tbody>
 <tr><td>Active account and profile</td><td>For the life of the account, then deletion from active systems generally within 30 days after a valid deletion request, subject to exceptions below.</td></tr>
 <tr><td>Unsaved analysis input and output</td><td>CyberNet does not intentionally add it to saved history; temporary function, security, or provider processing may continue for up to 30 days, unless a shorter provider setting applies or an incident requires longer preservation.</td></tr>
-<tr><td>Business team activity (submitted text, links, QR contents, Recovery descriptions, and full results of team members)</td><td>While the member’s account remains active or until the member deletes their data or account; deletion from active systems generally within 30 days and residual backups for up to 90 days. Removal from a team stops new activity being shown to that owner; past activity stays in that team’s log.</td></tr>
-<tr><td>Pro saved history and reports</td><td>While the account remains active or until the user deletes it; deletion from active systems generally within 30 days and residual backups for up to 90 days.</td></tr>
+<tr><td>Business team activity (submitted text, links, QR contents, Recovery descriptions, and full results of team members)</td><td>While the member’s account remains active or until the member deletes their data or account; deletion from active systems generally within 30 days and residual backups for up to 8 weeks. Removal from a team stops new activity being shown to that owner; past activity stays in that team’s log.</td></tr>
+<tr><td>Pro saved history and reports</td><td>While the account remains active or until the user deletes it; deletion from active systems generally within 30 days and residual backups for up to 8 weeks.</td></tr>
 <tr><td>Browser local or session storage</td><td>Until the user clears it, the browser removes it, the tab closes for session data, or the feature’s “Forget/Clear” control is used.</td></tr>
 <tr><td>BYOK API key</td><td>Current browser tab only; removed when the tab closes or “Forget Key” is used. It is not intentionally retained in the CyberNet account or database.</td></tr>
 <tr><td>Security, access, and rate-limit logs</td><td>Normally up to 90 days; up to 12 months where needed to investigate abuse, fraud, attacks, or service incidents.</td></tr>

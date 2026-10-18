@@ -82,6 +82,11 @@ for (const [name, used] of Object.entries(RECIPIENTS)) {
 check("link previews are explained", /Link and QR-code previews/.test(page));
 check("error diagnostics are explained", /Error diagnostics/.test(page));
 check("encrypted backups are explained", /Encrypted backups/.test(page) && /8 weeks/.test(page));
+// One backup period everywhere (8 weeks), matching docs/BACKUPS.md step 7 and the weekly email.
+check("no other backup period", !/backups? for up to 90 days/.test(page) && (page.match(/residual backups for up to 8 weeks/g) || []).length === 2, "residual backups");
+check("backup guide deletes after 8 weeks", /older_than:56d/.test(read("docs/BACKUPS.md")) && read("netlify/lib/backup.mjs").includes("Keep this email for 8 weeks, then delete it"));
+// The error reporter sends the browser, its main version and the operating system.
+check("error diagnostics name the browser version", /the browser, its main version number and the operating system/.test(page) && !/browser family/.test(page));
 
 // The other three documents in the Legal Center keep their own version line.
 for (const key of ["terms", "refunds", "acceptable"]) {

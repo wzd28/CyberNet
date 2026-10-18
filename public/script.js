@@ -310,6 +310,24 @@ document.addEventListener("DOMContentLoaded",()=>{
     }));
     authMessageActions.hidden=!actions.length;
   }
+  /* The message sits under the whole form (on Create Account, under the long terms box), often below the
+     visible part of the dialog. It is scrolled into view; when it says what happens next (a success or a
+     warning) focus moves to it too, or to its first next-step button, so a filled form and a working
+     button do not look as if nothing happened. */
+  function revealAuthMessage(moveFocus){
+    if(!authMessage)return;
+    requestAnimationFrame(()=>{
+      if(!authModal?.classList.contains("show")||!authMessage.textContent)return;
+      const actionsShown=authMessageActions&&!authMessageActions.hidden;
+      const still=window.matchMedia?.("(prefers-reduced-motion: reduce)").matches||document.documentElement.classList.contains("cn-still");
+      try{(actionsShown?authMessageActions:authMessage).scrollIntoView({block:"nearest",behavior:still?"auto":"smooth"})}catch{}
+      if(!moveFocus)return;
+      const first=actionsShown?authMessageActions.querySelector("button"):null;
+      if(first){first.focus({preventScroll:true});return}
+      authMessage.setAttribute("tabindex","-1");
+      authMessage.focus({preventScroll:true});
+    });
+  }
   /* actions: [{label,run}], e.g. "Sign in instead" after a sign-up for an address that already has an account. */
   function setAuthMessage(message="",tone="",actions=[]){
     if(!authMessage)return;
@@ -317,6 +335,8 @@ document.addEventListener("DOMContentLoaded",()=>{
     authMessage.textContent=message;
     authMessage.className=`auth-message ${tone}`.trim();
     renderAuthMessageActions(actions);
+    // Errors keep focus where it was (the button or field to try again), so Enter never runs a next step by surprise.
+    if(message)revealAuthMessage(tone==="success"||tone==="warning");
   }
   /* The legal module writes its own messages here; next steps that belonged to an older message go with it. */
   if(authMessage&&"MutationObserver" in window)new MutationObserver(()=>{if(authMessage.textContent!==authMessageText)renderAuthMessageActions([])}).observe(authMessage,{childList:true,characterData:true,subtree:true});
@@ -386,7 +406,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     const status=Number(error?.status)||0;
     const wait=authWaitSeconds(error);
     if(code==="invalid_credentials"||message.includes("invalid login credentials"))
-      return "That email and password don't match an account. Check them and try again. New to CyberNet AI? Choose Create Account.";
+      return "That email and password don't match an account. Check them and try again. If you used Continue with Google before, choose it again. New to CyberNet AI? Choose Create Account.";
     if(isUnconfirmedEmailError(error))
       return "Your email isn't confirmed yet. Open the link we emailed you, or choose Resend confirmation email below.";
     if(code==="user_already_exists"||code==="email_exists"||message.includes("user already registered")||message.includes("already been registered"))
@@ -630,7 +650,13 @@ document.addEventListener("DOMContentLoaded",()=>{
   let recoveryCloseTimer=0;
   function onAuthModalClosed(){
     clearTimeout(recoveryCloseTimer);
-    if(authView==="recovery")leaveRecoveryMode();
+    if(authView==="recovery"){
+      // recoveryMode is still on when the step closes before the new password was saved.
+      const unsaved=appState.recoveryMode;
+      leaveRecoveryMode();
+      // After the key or click that closed the step has finished (Escape also hides toasts).
+      if(unsaved&&isSignedIn())setTimeout(()=>showAuthToast("Your password wasn't changed. You can choose a new one any time: open Account, then Change password."),0);
+    }
     else if(authView==="reset")setAuthView("login");
     clearAuthNotice();
     clearFieldErrors(authModal);
@@ -665,7 +691,9 @@ document.addEventListener("DOMContentLoaded",()=>{
     focusFirstField(loginForm);
   });
   if(closeAuth&&authModal)closeAuth.addEventListener("click",closeAuthModal);
-  if(authModal)authModal.addEventListener("click",event=>{if(event.target===authModal)closeAuthModal()});
+  // A tap outside the dialog closes it, except on the choose-a-new-password step: one stray tap would lose it.
+  // That step closes with its close button or Escape.
+  if(authModal)authModal.addEventListener("click",event=>{if(event.target===authModal&&authView!=="recovery")closeAuthModal()});
   authTabs.forEach(tab=>tab.addEventListener("click",()=>setAuthTab(tab.dataset.auth)));
 
   /* ─── A short confirmation at the bottom of the screen. It has no buttons: it goes by itself after a few
@@ -715,6 +743,13 @@ document.addEventListener("DOMContentLoaded",()=>{
     setAuthView("recovery");
     if(!authModal?.classList.contains("show")){authReturnFocus=document.activeElement;authModal?.classList.add("show")}
     focusFirstField(newPasswordForm);
+  }
+  /* Account, then Change password: the choose-a-new-password step for the signed-in account. updateUser({password})
+     works for any signed-in session, so no email is needed. Returns false when nobody is signed in. */
+  function openPasswordChange(){
+    if(!isSignedIn()||!appState.supabase)return false;
+    enterRecoveryMode(appState.session);
+    return true;
   }
   function leaveRecoveryMode(){
     appState.recoveryMode=false;
@@ -1090,9 +1125,16 @@ document.addEventListener("DOMContentLoaded",()=>{
   }
 
   if(supabaseConfigured){
-    appState.supabase=window.supabase.createClient(publicConfig.SUPABASE_URL,publicConfig.SUPABASE_ANON_KEY,{
-      auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
-    });
+    try{
+      appState.supabase=window.supabase.createClient(publicConfig.SUPABASE_URL,publicConfig.SUPABASE_ANON_KEY,{
+        auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
+      });
+    }catch(error){
+      console.warn("CyberNet: the account service could not start",error);
+      appState.supabase=null;
+    }
+  }
+  if(appState.supabase){
     /* getSession waits until the client has read the address, so the return (if any) is handled after it. */
     appState.supabase.auth.getSession()
       .then(({data})=>{syncSession(data.session);handleAuthReturn(data.session)})
@@ -1160,7 +1202,9 @@ document.addEventListener("DOMContentLoaded",()=>{
       setAuthMessage("You're signed in.","success");
       closeAuthModal();
     }catch(error){
-      setAuthMessage(friendlyAuthError(error,"login"),"error");
+      // A wrong password, or an account that only ever used Google: offer Google as the next step.
+      const wrongCredentials=authErrorCode(error)==="invalid_credentials"||/invalid login credentials/i.test(String(error?.message||""));
+      setAuthMessage(friendlyAuthError(error,"login"),"error",wrongCredentials&&googleAuthBtn?[{label:"Continue with Google",run:()=>googleAuthBtn.click()}]:[]);
       if(resendConfirmBtn&&!coolingDown(resendConfirmBtn))resendConfirmBtn.hidden=!isUnconfirmedEmailError(error);
     }finally{done()}
   });
@@ -1228,9 +1272,10 @@ document.addEventListener("DOMContentLoaded",()=>{
       // For an address that already has an account, Supabase answers with no identities and sends no email.
       if(data?.user&&Array.isArray(data.user.identities)&&data.user.identities.length===0){
         hidePasswords(signupForm);
-        setAuthMessage(`There's already a CyberNet AI account for ${email}. Sign in instead, or reset your password if you've forgotten it.`,"warning",[
+        setAuthMessage(`There's already a CyberNet AI account for ${email}. Sign in instead, or reset your password if you've forgotten it. If you used Continue with Google before, choose it again.`,"warning",[
           {label:"Sign in instead",run:()=>{if(loginEmailEl)loginEmailEl.value=email;setAuthView("login");focusField(loginPasswordEl)}},
-          {label:"Reset my password",run:()=>openResetView(email)}
+          {label:"Reset my password",run:()=>openResetView(email)},
+          {label:"Continue with Google",run:()=>googleAuthBtn?.click()}
         ]);
         return;
       }
@@ -1594,7 +1639,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     }
   });
 
-  window.CyberNetAccount={appState,refreshAccountStatus,startCheckout,isPro,isSignedIn,openAuthModal,authHeaders,updateAccountUI,openFeedbackModal};
+  window.CyberNetAccount={appState,refreshAccountStatus,startCheckout,isPro,isSignedIn,openAuthModal,authHeaders,updateAccountUI,openFeedbackModal,openPasswordChange};
 
   /* ─── Stable counters (fixed-width + requestAnimationFrame) ─── */
   const reduceCounterMotion=window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;

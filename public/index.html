@@ -31,7 +31,7 @@
   </script>
   <!-- First-party error reporter. Keep it the first deferred script so it is listening before every
        later script runs (deferred scripts run in document order); defer keeps it off the critical path. -->
-  <script src="/cybernet-errors.js?v=20261018-h1" defer></script>
+  <script src="/cybernet-errors.js?v=20261018-h2" defer></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <!-- Fonts use display=swap, so the stylesheet does not need to block the first paint. -->
@@ -42,7 +42,7 @@
   <link rel="stylesheet" href="/cybernet-howto.css?v=20260905-1" />
   <link id="cybernetBusinessTeamStylesheet" rel="stylesheet" href="/cybernet-business-team.css?v=20260927-2" />
   <link rel="stylesheet" href="/cybernet-consent.css?v=20260927-2" />
-  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261018-h1" />
+  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261018-h2" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=20260830-5">
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=20260830-5">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=20260830-5">
@@ -306,8 +306,10 @@
         <div class="auth-divider"><span id="googleAuthDivider">or sign up with email</span></div>
       </div>
       <!-- The four views share this dialog; script.js shows one at a time with .active-auth-form.
-           Each form is novalidate: script.js checks the fields and writes the inline errors. -->
-      <form id="authLoginForm" class="auth-form active-auth-form" novalidate>
+           Each form is novalidate: script.js checks the fields and writes the inline errors.
+           method="post": a submit that skips script.js (form.submit(), some autofill tools) never puts
+           the email or password in the address bar. -->
+      <form id="authLoginForm" class="auth-form active-auth-form" method="post" action="/" novalidate>
         <label for="loginEmail">Email</label>
         <input type="email" id="loginEmail" name="email" autocomplete="email" autocapitalize="off" spellcheck="false" maxlength="254" placeholder="you@example.com" required aria-describedby="loginEmailError" />
         <p class="cn-field-error" id="loginEmailError" hidden></p>
@@ -324,7 +326,7 @@
           <button type="button" class="auth-text-btn auth-create-link" id="switchToSignupBtn">New here? Create Account</button>
         </div>
       </form>
-      <form id="authSignupForm" class="auth-form" novalidate>
+      <form id="authSignupForm" class="auth-form" method="post" action="/" novalidate>
         <div class="auth-name-grid">
           <div>
             <label for="signupFirstName">First name</label>
@@ -350,14 +352,14 @@
         <button type="button" class="auth-text-btn" id="signupResendBtn" hidden>Resend confirmation email</button>
         <button type="button" class="auth-text-btn auth-login-link" id="switchToLoginBtn">Already have an account? Sign In</button>
       </form>
-      <form id="authResetForm" class="auth-form" novalidate>
+      <form id="authResetForm" class="auth-form" method="post" action="/" novalidate>
         <label for="resetEmail">Email</label>
         <input type="email" id="resetEmail" name="email" autocomplete="email" autocapitalize="off" spellcheck="false" maxlength="254" placeholder="you@example.com" required aria-describedby="resetEmailError" />
         <p class="cn-field-error" id="resetEmailError" hidden></p>
         <button type="submit" class="primary-btn full" id="sendResetBtn">Send reset link</button>
         <button type="button" class="auth-text-btn auth-login-link" id="resetBackBtn">Back to sign in</button>
       </form>
-      <form id="authNewPasswordForm" class="auth-form" novalidate>
+      <form id="authNewPasswordForm" class="auth-form" method="post" action="/" novalidate>
         <!-- Lets password managers store the new password against the right account. -->
         <input type="text" id="authRecoveryUsername" name="username" autocomplete="username" tabindex="-1" readonly hidden />
         <label for="authNewPassword">New password</label>
@@ -2881,16 +2883,16 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" defer></script>
   <script src="/config.js?v=20260830-3" defer></script>
   <script src="/cybernet-engine.js?v=20261015-1" defer></script>
-  <script src="/script.js?v=20261018-h1" defer></script>
-  <script src="/cybernet-account-api-upgrade.js?v=20261005-2" defer></script>
+  <script src="/script.js?v=20261018-h2" defer></script>
+  <script src="/cybernet-account-api-upgrade.js?v=20261018-h2" defer></script>
   <script src="/cybernet-howto.js?v=20261005-2" defer></script>
-<script src="/cybernet-business-team.js?v=20261015-1" defer></script>
+<script src="/cybernet-business-team.js?v=20261018-h2" defer></script>
   <script src="/cybernet-final-ui-fix.js?v=20260930-2" defer></script>
-      <script src="/cybernet-legal-upgrade.js?v=20261018-h1" defer></script>
+      <script src="/cybernet-legal-upgrade.js?v=20261018-h2" defer></script>
   <!-- After script.js, cybernet-account-api-upgrade.js and cybernet-final-ui-fix.js (account modal tabs). -->
-  <script src="/cybernet-privacy-controls.js?v=20261018-h1" defer></script>
+  <script src="/cybernet-privacy-controls.js?v=20261018-h2" defer></script>
   <!-- After script.js (cybernet:session event, appState). -->
-  <script src="/cybernet-onboarding.js?v=20261018-h1" defer></script>
+  <script src="/cybernet-onboarding.js?v=20261018-h2" defer></script>
   <script src="/ui/cybernet-ui.js?v=20261018-h1" defer></script>
 </body>
 </html>

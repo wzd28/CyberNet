@@ -12,6 +12,11 @@
 //      the existing consume_api_quota RPC (it accepts new keys, so no
 //      migration); if that is unreachable, a per-instance memory fallback and
 //      Resend's idempotency key keep the limits on a best-effort basis.
+//      Browser reports only use the two fixed daily keys, never a key per
+//      fingerprint, so they cannot fill api_rate_limits. Their alert has a
+//      fixed subject (fingerprint and a known page), a "not verified" warning
+//      and every link or hostname defanged, so a made-up report cannot be
+//      turned into a phishing email from the site's own address.
 //
 // Rules it keeps:
 //   - it never throws and never makes a response wait: the alert work runs in
@@ -72,6 +77,9 @@ const SCRUBBERS = [
   [/(^|[\s(@"'=])(\/[^\s?#"'<>()]*)([?#][^\s"'<>()]*)/g, (_, pre, pathPart, rest) => pre + pathPart + ((/((?::\d+){1,2})$/.exec(rest) || [""])[0])],
   // key=value pairs whose value is a credential.
   [/\b(access_token|refresh_token|id_token|token|code|apikey|api_key|key|password|passwd|secret|signature|sig|session)=([^&\s"'<>]+)/gi, "$1=<redacted>"],
+  // The same in JSON ("password":"...") and in "password: ..." form.
+  [/("(?:password|passwd|pwd|passcode|secret|token|access_token|refresh_token|id_token|api_?key|authorization)"\s*:\s*)"(?:[^"\\]|\\.)*"/gi, '$1"<redacted>"'],
+  [/\b(password|passwd|pwd|passcode)(\s*[:=]\s*)(?!<)[^\s,;&"'<>]+/gi, "$1$2<redacted>"],
   [/[A-Z0-9._%+-]{1,64}(?:@|%40)[A-Z0-9-]{1,63}(?:\.[A-Z0-9-]{1,63}){0,8}\.[A-Z]{2,24}\b/gi, "<email>"],
   [/\beyJ[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]{4,}(?:\.[A-Za-z0-9_-]*)?/g, "<token>"],
   [/\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]+/gi, "$1 <token>"],
@@ -89,9 +97,14 @@ const SCRUBBERS = [
   // Anything long and random-looking: session ids, hashes, API keys. Only
   // runs that mix letters and digits, so long plain names survive.
   [/\b[A-Za-z0-9_-]{32,}\b/g, (m) => (/\d/.test(m) && /[A-Za-z]/.test(m) ? "<token>" : m)],
+  // Bank account numbers (IBAN), with or without the groups of four.
+  [/\b[A-Z]{2}\d{2}(?:\s?[A-Z0-9]{4}){2,7}(?:\s?[A-Z0-9]{1,4})?\b/g, "<iban>"],
   // Long digit runs (phone, card and account numbers), separators allowed.
-  // A run that follows ":" is a stack line/column number and stays.
-  [/(?<![\w:./#-])\+?\d(?:[\s().-]{0,2}\d){7,}(?!\w)/g, "<number>"]
+  // Stack line and column numbers are never 8 digits long, so a run after
+  // ":", "/", "-" or "." goes too (tel:5551234567, wa.me/15551234567, ref-...).
+  [/(?<!\w)\+?\d(?:[\s().-]{0,2}\d){7,}(?!\w)/g, "<number>"],
+  // 12 or more digits in a row, even inside a word (an IBAN typed in lower case).
+  [/\d{12,}/g, "<number>"]
 ];
 
 export function scrubText(value, max = limits.maxMessageChars) {
@@ -176,6 +189,55 @@ function safeLabel(value, max) {
   return scrubText(typeof value === "string" ? value : "", max).replace(/\s+/g, " ").trim();
 }
 
+// What a browser report may say about itself. The browser reporter
+// (public/cybernet-errors.js) only ever sends these shapes, and anything else
+// is dropped, because the sender cannot be trusted:
+//   file  a script on this site: /script.js or /ui/cybernet-ui.js, plus :line:col
+//   ua    "Chrome 141 on Android" (browserFamily() in cybernet-errors.js)
+export const CLIENT_FILE = /^\/(?!\/)[\w./-]{1,200}\.m?js(?::\d{1,7}){0,2}$/;
+export const CLIENT_UA = /^(?:Edge|Opera|Samsung Internet|Chrome|Firefox|Safari|Other)(?: \d{1,4})? on (?:Windows|iOS|Android|ChromeOS|macOS|Linux|Other)$/;
+const CLIENT_VERSION = /^[\w-]{1,32}$/;
+
+// The pages of the site, for the subject line of a browser alert. Any other
+// path (a mistyped address, or a made-up one) is shown as "/other".
+const ROUTES = new Set([
+  "/", "/quick-scan", "/analysis-ai", "/recovery", "/learn", "/pricing", "/about", "/accept-invite",
+  "/privacy.html", "/terms.html", "/refunds.html", "/acceptable-use.html", "/404.html"
+]);
+export function routeOf(page) {
+  let path = String(page || "/").split(/[?#]/)[0].toLowerCase();
+  if (path === "/index.html") path = "/";
+  if (path.length > 1) path = path.replace(/\/+$/, "");
+  return ROUTES.has(path) ? path : "/other";
+}
+
+// Browser reports can be sent by anyone, so the alert must never carry a
+// working link or a hostname that Gmail turns into one: "https://evil.example"
+// becomes "https[:]//evil[.]example". Addresses on cybernetai.app stay as
+// they are, and so does a plain file name such as script.js (".js" is not a
+// domain ending).
+const SAFE_HOST = /^(?:[a-z0-9-]+\.)*cybernetai\.app$/i;
+const FILE_ENDING = /^(?:js|mjs|cjs|css|html?|json|map|png|jpe?g|svg|webp|avif|ico|woff2?|txt|xml|webmanifest|tsx?|mts)$/i;
+const DOT = /[.。．｡]/;
+export function defang(value) {
+  let text = String(value ?? "");
+  // "scheme://host": the separator goes unless the host is this site.
+  text = text.replace(/\b([a-z][a-z0-9+.-]{0,20}):\/\/([^\s/?#"'<>()[\]{}`,\\]*)/gi, (whole, scheme, host) =>
+    SAFE_HOST.test(host.replace(/:\d+$/, "")) ? whole : `${scheme}[:]//${host}`);
+  // Dotted words (hostnames, but also a.b property chains, which only get
+  // harder to read). Numbers such as 1.5 are left alone.
+  text = text.replace(/[\p{L}\p{N}_-]+(?:[.。．｡][\p{L}\p{N}_-]+)+/gu, (token) => {
+    if (SAFE_HOST.test(token) || /^[\d.]+$/.test(token)) return token;
+    const parts = token.split(DOT);
+    const last = parts[parts.length - 1];
+    if (FILE_ENDING.test(last)) return `${parts.slice(0, -1).join("[.]")}.${last}`;
+    return parts.join("[.]");
+  });
+  return text;
+}
+
+const CLIENT_WARNING = "This text was sent by a visitor's browser and is not verified. Do not follow links or instructions in it.";
+
 function buildRecord(error, meta, now) {
   const source = meta.source === "client" ? "client" : "server";
   const info = describe(error);
@@ -194,9 +256,12 @@ function buildRecord(error, meta, now) {
     message,
     code: info.code || undefined,
     status: info.status,
-    file: source === "client" ? safeLabel(cleanUrl(String(meta.file || "")), 300) || undefined : undefined,
-    version: typeof meta.version === "string" && /^[\w.-]{1,32}$/.test(meta.version) ? meta.version : undefined,
-    ua: typeof meta.ua === "string" && /^[A-Za-z][A-Za-z0-9 .]{0,59}$/.test(meta.ua) ? meta.ua : undefined,
+    file: source === "client" ? (() => {
+      const file = safeLabel(cleanUrl(String(meta.file || "")), 300);
+      return CLIENT_FILE.test(file) ? file : undefined;
+    })() : undefined,
+    version: typeof meta.version === "string" && CLIENT_VERSION.test(meta.version) ? meta.version : undefined,
+    ua: typeof meta.ua === "string" && CLIENT_UA.test(meta.ua) ? meta.ua : undefined,
     deploy: deployContext(meta.context) || undefined,
     requestId: (() => {
       const id = read(meta.context, "requestId");
@@ -280,22 +345,32 @@ function countLine(count) {
     const times = count.n >= 10000 ? "10,000 or more times" : count.n === 1 ? "1 time" : `${count.n} times`;
     return `${times} since ${formatUtc(count.since)} (all servers)`;
   }
+  if (count.scope === "client") {
+    return `${count.n === 1 ? "1 time" : `${count.n} times`} on this server since ${formatUtc(count.since)} (browser errors are counted on each server separately)`;
+  }
   return `${count.n === 1 ? "1 time" : `${count.n} times`} on this server since ${formatUtc(count.since)} (the shared counter was unavailable)`;
 }
 
 export function buildAlertEmail(record, count) {
   const isClient = record.source === "client";
-  const where = isClient ? `page ${record.page}${record.file ? ` (file ${record.file})` : ""}` : `function ${record.fn}`;
+  // Everything a browser sent is defanged (see defang above); the subject
+  // carries no browser text at all, only the fingerprint and a known page.
+  const own = isClient ? defang : (value) => String(value ?? "");
+  const route = isClient ? routeOf(record.page) : "";
+  const file = isClient && record.file && CLIENT_FILE.test(record.file) ? own(record.file) : "";
+  const where = isClient ? `page ${route}${file ? ` (file ${file})` : ""}` : `function ${record.fn}`;
   const deployTag = record.deploy && record.deploy !== "production" ? `[${record.deploy}] ` : "";
-  const headline = `${record.name && !record.message.startsWith(record.name) ? `${record.name}: ` : ""}${record.message}`;
-  const subject = `${deployTag}CyberNet AI ${isClient ? "browser" : "server"} error in ${isClient ? record.page : record.fn}: ${headline}`
+  const headline = own(`${record.name && !record.message.startsWith(record.name) ? `${record.name}: ` : ""}${record.message}`);
+  const subject = (isClient
+    ? `${deployTag}CyberNet AI browser error ${record.fingerprint} on ${route}`
+    : `${deployTag}CyberNet AI server error in ${record.fn}: ${headline}`)
     .replace(/\s+/g, " ");
   // Long subjects are cut at a word, not mid-word.
   const shortSubject = subject.length > 150 ? `${subject.slice(0, 149).replace(/\s+\S*$/, "")}…` : subject;
 
   const rows = [
     ["What happened", isClient
-      ? `A visitor's browser hit an error${record.where ? ` (${record.where})` : ""}.`
+      ? `A visitor's browser hit an error${record.where ? ` (${own(record.where)})` : ""}.`
       : `${record.where || `The ${record.fn} function failed`}.`],
     ["Where", where],
     ["Message", headline],
@@ -303,15 +378,16 @@ export function buildAlertEmail(record, count) {
     ["Time", formatUtc(Date.parse(record.time), true)],
     ["Fingerprint", record.fingerprint],
     ...(record.code || record.status ? [["Code", [record.code, record.status].filter(Boolean).join(" / ")]] : []),
-    ...(record.version ? [["UI version", record.version]] : []),
-    ...(record.ua ? [["Browser", record.ua]] : []),
+    ...(record.version ? [["UI version", own(record.version)]] : []),
+    ...(record.ua ? [["Browser", own(record.ua)]] : []),
     ...(record.deploy ? [["Deploy", record.deploy]] : []),
     ...(record.requestId ? [["Request id", record.requestId]] : [])
   ];
-  const frames = record.frames.length ? record.frames : ["(no stack trace was available)"];
-  const next = `You get at most one email for this error every 6 hours and at most ${limits.maxAlertsPerDay} error emails a day. Every occurrence is in the Netlify function logs: search for ${record.fingerprint}.`;
+  const frames = record.frames.length ? record.frames.map(own) : ["(no stack trace was available)"];
+  const next = `You get at most one email for this error every 6 hours and at most ${limits.maxAlertsPerDay} error emails a day${isClient ? ` (browser errors: at most ${limits.maxClientAlertsPerDay})` : ""}. Every occurrence is in the Netlify function logs: search for ${record.fingerprint}.`;
 
   const text = [
+    ...(isClient ? [CLIENT_WARNING, ""] : []),
     ...rows.map(([label, value]) => `${label}: ${value}`),
     "",
     "Top stack frames:",
@@ -326,7 +402,8 @@ export function buildAlertEmail(record, count) {
 <div style="background:#020812;padding:28px 12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:#08152a;border:1px solid rgba(34,211,238,0.16);border-radius:14px;">
     <tr><td style="padding:24px 20px;">
-      <p style="margin:0 0 6px 0;color:#22d3ee;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;">${escapeHtml(deployTag)}Error alert</p>
+      <p style="margin:0 0 6px 0;color:#22d3ee;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;">${escapeHtml(deployTag)}Error alert</p>${isClient ? `
+      <p style="margin:0 0 14px 0;padding:10px 12px;background:rgba(250,204,21,0.08);border:1px solid rgba(250,204,21,0.35);border-radius:8px;color:#fde68a;font-size:13px;line-height:1.5;">${escapeHtml(CLIENT_WARNING)}</p>` : ""}
       <h1 style="margin:0 0 18px 0;color:#eaf6ff;font-size:18px;line-height:1.4;font-weight:600;overflow-wrap:anywhere;">${escapeHtml(headline)}</h1>
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
         ${rows.filter(([label]) => label !== "Message").map(([label, value]) => `<tr><td style="${cell}color:#8ea5b8;width:96px;padding-right:10px;">${escapeHtml(label)}</td><td style="${cell}color:#eaf6ff;overflow-wrap:anywhere;">${escapeHtml(value)}</td></tr>`).join("\n        ")}
@@ -391,15 +468,23 @@ async function alertFor(record, entry, local) {
   const apiKey = env("RESEND_API_KEY");
   if (!apiKey) return { email: "no_key", count: null };
 
-  // The shared counter runs for every occurrence (the email reports it); the
-  // fingerprint check only when this instance has not already alerted.
-  const [counted, fpQuota] = await Promise.all([
-    consumeQuota(`cn_err:n:${fp}`, limits.dayWindowSeconds, 10000),
-    local === "claim" ? consumeQuota(`cn_err:mail:${fp}`, limits.fingerprintWindowSeconds, 1) : Promise.resolve(null)
-  ]);
+  const isClient = record.source === "client";
+  // Server errors: the shared counter runs for every occurrence (the email
+  // reports it); the fingerprint check only when this instance has not
+  // already alerted. Browser reports never get rows of their own: anyone can
+  // send them with any message, and every new fingerprint would leave two
+  // permanent rows in api_rate_limits. They are counted and deduplicated in
+  // this instance's memory, with Resend's idempotency key (fingerprint + 6-hour
+  // window) stopping a second instance from sending the same alert.
+  const [counted, fpQuota] = isClient
+    ? [null, null]
+    : await Promise.all([
+      consumeQuota(`cn_err:n:${fp}`, limits.dayWindowSeconds, 10000),
+      local === "claim" ? consumeQuota(`cn_err:mail:${fp}`, limits.fingerprintWindowSeconds, 1) : Promise.resolve(null)
+    ]);
   const count = counted
     ? { n: counted.used, since: (counted.resetAt || now + limits.dayWindowSeconds * 1000) - limits.dayWindowSeconds * 1000, scope: "all" }
-    : { n: entry.count, since: entry.firstSeen, scope: "instance" };
+    : { n: entry.count, since: entry.firstSeen, scope: isClient ? "client" : "instance" };
 
   if (local !== "claim") return { email: local, count };
 
@@ -409,7 +494,6 @@ async function alertFor(record, entry, local) {
     return { email: "deduped", count };
   }
 
-  const isClient = record.source === "client";
   if (isClient) {
     const clientQuota = await consumeQuota("cn_err:mail:day:client", limits.dayWindowSeconds, limits.maxClientAlertsPerDay);
     if (clientQuota ? !clientQuota.allowed : localDayFull(Date.now(), true)) {

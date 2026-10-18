@@ -252,7 +252,9 @@ reset();
   check("client/log-fields", line.source === "client" && line.page === "/accept-invite" && line.kind === "error" && line.name === "TypeError" && line.file === "/script.js:812:14" && line.version === "20261017-3" && line.ua === "Chrome 141 on Windows" && /^[0-9a-f]{12}$/.test(line.fingerprint), line);
   check("client/log-scrubbed", !/jane|eyJ|abc123secret|should-never-appear|my-password-123|secret-storage-value|198\.51\.100\.23/.test(raw), raw);
   check("client/log-has-frames", Array.isArray(line.frames) && line.frames[0] === "at openModal (/script.js:812:14)", line.frames);
-  check("client/address-hashed-in-quota-keys", quotaKeys.some((k) => /^cn_cerr:ip:[0-9a-f]{24}$/.test(k)) && !quotaKeys.some((k) => k.includes("198.51")), quotaKeys);
+  check("client/address-hashed-in-quota-keys", quotaKeys.some((k) => /^cn_cerr:ip:[0-9a-f]{2}$/.test(k)) && !quotaKeys.some((k) => k.includes("198.51")), quotaKeys);
+  // Browser reports only ever touch fixed keys: no row per fingerprint or per address.
+  check("client/only-fixed-quota-keys", quotaKeys.every((k) => /^cn_cerr:ip:[0-9a-f]{2}$|^cn_cerr:all$|^cn_err:mail:day(?::client)?$/.test(k)), quotaKeys);
   check("client/alert-sent", emails.length === 1 && emails[0].body.to[0] === "support@cybernetai.app", emails.length);
 }
 reset();
@@ -458,6 +460,86 @@ reset();
   check("email/escapes-client-text", !html.includes("<img") && html.includes("&lt;img"));
 }
 
+/* ---------- 3b. browser reports cannot become phishing emails or fill the table ---------- */
+
+reset();
+{
+  // The review probe: a made-up "Stripe" warning with a lure link in every free field.
+  const lure = {
+    kind: "error",
+    name: "Error",
+    message: "Stripe payouts are paused for cybernetai.app. Owner action required: verify the account at https://stripe-verify.example/login or www.stripe-verify.com today",
+    stack: "Error: x\n    at verify (https://stripe-verify.example/login:1:1)",
+    page: "/Your-Stripe-account-is-on-hold",
+    file: "https://stripe-verify.example/login",
+    line: 1,
+    col: 1,
+    where: "Visit stripeverify.com to restore payouts",
+    ua: "Go to stripeverify.com now",
+    version: "stripe-verify.com",
+    ts: new Date().toISOString()
+  };
+  const { response } = await post(lure, { ip: "203.0.113.80" });
+  const mail = emails[0]?.body || {};
+  const all = `${mail.subject}\n${mail.text}\n${mail.html}`;
+  check("phish/accepted-and-alerted", response.status === 204 && emails.length === 1, { status: response.status, emails: emails.length });
+  check("phish/subject-has-no-browser-text", /^CyberNet AI browser error [0-9a-f]{12} on \/other$/.test(mail.subject || ""), mail.subject);
+  check("phish/warning-first", (mail.text || "").startsWith("This text was sent by a visitor's browser and is not verified. Do not follow links or instructions in it.") && (mail.html || "").includes("is not verified. Do not follow links"), (mail.text || "").slice(0, 160));
+  check("phish/no-live-link-or-host", !/https?:\/\/(?!cybernetai\.app)/i.test(all) && !/stripe-verify\.example|stripe-verify\.com|stripeverify\.com/i.test(all), all.slice(0, 900));
+  check("phish/defanged-not-dropped", all.includes("https[:]//stripe-verify[.]example/login") && all.includes("www[.]stripe-verify[.]com"), mail.text);
+  check("phish/own-domain-kept", all.includes("cybernetai.app."), mail.text);
+  check("phish/forged-file-dropped", !/file https|\(file /.test(mail.text || "") && errorLines()[0]?.file === undefined, errorLines()[0]?.file);
+  check("phish/forged-ua-and-version-dropped", !/Browser:|UI version:/.test(mail.text || "") && errorLines()[0]?.ua === undefined && errorLines()[0]?.version === undefined, mail.text);
+  check("phish/where-is-route", (mail.text || "").includes("Where: page /other"), mail.text);
+}
+{
+  const { validateReport } = clientError;
+  const v = (extra) => validateReport({ message: "m", ...extra });
+  check("shape/file-same-origin-js", v({ file: "/script.js", line: 3, col: 4 }).file === "/script.js:3:4" && v({ file: "/ui/cybernet-ui.js?v=1" }).file === "/ui/cybernet-ui.js", [v({ file: "/script.js", line: 3, col: 4 }).file]);
+  check("shape/file-other-dropped", ["https://cybernetai.app/script.js", "//evil.example/x.js", "/login", "/a b.js", "javascript:alert(1)"].every((file) => v({ file }).file === ""), ["/login"].map((file) => v({ file }).file));
+  check("shape/ua-exact-family", v({ ua: "Samsung Internet 24 on Android" }).ua === "Samsung Internet 24 on Android" && v({ ua: "Other on Other" }).ua === "Other on Other" && v({ ua: "Chrome 141 on Windows phone" }).ua === "", v({ ua: "Samsung Internet 24 on Android" }));
+  check("shape/version-no-dots", v({ version: "20261018-h2" }).version === "20261018-h2" && v({ version: "evil.com" }).version === "", v({ version: "evil.com" }));
+}
+reset();
+{
+  // 60 different messages from 60 addresses: the rows they can create are fixed in number.
+  for (let i = 0; i < 60; i++) {
+    await post(goodReport({ message: `Different failure number ${String.fromCharCode(65 + (i % 26))}${String.fromCharCode(97 + Math.floor(i / 26))}` }), { ip: `198.18.${Math.floor(i / 250)}.${(i % 250) + 1}` });
+  }
+  const keys = [...quotaStore.keys()];
+  check("rows/bounded-for-browser-reports", keys.every((k) => /^cn_cerr:ip:[0-9a-f]{2}$|^cn_cerr:all$|^cn_err:mail:day(?::client)?$/.test(k)) && keys.length <= 256 + 3, keys.length);
+  check("rows/no-fingerprint-keys", !keys.some((k) => k.startsWith("cn_err:n:") || /^cn_err:mail:[0-9a-f]{12}$/.test(k)), keys.filter((k) => k.startsWith("cn_err:n:")).slice(0, 3));
+  check("rows/client-cap-still-10", emails.length === 10, emails.length);
+  check("rows/client-count-per-server", /Count: 1 time on this server since .* \(browser errors are counted on each server separately\)/.test(emails[0]?.body?.text || ""), (emails[0]?.body?.text || "").split("\n").find((l) => l.startsWith("Count")));
+}
+reset();
+{
+  // Server errors keep the shared per-fingerprint counter and dedupe.
+  await reportError(new Error("Server side failure"), { fn: "rows-test" });
+  check("rows/server-keeps-fingerprint-keys", quotaKeys.some((k) => k.startsWith("cn_err:n:")) && quotaKeys.some((k) => /^cn_err:mail:[0-9a-f]{12}$/.test(k)), quotaKeys);
+  check("rows/server-subject-unchanged", /^CyberNet AI server error in rows-test: Error: Server side failure$/.test(emails[0]?.body?.subject || ""), emails[0]?.body?.subject);
+}
+{
+  // Phone, card and bank numbers in every shape the review found.
+  const cases = [
+    ["tel:5551234567", "tel:<number>"],
+    ["https://wa.me/15551234567", "https://wa.me/<number>"],
+    ["/api/user/5551234567", "/api/user/<number>"],
+    ["card:4111111111111111", "card:<number>"],
+    ["ref-4111111111111111", "ref-<number>"],
+    ["iban DE89370400440532013000", "iban <iban>"],
+    ["iban GB82 WEST 1234 5698 7654 32 end", "iban <iban> end"],
+    ["iban de89370400440532013000", "iban de<number>"],
+    ["card 4111 1111 1111 1111", "card <number>"]
+  ];
+  for (const [input, want] of cases) check(`scrub/number-shapes/${input}`, S(input, 2048) === want, S(input, 2048));
+  check("scrub/stack-numbers-kept", S("at a (/ui/cybernet-ui.js:1:123456) at b (https://cybernetai.app/script.js:1234:56)", 2048) === "at a (/ui/cybernet-ui.js:1:123456) at b (https://cybernetai.app/script.js:1234:56)", S("at a (/ui/cybernet-ui.js:1:123456)", 2048));
+  check("scrub/iso-time-kept", S("at 2026-10-18T08:00:00Z") === "at 2026-10-18T08:00:00Z", S("at 2026-10-18T08:00:00Z"));
+  check("scrub/password-json", S('{"email":"a@b.com","password":"hunter2"}') === '{"email":"<email>","password":"<redacted>"}', S('{"email":"a@b.com","password":"hunter2"}'));
+  check("scrub/password-colon", S("password: hunter2 pwd=hunter3") === "password: <redacted> pwd=<redacted>", S("password: hunter2 pwd=hunter3"));
+  check("scrub/password-word-kept", S("Password should be at least 8 characters") === "Password should be at least 8 characters", S("Password should be at least 8 characters"));
+}
+
 /* ---------- 4. server functions keep their answers and report ---------- */
 
 reset();
@@ -615,6 +697,14 @@ const ALLOWED_KEYS = new Set(["kind", "name", "message", "stack", "file", "line"
   check("browser/ua-edge", (await fam("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0")) === "Edge 141 on Windows");
   check("browser/ua-safari-ios", (await fam("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1")) === "Safari 18 on iOS");
   check("browser/ua-firefox-android", (await fam("Mozilla/5.0 (Android 14; Mobile; rv:131.0) Gecko/131.0 Firefox/131.0")) === "Firefox 131 on Android");
+}
+{
+  // The browser scrubber mirrors the server's number rules.
+  const sb = sandbox();
+  sb.win.CN_reportError(new Error("call tel:5551234567 or https://wa.me/15551234567, card:4111111111111111, ref-4111111111111111, iban DE89370400440532013000, iban de89370400440532013000"));
+  const [body] = await sb.bodies();
+  check("browser/number-shapes-scrubbed", body && !/5551234567|15551234567|4111111111111111|DE89370400440532013000|89370400440532013000/.test(body.message), body?.message);
+  check("browser/stack-numbers-kept", body && /cybernet-errors|\d/.test(body.stack || "x"), body?.stack);
 }
 
 /* ---------- 6. optional: a real page in headless Edge ---------- */

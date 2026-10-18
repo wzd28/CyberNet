@@ -63,6 +63,18 @@ check("another dialog or the cookie bar open: wait", d({ blocked: true }), "wait
 check("typing in a field: leave them alone", d({ typing: true }), "busy");
 check("blocked wins over typing (a dialog with a focused field)", d({ blocked: true, typing: true }), "wait");
 check("account flag wins over a skip reason", d({ user: { ...confirmed, user_metadata: { onboarded: true } }, checkout: true }), "done-account");
+// Existing accounts (created more than 7 days ago) never see the welcome.
+const NOW = Date.parse("2026-10-18T12:00:00Z");
+check("account created 8 days ago: existing", d({ user: { ...confirmed, created_at: "2026-10-10T12:00:00Z" }, now: NOW }), "existing");
+check("account created today: shows", d({ user: { ...confirmed, created_at: "2026-10-18T08:00:00Z" }, now: NOW }), "show");
+check("account created 6 days ago: shows", d({ user: { ...confirmed, created_at: "2026-10-12T13:00:00Z" }, now: NOW }), "show");
+check("no created_at: treated as new", d({ now: NOW }), "show");
+check("existing wins over unconfirmed", d({ user: { id: "u9", created_at: "2026-01-01T00:00:00Z" }, now: NOW }), "existing");
+// Only on Home, and never right after a sign-in that a tool started.
+check("on another page: away (waits for Home)", d({ away: true }), "away");
+check("sign-in started from a tool: task", d({ task: true }), "task");
+check("task wins over waiting", d({ task: true, blocked: true }), "task");
+check("a dialog open on another page: wait", d({ away: true, blocked: true }), "wait");
 
 /* ---------- readStart: the address the page was opened with ---------- */
 check("plain home", T.readStart(["https://cybernetai.app/"]), { checkout: false, recovery: false, confirmed: false });
