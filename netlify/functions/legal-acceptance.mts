@@ -1,4 +1,5 @@
 import { json, verifyUser } from "../lib/supabase.mjs";
+import { reportError } from "../lib/report-error.mjs";
 
 const CURRENT_VERSION = "2026-09-04";
 const ALLOWED_TYPES = new Set(["signup", "checkout", "reaccept"]);
@@ -13,7 +14,7 @@ function clean(value, max = 500) {
 
 async function insertAcceptance(payload) {
   const url = env("SUPABASE_URL").replace(/\/$/, "");
-  const serviceKey = env("SUPABASE_SERVICE_ROLE_KEY");
+  const serviceKey = env("SUPABASE_SERVICE_ROLE_KEY") || env("SUPABASE_SECRET_KEY");
   if (!url || !serviceKey) throw Object.assign(new Error("Server privacy storage is not configured."), { status: 503 });
 
   const response = await fetch(`${url}/rest/v1/legal_acceptances`, {
@@ -30,6 +31,8 @@ async function insertAcceptance(payload) {
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
     console.error("CyberNet legal-acceptance db error", response.status, detail.slice(0, 500));
+    // Never pass `detail` to reportError: it can echo row data.
+    reportError(`Legal acceptance insert failed (HTTP ${response.status})`, { fn: "legal-acceptance", label: "Acceptance not recorded" });
     throw Object.assign(new Error("Legal acceptance could not be recorded."), { status: 500 });
   }
 }
@@ -58,6 +61,12 @@ export default async request => {
     await insertAcceptance(record);
     return json({ recorded: true, version: CURRENT_VERSION });
   } catch (error) {
+    // The insert failure above is already reported and 4xx answers (signed out,
+    // bad request) are expected. A 503 means a server key is missing, which is
+    // exactly why acceptances would stop being recorded, so it is reported.
+    if (!error?.status || error.status === 503) {
+      reportError(error, { fn: "legal-acceptance", label: error?.status === 503 ? "Acceptance storage not configured" : "Acceptance not recorded" });
+    }
     return json({ error: error?.message || "Legal acceptance could not be recorded." }, Number(error?.status) || 500);
   }
 };

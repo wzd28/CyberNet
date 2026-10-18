@@ -8,6 +8,7 @@ import {
   effectivePlan,
   serviceFetch
 } from "../lib/supabase.mjs";
+import { reportError } from "../lib/report-error.mjs";
 
 function env(name) {
   try {
@@ -96,7 +97,7 @@ export default async (request) => {
     const seatTier = targetPlan === "business" ? (Number(body.seatTier) || 5) : null;
     if (targetPlan === "business" && ![5, 10, 20].includes(seatTier)) {
       return json(
-        { error: "Invalid seat tier. Choose 5, 10, or 20 seats, or email cybernetai.26@gmail.com for a custom plan." },
+        { error: "Invalid seat tier. Choose 5, 10, or 20 seats, or email support@cybernetai.app for a custom plan." },
         400
       );
     }
@@ -208,6 +209,8 @@ export default async (request) => {
     return json({ url: session.url });
   } catch (error) {
     console.error("Stripe Checkout error", error);
+    // A 401 here is a signed-out visitor, not a fault.
+    reportError(error, { fn: "create-checkout-session", label: "Checkout session failed", status: error?.status });
 
     try {
       await serviceFetch("/rest/v1/checkout_debug_log", {
@@ -225,6 +228,7 @@ export default async (request) => {
       });
     } catch (logError) {
       console.error("Failed to write checkout debug log", logError);
+      reportError(logError, { fn: "create-checkout-session", label: "Checkout debug log write failed" });
     }
 
     return json(

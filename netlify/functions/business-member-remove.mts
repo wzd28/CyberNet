@@ -1,4 +1,5 @@
 import { json, verifyUser, getActiveTeamMembership, serviceFetch } from "../lib/supabase.mjs";
+import { reportError } from "../lib/report-error.mjs";
 
 export default async (request: Request) => {
   if (request.method !== "POST") return json({ error: "Method not allowed." }, 405);
@@ -39,6 +40,7 @@ export default async (request: Request) => {
 
     return json({ ok: true });
   } catch (error: any) {
+    reportError(error, { fn: "business-member-remove", label: "Teammate removal failed", status: error?.status });
     return json({ error: error.message || "Could not remove the teammate." }, Number(error.status) || 500);
   }
 };

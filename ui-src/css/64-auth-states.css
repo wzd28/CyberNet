@@ -1,0 +1,357 @@
+/* ==========================================================================
+   64-auth-states.css  -  the sign-in dialog's states (owner: auth hardening).
+
+   script.js drives the dialog through four views (#authModal[data-auth-view]):
+   login | signup | reset (ask for a reset link) | recovery (choose a new password).
+   This partial styles only what those views add to 60-overlays.css:
+   - inline field errors (.cn-field-error, input[aria-invalid]) and hints (.cn-field-hint);
+   - Show / Hide on password fields (.cn-pw-field, .cn-pw-toggle);
+   - the return notice at the top (#authNotice: expired link, cancelled Google sign-in);
+   - next-step buttons under the message (#authMessageActions);
+   - busy buttons (aria-busy plus the shared .btn-spinner from 01-base.css);
+   - the confirmation toast (#cnAuthToast) shown after an email confirmation or a new password;
+   - one narrow-phone fix: the Sign In / Create Account tabs stay on one line below 360 px.
+
+   Contracts kept (60-overlays.css header): visibility stays with the scripts. Views switch with
+   .active-auth-form and the hidden attribute; the only display rules here restate [hidden] for
+   elements whose legacy display (style.css: .auth-tabs is flex) would otherwise beat it, and
+   give a display to elements only while they are not hidden. Colours, radii and motion come
+   from 00-tokens.css and the dialog palette in 60-overlays.css section 0.
+   ========================================================================== */
+
+/* ---------- 1. Views ---------- */
+html.cn #authModal :is(.auth-tabs, .google-auth-wrap, .cn-auth-actions, .cn-field-error)[hidden],
+html.cn #authModal input[hidden] {
+  display: none;
+}
+
+/* ---------- 2. Inline field errors and hints ---------- */
+/* Fields keep their 16px bottom margin (60-overlays.css section 5); a line under a field is
+   pulled up to sit 8px below it and keeps the 16px gap to the next label. */
+html.cn #authModal :is(.cn-field-error, .cn-field-hint) {
+  margin: calc(var(--cn-2) * -1) 0 var(--cn-4);
+  font-family: var(--cn-font);
+  font-size: 13px;
+  letter-spacing: 0;
+  line-height: 1.45;
+  text-align: start;
+  text-transform: none;
+}
+
+html.cn #authModal .cn-field-hint {
+  color: var(--cn-text-3);
+}
+
+html.cn #authModal .cn-field-hint + .cn-field-error {
+  margin-top: calc(var(--cn-3) * -1);
+}
+
+html.cn #authModal .cn-field-error:not([hidden]) {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  color: var(--cn-danger);
+  font-weight: 500;
+}
+
+/* A drawn alert mark, so the error never relies on colour alone. */
+html.cn #authModal .cn-field-error::before {
+  content: "";
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin-top: 2px;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='9.5'/%3E%3Cpath d='M12 7.5v5.5M12 16.6v.1'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='9.5'/%3E%3Cpath d='M12 7.5v5.5M12 16.6v.1'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+html.cn #authModal .modal-card input[aria-invalid="true"] {
+  border-color: var(--cn-danger);
+}
+
+/* After a submit, focus jumps to the first field with a problem. Focus moved by script after a
+   mouse click does not match :focus-visible (01-base.css hides the ring then), so the field that
+   took focus shows the standard ring here as well. */
+html.cn #authModal .modal-card input[aria-invalid="true"]:focus {
+  outline: 2px solid var(--cn-ring);
+  outline-offset: 3px;
+}
+
+/* In the two-column name grid the error sits inside its column. */
+html.cn #authModal .auth-name-grid .cn-field-error {
+  margin-bottom: var(--cn-4);
+}
+
+/* ---------- 3. Show / Hide on password fields ---------- */
+html.cn #authModal .cn-pw-field {
+  position: relative;
+  margin: 0 0 var(--cn-4);
+}
+
+html.cn #authModal .modal-card .cn-pw-field > input {
+  margin: 0;
+  padding-inline-end: 76px;
+}
+
+/* Edge adds its own eye (and clear) button inside password fields; the Show button replaces it. */
+html.cn #authModal .cn-pw-field > input::-ms-reveal,
+html.cn #authModal .cn-pw-field > input::-ms-clear {
+  display: none;
+}
+
+html.cn #authModal .cn-pw-toggle {
+  position: absolute;
+  inset-block: 2px;
+  inset-inline-end: 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 64px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 12px;
+  border: 0;
+  border-radius: calc(var(--cn-r-ctl) - 2px);
+  background: transparent;
+  color: var(--cn-cyan-2);
+  font-family: var(--cn-font);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -.005em;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color var(--cn-dur-1) ease, color var(--cn-dur-1) ease;
+}
+
+html.cn #authModal .cn-pw-toggle:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--cn-ring);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  html.cn #authModal .cn-pw-toggle:hover {
+    background: var(--cn-fill-1);
+    color: var(--cn-text);
+  }
+}
+
+/* ---------- 4. The return notice at the top of the dialog ---------- */
+html.cn #authModal .cn-auth-notice {
+  --cn-notice: var(--cn-cyan-2);
+  --cn-notice-tint: var(--cn-cyan-tint);
+}
+
+html.cn #authModal .cn-auth-notice[data-tone="warn"] {
+  --cn-notice: var(--cn-warn);
+  --cn-notice-tint: var(--cn-warn-tint);
+}
+
+html.cn #authModal .cn-auth-notice[data-tone="success"] {
+  --cn-notice: var(--cn-safe);
+  --cn-notice-tint: var(--cn-safe-tint);
+}
+
+html.cn #authModal .cn-auth-notice:empty {
+  display: none;
+}
+
+html.cn #authModal .cn-auth-notice:not(:empty) {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: var(--cn-3);
+  align-items: start;
+  margin: 0 0 var(--cn-5);
+  padding: 14px 16px;
+  border: 1px solid var(--cn-line-2);
+  border: 1px solid color-mix(in srgb, var(--cn-notice) 45%, transparent);
+  border-radius: var(--cn-r-ctl);
+  background: var(--cn-notice-tint);
+  text-align: start;
+}
+
+html.cn #authModal .cn-auth-notice-icon {
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  background: var(--cn-notice);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='9.5'/%3E%3Cpath d='M12 11v5.5M12 7.6v.1'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='9.5'/%3E%3Cpath d='M12 11v5.5M12 7.6v.1'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+html.cn #authModal .cn-auth-notice[data-tone="warn"] .cn-auth-notice-icon {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9.5'/%3E%3Cpath d='M12 6.8V12l3.4 2.1'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9.5'/%3E%3Cpath d='M12 6.8V12l3.4 2.1'/%3E%3C/svg%3E");
+}
+
+html.cn #authModal .cn-auth-notice strong {
+  display: block;
+  margin: 0 0 4px;
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: 14.5px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  line-height: 1.35;
+  text-wrap: balance;
+}
+
+html.cn #authModal .cn-auth-notice p {
+  margin: 0;
+  color: var(--cn-text-2);
+  font-family: var(--cn-font);
+  font-size: 13.5px;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+/* ---------- 5. Next steps under the message ("Sign in instead", "Reset my password") ---------- */
+html.cn #authModal .cn-auth-actions:not([hidden]) {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0 var(--cn-5);
+  margin-top: var(--cn-1);
+}
+
+html.cn #authModal .cn-auth-actions .auth-text-btn {
+  color: var(--cn-cyan-2);
+  text-decoration: underline;
+  text-decoration-color: var(--cn-cyan-line);
+  text-decoration-thickness: 1px;
+  text-underline-offset: .22em;
+}
+
+html.cn #authModal #signupResendBtn {
+  justify-content: center;
+  width: 100%;
+}
+
+/* The message takes focus when it says what happens next (script.js revealAuthMessage), so it
+   needs the same visible ring as a control, and room above it when it is scrolled into view. */
+html.cn #authModal #authMessage,
+html.cn #authModal .cn-auth-actions {
+  scroll-margin-block: var(--cn-5);
+}
+
+html.cn #authModal #authMessage:focus {
+  outline: none;
+}
+
+html.cn #authModal #authMessage:focus-visible {
+  border-radius: 6px;
+  box-shadow: var(--cn-focus);
+}
+
+/* ---------- 6. Busy buttons ---------- */
+/* The cyan pill already reads busy through 01-base.css (.primary-btn:disabled:has(.btn-spinner)).
+   The Google button and the text buttons get the same: working, not unavailable. */
+html.cn #authModal :is(.google-auth-btn, .auth-text-btn)[aria-busy="true"] {
+  opacity: .85;
+  cursor: progress;
+}
+
+html.cn #authModal .auth-text-btn[aria-busy="true"] {
+  gap: var(--cn-2);
+}
+
+/* A text button that is waiting out its cooldown ("Send again in 42s") stays legible. */
+html.cn #authModal .auth-text-btn:disabled:not([aria-busy="true"]) {
+  color: var(--cn-text-3);
+  cursor: default;
+  opacity: 1;
+}
+
+/* [class~=] rather than a class selector (same specificity): scripts/build-ui.mjs copies every rule
+   that names the cookie bar's class prefix into the legal-page bundle, and this rule is not one. */
+html.cn #authModal .primary-btn:disabled:not([aria-busy="true"]):not([class~="cn-consent-pending"]) {
+  opacity: .6;
+}
+
+/* ---------- 7. Confirmation toast (no buttons; it leaves by itself, on a click or on Escape) ---------- */
+html.cn .cn-toast {
+  position: fixed;
+  left: 50%;
+  bottom: max(var(--cn-6), calc(env(safe-area-inset-bottom, 0px) + var(--cn-4)));
+  z-index: var(--cn-z-toast);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(440px, calc(100vw - 2 * var(--cn-4)));
+  padding: 12px 18px;
+  border: 1px solid rgba(52, 211, 153, .38);
+  border-radius: var(--cn-r-ctl);
+  background: #121a2b;
+  box-shadow: var(--cn-shadow-card);
+  color: #f5f7fa;
+  font-family: var(--cn-font);
+  font-size: 14.5px;
+  font-weight: 500;
+  letter-spacing: -.005em;
+  line-height: 1.45;
+  text-wrap: pretty;
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(-50%, 10px);
+  pointer-events: none;
+  cursor: pointer;
+  transition:
+    opacity var(--cn-dur-2) var(--cn-ease-out),
+    transform var(--cn-dur-2) var(--cn-ease-out),
+    visibility 0s linear var(--cn-dur-2);
+}
+
+html.cn .cn-toast.is-shown {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
+  pointer-events: auto;
+  transition-delay: 0s;
+}
+
+html.cn .cn-toast-icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  background: var(--cn-safe);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9.5'/%3E%3Cpath d='m7.8 12.3 2.8 2.8 5.6-6'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9.5'/%3E%3Cpath d='m7.8 12.3 2.8 2.8 5.6-6'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.cn .cn-toast,
+  html.cn .cn-toast.is-shown {
+    transform: translate(-50%, 0);
+  }
+}
+
+html.cn.cn-still .cn-toast {
+  transform: translate(-50%, 0);
+}
+
+@media (forced-colors: active) {
+  html.cn #authModal .cn-auth-notice:not(:empty),
+  html.cn .cn-toast {
+    border: 1px solid CanvasText;
+  }
+  html.cn #authModal .cn-field-error::before,
+  html.cn #authModal .cn-auth-notice-icon,
+  html.cn .cn-toast-icon {
+    background: CanvasText;
+  }
+  html.cn #authModal .modal-card input[aria-invalid="true"] {
+    border: 2px solid Mark;
+  }
+}
+
+/* ---------- 8. Narrow phones ---------- */
+/* Below 360 px "Create Account" wrapped onto two lines and the active tab's dot sat on the
+   second line of text. Less side padding keeps both labels on one line. */
+@media (max-width: 359.98px) {
+  html.cn #authModal .auth-tab {
+    padding-inline: 8px;
+    white-space: nowrap;
+  }
+}

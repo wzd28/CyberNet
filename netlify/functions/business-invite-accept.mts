@@ -1,4 +1,5 @@
 import { json, verifyUser, getActiveTeamMembership, serviceFetch } from "../lib/supabase.mjs";
+import { reportError } from "../lib/report-error.mjs";
 
 const EXPIRED_MESSAGE = "This invite has expired. Ask the team owner to send a new one.";
 
@@ -122,6 +123,7 @@ export default async (request: Request) => {
 
     return json({ ok: true });
   } catch (error: any) {
+    reportError(error, { fn: "business-invite-accept", label: "Invite accept failed", status: error?.status });
     return json({ error: error.message || "Could not accept the invite." }, Number(error.status) || 500);
   }
 };

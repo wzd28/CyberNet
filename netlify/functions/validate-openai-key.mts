@@ -2,6 +2,7 @@ import {
   json,
   verifyUser
 } from "../lib/supabase.mjs";
+import { reportError } from "../lib/report-error.mjs";
 
 const WINDOW_MS = 10 * 60 * 1000;
 const MAX_ATTEMPTS = 10;
@@ -190,6 +191,7 @@ export default async request => {
       keySuffix: apiKey.slice(-4)
     });
   } catch (error) {
+    reportError(error, { fn: "validate-openai-key", label: "Key validation failed", status: error?.status });
     return json(
       {
         valid: false,

@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import { triggerBackgroundJob, modelForRiskFloor } from "./recovery-mode.mts";
 import { modelParams, createResponse, autoReplaceEnabled } from "../lib/ai-models.mjs";
 import { rekeyPlan, planActions, buildTaskRows, supersededTaskKeys, taskKeyInList } from "../lib/recovery-tasks.mjs";
+import { reportError } from "../lib/report-error.mjs";
 
 declare const Netlify: {
   env: {
@@ -435,6 +436,7 @@ export default async function handler(request: Request, context: any): Promise<R
         : await consumeRecoveryUpdate(user.id);
     } catch (error) {
       console.error("CyberNet Recovery update usage reservation failed", error);
+      reportError(error, { fn: "recovery-update", label: "Recovery update usage reservation failed", context });
       return json({ error: "Recovery Mode is not fully configured yet.", code: "usage_service_unavailable" }, 503);
     }
     if (!usage.allowed) {

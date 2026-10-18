@@ -10,6 +10,7 @@ import {
   getActiveTeamMembership
 } from "../lib/supabase.mjs";
 import { modelParams } from "../lib/ai-models.mjs";
+import { reportError } from "../lib/report-error.mjs";
 
 const MAX_TEXT_CHARS = 16_000;
 const MAX_IMAGE_DATA_CHARS = 5_500_000;
@@ -451,6 +452,8 @@ export default async request => {
 
     const status = Number(error?.status) || 500;
     const upstream = String(error?.message || "");
+    // Only server-side faults (5xx): a rejected key or quota is the visitor's.
+    reportError(error, { fn: "byok-analyze", label: "BYOK analysis failed", status });
 
     if (status === 401) {
       return json(

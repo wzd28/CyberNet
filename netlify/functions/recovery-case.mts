@@ -1,3 +1,5 @@
+import { reportError } from "../lib/report-error.mjs";
+
 declare const Netlify: {
   env: {
     get(name: string): string | undefined;
@@ -119,6 +121,7 @@ export default async function handler(request: Request): Promise<Response> {
     return json({ cases: Array.isArray(rows) ? rows : [] });
   } catch (error) {
     console.error("CyberNet Recovery case fetch failed", error);
+    reportError(error, { fn: "recovery-case", label: "Recovery case fetch failed" });
     return json({ error: "Could not load Recovery cases right now." }, 503);
   }
 }

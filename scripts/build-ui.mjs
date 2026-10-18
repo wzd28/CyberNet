@@ -10,7 +10,8 @@
 // Bundles (the file names are referenced by the HTML heads; never rename them):
 //   cybernet-ui.css        every ui-src/css/*.css partial, in name order (the SPA, public/index.html)
 //   cybernet-ui.js         every ui-src/js/*.js module, in name order; each module runs inside its own
-//                          try/catch, so one failing module never stops the ones after it
+//                          try/catch, so one failing module never stops the ones after it (the error
+//                          is logged and sent to window.CN_reportError from /cybernet-errors.js)
 //   cybernet-ui-legal.css  the standalone documents (privacy, terms, refunds, acceptable-use, 404):
 //                          the LEGAL_PARTIALS below in full, plus every rule from the other partials
 //                          whose selector targets the cookie bar (DOC_RULES), kept in source order.
@@ -187,7 +188,7 @@ async function buildLegalCss(files) {
 
 async function buildJs(files) {
   const wrapped = files.map(f =>
-    `/* ---- ${f.name} ---- */\ntry {\n${f.text}} catch (err) { if (window.console) console.error("[cn] ${f.name}", err); }\n`
+    `/* ---- ${f.name} ---- */\ntry {\n${f.text}} catch (err) { if (window.console) console.error("[cn] ${f.name}", err); if (window.CN_reportError) window.CN_reportError(err, "ui module ${f.name}"); }\n`
   ).join("\n");
   if (DEV || !esbuild) return wrapped;
   const r = await esbuild.transform(wrapped, { loader: "js", minify: true, target: "es2019", legalComments: "none", logLevel: "silent" });

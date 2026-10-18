@@ -1,4 +1,5 @@
 import { json, serviceFetch } from "../lib/supabase.mjs";
+import { reportError } from "../lib/report-error.mjs";
 
 // Simple in-memory cache so a burst of homepage visits doesn't hammer the
 // database with the same aggregate query. Cold-starts reset this, which is
@@ -39,6 +40,7 @@ export default async (request) => {
     return json(value);
   } catch (error) {
     console.error("CyberNet public stats fetch failed", error);
+    reportError(error, { fn: "public-stats", label: "Live stats fetch failed" });
     // Fail honestly: tell the frontend live data is unavailable rather than
     // returning a plausible-looking but fabricated number.
     return json({ live: false, error: "Live stats are temporarily unavailable." }, 503);

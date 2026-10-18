@@ -1,4 +1,5 @@
 import { json, verifyUser, getActiveTeamMembership, serviceFetch } from "../lib/supabase.mjs";
+import { reportError } from "../lib/report-error.mjs";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -198,6 +199,7 @@ export default async (request: Request) => {
 
     return json({ feed });
   } catch (error: any) {
+    reportError(error, { fn: "business-activity", label: "Team activity read failed", status: error?.status });
     return json({ error: error.message || "Could not load team activity." }, Number(error.status) || 500);
   }
 };

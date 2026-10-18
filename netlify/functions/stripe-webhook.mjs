@@ -6,6 +6,7 @@ import {
   getProfileByStripeCustomer,
   serviceFetch
 } from "../lib/supabase.mjs";
+import { reportError } from "../lib/report-error.mjs";
 
 function env(name) {
   try {
@@ -313,6 +314,7 @@ export default async (request) => {
     return json({ received: true });
   } catch (error) {
     console.error("Stripe webhook processing error", error);
+    reportError(error, { fn: "stripe-webhook", label: `Webhook ${String(event?.type || "event").slice(0, 60)} processing failed` });
 
     return json(
       {

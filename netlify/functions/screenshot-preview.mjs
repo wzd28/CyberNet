@@ -1,4 +1,5 @@
 import { json, verifyUser, getProfile, effectivePlan, getActiveTeamMembership, serviceFetch, isAdminUser } from "../lib/supabase.mjs";
+import { reportError } from "../lib/report-error.mjs";
 
 // Every preview spends a paid GetScreenshot credit (or the shared keyless
 // Microlink allowance), so each account gets a short-burst and a daily cap.
@@ -15,12 +16,14 @@ async function consumeQuota(key, windowSeconds, max) {
     });
     if (!r.ok) {
       console.error("CyberNet screenshot quota check failed", r.status);
+      reportError(`Quota check failed (HTTP ${r.status})`, { fn: "screenshot-preview", label: "Preview quota check failed" });
       return true;
     }
     const d = await r.json().catch(() => null);
     return d?.allowed !== false;
   } catch (e) {
     console.error("CyberNet screenshot quota check failed", e?.message);
+    reportError(e, { fn: "screenshot-preview", label: "Preview quota check failed" });
     return true;
   }
 }

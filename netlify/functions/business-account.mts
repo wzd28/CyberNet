@@ -1,4 +1,5 @@
 import { json, verifyUser, getActiveTeamMembership, serviceFetch, expireStaleInvites } from "../lib/supabase.mjs";
+import { reportError } from "../lib/report-error.mjs";
 
 export default async (request: Request) => {
   if (request.method !== "GET") return json({ error: "Method not allowed." }, 405);
@@ -109,6 +110,7 @@ export default async (request: Request) => {
       serverTime: new Date().toISOString(),
     });
   } catch (error: any) {
+    reportError(error, { fn: "business-account", label: "Team info failed", status: error?.status });
     return json({ error: error.message || "Could not load team info." }, Number(error.status) || 500);
   }
 };

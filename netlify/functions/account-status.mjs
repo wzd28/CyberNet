@@ -9,6 +9,7 @@ import {
   getActiveTeamMembership,
   serviceFetch
 } from "../lib/supabase.mjs";
+import { reportError } from "../lib/report-error.mjs";
 
 async function getTeamUsage(businessAccountId, dailyPoolLimit) {
   const today = new Date().toISOString().slice(0, 10);
@@ -76,6 +77,8 @@ export default async (request) => {
       history
     });
   } catch (error) {
+    // Expected answers (401 signed out) carry a 4xx status and are skipped.
+    reportError(error, { fn: "account-status", label: "Account status failed", status: error?.status });
     return json(
       { error: error.message || "Account status failed." },
       Number(error.status) || 500

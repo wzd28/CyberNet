@@ -18,6 +18,8 @@
   const PENDING_INVITE = "cybernet_pending_invite";
   const PENDING_INVITE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
   const INVITE_TOKEN_PATTERN = /^[a-f0-9]{64}$/;
+  // The same email check as the sign-in form (script.js EMAIL_PATTERN) and business-invite.mts.
+  const INVITE_EMAIL_PATTERN = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)*\.[a-z0-9-]{2,}$/i;
   const STYLESHEET_VERSION = "20260927-2";
 
   function start() {
@@ -117,11 +119,11 @@
 
         <div class="cn-team-section" id="cnTeamInviteSection">
           <div class="cn-team-section-head">
-            <h3>Invite a teammate</h3>
+            <h3 id="cnTeamInviteHeading">Invite a teammate</h3>
             <p>They'll get an email with a link to join. If they already have a CyberNet AI account, they just sign in and accept.</p>
           </div>
           <div class="cn-team-invite-row">
-            <input id="cnTeamInviteEmail" type="email" autocomplete="off" spellcheck="false" placeholder="teammate@yourcompany.com" />
+            <input id="cnTeamInviteEmail" type="email" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="254" placeholder="teammate@yourcompany.com" aria-label="Teammate's email address" />
             <button class="primary-btn" id="cnTeamInviteBtn" type="button">Send invite</button>
           </div>
           <p class="cn-team-invite-note">Invites expire 24 hours after you send them. You can cancel a pending invite any time before it's accepted.</p>
@@ -1088,8 +1090,15 @@
     async function sendInvite() {
       const email = String(inviteEmail?.value || "").trim();
 
-      if (!email || !email.includes("@")) {
+      if (!email) {
         setMessage("Enter the teammate's email address first.", "warning");
+        inviteEmail?.focus();
+        return;
+      }
+      // The same check as the sign-in form (script.js EMAIL_PATTERN) and the server.
+      if (email.length > 254 || !INVITE_EMAIL_PATTERN.test(email)) {
+        setMessage("Enter a full email address, like name@company.com.", "warning");
+        inviteEmail?.focus();
         return;
       }
 

@@ -18,7 +18,8 @@
   <link rel="stylesheet" href="/cybernet-consent.css?v=20260927-2" />
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Mona+Sans:wdth,wght@75..125,300..800&amp;family=JetBrains+Mono:wght@400..700&amp;display=swap" onload="this.onload=null;this.rel='stylesheet'" />
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mona+Sans:wdth,wght@75..125,300..800&amp;family=JetBrains+Mono:wght@400..700&amp;display=swap" /></noscript>
-  <link rel="stylesheet" href="/ui/cybernet-ui-legal.css?v=20261015-3" />
+  <link rel="stylesheet" href="/ui/cybernet-ui-legal.css?v=20261018-6" />
+  <script src="/cybernet-errors.js?v=20261018-h2" defer></script>
 </head>
 <body class="cn-legal-page">
   <main class="cn-legal-page-shell">
@@ -28,10 +29,10 @@
     </header>
 
     <section class="cn-legal-hero">
-      <span class="cn-legal-eyebrow">Legal Center · Version 2026-09-27</span>
+      <span class="cn-legal-eyebrow">Legal Center · Version 2026-10-18</span>
       <h1>Privacy Policy</h1>
       <p>How CyberNet handles account data, submitted evidence, AI processing, connected API keys, browser storage, billing records, legal acceptance, retention, export, and deletion rights.</p>
-      <div class="cn-legal-meta"><span>Effective: 4 September 2026 · Updated 27 September 2026</span><span>Contact: support@cybernetai.app</span><span>Service: cybernetai.app</span></div>
+      <div class="cn-legal-meta"><span>Effective: 4 September 2026 · Last updated: 18 October 2026</span><span>Contact: support@cybernetai.app</span><span>Service: cybernetai.app</span></div>
     </section>
 
     <div class="cn-legal-layout">
@@ -75,6 +76,8 @@
       <h2>3. How specific features handle information</h2>
       <h3>Quick Scan and Analysis AI</h3>
 <p>Submitted evidence is processed in the browser and may be sent over HTTPS to Netlify Functions. When AI is enabled, relevant content may be sent to OpenAI to generate the requested analysis. CyberNet does not promise that all processing stays on the device.</p>
+<h3>Link and QR-code previews</h3>
+<p>On Pro and Business accounts, a link you check, including a link found inside a message or a QR code, can come with a picture of the page, so you can see where it leads without opening it. To make the picture, CyberNet sends that web address to GetScreenshot, a service of Rasterwise, and, if it is slow or unavailable, to Microlink. Their computers open the page and send back a screenshot, so the page never runs on your device. They receive the full web address, including anything written inside it, but not your name, email address, or account details. CyberNet shows the screenshot in your result and does not store it on its servers; the providers may keep the address and the picture for a short time under their own terms. If a link carries private details, such as a password-reset or invitation link, those details reach the preview service too.</p>
 <h3>Recovery Mode</h3>
 <p>Incident descriptions, quick-answer signals, and optional screenshots you submit to Recovery Mode are processed to generate a recovery case, plan, and task checklist stored in Supabase under your account. CyberNet attempts to detect and redact common secrets (such as passwords, OTPs, and card numbers) before they are stored or sent for AI processing, but automatic redaction is not guaranteed — never submit passwords, one-time codes, recovery codes, full card numbers, seed phrases, or private keys.</p>
 <h3>Saved reports and history</h3>
@@ -88,6 +91,8 @@
 <p>Activity from before you joined a team, and activity after you are removed from it, is not shown to that owner. If you do not want an owner to see your activity, do not accept the invitation and use a separate personal account instead. You are shown this consequence on the invitation screen before you join.</p>
 <h3>Payments</h3>
 <p>Stripe processes payment details and returns customer, subscription, invoice, and status information needed to unlock, renew, cancel, refund, or troubleshoot Pro or Business access. For a Business team, billing information belongs to the team owner's account; members do not have access to it.</p>
+<h3>Error diagnostics</h3>
+<p>When part of the website or one of CyberNet’s server functions fails, CyberNet records a short technical report so the problem can be found and fixed: the error message, where in the code it happened, which page it was on (without the parts of the address that can hold private details), the browser, its main version number and the operating system (for example, Chrome 141 on Android), the site version, and the time. CyberNet collects these reports itself; no outside error-tracking company is involved. The reports are designed to contain no personal data: anything you typed or scanned, page content, cookies, and stored data are never included, and email addresses, sign-in codes, access tokens, IP addresses, and long numbers are removed before a report is kept. Your connection address is used only in scrambled (hashed) form, to limit how many reports one connection can send. Reports are kept in CyberNet’s hosting logs and in alert emails sent to CyberNet’s support inbox.</p>
     </section>
 <section class="cn-legal-section" id="purposes">
       <h2>4. Why CyberNet uses information</h2>
@@ -122,11 +127,17 @@
       <h2>6. Service providers and recipients</h2>
       <p>CyberNet may disclose limited information to providers that process it for the purposes described above, including:</p>
 <ul>
-<li><strong>Supabase:</strong> authentication, profiles, usage, saved history, legal-acceptance records, and database services;</li>
+<li><strong>Supabase:</strong> authentication, profiles, usage, saved history, legal-acceptance records, database services, and the sign-up confirmation and password-reset emails;</li>
 <li><strong>Netlify:</strong> website hosting, serverless functions, security, logs, deployment, and support forms;</li>
+<li><strong>Cloudflare:</strong> the network in front of cybernetai.app, which delivers the site and protects it from attacks, so it handles your IP address and the requests your browser makes; and routing of email sent to CyberNet’s cybernetai.app addresses, such as support@cybernetai.app;</li>
 <li><strong>Stripe:</strong> checkout, recurring billing, invoices, payment methods, refunds, disputes, fraud prevention, and billing portal services;</li>
 <li><strong>OpenAI:</strong> AI analysis requested by CyberNet or by a user through BYOK;</li>
+<li><strong>Resend:</strong> sending CyberNet’s own emails, such as Business team invitations, Recovery Mode check-in reminders, and, to CyberNet’s own inbox, error alerts and the encrypted weekly backups; it receives the recipient’s email address and the message;</li>
+<li><strong>GetScreenshot (Rasterwise) and Microlink:</strong> link and QR-code previews on Pro and Business accounts; they receive the web address being previewed, as described in <a href="#feature-storage">section 3</a>;</li>
+<li><strong>Google (Google sign-in):</strong> only if you choose Continue with Google; Google confirms who you are and shares your name, email address, and profile picture with CyberNet, and Google knows that you signed in to CyberNet;</li>
 <li><strong>Google (Google Analytics):</strong> only if you accept analytics cookies, visit statistics as described in <a href="#browser">section 9</a>;</li>
+<li><strong>Google (Gmail):</strong> hosts the inbox that receives email sent to CyberNet’s cybernetai.app addresses, including support requests, error alerts, and the encrypted backups described in <a href="#security">section 10</a>;</li>
+<li><strong>jsDelivr and Google Fonts:</strong> your browser downloads some of the site’s code libraries and its typefaces directly from these networks, so, as with any website, they receive your IP address and basic browser details, but nothing you type or scan;</li>
 <li><strong>professional advisers and authorities:</strong> where reasonably necessary for legal, security, fraud, accounting, insurance, or compliance purposes; and</li>
 <li><strong>business successors:</strong> in a merger, financing, acquisition, restructuring, or sale, subject to appropriate safeguards.</li>
 </ul>
@@ -143,15 +154,15 @@
 <table class="cn-legal-data-table"><thead><tr><th>Category</th><th>Typical retention</th></tr></thead><tbody>
 <tr><td>Active account and profile</td><td>For the life of the account, then deletion from active systems generally within 30 days after a valid deletion request, subject to exceptions below.</td></tr>
 <tr><td>Unsaved analysis input and output</td><td>CyberNet does not intentionally add it to saved history; temporary function, security, or provider processing may continue for up to 30 days, unless a shorter provider setting applies or an incident requires longer preservation.</td></tr>
-<tr><td>Business team activity (submitted text, links, QR contents, Recovery descriptions, and full results of team members)</td><td>While the member’s account remains active or until the member deletes their data or account; deletion from active systems generally within 30 days and residual backups for up to 90 days. Removal from a team stops new activity being shown to that owner; past activity stays in that team’s log.</td></tr>
-<tr><td>Pro saved history and reports</td><td>While the account remains active or until the user deletes it; deletion from active systems generally within 30 days and residual backups for up to 90 days.</td></tr>
+<tr><td>Business team activity (submitted text, links, QR contents, Recovery descriptions, and full results of team members)</td><td>While the member’s account remains active or until the member deletes their data or account; deletion from active systems generally within 30 days and residual backups for up to 8 weeks. Removal from a team stops new activity being shown to that owner; past activity stays in that team’s log.</td></tr>
+<tr><td>Pro saved history and reports</td><td>While the account remains active or until the user deletes it; deletion from active systems generally within 30 days and residual backups for up to 8 weeks.</td></tr>
 <tr><td>Browser local or session storage</td><td>Until the user clears it, the browser removes it, the tab closes for session data, or the feature’s “Forget/Clear” control is used.</td></tr>
 <tr><td>BYOK API key</td><td>Current browser tab only; removed when the tab closes or “Forget Key” is used. It is not intentionally retained in the CyberNet account or database.</td></tr>
 <tr><td>Security, access, and rate-limit logs</td><td>Normally up to 90 days; up to 12 months where needed to investigate abuse, fraud, attacks, or service incidents.</td></tr>
 <tr><td>Support and feedback records</td><td>Normally up to 24 months after the matter is closed, unless a dispute or legal duty requires longer.</td></tr>
 <tr><td>Billing, tax, invoice, refund, and dispute records</td><td>Normally up to 7 years after the relevant transaction or account closure, or longer where law requires.</td></tr>
 <tr><td>Legal-acceptance records</td><td>Normally up to 7 years after account closure or the last relevant transaction, or longer where needed for a legal claim or mandatory obligation.</td></tr>
-<tr><td>Backups</td><td>Rolling backups may retain deleted data for up to 90 days before overwrite, unless isolated for security or legal reasons.</td></tr>
+<tr><td>Backups</td><td>Weekly encrypted backups are kept for 8 weeks and then deleted, so deleted data can remain in a backup for up to 8 weeks, unless a backup is isolated for security or legal reasons.</td></tr>
 </tbody></table>
 <p>CyberNet may shorten these periods as systems improve. Information may be retained longer when necessary for fraud prevention, security investigations, payment disputes, legal claims, sanctions, tax, accounting, lawful requests, or protection of rights.</p>
     </section>
@@ -159,7 +170,7 @@
       <h2>9. Cookies and browser storage</h2>
       <p>CyberNet may use essential cookies, local storage, and session storage for authentication, navigation, preferences, plan state, legal acceptance, temporary API-key handling, saved browser reports, and security. Essential storage is required for core functionality.</p>
 <h3>Optional analytics cookies (Google Analytics)</h3>
-<p><strong>Only if you choose Accept</strong> in the cookie bar, CyberNet uses Google Analytics, a service provided by Google, to count visits and see which pages help people. If you choose Decline, or have not chosen yet, the Google Analytics script is not loaded, nothing is sent to Google, and no Google Analytics cookies are set.</p>
+<p><strong>Only if you choose Accept</strong> in the cookie bar, CyberNet uses Google Analytics, a service provided by Google, to count visits and see which pages help people. If you choose Decline, or have not chosen yet, the Google Analytics script is not loaded, nothing is sent to Google Analytics, and no Google Analytics cookies are set.</p>
 <p>If you accept, Google receives: the pages you open on cybernetai.app, with private details such as invite links and sign-in codes removed from the address; how you arrived, for example from a search engine or an ad; your device and browser type; your approximate location, which Google works out from your internet connection; and how long you spend on each page.</p>
 <p>Google does <strong>not</strong> receive anything you scan or type: not your messages, links, pictures, QR codes, or Recovery Mode descriptions, and not your account details or email address.</p>
 <p>Google Analytics sets two cookies, <code>_ga</code> and <code>_ga_&lt;ID&gt;</code>, which Google keeps for up to 2 years. Google signals and ad personalisation are turned off. Declining keeps every CyberNet feature working. Your choice itself is saved in your browser’s local storage.</p>
@@ -169,6 +180,7 @@
 <section class="cn-legal-section" id="security">
       <h2>10. Security measures</h2>
       <p>CyberNet uses measures intended to reduce risk, including HTTPS, server-side secret storage, authenticated Netlify Functions, Supabase Row Level Security, access controls, request limits, input and file-size validation, security headers, restricted browser permissions, provider authentication, and separation of public and private keys.</p>
+<p><strong>Encrypted backups.</strong> Once a week, CyberNet makes a backup of its account database so that accounts and saved data can be restored after a technical failure. The backup holds the stored account data and the sign-in account details, but never passwords or sign-in tokens. It is compressed and encrypted (AES-256) before it leaves CyberNet’s server function, is delivered by email to the operator’s support inbox, and is kept there for 8 weeks before it is deleted. It can be opened only with a passphrase that the operator keeps.</p>
 <p>No method of transmission or storage is completely secure. Users must protect their devices, passwords, email accounts, API keys, recovery methods, and downloaded reports.</p>
     </section>
 <section class="cn-legal-section" id="rights">

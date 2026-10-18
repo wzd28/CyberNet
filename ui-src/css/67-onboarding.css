@@ -1,0 +1,337 @@
+/* ==========================================================================
+   67-onboarding.css  -  the first-run welcome (owner: onboarding).
+   Markup and behaviour: public/cybernet-onboarding.js (#cnOnboard).
+
+   The card is a .modal > .modal-card, so 60-overlays.css already gives it the flat scrim, the
+   midnight sheet and its palette, the drawn close button, the account-eyebrow pill, the h2
+   type and, on phones, the bottom sheet with safe-area padding. This file only lays out the
+   three steps inside it: an icon tile and heading, the body, the plan's daily allowance as a
+   quiet list, a tip, and the Back / dots / Next row (in the flow, never sticky).
+
+   Motion: one short fade when a step changes (.is-entering), and the active dot widening.
+   Both stop under prefers-reduced-motion and under Pause motion (html.cn-still).
+   ========================================================================== */
+
+html.cn #cnOnboard > .modal-card {
+  width: min(500px, 100%);
+}
+
+/* On desktop the card hangs from a fixed top line instead of re-centring, so it does not jump
+   when a step is taller or shorter than the one before. (Phones keep the bottom sheet.) */
+@media (min-width: 640px) and (min-height: 600px) {
+  html.cn #cnOnboard.modal {
+    --cn-ob-top: clamp(24px, 12vh, 120px);
+    align-items: flex-start;
+    padding-top: var(--cn-ob-top);
+  }
+
+  html.cn #cnOnboard > .modal-card {
+    max-height: calc(100vh - var(--cn-ob-top) - 24px);
+    max-height: calc(100dvh - var(--cn-ob-top) - 24px);
+  }
+}
+
+/* ---------- top row: eyebrow pill, step count (the close button sits at the inline end) ---------- */
+html.cn #cnOnboard .cn-onboard-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--cn-2) var(--cn-3);
+  min-height: 40px;
+  margin: 0 0 var(--cn-4);
+  padding-inline-end: 52px; /* clears the 40px close button */
+}
+
+html.cn #cnOnboard .cn-onboard-top .account-eyebrow {
+  margin: 0;
+}
+
+html.cn #cnOnboard .cn-onboard-count {
+  color: var(--cn-text-3);
+  font-family: var(--cn-font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: var(--cn-track-label);
+  line-height: 1.2;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+html.cn #cnOnboard .cn-onboard-hello {
+  margin: 0 0 var(--cn-5);
+  color: var(--cn-text-2);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+html.cn #cnOnboard .cn-onboard-hello[hidden] {
+  display: none;
+}
+
+/* ---------- one step ---------- */
+html.cn #cnOnboard .cn-onboard-step {
+  display: grid;
+  gap: var(--cn-4);
+  min-width: 0;
+}
+
+html.cn #cnOnboard .cn-onboard-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--cn-4);
+}
+
+html.cn #cnOnboard .cn-onboard-icon {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--cn-cyan-line);
+  border-radius: var(--cn-r-ctl);
+  background: var(--cn-cyan-tint);
+  color: var(--cn-cyan-2);
+}
+
+/* Recovery keeps its own identity colour (mint), as on the Recovery page */
+html.cn #cnOnboard .cn-onboard-step[data-step="3"] .cn-onboard-icon {
+  border-color: var(--cn-mint-line);
+  background: var(--cn-mint-tint);
+  color: var(--cn-mint);
+}
+
+html.cn #cnOnboard .modal-card h2.cn-onboard-title {
+  margin: 0;
+  font-size: clamp(1.375rem, 1.2rem + .7vw, 1.75rem);
+  line-height: 1.18;
+}
+
+/* the heading takes focus on each step for screen readers; it is not a control, so no ring */
+html.cn #cnOnboard .cn-onboard-title:focus {
+  outline: none;
+}
+
+html.cn #cnOnboard .cn-onboard-body {
+  max-width: 46ch;
+  margin: 0;
+  color: var(--cn-text-2);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+/* step 1: what can be checked. Flat labels with no edge, so they never read as buttons. */
+html.cn #cnOnboard .cn-onboard-kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cn-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+html.cn #cnOnboard .cn-onboard-kinds li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cn-2);
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 8px;
+  background: var(--cn-fill-1);
+  color: var(--cn-text-2);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+html.cn #cnOnboard .cn-onboard-kinds li::before {
+  content: "";
+  flex: none;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--cn-cyan);
+}
+
+/* step 2: the daily allowance, one quiet row per item. The rows share their two columns
+   (subgrid), so a word such as "Unlimited" moves every label, not just its own. */
+html.cn #cnOnboard .cn-onboard-facts {
+  display: grid;
+  grid-template-columns: minmax(3.25rem, max-content) minmax(0, 1fr);
+  column-gap: var(--cn-4);
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-card);
+  background: var(--cn-surface-2);
+  list-style: none;
+}
+
+html.cn #cnOnboard .cn-onboard-facts li {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(3.25rem, max-content) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--cn-4);
+  padding: 14px 18px;
+}
+
+@supports (grid-template-columns: subgrid) {
+  html.cn #cnOnboard .cn-onboard-facts li {
+    grid-template-columns: subgrid;
+  }
+}
+
+html.cn #cnOnboard .cn-onboard-facts li + li {
+  border-top: 1px solid var(--cn-line);
+}
+
+html.cn #cnOnboard .cn-onboard-num {
+  color: var(--cn-text);
+  font-size: 1.625rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: -.02em;
+  line-height: 1;
+}
+
+html.cn #cnOnboard .cn-onboard-num.is-word {
+  color: var(--cn-cyan-2);
+  font-size: 1.0625rem;
+  letter-spacing: -.01em;
+}
+
+html.cn #cnOnboard .cn-onboard-fact {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+html.cn #cnOnboard .cn-onboard-label {
+  color: var(--cn-text);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+html.cn #cnOnboard .cn-onboard-hint {
+  color: var(--cn-text-3);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+html.cn #cnOnboard .cn-onboard-note {
+  margin: 0;
+  color: var(--cn-text-3);
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+
+/* step 3: a calm tip and the way into Recovery Mode */
+html.cn #cnOnboard .cn-onboard-tip {
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-ctl);
+  background: var(--cn-surface-2);
+  color: var(--cn-text-2);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+html.cn #cnOnboard .cn-onboard-tip strong {
+  color: var(--cn-mint-2);
+  font-weight: 600;
+}
+
+html.cn #cnOnboard .cn-onboard-alt {
+  display: inline-flex;
+  justify-self: start;
+}
+
+/* ---------- Back / dots / Next ---------- */
+html.cn #cnOnboard .cn-onboard-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cn-3);
+  margin-top: var(--cn-6);
+  padding-top: var(--cn-5);
+  border-top: 1px solid var(--cn-line);
+}
+
+html.cn #cnOnboard .cn-onboard-back {
+  flex: none;
+  margin-inline-start: calc(var(--cn-1) * -1);
+}
+
+html.cn #cnOnboard .cn-onboard-next {
+  display: inline-flex;
+  flex: none;
+  min-width: 7.5rem;
+}
+
+html.cn #cnOnboard .cn-onboard-dots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+html.cn #cnOnboard .cn-onboard-dots li {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--cn-r-pill);
+  background: var(--cn-line-2);
+  transition: width var(--cn-dur-2) var(--cn-ease-out), background-color var(--cn-dur-2) ease;
+}
+
+html.cn #cnOnboard .cn-onboard-dots li.is-active {
+  width: 20px;
+  background: var(--cn-cyan);
+}
+
+/* ---------- motion ---------- */
+@keyframes cn-onboard-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+html.cn #cnOnboard .cn-onboard-step.is-entering {
+  animation: cn-onboard-in var(--cn-dur-3) var(--cn-ease-out) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.cn #cnOnboard .cn-onboard-step.is-entering { animation: none; }
+  html.cn #cnOnboard .cn-onboard-dots li { transition: none; }
+}
+
+html.cn.cn-still #cnOnboard .cn-onboard-step.is-entering { animation: none; }
+html.cn.cn-still #cnOnboard .cn-onboard-dots li { transition: none; }
+
+/* ---------- small phones ---------- */
+@media (max-width: 639.98px) {
+  html.cn #cnOnboard .cn-onboard-hello { margin-bottom: var(--cn-4); }
+  html.cn #cnOnboard .cn-onboard-body { font-size: 15.5px; }
+  html.cn #cnOnboard .cn-onboard-nav { margin-top: var(--cn-5); padding-top: var(--cn-4); }
+  html.cn #cnOnboard .cn-onboard-alt { justify-self: stretch; }
+}
+
+/* the step count already says where you are; the dots give their room to the buttons */
+@media (max-width: 359.98px) {
+  html.cn #cnOnboard .cn-onboard-dots { display: none; }
+  html.cn #cnOnboard .cn-onboard-facts { column-gap: var(--cn-3); }
+  html.cn #cnOnboard .cn-onboard-facts li { gap: var(--cn-3); padding: 12px 14px; }
+  html.cn #cnOnboard .cn-onboard-next { min-width: 0; padding-inline: 18px; }
+}
+
+@media (forced-colors: active) {
+  html.cn #cnOnboard .cn-onboard-dots li { background: GrayText; }
+  html.cn #cnOnboard .cn-onboard-dots li.is-active { background: Highlight; }
+  html.cn #cnOnboard .cn-onboard-icon,
+  html.cn #cnOnboard .cn-onboard-facts,
+  html.cn #cnOnboard .cn-onboard-tip { border-color: CanvasText; }
+}

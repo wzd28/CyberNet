@@ -268,6 +268,10 @@
 
           <button type="button"
                   class="secondary-btn"
+                  id="accountChangePasswordBtn">Change password</button>
+
+          <button type="button"
+                  class="secondary-btn"
                   id="accountSignOutBtn">Sign Out</button>
         </div>
 
@@ -480,6 +484,7 @@
     const closeButton = document.getElementById("closeAccountDetails");
     const refreshButton = document.getElementById("accountRefreshBtn");
     const signOutButton = document.getElementById("accountSignOutBtn");
+    const changePasswordButton = document.getElementById("accountChangePasswordBtn");
     const upgradeButton = document.getElementById("accountUpgradeBtn");
     const manageButton = document.getElementById("accountManageBillingBtn");
     const message = document.getElementById("accountDetailsMessage");
@@ -950,6 +955,25 @@
       document.body.style.overflow = "";
     }
 
+    // The choose-a-new-password step from script.js, for the signed-in account. It opens once
+    // the page is live again (ui-src/js/08-focus.js keeps the page inert while this panel is
+    // open, and releases it a frame after it closes), with focus on the Account button first,
+    // so focus comes back there when the step closes.
+    function openChangePassword() {
+      closeAccount();
+      const started = Date.now();
+      (function attempt() {
+        // On a phone the Account button sits in the closed menu, so the menu button stands in.
+        const back = [accountButton, document.getElementById("mobileMenu")].find(el => el && el.getClientRects().length) || accountButton;
+        if (back?.closest?.("[inert]") && Date.now() - started < 1000) {
+          setTimeout(attempt, 30);
+          return;
+        }
+        try { back?.focus({ preventScroll: true }); } catch { back?.focus(); }
+        if (!window.CyberNetAccount?.openPasswordChange?.()) openExistingAuth();
+      })();
+    }
+
     async function openBillingPortal() {
       const session = await getSession();
 
@@ -1123,6 +1147,7 @@
     accountButton?.addEventListener("click", openAccount);
     closeButton?.addEventListener("click", closeAccount);
     refreshButton?.addEventListener("click", () => refreshAccount());
+    changePasswordButton?.addEventListener("click", openChangePassword);
     signOutButton?.addEventListener("click", signOut);
     upgradeButton?.addEventListener("click", openPricing);
     manageButton?.addEventListener("click", openBillingPortal);

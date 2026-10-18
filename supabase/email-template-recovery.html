@@ -1,0 +1,53 @@
+<!--
+  CyberNet AI - "Reset password" email (Supabase Auth > Email Templates > Reset Password).
+  Paste everything below this comment into the template body. Suggested subject:
+    Reset your CyberNet AI password
+  Variables: {{ .ConfirmationURL }} (the one-time reset link) and {{ .Email }} (the account address).
+  The link signs the person in and lands on https://cybernetai.app/?reset=1, where the site shows
+  "Choose a new password". Same look as email-template-confirm-signup.html; the shield is an image
+  (no emoji), with alt text for mail apps that block images.
+-->
+<div style="background-color:#020812; padding:40px 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px; margin:0 auto; background-color:#08152a; border:1px solid rgba(34,211,238,0.16); border-radius:20px; overflow:hidden;">
+    <tr>
+      <td style="padding:36px 32px 24px 32px; text-align:center;">
+        <div style="width:56px; height:56px; margin:0 auto 16px auto; border-radius:14px; background:rgba(34,211,238,0.1); display:inline-block; text-align:center;">
+          <img src="https://cybernetai.app/cybernetshield.png" width="32" height="32" alt="CyberNet AI" style="display:inline-block; width:32px; height:32px; margin-top:12px; border:0; outline:none; text-decoration:none;" />
+        </div>
+        <h1 style="color:#eaf6ff; font-size:22px; font-weight:800; margin:0 0 6px 0;">Reset Your Password</h1>
+        <p style="color:#8ea5b8; font-size:14px; margin:0; line-height:1.6;">We got a request to reset the password for the CyberNet AI account <span style="color:#eaf6ff;">{{ .Email }}</span>. Choose a new one with the button below.</p>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:0 32px 28px 32px; text-align:center;">
+        <a href="{{ .ConfirmationURL }}" style="display:inline-block; background-color:#22d3ee; color:#04141c; font-weight:700; font-size:15px; text-decoration:none; padding:14px 32px; border-radius:12px; margin-top:8px;">Choose a New Password</a>
+        <p style="color:#8ea5b8; font-size:13px; margin:20px 0 0 0; line-height:1.6;">
+          This link works once and expires after a short time. If it has expired, open
+          <a href="https://cybernetai.app/?auth=login" style="color:#22d3ee;">cybernetai.app</a>, choose Sign In, then
+          <span style="color:#eaf6ff;">Forgot your password?</span> to get a new one.
+        </p>
+        <p style="color:#8ea5b8; font-size:12px; margin-top:16px; line-height:1.6;">
+          If the button above doesn't work, copy and paste this link into your browser:<br/>
+          <a href="{{ .ConfirmationURL }}" style="color:#22d3ee; word-break:break-all;">{{ .ConfirmationURL }}</a>
+        </p>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:0 32px 28px 32px;">
+        <div style="padding:14px 16px; border:1px solid rgba(34,211,238,0.16); border-radius:12px; background-color:rgba(34,211,238,0.05); text-align:left;">
+          <p style="color:#eaf6ff; font-size:13px; font-weight:700; margin:0 0 4px 0;">Didn't ask for this?</p>
+          <p style="color:#8ea5b8; font-size:13px; margin:0; line-height:1.6;">You can ignore this email. Your password stays the same, and it can't be changed without this link. CyberNet AI will never ask for your password by email, phone or message.</p>
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:20px 32px; border-top:1px solid rgba(255,255,255,0.06); text-align:center;">
+        <p style="color:#8ea5b8; font-size:12px; margin:0; line-height:1.6;">
+          You're receiving this because a password reset was requested for your CyberNet AI account.<br/>
+          Questions? Contact us at <a href="mailto:support@cybernetai.app" style="color:#22d3ee;">support@cybernetai.app</a>
+        </p>
+      </td>
+    </tr>
+  </table>
+  <p style="text-align:center; color:#7a8ca0; font-size:12px; margin-top:20px;">CyberNet AI — Detect &amp; Protect</p>
+</div>

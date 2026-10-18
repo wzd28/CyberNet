@@ -1,4 +1,5 @@
 import { json, verifyUser, getActiveTeamMembership, serviceFetch } from "../lib/supabase.mjs";
+import { reportError } from "../lib/report-error.mjs";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -56,6 +57,7 @@ export default async (request: Request) => {
     // Already revoked or expired: the owner's intent is already true.
     return json({ ok: true, alreadyInactive: true });
   } catch (error: any) {
+    reportError(error, { fn: "business-invite-cancel", label: "Invite cancel failed", status: error?.status });
     return json({ error: error.message || "Could not cancel the invite." }, Number(error.status) || 500);
   }
 };
