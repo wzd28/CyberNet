@@ -8,8 +8,8 @@
    character (.is-on, .is-caret) and custom properties set on the one element that reads each of
    them (--cn-hp on each highlight, --cn-arc on the arc, --cn-score on the number, --cn-prog on the
    bar, --cn-fade on the body and footer, --p on each step bar). The static markup is the finished
-   state. Scroll: the console rises into place as it enters (animation-timeline: view(); 27-bento.js
-   adds .is-in where scroll timelines are missing). Reduced motion: no rise, the finished state. */
+   state. Scroll: the console rises into place once as it enters (27-bento.js adds .is-in; v4.7: no
+   scroll timeline). Reduced motion: no rise, the finished state. */
 
 /* Registered and not inherited: a frame that moves a highlight or the loop fade restyles that
    one element, not every character inside it. */
@@ -673,39 +673,15 @@ html.cn.cn-js #home .cn-demo.is-snap .cn-step b,
 html.cn.cn-js #home .cn-demo.is-snap .cn-step b::before { transition: none; }
 
 /* ---------- Scroll: the device rises and settles into place as it enters ----------
-   A transform on a scroll timeline (compositor), a gentle 10deg lean. */
-@supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    html.cn:not(.cn-still) #home .cn-demo .cn-console {
-      transform-origin: 50% 100%;
-      animation: cn-console-rise linear both;
-      animation-timeline: view();
-      animation-range: entry 0% entry 90%;
-    }
-    html.cn:not(.cn-still) #home .cn-demo .cn-steps {
-      animation: cn-steps-rise linear both;
-      animation-timeline: view();
-      animation-range: entry 0% entry 100%;
-    }
+   v4.7: once, on every browser: 27-bento.js adds .is-in when a quarter of the console is on
+   screen, and a 1.1 s transform transition (compositor) settles it, a gentle 10deg lean. It used
+   to follow a scroll timeline, which Chromium updates on the main thread on every scrolled frame. */
+@media (prefers-reduced-motion: no-preference) {
+  html.cn.cn-js #home .cn-demo .cn-console {
+    transform-origin: 50% 100%;
+    transition: transform 1.1s var(--cn-ease-out);
   }
-}
-@keyframes cn-console-rise {
-  from { transform: perspective(1400px) rotateX(10deg) translateY(48px) scale(.96); }
-  to { transform: none; }
-}
-@keyframes cn-steps-rise {
-  from { translate: 0 40px; }
-  to { translate: none; }
-}
-/* No scroll timelines: 27-bento.js adds .is-in once the console is a quarter on screen. */
-@supports not (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    html.cn.cn-js #home .cn-demo .cn-console {
-      transform-origin: 50% 100%;
-      transition: transform 1.1s var(--cn-ease-out);
-    }
-    html.cn.cn-js #home .cn-demo .cn-console:not(.is-in) { transform: perspective(1400px) rotateX(10deg) translateY(48px) scale(.96); }
-  }
+  html.cn.cn-js:not(.cn-still) #home .cn-demo .cn-console:not(.is-in) { transform: perspective(1400px) rotateX(10deg) translateY(48px) scale(.96); }
 }
 
 /* Reduced motion: 30-demo.js renders the finished state once (with transitions snapped off). */

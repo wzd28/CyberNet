@@ -139,6 +139,8 @@
         if (bar) bar.style.setProperty("--v", (v > 0 ? Math.max(v, .012) : 0).toFixed(4));
         setText(row.querySelector("em"), top > 0 ? nf.format(data[KEYS[i]]) : "\u2014");
       });
+      // v4.7: the bars grow once, by transform (22-live.css), in the same frame as their widths.
+      if (funnel && !funnel.classList.contains("is-grown")) funnel.classList.add("is-grown");
     }
 
     function adopt(next, withCount) {

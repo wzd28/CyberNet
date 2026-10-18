@@ -106,41 +106,52 @@ html.cn #home > .why-choose {
   content-visibility: auto;
   contain-intrinsic-size: auto 880px;
 }
-html.cn #home > .cn-demo { contain-intrinsic-size: auto 570px; }
-html.cn #home > .cn-flow { contain-intrinsic-size: auto 740px; }
-html.cn #home > .why-choose { contain-intrinsic-size: auto 1100px; }
+/* v4.7 heights (18 Oct, measured at 1440 and 390 px; tablets keep the v4 values). Under 1024px
+   the live panel and the threats bento join the list: both already clip their own overflow
+   (overflow: clip, isolated) and sit well below the fold there. On desktop they stay rendered:
+   they are reached a few wheel notches after the hero, and rendering them on arrival measured as
+   a longer frame (4x CPU: longest frame 113-123 ms without, 143-282 ms with) for no gain. */
+html.cn #home > .cn-demo { contain-intrinsic-size: auto 757px; }
+html.cn #home > .cn-flow { contain-intrinsic-size: auto 733px; }
+html.cn #home > .why-choose { contain-intrinsic-size: auto 1101px; }
 @media (max-width: 1023.98px) {
+  html.cn #home > .cn-live,
+  html.cn #home > .cn-threats { content-visibility: auto; }
+  html.cn #home > .cn-live { contain-intrinsic-size: auto 1288px; }
+  html.cn #home > .cn-threats { contain-intrinsic-size: auto 1715px; }
   html.cn #home > .cn-demo { contain-intrinsic-size: auto 1110px; }
   html.cn #home > .cn-flow { contain-intrinsic-size: auto 820px; }
   html.cn #home > .why-choose { contain-intrinsic-size: auto 1160px; }
 }
 @media (max-width: 599.98px) {
-  html.cn #home > .cn-demo { contain-intrinsic-size: auto 1090px; }
-  html.cn #home > .cn-flow { contain-intrinsic-size: auto 1150px; }
-  html.cn #home > .why-choose { contain-intrinsic-size: auto 1340px; }
+  html.cn #home > .cn-live { contain-intrinsic-size: auto 1288px; }
+  html.cn #home > .cn-threats { contain-intrinsic-size: auto 1715px; }
+  html.cn #home > .cn-demo { contain-intrinsic-size: auto 1202px; }
+  html.cn #home > .cn-flow { contain-intrinsic-size: auto 1156px; }
+  html.cn #home > .why-choose { contain-intrinsic-size: auto 1341px; }
 }
 
 /* ------------------------------------------------------------------------------------------
    6. Background motion: the section canvases live in 04-bgfx.css / 09-bgfx.js (one per dark
-   section, 30 fps on desktop and 20 on touch, drawn only while on screen). Nothing fixed covers
-   the page while it scrolls.
+   section, 30 fps on desktop, drawn only while on screen and held while the page scrolls; v4.7:
+   a still picture on touch screens). Nothing fixed covers the page while it scrolls.
    ------------------------------------------------------------------------------------------ */
 
 /* ------------------------------------------------------------------------------------------
-   7. Smooth scrolling (v4.1, owner feedback: "not smooth when you scroll")
-   - The scroll position is the browser's own (compositor-threaded) on every device; desktop
-     with a fine pointer may add Lenis inertia (06-scroll.js), which only moves that same native
-     position. Lenis needs html's smooth scroll-behavior off while it is driving, and must never
-     try to drive inside an overlay or a nested scroller (the data-lenis-prevent hook).
-   - Large photos never move on a scroll timeline; reveals use opacity and transforms only (no
-     blur filter); no backdrop-filter, blend mode or filter layer is fixed over the page.
+   7. Scrolling (v4.7: native everywhere)
+   The scroll position is the browser's own, compositor-threaded, on every device (06-scroll.js:
+   Lenis is gone). Large photos never move on a scroll timeline; reveals use opacity and
+   transforms only (no blur filter); no backdrop-filter, blend mode or filter layer is fixed over
+   the page.
    ------------------------------------------------------------------------------------------ */
-html.cn.lenis.lenis-smooth {
-  scroll-behavior: auto !important;
-}
-html.cn.lenis.lenis-smooth [data-lenis-prevent] {
-  overscroll-behavior: contain;
-}
-html.cn.lenis.lenis-smooth iframe {
-  pointer-events: none;
-}
+
+/* ------------------------------------------------------------------------------------------
+   8. Still glows (v4.7, owner: "make it super smooth")
+   The [data-cn-glow] lights (27-core.css 6b, behind the 3D objects on the inner pages) keep
+   their look but no longer breathe or drift, and the motes are gone: their loops cost a
+   4x-throttled phone about 8% of its main thread on every inner page (v4.4 notes), for a change
+   nobody could see while scrolling. Here, after the partial that draws them, so it wins by
+   source order and !important (their own play-state rules are !important too).
+   ------------------------------------------------------------------------------------------ */
+html.cn .cn-glow > cn-gl { animation: none !important; }
+html.cn .cn-glow > cn-gl.cn-glow-mote { display: none; }

@@ -969,8 +969,8 @@ html.cn #pricing .pricing-notice.success {
 }
 
 /* ---------- the statement between the plans and the questions (v4.3) ----------
-   One short paragraph whose words light from grey to white in reading order as it crosses the
-   screen (data-cn="manifesto": 57-core.js, 27-core.css 6a; .cn-manifesto gives the large light
+   One short paragraph whose lines light once, in reading order, as it arrives (v4.7;
+   data-cn="manifesto": 57-core.js, 27-core.css 6a; .cn-manifesto gives the large light
    type). Reduced motion and Pause motion show every word lit. It sits in the reading column the
    FAQ and the fine print share, so the three blocks line up under the plans. */
 html.cn #pricing > .cn-pr-statement {

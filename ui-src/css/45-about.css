@@ -24,8 +24,8 @@
 
    Hooks used (27-core.css section 6, 05-reveal.js, 57-core.js): .cn-edlabel / .cn-edrow (labels),
    data-cn-lines (the h1 and the story h2s slide up line by line; "head" also fades the label
-   row, the shield and the tag in after the h1), data-cn="manifesto" (the mission's words light up
-   in reading order as it scrolls; every word lit under reduced motion and Pause motion) and
+   row, the shield and the tag in after the h1), data-cn="manifesto" (the mission's lines light up
+   once, in reading order, as it arrives; every line lit under reduced motion and Pause motion) and
    data-cn-glow (a very faint cyan light breathing behind the shield; still under reduced motion,
    held under Pause motion and off screen).
 

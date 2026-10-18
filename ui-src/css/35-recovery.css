@@ -1922,9 +1922,9 @@ html.cn[dir="rtl"] #recovery.page { --cn-glow-x: 34%; }
   }
 }
 
-/* 8.3 The closing statement: a corner label and a manifesto whose words light from slate to
-   white in reading order as it scrolls (data-cn="manifesto": 57-core.js, 27-core.css 6a).
-   Reduced motion, Pause motion and no script: every word lit. */
+/* 8.3 The closing statement: a corner label and a manifesto whose lines light once, in
+   reading order, as it arrives (v4.7; data-cn="manifesto": 57-core.js, 27-core.css 6a).
+   Reduced motion, Pause motion and no script: every line lit. */
 html.cn #recovery .cn-rec-note {
   box-sizing: border-box;
   max-width: 860px;

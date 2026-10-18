@@ -1,31 +1,36 @@
 /* Home "What CyberNet AI does" (#cnCore) and two motion hooks any page can use (owner: aurora;
    v4.2, reusable from v4.3; CSS in 27-core.css).
 
-   v4.5 (17 Oct): the owner turned the chip down for good ("i hate this picture make it a shield
-   that does something when your scrolling ..."). The chip rig, its scroll motion and the plume
-   (the worker renderer and /ui/3d/core-plume.js) are gone; the section's visual is now the
-   shield story in 58-shield.js and 28-shield.css. This file builds the section's manifesto and
-   the two hooks below, unchanged since v4.3.
+   v4.7 (18 Oct): the owner: "remove the shield design entirely and just keep the text in the
+   middle" and "make it super smooth". The shield story (58-shield.js, 28-shield.css) is gone;
+   #cnCore is a centred lead and the manifesto. The manifesto now lights by line on the
+   compositor, once, instead of word by word on the main thread (HOOK 1).
 
-   HOOK 1 - scroll-lit manifesto: data-cn="manifesto"
+   HOOK 1 - lit manifesto: data-cn="manifesto"
      <p class="cn-manifesto" data-cn="manifesto">We read the message <b>before you act</b>, then
        explain it in <b>plain words</b>.</p>
    - Any paragraph on any page. class="cn-manifesto" adds the big light editorial type; leave it
-     off to keep your own type. The words light from slate to white in reading order as the
-     paragraph scrolls up, and dim again on the way back. Words inside <b>/<strong> light to pure
-     white. Keep it to 2 to 4 sentences, so the last word is lit while the paragraph is still on
-     screen.
-   - Words are wrapped once at start-up (span.cn-mw; inline spans, so the layout does not change).
-   - Where view timelines exist (Chrome, Edge, Safari 26), CSS does all the work on a named view
-     timeline (--cn-a / --cn-b per word, written once here), with no script while scrolling.
-     Elsewhere one shared scroll handler, bound only while a manifesto is near the screen, writes
-     the colour of only the words whose shade changed (a leaf write in 16 steps). Positions come
-     from a ResizeObserver read, so a scroll frame needs nothing but scrollY.
-   - Colours (inherited custom properties; set them on the paragraph or any ancestor):
-     --cn-mw-dim (unlit, default #6e7a8c, 4.6:1 on the midnight ground), --cn-mw-lit (default
-     var(--cn-text)) and --cn-mw-bold (default #fff). Light bands (.cn-light,
-     [data-cn-tone="light"]) get a light set automatically.
-   - Reduced motion, Pause motion and no script: every word is lit (CSS) and nothing is written.
+     off to keep your own type. The lines rest at half strength and light up once, in reading
+     order (110 ms apart), when about a third of the paragraph is on screen. Keep it to 2 to 4
+     sentences.
+   - How (v4.7): when the paragraph first comes within a screen of the viewport, in an idle
+     moment, this file wraps each word in span.cn-mw, reads where the lines break (one
+     offsetTop read per word, in one layout) and groups the words into one block span per
+     rendered line (span.cn-ml; a <b>/<strong> run that crosses a line is split into one copy
+     per line). The line boxes are the same as before, so nothing moves. The paragraph gets
+     .is-dim (lines at opacity .5) unless it is already on screen, and data-cn-lit when it is:
+     27-core.css then runs one opacity transition per line (--cn-i, the line's index, sets its
+     delay). An opacity transition runs on the compositor; nothing follows the scroll (v4.7
+     rule: no scroll-timeline animations, they are serviced on the main thread every scrolled
+     frame in this Chromium).
+   - The lines are read again only when the paragraph's width changes (a ResizeObserver) or a
+     web font finishes loading, in an idle callback; if the breaks are the same, nothing in the
+     DOM changes.
+   - Fully lit, with nothing dimmed: reduced motion and Pause motion (CSS), no script, print,
+     forced colours, and a paragraph that holds anything but text and simple inline wrappers
+     (b, strong, em, i, span, small, mark with text only and no id), such as a link.
+   - Dark ink on a light band is detected from the computed colour (class is-ink) and rests a
+     little stronger, so unlit lines stay at 4.5:1 or more.
    - For markup rendered later, call CN.manifesto(p).
 
    HOOK 2 - subtle glow behind a 3D object: [data-cn-glow]
@@ -71,154 +76,162 @@
   var CN = window.CN;
   if (!CN) return;
   var doc = document, win = window;
-  var cssTimeline = !!(win.CSS && CSS.supports && CSS.supports("animation-timeline: view()"));
-  /* the words' colour runs on a named view timeline (27-core.css) */
-  var cssWords = cssTimeline && CSS.supports("view-timeline: --cn-man block") && CSS.supports("animation-range: cover 10% cover 50%");
-
-  function scrollY() { return win.pageYOffset || doc.documentElement.scrollTop || 0; }
-  function viewH() { return win.innerHeight || doc.documentElement.clientHeight || 800; }
-  /* The words' scroll window, in "cover" percent of the paragraph's view timeline: from its top
-     at about 86% of the screen until its middle reaches about 45%, so the last word is lit
-     while the whole paragraph is still on screen (phones: 225 px tall on 844; desktops: 400 on
-     900). Each word owns a slice 3.5 words wide. */
-  var COVER0 = 10, COVER1 = 54, WIN = 3.5;
+  /* inline wrappers a line may split into one copy per line (text only, no id) */
+  var WRAP = /^(B|STRONG|EM|I|SPAN|SMALL|MARK)$/;
+  var idle = win.requestIdleCallback
+    ? function (f) { win.requestIdleCallback(f, { timeout: 300 }); }
+    : function (f) { setTimeout(f, 50); };
 
   /* ------------------------------------------------------------------ manifesto */
-  var DEF_DIM = [110, 122, 140], DEF_LIT = [245, 247, 250], DEF_BOLD = [255, 255, 255], STEPS = 16;
-  function shades(from, to) {
-    var out = [];
-    for (var i = 0; i <= STEPS; i++) {
-      var t = i / STEPS;
-      out.push("rgb(" + Math.round(from[0] + (to[0] - from[0]) * t) + "," + Math.round(from[1] + (to[1] - from[1]) * t) + "," + Math.round(from[2] + (to[2] - from[2]) * t) + ")");
-    }
-    return out;
-  }
-  /* any CSS colour -> [r, g, b] (a 2d context normalises it), or def */
-  var probe = null;
-  function rgbOf(v, def) {
-    v = (v || "").trim();
-    if (!v) return def;
-    if (probe === null) { var c = doc.createElement("canvas"); probe = (c.getContext && c.getContext("2d")) || false; }
-    if (!probe) return def;
-    probe.fillStyle = "#010203";
-    probe.fillStyle = v;
-    var s = String(probe.fillStyle), m = /^#([0-9a-f]{6})$/i.exec(s);
-    if (s === "#010203") return def;
-    if (m) { var n = parseInt(m[1], 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
-    m = /rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)/.exec(s);
-    return m ? [Math.round(+m[1]), Math.round(+m[2]), Math.round(+m[3])] : def;
-  }
-  /* the fallback's two ramps, from the same custom properties the CSS uses (read once) */
-  function palette(p) {
-    var cs = win.getComputedStyle(p);
-    var dim = rgbOf(cs.getPropertyValue("--cn-mw-dim"), DEF_DIM);
-    var lit = rgbOf((cs.getPropertyValue("--cn-mw-lit") || "").trim() || cs.getPropertyValue("--cn-text"), DEF_LIT);
-    var bold = rgbOf(cs.getPropertyValue("--cn-mw-bold"), DEF_BOLD);
-    return { n: shades(dim, lit), b: shades(dim, bold) };
-  }
-
-  function splitWords(p) {
-    if (p.__cnWords) return p.__cnWords;
-    var words = [];
-    function walk(node, bold) {
-      var kids = Array.prototype.slice.call(node.childNodes);
-      kids.forEach(function (k) {
-        if (k.nodeType === 3) {
-          var parts = k.nodeValue.split(/(\s+)/), frag = doc.createDocumentFragment();
-          parts.forEach(function (s) {
-            if (!s) return;
-            if (/^\s+$/.test(s)) { frag.appendChild(doc.createTextNode(s)); return; }
-            var w = doc.createElement("span");
-            w.className = "cn-mw";
-            w.textContent = s;
-            frag.appendChild(w);
-            words.push({ el: w, b: bold, lv: -1 });
-          });
-          node.replaceChild(frag, k);
-        } else if (k.nodeType === 1 && !/^(BR|SVG|IMG|SCRIPT|STYLE|TEMPLATE)$/.test(k.nodeName.toUpperCase())) walk(k, bold || /^(B|STRONG)$/.test(k.nodeName));
+  /* The words, each with its inline wrapper (or null) and whether a space comes before it.
+     null when the paragraph holds anything a split could break (a link, a line break, an image,
+     nested wrappers, an id): that paragraph just stays lit. */
+  function tokens(p) {
+    var out = [], sp = false, ok = true;
+    function text(s, wrap) {
+      s.split(/(\s+)/).forEach(function (t) {
+        if (!t) return;
+        if (/^\s+$/.test(t)) { sp = true; return; }
+        out.push({ t: t, w: wrap, sp: sp && out.length > 0 });
+        sp = false;
       });
     }
-    walk(p, false);
-    p.__cnWords = words;
-    /* each word's slice of the scroll (static: written once) */
-    var n = words.length;
-    words.forEach(function (w, i) {
-      var a = COVER0 + (COVER1 - COVER0) * i / (n + WIN), b = COVER0 + (COVER1 - COVER0) * (i + WIN) / (n + WIN);
-      w.el.style.setProperty("--cn-a", a.toFixed(2) + "%");
-      w.el.style.setProperty("--cn-b", b.toFixed(2) + "%");
+    Array.prototype.forEach.call(p.childNodes, function (k) {
+      if (!ok) return;
+      if (k.nodeType === 3) text(k.nodeValue, null);
+      else if (k.nodeType === 1) {
+        if (!WRAP.test(k.nodeName.toUpperCase()) || k.id || k.children.length) { ok = false; return; }
+        text(k.textContent, k);
+      }
     });
-    if (cssWords) p.classList.add("is-timeline");
-    return words;
-  }
-  function paint(m, prog) {
-    var words = m.words, n = words.length, x = prog * (n + WIN);
-    if (!m.pal) m.pal = palette(m.p);
-    for (var i = 0; i < n; i++) {
-      var t = (x - i) / WIN, w = words[i];
-      t = t < 0 ? 0 : t > 1 ? 1 : t;
-      var lv = Math.round(t * STEPS);
-      if (lv === w.lv) continue;
-      w.lv = lv;
-      w.el.style.color = (w.b ? m.pal.b : m.pal.n)[lv];
-    }
+    return ok && out.length ? out : null;
   }
 
-  /* The fallback (no named view timelines): one scroll handler for every manifesto, bound only
-     while one of them is near the screen. Where each paragraph sits in the document (CSS px) is
-     read only in a ResizeObserver callback, when layout is clean, so a scroll frame needs nothing
-     but scrollY and never forces a style or layout pass from here. */
-  var mans = [], mRaf = 0, mBound = false, mRO = null;
-  function readM(m) {
-    var r = m.p.getBoundingClientRect();
-    m.top = r.top + scrollY(); m.h = r.height;
-    if (!m.pal && r.height) m.pal = palette(m.p);   /* style is clean here too: read the colours once */
-  }
-  function mPaint() {
-    mRaf = 0;
-    if (CN.reduced()) return;
-    var vh = viewH(), sy = scrollY();
-    mans.forEach(function (m) {
-      if (!m.near) return;
-      /* the same window as the CSS (COVER0 .. COVER1 percent of the paragraph's pass) */
-      var c = (vh - (m.top - sy)) / Math.max(1, vh + m.h) * 100;
-      paint(m, CN.clamp((c - COVER0) / (COVER1 - COVER0), 0, 1));
+  /* Lay the words out as lines: lineOf[i] is word i's line. A wrapper run is cloned per line
+     (spaces inside a run stay inside it); the space before a line's first word goes at the end
+     of the line before, so the words still flow apart while .is-measure makes the lines inline. */
+  function lay(m, lineOf) {
+    var frag = doc.createDocumentFragment(), lines = [], line = null, grp = null, cur = -1;
+    m.toks.forEach(function (tk, i) {
+      if (lineOf[i] !== cur) {
+        if (line && tk.sp) line.appendChild(doc.createTextNode(" "));
+        cur = lineOf[i];
+        line = doc.createElement("span");
+        line.className = "cn-ml";
+        frag.appendChild(line);
+        lines.push(line);
+        grp = null;
+      } else if (tk.sp) (grp && tk.w === grp.__cnW ? grp : line).appendChild(doc.createTextNode(" "));
+      if (tk.w) {
+        if (!grp || grp.__cnW !== tk.w) {
+          grp = tk.w.cloneNode(false);
+          grp.__cnW = tk.w;
+          line.appendChild(grp);
+        }
+        grp.appendChild(m.words[i]);
+      } else {
+        grp = null;
+        line.appendChild(m.words[i]);
+      }
     });
+    /* each line's place in the light-up order (its transition delay) */
+    lines.forEach(function (el, j) { if (j) el.style.setProperty("--cn-i", j); });
+    var p = m.p;
+    while (p.firstChild) p.removeChild(p.firstChild);
+    p.appendChild(frag);
+    m.lineOf = lineOf;
   }
-  function mFrame() { if (!mRaf && mBound) mRaf = win.requestAnimationFrame(mPaint); }
-  function mBind() {
-    var want = !CN.reduced() && mans.some(function (m) { return m.near; });
-    if (want !== mBound) {
-      mBound = want;
-      var f = want ? "addEventListener" : "removeEventListener";
-      win[f]("scroll", mFrame, { passive: true });
-      win[f]("resize", mFrame, { passive: true });
+
+  function isInk(p) {
+    var c = /rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)/.exec(win.getComputedStyle(p).color || "");
+    return !!c && (0.2126 * c[1] + 0.7152 * c[2] + 0.0722 * c[3]) < 110;
+  }
+
+  /* Where do the lines break? Words flow freely (.is-measure), one batch of offsetTop reads
+     (one layout), then back. Only called from an idle callback, when layout is clean. A first
+     call also splits the words; later calls change the DOM only if a break moved. */
+  function measure(m) {
+    m.queued = false;
+    var p = m.p;
+    if (!p.isConnected || !p.offsetWidth) return;      /* its page is hidden: the ResizeObserver calls again */
+    var first = !m.words;
+    if (first) {
+      m.words = m.toks.map(function (tk) {
+        var s = doc.createElement("span");
+        s.className = "cn-mw";
+        s.textContent = tk.t;
+        return s;
+      });
+      if (isInk(p)) p.classList.add("is-ink");
     }
-    if (want) mFrame();
+    p.classList.add("is-measure");
+    if (first) lay(m, m.toks.map(function () { return 0; }));   /* one inline line: the same flow as the text */
+    var lineOf = [], top = null, ln = -1, same = !first;
+    for (var i = 0; i < m.words.length; i++) {
+      var t = m.words[i].offsetTop;
+      if (top === null || t > top + 2) { top = t; ln++; }
+      lineOf.push(ln);
+      if (same && m.lineOf[i] !== ln) same = false;
+    }
+    p.classList.remove("is-measure");
+    if (!same) lay(m, lineOf);
+    /* rest dim only if the visitor has not reached it yet (no lit -> dim -> lit flash) */
+    if (first && !m.seen) p.classList.add("is-dim");
   }
-  function mSync() {
-    var red = CN.reduced();
-    mans.forEach(function (m) {
-      if (red) paint(m, 1);          /* lit (CSS lights the words too) */
-      else m.words.forEach(function (w) { w.lv = -1; });
-    });
-    mBind();
+  function queue(m) {
+    if (m.queued) return;
+    m.queued = true;
+    idle(function () { measure(m); });
   }
+
+  var mans = [], mRO = null, fontsBound = false;
   function Manifesto(p) {
     if (!p || p.nodeType !== 1) return null;
     if (p.__cnMan) return p.__cnMan;
-    var m = { p: p, words: splitWords(p), top: 0, h: 0, near: false, pal: null };
+    var m = { p: p, toks: null, words: null, lineOf: null, roW: -1, armed: false, queued: false, seen: false };
     p.__cnMan = m;
-    if (!m.words.length || cssWords) return m;     /* CSS does it all */
-    if (!mans.length) { CN.onMotion(mSync); if (CN.onStill) CN.onStill(mSync); }
+    m.toks = tokens(p);
+    if (!m.toks) return m;                           /* stays lit; nothing to do */
     mans.push(m);
+    /* the first split waits until the paragraph comes within a screen (its page may be hidden) */
+    var stop = null, done = false;
+    stop = CN.inView(p, function (vis) {
+      if (!vis || done) return;
+      done = true;
+      if (stop) stop();
+      m.armed = true;
+      queue(m);
+    }, { margin: "100% 0px" });
+    if (done && stop) stop();
+    /* lit once, when about a third of it is on screen */
+    var stopLit = null, lit = false;
+    stopLit = CN.inView(p, function (vis) {
+      if (!vis || lit) return;
+      lit = true;
+      if (stopLit) stopLit();
+      m.seen = true;
+      p.setAttribute("data-cn-lit", "");
+    }, { threshold: .35 });
+    if (lit && stopLit) stopLit();
+    /* a new width (rotation, resize, its page shown again) may move the breaks */
     if ("ResizeObserver" in win) {
-      if (!mRO) {
-        mRO = new ResizeObserver(function () { mans.forEach(readM); mFrame(); });
-        mRO.observe(doc.body);   /* anything above that changes height moves the paragraph */
-      }
+      if (!mRO) mRO = new ResizeObserver(function (es) {
+        es.forEach(function (e) {
+          var mm = e.target.__cnMan, w = Math.round(e.contentRect.width);
+          if (!mm || w === mm.roW) return;
+          mm.roW = w;
+          if (mm.armed && w > 0) queue(mm);
+        });
+      });
       mRO.observe(p);
-    } else { readM(m); win.addEventListener("load", function () { readM(m); }); }
-    CN.inView(p, function (vis) { m.near = !!vis; mBind(); }, { margin: "25% 0px" });
+    }
+    /* a web font that lands after the split changes the words' widths */
+    if (!fontsBound && doc.fonts && doc.fonts.addEventListener) {
+      fontsBound = true;
+      doc.fonts.addEventListener("loadingdone", function () {
+        mans.forEach(function (mm) { if (mm.words) queue(mm); });
+      });
+    }
     return m;
   }
 
@@ -306,15 +319,15 @@
   }
 
   /* ------------------------------------------------------------------ the section */
-  /* #cnCore: the manifesto (HOOK 1). The shield story beside it is 58-shield.js. */
+  /* #cnCore: the lead and the manifesto (HOOK 1); nothing else moves in the section. */
   function Core(section) {
     var p = CN.qs('[data-cn="manifesto"]', section);
     if (p) Manifesto(p);
     return {};
   }
 
-  /* Build the words at start-up (markup the visitor will reach); the glow starts lazily, near
-     the screen. */
+  /* Read the manifestos' words at start-up (no layout read; the lines are split later, near the
+     screen and in an idle moment); the glow starts lazily, near the screen. */
   CN.manifesto = Manifesto;
   CN.glow = glow;
   CN.onReady(function () {

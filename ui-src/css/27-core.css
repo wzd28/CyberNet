@@ -1,22 +1,26 @@
-/* Home 1b - "What CyberNet AI does" (#cnCore): the section's grid, labels and manifesto (v4.2,
-   shield story since v4.5), and the editorial kit any page can use (v4.3).
-   The owner's motion reference (15 Oct): a near-black page where the colour lives only in one
-   detailed object, a scroll-scrubbed manifesto whose words light up as you read, and small thin
-   labels set in the corners.
+/* Home 1b - "What CyberNet AI does" (#cnCore): a calm, centred statement (v4.7), and the
+   editorial kit any page can use (v4.3).
 
-   v4.5 (17 Oct): the owner turned the chip down for good ("i hate this picture make it a shield
-   that does something when your scrolling like opening to closing with a message like lets
-   protect you from a scam"). The chip images, the plume canvas and /ui/3d/core-plume.js are gone.
-   The visual is now the CyberNet shield story, drawn as vector hairlines: its CSS is in
-   28-shield.css and its motion in 58-shield.js. This file keeps the section's grid, its labels
-   and the manifesto (and, in section 6, the editorial kit, unchanged since v4.3).
+   v4.7 (18 Oct): the owner: "remove the shield design entirely and just keep the text in the
+   middle" and "make it super smooth". The shield story (28-shield.css, 58-shield.js, its SVG
+   markup) is gone, like the chip before it. Do not bring back a picture, a 3D object or a
+   scrubbed animation in this section. What is left is type on the page ground:
+     h2.cn-core-label            "What CyberNet AI does" (top start corner, the section heading)
+     p.cn-core-tag--top          "Rules first. Then AI." (top end corner)
+     p.cn-core-lead              "Let's protect you from a scam." (the centred lead; "protect" in
+                                 <b>, the hero's cyan gradient; [data-cn-lines] slides its lines
+                                 up once, 05-reveal.js)
+     p.cn-manifesto[data-cn="manifesto"]   centred under the lead, about 26em wide; it lights
+                                 line by line, once, as it arrives (section 6a, 57-core.js)
+     p.cn-core-tag--end          "Texts, links and QR codes" (centred, a cyan dot before it)
+   No panel and no canvas: the section sits on the page ground, and nothing in it moves while
+   the page is still.
 
    REUSABLE HOOKS (v4.3; section 6 below; the JS for 1 and 2 is in 57-core.js)
-   1. Scroll-lit manifesto: <p class="cn-manifesto" data-cn="manifesto">Words <b>key words</b></p>
-      data-cn="manifesto" makes the words light up in reading order as it scrolls. The class
-      "cn-manifesto" adds the big light editorial type (leave it off to keep your own). Colours:
-      --cn-mw-dim / --cn-mw-lit / --cn-mw-bold on the paragraph or any ancestor; light bands
-      (.cn-light, [data-cn-tone="light"]) get a light set automatically.
+   1. Lit manifesto: <p class="cn-manifesto" data-cn="manifesto">Words <b>key words</b></p>
+      data-cn="manifesto" makes the lines light up once, in reading order, as it arrives (v4.7:
+      by line, an opacity transition on the compositor; see 6a). The class "cn-manifesto" adds
+      the big light editorial type (leave it off to keep your own).
    2. Subtle glow behind a 3D object: <figure data-cn-glow="50 46"><img ...></figure>
       (light centre x% y% of the box; default "50 50"; data-cn-glow-motes="off" drops the
       motes). A very faint cyan light (its soft rim reaches a little past the host, so it shows
@@ -35,31 +39,20 @@
           <h2 class="cn-edlabel">Plans</h2>
           <p class="cn-edlabel cn-edlabel--muted cn-edlabel--end">Prices in US dollars</p>
         </div>
-   4. Line-by-line heading reveal: data-cn-lines on a heading (05-reveal.js, 29-lines.css).
-
-   Markup (public/index.html, right after the hero): h2.cn-core-label (a small thin corner label,
-   the section's heading), p.cn-core-tag--top, figure.cn-core-visual.cn-shield[data-cn="shield"]
-   (the shield stage and its message, 28-shield.css), p.cn-manifesto[data-cn="manifesto"] (bold
-   key words in <b>) and p.cn-core-tag--end.
-   Phones and tablets stack label row, shield, message, manifesto; from 62rem the shield and its
-   message sit on the left and the manifesto on the right.
-   No panel: the section sits on the page ground, so the shield's cyan is the only colour. */
+   4. Line-by-line heading reveal: data-cn-lines on a heading (05-reveal.js, 29-lines.css). */
 
 html.cn #home > .cn-core {
   --cn-text: #f5f7fa;
   --cn-text-2: #aab4c3;
   --cn-text-3: #8a95a7;
-  --cn-core-dim: #6e7a8c;            /* the manifesto's unlit words: 4.6:1 on the ground */
-  --cn-mw-dim: var(--cn-core-dim);
   container: cn-core / inline-size;
   position: relative;
-  isolation: isolate;
   box-sizing: border-box;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas:
     "label top"
-    "visual visual"
+    "lead lead"
     "copy copy"
     "end end";
   align-items: start;
@@ -74,12 +67,15 @@ html.cn #home > .cn-core {
   font-family: var(--cn-font);
 }
 @container cn-core (max-width: 299.98px) {
-  html.cn #home > .cn-core > * { min-inline-size: 0; }
+  html.cn #home > .cn-core > .cn-core-label,
+  html.cn #home > .cn-core > .cn-core-tag,
+  html.cn #home > .cn-core > .cn-core-lead,
+  html.cn #home > .cn-core > .cn-manifesto { min-inline-size: 0; }
 }
 @media (max-width: 340px) {
   html.cn #home > .cn-core {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "label" "top" "visual" "copy" "end";
+    grid-template-areas: "label" "top" "lead" "copy" "end";
   }
 }
 
@@ -120,10 +116,11 @@ html.cn #home .cn-core-tag--top {
 }
 html.cn #home .cn-core-tag--end {
   grid-area: end;
+  justify-self: center;
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  margin-block-start: clamp(20px, 1rem + 1.5vw, 40px);
+  margin-block-start: clamp(28px, 1.25rem + 2vw, 56px);
 }
 html.cn #home .cn-core-tag--end::before {
   content: "";
@@ -135,71 +132,88 @@ html.cn #home .cn-core-tag--end::before {
   box-shadow: 0 0 0 3px rgba(34, 211, 238, .14);
 }
 
-/* ---- the visual: figure.cn-core-visual.cn-shield (its look is in 28-shield.css) ---- */
-html.cn #home .cn-core-visual { grid-area: visual; }
-/* The words always paint above the stage (the stage is positioned, z-index 0). */
-html.cn #home > .cn-core > .cn-core-label,
-html.cn #home > .cn-core > .cn-core-tag,
-html.cn #home > .cn-core > .cn-manifesto { position: relative; z-index: 1; }
-
-/* ---- the manifesto (Home's place in the grid; the type is shared, section 6) ---- */
-html.cn #home .cn-manifesto {
-  grid-area: copy;
-  max-inline-size: 22em;
-  margin: 0;
+/* ---- the lead: "Let's protect you from a scam." ----
+   One or two balanced lines (two on phones and tablets), centred. "protect" takes the hero's
+   cyan-to-blue gradient (every stop 7:1 or more on the ground); a plain cyan where text clipping
+   is missing. 29-lines.css gives the one-off line reveal (transform and opacity, once). */
+html.cn #home .cn-core-lead {
+  grid-area: lead;
+  justify-self: center;
+  max-inline-size: 15em;
+  margin: clamp(40px, 1.5rem + 4vw, 104px) 0 0;
   color: var(--cn-text);
   font-family: var(--cn-font);
-  font-size: clamp(1.5rem, .95rem + 2.2vw, 2.75rem);
+  font-size: clamp(1.875rem, 1.1rem + 4vw, 4rem);
+  font-weight: 520;
+  line-height: 1.04;
+  letter-spacing: -.034em;
+  text-align: center;
+  text-wrap: balance;
+  overflow-wrap: break-word;
+}
+html.cn #home .cn-core-lead b {
+  color: #67e8f9;
+  font-weight: 640;
+}
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  /* on the <b> itself, and on each word once 05-reveal.js has masked it (an inline-block of its
+     own, which a parent's text clip would not reach) */
+  html.cn #home .cn-core-lead b,
+  html.cn #home .cn-core-lead b .cn-lm-i {
+    background-image: linear-gradient(100deg, #67e8f9 0%, #38bdf8 52%, #60a5fa 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+  }
+  html.cn #home .cn-core-lead b .cn-lm-i { padding-inline-end: .04em; margin-inline-end: -.04em; }
+}
+
+/* ---- the manifesto: centred under the lead, about 26em to a line (9 to 11 words on a
+   desktop). Its type here is a size below the lead; the lighting is the shared 6a. ---- */
+html.cn #home .cn-core > .cn-manifesto {
+  grid-area: copy;
+  justify-self: center;
+  max-inline-size: 26em;
+  margin: clamp(24px, 1rem + 2.2vw, 48px) 0 0;
+  color: var(--cn-text);
+  font-family: var(--cn-font);
+  font-size: clamp(1.25rem, .85rem + 1.5vw, 2.125rem);
   font-weight: 420;
-  line-height: 1.17;
-  letter-spacing: -.024em;
+  line-height: 1.3;
+  letter-spacing: -.018em;
+  text-align: center;
   text-wrap: pretty;
 }
-html.cn #home .cn-manifesto b {
+html.cn #home .cn-core > .cn-manifesto b {
   color: #ffffff;
-  font-weight: 650;
+  font-weight: 620;
 }
-
-/* ---- side by side from 62rem (a media query: the section is its own grid) ----
-   The shield's message ("Let's protect you from a scam.", the figure's last line) and the
-   manifesto share one row and one last baseline, so their last lines sit on the same line at
-   every width (browsers without last-baseline grid alignment line up their bottom edges). The end
-   tag sits under the manifesto. */
-@media (min-width: 62rem) {
-  html.cn #home > .cn-core {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: auto auto auto;
-    grid-template-areas:
-      "label top"
-      "visual copy"
-      ". end";
-    column-gap: clamp(32px, 4vw, 72px);
-  }
-  html.cn #home .cn-core-visual,
-  html.cn #home .cn-manifesto {
-    align-self: end;
-    align-self: last baseline;
-  }
-  html.cn #home .cn-manifesto { padding-block-start: clamp(32px, 4vw, 72px); }
-  html.cn #home .cn-core-tag--end { align-self: start; }
-}
-
 @media (forced-colors: active) {
   html.cn #home .cn-core-label::before,
   html.cn #home .cn-core-tag--end::before { display: none; }
+  html.cn #home .cn-core-lead b,
+  html.cn #home .cn-core-lead b .cn-lm-i { background: none; color: CanvasText; -webkit-text-fill-color: CanvasText; }
 }
 
 /* ==========================================================================================
    6. The editorial kit, on any page (v4.3). See the header for the markup.
    ========================================================================================== */
 
-/* ---- 6a. Scroll-lit manifesto: [data-cn="manifesto"] (behaviour) and .cn-manifesto (type) ----
-   57-core.js splits the words (span.cn-mw); until then (and if it never runs) the paragraph
-   reads in full colour. Each word lights over its own slice of the paragraph's pass through the
-   screen (--cn-a .. --cn-b, cover percent, written once by 57-core.js): on a named view timeline
-   where supported (no script while scrolling), otherwise 57-core.js writes the colour.
-   Colours are inherited custom properties with defaults in the var() fallbacks, so a page sets
-   them on the paragraph or on any ancestor. Unlit words stay at 4.5:1 or more. */
+/* ---- 6a. Lit manifesto: [data-cn="manifesto"] (behaviour) and .cn-manifesto (type) ----
+   v4.7 (owner: "make it super smooth"): the paragraph lights line by line, once, on the
+   compositor. Until v4.6 every word was its own span whose colour ran on the view timeline, so
+   40 to 60 elements restyled and the text repainted on every scrolled frame; a per-line opacity
+   view timeline (tried the same day) was still serviced on the main thread every scrolled
+   frame. Now 57-core.js groups the words into one block span per rendered line (span.cn-ml, the
+   same line boxes, so nothing moves) and sets .is-dim (lines at .5) before the visitor reaches
+   it, then data-cn-lit when about a third of it is on screen: each line runs one opacity
+   transition to 1, 110 ms after the line before (--cn-i, its index). No work per scrolled frame.
+   Unlit lines: the lit colour at .5 is about 5:1 on the midnight ground (the old unlit slate
+   #6e7a8c was 4.6:1); dark ink on a light band (.is-ink, set by 57-core.js from the computed
+   colour) rests at .6, about 4.8:1 on #f5f7fa.
+   Fully lit, with nothing dimmed: reduced motion, Pause motion, no script, print and forced
+   colours. */
 html.cn .cn-manifesto {
   max-inline-size: 22em;
   margin: 0;
@@ -216,40 +230,30 @@ html.cn .cn-manifesto strong {
   color: var(--cn-mw-bold, #ffffff);
   font-weight: 650;
 }
-/* light bands: ink when lit, slate #66707f unlit (4.7:1 on #f5f7fa, 5:1 on white) */
+/* light bands: bold words in ink */
 html.cn .cn-light,
 html.cn [data-cn-tone="light"] {
-  --cn-mw-dim: #66707f;
   --cn-mw-bold: var(--cn-text);
 }
-html.cn [data-cn="manifesto"] .cn-mw { color: var(--cn-mw-dim, #6e7a8c); }
-@supports (animation-timeline: view()) and (animation-range: cover 10% cover 50%) {
-  @media (prefers-reduced-motion: no-preference) {
-    html.cn:not(.cn-still) [data-cn="manifesto"].is-timeline { view-timeline: --cn-man block; }
-    html.cn:not(.cn-still) [data-cn="manifesto"].is-timeline .cn-mw {
-      animation: cn-mw-lit linear both;
-      animation-timeline: --cn-man;
-      animation-range: cover var(--cn-a, 10%) cover var(--cn-b, 54%);
-    }
-    html.cn:not(.cn-still) [data-cn="manifesto"].is-timeline :is(b, strong) .cn-mw { animation-name: cn-mw-lit-b; }
+/* one rendered line each; .is-measure (one synchronous read in 57-core.js) lets the words flow
+   freely again to find where the lines break */
+html.cn [data-cn="manifesto"] .cn-ml { display: block; }
+html.cn [data-cn="manifesto"].is-measure .cn-ml { display: inline; }
+@media (prefers-reduced-motion: no-preference) {
+  html.cn:not(.cn-still) [data-cn="manifesto"].is-dim .cn-ml { opacity: .5; }
+  html.cn:not(.cn-still) [data-cn="manifesto"].is-dim.is-ink .cn-ml { opacity: .6; }
+  html.cn:not(.cn-still) [data-cn="manifesto"].is-dim[data-cn-lit] .cn-ml {
+    opacity: 1;
+    transition: opacity .9s cubic-bezier(.22, .61, .36, 1) calc(var(--cn-i, 0) * 110ms);
   }
 }
-@keyframes cn-mw-lit {
-  from { color: var(--cn-mw-dim, #6e7a8c); }
-  to { color: var(--cn-mw-lit, var(--cn-text, #f5f7fa)); }
+@media print {
+  html.cn [data-cn="manifesto"] .cn-ml { transition: none !important; opacity: 1 !important; }
 }
-@keyframes cn-mw-lit-b {
-  from { color: var(--cn-mw-dim, #6e7a8c); }
-  to { color: var(--cn-mw-bold, #ffffff); }
-}
-@media (prefers-reduced-motion: reduce) {
-  html.cn [data-cn="manifesto"] .cn-mw { color: inherit !important; }
-}
-/* Pause motion: every word lit, as under reduced motion */
-html.cn.cn-still [data-cn="manifesto"] .cn-mw { color: inherit !important; }
 @media (forced-colors: active) {
-  html.cn [data-cn="manifesto"] .cn-mw { color: CanvasText !important; }
+  html.cn [data-cn="manifesto"] .cn-ml { transition: none !important; opacity: 1 !important; }
 }
+
 
 /* ---- 6b. Subtle glow: [data-cn-glow] (57-core.js adds cn-glow.cn-glow when the host nears) ----
    The owner on cyan energy: "only if it's subtle". So: a soft light behind the object that

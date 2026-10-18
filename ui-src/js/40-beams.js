@@ -157,13 +157,16 @@
 
   function init(box) {
     build(box);
+    var seen = false;
     function play(vis, entry) {
-      if (!vis) { box.removeAttribute(RUN); return; }  /* fully left: the next visit replays */
+      if (!vis) { seen = false; box.removeAttribute(RUN); return; }  /* fully left: the next visit replays */
       if (box.hasAttribute(RUN) || CN.reduced()) return;
       /* wait until the diagram is properly in view (or fills most of a short viewport) */
       var vh = window.innerHeight || doc.documentElement.clientHeight || 1;
       if (entry && entry.intersectionRatio < ENOUGH && entry.intersectionRect.height < vh * 0.5) return;
-      box.setAttribute(RUN, "");
+      seen = true;
+      /* v4.7: the run (SVG strokes, drawn by the main thread) starts once the page is still */
+      CN.whenStill(function () { if (seen && !box.hasAttribute(RUN)) box.setAttribute(RUN, ""); });
     }
     var stop = CN.inView(box, play, { threshold: [0, 0.25, ENOUGH] });
     return {
