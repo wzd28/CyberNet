@@ -1,15 +1,15 @@
 /* Closing (.home-quote): the statement and the chrome shield emblem.
-   Statement ([data-cn="scrub"]): the words brighten from slate to their line's colour as the
-   block scrolls through the viewport. Not pinned. This file splits the text into word spans once
-   (each sentence on its own line) and keeps the full sentence in a visually hidden copy for screen
-   readers. CSS drives the brightness from --cn-scrub (0..1):
-   - where animation-timeline: view() is supported, a CSS animation on the paragraph sets it;
-   - otherwise this file sets it from the paragraph's position, only while it is on screen.
-   Shield (.cn-close-shield > img): wrapped once in .cn-cs-float, which floats the emblem a few
-   pixels up and down (v4.1: a quiet metallic emblem; no turn, no sway, no rays, no depth stack,
-   so it is one 2D transform on the compositor). The float runs only while the shield is on
-   screen, the tab is visible, motion is allowed and nothing paused it: this file sets
-   data-cn-play on .cn-close-shield (a data attribute: legacy observers watch "class").
+   Statement ([data-cn="scrub"]): the words brighten from slate to their line's colour. This file
+   splits the text into word spans once (each sentence on its own line) and keeps the full
+   sentence in a visually hidden copy for screen readers. v4.7 (owner: "make it super smooth"):
+   the words light up once, in reading order, when 40% of the statement is on screen (this file
+   sets data-cn-lit; 28-home-more.css runs a colour transition per word). They no longer follow
+   the scroll: that was a scroll-timeline custom property that restyled every word on every
+   scrolled frame.
+   Shield (.cn-close-shield > img): wrapped once in .cn-cs-float (v4.7: it rests; the float loop
+   is gone). data-cn-play is still set on .cn-close-shield while it is on screen, the tab is
+   visible, motion is allowed and nothing paused it (a data attribute: legacy observers watch
+   "class"), so a later look can hang motion on it.
    A Pause button (the hero's round control) is added to the stage; CN.pause() / CN.resume() (the
    page-wide motion control) reach it through the "scrub" controller.
    Reduced motion: every word is bright, the shield rests, no Pause button. */
@@ -18,12 +18,6 @@
   var CN = window.CN;
   if (!CN) return;
   var doc = document, win = window;
-
-  /* keep in step with "animation-range: cover 14% cover 50%" in 28-home-more.css */
-  var START = 0.14, END = 0.50;
-
-  var cssTimeline = !!(win.CSS && CSS.supports &&
-    CSS.supports("animation-timeline: view()") && CSS.supports("animation-range: cover 10% cover 50%"));
 
   function split(p) {
     if (p.__cnScrubSplit) return;
@@ -65,27 +59,12 @@
     p.style.setProperty("--n", i);
   }
 
-  /* fallback: progress from the paragraph's position (0 when its top meets the viewport bottom) */
-  function track(p) {
-    if (cssTimeline || CN.reduced()) return null;
-    var raf = 0, on = false;
-    function update() {
-      raf = 0;
-      var r = p.getBoundingClientRect(), vh = win.innerHeight || doc.documentElement.clientHeight || 1;
-      var cover = (vh - r.top) / (vh + r.height);
-      p.style.setProperty("--cn-scrub", CN.clamp((cover - START) / (END - START), 0, 1).toFixed(3));
-    }
-    function onScroll() { if (!raf) raf = requestAnimationFrame(update); }
-    function bind(v) {
-      if (v === on) return;
-      on = v;
-      var m = v ? "addEventListener" : "removeEventListener";
-      win[m]("scroll", onScroll, { passive: true });
-      win[m]("resize", onScroll, { passive: true });
-      onScroll();
-    }
-    var stop = CN.inView(p, bind);
-    return { destroy: function () { stop(); bind(false); } };
+  /* the words light up once, when the statement is well on screen (reduced motion and Pause
+     motion: CSS shows them lit) */
+  function light(p) {
+    if (p.hasAttribute("data-cn-lit")) return null;
+    var stop = CN.once(p, function () { CN.whenStill(function () { p.setAttribute("data-cn-lit", ""); }); }, { threshold: .4 });
+    return { destroy: stop };
   }
 
   /* ---------- the closing shield ---------- */
@@ -159,7 +138,7 @@
   });
   CN.register("scrub", function (p) {
     split(p);
-    var t = track(p), c = closing(p);
+    var t = light(p), c = closing(p);
     if (!t && !c) return null;
     return {
       pause: function () { if (c) c.pause(); },

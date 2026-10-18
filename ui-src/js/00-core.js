@@ -36,6 +36,13 @@
    - CN.onPage(cb): cb(id) for the legacy page now showing ("home", "cybernet", ...), then on
      every switch.
 
+   Scrolling (v4.7)
+   - CN.scrolling(): the page scrolled in the last 160 ms. CN.whenStill(fn): fn() now if the page
+     is not scrolling, otherwise once it has been still for 160 ms. One-off shows that run on the
+     main thread (the example scan, the engine diagram's run, the closing statement's words) start
+     through it, so they never compete with a scroll in progress; they play once the visitor
+     stops to look. One passive scroll listener for the whole page.
+
    Small helpers: now, saveData, finePointer, qs, qsa, clamp, lerp, easeOut, and text(el, s) for
    repeated text writes (counters): it edits the one text node in place, which the legacy
    body-wide MutationObservers ignore (a replaced text node re-runs their set-up). Adds html.cn-js,
@@ -126,6 +133,24 @@
     loops.forEach(function (l) { if (doc.hidden) l._suspend(); else l._resume(); });
     visibility.fire(!doc.hidden);
   });
+
+  /* ---------- scrolling ---------- */
+  var STILL_MS = 160, scrolledAt = -1e9, stillWaiters = [], stillTimer = 0;
+  function scrolling() { return now() - scrolledAt < STILL_MS; }
+  function flushStill() {
+    stillTimer = 0;
+    var left = STILL_MS - (now() - scrolledAt);
+    if (left > 0) { stillTimer = setTimeout(flushStill, left + 8); return; }
+    var list = stillWaiters; stillWaiters = [];
+    list.forEach(function (f) { try { f(); } catch (e) { report("whenStill", e); } });
+  }
+  function whenStill(fn) {
+    if (typeof fn !== "function") return;
+    if (!scrolling()) { fn(); return; }
+    stillWaiters.push(fn);
+    if (!stillTimer) stillTimer = setTimeout(flushStill, STILL_MS - (now() - scrolledAt) + 8);
+  }
+  win.addEventListener("scroll", function () { scrolledAt = now(); }, { passive: true, capture: true });
 
   /* ---------- init queue ---------- */
   var SLICE_MS = 12;
@@ -298,6 +323,7 @@
   win.CN = {
     now: now, reduced: reduced, saveData: saveData, finePointer: finePointer, hidden: hidden,
     qs: qs, qsa: qsa, clamp: clamp, lerp: lerp, easeOut: easeOut, text: text,
+    scrolling: scrolling, whenStill: whenStill,
     inView: inView, once: once, onVisible: once, loop: loop,
     onMotion: motion.add, onVisibility: visibility.add,
     covered: function () { return covered; }, onCover: cover.add, setCovered: setCovered,

@@ -314,6 +314,10 @@ html.cn #home .cn-live .cn-funnel-row > i {
   box-shadow: inset 0 1px 2px rgba(15, 23, 42, .06);
   overflow: hidden;
 }
+/* v4.7: the bar's length is its real width (set once, with no transition: a width transition
+   re-laid the page out on every frame for 1.7 s, right as the visitor scrolled in). The first
+   time the bars are drawn (25-live.js adds .is-grown to .cn-funnel in the same frame as the
+   widths) each bar grows from its start edge with a transform, on the compositor. */
 html.cn #home .cn-live .cn-funnel-row > i > b {
   display: block;
   block-size: 100%;
@@ -321,12 +325,15 @@ html.cn #home .cn-live .cn-funnel-row > i > b {
   border-radius: inherit;
   background: linear-gradient(90deg, #22d3ee, #3b82f6);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .45);
-  transition: inline-size 1.4s var(--cn-ease-out);
+  transform-origin: 0 50%;
 }
+html.cn[dir="rtl"] #home .cn-live .cn-funnel-row > i > b { transform-origin: 100% 50%; }
+html.cn.cn-js #home .cn-live .cn-funnel:not(.is-grown) .cn-funnel-row > i > b { transform: scaleX(0); }
+html.cn #home .cn-live .cn-funnel.is-grown .cn-funnel-row > i > b { transition: transform 1.4s var(--cn-ease-out); }
 html.cn #home .cn-live .cn-funnel-row[data-key="threats"] > i > b { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
 html.cn #home .cn-live .cn-funnel-row[data-key="recoveries"] > i > b { background: linear-gradient(90deg, #2dd4bf, #14b8a6); }
-html.cn #home .cn-live .cn-funnel-row:nth-child(2) > i > b { transition-delay: 140ms; }
-html.cn #home .cn-live .cn-funnel-row:nth-child(3) > i > b { transition-delay: 280ms; }
+html.cn #home .cn-live .cn-funnel.is-grown .cn-funnel-row:nth-child(2) > i > b { transition-delay: 140ms; }
+html.cn #home .cn-live .cn-funnel.is-grown .cn-funnel-row:nth-child(3) > i > b { transition-delay: 280ms; }
 html.cn #home .cn-live .cn-funnel-row > em {
   font-family: var(--cn-font-mono);
   font-size: .8125rem;
@@ -527,27 +534,12 @@ html.cn #home .cn-live .hero-why-panel .secondary-btn:focus-visible { outline: 2
   html.cn #home .cn-live:not(.is-down) .hero-why-panel li:first-child { padding-inline-start: 0; border-inline-start: 0; }
 }
 
-/* ---------- Scroll motion: the cards settle in as the panel scrolls up ----------
-   translate only: a compositor animation on a scroll timeline, so no main-thread work per
-   frame. Fill "forwards": below the viewport a card shows its resting state (find-in-page and
-   full-page captures see it). */
-@supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    html.cn:not(.cn-still) #home .cn-live .hero-info-row > * {
-      animation: cn-live-rise linear forwards;
-      animation-timeline: view();
-      animation-range: entry 0% entry 70%;
-    }
-    html.cn:not(.cn-still) #home .cn-live .hero-info-row > .hero-why-panel { animation-range: entry 10% entry 90%; }
-  }
-}
-@keyframes cn-live-rise {
-  from { translate: 0 40px; }
-  to { translate: none; }
-}
+/* ---------- Scroll motion ----------
+   v4.7: the cards no longer settle in on a scroll timeline (Chromium updates those on the main
+   thread on every scrolled frame); they rest in place, and the head reveals as before. */
 
 @media (prefers-reduced-motion: reduce) {
-  html.cn #home .cn-live .cn-funnel-row > i > b { transition: none; }
+  html.cn #home .cn-live .cn-funnel.is-grown .cn-funnel-row > i > b { transition: none; }
 }
 
 @media (forced-colors: active) {

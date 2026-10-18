@@ -78,22 +78,7 @@ html.cn body::after {
 
 /* ------------------------------------------------------------------------------------------
    3. Scroll utilities
-   [data-cn-parallax]: the element drifts against the scroll while it crosses the viewport
-   (--cn-px, default 32px each way). Scroll-driven and translate-only, so the compositor runs it
-   with no script; where view timelines are missing it simply stays still. Off under reduced
-   motion and Pause motion. Use it on small decorative elements only, never on large photos
-   (DESIGN.md v4.1: no scroll-timeline parallax on large images).
+   [data-cn-parallax] (v4.1 to v4.6: a drift against the scroll on a view timeline) no longer
+   moves (v4.7, owner: "make it super smooth"): in Chromium a scroll-timeline animation is updated
+   by the main thread on every scrolled frame. Nothing uses the hook today; it stays still.
    ------------------------------------------------------------------------------------------ */
-@supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    html.cn:not(.cn-still) [data-cn-parallax] {
-      animation: cn-parallax linear both;
-      animation-timeline: view();
-      animation-range: cover 0% cover 100%;
-    }
-  }
-}
-@keyframes cn-parallax {
-  from { translate: 0 var(--cn-px, 32px); }
-  to { translate: 0 calc(var(--cn-px, 32px) * -1); }
-}

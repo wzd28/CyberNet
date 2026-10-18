@@ -17,17 +17,21 @@
    - Never under reduced motion, the global Pause motion (html.cn-still; CN.reduced() is true
      then) or Save-Data: the poster stays. No WebGL, a failed load, a software renderer
      (failIfMajorPerformanceCaveat), slow frames or a lost context also leave the poster.
-   - DPR <= 1.5 on desktop and <= 2 on touch screens (v4.2: phones are 2-3x screens, and at
-     the old 1.25 the light lines and their travelling pulses were stretched 2.4x and looked
-     soft), with a pixel cap (2 M desktop, 1.15 M touch); about 30 fps on touch screens. A
+   - v4.7 (owner: "make it super smooth"): DPR <= 1.5 on desktop and 1 on touch screens, with a
+     pixel cap (2 M desktop, 0.6 M touch), about 30 fps everywhere (a slow spin reads the same
+     at 30 as at 60, and every frame not drawn is main-thread time back for the scroll). A
      governor lowers the resolution, then the frame rate (and drops the extras), then gives up.
-   - Pauses off screen, while the tab is hidden (rAF), while Home is not shown, while the phone
+   - Low-end phones keep the poster: a touch screen with deviceMemory <= 4 GB or <= 4 cores
+     never loads three.js (the poster is the scene's own frame, so the hero looks the same, only
+     still). Save-Data keeps it too.
+   - Stops completely off screen (no timer, no frame), while the tab is hidden, while Home is not shown, while the phone
      menu sheet covers it (CN.onCover) and while the hero's Pause button is pressed
      (20-scanbox.js dispatches "cn-hero-motion").
    - Desktop (fine pointer): drag the globe to turn it (it coasts, then eases back to its slow
      spin). No pointer parallax: nothing follows the cursor. Touch screens keep native
      scrolling.
-   - A gentle scroll-linked tilt as the hero scrolls away.
+   - A gentle scroll-linked tilt as the hero scrolls away (eased). v4.7: the frame holds while
+     the page is scrolling (CN.scrolling) and the globe carries on 160 ms after it stops.
    - Toggles .is-on on the stage while it is on screen (CSS hook). */
 (function () {
   "use strict";
@@ -65,9 +69,9 @@
   function smooth(t) { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); }
   /* ============================================================== runtime */
   var SETTLE_MS = 1400;       /* after Home is opened from another page */
-  var DPR_FINE = 1.5, DPR_COARSE = 2;
-  var MAX_PX_FINE = 2000000, MAX_PX_COARSE = 1150000;
-  var FRAME_COARSE = 33;      /* ~30 fps on touch screens */
+  var DPR_FINE = 1.5, DPR_COARSE = 1;
+  var MAX_PX_FINE = 2000000, MAX_PX_COARSE = 600000;
+  var FRAME_MS = 33;          /* ~30 fps everywhere */
   var LINK_WAIT_MS = 400, LINK_GIVEUP_MS = 10000;
   var HOLD_MS = 450, RAMP_MS = 1100;  /* the poster frame holds, then time eases in */
   /* after load + idle: let the page's own start-up finish first (longer on phones) */
@@ -76,6 +80,12 @@
   /* no test context (one live WebGL context at a time): if the real one cannot be created,
      the renderer throws, fail() keeps the poster */
   function hasWebGL() { return !!(win.WebGLRenderingContext && doc.createElement("canvas").getContext); }
+  /* a low-end phone: the poster is the hero there (deviceMemory is Chromium-only; cores everywhere) */
+  function lowEnd() {
+    if (CN.finePointer()) return false;
+    var mem = navigator.deviceMemory, cores = navigator.hardwareConcurrency;
+    return (typeof mem === "number" && mem > 0 && mem <= 4) || (typeof cores === "number" && cores > 0 && cores <= 4);
+  }
   var idle = win.requestIdleCallback ? function (f) { win.requestIdleCallback(f, { timeout: 1200 }); } : function (f) { setTimeout(f, 150); };
   /* idle slices for the build and the shader compiles, so a tap is never kept waiting long */
   function idleTask(f) {
@@ -118,7 +128,7 @@
     var coarse = !CN.finePointer();
     var G = null, state = "idle"; /* idle | loading | ready | dead */
     var visible = false, held = false, loaded = false, queued = false, deepTimer = 0, pageSeen = false, switchedAt = -1e9;
-    var frameMs = coarse ? FRAME_COARSE : 0, dirty = true, stageH = 600;
+    var frameMs = FRAME_MS, dirty = true, stageH = 600;
     var slow = { n: 0, sum: 0, warm: 0, last: 0, level: 0 };
     var ro = null, offs = [], liveAt = 0;
     var disc = null;            /* the globe on screen: centre and radius, CSS px in the canvas */
@@ -143,7 +153,7 @@
       return !!home && home.classList.contains("active-page") && !home.classList.contains("leaving") &&
         !root.classList.contains("cn-deep") && canvas.clientWidth > 0;
     }
-    function allowed() { return !CN.reduced() && !CN.saveData(); }
+    function allowed() { return !CN.reduced() && !CN.saveData() && !lowEnd(); }
     function maybe() {
       if (state !== "idle" || queued || !loaded || !visible || !allowed()) return;
       if (!homeShown()) {
@@ -333,8 +343,12 @@
       fail(new Error("too slow"));
     }
 
+    var tilt = 0;
     function frame(now, dt) {
       if (state !== "ready") return;
+      /* v4.7: hold the frame while the page scrolls (the compositor moves the page; a held globe
+         is invisible while everything moves) and carry on once it is still */
+      if (!drag && CN.scrolling()) { pause(); CN.whenStill(play); return; }
       var stepMs = Math.min(dt, 100);
       if (slow.last) watch(now - slow.last);
       slow.last = now;
@@ -350,11 +364,13 @@
         G.pitch *= Math.exp(-s * 2.2);
       }
       var sy = win.pageYOffset || root.scrollTop || 0;
-      G.scroll = clamp(sy / Math.max(1, stageH), 0, 1) * ramp;
+      /* eased, so the tilt glides to the new scroll position after a held stretch */
+      tilt += (clamp(sy / Math.max(1, stageH), 0, 1) * ramp - tilt) * (1 - Math.exp(-stepMs / 160));
+      G.scroll = tilt;
       try { G.frame(s * ramp); } catch (e) { fail(e); }
     }
     function play() {
-      if (state !== "ready" || held || !visible || !allowed() || !homeShown() || CN.covered()) return;
+      if (state !== "ready" || held || !visible || !allowed() || !homeShown() || CN.covered() || CN.hidden()) return;
       slow.last = 0;
       loop.start();
     }
@@ -363,6 +379,10 @@
     /* the phone menu sheet covers the stage: rest under it, carry on when it closes */
     offs.push(CN.onCover(function (on) {
       if (on) { endDrag(); pause(); }
+      else if (state === "ready") play();
+    }));
+    offs.push(CN.onVisibility(function (vis) {
+      if (!vis) { endDrag(); pause(); }
       else if (state === "ready") play();
     }));
     offs.push(CN.onMotion(function (reduced) {
