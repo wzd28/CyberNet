@@ -413,8 +413,9 @@ html.cn #home .cn-fs-path--b {
   inset: -11%;
   border-color: rgba(103, 232, 249, .16);
 }
-/* the chrome shield: floats slowly (a 2D translate); its sprite (::before) settles in on a tool
-   change (a different keyframes name per tool restarts the animation) */
+/* the chrome shield: v4.7 it rests (the slow float loop is gone: owner, "make it super smooth");
+   its sprite (::before) settles in on a tool change (a different keyframes name per tool
+   restarts the animation) */
 html.cn #home .cn-fs-shield {
   position: absolute;
   inset-block-start: 50%;
@@ -422,7 +423,6 @@ html.cn #home .cn-fs-shield {
   inline-size: 74%;
   aspect-ratio: 1;
   translate: -50% -54%;
-  animation: cn-fs-float 7s ease-in-out infinite;
 }
 html.cn[dir="rtl"] #home .cn-fs-shield { translate: 50% -54%; }
 html.cn #home .cn-fs-shield::before {
@@ -436,15 +436,6 @@ html.cn #home .cn-fs-shield::before {
 html.cn #home .cn-reel[data-cn-tool="ai"] .cn-fs-shield::before { animation-name: cn-fs-swap-b; }
 html.cn #home .cn-reel[data-cn-tool="rec"] .cn-fs-shield::before { animation-name: cn-fs-swap-c; }
 
-/* the loop runs only while 35-reel.js says so (on screen, tab visible, not paused) */
-html.cn #home .cn-flow-stage:not([data-cn-play]) .cn-fs-shield {
-  animation-play-state: paused;
-}
-
-@keyframes cn-fs-float {
-  0%, 100% { transform: translate3d(0, 0, 0); }
-  50% { transform: translate3d(0, -2.5%, 0); }
-}
 /* A tool change: the shield settles in (a short fade and scale, no spin). Three identical
    keyframes under different names, so each change restarts it. */
 @keyframes cn-fs-swap-a {
@@ -460,21 +451,8 @@ html.cn #home .cn-flow-stage:not([data-cn-play]) .cn-fs-shield {
   to { opacity: 1; transform: none; }
 }
 
-/* Scroll-linked entrance: the stage rises and grows in as the section scrolls up (transform
-   only, so it stays on the compositor; the end state is the resting state). */
-@supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    html.cn #home .cn-reel.is-ready .cn-flow-stage {
-      animation: cn-fs-rise linear forwards;
-      animation-timeline: view();
-      animation-range: entry 0% cover 42%;
-    }
-    @keyframes cn-fs-rise {
-      from { transform: translate3d(0, 56px, 0) scale(.82); }
-      to { transform: none; }
-    }
-  }
-}
+/* Entrance: v4.7 the stage no longer rises on a scroll timeline (main-thread work on every
+   scrolled frame in Chromium); it rests in place. */
 
 /* ---------- Panels: the example card and the tool's button ---------- */
 html.cn #home .cn-reel.is-ready .cn-reel-panels {

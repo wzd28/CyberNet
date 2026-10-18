@@ -1,6 +1,8 @@
 /* Home 3 \u00B7 Example scan console (#cnDemo). An illustration of a Quick Scan, clearly labelled
-   "Example \u00B7 not a real scan". One run is about 7 s, then it holds the result for 3 s and loops while
-   the console is on screen. Every per-frame write is an attribute change on the one element that
+   "Example \u00B7 not a real scan". One run is about 7 s. v4.7 (owner: "make it super smooth"): it
+   runs once, the first time the console is on screen, then rests on the result; the section's
+   button then reads Play and runs it again. It draws at about 30 fps (it used to loop at 60 fps
+   for as long as it was on screen, which kept a phone's main thread nearly full). Every per-frame write is an attribute change on the one element that
    uses it (a custom property on the arc, the score, the progress bar, the active highlight, or a
    class on the character being typed), so a frame restyles a handful of nodes, never the whole
    console. Attribute changes are invisible to the legacy body-wide observers (childList and
@@ -31,6 +33,7 @@
   /* Rebuild the bubble once: a screen-reader copy of the full text, plus a visual copy made of
      per-character spans (revealed by .is-on) with the "|"-marked phrases wrapped in <mark>. */
   function buildBubble(p) {
+    if (p.__cnBubble) return p.__cnBubble;
     var raw = p.getAttribute("data-cn-msg") || p.textContent || "";
     var parts = raw.split("|");
     var sr = document.createElement("span");
@@ -62,8 +65,13 @@
     frag.appendChild(vis);
     p.textContent = "";
     p.appendChild(frag);
-    return { chars: i, marks: k };
+    p.__cnBubble = { chars: i, marks: k };
+    return p.__cnBubble;
   }
+  /* v4.7: the character spans are built while the browser is idle after load (the text looks
+     the same until the console starts), not when the console scrolls near: building ~330 nodes
+     mid-scroll cost a long frame and woke the legacy body-wide observers. */
+  CN.afterLoad(function () { CN.qsa('[data-cn="demo"] [data-cn-msg]').forEach(buildBubble); });
 
   /* Pause / Play: the visible word carries the state, so the button is not also a pressed
      toggle (that announced "Play, pressed"). Only the first text node is swapped, which keeps a
@@ -194,18 +202,33 @@
       if (sec) sec.classList.remove("is-snap");
     }
 
-    var t = 0, paused = false, visible = false;
+    var t = 0, paused = false, visible = false, finished = false, acc = 0;
     var lp = CN.loop(function (now, dt) {
       t += dt;
-      if (t >= T.cycle) { t = 0; snap(0); return; }
+      if (t >= T.run) { t = T.run; render(T.run); finish(); return; }
+      acc += dt;
+      if (acc < 30) return;   /* about 30 fps: half the restyles, the same look */
+      acc = 0;
       render(t);
     });
+    /* one run is done: rest on the result; the button offers Play (a fresh run) */
+    function finish() {
+      finished = true;
+      lp.stop();
+      btnState.paused = true;
+      paused = true;
+      if (btn) label(btn, "Play");
+      fig.classList.toggle("is-paused", true);
+    }
 
     var root = document.documentElement;
     function still() { return CN.reduced(); }
     function held() { return root.classList.contains("cn-still"); }
     function sync() {
-      var go = visible && !paused && !still() && !held();
+      if (finished && !paused && !still() && !held()) { finished = false; t = 0; acc = 0; snap(0); }
+      var go = visible && !paused && !finished && !still() && !held();
+      // a run starts once the page is still (CN.whenStill), never in the middle of a scroll
+      if (go && !lp.running() && CN.scrolling()) { CN.whenStill(sync); go = false; }
       if (go) lp.start(); else lp.stop();
       // The status blink and the waiting skeletons are CSS loops: freeze them whenever the JS
       // timeline is not running (off screen, paused, reduced motion), not only on a user Pause.

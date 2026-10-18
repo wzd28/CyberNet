@@ -9,7 +9,10 @@
    d) Placeholder typer: types and deletes the examples in
       data-cn-placeholders. It stops (and shows the static placeholder) while
       the box is focused, filled, off-screen, the tab is hidden, the phone menu
-      sheet covers the page, or motion is reduced.
+      sheet covers the page, or motion is reduced. v4.7: it holds its text while
+      the page scrolls (and goes on 400 ms after), and writes two characters
+      per step when typing and four when deleting (the same speed, about half
+      the placeholder writes: each one restyles the field).
    e) The one cyan sweep across "seconds", 600ms after load, once.
    f) An optional Pause button (.cn-stage-pause) stops the hero's motion.
    g) On Home, the skip link (.cn-skip) lands in the scan box; on every other
@@ -26,7 +29,8 @@
     link: "https://secure-acct-verify.invalid/login",
     qr: "/ui/example-qr.png"
   };
-  var TYPE_MS = 35, HOLD_MS = 1600, DELETE_MS = 18, GAP_MS = 380, FIRST_MS = 1400, RESUME_MS = 1200;
+  var TYPE_MS = 70, TYPE_N = 2, HOLD_MS = 1600, DELETE_MS = 40, DELETE_N = 4, GAP_MS = 380, FIRST_MS = 1400, RESUME_MS = 1200;
+  var SCROLL_HOLD_MS = 400;
   var URL_RE = /^(?:https?:\/\/)?(?:www\.)?[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*\.[a-z]{2,}(?::\d{2,5})?(?:[\/?#]\S*)?$/i;
 
   function byId(id) { return doc.getElementById(id); }
@@ -163,7 +167,7 @@
         .map(function (s) { return s.trim(); }).filter(Boolean);
       var base = input.getAttribute("placeholder") || "";
       var shown = base, idx = 0, mode = "hold", timer = 0;
-      var started = false, visible = false, focused = false;
+      var started = false, visible = false, focused = false, scrolledAt = -1e9;
 
       function allowed() {
         return started && visible && !focused && !motionPaused && doc.activeElement !== input && !doc.hidden &&
@@ -179,14 +183,16 @@
       function tick() {
         timer = 0;
         if (!allowed()) { halt(); return; }
+        var since = CN.now() - scrolledAt;
+        if (since < SCROLL_HOLD_MS) { schedule(SCROLL_HOLD_MS - since + 16); return; }   /* hold while scrolling */
         if (mode === "hold") { mode = "erase"; schedule(DELETE_MS); return; }
         if (mode === "erase") {
-          if (shown.length) { show(shown.slice(0, -1)); schedule(DELETE_MS); }
+          if (shown.length) { show(shown.slice(0, Math.max(0, shown.length - DELETE_N))); schedule(DELETE_MS); }
           else { mode = "type"; schedule(GAP_MS); }
           return;
         }
         var target = phrases[idx];
-        if (shown.length < target.length) { show(target.slice(0, shown.length + 1)); schedule(TYPE_MS); }
+        if (shown.length < target.length) { show(target.slice(0, shown.length + TYPE_N)); schedule(TYPE_MS); }
         else { idx = (idx + 1) % phrases.length; mode = "hold"; schedule(HOLD_MS); }
       }
       function kick(delay) {
@@ -203,6 +209,7 @@
         doc.addEventListener("visibilitychange", sync);
         CN.onCover(sync);
         CN.inView(box, function (vis) { visible = vis; sync(); });
+        win.addEventListener("scroll", function () { scrolledAt = CN.now(); }, { passive: true });
         CN.afterLoad(function () {
           started = true;
           focused = doc.activeElement === input;

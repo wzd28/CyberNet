@@ -46,6 +46,10 @@
    - Pause motion (html.cn-still, CN.onStill) and prefers-reduced-motion: the loop stops and every
      layer rests on its current frame (a calm static frame when it was never animated). Save-Data
      gets the static frame too.
+   - v4.7 (owner: "make it super smooth"): on touch screens the lines are a still picture: each
+     layer draws one frame (the same ribbons and a few pulses mid-flight) when it first comes
+     near, and never animates. A phone's main thread is the scarce thing while it scrolls, and a
+     2D canvas animates on it. Desktop keeps the 30 fps motion (held while the page scrolls).
    - No pointer input: nothing follows the cursor. */
 (function () {
   "use strict";
@@ -436,17 +440,18 @@
      animation frame, so the next frame lands on the vsync at 33 ms on 60, 90 and 120 Hz
      screens: the browser renders 30 frames a second for this, not 60 or 120.
      While the page is scrolling, the lines hold their frame (no animation frames are asked
-     for) and carry on from the same moment 140 ms after the last scroll event: the main thread
-     stays free for the scroll itself (Lenis on desktop, scroll-linked effects everywhere), and
+     for) and carry on from the same moment 360 ms after the last scroll event (v4.7: was 140, which
+     let them restart between the notches of a wheel run): the main thread
+     stays free for the scroll itself (and anything else that moves with it), and
      a held frame is invisible while the whole page is moving. */
   var fields = [], clock = 7.5, last = 0, running = false, timer = 0, raf = 0;
   var scrolling = false, scrollT = 0;
   function onScroll() {
     scrolling = true;
     clearTimeout(scrollT);
-    scrollT = setTimeout(function () { scrolling = false; }, 140);
+    scrollT = setTimeout(function () { scrolling = false; }, 360);
   }
-  function frozen() { return CN.reduced() || CN.saveData(); }
+  function frozen() { return touch || CN.reduced() || CN.saveData(); }
   function frame(now) {
     raf = 0;
     if (!running) return;
@@ -564,8 +569,15 @@
     CN.onCover(function () { update(); });
     // Once the page has loaded and the browser is idle, give every sized layer its first frame,
     // so a section never scrolls in blank and then fades its light in (one draw per layer).
+    // v4.7: one layer per idle callback (all of them in one callback was a long task on phones).
     CN.afterLoad(function () {
-      for (var i = 0; i < fields.length; i++) if (fields[i].w && !fields[i].drawn) draw(fields[i], clock, true);
+      var i = 0, ric = win.requestIdleCallback || function (f) { return setTimeout(f, 60); };
+      (function next() {
+        while (i < fields.length && (!fields[i].w || fields[i].drawn)) i++;
+        if (i >= fields.length) return;
+        draw(fields[i++], clock, true);
+        ric(next, { timeout: 1500 });
+      })();
     });
   });
 })();
