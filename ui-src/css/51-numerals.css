@@ -1,0 +1,52 @@
+/* CyberNet UI v5: rolling numerals, CN.numerals (owner: home-story; JS: 50-counters.js).
+   Used by the live totals, $442B and the example scan's score.
+     el > span.cn-num-sr                    the real text (visually hidden; what readers hear)
+        > span.cn-num-od[aria-hidden]       the twin: static glyphs as text, plus per digit
+            > span.cn-num-c                 the column: one digit pitch tall, clipped; a hidden
+                                            "0" (::before) gives it the font's figure width
+                > span.cn-num-s             the strip "0..9" (two or three turns), moved by
+                                            --n turns of 1.1em with a transform transition
+   The column is exactly one 1.1em pitch tall and its negative block margins give back the
+   difference from the host's line-height (--cn-num-lh, unitless, default 1), so the line box
+   never grows when the twin replaces the text (no layout shift). Per-strip custom properties
+   (--n, --cn-nd duration, --cn-ndl delay) live on the strip itself, a leaf. A 2D translate at
+   rest, so no column is a compositor layer until it rolls. Data columns: [data-z] marks a
+   leading zero (kept for width, not shown). Reduced motion and Pause: no transition. */
+html.cn .cn-num-sr {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+/* the twin's spans ignore any host rule for "span" (legacy .hero-live-stat span is a block label) */
+html.cn .cn-num-od,
+html.cn .cn-num-c,
+html.cn .cn-num-s { margin: 0; padding: 0; color: inherit; font-size: inherit; }
+html.cn .cn-num-od { display: inline; white-space: nowrap; }
+html.cn .cn-num-c {
+  position: relative;
+  display: inline-block;
+  block-size: 1.1em;
+  margin-block: calc(var(--cn-num-lh, 1) * .5em - .55em);
+  line-height: 1.1em;
+  vertical-align: baseline;
+  overflow: hidden;
+  overflow: clip;
+}
+html.cn .cn-num-c::before { content: "0"; visibility: hidden; }
+html.cn .cn-num-c[data-z] { visibility: hidden; }
+html.cn .cn-num-s {
+  position: absolute;
+  inset: 0 0 auto;
+  line-height: 1.1em;
+  text-align: center;
+  white-space: pre;
+  transform: translateY(calc(var(--n, 0) * -1.1em));
+  transition: transform var(--cn-nd, 0ms) var(--cn-ease-expo) var(--cn-ndl, 0ms);
+}
+@media (prefers-reduced-motion: reduce) {
+  html.cn .cn-num-s { transition: none; }
+}
+html.cn.cn-still .cn-num-s { transition: none; }

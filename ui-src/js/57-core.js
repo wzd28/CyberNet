@@ -32,42 +32,38 @@
    - Dark ink on a light band is detected from the computed colour (class is-ink) and rests a
      little stronger, so unlit lines stay at 4.5:1 or more.
    - For markup rendered later, call CN.manifesto(p).
+   - v5 LIGHT (desktop with Lenis, flag "scrubs"): once its lines are grouped, the paragraph
+     becomes a CN.motion.scrub from "top 80%" to "bottom 50%": each line goes from .5 (.6 on
+     ink) and .12em low to 1 and in place, .6 of a line apart, power1.out, both ways (.is-scrub
+     turns the CSS transitions off while GSAP writes the lines). A regroup rebuilds it. Its
+     fallback is the v4.7 one-shot above, unchanged; its final state is data-cn-lit. Phones,
+     tablets, -scrubs / -lenis, a demotion or a blocked vendor all get the one-shot.
 
-   HOOK 2 - subtle glow behind a 3D object: [data-cn-glow]
+   #cnCore v5 (TEXT ONLY, forever: no picture, canvas, 3D or object). The label's 28px hairline
+   draws (rule-before, 700 ms expo), its words follow at +120 ms (-4px to 0), "Rules first. Then
+   AI." fades in at +200 ms; the lead SETs word by word (05-reveal.js); the end
+   tag's dot grows and its words fade at +120 ms. 27-core.css keys these on .is-in. The two
+   labels' words are wrapped once at start-up (span.cn-core-t), so the text moves apart from
+   its mark. Reduced motion and Pause: everything final.
+
+   HOOK 2 - still glow behind a 3D object: [data-cn-glow]
      <figure class="my-visual" data-cn-glow>                         <- light at the box's centre
-       <img src="/ui/3d/recovery-320.webp" alt="" width="320" height="320">
-     </figure>
      <div class="my-visual" data-cn-glow="50 42">...</div>          <- light centred at x% y%
-     <div class="my-visual" data-cn-glow="50 42" data-cn-glow-motes="off">...</div>   <- no motes
      <div class="my-visual" data-cn-glow style="--cn-gl-k:.7; --cn-gl-scale:.8">...</div>
-   - A very faint cyan light behind the object. It breathes slowly (11 s) while a second, softer
-     light drifts around it (29 s), and four tiny motes at the object's edges rise a few dozen
-     pixels and fade (14 to 19 s each). Nothing flame-like: no column, no shards, no sparks, no
-     flicker.
-   - Pure CSS on the compositor (transform and opacity only, no canvas, no script per frame).
-     This file only adds the layer as the host's FIRST child, when the host first comes within
-     300px of the screen: <cn-glow class="cn-glow" aria-hidden="true"> holding <cn-gl> lights
-     (custom element names, so no "span" or "i" rule in page CSS can restyle them), with no
-     pointer events. It sets data-cn-play on cn-glow while the host is on screen, the tab is
-     visible and motion is allowed. Everywhere else the light holds its frame.
-   - Each light is a small disc inside the host whose soft box-shadow reaches a little past the
-     host's edges, so it shows round an object that fills its box. A box-shadow is ink overflow
-     and never counts towards the page's scroll width, so the glow cannot make a phone pan
-     sideways. Its px sizes follow the host's shorter side (--cn-gl-s on cn-glow, written from a
-     ResizeObserver only when it changes), so a wide card gets a light the size of its height.
+   - A very faint, still cyan light behind the object (a soft light and a fainter second one).
+     v4.7 stopped their breathing, drift and motes (80-perf.css section 8); v5 deletes them, so
+     data-cn-glow-motes is ignored and nothing in the layer animates or plays.
+   - This file adds the layer as the host's FIRST child, when the host first comes within 300px
+     of the screen: <cn-glow class="cn-glow" aria-hidden="true"> holding two <cn-gl> lights
+     (custom element names, so no page rule can restyle them), with no pointer events. Each light
+     is a small disc whose soft box-shadow reaches a little past the host (ink overflow: never
+     scroll width). Its px sizes follow the host's shorter side (--cn-gl-s on cn-glow, written
+     from a ResizeObserver only when it changes).
    - The host must be a container (not an <img>). It becomes position:relative (unless it is
-     already positioned) and isolation:isolate, so the light sits under the host's content and
-     above the host's own background. Do not put it on a [data-cn-stagger] parent: the layer would
-     count as a child (likewise, page rules such as "> :first-child" on the host see the layer).
-   - Tuning (custom properties on the host or any ancestor): --cn-gl-scale (the light's size
-     against the host's shorter side, default 1; lower it for an object that sits small in a
-     big box), --cn-gl-k (strength 0..1, default 1; the default is already faint), --cn-gl-rgb
-     (default "34, 211, 238", cyan) and --cn-gl-rise (how far the motes rise, default 44px).
-   - Reduced motion and Pause motion: a still, faint light with the motes at rest. Forced colours
-     and print: none.
-   - For markup rendered later, call CN.glow(el) (el itself, or every [data-cn-glow] inside it).
-     It returns a controller { pause(), resume(), destroy() }, also kept on el.__cnGlow, so a
-     page's own Pause button can drive it.
+     already positioned) and isolation:isolate. Tuning: --cn-gl-scale (size, 1), --cn-gl-k
+     (strength, 1), --cn-gl-rgb ("34, 211, 238"). Forced colours and print: none.
+   - For markup rendered later, call CN.glow(el). It returns { pause(), resume(), destroy() } (the
+     first two are kept for old callers and do nothing now), also on el.__cnGlow.
 
    HOOK 3 (CSS only): the editorial corner label .cn-edlabel lives in 27-core.css. HOOK 4: the
    line-by-line heading reveal [data-cn-lines] lives in 05-reveal.js and 29-lines.css. */
@@ -177,6 +173,28 @@
     if (!same) lay(m, lineOf);
     /* rest dim only if the visitor has not reached it yet (no lit -> dim -> lit flash) */
     if (first && !m.seen) p.classList.add("is-dim");
+    if (first) scrub(m);
+    else if (!same && m.h) m.h.rebuild();
+  }
+  /* v5 LIGHT: the lines follow the scroll while Lenis drives (desktop); else the one-shot. Home's
+     manifesto only (finish, 18 Oct): the inner pages keep the one-shot, because their scrubs kept
+     ScrollTrigger busy on every glide frame and put Quick Scan over the 2% dropped-frame gate. */
+  function scrub(m) {
+    var M = CN.motion, p = m.p;
+    if (!M || !p.closest("#home")) return;
+    m.h = M.scrub(p, {
+      start: "top 80%", end: "bottom 50%",
+      build: function (tl) {
+        var lo = p.classList.contains("is-ink") ? .6 : .5;
+        p.classList.add("is-scrub");
+        CN.qsa(".cn-ml", p).forEach(function (l, i) {
+          tl.fromTo(l, { opacity: lo, y: "0.12em" }, { opacity: 1, y: 0, ease: "power1.out", duration: 1 }, i * .6);
+        });
+        return function () { p.classList.remove("is-scrub"); };
+      },
+      fallback: function () { /* the v4.7 one-shot: .is-dim at the split, data-cn-lit at a third */ },
+      final: function () { p.setAttribute("data-cn-lit", ""); }
+    });
   }
   function queue(m) {
     if (m.queued) return;
@@ -235,77 +253,48 @@
     return m;
   }
 
-  /* ------------------------------------------------------------------ the subtle glow */
-  /* The layer: two lights and up to four motes, all animated by 27-core.css (section 6b). */
-  var MOTES = 4;
+  /* ------------------------------------------------------------------ the still glow */
+  /* The layer: two still lights (27-core.css section 6b). Nothing in it animates (v4.7 stopped
+     the breathing, drift and motes; v5 deleted them), so it needs no play state. */
   var VOID = /^(IMG|INPUT|TEXTAREA|SELECT|CANVAS|VIDEO|AUDIO|IFRAME|SVG|BR|HR|PICTURE|SOURCE|OBJECT|EMBED)$/;
-  function glowAt(host) {
-    var v = (host.getAttribute("data-cn-glow") || "").trim().split(/[\s,]+/);
-    var x = parseFloat(v[0]), y = parseFloat(v[1]);
-    return [isFinite(x) ? CN.clamp(x, 0, 100) : null, isFinite(y) ? CN.clamp(y, 0, 100) : null];
-  }
-  function buildGlow(host) {
-    var el = doc.createElement("cn-glow"), at = glowAt(host);
-    el.className = "cn-glow";
-    el.setAttribute("aria-hidden", "true");
-    if (at[0] !== null) el.style.setProperty("--cn-gl-x", at[0] + "%");
-    if (at[1] !== null) el.style.setProperty("--cn-gl-y", at[1] + "%");
-    var html = '<cn-gl class="cn-glow-light"></cn-gl><cn-gl class="cn-glow-drift"></cn-gl>';
-    if ((host.getAttribute("data-cn-glow-motes") || "").toLowerCase() !== "off") {
-      for (var i = 0; i < MOTES; i++) html += '<cn-gl class="cn-glow-mote"></cn-gl>';
-    }
-    el.innerHTML = html;
-    host.insertBefore(el, host.firstChild);
-    return el;
-  }
-  /* Arm a [data-cn-glow] host: the layer is added when the host first comes within 300px of the
-     screen (an absolutely positioned leaf, so nothing in flow moves); from then on one observer
-     says whether it is on screen. The controller exists at once, so pause() before then is
-     remembered. */
+  function noop() {}
   function glowHook(host) {
     if (!host || host.nodeType !== 1) return null;
     if (host.__cnGlow) return host.__cnGlow;
-    var layer = null, on = false, paused = false, gone = false, stopArm = null, stopView = null, offs = [], ro = null, lastS = 0;
-    function update() {
-      if (!layer || gone) return;
-      var play = on && !paused && !CN.reduced() && !CN.hidden();
-      if (layer.hasAttribute("data-cn-play") !== play) {
-        if (play) layer.setAttribute("data-cn-play", ""); else layer.removeAttribute("data-cn-play");
-      }
-    }
-    var ctl = {
-      pause: function () { paused = true; update(); },
-      resume: function () { paused = false; update(); },
+    var layer = null, gone = false, stopArm = null, ro = null, lastS = 0;
+    var ctl = host.__cnGlow = {
+      pause: noop, resume: noop,
       destroy: function () {
         gone = true;
         if (stopArm) stopArm();
-        if (stopView) stopView();
         if (ro) ro.disconnect();
-        offs.forEach(function (off) { if (typeof off === "function") off(); });
         if (layer && layer.parentNode) layer.parentNode.removeChild(layer);
         layer = null; host.__cnGlow = null;
       }
     };
-    host.__cnGlow = ctl;
     if (VOID.test(host.nodeName.toUpperCase())) return ctl;
     var fired = false;
     stopArm = CN.inView(host, function (vis) {
       if (!vis || fired || gone) return;
       fired = true;
       if (stopArm) stopArm();
-      try { layer = buildGlow(host); } catch (err) { layer = null; return; }
-      /* the lights' px sizes follow the host's shorter side (written only when it changes), so a
-         wide card gets a light the size of its height, not a disc across its whole width */
+      var v = (host.getAttribute("data-cn-glow") || "").trim().split(/[\s,]+/), x = parseFloat(v[0]), y = parseFloat(v[1]);
+      layer = doc.createElement("cn-glow");
+      layer.className = "cn-glow";
+      layer.setAttribute("aria-hidden", "true");
+      if (isFinite(x)) layer.style.setProperty("--cn-gl-x", CN.clamp(x, 0, 100) + "%");
+      if (isFinite(y)) layer.style.setProperty("--cn-gl-y", CN.clamp(y, 0, 100) + "%");
+      layer.innerHTML = '<cn-gl class="cn-glow-light"></cn-gl><cn-gl class="cn-glow-drift"></cn-gl>';
+      host.insertBefore(layer, host.firstChild);
+      /* the lights' px sizes follow the host's shorter side (written only when it changes) */
       var setS = function (w, h) {
-        var v = Math.round(h > 0 ? Math.min(w, h) : w);
-        if (v > 0 && v !== lastS && layer) { lastS = v; layer.style.setProperty("--cn-gl-s", v + "px"); }
+        var s = Math.round(h > 0 ? Math.min(w, h) : w);
+        if (s > 0 && s !== lastS && layer) { lastS = s; layer.style.setProperty("--cn-gl-s", s + "px"); }
       };
       if ("ResizeObserver" in win) {
         ro = new ResizeObserver(function (es) { var r = es[es.length - 1].contentRect; setS(r.width, r.height); });
         ro.observe(layer);
       } else setS(layer.offsetWidth, layer.offsetHeight);
-      stopView = CN.inView(host, function (v) { on = !!v; update(); }, { margin: "40px 0px" });
-      offs = [CN.onVisibility(update), CN.onMotion(update), CN.onStill ? CN.onStill(update) : null];
     }, { margin: "300px 0px" });
     if (fired && stopArm) stopArm();
     return ctl;
@@ -319,8 +308,23 @@
   }
 
   /* ------------------------------------------------------------------ the section */
-  /* #cnCore: the lead and the manifesto (HOOK 1); nothing else moves in the section. */
+  /* #cnCore (text only): RULE the label, fade the corner tag, SET the lead (05-reveal.js), one
+     light pass on "protect" (desktop), the manifesto (HOOK 1), then the end tag. */
+  function words(el) {
+    if (!el) return;
+    var s = doc.createElement("span");
+    s.className = "cn-core-t";
+    while (el.firstChild) s.appendChild(el.firstChild);
+    el.appendChild(s);
+  }
   function Core(section) {
+    var M = CN.motion, lab = CN.qs(".cn-core-label", section), end = CN.qs(".cn-core-tag--end", section);
+    words(lab);
+    words(end);
+    if (M) {
+      M.reveal(lab, "rule-before");
+      M.reveal(end, "trigger");
+    }
     var p = CN.qs('[data-cn="manifesto"]', section);
     if (p) Manifesto(p);
     return {};

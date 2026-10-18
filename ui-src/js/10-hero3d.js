@@ -27,6 +27,10 @@
    - Stops completely off screen (no timer, no frame), while the tab is hidden, while Home is not shown, while the phone
      menu sheet covers it (CN.onCover) and while the hero's Pause button is pressed
      (20-scanbox.js dispatches "cn-hero-motion").
+   - v5: every frame is asked for through CN.raf (the one frame clock, 00-core.js), which runs on
+     the gsap.ticker once the desktop motion core has loaded; the 30 fps timer pacing, the DPR and
+     pixel caps and every pause above are unchanged. Under Lenis the scroll hold still applies:
+     CN.scrolling() is true while a Lenis run is in flight.
    - Desktop (fine pointer): drag the globe to turn it (it coasts, then eases back to its slow
      spin). No pointer parallax: nothing follows the cursor. Touch screens keep native
      scrolling.
@@ -39,7 +43,7 @@
   if (!CN) return;
   var THREE_SRC = "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js";
   var THREE_SRI = "sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu";
-  var KIT_V = "7b677e64e1";  /* hash of /ui/3d/hero3d-kit.min.js, stamped by scripts/render-3d.mjs */
+  var KIT_V = "d536fa8c5c";  /* hash of /ui/3d/hero3d-kit.min.js, stamped by scripts/render-3d.mjs */
   var KIT_SRC = "/ui/3d/hero3d-kit.min.js?v=" + KIT_V;
 
   /* ---------------------------------------------------------------- loading */
@@ -110,12 +114,12 @@
     function next() {
       if (!on) return;
       var ms = rate();
-      if (!ms) { raf = requestAnimationFrame(tick); return; }
-      timer = setTimeout(function () { timer = 0; if (on) raf = requestAnimationFrame(tick); }, Math.max(0, ms - (CN.now() - last) - 7));
+      if (!ms) { raf = CN.raf(tick); return; }
+      timer = setTimeout(function () { timer = 0; if (on) raf = CN.raf(tick); }, Math.max(0, ms - (CN.now() - last) - 7));
     }
     return {
-      start: function () { if (on) return; on = true; last = 0; raf = requestAnimationFrame(tick); },
-      stop: function () { on = false; if (raf) cancelAnimationFrame(raf); if (timer) clearTimeout(timer); raf = timer = 0; },
+      start: function () { if (on) return; on = true; last = 0; raf = CN.raf(tick); },
+      stop: function () { on = false; if (raf) CN.cancelRaf(raf); if (timer) clearTimeout(timer); raf = timer = 0; },
       running: function () { return on; }
     };
   }
@@ -204,7 +208,7 @@
         var waited = CN.now() - t0;
         if (ext) {
           var ready = G.programs().every(function (p) { return gl.getProgramParameter(p, ext.COMPLETION_STATUS_KHR); });
-          if (!ready && waited < LINK_GIVEUP_MS) { requestAnimationFrame(wait); return; }
+          if (!ready && waited < LINK_GIVEUP_MS) { CN.raf(wait); return; }
         } else if (waited < LINK_WAIT_MS) { setTimeout(wait, LINK_WAIT_MS - waited); return; }
         firstFrame();
       })();
@@ -221,9 +225,10 @@
         if (poster) ro.observe(poster);
       } else win.addEventListener("resize", function () { dirty = true; }, { passive: true });
       if (!coarse && stage) dragSetup();
-      requestAnimationFrame(function () {
-        if (state === "ready" && allowed()) { box.classList.add("is-live"); liveAt = CN.now(); }
-      });
+      /* v5 Exposure (html.cn-intro, the first Home view of a session): the live globe crossfades
+         over its poster no earlier than 1.4 s after the page started, once the veil has lifted */
+      var live = function () { if (state === "ready" && allowed()) { box.classList.add("is-live"); liveAt = CN.now(); } };
+      CN.raf(function () { setTimeout(live, root.classList.contains("cn-intro") ? 1400 - CN.now() : 0); });
       play();
     }
     function fail(err) {

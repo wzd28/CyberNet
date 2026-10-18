@@ -148,7 +148,6 @@ html.cn #recovery #recoveryUsageCard {
   border: 1px solid var(--cn-line);
   border-radius: 16px;
   background: var(--cn-surface);
-  box-shadow: none;
   text-align: start;
 }
 
@@ -213,9 +212,7 @@ html.cn #recovery :is(.recovery-immediate-card, .recovery-timeline-card, .recove
   margin: 0 0 var(--cn-5);
   color: var(--cn-text);
   font-size: var(--cn-step-h3);
-  font-weight: 600;
   line-height: 1.2;
-  letter-spacing: -.02em;
 }
 
 /* the legacy green identity is gone; the shared cyan button shows through */
@@ -233,7 +230,6 @@ html.cn #recovery :where(.recovery-field-grid select):is(.recovery-field-grid se
   margin: 0;
   border: 1px solid var(--cn-line-2);
   border-radius: var(--cn-r-ctl);
-  background-color: var(--cn-surface-2);
   box-shadow: none;
   color: var(--cn-text);
   font-family: var(--cn-font);
@@ -304,17 +300,13 @@ html.cn #recovery .recovery-label-lg {
   display: block;
   margin: 0;
   color: var(--cn-text);
-  font-size: var(--cn-step-h3);
-  font-weight: 600;
   line-height: 1.2;
-  letter-spacing: -.02em;
 }
 
 /* a quiet helper line under the question (the placeholder holds the example) */
 html.cn #recovery .recovery-label-lg::after {
   content: "In your own words: what you clicked, shared or paid, and where.";
   display: block;
-  margin-block-start: 6px;
   color: var(--cn-text-2);
   font-size: var(--cn-step-small);
   font-weight: 400;
@@ -590,9 +582,7 @@ html.cn #recovery .recovery-upload-row .upload-icon-sm {
   flex: none;
   width: 40px;
   height: 40px;
-  border: 1px solid var(--cn-line);
   border-radius: 12px;
-  background: var(--cn-surface-2);
   color: transparent;
   font-size: 0;
   transition: background-color var(--cn-dur-1) ease;
@@ -605,7 +595,6 @@ html.cn #recovery .recovery-upload-row .upload-icon-sm::before {
   width: 20px;
   height: 20px;
   margin: auto;
-  background: var(--cn-text-2);
   -webkit-mask: var(--cn-rec-i-image) center / contain no-repeat;
   mask: var(--cn-rec-i-image) center / contain no-repeat;
   transition: background-color var(--cn-dur-1) ease;
@@ -770,7 +759,6 @@ html.cn #recovery .recovery-cases-card h4 {
   margin: 0 0 var(--cn-4);
   color: var(--cn-text);
   font-size: 1.125rem;
-  font-weight: 600;
   line-height: 1.3;
 }
 
@@ -796,9 +784,7 @@ html.cn #recovery #recoveryCaseList > .recovery-empty-note:only-child::before {
   width: 40px;
   height: 40px;
   margin-block-end: var(--cn-3);
-  border: 1px solid var(--cn-line);
   border-radius: 12px;
-  background: var(--cn-surface-2);
 }
 
 html.cn #recovery #recoveryCaseList > .recovery-empty-note:only-child::after {
@@ -808,7 +794,6 @@ html.cn #recovery #recoveryCaseList > .recovery-empty-note:only-child::after {
   top: calc(var(--cn-4) + 10px);
   width: 20px;
   height: 20px;
-  background: var(--cn-text-2);
   -webkit-mask: var(--cn-rec-i-folder) center / contain no-repeat;
   mask: var(--cn-rec-i-folder) center / contain no-repeat;
 }
@@ -884,7 +869,6 @@ html.cn #recovery .recovery-case-progress {
 /* width is set inline by script.js: colour only */
 html.cn #recovery .recovery-case-progress span {
   border-radius: inherit;
-  background: var(--cn-id);
 }
 
 /* ==========================================================================
@@ -952,10 +936,6 @@ html.cn #recovery .recovery-status-card {
 html.cn #recovery .recovery-status-label,
 html.cn #recovery .recovery-summary-card::before {
   margin: 0;
-  color: var(--cn-text-2);
-  font: 500 var(--cn-step-label)/1.2 var(--cn-font-mono);
-  letter-spacing: var(--cn-track-label);
-  text-transform: uppercase;
 }
 
 html.cn #recovery .recovery-status-card strong:not(.recovery-risk-badge) {
@@ -1054,10 +1034,6 @@ html.cn #recovery #recoveryConfidenceOut {
   flex: none;
   margin: 0;
   color: var(--cn-text);
-  font: 500 .8125rem/1.4 var(--cn-font-mono);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: .04em;
-  text-transform: uppercase;
 }
 
 html.cn #recovery #recoveryConfidenceOut::before {
@@ -1102,10 +1078,6 @@ html.cn #recovery .recovery-fact-card h5 {
   align-items: center;
   gap: 10px;
   margin: 0 0 var(--cn-4);
-  color: var(--cn-text-2);
-  font: 500 var(--cn-step-label)/1.3 var(--cn-font-mono);
-  letter-spacing: var(--cn-track-label);
-  text-transform: uppercase;
 }
 
 html.cn #recovery .recovery-fact-card ul {
@@ -1239,12 +1211,14 @@ html.cn #recovery .recovery-action-check::after {
   background: var(--cn-on-cyan);
   -webkit-mask: var(--cn-rec-i-check) center / contain no-repeat;
   mask: var(--cn-rec-i-check) center / contain no-repeat;
-  clip-path: inset(0 100% 0 0);
+  opacity: 0;
+  scale: .6;
   pointer-events: none;
-  transition: clip-path var(--cn-dur-2) var(--cn-ease-out) 80ms;
+  /* v5: the tick sets in (scale .6 -> 1 with opacity, 180 ms expo); compositor only */
+  transition: opacity 180ms var(--cn-ease-expo), scale 180ms var(--cn-ease-expo);
 }
 
-html.cn #recovery .recovery-action-check:has(input:checked)::after { clip-path: inset(0); }
+html.cn #recovery .recovery-action-check:has(input:checked)::after { opacity: 1; scale: 1; }
 
 /* browsers without :has(): paint the tick on the input itself */
 @supports not selector(:has(a)) {
@@ -1340,10 +1314,6 @@ html.cn #recovery .recovery-action-verify {
 
 html.cn #recovery :is(.recovery-action-why, .recovery-action-verify) strong {
   margin-inline-end: 4px;
-  color: var(--cn-text);
-  font: 500 .6875rem/1 var(--cn-font-mono);
-  letter-spacing: .08em;
-  text-transform: uppercase;
 }
 
 /* "2 of 4 done": a live count of the ticks, in CSS (counters from the rows above) */
@@ -1486,7 +1456,7 @@ html.cn #recovery #recoveryTimelineActions .recovery-action-item::after {
   background: var(--cn-id);
   scale: 1 0;
   transform-origin: 50% 0;
-  transition: scale var(--cn-dur-3) var(--cn-ease-out);
+  transition: scale var(--cn-dur-3) var(--cn-ease-expo);   /* the fill grows by scaleY, never height */
 }
 
 html.cn #recovery #recoveryTimelineActions .recovery-action-item:has(input:checked)::after { scale: 1 1; }
@@ -1527,7 +1497,6 @@ html.cn #recovery .recovery-locked-note::before {
   height: 40px;
   margin: 0 auto var(--cn-4);
   border-radius: 12px;
-  background: var(--cn-cyan-tint);
 }
 
 html.cn #recovery .recovery-locked-note::after {
@@ -1538,7 +1507,6 @@ html.cn #recovery .recovery-locked-note::after {
   width: 20px;
   height: 20px;
   margin-left: -10px;
-  background: var(--cn-cyan-2);
   -webkit-mask: var(--cn-rec-i-lock) center / contain no-repeat;
   mask: var(--cn-rec-i-lock) center / contain no-repeat;
 }
@@ -1613,18 +1581,13 @@ html.cn #recovery .recovery-pro-upsell-body::before {
   border: 1px solid var(--cn-line-2);
   border-radius: var(--cn-r-pill);
   color: var(--cn-text-2);
-  font: 500 .6875rem/1 var(--cn-font-mono);
-  letter-spacing: var(--cn-track-label);
-  text-transform: uppercase;
 }
 
 html.cn #recovery .recovery-pro-upsell-body h4 {
   margin: 0 0 var(--cn-2);
   color: var(--cn-text);
   font-size: 1.25rem;
-  font-weight: 600;
   line-height: 1.3;
-  letter-spacing: -.02em;
   text-wrap: balance;
 }
 
@@ -1989,4 +1952,53 @@ html.cn #recovery .recovery-pro-upsell-body::before {
 html.cn.cn-still #recovery .cn-rec-visual::after { animation: none; }
 @media (forced-colors: active) {
   html.cn #recovery .cn-rec-visual { display: none; }
+}
+
+/* ==========================================================================================
+   9. v5 (owner: pages; v5 SPEC 7.17). The lead and the usage meter settle after a page switch
+   (30-tools.css section 19, shared by the three tool headers); the intake never animates in.
+   The case meter's width is written inline by script.js: no width transition (layout per frame).
+   Desktop hover on the plan's cards: the key light (a pre-made ::after, opacity only) and a
+   brighter hairline; no lift, no shadow animation. The summary card keeps its ::before mark.
+   ========================================================================================== */
+html.cn #recovery #recoveryUsageCaseBar { transition: none; }
+
+@media (hover: hover) and (pointer: fine) {
+  html.cn #recovery .recovery-cases-card,
+  html.cn #recovery .recovery-immediate-card,
+  html.cn #recovery .recovery-timeline-card,
+  html.cn #recovery .recovery-remaining-card,
+  html.cn #recovery .recovery-resources-card,
+  html.cn #recovery .recovery-history-card {
+    isolation: isolate;
+    transition: border-color 440ms var(--cn-ease-settle);
+  }
+  html.cn #recovery .recovery-cases-card::after,
+  html.cn #recovery .recovery-immediate-card::after,
+  html.cn #recovery .recovery-timeline-card::after,
+  html.cn #recovery .recovery-remaining-card::after,
+  html.cn #recovery .recovery-resources-card::after,
+  html.cn #recovery .recovery-history-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--cn-key);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 440ms var(--cn-ease-settle);
+  }
+  html.cn #recovery .recovery-cases-card:hover,
+  html.cn #recovery .recovery-immediate-card:hover,
+  html.cn #recovery .recovery-timeline-card:hover,
+  html.cn #recovery .recovery-remaining-card:hover,
+  html.cn #recovery .recovery-resources-card:hover,
+  html.cn #recovery .recovery-history-card:hover { border-color: var(--cn-hair-3); }
+  html.cn #recovery .recovery-cases-card:hover::after,
+  html.cn #recovery .recovery-immediate-card:hover::after,
+  html.cn #recovery .recovery-timeline-card:hover::after,
+  html.cn #recovery .recovery-remaining-card:hover::after,
+  html.cn #recovery .recovery-resources-card:hover::after,
+  html.cn #recovery .recovery-history-card:hover::after { opacity: 1; }
 }

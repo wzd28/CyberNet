@@ -16,15 +16,23 @@
    - CN.mount(ctx): starts registered modules for [data-cn] markup added later inside ctx.
 
    Motion and visibility (one shared listener each)
-   - CN.reduced(): prefers-reduced-motion. CN.onMotion(cb) -> off(): cb(reduced) on a change.
+   - CN.reduced(): prefers-reduced-motion (07-aurora.js adds Pause motion). CN.onMotion(cb) ->
+     off(): cb(reduced) on a change of the OS setting.
    - CN.hidden(): the tab is hidden. CN.onVisibility(cb) -> off(): cb(visible) on a change.
-   - CN.loop(fn): a requestAnimationFrame loop { start, stop, running }; fn(t, dt). Every loop is
-     suspended while the tab is hidden or the page is covered, and resumes after.
+   - CN.raf(fn) -> id, CN.cancelRaf(id) (v5): the one frame clock. fn(t) runs once in the next
+     frame, t in ms on the performance.now() timebase. Every callback queued for a frame shares
+     ONE native requestAnimationFrame (also once GSAP has loaded). Nothing queued = no frame cost.
+   - CN.loop(fn): a frame loop { start, stop, running } on CN.raf; fn(t, dt), dt clamped to
+     64 ms. Every loop is suspended while the tab is hidden or the page is covered.
    - CN.covered(): the page is hidden under a full-screen opaque layer (the phone menu sheet;
      12-nav.js calls CN.setCovered). CN.onCover(cb) -> off(): cb(covered) on a change. Anything
      that keeps drawing (canvases, timers) should rest while covered.
+   - CN.setLayer(open) (08-focus.js only), CN.layerOpen(), CN.onLayer(cb) -> off(): a top layer
+     (the menu sheet, any dialog, the Legal Center) is open. Lenis leaves the wheel native then.
    - CN.pause(scope) / CN.resume(scope): calls pause() / resume() on the controllers of the
      modules inside scope (an element; the whole page when omitted).
+   - CN.motion (02-motion.js), CN.smooth() / CN.smoothStats() (06-scroll.js): see those files.
+   The helper list in ui-src/DESIGN.md is the integrator's to update.
 
    Viewport and pages
    - CN.inView(el, cb, opts) -> stop(): cb(visible, entry) whenever el enters or leaves the
@@ -37,7 +45,8 @@
      every switch.
 
    Scrolling (v4.7)
-   - CN.scrolling(): the page scrolled in the last 160 ms. CN.whenStill(fn): fn() now if the page
+   - CN.scrolling(): the page scrolled in the last 160 ms, or a Lenis run is in flight (v5).
+     CN.whenStill(fn): fn() now if the page
      is not scrolling, otherwise once it has been still for 160 ms. One-off shows that run on the
      main thread (the example scan, the engine diagram's run, the closing statement's words) start
      through it, so they never compete with a scroll in progress; they play once the visitor
@@ -91,7 +100,15 @@
       fire: function (v) { list.slice().forEach(function (cb) { try { cb(v); } catch (e) { report("listener", e); } }); }
     };
   }
-  var motion = channel(), visibility = channel(), cover = channel();
+  var motion = channel(), visibility = channel(), cover = channel(), layers = channel();
+  /* A top layer is open (08-focus.js reports it): Lenis keeps the wheel native and settles. */
+  var layer = false;
+  function setLayer(v) {
+    v = !!v;
+    if (v === layer) return;
+    layer = v;
+    layers.fire(v);
+  }
   /* Covered: a full-screen opaque layer (the phone menu sheet, 12-nav.js) hides the whole page,
      so nothing under it needs to move. Loops (CN.loop) suspend while covered, and canvases
      (10-hero3d.js, 09-bgfx.js) listen through CN.onCover. */
@@ -109,21 +126,49 @@
     else if (mqReduce.addListener) mqReduce.addListener(onReduce);
   }
 
+  /* ---------- one frame clock ----------
+     raf(fn) -> id: fn(t) once, in the next frame. Every queued callback shares one native
+     requestAnimationFrame; t is the frame's rAF timestamp (performance.now() timebase). It stays
+     native once GSAP has loaded (finish, 18 Oct): run on gsap.ticker, the canvases' 30 fps
+     requests re-woke the ticker every other frame, so it never slept and asked for 60 frames a
+     second at rest. Lenis alone uses gsap.ticker, and only during a glide (06-scroll.js). */
+  var rq = [], rqId = 0, rqNative = 0;
+  function nativeFrame(t) {
+    rqNative = 0;
+    var list = rq;
+    rq = [];
+    for (var i = 0; i < list.length; i++) {
+      try { list[i][1](t); } catch (e) { report("raf", e); }
+    }
+  }
+  function raf(fn) {
+    if (typeof fn !== "function") return 0;
+    rq.push([++rqId, fn]);
+    if (!rqNative) rqNative = requestAnimationFrame(nativeFrame);
+    return rqId;
+  }
+  function cancelRaf(id) {
+    for (var i = 0; i < rq.length; i++) if (rq[i][0] === id) { rq.splice(i, 1); return; }
+  }
+
   /* loop(fn): fn(t, dt) every frame while running. Returns {start, stop, running}. */
   var loops = [];
   function loop(fn) {
-    var raf = 0, last = 0, on = false, wanted = false;
+    var id = 0, last = 0, on = false, wanted = false;
     function frame(t) {
+      id = 0;
       if (!on) return;
-      var dt = last ? Math.min(64, t - last) : 16; last = t;
+      var dt = last ? Math.max(0, Math.min(64, t - last)) : 16; last = t;
       fn(t, dt);
-      raf = requestAnimationFrame(frame);
+      if (on && !id) id = raf(frame);
     }
+    function go() { on = true; last = 0; if (!id) id = raf(frame); }
+    function halt() { on = false; if (id) { cancelRaf(id); id = 0; } }
     var api = {
-      start: function () { wanted = true; if (on || doc.hidden || covered) return; on = true; last = 0; raf = requestAnimationFrame(frame); },
-      stop: function () { wanted = false; on = false; cancelAnimationFrame(raf); },
-      _suspend: function () { on = false; cancelAnimationFrame(raf); },
-      _resume: function () { if (wanted && !on && !doc.hidden && !covered) { on = true; last = 0; raf = requestAnimationFrame(frame); } },
+      start: function () { wanted = true; if (on || doc.hidden || covered) return; go(); },
+      stop: function () { wanted = false; halt(); },
+      _suspend: halt,
+      _resume: function () { if (wanted && !on && !doc.hidden && !covered) go(); },
       running: function () { return on; }
     };
     loops.push(api);
@@ -136,11 +181,13 @@
 
   /* ---------- scrolling ---------- */
   var STILL_MS = 160, scrolledAt = -1e9, stillWaiters = [], stillTimer = 0;
-  function scrolling() { return now() - scrolledAt < STILL_MS; }
+  /* a Lenis run in flight (06-scroll.js) counts as scrolling too */
+  function gliding() { var s = win.CN && win.CN.smooth && win.CN.smooth(); return !!(s && s.isScrolling); }
+  function scrolling() { return now() - scrolledAt < STILL_MS || gliding(); }
   function flushStill() {
     stillTimer = 0;
     var left = STILL_MS - (now() - scrolledAt);
-    if (left > 0) { stillTimer = setTimeout(flushStill, left + 8); return; }
+    if (left > 0 || gliding()) { stillTimer = setTimeout(flushStill, Math.max(left, 60) + 8); return; }
     var list = stillWaiters; stillWaiters = [];
     list.forEach(function (f) { try { f(); } catch (e) { report("whenStill", e); } });
   }
@@ -324,12 +371,14 @@
     now: now, reduced: reduced, saveData: saveData, finePointer: finePointer, hidden: hidden,
     qs: qs, qsa: qsa, clamp: clamp, lerp: lerp, easeOut: easeOut, text: text,
     scrolling: scrolling, whenStill: whenStill,
-    inView: inView, once: once, onVisible: once, loop: loop,
+    inView: inView, once: once, onVisible: once, loop: loop, raf: raf, cancelRaf: cancelRaf,
     onMotion: motion.add, onVisibility: visibility.add,
     covered: function () { return covered; }, onCover: cover.add, setCovered: setCovered,
+    layerOpen: function () { return layer; }, onLayer: layers.add, setLayer: setLayer,
     register: register, mount: mount,
     pause: function (scope) { control(scope, "pause"); },
     resume: function (scope) { control(scope, "resume"); },
-    onReady: onReady, later: later, afterLoad: afterLoad, onPage: onPage
+    onReady: onReady, later: later, afterLoad: afterLoad, onPage: onPage,
+    _ch: channel, _err: report
   };
 })();

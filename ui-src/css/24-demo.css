@@ -8,8 +8,12 @@
    character (.is-on, .is-caret) and custom properties set on the one element that reads each of
    them (--cn-hp on each highlight, --cn-arc on the arc, --cn-score on the number, --cn-prog on the
    bar, --cn-fade on the body and footer, --p on each step bar). The static markup is the finished
-   state. Scroll: the console rises into place once as it enters (27-bento.js adds .is-in; v4.7: no
-   scroll timeline). Reduced motion: no rise, the finished state. */
+   state. Scroll: the console rises into place once as it enters (27-bento.js sets data-cn-rise;
+   v4.7: no scroll timeline). Reduced motion: no rise, the finished state.
+   v5: the console label is Mona Sans (the status and the Example tag stay mono: data); the score
+   is a CN.numerals odometer (51-numerals.css) instead of a CSS counter; the verdict pops with
+   opacity and scale .96 -> 1 on expo (no overshoot); a soft scan beam (.cn-beam) sweeps down the
+   message while it is read. */
 
 /* Registered and not inherited: a frame that moves a highlight or the loop fade restyles that
    one element, not every character inside it. */
@@ -218,8 +222,6 @@ html.cn #home .cn-console {
   --cn-cyan-line: rgba(34, 211, 238, .42);
   --cn-ring: #22d3ee;
   --cn-violet: #818cf8;
-  --cn-violet-2: #a5b4fc;
-  --cn-magenta: #60a5fa;
   --cn-iris: #a5b4fc;
   --cn-iris-2: #c7d2fe;
   --cn-safe: #34d399;
@@ -268,11 +270,13 @@ html.cn #home .cn-console-top .cn-mono {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  font-size: 11px;
+  /* the product name in the brand voice (v5), sentence case; data stays mono */
+  font-family: var(--cn-font);
+  font-size: .8125rem;
   font-weight: 600;
   line-height: 1.3;
-  letter-spacing: var(--cn-track-label);
-  text-transform: uppercase;
+  letter-spacing: -.005em;
+  text-transform: none;
   color: var(--cn-text);
   white-space: nowrap;
 }
@@ -375,6 +379,20 @@ html.cn #home .cn-bubble {
   letter-spacing: var(--cn-track-body);
   color: var(--cn-text);
   overflow-wrap: anywhere;
+  overflow: hidden;
+  overflow: clip;
+}
+/* The scan beam: a soft cyan band that reads down the message once per run (30-demo.js writes
+   its transform and opacity only; a 3D translate only while it moves). */
+html.cn #home .cn-console .cn-beam {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 0;
+  block-size: 28%;
+  background: linear-gradient(180deg, transparent, rgba(34, 211, 238, .16) 50%, transparent);
+  opacity: 0;
+  transform: translate(0, -100%);
+  pointer-events: none;
 }
 html.cn #home .cn-from {
   display: inline-flex;
@@ -501,22 +519,16 @@ html.cn #home .cn-meter-num b {
   font-weight: 600;
   line-height: 1;
   letter-spacing: -.04em;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
   text-align: end;
   color: var(--cn-text);
 }
-html.cn #home .cn-meter-num span {
+html.cn #home .cn-meter-num > span {
   font-family: var(--cn-font-mono);
   font-size: 12px;
   color: var(--cn-text-2);
 }
-/* With JS the visible number is a counter fed by --cn-score; the DOM keeps the final value for readers. */
-html.cn.cn-js #home .cn-console.is-ready .cn-meter-num b { font-size: 0; }
-html.cn.cn-js #home .cn-console.is-ready .cn-meter-num b::before {
-  counter-reset: cn-score var(--cn-score, 0);
-  content: counter(cn-score);
-  font-size: var(--cn-num-size);
-}
+/* (v5: the number is a CN.numerals odometer, snapped with the arc; readers get the text) */
 
 /* Where color-mix() exists, the highlight gains a faint tint and the arc warms from amber to rose
    as it fills (older browsers keep the plain underline and a rose arc). */
@@ -619,10 +631,10 @@ html.cn.cn-js #home .cn-console.is-ready .cn-console-grid,
 html.cn.cn-js #home .cn-console.is-ready .cn-console-foot { opacity: var(--cn-fade, 1); }
 html.cn.cn-js #home .cn-console.is-ready .cn-verdict {
   opacity: 0;
-  transform: scale(.96);
-  transition: opacity var(--cn-dur-2) var(--cn-ease-out), transform 420ms cubic-bezier(.34, 1.56, .64, 1);
+  scale: .96;
+  transition: opacity 420ms var(--cn-ease-expo), scale 420ms var(--cn-ease-expo);
 }
-html.cn.cn-js #home .cn-console.is-ready.is-verdict .cn-verdict { opacity: 1; transform: none; }
+html.cn.cn-js #home .cn-console.is-ready.is-verdict .cn-verdict { opacity: 1; scale: none; }
 /* Reasons wait as skeleton lines while the scan runs, then the words fade in over them. */
 html.cn.cn-js #home .cn-console.is-ready .cn-reasons li {
   --cn-pt: 13px;
@@ -672,16 +684,13 @@ html.cn.cn-js #home .cn-console.is-ready.is-snap .cn-c,
 html.cn.cn-js #home .cn-demo.is-snap .cn-step b,
 html.cn.cn-js #home .cn-demo.is-snap .cn-step b::before { transition: none; }
 
-/* ---------- Scroll: the device rises and settles into place as it enters ----------
-   v4.7: once, on every browser: 27-bento.js adds .is-in when a quarter of the console is on
-   screen, and a 1.1 s transform transition (compositor) settles it, a gentle 10deg lean. It used
-   to follow a scroll timeline, which Chromium updates on the main thread on every scrolled frame. */
+/* ---------- Scroll: the device SETTLEs into place as it enters ----------
+   Once: 27-bento.js sets data-cn-rise="" when the console's first report finds it off screen and
+   "in" once a quarter of it is on screen; opacity and a 32px rise on the compositor (v5: no lean,
+   no scale; the grammar has no rotation). */
 @media (prefers-reduced-motion: no-preference) {
-  html.cn.cn-js #home .cn-demo .cn-console {
-    transform-origin: 50% 100%;
-    transition: transform 1.1s var(--cn-ease-out);
-  }
-  html.cn.cn-js:not(.cn-still) #home .cn-demo .cn-console:not(.is-in) { transform: perspective(1400px) rotateX(10deg) translateY(48px) scale(.96); }
+  html.cn.cn-js:not(.cn-still) #home .cn-demo .cn-console[data-cn-rise=""] { opacity: 0; translate: 0 32px; }
+  html.cn #home .cn-demo .cn-console[data-cn-rise="in"] { transition: opacity var(--cn-t-settle) var(--cn-ease-settle), translate 1000ms var(--cn-ease-expo); }
 }
 
 /* Reduced motion: 30-demo.js renders the finished state once (with transitions snapped off). */
@@ -689,7 +698,11 @@ html.cn.cn-js #home .cn-demo.is-snap .cn-step b::before { transition: none; }
   html.cn #home .cn-console .cn-c { transition: none; }
   html.cn #home .cn-console .cn-c::after { display: none; }
   html.cn.cn-js #home .cn-console.is-ready .cn-reasons li::after { animation: none; }
+  html.cn #home .cn-console .cn-beam { display: none; }
+  html.cn.cn-js #home .cn-demo .cn-console { opacity: 1; translate: none; }
 }
+html.cn.cn-still #home .cn-console .cn-beam { display: none; }
+html.cn.cn-js.cn-still #home .cn-demo .cn-console { opacity: 1; translate: none; transition: none; }
 
 /* Forced colours: the amber tint would turn into an unreadable block, so use the system highlight pair. */
 @media (forced-colors: active) {
@@ -702,7 +715,6 @@ html.cn.cn-js #home .cn-demo.is-snap .cn-step b::before { transition: none; }
 }
 
 /* Label floor: no text under --cn-step-label (12px), phones included (DESIGN.md rule 6). */
-html.cn #home :is(.cn-console-top .cn-mono),
-html.cn #home :where(.cn-status):is(.cn-status, .cn-console-top .cn-mono),
-html.cn #home :where(.cn-from):is(.cn-from, .cn-console-top .cn-mono) { font-size: var(--cn-step-label); }
+html.cn #home .cn-status,
+html.cn #home .cn-from { font-size: var(--cn-step-label); }
 

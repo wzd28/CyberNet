@@ -16,7 +16,11 @@
    screen, tab visible, motion allowed, not paused). Before that, and without JS, every panel
    shows, stacked, with no stage. Primary buttons stay cyan; tool colours mark only the tab's
    progress line and the example card's small dot (Analysis AI's indigo is one of those small
-   marks). Every text pair was checked at 4.5:1 or more. */
+   marks). Every text pair was checked at 4.5:1 or more.
+   v5 (owner: home-close): grain on the sheet from 1024px; the reel settles as one block
+   (05-motion.css); a tool change swaps panels out (180 ms exit) and in (520 ms expo, from 12px,
+   only after the first change: data-cn-swap) with the card's rows 40 ms apart; the stage shield
+   is still; inactive tool names rest in slate and brighten on hover with their hairline. */
 
 /* ---------- The stage sheet ---------- */
 html.cn #home > .cn-flow {
@@ -44,14 +48,10 @@ html.cn #home > .cn-flow {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, .06),
     inset 0 0 0 1px rgba(148, 163, 184, .1);
-  --cn-text: #f5f7fa;
-  --cn-text-2: #aab4c3;
-  --cn-text-3: #8a95a7;
-  --cn-line: rgba(148, 163, 184, .14);
-  --cn-line-2: rgba(148, 163, 184, .24);
   color: var(--cn-text);
   font-family: var(--cn-font);
 }
+/* (grain from 1024px: 28-home-more.css, shared with the closing stage) */
 /* A lit top edge: a faint cyan hairline that fades out at both ends (static). */
 html.cn #home > .cn-flow::after {
   content: "";
@@ -170,7 +170,7 @@ html.cn #home .cn-reel-tab {
   color: var(--cn-text-2);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: background-color var(--cn-dur-2) ease, color var(--cn-dur-2) ease, border-color var(--cn-dur-2) ease, box-shadow var(--cn-dur-3) ease, translate var(--cn-dur-2) var(--cn-ease-out);
+  transition: background-color var(--cn-t-state) ease, color var(--cn-t-state) ease, border-color var(--cn-t-state) ease;
 }
 /* The tool's chrome 3D object (renders in /ui/3d): the shield, the AI globe and the Recovery shield.
    The renders carry a soft halo, so they are drawn a little larger than their box. */
@@ -192,8 +192,6 @@ html.cn #home .cn-reel-tab.is-active::before { opacity: 1; scale: 1.06; }
 html.cn #home #cnTabScan::before { background-image: url("/ui/3d/shield-320.webp?v=20261014-5"), var(--cn-tab-disc); }
 html.cn #home #cnTabAi::before { background-image: url("/ui/3d/ai-globe-320.webp?v=20261014-5"), var(--cn-tab-disc); }
 html.cn #home #cnTabRec::before { background-image: url("/ui/3d/recovery-320.webp?v=20261014-5"), var(--cn-tab-disc); }
-/* Numbers stay in the Example scan, the one real sequence on the page. */
-html.cn #home .cn-reel-k { display: none; }
 html.cn #home .cn-reel-tab b {
   font-size: .8125rem;
   font-weight: 600;
@@ -254,7 +252,6 @@ html.cn #home .cn-reel-line::after {
   transform: scaleX(0);
   transform-origin: 0 50%;
 }
-html.cn[dir="rtl"] #home .cn-reel-line::after { transform-origin: 100% 50%; }
 html.cn #home .cn-reel.is-ready .cn-reel-tab.is-active .cn-reel-line::after { transform: scaleX(1); }
 html.cn #home .cn-reel.is-ready.is-auto .cn-reel-tab.is-active .cn-reel-line::after {
   animation: cn-reel-fill var(--cn-reel-int, 6500ms) linear both;
@@ -271,8 +268,7 @@ html.cn #home .cn-reel-tab:focus-visible {
   html.cn #home .cn-reel-tab:not(.is-active):hover {
     color: var(--cn-text);
     background: rgba(255, 255, 255, .05);
-    border-color: rgba(148, 163, 184, .24);
-    translate: 0 -1px;
+    border-color: var(--cn-hair-2);
   }
   html.cn #home .cn-reel-tab:not(.is-active):hover::before { opacity: 1; }
 }
@@ -305,7 +301,7 @@ html.cn #home .cn-reel-tab:focus-visible {
     min-block-size: 92px;
     padding: 16px 16px 20px 14px;
     background: rgba(255, 255, 255, .025);
-    border-color: rgba(148, 163, 184, .14);
+    border-color: var(--cn-hair-1);
     border-radius: 20px;
     text-align: start;
   }
@@ -321,7 +317,6 @@ html.cn #home .cn-reel-tab:focus-visible {
     font-size: 1.0625rem;
     line-height: 1.2;
     letter-spacing: -.012em;
-    color: var(--cn-text);
   }
   html.cn #home .cn-reel-tab small {
     position: static;
@@ -401,7 +396,6 @@ html.cn #home .cn-fs-orbit {
   transform: rotateZ(-14deg) rotateX(74deg);
   transform-style: preserve-3d;
 }
-html.cn[dir="rtl"] #home .cn-fs-orbit { translate: 50% -46%; }
 /* the orbit: two thin hairlines, slate and a fainter cyan, no glow */
 html.cn #home .cn-fs-path {
   position: absolute;
@@ -413,9 +407,7 @@ html.cn #home .cn-fs-path--b {
   inset: -11%;
   border-color: rgba(103, 232, 249, .16);
 }
-/* the chrome shield: v4.7 it rests (the slow float loop is gone: owner, "make it super smooth");
-   its sprite (::before) settles in on a tool change (a different keyframes name per tool
-   restarts the animation) */
+/* the chrome shield: it rests, through tool changes too (v5: a filtered sprite never animates) */
 html.cn #home .cn-fs-shield {
   position: absolute;
   inset-block-start: 50%;
@@ -424,31 +416,12 @@ html.cn #home .cn-fs-shield {
   aspect-ratio: 1;
   translate: -50% -54%;
 }
-html.cn[dir="rtl"] #home .cn-fs-shield { translate: 50% -54%; }
 html.cn #home .cn-fs-shield::before {
   content: "";
   position: absolute;
   inset: 0;
   background: url("/ui/3d/shield.webp?v=20261014-5") center / contain no-repeat;
   filter: drop-shadow(0 22px 26px rgba(0, 0, 0, .55));
-  animation: cn-fs-swap-a .9s var(--cn-ease-out) both;
-}
-html.cn #home .cn-reel[data-cn-tool="ai"] .cn-fs-shield::before { animation-name: cn-fs-swap-b; }
-html.cn #home .cn-reel[data-cn-tool="rec"] .cn-fs-shield::before { animation-name: cn-fs-swap-c; }
-
-/* A tool change: the shield settles in (a short fade and scale, no spin). Three identical
-   keyframes under different names, so each change restarts it. */
-@keyframes cn-fs-swap-a {
-  from { opacity: .4; transform: scale(.94); }
-  to { opacity: 1; transform: none; }
-}
-@keyframes cn-fs-swap-b {
-  from { opacity: .4; transform: scale(.94); }
-  to { opacity: 1; transform: none; }
-}
-@keyframes cn-fs-swap-c {
-  from { opacity: .4; transform: scale(.94); }
-  to { opacity: 1; transform: none; }
 }
 
 /* Entrance: v4.7 the stage no longer rises on a scroll timeline (main-thread work on every
@@ -497,26 +470,22 @@ html.cn #home .cn-reel:not(.is-ready) .cn-reel-cap { display: none; }
   }
 }
 
+/* The swap: the old panel lifts away (180 ms exit) as the new one rises from 12px (520 ms expo,
+   once the old one has mostly gone). Both start in the frame of the click. */
 html.cn #home .cn-reel.is-ready .cn-reel-panel {
   grid-area: 1 / 1;
   opacity: 0;
   visibility: hidden;
-  transform: translate3d(0, 14px, 0) scale(.985);
-  transition: opacity 260ms ease, transform 320ms ease, visibility 0s linear 320ms;
+  translate: 0 -6px;
+  transition: opacity 180ms var(--cn-ease-exit), translate 180ms var(--cn-ease-exit), visibility 0s linear 180ms;
 }
 html.cn #home .cn-reel.is-ready .cn-reel-panel.is-active {
   opacity: 1;
   visibility: visible;
-  transform: none;
-  transition: opacity 500ms var(--cn-ease-out) 140ms, transform 600ms var(--cn-ease-out) 140ms, visibility 0s linear 0s;
-}
-/* A tool picked by hand (the tour has stopped, so no .is-auto) answers at once: the panel swaps
-   in the same frame and only its contents rise in (the keyframes below), so a click never waits
-   on a fade, even on a slow device. The cross-fade is kept for the self-running tour. */
-html.cn #home .cn-reel.is-ready:not(.is-auto) .cn-reel-panel,
-html.cn #home .cn-reel.is-ready:not(.is-auto) .cn-reel-panel.is-active {
+  translate: none;
   transition: none;
 }
+html.cn #home .cn-reel[data-cn-swap] .cn-reel-panel.is-active { --cn-rise: 12px; animation: cn-rise 520ms var(--cn-ease-expo) 140ms backwards; }
 
 /* ---------- Example cards: white, floating on the navy stage ----------
    Light tokens inside the card, so the shared parts (Example tag, verdict badge) read correctly. */
@@ -756,21 +725,26 @@ html.cn #home .cn-checklist li.is-done::after {
 /* ---------- Entrances inside the active panel (JS only) ----------
    Keyframe animations restart every time a panel becomes active. The rest state is fully
    visible, so a panel that fades out keeps its content. */
-html.cn #home .cn-reel.is-ready:not(.is-shown) .cn-reel-panel.is-active .cn-mini > * { opacity: 0; }
-html.cn #home .cn-reel.is-ready.is-shown .cn-reel-panel.is-active .cn-mini > * {
-  animation: cn-reel-in 520ms var(--cn-ease-out) var(--cn-d, 0ms) both;
+@media (prefers-reduced-motion: no-preference) {
+  html.cn:not(.cn-still) #home .cn-reel.is-ready:not(.is-shown) .cn-reel-panel.is-active .cn-mini > * { opacity: 0; }
 }
-html.cn #home .cn-reel .cn-mini > :nth-child(1) { --cn-d: 150ms; }
-html.cn #home .cn-reel .cn-mini > :nth-child(2) { --cn-d: 230ms; }
-html.cn #home .cn-reel .cn-mini > :nth-child(3) { --cn-d: 310ms; }
-html.cn #home .cn-reel .cn-mini > :nth-child(4) { --cn-d: 390ms; }
+html.cn #home .cn-reel.is-ready.is-shown .cn-reel-panel.is-active .cn-mini > * {
+  --cn-rise: 8px;
+  animation: cn-rise 520ms var(--cn-ease-expo) var(--cn-d, 0ms) backwards;
+}
+/* the card's rows, 40 ms apart (capped at 6) */
+html.cn #home .cn-reel .cn-mini > * { --cn-d: 380ms; }
+html.cn #home .cn-reel .cn-mini > :nth-child(1) { --cn-d: 180ms; }
+html.cn #home .cn-reel .cn-mini > :nth-child(2) { --cn-d: 220ms; }
+html.cn #home .cn-reel .cn-mini > :nth-child(3) { --cn-d: 260ms; }
+html.cn #home .cn-reel .cn-mini > :nth-child(4) { --cn-d: 300ms; }
+html.cn #home .cn-reel .cn-mini > :nth-child(5) { --cn-d: 340ms; }
 html.cn #home .cn-reel .cn-mini-chat > .cn-verdict { --cn-d: var(--cn-stream-ms, 2600ms); }
 html.cn #home .cn-reel.is-ready.is-shown .cn-reel-panel.is-active .cn-mini .cn-verdict { animation-name: cn-reel-pop; }
 html.cn #home .cn-reel.is-ready .cn-mini-ring { stroke-dashoffset: var(--cn-ring-to, 0); }
 html.cn #home .cn-reel.is-ready.is-shown .cn-reel-panel.is-active .cn-mini-ring {
   animation: cn-reel-ring 1.2s var(--cn-ease-out) 450ms both;
 }
-@keyframes cn-reel-in { from { opacity: 0; transform: translateY(8px); } }
 @keyframes cn-reel-pop { from { opacity: 0; transform: scale(.96); } }
 @keyframes cn-reel-ring { from { stroke-dashoffset: 100; } }
 
@@ -797,15 +771,13 @@ html.cn #home .cn-reel-pause.is-paused::before {
 
 @media (prefers-reduced-motion: reduce) {
   html.cn #home .cn-reel.is-ready .cn-reel-panel,
-  html.cn #home .cn-reel.is-ready .cn-reel-panel.is-active,
   html.cn #home .cn-reel-tab,
   html.cn #home .cn-reel-tab::before,
   html.cn #home .cn-msg-ai.is-streaming .cn-w.is-on { transition: none; }
-  html.cn #home .cn-reel.is-ready .cn-reel-panel { transform: none; }
+  html.cn #home .cn-reel.is-ready .cn-reel-panel { translate: none; }
+  html.cn #home .cn-reel[data-cn-swap] .cn-reel-panel.is-active,
   html.cn #home .cn-reel.is-ready.is-shown .cn-reel-panel.is-active .cn-mini > *,
-  html.cn #home .cn-reel.is-ready.is-shown .cn-reel-panel.is-active .cn-mini-ring,
-  html.cn #home .cn-fs-shield,
-  html.cn #home .cn-fs-shield::before { animation: none; }
+  html.cn #home .cn-reel.is-ready.is-shown .cn-reel-panel.is-active .cn-mini-ring { animation: none; }
 }
 
 /* Forced colours: the stage is decoration; the tool cards keep a visible edge. */

@@ -191,7 +191,6 @@ html.cn #learn .learn-search-row {
   border: 1px solid var(--cn-line-2);
   border-radius: var(--cn-r-pill);
   background: var(--cn-surface);
-  box-shadow: var(--cn-shadow);
   transition: border-color var(--cn-dur-2) var(--cn-ease-out), box-shadow var(--cn-dur-2) var(--cn-ease-out);
 }
 
@@ -213,7 +212,6 @@ html.cn #learn .learn-search-row::before {
 
 /* the same 2px cyan ring the base layer gives every focused field */
 html.cn #learn .learn-search-row:focus-within {
-  border-color: var(--cn-line-2);
   outline: 2px solid var(--cn-cyan);
   outline-offset: 2px;
 }
@@ -510,9 +508,10 @@ html.cn #learn .rm-node {
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   transform: none;
+  isolation: isolate;   /* the hover key light (::after, z-index -1) sits on the card, under the text */
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: border-color var(--cn-dur-2) var(--cn-ease-out), background-color var(--cn-dur-2) var(--cn-ease-out);
+  transition: border-color var(--cn-t-state) var(--cn-ease-settle), background-color var(--cn-dur-2) var(--cn-ease-out);
 }
 
 @container cn-roadmap (max-width: 599px) {
@@ -558,7 +557,8 @@ html.cn #learn .rm-node-info::after {
     linear-gradient(var(--cn-learn-ic), var(--cn-learn-ic)) center / 12px 1.5px no-repeat,
     linear-gradient(var(--cn-learn-ic), var(--cn-learn-ic)) center / 1.5px 12px no-repeat,
     var(--cn-surface-2);
-  transition: transform var(--cn-dur-3) var(--cn-ease-out), border-color var(--cn-dur-2) var(--cn-ease-out), background-color var(--cn-dur-2) var(--cn-ease-out);
+  /* v5: the open mark turns 45 degrees (+ to x) in 240 ms expo */
+  transition: transform 240ms var(--cn-ease-expo), border-color var(--cn-dur-2) var(--cn-ease-out), background-color var(--cn-dur-2) var(--cn-ease-out);
 }
 
 html.cn #learn .rm-node-info h3 {
@@ -607,10 +607,20 @@ html.cn #learn .rm-node:has(.cn-lesson-toggle:focus-visible) {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  html.cn #learn .rm-node:not(.expanded):hover {
-    border-color: var(--cn-line-2);
-    background: var(--cn-surface-2);
+  /* v5: the hairline brightens (hair-2 to hair-3) and the key light comes up, 200 ms; no fill
+     change, no lift */
+  html.cn #learn .rm-node::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--cn-key);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--cn-t-state) var(--cn-ease-settle);
   }
+  html.cn #learn .rm-node:not(.expanded):hover { border-color: var(--cn-hair-3); }
+  html.cn #learn .rm-node:not(.expanded):hover::after { opacity: 1; }
   html.cn #learn .rm-node:not(.expanded):hover .rm-node-info::after {
     --cn-learn-ic: var(--cn-text);
     background-color: var(--cn-surface-3);
@@ -784,6 +794,7 @@ html.cn #learn .rm-tip > strong:first-child::before { background: var(--cn-cyan)
   html.cn #learn .rm-node-expand,
   html.cn #learn .rm-node-info::before,
   html.cn #learn .rm-node-info::after,
+  html.cn #learn .rm-node::after,
   html.cn #learn .learn-search-row,
   html.cn #learn .learn-search-row::before { transition: none; }
 }

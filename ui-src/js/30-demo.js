@@ -8,7 +8,13 @@
    console. Attribute changes are invisible to the legacy body-wide observers (childList and
    characterData only). Without JS, or with reduced motion, the finished state shows.
    The global "Pause motion" control (html.cn-still, 03-aurora.css) also holds the loop, as do
-   CN.pause() and a hidden tab; the section's own Pause button stays the visitor's control. */
+   CN.pause() and a hidden tab; the section's own Pause button stays the visitor's control.
+   v5: the score is a 2-column odometer (CN.numerals: snapped in step with the arc on each drawn
+   frame, so it rolls as the arc fills); a soft cyan scan beam (span.cn-beam, added with the
+   bubble) sweeps down the message while it is read (its transform and opacity only); the steps
+   SETTLE 70 ms apart.
+   The Reading (a scroll-driven desktop scene) was cut at the finish (18 Oct): its scrub relaid
+   400+ elements a frame, the most expensive v5 feature (kill order step 1). */
 (function () {
   "use strict";
   var CN = window.CN;
@@ -60,9 +66,12 @@
         host.appendChild(s);
       });
     });
-    var frag = document.createDocumentFragment();
+    var frag = document.createDocumentFragment(), beam = document.createElement("span");
+    beam.className = "cn-beam";
+    beam.setAttribute("aria-hidden", "true");
     frag.appendChild(sr);
     frag.appendChild(vis);
+    frag.appendChild(beam);
     p.textContent = "";
     p.appendChild(frag);
     p.__cnBubble = { chars: i, marks: k };
@@ -90,6 +99,9 @@
     btn.removeAttribute("aria-pressed");
     label(btn, "Pause");
     if (CN.reduced()) btn.hidden = true;
+    /* the steps settle 70 ms apart, after the heading */
+    var M = CN.motion;
+    if (M) M.reveal("#cnDemo .cn-steps", "stagger", { delay: 260 });
     btn.addEventListener("click", function () {
       btnState.paused = !btnState.paused;
       label(btn, btnState.paused ? "Play" : "Pause");
@@ -114,6 +126,8 @@
     var arcEl = CN.qs(".cn-arc-val", fig);
     var progEl = CN.qs("[data-cn-progress]", fig) || CN.qs(".cn-progress i", fig);
     var fadeEls = CN.qsa(".cn-console-grid, .cn-console-foot", fig);
+    var beam = bubble ? CN.qs(".cn-beam", bubble) : null, beamT = "", beamO = "";
+    if (CN.numerals && scoreEl) CN.numerals.mount(scoreEl);
     var lastOn = -1, lastCaret = -1;
 
     var vars = {}, flags = {}, stepState = [];
@@ -167,7 +181,14 @@
       // Each phrase's underline sweeps in turn; only the phrase in progress changes per frame.
       marks.forEach(function (m, k) { setVar(m, "--cn-hp", CN.clamp(h - k, 0, 1).toFixed(3)); });
       setVar(arcEl, "--cn-arc", arc.toFixed(2));
-      setVar(scoreEl, "--cn-score", String(Math.round(arc)));
+      if (CN.numerals) CN.numerals.set(scoreEl, Math.round(arc), { duration: 0 });
+      /* the beam reads the message: from just above the bubble to just past it */
+      if (beam) {
+        var inWin = t > T.type0 && t < T.hl1;
+        var bt = inWin ? "translate3d(0," + (seg(t, T.type0, T.hl1) * 360 - 100).toFixed(1) + "%,0)" : "translate(0,-100%)";
+        if (bt !== beamT) { beamT = bt; beam.style.transform = bt; }
+        if (beamO !== (inWin ? "1" : "0")) { beamO = inWin ? "1" : "0"; beam.style.opacity = beamO; }
+      }
       setVar(progEl, "--cn-prog", seg(t, 0, T.done).toFixed(4));
       fadeEls.forEach(function (el) { setVar(el, "--cn-fade", fade); });
 

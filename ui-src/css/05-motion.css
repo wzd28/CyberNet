@@ -1,0 +1,61 @@
+/* CyberNet AI v5: motion presets and the folio rule (owner: core). Driven by 05-reveal.js
+   (CN.motion.reveal); markup may carry the same attributes. Timings and eases are tokens
+   (00-tokens.css), so phones get the shorter set. Transform (the individual translate / scale
+   properties) and opacity only, so the compositor runs them while the page scrolls.
+   Hidden "before" states exist only under html.cn-js and only until .is-in; 05-reveal.js arms
+   them only when the first observer report finds the element off screen, so nothing visible
+   ever blinks. Entrances are keyframes with backwards fill (resting at the normal style; .is-done
+   when finished, so a page shown again never replays them); rules are transitions that live on
+   .is-in only (taking .is-in away resets them at once, for the folio replay).
+   Reduced motion and Pause motion: 90-a11y.css section 1 shows every final state. */
+
+/* ---- settle (default) and fade; "clip" is retired and settles ----
+   Stagger children are keyed on [style] (05-reveal.js writes --cn-i on each one as it arms the
+   list), never on "> *": a universal subject makes every .is-in anywhere restyle that element's
+   whole subtree (Chromium invalidation sets), which cost 10 to 15 ms a reveal under Lenis. */
+html.cn.cn-js [data-cn-reveal]:not(.is-in, [data-cn-reveal="off"], [data-cn-reveal="trigger"], [data-cn-reveal^="rule"]),
+html.cn.cn-js [data-cn-stagger]:not(.is-in) > [style] {
+  opacity: 0;
+}
+html.cn [data-cn-reveal]:not([data-cn-reveal="trigger"], [data-cn-reveal^="rule"]).is-in {
+  animation: cn-rise var(--cn-t-settle) var(--cn-ease-settle) var(--cn-d, 0ms) backwards;
+}
+html.cn [data-cn-reveal="fade"].is-in { animation-name: cn-fade; animation-duration: 600ms; }
+html.cn [data-cn-stagger].is-in > [style] {
+  animation: cn-rise var(--cn-t-settle) var(--cn-ease-settle) calc(min(var(--cn-i, 0), 6) * var(--cn-st, var(--cn-st-item)) + var(--cn-d, 0ms)) backwards;
+}
+html.cn [data-cn-reveal].is-done,
+html.cn [data-cn-stagger].is-done > [style] { animation: none; }
+@keyframes cn-rise { from { opacity: 0; translate: 0 var(--cn-rise); } }
+@keyframes cn-fade { from { opacity: 0; } }
+@keyframes cn-scale { from { opacity: 0; scale: var(--cn-sc, 1.06); } }
+
+/* ---- RULE (rule-before): the host's ::before hairline draws from its bright end (inline start
+   by default; corner labels, eyebrows) ---- */
+html.cn [data-cn-rule]::before { transform-origin: var(--cn-rule-o, 0 50%); }
+html.cn.cn-js [data-cn-rule]:not(.is-in)::before { scale: 0 1; }
+html.cn [data-cn-rule].is-in::before { transition: scale var(--cn-t-rule) var(--cn-ease-expo) var(--cn-d, 0ms); }
+/* mirrored labels keep their bright far end: mirror in place about the end that draws */
+html.cn [data-cn-rule].cn-edlabel--end::before,
+html.cn[dir="rtl"] [data-cn-rule].cn-edlabel::before { transform-origin: 100% 50%; transform: scaleX(-1) translateX(100%); }
+html.cn[dir="rtl"] [data-cn-rule].cn-edlabel--end::before { transform-origin: 0 50%; transform: none; }
+
+/* ---- the folio turn (05-reveal.js, flag "folio"): a 1px cyan rule draws across the top
+   during script.js's 300 ms page swap, then fades. Decorative; display: none at rest. ---- */
+html.cn cn-folio {
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline: 0;
+  z-index: calc(var(--cn-z-header) + 1);
+  display: none;
+  block-size: 1px;
+  background: linear-gradient(90deg, transparent, #22d3ee 18%, #67e8f9 50%, #22d3ee 82%, transparent);
+  transform-origin: 0 50%;
+  pointer-events: none;
+}
+html.cn[dir="rtl"] cn-folio { transform-origin: 100% 50%; }
+html.cn cn-folio[data-turn] { display: block; }
+html.cn cn-folio[data-turn="out"] { animation: cn-folio-out 300ms var(--cn-ease-swap) backwards; }
+html.cn cn-folio[data-turn="in"] { opacity: 0; animation: cn-fade-out 260ms var(--cn-ease-exit) backwards; }
+@keyframes cn-folio-out { from { opacity: 0; scale: 0 1; } }
+@keyframes cn-fade-out { from { opacity: 1; } }

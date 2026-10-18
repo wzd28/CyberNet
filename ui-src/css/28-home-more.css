@@ -16,7 +16,14 @@
    Legacy traps handled here: content-visibility/contain on .why-choose, .wow-section and
    .home-quote, the shared .support-box / .home-limits-note classes (scoped to #home), and the
    .tilt-card inline transform (beaten in 01-base). Nothing here toggles a class to animate:
-   legacy observers watch "class" on the whole body (state is a data attribute). */
+   legacy observers watch "class" on the whole body (state is a data attribute).
+   v5 (owner: home-close; SPEC 7.8 to 7.10): the AI picture scales in (reveal "trigger" on the
+   sheet), the four points get a hover key light, the diagram brings its nodes in before each run
+   and its Verdict ring ignites once, the facts' rules draw ("rule-before"), and the close is "Last
+   Light": sentence 1 SETs, sentence 2 LIGHTs (55-scrub.js), the shield rises, the CTA row settles
+   and the closing CTA runs one star lap. Every hidden "before" state below lives inside
+   (prefers-reduced-motion: no-preference) and html.cn:not(.cn-still), so reduced motion and
+   Pause motion always show the final state. */
 
 /* ---------------------------------------------------------------- shared */
 
@@ -69,54 +76,11 @@ html.cn #home > .home-quote {
 
 /* ============================================================ 7. Rules first, then AI */
 
-/* The light scope for both parts of the sheet: the same values 00-tokens.css gives its light
-   bands (.cn-light), so every shared component inside reads ink text, white cards and deep
-   cyan marks (the AI mark in indigo). Every pair is at least 4.5:1 (ratios in 00-tokens.css). */
+/* The light scope for both parts of the sheet comes from 00-tokens.css (its light bands list
+   #home > .why-choose and #home > .wow-section): ink text, white cards, deep cyan marks, every
+   pair at least 4.5:1. v5: the copy that used to be repeated here is gone. */
 html.cn #home > .why-choose,
 html.cn #home > .wow-section {
-  --cn-bg: #f5f7fa;
-  --cn-bg-2: #eef2f6;
-  --cn-surface: #ffffff;
-  --cn-surface-2: #f5f7fa;
-  --cn-surface-3: #ebeff5;
-  --cn-glass: rgba(255, 255, 255, .86);
-  --cn-glass-2: #ffffff;
-  --cn-hi: rgba(255, 255, 255, .95);
-  --cn-fill-1: #ffffff;
-  --cn-fill-2: #f5f7fa;
-  --cn-line: rgba(15, 23, 42, .08);
-  --cn-line-2: rgba(15, 23, 42, .14);
-  --cn-line-ctl: rgba(15, 23, 42, .5);
-  --cn-text: #0b1220;
-  --cn-text-2: #475569;
-  --cn-text-3: #5b6576;
-  --cn-cyan: #0e7490;
-  --cn-cyan-2: #0b6a84;
-  --cn-ice: #0b6a84;
-  --cn-teal: #0e7490;
-  --cn-deep: #d5f6fb;
-  --cn-cyan-tint: rgba(14, 116, 144, .09);
-  --cn-cyan-line: rgba(14, 116, 144, .36);
-  --cn-on-cyan: #ffffff;
-  --cn-ring: #0b6a84;
-  --cn-violet: #4f46e5;
-  --cn-violet-2: #4338ca;
-  --cn-purple: #2563eb;
-  --cn-magenta: #2563eb;
-  --cn-iris: #4f46e5;
-  --cn-iris-2: #4338ca;
-  --cn-iris-tint: rgba(79, 70, 229, .07);
-  --cn-iris-line: rgba(79, 70, 229, .26);
-  --cn-mint: #0d6b64;
-  --cn-mint-2: #0b5f58;
-  --cn-shadow: 0 30px 60px -32px rgba(15, 23, 42, .28);
-  --cn-shadow-card: 0 1px 2px rgba(15, 23, 42, .05), 0 16px 32px -24px rgba(15, 23, 42, .22);
-  --cn-id: var(--cn-cyan);
-  --cn-id-2: var(--cn-cyan-2);
-  --cn-focus: 0 0 0 3px #f5f7fa, 0 0 0 5px #0b6a84;
-  --text: #0b1220;
-  --muted: #475569;
-  --soft: #475569;
   color-scheme: light;
   color: var(--cn-text);
 }
@@ -200,6 +164,19 @@ html.cn #home > .why-choose::before {
     background-position: 56% 50%;
   }
 }
+/* v5: the picture comes in once as the sheet arrives (40-beams.js arms the sheet with reveal
+   "trigger"): desktop scale 1.04 -> 1 with a fade over 1400 ms expo, phones a fade. .is-done (set
+   when it ends) keeps a re-shown page from replaying it. */
+@media (prefers-reduced-motion: no-preference) {
+  html.cn.cn-js:not(.cn-still) #home > .why-choose[data-cn-reveal]:not(.is-in)::before { opacity: 0; }
+  html.cn:not(.cn-still) #home > .why-choose.is-in:not(.is-done)::before {
+    --cn-sc: 1.04;
+    animation: cn-scale 900ms var(--cn-ease-expo) backwards;
+  }
+}
+@media (pointer: coarse), (max-width: 760px) {
+  html.cn:not(.cn-still) #home > .why-choose.is-in:not(.is-done)::before { animation-name: cn-fade; }
+}
 /* ---- the four points: white cards, a quiet icon tile (the AI point carries the indigo mark) ---- */
 html.cn #home .why-choose-grid {
   grid-area: grid;
@@ -266,12 +243,23 @@ html.cn #home .why-choose-item p {
 @container cn-why (max-width: 299.98px) {
   html.cn #home .why-choose-item { grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 16px; }
 }
+/* hover: the fixed key light (light-band value) under the content, and a brighter hairline; the
+   card itself stays still */
 @media (hover: hover) and (pointer: fine) {
-  html.cn #home .why-choose-item { transition: translate var(--cn-dur-2) var(--cn-ease-out), box-shadow var(--cn-dur-2) ease; }
-  html.cn #home .why-choose-item:hover {
-    translate: 0 -2px;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, .05), 0 22px 40px -26px rgba(15, 23, 42, .3);
+  html.cn #home .why-choose-item { isolation: isolate; transition: border-color 440ms var(--cn-ease-settle); }
+  html.cn #home .why-choose-item::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--cn-key);
+    opacity: 0;
+    transition: opacity 440ms var(--cn-ease-settle);
+    pointer-events: none;
   }
+  html.cn #home .why-choose-item:hover { border-color: var(--cn-hair-3); }
+  html.cn #home .why-choose-item:hover::after { opacity: 1; }
 }
 
 /* ---- the engine diagram: a white panel with fine lanes (no glow filters: a filter on the
@@ -348,19 +336,12 @@ html.cn #home .cn-node-engine text { fill: #0b1220; font-weight: 600; }
 html.cn #home .cn-node-engine.is-ai rect { fill: #f2f7ff; stroke: rgba(37, 99, 235, .45); }
 html.cn #home .cn-node-engine.is-ai text { fill: #1d4ed8; }
 /* the Verdict: a cyan pill with ink text (10.6:1) and a soft ring (no glow filter) */
-html.cn #home .cn-node-out rect:not(.cn-node-ring):not(.cn-node-ping) {
+html.cn #home .cn-node-out rect:not(.cn-node-ring) {
   fill: #22d3ee;
   stroke: #0e7490;
 }
 html.cn #home .cn-node-out text { fill: #061018; font-weight: 650; }
-html.cn #home .cn-node-ring { fill: rgba(34, 211, 238, .12); stroke: rgba(34, 211, 238, .4); }
-html.cn #home .cn-node-ping {
-  fill: none;
-  stroke: #22d3ee;
-  opacity: 0;
-  transform-box: fill-box;
-  transform-origin: center;
-}
+html.cn #home .cn-node-ring { fill: rgba(34, 211, 238, .12); stroke: rgba(34, 211, 238, .4); opacity: .6; }
 /* connection ports (added by 40-beams.js) */
 html.cn #home .cn-beam-ports circle {
   fill: #ffffff;
@@ -373,7 +354,7 @@ html.cn #home .cn-beam-ports circle.is-ai { stroke: #2563eb; }
 
 /* Pulses (paths cloned by 40-beams.js with pathLength=100): a bright head on a comet tail.
    ONE run each time the diagram scrolls into view (data-cn-run), about 4 s, then it rests. */
-html.cn #home .cn-beams { --cn-beam-dur: 3.6s; }
+html.cn #home .cn-beams { --cn-beam-dur: 3.6s; --cn-beam-lead: 0ms; }
 html.cn #home .cn-beam-pulses path {
   fill: none;
   stroke: #22d3ee;
@@ -402,17 +383,36 @@ html.cn #home .cn-beam-pulses .is-out.cn-pulse-tail { --cn-beam-anim: cn-beam-ou
 html.cn #home .cn-node-engine rect { --cn-node-anim: cn-beam-engine; }
 html.cn #home .cn-node-engine.is-ai rect { --cn-node-anim: cn-beam-engine-ai; }
 html.cn #home .cn-node-engine + .cn-node-engine rect { --cn-beam-delay: 140ms; }
-html.cn #home .cn-node-out rect:not(.cn-node-ring):not(.cn-node-ping) { --cn-node-anim: cn-beam-verdict; }
+html.cn #home .cn-node-out rect:not(.cn-node-ring) { --cn-node-anim: cn-beam-verdict; }
 
 html.cn #home .cn-beams[data-cn-run] .cn-beam-pulses path {
-  animation: var(--cn-beam-anim, none) var(--cn-beam-dur) linear var(--cn-beam-delay, 0ms) 1 both;
+  animation: var(--cn-beam-anim, none) var(--cn-beam-dur) linear calc(var(--cn-beam-lead) + var(--cn-beam-delay, 0ms)) 1 both;
 }
-html.cn #home .cn-beams[data-cn-run] :where(.cn-node-engine rect):is(.cn-node-engine rect, .cn-node-out rect:not(.cn-node-ring):not(.cn-node-ping)),
-html.cn #home .cn-beams[data-cn-run] :is(.cn-node-out rect:not(.cn-node-ring):not(.cn-node-ping)) {
-  animation: var(--cn-node-anim, none) var(--cn-beam-dur) linear var(--cn-beam-delay, 0ms) 1 both;
+html.cn #home .cn-beams[data-cn-run] .cn-node-engine rect,
+html.cn #home .cn-beams[data-cn-run] .cn-node-out rect:not(.cn-node-ring) {
+  animation: var(--cn-node-anim, none) var(--cn-beam-dur) linear calc(var(--cn-beam-lead) + var(--cn-beam-delay, 0ms)) 1 both;
 }
-html.cn #home .cn-beams[data-cn-run] .cn-node-ping {
-  animation: cn-beam-ping var(--cn-beam-dur) linear 1 both;
+/* v5: as the last pulse lands, the Verdict's ring ignites once (.4 -> 1 -> its rest .6) */
+html.cn #home .cn-beams[data-cn-run] .cn-node-ring {
+  animation: cn-ring-on 900ms var(--cn-ease-swap) calc(var(--cn-beam-lead) + var(--cn-beam-dur) * .72) backwards;
+}
+@keyframes cn-ring-on { from { opacity: .4; } 45% { opacity: 1; } }
+/* v5: armed (off screen at the first report, 40-beams.js), the nodes come in once, in reading
+   order (inputs, the checks, the Verdict; 600 ms expo, 80 ms apart), as soon as a quarter of the
+   diagram is on screen (data-cn-seen); the pulses wait for them. After that first visit the box
+   is disarmed, so the labels rest in place. The same for the vertical version's rows. */
+html.cn #home :is(.cn-beam-nodes, .cn-bv) > :nth-child(2) { --cn-ni: 1; }
+html.cn #home :is(.cn-beam-nodes, .cn-bv) > :nth-child(3) { --cn-ni: 2; }
+html.cn #home :is(.cn-beam-nodes, .cn-bv) > :nth-child(4) { --cn-ni: 3; }
+html.cn #home :is(.cn-beam-nodes, .cn-bv) > :nth-child(5) { --cn-ni: 4; }
+html.cn #home :is(.cn-beam-nodes, .cn-bv) > :nth-child(6) { --cn-ni: 5; }
+@media (prefers-reduced-motion: no-preference) {
+  html.cn:not(.cn-still) #home .cn-beams[data-cn-arm] { --cn-beam-lead: 600ms; }
+  html.cn:not(.cn-still) #home .cn-beams[data-cn-arm]:not([data-cn-seen]) :is(.cn-beam-nodes, .cn-bv) > * { opacity: 0; }
+  html.cn:not(.cn-still) #home .cn-beams[data-cn-arm][data-cn-seen] :is(.cn-beam-nodes, .cn-bv) > * {
+    --cn-rise: 8px;
+    animation: cn-rise 600ms var(--cn-ease-expo) calc(var(--cn-ni, 0) * 80ms) backwards;
+  }
 }
 
 /* One run: inputs travel (0-36%), the checks light (36-46%), the result travels (46-72%),
@@ -457,11 +457,6 @@ html.cn #home .cn-beams[data-cn-run] .cn-node-ping {
   0%, 69% { fill: #22d3ee; }
   73% { fill: #a5f3fc; }
   90%, 100% { fill: #22d3ee; }
-}
-@keyframes cn-beam-ping {
-  0%, 70% { opacity: 0; transform: scale(1); }
-  72% { opacity: .7; transform: scale(1); animation-timing-function: cubic-bezier(.22, 1, .36, 1); }
-  96%, 100% { opacity: 0; transform: scale(1.24); }
 }
 
 /* labels stay readable when the diagram scales down (text >= 12px on screen) */
@@ -573,10 +568,15 @@ html.cn #home .cn-bv-wire + .cn-bv-eng + .cn-bv-wire::before {
   background: linear-gradient(to bottom, transparent, #60a5fa 35%, #22d3ee 75%, #ffffff);
 }
 /* one run per entry, in step with the SVG version */
-html.cn #home .cn-beams[data-cn-run] .cn-bv-wire::before { animation: cn-bv-wire-a var(--cn-beam-dur) linear 1 both; }
+html.cn #home .cn-beams[data-cn-run] .cn-bv-wire::before { animation: cn-bv-wire-a var(--cn-beam-dur) linear var(--cn-beam-lead) 1 both; }
 html.cn #home .cn-beams[data-cn-run] .cn-bv-wire + .cn-bv-eng + .cn-bv-wire::before { animation-name: cn-bv-wire-b; }
-html.cn #home .cn-beams[data-cn-run] .cn-bv-eng { animation: cn-bv-eng var(--cn-beam-dur) linear 1 both; }
-html.cn #home .cn-beams[data-cn-run] .cn-bv-out .cn-bv-node::after { animation: cn-bv-ping var(--cn-beam-dur) linear 1 both; }
+html.cn #home .cn-beams[data-cn-run] .cn-bv-eng { animation: cn-bv-eng var(--cn-beam-dur) linear var(--cn-beam-lead) 1 both; }
+@media (prefers-reduced-motion: no-preference) {
+  html.cn:not(.cn-still) #home .cn-beams[data-cn-arm][data-cn-run] .cn-bv > .cn-bv-eng {
+    animation: cn-rise 600ms var(--cn-ease-expo) 160ms backwards, cn-bv-eng var(--cn-beam-dur) linear var(--cn-beam-lead) 1 both;
+  }
+}
+html.cn #home .cn-beams[data-cn-run] .cn-bv-out .cn-bv-node::after { animation: cn-bv-ping var(--cn-beam-dur) linear var(--cn-beam-lead) 1 both; }
 @keyframes cn-bv-wire-a {
   0% { opacity: 0; transform: translateY(-14px); animation-timing-function: cubic-bezier(.45, 0, .25, 1); }
   4% { opacity: 1; }
@@ -609,7 +609,9 @@ html.cn #home > .wow-section {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-areas: "head" "stats";
-  margin-block: 0 clamp(14px, .5rem + 1vw, 24px);
+  /* -1px: it overlaps the first part by one pixel, so no hairline of navy shows at the seam when
+     the two land on a fractional pixel */
+  margin-block: -1px clamp(14px, .5rem + 1vw, 24px);
   padding: 0 var(--cn-panel-px) clamp(40px, 1.25rem + 3vw, 72px);
   border: 0;
   border-radius: 0 0 var(--cn-panel-r) var(--cn-panel-r);
@@ -716,16 +718,20 @@ html.cn #home .wow-stat::before {
   border-radius: 3px;
   background: linear-gradient(90deg, #22d3ee, #3b82f6);
 }
-html.cn #home .wow-ring { display: none; }
+/* v5: the three rules draw from their start, 90 ms apart (40-beams.js: reveal "rule-before") */
+html.cn #home .wow-stat:nth-child(2) { --cn-d: 90ms; }
+html.cn #home .wow-stat:nth-child(3) { --cn-d: 180ms; }
+/* the figures (legacy animateWowCounters() writes them; restyled only) */
 html.cn #home .wow-stat-number {
   margin: 0;
   color: var(--cn-fact);
   font-family: var(--cn-font);
   font-size: clamp(2.25rem, 1.5rem + 2.6vw, 3.75rem);
-  font-weight: 650;
-  line-height: .95;
-  letter-spacing: -.04em;
-  font-variant-numeric: tabular-nums;
+  font-weight: var(--cn-fw-fig);
+  font-stretch: var(--cn-fst-fig);
+  line-height: 1;
+  letter-spacing: var(--cn-track-fig);
+  font-variant-numeric: tabular-nums lining-nums;
 }
 html.cn #home .wow-stat-label {
   color: var(--cn-text-2);
@@ -755,11 +761,6 @@ html.cn #home .wow-stat-label {
 /* The navy stage: one soft cyan light behind the shield, then the statement and actions. */
 html.cn #home > .home-quote,
 html.cn #home > :is(.wow-section) + .home-quote {
-  --cn-text: #f5f7fa;
-  --cn-text-2: #aab4c3;
-  --cn-text-3: #8a95a7;
-  --cn-line: rgba(148, 163, 184, .14);
-  --cn-line-2: rgba(148, 163, 184, .24);
   margin-block: clamp(14px, .5rem + 1vw, 24px);
   padding: clamp(40px, 1.5rem + 3.6vw, 88px) var(--cn-panel-px) var(--cn-panel-py);
   border: 0;
@@ -777,6 +778,18 @@ html.cn #home > :is(.wow-section) + .home-quote {
   color: var(--cn-text);
   text-align: center;
 }
+/* v5 finish: the static grain tile on the two navy stages (the tools sheet and this one), from
+   1024px only, over their ground and under everything they hold (both are isolated) */
+@media (min-width: 1024px) {
+  html.cn #home > .cn-flow::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--cn-grain) 0 0 / 160px;
+    pointer-events: none;
+  }
+}
 /* lit top edge: a faint cyan hairline fading out at both ends */
 html.cn #home > .home-quote::after {
   content: "";
@@ -788,8 +801,13 @@ html.cn #home > .home-quote::after {
 }
 
 /* ---- the shield ----
-   Markup: .cn-close-shield > img. 55-scrub.js wraps the image in .cn-cs-float. v4.7: the emblem
-   rests (the slow float loop and the scroll-linked rise are gone; owner: "make it super smooth"). */
+   Markup: .cn-close-shield > img. 55-scrub.js wraps the image in .cn-cs-float. v5: only this
+   wrapper ever moves (the filtered img never does): one rise, 16px over 1200 ms expo, as it
+   enters (reveal "trigger"). */
+@media (prefers-reduced-motion: no-preference) {
+  html.cn.cn-js:not(.cn-still) #home .cn-close-shield[data-cn-reveal]:not(.is-in) { translate: 0 16px; }
+}
+html.cn #home .cn-close-shield.is-in { transition: translate 1.2s var(--cn-ease-expo); }
 html.cn #home .cn-close-shield {
   position: relative;
   z-index: 0;
@@ -883,7 +901,6 @@ html.cn #home .cn-close-pause[aria-pressed="true"] > span {
   border-inline-start: 10px solid currentColor;
   border-inline-end: 0;
 }
-html.cn[dir="rtl"] #home .cn-close-pause[aria-pressed="true"] > span { scale: -1 1; margin-inline: 0 3px; }
 html.cn #home .cn-close-pause:focus-visible { outline: 2px solid var(--cn-ring, #22d3ee); outline-offset: 3px; }
 @media (hover: hover) and (pointer: fine) {
   html.cn #home .cn-close-pause:hover {
@@ -911,17 +928,38 @@ html.cn #home .home-quote .cn-scrub-line {
   text-wrap: balance;
   --cn-on: #f5f7fa;
 }
-html.cn #home .home-quote .cn-scrub-line + .cn-scrub-line { margin-top: .14em; --cn-on: #67e8f9; }  /* the section's one cyan highlight: 13:1 on the stage */
-/* Each word brightens from slate (#7d889a, 5.3:1 on the stage, so every state stays readable)
-   to its line's colour. v4.7: once, in reading order, when the statement is well on screen
-   (55-scrub.js sets data-cn-lit; a colour transition per word, 45 ms apart), instead of following
-   the scroll (a scroll-timeline custom property restyled every word on every scrolled frame). */
-html.cn #home .home-quote .cn-w {
-  color: #7d889a;
-  transition: color .7s var(--cn-ease-out) calc(var(--i, 0) * 45ms);
+html.cn #home .home-quote .cn-scrub-line + .cn-scrub-line { margin-top: .14em; }
+/* the section's one cyan highlight (13:1 on the stage): "second opinion", words 6 and 7 of the
+   second sentence (finish, 18 Oct: the whole sentence lit cyan, three display lines on a phone) */
+html.cn #home .home-quote .cn-scrub-line + .cn-scrub-line > :is(:nth-child(6), :nth-child(7)) { --cn-on: #67e8f9; }
+/* v5 "Last Light" (55-scrub.js; --i is the word's index in its sentence). Every word rests in its
+   line's colour at full strength. Armed (data-cn-arm: off screen at the first report):
+   - sentence 1 waits in its line's mask (.08em / .18em of room for accents and descenders) and
+     SETs at data-cn-set: each word rises 105% over 900 ms expo, 28 ms apart, fading in over the
+     first 55%;
+   - sentence 2 waits at half strength (still 3.9:1, large text) and LIGHTs at data-cn-lit, 600 ms
+     per word, 45 ms apart. Opacity, not colour: the compositor runs it. */
+html.cn #home .home-quote .cn-w { color: var(--cn-on, #fff); }
+html.cn #home .home-quote .cn-scrub-line:first-child {
+  overflow: clip;
+  padding-block: .08em .18em;
+  margin-block: -.08em -.18em;
 }
-html.cn #home .home-quote [data-cn="scrub"][data-cn-lit] .cn-w,
-html.cn.cn-still #home .home-quote .cn-w { color: var(--cn-on, #fff); }
+/* atomic words: an opacity or translate change on one restyles that box alone (on plain inline
+   spans the scrub relaid the balanced lines on every frame) */
+html.cn #home .home-quote .cn-w { display: inline-block; }
+@media (prefers-reduced-motion: no-preference) {
+  html.cn:not(.cn-still) #home .home-quote [data-cn-arm]:not([data-cn-set]) .cn-scrub-line:first-child .cn-w { opacity: 0; translate: 0 105%; }
+  html.cn:not(.cn-still) #home .home-quote [data-cn-arm]:not([data-cn-lit]) .cn-scrub-line + .cn-scrub-line .cn-w { opacity: .5; }
+}
+html.cn #home .home-quote [data-cn-set] .cn-scrub-line:first-child .cn-w {
+  transition:
+    translate calc(var(--cn-t-set) * .9) var(--cn-ease-expo) calc(var(--i, 0) * 28ms),
+    opacity calc(var(--cn-t-set) * .5) linear calc(var(--i, 0) * 28ms);
+}
+html.cn #home .home-quote [data-cn-lit] .cn-scrub-line + .cn-scrub-line .cn-w {
+  transition: opacity 600ms var(--cn-ease-settle) calc(var(--i, 0) * var(--cn-st-word));
+}
 html.cn.cn-still #home .home-quote .cn-w { transition: none; }
 html.cn .cn-scrub-sr {
   position: absolute;
@@ -958,6 +996,44 @@ html.cn #home .cn-close .cn-ghost-btn {
 @media (hover: hover) and (pointer: fine) {
   html.cn #home .cn-close .cn-ghost-btn:hover { color: #ccfbf1; }
 }
+/* v5: the row settles once the statement is mostly lit (55-scrub.js: data-cn-cta arm -> in ->
+   done). The Recovery route is never hidden: .6 -> 1 over 400 ms. */
+@media (prefers-reduced-motion: no-preference) {
+  html.cn:not(.cn-still) #home .cn-close[data-cn-cta="arm"] { translate: 0 var(--cn-rise); }
+  html.cn:not(.cn-still) #home .cn-close[data-cn-cta="arm"] .primary-btn { opacity: 0; }
+  html.cn:not(.cn-still) #home .cn-close[data-cn-cta="arm"] .cn-ghost-btn { opacity: .6; }
+  html.cn:not(.cn-still) #home .cn-close[data-cn-cta="in"] { transition: translate var(--cn-t-settle) var(--cn-ease-settle); }
+  html.cn:not(.cn-still) #home .cn-close[data-cn-cta="in"] .primary-btn { animation: cn-fade var(--cn-t-settle) var(--cn-ease-settle) backwards; }
+  html.cn:not(.cn-still) #home .cn-close[data-cn-cta="in"] .cn-ghost-btn { transition: opacity .4s var(--cn-ease-settle); }
+}
+/* Star lap (flag "star"; the StarBorder port, the site's only one; Technique after React Bits,
+   MIT + Commons Clause, (c) 2026 David Haz, re-implemented): 200 ms after the row has settled, one
+   bead of light runs a 1px masked ring round the closing CTA (background-position, 2200 ms swap:
+   the one sanctioned paint, on a small button). The ring hugs the pill just outside its edge, on
+   the navy (on the cyan itself an ice bead barely reads); its own ground keeps that edge faintly
+   lit (#e6fbff at .35) before and after. Desktop hover: one 1400 ms lap. */
+html.cn #home .cn-close .primary-btn.big { position: relative; }
+html.cn #home .cn-close .primary-btn.big::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent 0 42%, #e6fbff 50%, transparent 58% 100%) 100% 0 / 320% 100%, rgba(230, 251, 255, .35);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  html.cn:not(.cn-still) #home .cn-close[data-cn-star][data-cn-cta="in"] .primary-btn.big::after {
+    animation: cn-star 2.2s var(--cn-ease-swap) calc(var(--cn-t-settle) + 200ms) backwards;
+  }
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  html.cn:not(.cn-still) #home .cn-close[data-cn-star] .primary-btn.big:hover::after { animation: cn-star 1.4s var(--cn-ease-swap); }
+}
+@keyframes cn-star { to { background-position: 0 0; } }
 /* narrow phones: the main action takes the full row, the Recovery route sits under it */
 @media (max-width: 480px) {
   html.cn #home .cn-close { flex-direction: column; gap: var(--cn-2); }
@@ -1018,8 +1094,7 @@ html.cn #home > div.why-choose { contain-intrinsic-size: auto 955px; }
   html.cn #home > div.why-choose { contain-intrinsic-size: auto 1495px; }
 }
 
-/* the global "Pause motion" (html.cn-still) also holds the tools stage (26-flow.css) */
-html.cn.cn-still #home .cn-flow-stage .cn-fs-shield,
+/* the global "Pause motion" (html.cn-still) also holds the tools tour (26-flow.css) */
 html.cn.cn-still #home .cn-reel.is-auto .cn-reel-tab.is-active .cn-reel-line::after {
   animation-play-state: paused;
 }
@@ -1027,12 +1102,11 @@ html.cn.cn-still #home .cn-reel.is-auto .cn-reel-tab.is-active .cn-reel-line::af
 @media (prefers-reduced-motion: reduce) {
   /* the diagram rests in its static state (40-beams.js never starts a run) */
   html.cn #home .cn-beam-pulses,
-  html.cn #home .cn-node-ping,
   html.cn #home .cn-bv-wire::before,
   html.cn #home .cn-bv-out .cn-bv-node::after { display: none; }
-  html.cn #home .cn-cs-float { animation: none; }
-  html.cn #home .home-quote .cn-w { color: var(--cn-on, #fff); opacity: 1; transition: none; }
-  html.cn #home .why-choose-item { transition: none; }
+  html.cn #home .home-quote .cn-w,
+  html.cn #home .why-choose-item,
+  html.cn #home .why-choose-item::after { transition: none; }
 }
 
 @media (forced-colors: active) {

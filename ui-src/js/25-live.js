@@ -8,6 +8,12 @@
    gradient bars grow when the bars are seen.
    While the section is on screen and the tab is visible it polls /api/public-stats every 60 s (at
    most 10 times per page view) and updates the numbers with a short count.
+   v5: the totals are rolling numerals (CN.numerals, 50-counters.js), mounted only after the legacy
+   fill has settled and real data is in (.is-live). Near the screen they are built at zero; once
+   the card is a third on screen they TALLY (1100 ms expo, 60 ms per column); each 60 s poll then
+   rolls only the digits that changed (700 ms). If the visitor already watched the legacy count,
+   nothing replays. The two cards SETTLE as each enters (the glance card 80 ms behind), the
+   hairlines over the numbers RULE (22-live.css) and "Updated hh:mm" fades in after each change.
    Honesty: the funnel rows show counts on one shared scale, never percentages. If the API fails
    nothing is invented: the section gets .is-down (no "Live" claim, no empty bars), the counters
    keep their dash and the legacy note explains it. (The threats-per-100-scans ring was removed on
@@ -71,9 +77,9 @@
     var funnel = CN.qs(".cn-funnel", sec);
 
     var data = null, painted = null, ready = false;
-    // barsShown: the bars have been on screen. numsSeen: the totals were on screen (before or
-    // after data); numsPlayed: their count-up has run (or was not needed).
-    var barsShown = false, numsSeen = false, numsPlayed = false;
+    // barsShown: the bars have been on screen. The tally: near / seen follow the totals card;
+    // primed: its odometer is built at zero; played: the tally has run (or will not).
+    var barsShown = false, near = false, seen = false, primed = false, played = false;
     var polls = 0, lastAt = 0, timer = 0, busy = false, inview = false, active = false;
 
     /* ---- painting ---- */
@@ -88,41 +94,33 @@
     }
     function fail() { if (!data) state(false); }
 
-    function countTo(el, from, to, ms, format) {
-      if (!el) return;
-      if (CN.reduced() || from === to || !valid(from)) { setText(el, format(to)); return; }
-      var t0 = CN.now(), lastWrite = 0;
-      (function step() {
-        var now = CN.now(), k = CN.clamp((now - t0) / ms, 0, 1);
-        if (k >= 1) { setText(el, format(to)); return; }
-        // Throttled writes keep DOM text churn low (body-wide observers watch text changes).
-        if (now - lastWrite > 45) { lastWrite = now; setText(el, format(from + (to - from) * CN.easeOut(k))); }
-        requestAnimationFrame(step);
-      })();
-    }
+    /* the odometer (50-counters.js loads after this file, so it is looked up at call time) */
+    function num(el, i, o) { var v = nf.format(data[KEYS[i]]); if (CN.numerals) CN.numerals.set(el, v, o); else setText(el, v); }
 
     function paint(withCount) {
       if (!data) return;
       state(true);
-      if (withCount) {
-        counters.forEach(function (el, i) {
-          var to = data[KEYS[i]], from = el ? parseCount(el.textContent) : null;
-          if (from !== to) countTo(el, from === null ? 0 : from, to, 800, function (v) { return nf.format(Math.round(v)); });
-        });
-      }
+      if (withCount) counters.forEach(function (el, i) { num(el, i, { duration: 700 }); });
       // Numbers that arrived while the totals were off screen count up once, when they are seen.
-      if (!numsSeen) numsPlayed = false; else numsPlayed = true;
       paintBars();
       painted = data;
+      tally();
     }
 
-    function playNumbers() {
-      if (numsPlayed || !data) return;
-      numsPlayed = true;
-      if (CN.reduced()) return;
-      counters.forEach(function (el, i) {
-        countTo(el, 0, data[KEYS[i]], 1400, function (v) { return nf.format(Math.round(v)); });
-      });
+    /* The TALLY, once, after the legacy fill has settled and real data is in: built at zero when
+       the card is about to scroll in, rolled once it is a third on screen; back to the real values
+       if the visitor turns away first. Real numbers already on screen are left alone. */
+    function tally() {
+      if (played || !data || !painted || CN.reduced() || !CN.numerals) return;
+      if (!primed) {
+        if (seen) { played = true; return; }
+        if (near) { primed = true; counters.forEach(function (el) { CN.numerals.mount(el, { zero: 1 }); }); }
+        return;
+      }
+      if (seen || !near) {
+        played = true;
+        counters.forEach(function (el, i) { num(el, i, { duration: seen ? 1100 : 0 }); });
+      }
     }
 
     function paintBars() {
@@ -146,7 +144,10 @@
     function adopt(next, withCount) {
       var same = data && painted && KEYS.every(function (k) { return data[k] === next[k]; });
       data = next;
+      var was = timeEl ? timeEl.textContent : "";
       setText(timeEl, "Updated " + clock(new Date()));
+      /* the time cross-fades in after it changes (opacity only) */
+      if (timeEl && timeEl.animate && timeEl.textContent !== was && !CN.reduced()) try { timeEl.animate({ opacity: [0, 1] }, { duration: 160, easing: "ease-out" }); } catch (e) { /* old engine */ }
       // One note that matches the lead (the legacy success text said "updated continuously").
       setText(note, OK_NOTE);
       if (!same || !painted) paint(withCount);
@@ -259,22 +260,12 @@
     }
 
     /* ---- visibility: each part plays when it is itself on screen ---- */
-    // Totals: like 50-counters.js, the real numbers are the resting state. They switch to 0 only
-    // when the panel is about to scroll in (within 40% of a screen), count once it is clearly on
-    // screen, and go straight back to the real values if the visitor turns away first.
-    var primed = false;
-    function setFinal() { counters.forEach(function (el, i) { setText(el, nf.format(data[KEYS[i]])); }); }
-    var stopNear = CN.inView(statsPanel || sec, function (near) {
-      if (numsPlayed || numsSeen || !data || !painted || CN.reduced()) return;
-      if (near && !primed) { primed = true; counters.forEach(function (el) { setText(el, nf.format(0)); }); }
-      else if (!near && primed) { primed = false; setFinal(); }
-    }, { margin: "40% 0px 40% 0px" });
-    CN.once(statsPanel || sec, function () {
-      if (data && !numsPlayed && painted) playNumbers();
-      numsSeen = true;
-      if (!data) numsPlayed = true; // the legacy count (or the dash) was on screen: no replay
-      stopNear();
-    }, { threshold: .3 });
+    // Totals: like 50-counters.js, the real numbers are the resting state. The odometer is built at
+    // zero only when the panel is about to scroll in (within 40% of a screen), tallies once it is
+    // clearly on screen, and goes straight back to the real values if the visitor turns away first.
+    CN.inView(statsPanel || sec, function (v) { near = v; tally(); }, { margin: "40% 0px 40% 0px" });
+    /* the roll starts as the numbers themselves come into view, so zeros never wait on screen */
+    CN.once(CN.qs(".hero-live-stats", sec) || statsPanel || sec, function () { seen = true; tally(); }, { threshold: .01 });
     CN.once(funnel || sec, function () { barsShown = true; paintBars(); }, { threshold: .5 });
     CN.inView(sec, function (vis) { inview = vis; sync(); });
     document.addEventListener("visibilitychange", sync);
@@ -285,5 +276,14 @@
     };
   }
 
-  CN.register("funnel", boot);
+  /* booted two screens early, so the legacy fill has settled before the visitor arrives */
+  CN.register("funnel", boot, { margin: "200% 0px" });
+
+  /* the two cards SETTLE as each enters, the glance card 80 ms behind the totals */
+  CN.onReady(function () {
+    var M = CN.motion;
+    if (!M) return;
+    M.reveal("#home > .cn-live .hero-stats-panel", "settle");
+    M.reveal("#home > .cn-live .hero-why-panel", "settle", { delay: 80 });
+  });
 })();

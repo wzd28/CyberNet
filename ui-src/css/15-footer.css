@@ -14,6 +14,11 @@
    direct child of the footer and takes the fine-print row, at the inline end (it may also sit
    inside the fine-print paragraph). Here it only gets the footer's outline; its glyph and its
    Pause / Play state (.is-paused) are the component's own.
+
+   v5 (owner: home-close): 05-reveal.js tags the footer with reveal "trigger"; the first time it
+   enters (.is-in, once per page view; never if it was on screen at start-up, .is-done), one band
+   of cyan light passes along the top hairline (::after, translate only). Desktop legal links draw
+   a 1px currentColor underline from inline start on hover.
    ========================================================================== */
 
 html.cn body > footer {
@@ -175,8 +180,8 @@ html.cn body > footer .cn-footer-legal button {
   padding: 0;
   border: 0;
   border-radius: 6px;
-  /* an underline that draws in on hover */
-  background: linear-gradient(var(--cn-cyan), var(--cn-cyan)) 0 calc(50% + 12px) / 0 1px no-repeat;
+  /* an underline that draws in on hover, .22em under the baseline */
+  background: linear-gradient(currentColor, currentColor) 0 calc(50% + .56em) / 0 1px no-repeat;
   color: var(--cn-ch-text-2);
   font-family: var(--cn-font);
   font-size: 13.5px;
@@ -186,7 +191,7 @@ html.cn body > footer .cn-footer-legal button {
   text-decoration: none;
   white-space: nowrap;
   cursor: pointer;
-  transition: color var(--cn-dur-1) ease, background-size var(--cn-dur-3) var(--cn-ease-out);
+  transition: color var(--cn-dur-1) ease, background-size 240ms var(--cn-ease-settle);
 }
 
 /* ---------- the "Pause motion" control: a quiet outlined pill ---------- */
@@ -214,8 +219,7 @@ html.cn body > footer :is(.cn-motion-toggle, [data-cn-motion]).is-paused {
 
 /* as a direct child of the footer it takes the fine-print row, at the inline end */
 html.cn body > footer > .cn-motion-toggle,
-html.cn body > footer > [data-cn-motion],
-html.cn body > footer > .cn-footer-tools {
+html.cn body > footer > [data-cn-motion] {
   grid-column: 2;
   grid-row: 3;
   justify-self: end;
@@ -296,8 +300,7 @@ html.cn body > footer .cn-footer-brand:focus-visible {
   }
 
   html.cn body > footer > .cn-motion-toggle,
-  html.cn body > footer > [data-cn-motion],
-  html.cn body > footer > .cn-footer-tools {
+  html.cn body > footer > [data-cn-motion] {
     grid-column: 1;
     grid-row: 5;
     justify-self: start;

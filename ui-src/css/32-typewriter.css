@@ -45,11 +45,14 @@ html.cn h1.cn-tw-on.cn-tw-done::after {
   100% { opacity: 0; }
 }
 
-/* Reduced motion: the script never starts; this only guards a stale class. */
+/* Reduced motion and Pause motion: the script never starts (and Pause mid-title stops it); this
+   only guards a stale class, so the full title always shows. */
 @media (prefers-reduced-motion: reduce) {
   html.cn h1.cn-tw-on { clip-path: none !important; }
   html.cn h1.cn-tw-on::after { content: none; }
 }
+html.cn.cn-still h1.cn-tw-on { clip-path: none !important; }
+html.cn.cn-still h1.cn-tw-on::after { content: none; }
 
 @media (forced-colors: active) {
   html.cn h1.cn-tw-on::after {

@@ -10,9 +10,10 @@
      3 | 5 | 15                                                         (stats on hairlines)
      — Our mission
      Protect people before threats become real damage. We believe ...   (scroll-lit manifesto)
-     — 01  What is CyberNet AI   |  paragraph                          (story rows: a label column
-     — 02  What it does          |  paragraph                           and a reading column)
-     — 03  Who it helps          |  paragraph
+     ——————————————————————————————————————  (v5: each story row opens on a hairline that draws)
+     What is CyberNet AI         |  paragraph                          (story rows: a label column
+     What it does                |  paragraph                           and a reading column)
+     Who it helps                |  paragraph
      — At a glance               |  product / mission / approach / data policy
                                  |  What CyberNet AI is, and isn't: ...
      — What we value             |  four values, two by two
@@ -52,7 +53,6 @@ html.cn #about {
   --cn-ab-sp: clamp(88px, 4rem + 6vw, 168px);             /* space between the page's rows */
   --cn-ab-row: clamp(28px, 3.4vw, 48px);                  /* a story row's vertical padding */
   --cn-ab-h1: min(clamp(2.75rem, 1.55rem + 4.9vw, 5.75rem), 12.2vw);   /* the headline's size */
-  counter-reset: cn-about;
 }
 
 /* The identity glow (01-base.css) follows the headline to the start side */
@@ -188,14 +188,38 @@ html.cn #about .cn-about-tag {
 
 /* ---------- 2. Stats: three large light numbers on hairlines ---------- */
 html.cn #about .about-stats-row {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0;
   max-width: var(--cn-max);
   margin: clamp(48px, 1.5rem + 5vw, 112px) auto 0;
-  border-top: 1px solid var(--cn-line);
-  border-bottom: 1px solid var(--cn-line);
+  border: 0;
 }
+/* v5: the row's hairlines are pseudo-elements so they can RULE (section 9): top and bottom draw from
+   the start, the dividers between the numbers from the top */
+html.cn #about .about-stats-row::before,
+html.cn #about .about-stats-row::after,
+html.cn #about .about-stats-row > div + div::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  block-size: 1px;
+  background: var(--cn-line);
+  transform-origin: 0 50%;
+  pointer-events: none;
+}
+html.cn #about .about-stats-row::before { inset-block-start: 0; }
+html.cn #about .about-stats-row::after { inset-block-end: 0; }
+html.cn #about .about-stats-row > div + div::before {
+  inset-block: 0;
+  inset-inline: 0 auto;
+  inline-size: 1px;
+  block-size: auto;
+  transform-origin: 50% 0;
+}
+html.cn[dir="rtl"] #about .about-stats-row::before,
+html.cn[dir="rtl"] #about .about-stats-row::after { transform-origin: 100% 50%; }
 
 html.cn #about .about-stats-row > div {
   display: flex;
@@ -204,15 +228,12 @@ html.cn #about .about-stats-row > div {
   min-width: 0;
   margin: 0;
   padding: clamp(24px, 3.4vw, 48px) clamp(14px, 2.4vw, 36px);
+  position: relative;
   border: 0;
-  border-inline-start: 1px solid var(--cn-line);
   text-align: start;
 }
 
-html.cn #about .about-stats-row > div:first-child {
-  border-inline-start: 0;
-  padding-inline-start: 0;
-}
+html.cn #about .about-stats-row > div:first-child { padding-inline-start: 0; }
 
 html.cn #about .about-stats-row strong {
   display: block;
@@ -220,10 +241,13 @@ html.cn #about .about-stats-row strong {
   color: var(--cn-text);
   font-family: var(--cn-font);
   font-size: clamp(3rem, 1.9rem + 4.4vw, 6rem);
-  font-weight: 300;
-  line-height: .95;
-  letter-spacing: -.05em;
-  font-variant-numeric: normal;   /* legacy sets tabular figures (see the header) */
+  /* v5 figure voice (SPEC 8.3): --cn-fw-fig 380, 96% width, -.04em; lining but proportional figures
+     (the count passes through 0, and Mona Sans draws a slashed zero in its tabular set) */
+  font-weight: var(--cn-fw-fig, 380);
+  font-stretch: var(--cn-fst-fig, 96%);
+  line-height: 1;
+  letter-spacing: var(--cn-track-fig, -.04em);
+  font-variant-numeric: lining-nums proportional-nums;
   font-feature-settings: normal;
 }
 
@@ -247,10 +271,15 @@ html.cn #about .about-stats-row span {
     align-items: center;
     gap: var(--cn-3);
     padding: var(--cn-4) 0;
-    border-inline-start: 0;
-    border-top: 1px solid var(--cn-line);
   }
-  html.cn #about .about-stats-row > div:first-child { border-top: 0; }
+  /* the dividers lie flat between the stacked numbers */
+  html.cn #about .about-stats-row > div + div::before {
+    inset-block: 0 auto;
+    inset-inline: 0;
+    inline-size: auto;
+    block-size: 1px;
+    transform-origin: 0 50%;
+  }
   html.cn #about .about-stats-row strong { font-size: 2.75rem; }
   html.cn #about .about-stats-row span { margin-top: 0; font-size: 1rem; }
 }
@@ -280,10 +309,10 @@ html.cn #about .about-grid {
 }
 
 html.cn #about .about-block {
-  counter-increment: cn-about;
+  position: relative;
   display: grid;
   grid-template-columns: var(--cn-ab-label) minmax(0, 1fr);
-  grid-template-rows: auto auto;
+  grid-template-rows: auto;
   column-gap: var(--cn-ab-gap);
   row-gap: var(--cn-4);
   align-items: start;
@@ -291,7 +320,6 @@ html.cn #about .about-block {
   margin: 0;
   padding: var(--cn-ab-row) 0 calc(var(--cn-ab-row) * 1.2);
   border: 0;
-  border-top: 1px solid var(--cn-line);
   border-radius: 0;
   background: none;
   box-shadow: none;
@@ -299,26 +327,26 @@ html.cn #about .about-block {
   backdrop-filter: none;
 }
 
-/* the index: a thin label with the cyan hairline (decorative, hidden from assistive tech where the
-   alt syntax is supported) */
+/* v5: the 01/02/03 counters are gone. Each row opens on its top hairline, bright (cyan) at its
+   start and neutral after, which RULEs (draws from the start) when the row enters (section 9). */
 html.cn #about .about-block::before {
-  content: counter(cn-about, decimal-leading-zero);
-  content: counter(cn-about, decimal-leading-zero) / "";
-  grid-column: 1;
-  grid-row: 1;
-  padding-inline-start: 40px;
-  background: linear-gradient(90deg, var(--cn-cyan), transparent 130%) 0 50% / 28px 1px no-repeat;
-  color: var(--cn-text-2);
-  font-family: var(--cn-font);
-  font-size: .875rem;
-  font-weight: 450;
-  line-height: 1.35;
+  content: "";
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  block-size: 1px;
+  background: linear-gradient(90deg, rgba(34, 211, 238, .55), var(--cn-line) 200px);
+  transform-origin: 0 50%;
+  pointer-events: none;
 }
-html.cn[dir="rtl"] #about .about-block::before { background-position: 100% 50%; }
+html.cn[dir="rtl"] #about .about-block::before {
+  background: linear-gradient(270deg, rgba(34, 211, 238, .55), var(--cn-line) 200px);
+  transform-origin: 100% 50%;
+}
 
 html.cn #about .about-block h2 {
   grid-column: 1;
-  grid-row: 2;
+  grid-row: 1;
   min-width: 0;
   margin: 0;
   color: var(--cn-text);
@@ -332,7 +360,7 @@ html.cn #about .about-block h2 {
 
 html.cn #about .about-block p {
   grid-column: 2;
-  grid-row: 2;
+  grid-row: 1;
   max-width: 60ch;
   margin: .3em 0 0;
   color: var(--cn-text-2);
@@ -380,8 +408,6 @@ html.cn #about .fetch-panel::before {
 }
 html.cn[dir="rtl"] #about .fetch-panel::before { background-position: 100% calc(var(--cn-5) + .675em); }
 
-html.cn #about .fetch-panel .term-chrome { display: none; }
-
 html.cn #about .fetch-body {
   grid-column: 2;
   display: block;
@@ -393,17 +419,30 @@ html.cn #about .fetch-body {
 }
 
 html.cn #about .fetch-line {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 10rem) minmax(0, 1fr);
   align-items: baseline;
   gap: var(--cn-1) var(--cn-6);
   padding: var(--cn-5) 0;
-  border-top: 1px solid var(--cn-line);
+  border: 0;
   color: var(--cn-text);
   line-height: 1.5;
   text-align: start;
 }
 
+/* each line's top hairline is a ::before that RULEs (section 9); the closing one stays a border */
+html.cn #about .fetch-line::before {
+  content: "";
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  block-size: 1px;
+  background: var(--cn-line);
+  transform-origin: 0 50%;
+  pointer-events: none;
+}
+html.cn[dir="rtl"] #about .fetch-line::before { transform-origin: 100% 50%; }
 html.cn #about .fetch-line:last-child { border-bottom: 1px solid var(--cn-line); }
 
 /* the keys are written in lower case ("data policy"): small, thin, sentence case */
@@ -429,12 +468,6 @@ html.cn #about .fetch-line > span:last-child {
 
 /* the values are written in lower case too ("rule-based + ..."): sentence case on screen */
 html.cn #about .fetch-line > span:last-child::first-letter { text-transform: uppercase; }
-
-html.cn #about .fetch-line .safe-text {
-  color: var(--cn-safe);
-  font: 500 var(--cn-step-small)/1.5 var(--cn-font-mono);
-  letter-spacing: .02em;
-}
 
 @media (max-width: 560px) {
   html.cn #about .fetch-line {
@@ -573,7 +606,7 @@ html.cn #about { --cn-support-mt: var(--cn-ab-sp); }
     grid-template-columns: minmax(0, 1fr);
   }
   html.cn #about .about-block { row-gap: var(--cn-3); }
-  html.cn #about .about-block p { grid-column: 1; grid-row: 3; margin-top: var(--cn-2); }
+  html.cn #about .about-block p { grid-column: 1; grid-row: 2; margin-top: var(--cn-2); }
   html.cn #about .fetch-body { grid-column: 1; margin-top: var(--cn-5); }
   html.cn #about .home-limits-note { padding-inline-start: 0; }
   html.cn #about .about-values { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -639,9 +672,63 @@ html.cn #about > .cn-operator strong {
 
 /* ---------- modes ---------- */
 @media (forced-colors: active) {
-  html.cn #about .about-block::before,
   html.cn #about .fetch-panel::before,
   html.cn #about .about-values::before { background: none; padding-inline-start: 0; }
   html.cn #about > .cn-operator { border-block-start-color: CanvasText; }
   html.cn #about > .cn-operator::before { forced-color-adjust: none; background: CanvasText; }
+}
+
+/* ---------- 9. v5 motion (owner: pages; v5 SPEC 7.17) ----------
+   Masthead: the corner labels RULE and the H1 SETs (05-reveal.js, data-cn-lines="head"). The
+   stats row, each story row and the "At a glance" lines are CN.motion.reveal "trigger"s (armed
+   by 70-learn.js only when their first observer report finds them off screen; .is-in on entry):
+   - stats: the top and bottom hairlines draw from the start, the dividers from the top (60 ms
+     apart); the numbers themselves are the legacy count (restyled above, never moved);
+   - story rows: the top hairline draws, the H2 SETs (its own data-cn-lines), the paragraph
+     SETTLEs 360 ms after the rule;
+   - At a glance: the line hairlines draw 60 ms apart, each value SETTLEs 360 ms after its rule.
+   Hidden states exist only while armed, and never under reduced motion or Pause motion (they are
+   gated on both here, so a Pause mid-visit shows everything at once). Transitions live on .is-in
+   only, so a page shown again never replays them. Transform and opacity only. */
+@media (prefers-reduced-motion: no-preference) {
+  html.cn.cn-js:not(.cn-still) #about .about-stats-row[data-cn-reveal]:not(.is-in)::before,
+  html.cn.cn-js:not(.cn-still) #about .about-stats-row[data-cn-reveal]:not(.is-in)::after,
+  html.cn.cn-js:not(.cn-still) #about .about-block[data-cn-reveal]:not(.is-in)::before,
+  html.cn.cn-js:not(.cn-still) #about .fetch-body[data-cn-reveal]:not(.is-in) > .fetch-line::before { scale: 0 1; }
+  html.cn.cn-js:not(.cn-still) #about .about-stats-row[data-cn-reveal]:not(.is-in) > div + div::before { scale: 1 0; }
+  html.cn.cn-js:not(.cn-still) #about .about-block[data-cn-reveal]:not(.is-in) > p,
+  html.cn.cn-js:not(.cn-still) #about .fetch-body[data-cn-reveal]:not(.is-in) > .fetch-line > span:last-child {
+    opacity: 0;
+    translate: 0 var(--cn-rise);
+  }
+}
+@media (prefers-reduced-motion: no-preference) and (max-width: 380px) {
+  html.cn.cn-js:not(.cn-still) #about .about-stats-row[data-cn-reveal]:not(.is-in) > div + div::before { scale: 0 1; }
+}
+html.cn #about .about-stats-row.is-in::before,
+html.cn #about .about-stats-row.is-in::after,
+html.cn #about .about-stats-row.is-in > div::before,
+html.cn #about .about-block.is-in::before,
+html.cn #about .fetch-body.is-in > .fetch-line::before {
+  transition: scale var(--cn-t-rule) var(--cn-ease-expo) calc(var(--cn-ab-i, 0) * 60ms);
+}
+html.cn #about .about-block.is-in > p,
+html.cn #about .fetch-body.is-in > .fetch-line > span:last-child {
+  transition:
+    opacity var(--cn-t-settle) var(--cn-ease-settle) calc(360ms + var(--cn-ab-i, 0) * 60ms),
+    translate var(--cn-t-settle) var(--cn-ease-settle) calc(360ms + var(--cn-ab-i, 0) * 60ms);
+}
+html.cn #about .about-stats-row > div:nth-child(2),
+html.cn #about .fetch-line:nth-child(2) { --cn-ab-i: 1; }
+html.cn #about .about-stats-row > div:nth-child(3),
+html.cn #about .fetch-line:nth-child(3) { --cn-ab-i: 2; }
+html.cn #about .about-stats-row::after,
+html.cn #about .fetch-line:nth-child(4) { --cn-ab-i: 3; }
+html.cn #about .fetch-line:nth-child(n+5) { --cn-ab-i: 4; }
+@media (forced-colors: active) {
+  html.cn #about .about-stats-row::before,
+  html.cn #about .about-stats-row::after,
+  html.cn #about .about-stats-row > div + div::before,
+  html.cn #about .about-block::before,
+  html.cn #about .fetch-line::before { forced-color-adjust: none; background: CanvasText; }
 }

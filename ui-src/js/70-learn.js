@@ -4,19 +4,30 @@
    and a lesson closing above it (one open per module) pulls it up (the grid keeps reading order:
    40-learn.css). When the reader opened it and its top ends up outside the comfortable part of the
    screen, it is brought back into view. Deep links and search results scroll themselves (script.js),
-   so only a click or key press on the card itself triggers this. */
+   so only a click or key press on the card itself triggers this; the jump goes through
+   CN.motion.scrollTo (Lenis when it drives, else native, instant under reduced motion).
+   v5 entrances for the inner pages (owner: pages), armed once at onReady through CN.motion.reveal
+   (one-shot, IntersectionObserver; on screen at the first report = shown at once, never hidden;
+   reduced / Pause = final): each Learn module's lesson cards settle 50 ms apart, Quick Scan's
+   example rows 70 ms apart, and About's stats row, story rows and "At a glance" lines are
+   triggers whose hairlines draw and whose text settles (45-about.css keys on .is-in). */
 (function () {
   "use strict";
-  if (!window.CN || !("MutationObserver" in window)) return;
+  var CN = window.CN, M = CN && CN.motion;
+  if (!CN || !("MutationObserver" in window)) return;
   var SETTLE = 540; /* the lesson panel animates its height over --cn-dur-3 (500 ms) */
 
   function keepInView(node) {
     var top = node.getBoundingClientRect().top;
-    var vh = window.innerHeight || document.documentElement.clientHeight;
-    if (top < 0 || top > vh * .6) node.scrollIntoView({ block: "start", behavior: CN.reduced() ? "auto" : "smooth" });
+    if (top < 0 || top > innerHeight * .6) M && M.scrollTo(node);
   }
 
   CN.onReady(function () {
+    if (M) {
+      M.reveal("#learn .rm-nodes", "stagger", { step: 50 });
+      M.reveal("#cybernet .scan-list", "stagger");
+      M.reveal("#about .about-stats-row, #about .about-block, #about .fetch-body", "trigger");
+    }
     var last = null; /* { node, at, settle } for the most recent click on a card */
     CN.qsa("#learn .rm-node").forEach(function (node) {
       var btn = node.querySelector(".cn-lesson-toggle");

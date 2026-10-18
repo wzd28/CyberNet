@@ -58,10 +58,10 @@
       var uncoverRaf = 0;
       var cover = function (on) {
         if (!CN.setCovered) return;
-        if (uncoverRaf) { cancelAnimationFrame(uncoverRaf); uncoverRaf = 0; }
+        if (uncoverRaf) { CN.cancelRaf(uncoverRaf); uncoverRaf = 0; }
         if (on) { CN.setCovered(true); return; }
         if (!CN.covered()) return;
-        uncoverRaf = requestAnimationFrame(function () {
+        uncoverRaf = CN.raf(function () {
           uncoverRaf = 0;
           setTimeout(function () { if (!sheetOpen()) CN.setCovered(false); }, 0);
         });

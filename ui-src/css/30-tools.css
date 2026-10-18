@@ -216,7 +216,6 @@ html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .usage-meter-card {
   border: 1px solid var(--cn-line);
   border-radius: 16px;
   background: var(--cn-surface);
-  box-shadow: none;
   text-align: start;
 }
 html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .usage-meter-card > .usage-meter-labels { display: contents; }
@@ -258,9 +257,8 @@ html.cn :is(#cybernet, #cybernetai) > .feature-page-header > .usage-meter-card >
   background: var(--cn-line-2);
 }
 html.cn :is(#cybernet, #cybernetai) .usage-meter-track span {
-  background: var(--cn-id, var(--cn-cyan));
   box-shadow: none;
-  transition: width .6s var(--cn-ease-out);
+  transition: none;   /* v5: script.js writes the width inline; a width transition is layout per frame */
 }
 html.cn :is(#cybernet, #cybernetai) .usage-meter-card small {
   display: block;
@@ -372,7 +370,6 @@ html.cn #cybernet .detect-tab.active {
   box-shadow: inset 0 0 0 1px var(--cn-line), 0 1px 2px rgba(0, 0, 0, .45);
 }
 html.cn #cybernet .detect-tab.active::before {
-  background-color: var(--cn-cyan);
   opacity: 1;
 }
 @media (hover: hover) and (pointer: fine) {
@@ -454,7 +451,6 @@ html.cn #cybernet .detect-main {
   padding: clamp(var(--cn-5), .9rem + 1.6vw, 36px);
   border: 1px solid var(--cn-line);
   border-radius: var(--cn-r-panel);
-  background: var(--cn-surface);
   box-shadow: none;
 }
 html.cn #cybernet .detect-main > * {
@@ -574,7 +570,6 @@ html.cn #cybernet .real-upload-box {
   padding: 28px var(--cn-5);
   border: 1.5px dashed var(--cn-line-2);
   border-radius: 20px;
-  background: var(--cn-surface-2);
   color: var(--cn-text-2);
   text-align: center;
   box-shadow: none;
@@ -584,8 +579,6 @@ html.cn #cybernet .real-upload-box {
 }
 @media (hover: hover) and (pointer: fine) {
   html.cn #cybernet .real-upload-box:hover {
-    border-color: color-mix(in srgb, var(--cn-text) 26%, transparent);
-    background: var(--cn-surface-3);
     transform: none;
   }
 }
@@ -621,8 +614,6 @@ html.cn #cybernet .upload-icon {
   margin: 0 0 var(--cn-4);
   border: 1px solid var(--cn-line-2);
   border-radius: 16px;
-  background: var(--cn-surface-3);
-  color: var(--cn-text);
   font-size: 0;
 }
 html.cn #cybernet .upload-icon::before {
@@ -667,7 +658,6 @@ html.cn #cybernet .upload-preview-label {
   padding: 4px 12px;
   border: 1px solid var(--cn-line-2);
   border-radius: var(--cn-r-pill);
-  background: rgba(3, 4, 6, .82);
   color: var(--cn-text);
   font-family: var(--cn-font-mono);
   font-size: .75rem;
@@ -706,7 +696,6 @@ html.cn #cybernet .detect-side > .scan-ring-wrap {
   margin: 0;
 }
 html.cn #cybernet .scan-ring-svg circle { stroke-width: 5; }
-html.cn #cybernet .scan-ring-svg circle:first-child { stroke: rgba(255, 255, 255, .08); }
 html.cn #cybernet .scan-ring-fill {
   stroke: var(--cn-cyan);
   transition: stroke-dashoffset .9s linear, stroke var(--cn-dur-2) ease;
@@ -903,10 +892,7 @@ html.cn #cybernet .wwc-item .wwc-icon {
   flex: none;
   width: 40px;
   height: 40px;
-  border: 1px solid var(--cn-line);
   border-radius: 12px;
-  background: var(--cn-surface-2);
-  color: var(--cn-text-2);
   font-size: 0;
 }
 html.cn #cybernet .wwc-item .wwc-icon::before {
@@ -1206,8 +1192,6 @@ html.cn :is(#cybernet, #cybernetai) .verdict-headline-icon {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: var(--cn-v-tint);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cn-v) 30%, transparent);
   color: var(--cn-v);
   font-size: 0;
   animation: cn-tl-pop .5s var(--cn-ease-emph) .08s backwards;
@@ -1294,7 +1278,6 @@ html.cn :is(#cybernet, #cybernetai) .plain-action {
   padding: var(--cn-3) 14px;
   border: 1px solid var(--cn-line);
   border-radius: 14px;
-  background: rgba(255, 255, 255, .03);
   color: var(--cn-text);
   font-size: .9375rem;
   line-height: 1.55;
@@ -1312,7 +1295,6 @@ html.cn :is(#cybernet, #cybernetai) .links-found {
   padding: var(--cn-4);
   border: 1px solid var(--cn-line);
   border-radius: 16px;
-  background: var(--cn-surface);
   font-size: .875rem;
   text-align: start;
 }
@@ -1336,7 +1318,6 @@ html.cn :is(#cybernet, #cybernetai) .qr-raw {
   padding: 10px var(--cn-3);
   border: 1px solid var(--cn-line);
   border-radius: 10px;
-  background: var(--cn-bg);
   color: var(--cn-text);
   font-family: var(--cn-font-mono);
   font-size: .8125rem;
@@ -1538,7 +1519,6 @@ html.cn :is(#cybernet, #cybernetai) .diagnostic-note {
   padding: var(--cn-3) 14px;
   border: 1px solid var(--cn-line);
   border-radius: 14px;
-  background: rgba(255, 255, 255, .03);
   color: var(--cn-text-2);
   font-size: .875rem;
   line-height: 1.55;
@@ -1895,7 +1875,6 @@ html.cn #cybernetai #aiApiStatus {
   padding: var(--cn-3) 14px;
   border: 1px solid var(--cn-line);
   border-radius: 14px;
-  background: rgba(255, 255, 255, .03);
   box-shadow: none;
   color: var(--cn-text-2);
   font-size: .875rem;
@@ -2211,6 +2190,9 @@ html.cn #cybernetai .chat-messages {
   overscroll-behavior: contain;
   scrollbar-width: thin;
 }
+/* While only the welcome bubble shows, the pane does not overflow: a contained scroller that
+   cannot scroll still swallows the wheel in Chromium, so the page would not move over it. */
+html.cn #cybernetai .chat-messages:has(> .chat-bubble:only-child) { overscroll-behavior: auto; }
 /* Only the welcome bubble: a quiet hint at the foot of the empty conversation. */
 html.cn #cybernetai .chat-messages:has(> .chat-bubble:only-child)::after {
   content: "Text · Links · Screenshots · Enter to send";
@@ -2269,7 +2251,6 @@ html.cn #cybernetai .chat-bubble-ai > .chat-bubble-inner {
   border-inline-start: 2px solid var(--cn-id);
   border-start-start-radius: 6px;
   border-end-start-radius: 6px;
-  background: var(--cn-surface-2);
   color: var(--cn-text);
 }
 html.cn #cybernetai .chat-bubble-user > .chat-bubble-inner {
@@ -2312,7 +2293,6 @@ html.cn #cybernetai .diagnostic-spinner {
   width: 18px;
   height: 18px;
   border: 2px solid rgba(255, 255, 255, .12);
-  border-top-color: var(--cn-id);
   border-radius: 50%;
   box-shadow: none;
   animation: cn-tl-spin 1.3s linear infinite;
@@ -2466,7 +2446,6 @@ html.cn #cybernetai .chat-input-row.chat-input-row-unified {
   padding: 6px;
   border: 1px solid var(--cn-line-2);
   border-radius: 18px;
-  background: var(--cn-surface-2);
   transition: border-color var(--cn-dur-1) ease, background-color var(--cn-dur-1) ease;
 }
 @media (hover: hover) and (pointer: fine) {
@@ -2935,3 +2914,45 @@ html.cn :is(#cybernet, #cybernetai) > .cn-tl-statement > .cn-manifesto {
 html.cn :is(#cybernet, #cybernetai) > .cn-tl-statement + .support-box {
   margin-block-start: clamp(var(--cn-12), 2rem + 4vw, 112px);
 }
+
+/* ==========================================================================================
+   19. v5 motion (owner: pages; v5 SPEC 7.17). Quick Scan, Analysis AI and Recovery.
+   - The typewriter H1 stays (60-typewriter.js). Finish (18 Oct): these are working pages, so a
+     switch to one never waits on choreography. The masthead no longer SETTLEs after a switch;
+     the page comes in over 160 ms (80-perf.css section 2) and only the corner label's RULE and
+     the folio rule replay.
+   - The workspaces never animate in (80-perf.css section 1).
+   - Example results rows SETTLE 70 ms apart (70-learn.js arms .scan-list as a stagger).
+   - Desktop hover: the side card and the example card take the key light (a pre-made ::after,
+     opacity only) and a brighter hairline. Never a lift, never a shadow animation.
+   Reduced motion and Pause motion: no entrance; everything at rest.
+   ========================================================================================== */
+@media (hover: hover) and (pointer: fine) {
+  html.cn #cybernet .detect-side,
+  html.cn #cybernet .recent-scans {
+    position: relative;
+    isolation: isolate;
+  }
+  html.cn #cybernet .detect-side { transition: border-color 440ms var(--cn-ease-settle); }
+  /* .recent-scans is a legacy .reveal: keep its entrance transitions in the list */
+  html.cn #cybernet .recent-scans {
+    transition: opacity .7s var(--cn-ease-out), transform .8s var(--cn-ease-out), border-color 440ms var(--cn-ease-settle);
+  }
+  html.cn #cybernet .detect-side::after,
+  html.cn #cybernet .recent-scans::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--cn-key);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 440ms var(--cn-ease-settle);
+  }
+  html.cn #cybernet .detect-side:hover,
+  html.cn #cybernet .recent-scans:hover { border-color: var(--cn-hair-3); }
+  html.cn #cybernet .detect-side:hover::after,
+  html.cn #cybernet .recent-scans:hover::after { opacity: 1; }
+}
+

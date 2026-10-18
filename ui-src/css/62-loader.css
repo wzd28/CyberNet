@@ -3,18 +3,19 @@
 
    cybernet-business-team.js opens the panel in the frame of the tap. When it has no
    recent answer to show yet, the card carries .is-loading and #cnTeamLoader shows:
-   the CyberNet shield (the same inline mark as the sign-in dialog) in a hairline
-   ring that sends out two calm rings, the panel's own words, and a thin cyan line
-   sweeping across. The figures replace it in place and settle in once
-   (.is-revealing). When the request fails or takes 15 s, the same block turns into
+   the CyberNet shield (the same inline mark as the sign-in dialog), still, in its
+   hairline ring, the panel's own words, and an indeterminate hairline: a 120px track
+   that one short cyan segment crosses again and again (v5: the breathing and the two
+   ring pulses are gone; the mark holds still and only the light moves). The figures
+   replace it in place and settle in once (.is-revealing, 500 ms expo). When the request fails or takes 15 s, the same block turns into
    a plain error with Try again (.is-error); it is never left spinning.
    .is-refreshing draws a thin progress line along the card's top edge while figures
    already on screen are refreshed. .is-member-hint (a member's panel is shorter)
    keeps the loader closer to the size of what replaces it.
 
-   Cost: transform and opacity keyframes only, on a few small elements inside an
-   open dialog; nothing runs while the panel is closed. Reduced motion and Pause
-   motion show a still mark and a still segment of the line (the words carry the
+   Cost: one translate loop on a 36px segment inside an open dialog, only while the
+   loader is shown; nothing runs while the panel is closed. Reduced motion and Pause
+   motion show a still segment in the middle of the track (the words carry the
    state). Announcements go through #cnTeamStatus (role=status), not this block.
    ========================================================================== */
 
@@ -82,24 +83,6 @@ html.cn #businessTeamModal .cn-team-loader-mark svg {
   display: block;
   width: 40px;
   height: 44px;
-  animation: cn-ld-breathe 2.4s var(--cn-ease-in-out) infinite;
-}
-
-/* two hairline rings leave the mark, one after the other */
-html.cn #businessTeamModal .cn-team-loader-mark::before,
-html.cn #businessTeamModal .cn-team-loader-mark::after {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  border: 1px solid rgba(34, 211, 238, .5);
-  border-radius: 50%;
-  opacity: 0;
-  pointer-events: none;
-  animation: cn-ld-ring 2.4s var(--cn-ease-out) infinite;
-}
-
-html.cn #businessTeamModal .cn-team-loader-mark::after {
-  animation-delay: 1.2s;
 }
 
 html.cn #businessTeamModal .cn-team-loader-title {
@@ -126,22 +109,20 @@ html.cn #businessTeamModal .cn-team-loader-text {
 html.cn #businessTeamModal .cn-team-loader-line {
   position: relative;
   display: block;
-  width: min(220px, 64%);
-  height: 2px;
-  margin-top: var(--cn-3);
+  width: 120px;
+  height: 1px;
+  margin-top: var(--cn-4);
   overflow: hidden;
-  border-radius: 2px;
-  background: rgba(148, 163, 184, .18);
+  background: var(--cn-hair-2);
 }
 
 html.cn #businessTeamModal .cn-team-loader-line > span {
   position: absolute;
   inset: 0 auto 0 0;
-  width: 40%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, rgba(34, 211, 238, 0), #22d3ee 55%, #3b82f6);
-  transform: translateX(-105%);
-  animation: cn-ld-sweep 1.6s var(--cn-ease-in-out) infinite;
+  width: 36px;
+  background: linear-gradient(90deg, transparent, #22d3ee 30%, #67e8f9, #22d3ee 70%, transparent);
+  translate: -100% 0;
+  animation: cn-ld-sweep 1.3s var(--cn-ease-swap) infinite;
 }
 
 html.cn #businessTeamModal .cn-team-retry {
@@ -180,11 +161,8 @@ html.cn #businessTeamModal .cn-team-loader.is-error .cn-team-loader-mark {
 
 html.cn #businessTeamModal .cn-team-loader.is-error .cn-team-loader-mark svg {
   opacity: .78;
-  animation: none;
 }
 
-html.cn #businessTeamModal .cn-team-loader.is-error .cn-team-loader-mark::before,
-html.cn #businessTeamModal .cn-team-loader.is-error .cn-team-loader-mark::after,
 html.cn #businessTeamModal .cn-team-loader.is-error .cn-team-loader-line {
   display: none;
 }
@@ -192,7 +170,7 @@ html.cn #businessTeamModal .cn-team-loader.is-error .cn-team-loader-line {
 /* ---------- 4. The figures settle in once ---------- */
 html.cn #businessTeamModal .cn-team-card.is-revealing > .cn-team-stats,
 html.cn #businessTeamModal .cn-team-card.is-revealing > .cn-team-section {
-  animation: cn-ld-in var(--cn-dur-3) var(--cn-ease-out) both;
+  animation: cn-ld-in 500ms var(--cn-ease-expo) both;
 }
 
 html.cn #businessTeamModal .cn-team-card.is-revealing > .cn-team-section {
@@ -220,19 +198,9 @@ html.cn #businessTeamModal .cn-team-activity-loading {
 }
 
 /* ---------- 6. Motion ---------- */
-@keyframes cn-ld-ring {
-  0% { opacity: .55; transform: scale(1); }
-  100% { opacity: 0; transform: scale(1.55); }
-}
-
-@keyframes cn-ld-breathe {
-  0%, 100% { opacity: .82; transform: scale(.97); }
-  50% { opacity: 1; transform: scale(1); }
-}
-
 @keyframes cn-ld-sweep {
-  from { transform: translateX(-105%); }
-  to { transform: translateX(255%); }
+  from { translate: -100% 0; }
+  to { translate: 340% 0; }
 }
 
 @keyframes cn-ld-in {
@@ -246,21 +214,13 @@ html.cn #businessTeamModal .cn-team-activity-loading {
   100% { opacity: 0; transform: scaleX(1); }
 }
 
-/* Reduced motion and Pause motion: a still mark and a still segment of the line. The global
-   catch-all (90-a11y.css) would leave every loop on its last frame, which here is invisible. */
+/* Reduced motion and Pause motion: a still segment in the middle of the track (42px in). The
+   global catch-all (90-a11y.css) would leave every loop on its last frame, which here is
+   invisible. */
 @media (prefers-reduced-motion: reduce) {
-  html.cn #businessTeamModal :is(.cn-team-loader-mark svg),
-  html.cn #businessTeamModal :is(.cn-team-loader-line > span) {
-    animation: none;
-  }
-
-  html.cn #businessTeamModal .cn-team-loader-mark::before,
-  html.cn #businessTeamModal .cn-team-loader-mark::after {
-    display: none;
-  }
-
   html.cn #businessTeamModal .cn-team-loader-line > span {
-    transform: translateX(75%);
+    animation: none;
+    translate: 42px 0;
   }
 
   html.cn #businessTeamModal .cn-team-card.is-refreshing::before {
@@ -269,18 +229,9 @@ html.cn #businessTeamModal .cn-team-activity-loading {
   }
 }
 
-html.cn.cn-still #businessTeamModal :is(.cn-team-loader-mark svg),
-html.cn.cn-still #businessTeamModal :is(.cn-team-loader-line > span) {
-  animation: none;
-}
-
-html.cn.cn-still #businessTeamModal .cn-team-loader-mark::before,
-html.cn.cn-still #businessTeamModal .cn-team-loader-mark::after {
-  display: none;
-}
-
 html.cn.cn-still #businessTeamModal .cn-team-loader-line > span {
-  transform: translateX(75%);
+  animation: none;
+  translate: 42px 0;
 }
 
 html.cn.cn-still #businessTeamModal .cn-team-card.is-refreshing::before {

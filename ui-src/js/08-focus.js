@@ -19,7 +19,8 @@
    sheet. Only the top layer is live; closing it hands focus back to the one below.
    Timing (v4.4): a class change is handled right after the next frame (schedule()), so the
    layer appears first and the page-wide restyle that inert causes never delays that frame. Tab,
-   Escape and focusin handle it at once (they call refresh()). */
+   Escape and focusin handle it at once (they call refresh()).
+   v5: refresh() also reports whether any layer is open (CN.setLayer, read by 06-scroll.js). */
 (function () {
   "use strict";
   var CN = window.CN;
@@ -197,6 +198,8 @@
       };
       stack.push(layer);
     });
+    /* v5: tell the motion core a top layer is open (Lenis leaves the wheel native) */
+    if (CN.setLayer) CN.setLayer(stack.length > 0);
     applyInert();
     gone.forEach(function (l) { closed(l, l === wasTop); });
     stack.forEach(function (l) { if (fresh.some(function (c) { return c.el === l.el; })) opened(l); });

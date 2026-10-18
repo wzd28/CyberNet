@@ -5,13 +5,6 @@
    there). Section layouts live in the home partials, which load after this file and win
    any tie. */
 
-/* The angle of the gradient hairline on glass panels: registered so it can sweep (one lap). */
-@property --cn-edge-a {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 0deg;
-}
-
 /* ------------------------------------------------------------------------------------------
    Head: eyebrow, then the two-tone H2, then a lead paragraph.
    Centred on Home, start-aligned inside tools.
@@ -53,34 +46,36 @@ html.cn #home .cn-head {
 html.cn #home .cn-head h2 { max-width: 22ch; }
 
 /* ------------------------------------------------------------------------------------------
-   Eyebrow: a quiet pill. A faint cyan tint, a cyan hairline, a lit top edge and mono caps in
-   cyan text (10:1+ on dark; #0b6a84 on light bands). At most three per page.
+   Eyebrow (v5): the corner-label voice (.cn-edlabel, 27-core.css 6c): Mona Sans 14px/450 in
+   sentence case, no pill, led by a 28px cyan hairline that draws in (rule-before, 05-reveal.js).
+   With a live dot inside, the dot leads and there is no hairline. The support box label shares
+   the look. The copy is unchanged.
    ------------------------------------------------------------------------------------------ */
-html.cn .cn-eyebrow {
+html.cn .cn-eyebrow,
+html.cn .page > .support-box .account-eyebrow {
   display: inline-flex;
   align-items: center;
-  gap: var(--cn-2);
-  min-height: 28px;
+  gap: 12px;
   max-width: 100%;
-  padding: 4px 12px;
-  border: 1px solid var(--cn-cyan-line);
-  border-radius: var(--cn-r-pill);
-  background: var(--cn-cyan-tint);
-  box-shadow: inset 0 1px 0 var(--cn-hi);
-  color: var(--cn-cyan-2);
-  font-family: var(--cn-font-mono);
-  font-size: var(--cn-step-label);
-  font-weight: 500;
-  line-height: 1.3;
-  letter-spacing: var(--cn-track-label);
-  text-transform: uppercase;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--cn-text);
+  font: 450 .875rem/1.35 var(--cn-font);
+  letter-spacing: .005em;
+  text-transform: none;
 }
-/* The AI voice: the same pill carrying the small indigo AI mark. */
-html.cn .cn-eyebrow.is-ai {
-  border-color: var(--cn-iris-line);
-  background: var(--cn-iris-tint);
-  color: var(--cn-iris-2);
+html.cn .cn-eyebrow::before,
+html.cn .page > .support-box .account-eyebrow::before {
+  content: "";
+  flex: none;
+  inline-size: 28px;
+  block-size: 1px;
+  background: linear-gradient(90deg, var(--cn-cyan), transparent 130%);
 }
+html.cn .cn-eyebrow:has(> .cn-live-dot)::before { content: none; }
 
 /* ------------------------------------------------------------------------------------------
    Chip: a small pill (sentence case, Mona Sans). Quiet tint with a hairline; brightens on hover.
@@ -160,8 +155,9 @@ html.cn .cn-ex {
 }
 
 /* ------------------------------------------------------------------------------------------
-   Buttons: .cn-btn shares the primary look (01-base.css). Ghost: text only, underline on
-   hover. A ghost button with aria-pressed is a Pause/Play toggle and draws its own glyph.
+   Ghost buttons: text only. v5: a 1px underline (currentColor at 35%, .22em under the words)
+   draws from inline start on hover in 240 ms. A ghost button with aria-pressed is a Pause/Play
+   toggle and draws its own glyph (no underline).
    ------------------------------------------------------------------------------------------ */
 html.cn .cn-ghost-btn {
   display: inline-flex;
@@ -170,25 +166,23 @@ html.cn .cn-ghost-btn {
   min-height: 44px;
   padding: 0 var(--cn-1);
   border: 0;
-  background: none;
+  background: linear-gradient(color-mix(in srgb, currentColor 35%, transparent) 0 0) 0 calc(50% + .82em) / 0 1px no-repeat;
   color: var(--cn-text-2);
   font-family: var(--cn-font);
   font-size: .875rem;
   font-weight: 500;
   line-height: 1.2;
   letter-spacing: -.005em;
-  text-decoration-line: underline;
-  text-decoration-thickness: 1px;
-  text-decoration-color: transparent;
-  text-underline-offset: .3em;
+  text-decoration: none;
   cursor: pointer;
   touch-action: manipulation;
-  transition: color var(--cn-dur-1) ease, text-decoration-color var(--cn-dur-1) ease;
+  transition: color var(--cn-dur-1) ease, background-size 240ms var(--cn-ease-settle);
 }
+html.cn .cn-ghost-btn[aria-pressed] { background: none; }
 @media (hover: hover) and (pointer: fine) {
   html.cn .cn-ghost-btn:hover {
     color: var(--cn-text);
-    text-decoration-color: currentColor;
+    background-size: 100% 1px;
   }
 }
 html.cn .cn-ghost-btn[aria-pressed]::before {
@@ -338,49 +332,41 @@ html.cn.cn-still .cn-live-dot.is-on::after { animation: none; }
 }
 
 /* ------------------------------------------------------------------------------------------
-   Card: navy glass (.cn-card, alias .cn-glass). A navy tint, a faint sheen from above and a
-   gradient hairline (a cyan pass at the top-left, slate between, a faint blue pass) drawn by a
-   masked ::before (a 1px ring over the border only, so it never covers content and the fill
-   stays translucent). On a light band the same tokens make it a white card with a soft
-   neutral shadow. .is-lit raises the hairline for a featured
-   card. Containers that clip (content-visibility, overflow) never clip it: the ring sits inside
-   the border box.
+   The support box (below) has the v5 finish: light from above
+   (--cn-falloff) on --cn-e2, a --cn-hair-2 edge with a lit top, layered neutral shadows, and a
+   static gradient hairline (a cyan pass top-left, slate between, a faint blue pass) on a masked
+   ::before ring over the border only. EDGE IGNITION (it replaces the v4 paint-per-frame conic
+   lap): when the block settles in (.is-in) a second masked ring on ::after lights from the
+   top-left corner, opacity 0 -> 1 -> .35 over 1400 ms, then rests faintly lit. Opacity only.
    ------------------------------------------------------------------------------------------ */
-html.cn .cn-card,
-html.cn .cn-glass {
-  position: relative;
-  padding: clamp(20px, 3cqi, 32px);
-  border: 1px solid transparent;
-  border-radius: var(--cn-r-card);
-  background: var(--cn-sheen) padding-box, linear-gradient(var(--cn-glass), var(--cn-glass)) padding-box, linear-gradient(var(--cn-line), var(--cn-line)) border-box;
-  box-shadow: inset 0 1px 0 var(--cn-hi), var(--cn-shadow-card);
-  color: var(--cn-text);
+html.cn .page > .support-box {
+  border: 1px solid var(--cn-hair-2);
+  background: var(--cn-falloff), var(--cn-e2);
+  box-shadow: inset 0 1px 0 var(--cn-hair-lit), var(--cn-sh-2);
 }
-html.cn .cn-card::before,
-html.cn .cn-glass::before {
+html.cn .page > .support-box::before,
+html.cn .page > .support-box::after {
   content: "";
   position: absolute;
   inset: -1px;
-  z-index: 0;
   padding: 1px;
   border-radius: inherit;
-  background: conic-gradient(from var(--cn-edge-a), var(--cn-edge-1), var(--cn-edge-2) 18%, var(--cn-edge-3) 38%, var(--cn-edge-4) 58%, var(--cn-edge-2) 78%, var(--cn-edge-1));
+  background: conic-gradient(from 210deg, var(--cn-edge-1), var(--cn-edge-2) 18%, var(--cn-edge-3) 38%, var(--cn-edge-4) 58%, var(--cn-edge-2) 78%, var(--cn-edge-1));
   opacity: .7;
   pointer-events: none;
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
 }
-html.cn :is(.cn-card, .cn-glass).is-lit::before { opacity: 1; }
-/* A card that reveals on scroll ([data-cn-reveal] + .is-in) gets one lap of light round its edge. */
-html.cn :is(.cn-card, .cn-glass).is-in::before {
-  animation: cn-edge-sweep 2.8s var(--cn-ease-in-out) .3s 1 both;
+html.cn .page > .support-box::after {
+  background: linear-gradient(140deg, rgba(103, 232, 249, .7), transparent 42%);
+  opacity: 0;
 }
-html.cn.cn-still :is(.cn-card, .cn-glass).is-in::before { animation: none; }
-@keyframes cn-edge-sweep {
-  from { --cn-edge-a: 0deg; }
-  to { --cn-edge-a: 360deg; }
+html.cn .page > .support-box.is-in::after {
+  opacity: .35;
+  animation: cn-ignite var(--cn-t-pass) var(--cn-ease-swap) 300ms backwards;
 }
+@keyframes cn-ignite { from { opacity: 0; } 40% { opacity: 1; } }
 
 html.cn .cn-sr {
   position: absolute !important;
@@ -440,10 +426,10 @@ html.cn #pricing.page {
 
 /* ------------------------------------------------------------------------------------------
    Support box: the help card that ends Home and every tool and info page. One component,
-   one look: an 860px navy glass panel with a gradient hairline (a masked ::before, like
-   .cn-card), eyebrow pill, H3-size title, copy, then the two actions (they take the full row
-   under 760px). Pages only change the space above it (--cn-support-mt) or its width
-   (--cn-support-max); nothing else is restyled per page.
+   one look: an 860px panel with the card finish above (falloff, lit edge, static hairline,
+   edge ignition when it settles in), plus the static grain tile on wide screens, a corner label,
+   an H3-size title, copy, then the two actions (they take the full row under 760px). Pages only
+   change the space above it (--cn-support-mt) or its width (--cn-support-max).
    (0,2,1)+: beats legacy .support-box and the generic .glass card.
    ------------------------------------------------------------------------------------------ */
 html.cn .page > .support-box {
@@ -457,54 +443,19 @@ html.cn .page > .support-box {
   max-width: var(--cn-support-max, 860px);
   margin: var(--cn-support-mt, clamp(64px, 2rem + 4vw, 112px)) auto 0;
   padding: clamp(24px, 1rem + 2vw, 40px);
-  border: 1px solid var(--cn-line);
   border-radius: var(--cn-r-panel);
-  background:
-    radial-gradient(80% 120% at 0% 0%, color-mix(in srgb, var(--cn-cyan) 6%, transparent), transparent 60%),
-    radial-gradient(70% 120% at 100% 100%, color-mix(in srgb, var(--cn-blue-2, #3b82f6) 6%, transparent), transparent 62%),
-    var(--cn-sheen),
-    var(--cn-glass);
-  box-shadow: inset 0 1px 0 var(--cn-hi), var(--cn-shadow-card);
   color: var(--cn-text);
   text-align: start;
 }
-html.cn .page > .support-box::before {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  padding: 1px;
-  border-radius: inherit;
-  background: conic-gradient(from var(--cn-edge-a), var(--cn-edge-1), var(--cn-edge-2) 18%, var(--cn-edge-3) 38%, var(--cn-edge-4) 58%, var(--cn-edge-2) 78%, var(--cn-edge-1));
-  opacity: .85;
-  pointer-events: none;
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+@media (min-width: 1024px) {
+  html.cn .page > .support-box { background: var(--cn-falloff), var(--cn-e2); }
 }
-/* When it scrolls in on Home (05-reveal.js adds .is-in), the light runs once around the edge. */
-html.cn .page > .support-box.is-in::before {
-  animation: cn-edge-sweep 2.8s var(--cn-ease-in-out) .3s 1 both;
-}
-html.cn.cn-still .page > .support-box.is-in::before { animation: none; }
 html.cn .page > .support-box .support-box-copy {
   flex: 1 1 22rem;
   min-width: 0;
   max-width: 36rem;
 }
-html.cn .page > .support-box .account-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  min-height: 26px;
-  margin: 0 0 var(--cn-3);
-  padding: 0 10px;
-  border: 1px solid var(--cn-cyan-line);
-  border-radius: var(--cn-r-pill);
-  background: var(--cn-cyan-tint);
-  color: var(--cn-cyan-2);
-  font: 500 var(--cn-step-label)/1.2 var(--cn-font-mono);
-  letter-spacing: var(--cn-track-label);
-  text-transform: uppercase;
-}
+html.cn .page > .support-box .account-eyebrow { margin: 0 0 var(--cn-3); }
 html.cn .page > .support-box h2 {
   margin: 0 0 var(--cn-3);
   color: var(--cn-text);

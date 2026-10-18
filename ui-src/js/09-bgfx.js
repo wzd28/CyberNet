@@ -104,7 +104,7 @@
         { y: .44, tilt: -.38, amp: .16, freq: .46, speed: .2, width: .36, twist: .38, a: .7, n: 28, ph: 3.1 }
       ],
       pulses: [2, 1], mode: "run", pulseA: .7,
-      quiet: ".page.active-page :is(.feature-page-header, .learn-hero, .pricing-head, .about-top) :is(h1, h2, p), .page.active-page > .cn-operator"
+      quiet: ".page.active-page :is(.feature-page-header, .learn-hero, .pricing-head, .about-top) :is(h1, h2, p, .usage-meter-card), .page.active-page > .cn-operator"
     }
   };
 
@@ -410,10 +410,10 @@
       ctx.setTransform(b.scale, 0, 0, b.scale, 0, -b.top * b.scale);
       ctx.globalCompositeOperation = "lighter";
       drawRibbon(f, b.i, t, ctx, b.grad);
-      // Quiet zones: dim the lines behind the copy (soft-edged, 72% out).
+      // Quiet zones: dim the lines behind the copy (soft-edged, 92% out; 72% let them read through).
       if (sb) {
         ctx.globalCompositeOperation = "destination-out";
-        ctx.globalAlpha = .72;
+        ctx.globalAlpha = .92;
         for (i = 0; i < f.zones.length; i++) {
           var z = f.zones[i], pad = 56;
           if (z.y + z.h + pad < b.top || z.y - pad > b.top + b.h) continue;
@@ -443,7 +443,10 @@
      for) and carry on from the same moment 360 ms after the last scroll event (v4.7: was 140, which
      let them restart between the notches of a wheel run): the main thread
      stays free for the scroll itself (and anything else that moves with it), and
-     a held frame is invisible while the whole page is moving. */
+     a held frame is invisible while the whole page is moving.
+     v5: frames come from CN.raf (00-core.js: one shared frame, on the gsap.ticker once the desktop
+     motion core has loaded), and the hold also follows CN.scrolling(), which stays true while a
+     Lenis run is in flight, so the lines rest for the whole glide and 360 ms after it. */
   var fields = [], clock = 7.5, last = 0, running = false, timer = 0, raf = 0;
   var scrolling = false, scrollT = 0;
   function onScroll() {
@@ -467,8 +470,9 @@
   function ask() {
     timer = 0;
     if (!running || raf) return;
-    if (scrolling) { last = 0; timer = setTimeout(ask, 70); return; }   /* hold while scrolling */
-    raf = win.requestAnimationFrame(frame);
+    /* hold while scrolling (CN.scrolling() also covers a Lenis run in flight) */
+    if (scrolling || CN.scrolling()) { last = 0; timer = setTimeout(ask, 70); return; }
+    raf = CN.raf(frame);
   }
   function start() {
     if (running) return;
@@ -480,7 +484,7 @@
     running = false;
     win.removeEventListener("scroll", onScroll);
     if (timer) { clearTimeout(timer); timer = 0; }
-    if (raf) { win.cancelAnimationFrame(raf); raf = 0; }
+    if (raf) { CN.cancelRaf(raf); raf = 0; }
   }
   function update() {
     var any = false;
@@ -558,12 +562,6 @@
       doc.addEventListener("focusout", typing);
     }
     CN.onStill(function () { update(); });
-    /* for checks and tuning: per layer, its average draw cost (ms), quality step and bands */
-    CN.bgfxStats = function () {
-      return fields.map(function (f) {
-        return { name: f.name, on: f.on, cost: +f.cost.toFixed(2), quality: f.quality, bands: f.bands.map(function (b) { return b.cv.width + "x" + b.cv.height; }) };
-      });
-    };
     CN.onMotion(function () { update(); });
     CN.onVisibility(function () { update(); });
     CN.onCover(function () { update(); });

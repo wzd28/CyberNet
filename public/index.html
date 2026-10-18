@@ -16,6 +16,7 @@
   (function(){
     var d=document,r=d.documentElement;
     try{if(localStorage.getItem("cn-still-2")==="1")r.classList.add("cn-still")}catch(e){}
+    try{if(location.pathname==="/"&&!r.classList.contains("cn-still")&&!matchMedia("(prefers-reduced-motion: reduce)").matches&&(localStorage.getItem("cn-fx")||"").indexOf("-exposure")<0&&!sessionStorage.getItem("cn-intro")){r.classList.add("cn-intro");sessionStorage.setItem("cn-intro","1")}}catch(e){}
     if(/^\/(quick-scan|analysis-ai|recovery|learn|pricing|about)\/?$/.test(location.pathname)){
       r.classList.add("cn-deep");
       var t=0,done=function(){clearTimeout(t);r.classList.remove("cn-deep")};
@@ -39,7 +40,7 @@
   <link rel="stylesheet" href="/cybernet-howto.css?v=20260905-1" />
   <link id="cybernetBusinessTeamStylesheet" rel="stylesheet" href="/cybernet-business-team.css?v=20260927-2" />
   <link rel="stylesheet" href="/cybernet-consent.css?v=20260927-2" />
-  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261018-1" />
+  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261018-6" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=20260830-5">
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=20260830-5">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=20260830-5">
@@ -2713,7 +2714,7 @@
 <script src="/cybernet-business-team.js?v=20261015-1" defer></script>
   <script src="/cybernet-final-ui-fix.js?v=20260930-2" defer></script>
       <script src="/cybernet-legal-upgrade.js?v=20261015-3" defer></script>
-  <script src="/ui/cybernet-ui.js?v=20261018-1" defer></script>
+  <script src="/ui/cybernet-ui.js?v=20261018-6" defer></script>
 </body>
 </html>
 

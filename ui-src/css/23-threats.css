@@ -26,10 +26,19 @@
    - < 560px: one column; each photo keeps its shape (hacker 3:2, AI 4:3) with its caption
      under it, so nothing covers the picture.
 
-   Motion (all of it stops under reduced motion and the global Pause motion):
-   - Each tile enters on its own visit: the photo settles from a 4% zoom and fades up, a thin
-     cyan scan line passes down it once, and the caption rises in (opacity and transforms only).
-   - Photos lean in a little on hover (fine pointers).
+   Motion (v5; all of it stops under reduced motion and the global Pause motion):
+   - Each tile SETTLEs on its own visit (27-bento.js: CN.motion.reveal "trigger", .is-in), in
+     reading order per row (--cn-d, 90 ms apart): on desktop its photo settles from 1.06 over
+     1400 ms expo, a thin cyan scan line passes down it once, and its caption rises at +200 ms
+     (900 ms expo; 18px, 14px on phones). The QR rows lift 14px at +120 / +240 ms and the
+     lookalike's strike draws in coral at +700 ms (text-decoration-color, wrap-safe; struck at
+     rest and in every no-JS / reduced / Pause state). The $442B rule draws first, then its
+     odometer tallies (50-counters.js) and the source settles at +300 ms. A tile on screen at
+     the first report is shown as it is (.is-done) and never animates.
+   - Desktop hover: the tile's hairline brightens; the QR and fact tiles also take the fixed
+     key light (::after, opacity only; the photo tiles have no free pseudo, so hairline only).
+     Photos lean in a little (fine pointers).
+   - Grain on the panel from 1024px (one static tile, --cn-grain).
    - No scroll-timeline parallax on these large images: they scroll as plain layers. */
 
 /* ---------- Stage ---------- */
@@ -52,6 +61,17 @@ html.cn #home > .cn-threats {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, .06),
     inset 0 0 0 1px rgba(148, 163, 184, .1);
+}
+/* the finish: a static grain tile over the ground (dark panels, wide screens only) */
+@media (min-width: 1024px) {
+  html.cn #home > .cn-threats {
+    background-image:
+      var(--cn-grain),
+      radial-gradient(64% 42% at 50% 0%, rgba(34, 211, 238, .07), transparent 72%),
+      radial-gradient(40% 36% at 100% 100%, rgba(59, 130, 246, .06), transparent 72%),
+      linear-gradient(180deg, #0b1120 0%, #070b15 100%);
+    background-size: 160px 160px, auto, auto, auto;
+  }
 }
 
 /* ---------- Head ---------- */
@@ -501,10 +521,12 @@ html.cn #home .cn-threats .cn-tile--stat .cn-stat-num {
   font-family: var(--cn-font);
   font-size: clamp(3rem, 20cqi, 6rem);
   white-space: nowrap;
-  font-weight: 600;
-  line-height: .92;
-  letter-spacing: -.05em;
-  font-variant-numeric: tabular-nums;
+  /* the big-figure voice (v5) */
+  font-weight: var(--cn-fw-fig, 380);
+  font-stretch: var(--cn-fst-fig, 96%);
+  line-height: 1;
+  letter-spacing: var(--cn-track-fig, -.04em);
+  font-variant-numeric: tabular-nums lining-nums;
   color: #f5f7fa;
 }
 html.cn #home .cn-threats .cn-tile--stat p {
@@ -542,42 +564,78 @@ html.cn #home .cn-threats .cn-tile--stat .cn-src {
 }
 
 /* ---------- Motion ---------- */
-/* Hover (fine pointers): the photo leans in a touch, the caption lifts a pixel or two. */
-@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  html.cn #home .cn-threats figure.cn-tile:not(.cn-tile--qr):hover img { scale: 1.03; }
-  html.cn #home .cn-threats figure.cn-tile:not(.cn-tile--qr):hover figcaption { translate: 0 -2px; }
-  html.cn #home .cn-threats .cn-bento.is-armed figure.cn-tile.is-in:hover figcaption { transition-delay: 0s; }
+/* Reading order per row: one column on phones (each tile on its own), "b c" on tablets, "a b" /
+   "c s" from 880px. */
+@container cn-threats (min-width: 560px) {
+  html.cn #home .cn-threats .cn-tile--c { --cn-d: 90ms; }
 }
-
-/* Scroll-in (27-bento.js): once the bento is armed (.is-armed, JS and motion only), each tile
-   waits faded and slightly zoomed until a fifth of it is on screen (.is-in); then the photo
-   settles, the scan line passes once and the caption rises in. Opacity and transforms only
-   (compositor work, no blur filter). Without JS, under reduced motion or the global pause,
-   tiles are simply shown. */
+@container cn-threats (min-width: 880px) {
+  html.cn #home .cn-threats :is(.cn-tile--b, .cn-tile--stat) { --cn-d: 90ms; }
+  html.cn #home .cn-threats .cn-tile--c { --cn-d: 0ms; }
+}
 @media (prefers-reduced-motion: no-preference) {
-  html.cn.cn-js:not(.cn-still) #home .cn-threats .cn-bento.is-armed figure.cn-tile:not(.cn-tile--qr, .is-in) img { opacity: 0; scale: 1.04; }
-  html.cn.cn-js:not(.cn-still) #home .cn-threats .cn-bento.is-armed .cn-tile:not(.is-in) :where(figcaption):is(figcaption, .cn-qr),
-  html.cn.cn-js:not(.cn-still) #home .cn-threats .cn-bento.is-armed .cn-tile:not(.is-in) .cn-qr { opacity: 0; translate: 0 12px; }
-  html.cn #home .cn-threats figure.cn-tile:not(.cn-tile--qr) img { transition: scale 1.2s var(--cn-ease-out), opacity .8s ease; }
-  html.cn #home .cn-threats .cn-tile :where(figcaption):is(figcaption, .cn-qr),
-  html.cn #home .cn-threats .cn-tile .cn-qr { transition: translate .7s var(--cn-ease-out), opacity .6s ease; }
-  html.cn #home .cn-threats .cn-bento.is-armed .cn-tile.is-in figcaption { transition-delay: .2s; }
-  html.cn:not(.cn-still) #home .cn-threats .cn-bento.is-armed figure.cn-tile:not(.cn-tile--qr).is-in::before { animation: cn-tile-scan 1.5s var(--cn-ease-in-out) .25s 1 both; }
-  html.cn:not(.cn-still) #home .cn-threats .cn-bento.is-armed figure.cn-tile--c.is-in::before { animation-delay: .45s; }
-  html.cn.cn-still #home .cn-threats .cn-tile :where(img):is(img, .cn-qr),
-  html.cn.cn-still #home .cn-threats .cn-tile :where(figcaption):is(figcaption, .cn-qr),
-  html.cn.cn-still #home .cn-threats .cn-tile .cn-qr { transition: none; }
+  /* hidden only while armed (off screen at the first report), only until .is-in */
+  html.cn.cn-js:not(.cn-still) #home .cn-threats .cn-tile[data-cn-reveal]:not(.is-in) { opacity: 0; translate: 0 var(--cn-rise); }
+  html.cn.cn-js:not(.cn-still) #home .cn-threats .cn-tile[data-cn-reveal]:not(.is-in) figcaption { opacity: 0; translate: 0 18px; }
+  html.cn.cn-js:not(.cn-still) #home .cn-threats .cn-tile[data-cn-reveal]:not(.is-in) .cn-qr-links li { opacity: 0; translate: 0 14px; }
+  html.cn.cn-js:not(.cn-still) #home .cn-threats .cn-tile[data-cn-reveal]:not(.is-in) .cn-qr-fake { text-decoration-color: transparent; }
+  html.cn.cn-js:not(.cn-still) #home .cn-threats .cn-tile--stat[data-cn-reveal]:not(.is-in)::before { scale: 0 1; }
+  html.cn.cn-js:not(.cn-still) #home .cn-threats .cn-tile--stat[data-cn-reveal]:not(.is-in) .cn-src { opacity: 0; translate: 0 var(--cn-rise); }
+  /* a transition (a page shown again never replays it); not on a tile shown at once (.is-done), so
+     the legacy .reveal transition keeps its page-load cascade */
+  html.cn #home .cn-threats .cn-tile[data-cn-reveal].is-in:not(.is-done) { transition: opacity var(--cn-t-settle) var(--cn-ease-settle) var(--cn-d, 0ms), translate var(--cn-t-settle) var(--cn-ease-settle) var(--cn-d, 0ms), border-color 440ms var(--cn-ease-settle); }
+  html.cn #home .cn-threats .cn-tile.is-in figcaption {
+    transition: opacity 900ms var(--cn-ease-expo) calc(var(--cn-d, 0ms) + 200ms), translate 900ms var(--cn-ease-expo) calc(var(--cn-d, 0ms) + 200ms);
+  }
+  html.cn #home .cn-threats .cn-tile.is-in .cn-qr-links li { transition: opacity var(--cn-t-settle) var(--cn-ease-settle) calc(var(--cn-d, 0ms) + 120ms), translate var(--cn-t-settle) var(--cn-ease-settle) calc(var(--cn-d, 0ms) + 120ms); }
+  html.cn #home .cn-threats .cn-tile.is-in .cn-qr-links li + li { transition-delay: calc(var(--cn-d, 0ms) + 240ms); }
+  html.cn #home .cn-threats .cn-tile.is-in .cn-qr-fake { transition: text-decoration-color 500ms var(--cn-ease-settle) calc(var(--cn-d, 0ms) + 700ms); }
+  html.cn #home .cn-threats .cn-tile--stat.is-in::before { transition: scale var(--cn-t-rule) var(--cn-ease-expo) var(--cn-d, 0ms); }
+  html.cn #home .cn-threats .cn-tile--stat.is-in .cn-src { transition: opacity var(--cn-t-settle) var(--cn-ease-settle) calc(var(--cn-d, 0ms) + 300ms), translate var(--cn-t-settle) var(--cn-ease-settle) calc(var(--cn-d, 0ms) + 300ms); }
+  html.cn:not(.cn-still) #home .cn-threats figure.cn-tile:not(.cn-tile--qr)[data-cn-reveal].is-in:not(.is-done)::before { animation: cn-tile-scan 1.5s var(--cn-ease-swap) calc(var(--cn-d, 0ms) + 250ms) 1 backwards; }
+  html.cn:not(.cn-still) #home .cn-threats figure.cn-tile--c[data-cn-reveal].is-in:not(.is-done)::before { animation-delay: calc(var(--cn-d, 0ms) + 450ms); }
 }
+/* the fact's rule draws from its start edge */
+html.cn #home .cn-threats .cn-tile--stat::before { transform-origin: 0 50%; }
+html.cn[dir="rtl"] #home .cn-threats .cn-tile--stat::before { transform-origin: 100% 50%; }
 @keyframes cn-tile-scan {
   0% { opacity: 0; translate: 0 -100%; }
   14%, 82% { opacity: 1; }
   100% { opacity: 0; translate: 0 420%; }
 }
+@media (max-width: 760px), (pointer: coarse) {
+  html.cn.cn-js:not(.cn-still) #home .cn-threats .cn-tile[data-cn-reveal]:not(.is-in) figcaption { translate: 0 14px; }
+}
+/* Desktop: the photo settles from 1.06 (one-shot; phones get no image scale); hover leans it in
+   a touch, brightens the hairline and (QR, fact) lights the fixed key light. Never box-shadow. */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  html.cn.cn-js:not(.cn-still) #home .cn-threats figure.cn-tile[data-cn-reveal]:not(.cn-tile--qr, .is-in) img { scale: 1.06; }
+  html.cn #home .cn-threats figure.cn-tile:not(.cn-tile--qr) img { transition: scale 1400ms var(--cn-ease-expo); }
+  html.cn #home .cn-threats figure.cn-tile:not(.cn-tile--qr):hover img { scale: 1.03; }
+  html.cn #home .cn-threats figure.cn-tile:not(.cn-tile--qr):hover figcaption { translate: 0 -2px; }
+  html.cn #home .cn-threats .cn-tile.is-in:hover figcaption { transition-delay: 0s; }
+}
+@media (hover: hover) and (pointer: fine) {
+  html.cn #home .cn-threats .cn-tile { transition: border-color 440ms var(--cn-ease-settle); }
+  html.cn #home .cn-threats .cn-tile:is(:hover, :focus-within) { border-color: var(--cn-hair-3, rgba(148, 163, 184, .26)); }
+  html.cn #home .cn-threats :is(.cn-tile--qr, .cn-tile--stat)::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--cn-key);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 440ms var(--cn-ease-settle);
+  }
+  html.cn #home .cn-threats :is(.cn-tile--qr, .cn-tile--stat):is(:hover, :focus-within)::after { opacity: 1; }
+}
 
+/* Reduced motion and Pause: every hidden state above is gated on (prefers-reduced-motion:
+   no-preference) and html:not(.cn-still), so both show the resting state (the strike drawn,
+   the rule full, nothing faded); 90-a11y.css drops the transitions. */
 @media (prefers-reduced-motion: reduce) {
-  html.cn #home .cn-threats .cn-tile :where(img):is(img, .cn-qr),
-  html.cn #home .cn-threats .cn-tile :where(figcaption):is(figcaption, .cn-qr),
-  html.cn #home .cn-threats .cn-tile .cn-qr,
   html.cn #home .cn-threats .cn-tile .cn-qr-code { transition: none; }
 }
 

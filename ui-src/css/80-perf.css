@@ -32,30 +32,28 @@ html.cn #recovery #recoveryIntake.reveal {
 /* ------------------------------------------------------------------------------------------
    2. Page switches
    Legacy runs pageFade (opacity 0 -> 1) on every page, including the very first one, which
-   delays the first paint of the hero and of deep-linked pages. Its "both" fill also leaves a
-   transform behind (a containing block for fixed children) and blocks the leave transition.
-   Now: the first page paints at once; after the visitor navigates (05-reveal.js sets
-   html.cn-navigated on a [data-page] click or back/forward), the leaving page fades out inside
-   script.js's fixed 300 ms swap and the new one eases in. The entrance starts at partial
-   opacity, so the new page is a paint candidate from its first frame.
+   delays the first paint of the hero and of deep-linked pages. Now the first page paints at once;
+   after the visitor navigates (05-reveal.js sets html.cn-navigated on a [data-page] click or
+   back/forward), the leaving page lifts away inside script.js's fixed 300 ms swap (200 ms exit
+   ease, resting hidden until script.js swaps) and the new one settles in over 480 ms from
+   opacity .35, so it is a paint candidate from its first frame. The folio rule draws across the
+   top meanwhile (05-motion.css). Backwards fill only: nothing lingers once it has run.
    ------------------------------------------------------------------------------------------ */
 html.cn .page {
   animation: none;
 }
 html.cn.cn-navigated .page.active-page:not(.leaving) {
-  animation: cn-page-in .5s var(--cn-ease-out) backwards;
+  animation: cn-page-in 480ms var(--cn-ease-settle) backwards;
 }
 html.cn.cn-navigated .page.leaving {
-  animation: cn-page-out .22s var(--cn-ease-in-out) forwards;
+  opacity: 0;
+  translate: 0 -8px;
+  animation: cn-page-out 200ms var(--cn-ease-exit) backwards;
 }
-@keyframes cn-page-in {
-  from { opacity: .35; translate: 0 10px; }
-  to { opacity: 1; translate: none; }
-}
-@keyframes cn-page-out {
-  from { opacity: 1; translate: none; }
-  to { opacity: 0; translate: 0 -6px; }
-}
+/* the tools (Quick Scan, Analysis AI, Recovery) are working pages: in over 160 ms, no wait */
+html.cn.cn-navigated :is(#cybernet, #cybernetai, #recovery).active-page:not(.leaving) { animation-duration: 160ms; }
+@keyframes cn-page-in { from { opacity: .35; translate: 0 12px; } }
+@keyframes cn-page-out { from { opacity: 1; translate: none; } }
 
 /* ------------------------------------------------------------------------------------------
    3. No frosted glass inside <main>
@@ -138,12 +136,18 @@ html.cn #home > .why-choose { contain-intrinsic-size: auto 1101px; }
    ------------------------------------------------------------------------------------------ */
 
 /* ------------------------------------------------------------------------------------------
-   7. Scrolling (v4.7: native everywhere)
-   The scroll position is the browser's own, compositor-threaded, on every device (06-scroll.js:
-   Lenis is gone). Large photos never move on a scroll timeline; reveals use opacity and
-   transforms only (no blur filter); no backdrop-filter, blend mode or filter layer is fixed over
+   7. Scrolling (v5): native on phones, tablets and hybrids; Lenis on desktop wheels only
+   (06-scroll.js, built on the GSAP ticker after load + idle, demoted automatically when frames
+   run late). Lenis' own CSS, scoped. No other rule may key on .lenis-scrolling / .lenis-smooth:
+   they toggle on <html> at every run start and end. scroll-behavior stays auto (90-a11y.css).
+   Large photos never move on a scroll timeline; nothing with a filter or blend is fixed over
    the page.
    ------------------------------------------------------------------------------------------ */
+html.cn.lenis,
+html.cn.lenis body { height: auto; }
+html.cn.lenis:not(.lenis-autoToggle).lenis-stopped { overflow: clip; }
+html.cn.lenis [data-lenis-prevent] { overscroll-behavior: contain; }
+html.cn.lenis.lenis-smooth iframe { pointer-events: none; }
 
 /* ------------------------------------------------------------------------------------------
    8. Still glows (v4.7, owner: "make it super smooth")
