@@ -22,8 +22,8 @@ html.cn {
   --weight-display: 600;
   --weight-heading: 600;
 
-  accent-color: var(--cn-cyan);
-  scrollbar-color: var(--cn-line-2) transparent;
+  accent-color: #22d3ee;
+  scrollbar-color: #243049 #060a14;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
@@ -116,15 +116,6 @@ html.cn :where(main) :is(h1, h2) > span:where(:not([class])) {
   text-shadow: none;
 }
 
-/* Highlighted words (.cn-grad). v4.1 retires gradient text outside the hero word, so the class
-   is now the section's one cyan highlight: plain cyan text (10.9:1 on dark; #0b6a84, 5.3:1, on
-   light bands). The name is kept so existing markup still works. */
-html.cn .cn-grad {
-  color: var(--cn-cyan-2);
-  background: none;
-  -webkit-text-fill-color: currentColor;
-}
-
 /* Page titles on every page except Home (the hero has its own scale). */
 html.cn :where(.page) :is(.feature-page-header, .section-head, .about-top, .learn-hero) h1 {
   font-family: var(--cn-font);
@@ -154,12 +145,8 @@ html.cn :where(pre),
 html.cn :where(.account-eyebrow),
 html.cn :where(.price-plan-label),
 html.cn :where(.plan-badge),
-html.cn :where(.usage-chip),
 html.cn :where(.save-tag),
 html.cn :where(.char-count),
-html.cn :where(.api-key-label),
-html.cn :where(.term-path),
-html.cn :where(.term-body),
 html.cn :where(.fetch-body),
 html.cn :where(.qr-raw),
 html.cn :where(.qr-kind),
@@ -206,9 +193,15 @@ html.cn :where(a:not([class])) {
    4. Selection, focus, scrollbars
    ------------------------------------------------------------------------------------------ */
 html.cn ::selection {
-  background: rgba(34, 211, 238, .34);
+  background: color-mix(in srgb, var(--cn-cyan) var(--cn-sel, 26%), transparent);
   color: var(--cn-text);
 }
+/* data reads as data: tabular, lining figures */
+html.cn [data-cn-count],
+html.cn [data-cn-score],
+html.cn .price-amount,
+html.cn .wow-stat-number,
+html.cn .cn-live-time { font-variant-numeric: tabular-nums lining-nums; }
 
 /* One focus ring everywhere: 2px, 3px off the edge (an outline follows border-radius and
    survives forced-colours mode, unlike a box-shadow ring). --cn-ring is bright cyan on dark
@@ -230,6 +223,9 @@ html.cn ::-webkit-scrollbar-thumb {
 }
 html.cn ::-webkit-scrollbar-thumb:hover { background-color: var(--cn-text-3); }
 html.cn ::-webkit-scrollbar-corner { background: transparent; }
+html.cn :where(textarea),
+html.cn .modal-card,
+html.cn #chatMessages { scrollbar-width: thin; }
 
 /* ------------------------------------------------------------------------------------------
    5. Page container
@@ -278,19 +274,11 @@ html.cn[dir="rtl"] :is(#cybernet, #cybernetai).page { --cn-glow-x: 72%; }
       page opens (and again on tab clicks), so it is a page-load entrance, not a scroll reveal.
       Only its curve changes here. Scoped to .page: the modal cards carry .reveal and never get
       .show. The rest state is transform:none, so no containing block lingers.
-   b) Scroll reveals, driven by 05-reveal.js ([data-cn-reveal], [data-cn-stagger]). Blocks fade
-      and rise a little as they scroll in: opacity and translate only, so the compositor runs
-      them while the page scrolls (v4.1 dropped the blur-in: a filter on a text block costs a
-      re-raster per frame, exactly while the visitor is scrolling). On Home,
-      05-reveal.js also tags the section heads, the support box and the limits note (blocks
-      with their own scroll motion are left alone); data-cn-reveal="off" keeps a block out. The hidden state exists only once
-      the UI script has run (html.cn-js) and only until the element is in view (.is-in), so
-      nothing can get stuck. Variants: data-cn-reveal="fade" (no rise), "scale" (settles from
-      1.04, for photos), "clip" (wipes up from the bottom edge, for photos and panels).
-      Children of [data-cn-stagger] rise one after another (70 ms apart, --cn-i).
+   b) Scroll reveals ([data-cn-reveal], [data-cn-stagger], [data-cn-rule]): v5 presets in
+      05-motion.css, driven by 05-reveal.js / CN.motion.reveal.
    ------------------------------------------------------------------------------------------ */
 html.cn :where(.page) .reveal {
-  transform: translate3d(0, 18px, 0);
+  transform: translateY(18px);
   transition: opacity .7s var(--cn-ease-out), transform .8s var(--cn-ease-out);
 }
 html.cn :where(.page) .reveal.show {
@@ -298,55 +286,18 @@ html.cn :where(.page) .reveal.show {
   transform: none;
 }
 
-html.cn.cn-js [data-cn-reveal]:not(.is-in, [data-cn-reveal="off"]),
-html.cn.cn-js [data-cn-stagger]:not(.is-in) > * {
-  opacity: 0;
-}
-html.cn [data-cn-reveal].is-in {
-  animation: cn-rise .8s var(--cn-ease-out) backwards;
-  animation-delay: var(--cn-d, 0ms);
-}
-html.cn [data-cn-stagger].is-in > * {
-  animation: cn-rise .7s var(--cn-ease-out) backwards;
-  animation-delay: calc(var(--cn-i, 0) * 60ms);
-}
-html.cn [data-cn-reveal="fade"].is-in { animation-name: cn-fade; }
-html.cn [data-cn-reveal="scale"].is-in { animation-name: cn-settle; animation-duration: 1.2s; }
-html.cn [data-cn-reveal="clip"].is-in { animation-name: cn-wipe; animation-duration: 1.1s; animation-timing-function: var(--cn-ease-emph); }
-/* Already on screen when the script arrived: shown as is, no replay. */
-html.cn [data-cn-reveal].is-done,
-html.cn [data-cn-stagger].is-done > * {
-  animation: none;
-}
-@keyframes cn-rise {
-  from { opacity: 0; translate: 0 18px; }
-  to { opacity: 1; translate: none; }
-}
-@keyframes cn-fade {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-@keyframes cn-settle {
-  from { opacity: 0; scale: 1.04; }
-  to { opacity: 1; scale: none; }
-}
-@keyframes cn-wipe {
-  from { opacity: .2; clip-path: inset(0 0 100% 0 round var(--cn-r-card)); }
-  to { opacity: 1; clip-path: inset(0 0 0 0 round var(--cn-r-card)); }
-}
-
 /* ------------------------------------------------------------------------------------------
-   7. Buttons (legacy .primary-btn / .secondary-btn; .cn-btn shares the primary look)
+   7. Buttons (legacy .primary-btn / .secondary-btn)
    Primary: the cyan pill with ink text (10.9:1) on every ground (--cn-brand never changes with
-   the section tone), lit from above. The soft outer glow belongs to the primary CTA only: the
-   .big buttons (the hero's "Start scanning" and the closing "Check a message or link") and
-   .cn-cta. Secondary: glass on dark, white on light bands.
+   the section tone), lit from above. The soft outer glow belongs to the primary CTA only (the
+   .big buttons: the hero's "Start scanning" and the closing "Check a message or link").
+   Secondary (v5): a neutral fill, a --cn-hair-3 edge and a lit top edge.
    Lift and press use the independent translate/scale properties, so no legacy transform rule
-   and no JS-set transform is fought. Buttons never move toward the pointer.
+   and no JS-set transform is fought. Buttons never move toward the pointer: a 1px hover lift and
+   a .98 press (120 ms press ease in, 220 ms expo back) are the only movement.
    ------------------------------------------------------------------------------------------ */
 html.cn .primary-btn,
-html.cn .secondary-btn,
-html.cn .cn-btn {
+html.cn .secondary-btn {
   align-items: center;
   justify-content: center;
   gap: var(--cn-2);
@@ -373,36 +324,31 @@ html.cn .cn-btn {
     color var(--cn-dur-1) ease,
     opacity var(--cn-dur-1) ease,
     translate var(--cn-dur-2) var(--cn-ease-out),
-    scale var(--cn-dur-1) var(--cn-ease-out);
+    scale 220ms var(--cn-ease-expo);
 }
-html.cn .cn-btn { display: inline-flex; }
-
-html.cn .primary-btn,
-html.cn .cn-btn {
+html.cn .primary-btn {
   background: var(--cn-brand);
   color: var(--cn-on-brand);
   border: 1px solid transparent;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), inset 0 -1px 0 rgba(2, 6, 23, .16);
 }
 /* The primary CTA glows: a soft cyan halo, no motion. */
-html.cn .primary-btn:is(.big, .cn-cta),
-html.cn .cn-btn:is(.big, .cn-cta) {
+html.cn .primary-btn.big {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), inset 0 -1px 0 rgba(2, 6, 23, .16), var(--cn-glow-cta);
 }
 /* On a light band the pill gets a teal edge, so it reads against the pale ground (1.6:1 alone). */
-html.cn :is(.cn-light, [data-cn-tone="light"], #home > .cn-live, #home > .cn-demo, #home > .why-choose, #home > .wow-section) .primary-btn,
-html.cn :is(.cn-light, [data-cn-tone="light"], #home > .cn-live, #home > .cn-demo, #home > .why-choose, #home > .wow-section) .cn-btn {
+html.cn :is(.cn-light, [data-cn-tone="light"], #home > .cn-live, #home > .cn-demo, #home > .why-choose, #home > .wow-section) .primary-btn {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), 0 0 0 1px rgba(14, 116, 144, .4), 0 8px 18px -10px rgba(15, 23, 42, .3);
 }
 html.cn .secondary-btn {
   background: var(--cn-fill-1);
   color: var(--cn-text);
-  border: 1px solid var(--cn-line-2);
-  box-shadow: inset 0 1px 0 var(--cn-hi);
+  border: 1px solid var(--cn-hair-3);
+  box-shadow: inset 0 1px 0 var(--cn-hair-lit);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
-html.cn :is(.primary-btn, .secondary-btn, .cn-btn).big {
+html.cn :is(.primary-btn, .secondary-btn).big {
   min-height: 48px;
   padding-inline: 26px;
   font-size: 1rem;
@@ -410,35 +356,32 @@ html.cn :is(.primary-btn, .secondary-btn, .cn-btn).big {
 
 /* Legacy hover lifts with transform; that is replaced by the 1px translate below. */
 html.cn .primary-btn:hover,
-html.cn .secondary-btn:hover,
-html.cn .cn-btn:hover { transform: none; }
+html.cn .secondary-btn:hover { transform: none; }
 @media (hover: hover) and (pointer: fine) {
-  html.cn .primary-btn:not(:disabled):hover,
-  html.cn .cn-btn:not(:disabled):hover {
+  html.cn .primary-btn:not(:disabled):hover {
     background: var(--cn-brand-2);
     translate: 0 -1px;
   }
-  html.cn .primary-btn:is(.big, .cn-cta):not(:disabled):hover,
-  html.cn .cn-btn:is(.big, .cn-cta):not(:disabled):hover {
+  html.cn .primary-btn.big:not(:disabled):hover {
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6), inset 0 -1px 0 rgba(2, 6, 23, .14), var(--cn-glow-cta-hover);
   }
   html.cn .secondary-btn:not(:disabled):hover {
     background: var(--cn-fill-2);
-    border-color: var(--cn-line-2);
+    border-color: rgba(148, 163, 184, .4);
     color: var(--cn-text);
     translate: 0 -1px;
   }
 }
 html.cn .primary-btn:not(:disabled):active,
-html.cn .secondary-btn:not(:disabled):active,
-html.cn .cn-btn:not(:disabled):active {
+html.cn .secondary-btn:not(:disabled):active {
   scale: .98;
   translate: none;
+  transition-duration: var(--cn-t-tap);
+  transition-timing-function: var(--cn-ease-press);
 }
 html.cn .primary-btn:disabled,
 html.cn .secondary-btn:disabled,
-html.cn .cn-btn:disabled,
-html.cn :is(.primary-btn, .secondary-btn, .cn-btn)[aria-disabled="true"] {
+html.cn :is(.primary-btn, .secondary-btn)[aria-disabled="true"] {
   opacity: .45;
   cursor: not-allowed;
   translate: none;
@@ -447,8 +390,7 @@ html.cn :is(.primary-btn, .secondary-btn, .cn-btn)[aria-disabled="true"] {
 /* A button that is busy (script.js puts a spinner inside and disables it) reads as working,
    not as unavailable. */
 html.cn .primary-btn:disabled:has(.btn-spinner),
-html.cn .secondary-btn:disabled:has(.btn-spinner),
-html.cn .cn-btn:disabled:has(.btn-spinner) {
+html.cn .secondary-btn:disabled:has(.btn-spinner) {
   opacity: .85;
   cursor: progress;
 }
@@ -583,7 +525,7 @@ html.cn :where(input:is([type="text"], [type="email"], [type="password"], [type=
   html.cn :where(select):hover,
   html.cn :where(input:is([type="text"], [type="email"], [type="password"], [type="search"], [type="url"],
       [type="tel"], [type="number"], [type="date"], :not([type]))):hover {
-    border-color: color-mix(in srgb, var(--cn-text) 58%, transparent);
+    border-color: rgba(203, 213, 225, .62);
   }
 }
 html.cn :where(textarea):focus,
@@ -591,10 +533,9 @@ html.cn :where(select):focus,
 html.cn :where(input:is([type="text"], [type="email"], [type="password"], [type="search"], [type="url"],
     [type="tel"], [type="number"], [type="date"], :not([type]))):focus {
   background-color: var(--cn-surface-2);
-  border-color: var(--cn-line-ctl);
-  box-shadow: none;
-  outline: 2px solid var(--cn-ring);
-  outline-offset: 2px;
+  border-color: var(--cn-ring);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, .16); /* static: applied, never transitioned */
+  outline: none;
 }
 html.cn :where(textarea)::placeholder,
 html.cn :where(input)::placeholder {

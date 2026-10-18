@@ -1,24 +1,20 @@
-/* Line-by-line mask reveals (v4.2 for the big Home headings, reusable on any page from v4.3;
-   owner: aurora; the owner's motion reference: headings slide up out of a mask, one line after
-   another).
+/* SET: display type rises out of its mask, line by line (owner: core; v4.2, reusable v4.3,
+   retuned v5). Our port of the React Bits SplitText effect.
 
-   REUSABLE HOOK: put data-cn-lines on a heading (data-cn-lines="head" also fades its parent's
-   other children up 260 ms after it). Full notes and markup examples: 05-reveal.js.
+   Hook: data-cn-lines on a heading (data-cn-lines="head" also settles its parent's other
+   children 180 ms after it), or CN.motion.splitLines(el, opts). Notes: 05-reveal.js.
      <h2 data-cn-lines>Built for the <b>moment</b> before you click</h2>
-
    05-reveal.js wraps each word once: .cn-lines > cn-lm.cn-lm (the mask) > cn-lm-i.cn-lm-i (the
-   word). Custom element names, so no "h1 span" rule can restyle the masks: they inherit colour,
-   weight and tracking from wherever the word sits (the two-tone <span>, a <b>). The spaces
-   between words stay plain text, so the heading wraps exactly as before and reads the same to
-   screen readers and find-in-page. When the heading first scrolls into view (or its page is
-   opened) it gets .is-in, and each word rises out of its mask with a delay set by its line
-   (--cn-ln, 110 ms a line): the lines arrive one after another, like type set by hand.
-   Transform and opacity only, once per heading.
-   The hidden state exists only once the UI script has run (html.cn-js), only on headings it has
-   split (.cn-lines; a heading already on screen at start-up is never split) and only until
-   .is-in, so a heading can never get stuck hidden. Reduced motion and Pause motion show it at
-   once. Page CSS needs nothing extra; to tune one heading, set --cn-lines-step (the delay per
-   line, default 110ms) or --cn-lines-dur (default 1.05s) on it. */
+   word); custom element names, so they inherit colour, weight and tracking from the word's own
+   parent. The spaces stay text. When the heading first scrolls into view (or its page opens) it
+   gets .is-in and each word rises with a delay set by its line (--cn-ln x --cn-st-line), plus
+   30 ms per word where the word stagger is on (--cn-wi, capped at 8; the #cnCore lead).
+   Timing: --cn-t-set (720 ms, phones 620 ms) expo; opacity over the first 55%. The transition
+   lives on .is-in only, so taking .is-in away (a replay) resets the words at once.
+   Tune one heading with --cn-lines-step (per line), --cn-lines-dur or --cn-ld (base delay).
+   The hidden state exists only under html.cn-js, only on headings 05-reveal.js has split (one on
+   screen at start-up is never split) and only until .is-in; a 2D translate, so hidden words never
+   become compositor layers. Reduced motion and Pause motion show it at once. */
 
 html.cn .cn-lines .cn-lm {
   display: inline-block;
@@ -29,21 +25,22 @@ html.cn .cn-lines .cn-lm {
   overflow: hidden;
   overflow: clip;
 }
-html.cn .cn-lines .cn-lm-i {
-  display: inline-block;
+html.cn .cn-lines .cn-lm-i { display: inline-block; }
+html.cn .cn-lines.is-in .cn-lm-i {
+  --cn-lt: calc(var(--cn-ln, 0) * var(--cn-lines-step, var(--cn-st-line)) + var(--cn-wi, 0) * 30ms + var(--cn-ld, 40ms));
   transition:
-    transform var(--cn-lines-dur, 1.05s) cubic-bezier(.16, 1, .3, 1) calc(var(--cn-ln, 0) * var(--cn-lines-step, 110ms) + 40ms),
-    opacity .5s ease calc(var(--cn-ln, 0) * var(--cn-lines-step, 110ms) + 40ms);
+    translate var(--cn-lines-dur, var(--cn-t-set)) var(--cn-ease-expo) var(--cn-lt),
+    opacity calc(var(--cn-lines-dur, var(--cn-t-set)) * .55) ease var(--cn-lt);
 }
 html.cn.cn-js .cn-lines:not(.is-in) .cn-lm-i {
   opacity: 0;
-  transform: translate3d(0, 112%, 0);
+  translate: 0 112%;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html.cn.cn-js .cn-lines .cn-lm-i { opacity: 1; transform: none; transition: none; }
+  html.cn.cn-js .cn-lines .cn-lm-i.cn-lm-i { opacity: 1; translate: none; transition: none; }
 }
-html.cn.cn-js.cn-still .cn-lines .cn-lm-i { opacity: 1; transform: none; transition: none; }
+html.cn.cn-js.cn-still .cn-lines .cn-lm-i { opacity: 1; translate: none; transition: none; }
 @media print {
-  html.cn.cn-js .cn-lines .cn-lm-i { opacity: 1; transform: none; }
+  html.cn.cn-js .cn-lines .cn-lm-i.cn-lm-i { opacity: 1; translate: none; }
 }

@@ -64,21 +64,24 @@ html.cn #cnMain:focus {
     transition: opacity .15s linear;
   }
   html.cn.cn-js [data-cn-reveal]:not(.is-in),
-  html.cn.cn-js [data-cn-stagger]:not(.is-in) > * {
+  html.cn.cn-js [data-cn-stagger]:not(.is-in) > [style] {
     opacity: 1;
   }
+  html.cn.cn-js [data-cn-reveal^="rule"]:not(.is-in),
+  html.cn.cn-js [data-cn-rule]:not(.is-in)::before { scale: none; }
+  html.cn cn-folio[data-turn] { display: none; }
   html.cn [data-cn-reveal].is-in,
-  html.cn [data-cn-stagger].is-in > *,
+  html.cn [data-cn-stagger].is-in > [style],
   html.cn.cn-navigated .page.active-page:not(.leaving),
   html.cn.cn-navigated .page.leaving {
     animation: none;
   }
+  html.cn.cn-navigated .page.leaving { opacity: 1; translate: none; }
   html.cn .cn-live-dot::after,
   html.cn .cn-live-dot.is-on::after { animation: none; opacity: 0; }
 
   html.cn .primary-btn:is(:hover, :active),
   html.cn .secondary-btn:is(:hover, :active),
-  html.cn .cn-btn:is(:hover, :active),
   html.cn .cn-chip:is(:hover, :active),
   html.cn .cn-motion-toggle:is(:hover, :active) {
     translate: none;
@@ -100,12 +103,16 @@ html.cn #cnMain:focus {
 }
 
 html.cn.cn-still.cn-js [data-cn-reveal]:not(.is-in),
-html.cn.cn-still.cn-js [data-cn-stagger]:not(.is-in) > * {
+html.cn.cn-still.cn-js [data-cn-stagger]:not(.is-in) > [style] {
   opacity: 1;
 }
+html.cn.cn-still.cn-js [data-cn-reveal^="rule"]:not(.is-in),
+html.cn.cn-still.cn-js [data-cn-rule]:not(.is-in)::before { scale: none; }
+html.cn.cn-still cn-folio[data-turn] { display: none; }
+html.cn.cn-still.cn-navigated .page.leaving { opacity: 1; translate: none; animation: none; }
 html.cn.cn-still :where(.page) .reveal { transform: none; filter: none; }
 html.cn.cn-still [data-cn-reveal].is-in,
-html.cn.cn-still :is([data-cn-stagger].is-in > *) { animation: none; }
+html.cn.cn-still :is([data-cn-stagger].is-in > [style]) { animation: none; }
 html.cn.cn-still .cn-live-dot::after { animation: none; opacity: 0; }
 html.cn.cn-still body *:not([class*="spinner"]),
 html.cn.cn-still body *:not([class*="spinner"])::before,
@@ -128,7 +135,6 @@ html.cn.cn-still body [class*="spinner"] {
 @media (forced-colors: active) {
   html.cn .primary-btn,
   html.cn .secondary-btn,
-  html.cn .cn-btn,
   html.cn .cn-chip,
   html.cn .cn-ghost-btn,
   html.cn .inline-link-btn {
@@ -139,7 +145,6 @@ html.cn.cn-still body [class*="spinner"] {
   html.cn .cn-verdict,
   html.cn .cn-ex,
   html.cn .cn-card,
-  html.cn .cn-glass,
   html.cn .cn-motion-toggle,
   html.cn .home-limits-note,
   html.cn .cn-light,
@@ -147,9 +152,11 @@ html.cn.cn-still body [class*="spinner"] {
   html.cn :where(main) .glass {
     border: 1px solid CanvasText;
   }
-  html.cn :where(.cn-card):is(.cn-card, .page > .support-box)::before,
-  html.cn :where(.cn-glass):is(.cn-glass, .page > .support-box)::before,
-  html.cn :is(.page > .support-box)::before { display: none; }
+  html.cn .cn-card::before,
+  html.cn .cn-card::after,
+  html.cn .page > .support-box::before,
+  html.cn .page > .support-box::after,
+  html.cn cn-folio { display: none; }
   html.cn .cn-motion-toggle::before { border-color: ButtonText; }
   html.cn :focus-visible,
   html.cn .real-upload-box:has(input:focus-visible),
@@ -198,7 +205,6 @@ html.cn.cn-still body [class*="spinner"] {
     --cn-line-ctl: color-mix(in srgb, var(--cn-text) 64%, transparent);
     --cn-cyan-tint: color-mix(in srgb, var(--cn-cyan) 20%, transparent);
     --cn-glass: var(--cn-surface);
-    --cn-glass-2: var(--cn-surface-2);
   }
   html.cn :focus-visible { outline-width: 3px; }
   html.cn :where(textarea)::placeholder,
@@ -215,7 +221,6 @@ html.cn.cn-still body [class*="spinner"] {
   html.cn :is(#home > .why-choose),
   html.cn :is(#home > .wow-section) {
     --cn-glass: var(--cn-surface);
-    --cn-glass-2: var(--cn-surface-2);
   }
 }
 

@@ -8,24 +8,28 @@
      h2.cn-core-label            "What CyberNet AI does" (top start corner, the section heading)
      p.cn-core-tag--top          "Rules first. Then AI." (top end corner)
      p.cn-core-lead              "Let's protect you from a scam." (the centred lead; "protect" in
-                                 <b>, the hero's cyan gradient; [data-cn-lines] slides its lines
-                                 up once, 05-reveal.js)
+                                 <b>, flat #67e8f9 (v5: the hero keeps the one gradient word);
+                                 [data-cn-lines] sets it word by word, 05-reveal.js)
      p.cn-manifesto[data-cn="manifesto"]   centred under the lead, about 26em wide; it lights
                                  line by line, once, as it arrives (section 6a, 57-core.js)
      p.cn-core-tag--end          "Texts, links and QR codes" (centred, a cyan dot before it)
    No panel and no canvas: the section sits on the page ground, and nothing in it moves while
    the page is still.
+   v5 motion (57-core.js tags, this file moves; transitions keyed on .is-in, so a section on
+   screen at start-up never animates): the label's hairline draws (data-cn-rule, 05-motion.css),
+   its words (span.cn-core-t) slide 4px in at +120 ms, the top tag fades at +200 ms, the lead
+   SETs by word (29-lines.css; +120 ms base), the end tag's dot grows and its words fade at +120 ms.
+   Reduced motion and Pause: all final.
 
    REUSABLE HOOKS (v4.3; section 6 below; the JS for 1 and 2 is in 57-core.js)
    1. Lit manifesto: <p class="cn-manifesto" data-cn="manifesto">Words <b>key words</b></p>
       data-cn="manifesto" makes the lines light up once, in reading order, as it arrives (v4.7:
       by line, an opacity transition on the compositor; see 6a). The class "cn-manifesto" adds
       the big light editorial type (leave it off to keep your own).
-   2. Subtle glow behind a 3D object: <figure data-cn-glow="50 46"><img ...></figure>
-      (light centre x% y% of the box; default "50 50"; data-cn-glow-motes="off" drops the
-      motes). A very faint cyan light (its soft rim reaches a little past the host, so it shows
-      round the object) that breathes and drifts slowly, plus four tiny motes, on the compositor
-      only, playing only while on screen. The host becomes position:relative (unless it is
+   2. Still glow behind a 3D object: <figure data-cn-glow="50 46"><img ...></figure>
+      (light centre x% y% of the box; default "50 50"). A very faint, still cyan light (its
+      soft rim reaches a little past the host, so it shows round the object); v5: nothing in it
+      moves (the breathing, drift and motes are gone). The host becomes position:relative (unless it is
       positioned) and isolation:isolate; the layer is cn-glow.cn-glow (cn-gl lights inside),
       its first child. Tune with --cn-gl-scale (size, 1), --cn-gl-k (strength, 1),
       --cn-gl-rgb ("34, 211, 238") and --cn-gl-rise (44px).
@@ -155,19 +159,27 @@ html.cn #home .cn-core-lead b {
   color: #67e8f9;
   font-weight: 640;
 }
-@supports ((-webkit-background-clip: text) or (background-clip: text)) {
-  /* on the <b> itself, and on each word once 05-reveal.js has masked it (an inline-block of its
-     own, which a parent's text clip would not reach) */
-  html.cn #home .cn-core-lead b,
-  html.cn #home .cn-core-lead b .cn-lm-i {
-    background-image: linear-gradient(100deg, #67e8f9 0%, #38bdf8 52%, #60a5fa 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    -webkit-text-fill-color: transparent;
-  }
-  html.cn #home .cn-core-lead b .cn-lm-i { padding-inline-end: .04em; margin-inline-end: -.04em; }
+/* RULE, then the words: the label's hairline draws (05-motion.css, data-cn-rule), its words
+   slide 4px in at +120 ms, "Rules first. Then AI." fades in at +200 ms; the end tag's dot grows
+   and its words fade at +120 ms. Hidden only while armed (off screen at the first report). */
+html.cn.cn-js #home .cn-core-label[data-cn-rule]:not(.is-in) > .cn-core-t { opacity: 0; translate: -4px 0; }
+html.cn.cn-js[dir="rtl"] #home .cn-core-label[data-cn-rule]:not(.is-in) > .cn-core-t { translate: 4px 0; }
+html.cn.cn-js #home .cn-core-label[data-cn-rule]:not(.is-in) ~ .cn-core-tag--top,
+html.cn.cn-js #home .cn-core-tag--end[data-cn-reveal]:not(.is-in) > .cn-core-t { opacity: 0; }
+html.cn.cn-js #home .cn-core-tag--end[data-cn-reveal]:not(.is-in)::before { scale: 0; }
+html.cn #home .cn-core-label > .cn-core-t { display: inline-block; }
+html.cn #home .cn-core-label.is-in > .cn-core-t { transition: opacity 500ms var(--cn-ease-settle) 120ms, translate 500ms var(--cn-ease-settle) 120ms; }
+html.cn #home .cn-core-label.is-in ~ .cn-core-tag--top { transition: opacity 500ms var(--cn-ease-settle) 200ms; }
+html.cn #home .cn-core-tag--end.is-in::before { transition: scale 500ms var(--cn-ease-settle); }
+html.cn #home .cn-core-tag--end.is-in > .cn-core-t { transition: opacity 500ms var(--cn-ease-settle) 120ms; }
+@media (prefers-reduced-motion: reduce) {
+  html.cn.cn-js #home .cn-core :is(.cn-core-t, .cn-core-tag--top) { opacity: 1; translate: none; transition: none; }
+  html.cn.cn-js #home .cn-core-tag--end::before { scale: none; transition: none; }
 }
+html.cn.cn-js.cn-still #home .cn-core :is(.cn-core-t, .cn-core-tag--top) { opacity: 1; translate: none; transition: none; }
+html.cn.cn-js.cn-still #home .cn-core-tag--end::before { scale: none; transition: none; }
+/* the lead starts 120 ms after its label (29-lines.css base delay) */
+html.cn #home .cn-core-lead { --cn-ld: 120ms; }
 
 /* ---- the manifesto: centred under the lead, about 26em to a line (9 to 11 words on a
    desktop). Its type here is a size below the lead; the lighting is the shared 6a. ---- */
@@ -193,7 +205,7 @@ html.cn #home .cn-core > .cn-manifesto b {
   html.cn #home .cn-core-label::before,
   html.cn #home .cn-core-tag--end::before { display: none; }
   html.cn #home .cn-core-lead b,
-  html.cn #home .cn-core-lead b .cn-lm-i { background: none; color: CanvasText; -webkit-text-fill-color: CanvasText; }
+  html.cn #home .cn-core-lead b .cn-lm-i { background: none; color: CanvasText; -webkit-text-fill-color: CanvasText; animation: none; }
 }
 
 /* ==========================================================================================
@@ -213,7 +225,9 @@ html.cn #home .cn-core > .cn-manifesto b {
    #6e7a8c was 4.6:1); dark ink on a light band (.is-ink, set by 57-core.js from the computed
    colour) rests at .6, about 4.8:1 on #f5f7fa.
    Fully lit, with nothing dimmed: reduced motion, Pause motion, no script, print and forced
-   colours. */
+   colours.
+   v5 (desktop with Lenis): the same lines follow the scroll instead (57-core.js, CN.motion.scrub);
+   .is-scrub drops the transition while GSAP writes each line's opacity and lift inline. */
 html.cn .cn-manifesto {
   max-inline-size: 22em;
   margin: 0;
@@ -242,7 +256,7 @@ html.cn [data-cn="manifesto"].is-measure .cn-ml { display: inline; }
 @media (prefers-reduced-motion: no-preference) {
   html.cn:not(.cn-still) [data-cn="manifesto"].is-dim .cn-ml { opacity: .5; }
   html.cn:not(.cn-still) [data-cn="manifesto"].is-dim.is-ink .cn-ml { opacity: .6; }
-  html.cn:not(.cn-still) [data-cn="manifesto"].is-dim[data-cn-lit] .cn-ml {
+  html.cn:not(.cn-still) [data-cn="manifesto"].is-dim[data-cn-lit]:not(.is-scrub) .cn-ml {
     opacity: 1;
     transition: opacity .9s cubic-bezier(.22, .61, .36, 1) calc(var(--cn-i, 0) * 110ms);
   }
@@ -255,20 +269,15 @@ html.cn [data-cn="manifesto"].is-measure .cn-ml { display: inline; }
 }
 
 
-/* ---- 6b. Subtle glow: [data-cn-glow] (57-core.js adds cn-glow.cn-glow when the host nears) ----
-   The owner on cyan energy: "only if it's subtle". So: a soft light behind the object that
-   breathes (11 s), a second, fainter light that drifts round it (29 s) and four 3px motes near
-   the object's edges that rise a few dozen pixels and fade (14 to 19 s each). Peak opacity
-   stays near .12; no column, no shards, no flicker. Transform and opacity only, on the compositor.
-   Everything holds its frame unless 57-core.js sets data-cn-play (on screen, tab visible,
-   motion allowed).
-   An object usually fills its box, so a light that stayed inside the box would be hidden behind
-   it. Each light is therefore a small disc inside the host whose soft box-shadow reaches past
-   the host's edges. A box-shadow is ink overflow: it never counts towards the page's scroll
-   width, so it cannot make a phone pan sideways (every border box here, motes included, stays
-   inside the host). Its sizes are in px from the host's shorter side (--cn-gl-s, written by
-   57-core.js on resize; 320px until then) times --cn-gl-scale.
-   Paint order: under the host's in-flow content and ::after, over a z-index:-1 ::before. */
+/* ---- 6b. Still glow: [data-cn-glow] (57-core.js adds cn-glow.cn-glow when the host nears) ----
+   The owner on cyan energy: "only if it's subtle". A soft, still light behind the object and a
+   fainter second one beside it (v4.7 stopped their breathing and drift and hid the motes: their
+   loops cost a throttled phone about 8% of its main thread; v5 deletes them). Peak opacity stays
+   near .12. An object usually fills its box, so each light is a small disc inside the host whose
+   soft box-shadow reaches past the host's edges (ink overflow: never scroll width). Sizes are in
+   px from the host's shorter side (--cn-gl-s, written by 57-core.js on resize; 320px until then)
+   times --cn-gl-scale. Paint order: under the host's in-flow content and ::after, over a
+   z-index:-1 ::before. */
 :where(html.cn [data-cn-glow]) { position: relative; isolation: isolate; }   /* zero specificity: any page rule wins */
 html.cn .cn-glow {
   --cn-gl-u: calc(var(--cn-gl-s, 320px) * var(--cn-gl-scale, 1));   /* the light's unit */
@@ -282,82 +291,33 @@ html.cn .cn-glow {
   pointer-events: none;
   opacity: var(--cn-gl-k, 1);
 }
-/* (no margin or padding here: each light centres itself with its own margins below) */
 html.cn .cn-glow > cn-gl {
   position: absolute;
   display: block;
-  border-radius: 50%;
-  pointer-events: none;
-  animation-play-state: paused;
-}
-html.cn .cn-glow[data-cn-play] > cn-gl { animation-play-state: running; }
-/* the light: a disc of .35u blurred with sigma .18u, centred on the point (about .12 of cyan
-   in the middle). Round an object that fills ~85% of its box (edge at ~.42u) it adds about .035
-   just outside the silhouette, .02 at the host's edge and nothing by .7u. */
-html.cn .cn-glow-light {
   inset-block-start: var(--cn-gl-y, 50%);
   left: var(--cn-gl-x, 50%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+/* the light: a disc of .1u whose shadow blurs to about .12 of cyan in the middle; the fill
+   matches the shadow at the disc's rim, so the disc never shows as a step */
+html.cn .cn-glow-light {
   inline-size: calc(var(--cn-gl-u) * .1);
   block-size: calc(var(--cn-gl-u) * .1);
   margin: calc(var(--cn-gl-u) * -.05) 0 0 calc(var(--cn-gl-u) * -.05);
-  /* the fill matches the blurred shadow at the disc's rim (.84 of it), so the disc never shows
-     as a step where nothing covers it */
   background: rgba(var(--cn-gl-rgb, 34, 211, 238), .117);
   box-shadow: 0 0 calc(var(--cn-gl-u) * .36) calc(var(--cn-gl-u) * .3) rgba(var(--cn-gl-rgb, 34, 211, 238), .14);
   opacity: .82;
   transform: scale(.95);
-  animation: cn-glow-breathe 11s ease-in-out infinite;
 }
-/* the drifting light: smaller and fainter, it slides slowly round the object's edge */
+/* the second light: smaller and fainter, at the same point */
 html.cn .cn-glow-drift {
-  inset-block-start: var(--cn-gl-y, 50%);
-  left: var(--cn-gl-x, 50%);
   inline-size: calc(var(--cn-gl-u) * .06);
   block-size: calc(var(--cn-gl-u) * .06);
   margin: calc(var(--cn-gl-u) * -.03) 0 0 calc(var(--cn-gl-u) * -.03);
-  background: rgba(var(--cn-gl-rgb, 34, 211, 238), .062);   /* .68 of the shadow: no step at the rim */
+  background: rgba(var(--cn-gl-rgb, 34, 211, 238), .062);
   box-shadow: 0 0 calc(var(--cn-gl-u) * .3) calc(var(--cn-gl-u) * .2) rgba(var(--cn-gl-rgb, 34, 211, 238), .09);
   opacity: .7;
-  animation: cn-glow-drift 29s ease-in-out infinite;
-}
-/* the motes: 3px points of light near the object's edges, each on its own slow clock */
-html.cn .cn-glow-mote {
-  inset-block-start: calc(var(--cn-gl-y, 50%) + var(--cn-m-y, 0%));
-  left: calc(var(--cn-gl-x, 50%) + var(--cn-m-x, 0%));
-  inline-size: 3px;
-  block-size: 3px;
-  margin: -1.5px 0 0 -1.5px;
-  background: radial-gradient(circle, rgba(236, 254, 255, .95), rgba(var(--cn-gl-rgb, 34, 211, 238), .4) 48%, rgba(var(--cn-gl-rgb, 34, 211, 238), 0) 75%);
-  opacity: 0;
-  animation: cn-glow-mote var(--cn-m-t, 16s) linear var(--cn-m-d, 0s) infinite;
-}
-html.cn .cn-glow-mote:nth-child(3) { --cn-m-x: -40%; --cn-m-y: 12%; --cn-m-t: 15s; --cn-m-d: -3s; --cn-m-dx: -6px; }
-html.cn .cn-glow-mote:nth-child(4) { --cn-m-x: 38%; --cn-m-y: 24%; --cn-m-t: 18.5s; --cn-m-d: -10s; --cn-m-dx: 6px; }
-html.cn .cn-glow-mote:nth-child(5) { --cn-m-x: -26%; --cn-m-y: 38%; --cn-m-t: 16.5s; --cn-m-d: -13.5s; --cn-m-dx: 4px; }
-html.cn .cn-glow-mote:nth-child(6) { --cn-m-x: 33%; --cn-m-y: -28%; --cn-m-t: 14s; --cn-m-d: -6.5s; --cn-m-dx: -5px; }
-@keyframes cn-glow-breathe {
-  0%, 100% { opacity: .62; transform: scale(.9); }
-  50% { opacity: 1; transform: scale(1); }
-}
-/* percentages of the drift disc's own size (.06u): about .12u each way, so its border box
-   stays well inside the host */
-@keyframes cn-glow-drift {
-  0%, 100% { opacity: .5; transform: translate3d(-200%, 130%, 0); }
-  32% { opacity: 1; transform: translate3d(180%, -150%, 0); }
-  64% { opacity: .72; transform: translate3d(120%, 190%, 0); }
-}
-@keyframes cn-glow-mote {
-  0% { opacity: 0; transform: translate3d(0, 0, 0); }
-  20% { opacity: .62; }
-  72% { opacity: .4; }
-  100% { opacity: 0; transform: translate3d(var(--cn-m-dx, 0px), calc(var(--cn-gl-rise, 44px) * -1), 0); }
-}
-/* Pause motion: hold the frame (57-core.js also drops data-cn-play) */
-html.cn.cn-still .cn-glow > cn-gl { animation-play-state: paused !important; }
-/* Reduced motion: a still light, the motes at rest and faint */
-@media (prefers-reduced-motion: reduce) {
-  html.cn .cn-glow > cn-gl { animation: none !important; }
-  html.cn .cn-glow-mote { opacity: .3; }
 }
 @media (forced-colors: active), print {
   html.cn .cn-glow { display: none; }
@@ -391,7 +351,7 @@ html.cn .cn-edlabel::before {
   background: linear-gradient(90deg, var(--cn-cyan, #22d3ee), transparent 130%);
 }
 html.cn [dir="rtl"] .cn-edlabel::before,
-html.cn[dir="rtl"] .cn-edlabel::before { transform: scaleX(-1); }
+html.cn[dir="rtl"] .cn-edlabel::before { background: linear-gradient(270deg, var(--cn-cyan, #22d3ee), transparent 130%); --cn-rule-o: 100% 50%; }
 html.cn .cn-edlabel--muted { color: var(--cn-text-2); }
 /* a top-right (inline-end) label: the hairline after the words, bright at the far end */
 html.cn .cn-edlabel--end {
@@ -399,9 +359,11 @@ html.cn .cn-edlabel--end {
   justify-self: end;
   text-align: end;
 }
-html.cn .cn-edlabel--end::before { transform: scaleX(-1); }
+/* (v5: drawn with a reversed gradient, not a scaleX(-1) flip, so the RULE's scale can draw it
+   from its bright end; the rule origin follows) */
+html.cn .cn-edlabel--end::before { background: linear-gradient(270deg, var(--cn-cyan, #22d3ee), transparent 130%); --cn-rule-o: 100% 50%; }
 html.cn [dir="rtl"] .cn-edlabel--end::before,
-html.cn[dir="rtl"] .cn-edlabel--end::before { transform: none; }
+html.cn[dir="rtl"] .cn-edlabel--end::before { background: linear-gradient(90deg, var(--cn-cyan, #22d3ee), transparent 130%); --cn-rule-o: 0 50%; }
 html.cn .cn-edlabel--dot { gap: 10px; }
 html.cn .cn-edlabel--dot::before {
   inline-size: 6px;
@@ -421,6 +383,11 @@ html.cn .cn-edrow {
   justify-content: space-between;
   gap: 8px 24px;
 }
+/* RULE (05-motion.css draws [data-cn-rule]::before from --cn-rule-o): nothing is flipped any
+   more, so no mirror transform is needed for --end or right-to-left labels */
+html.cn [data-cn-rule].cn-edlabel--end::before,
+html.cn[dir="rtl"] [data-cn-rule].cn-edlabel::before,
+html.cn[dir="rtl"] [data-cn-rule].cn-edlabel--end::before { transform: none; transform-origin: var(--cn-rule-o, 0 50%); }
 @media (forced-colors: active) {
   html.cn .cn-edlabel::before { display: none; }
 }

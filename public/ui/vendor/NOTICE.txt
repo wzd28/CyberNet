@@ -1,0 +1,37 @@
+CyberNet AI: third-party files in /ui/vendor/
+Copied unmodified from npm / jsDelivr (byte-identical; re-verified 18 Oct 2026). They are loaded
+only on desktop ("full" tier) by ui-src/js/02-motion.js, never on phones or tablets.
+
+gsap-3.15.0.min.js
+  GSAP 3.15.0, Copyright 2026, GreenSock (Webflow). All rights reserved.
+  Standard "no charge" licence: https://gsap.com/standard-license
+  The version is pinned at 3.15.0, which freezes the licence terms accepted for it.
+  Source: https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js
+  sha384-XmJ9SoHtVOHoQUcKvFAzVXwdkKo1Ie3bhmSoIAkcdsHGaIrVJIkmozyq0FJeb/Ly   72,927 bytes
+
+ScrollTrigger-3.15.0.min.js
+  GSAP ScrollTrigger 3.15.0, same licence as above (https://gsap.com/standard-license).
+  Source: https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/ScrollTrigger.min.js
+  sha384-wl5TeDVvOWt30Pbf8aSo2ZrzsOjddu3avOBvHe+p+OhJt9gP6w9YXmDkN5DK2/dF   44,575 bytes
+
+lenis-1.3.26.min.js
+  Lenis 1.3.26, MIT licence, (c) darkroom.engineering. https://github.com/darkroomengineering/lenis
+  Source: https://cdn.jsdelivr.net/npm/lenis@1.3.26/dist/lenis.min.js
+  sha384-jqpi9VmOdhyLoLURgjCn7EpnG9BbnHW57ibIZoeaIU+erWDH3k8fQQg0xH2ySjnw   18,722 bytes
+
+  MIT License. Permission is hereby granted, free of charge, to any person obtaining a copy of this
+  software and associated documentation files (the "Software"), to deal in the Software without
+  restriction, including without limitation the rights to use, copy, modify, merge, publish,
+  distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the
+  Software is furnished to do so, subject to the following conditions: The above copyright notice
+  and this permission notice shall be included in all copies or substantial portions of the
+  Software. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+  INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE
+  AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+  DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+  OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+React Bits
+  Technique after React Bits, MIT + Commons Clause, (c) 2026 David Haz. Re-implemented, not
+  redistributed. (SplitText, ScrollReveal, Counter/CountUp, AnimatedContent, ShinyText,
+  GlareHover, StarBorder, SpotlightCard and Noise are ported as vanilla code in ui-src.)

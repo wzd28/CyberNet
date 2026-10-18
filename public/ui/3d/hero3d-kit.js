@@ -309,7 +309,8 @@
       var u = {
         uRes: { value: new T.Vector2(1, 1) }, uTime: { value: 0 }, uW: { value: 1.2 }, uAmp: { value: 10 }, uShift: { value: new T.Vector2() },
         uC1: { value: lin(PAL.blue) }, uC2: { value: lin(PAL.cyan) }, uH: { value: lin("#ffffff") }, uBase: { value: .1 }, uK: { value: 1 },
-        uQ: { value: new T.Vector4(0, 0, 0, 0) }
+        uQ: { value: new T.Vector4(0, 0, 0, 0) },
+        uQd: { value: 1 }
       };
       var mesh = new T.Mesh(bg, additive(new T.ShaderMaterial({
         uniforms: u, depthTest: false,
@@ -324,16 +325,18 @@
           "vT=t;vS=aM.y;vSeed=aM.z;vK=aM.w;gl_Position=vec4(p.x/uRes.x*2.-1.,1.-p.y/uRes.y*2.,0.,1.);}"
         ].join("\n"),
         fragmentShader: [
-          "uniform float uTime;uniform vec3 uC1;uniform vec3 uC2;uniform vec3 uH;uniform float uBase;uniform float uK;uniform vec4 uQ;",
+          "uniform float uTime;uniform vec3 uC1;uniform vec3 uC2;uniform vec3 uH;uniform float uBase;uniform float uK;uniform vec4 uQ;uniform float uQd;",
           "varying float vT;varying float vS;varying float vSeed;varying float vK;",
           "void main(){float e=1.-vS*vS;e*=e;",
           "float ends=smoothstep(0.,.14,vT)*smoothstep(1.,.9,vT);",
           "float per=7.+fract(vSeed*7.31)*5.;float h=fract(uTime/per+vSeed)*1.5-.22;",
           "float dt=h-vT;float pk=dt>=0.?exp(-dt*9.):exp(dt*140.);pk*=smoothstep(0.,.05,h)*smoothstep(1.06,.94,h);",
-          /* quieter behind the copy (uQ: its box in device px, y up) */
-          "vec2 fc=gl_FragCoord.xy;float qx=smoothstep(uQ.x-60.,uQ.x+40.,fc.x)*smoothstep(uQ.z+60.,uQ.z-40.,fc.x);float qy=smoothstep(uQ.y-60.,uQ.y+40.,fc.y)*smoothstep(uQ.w+60.,uQ.w-40.,fc.y);",
-          "float quiet=1.-.5*qx*qy;",
-          "vec3 c=mix(uC1,uC2,smoothstep(.2,1.,vT));c=mix(c,uH,pk*.55);",
+          /* quieter behind the copy (uQ: its box in device px, y up; uQd: the canvas DPR, so the
+             60/40 CSS px feathers keep their size at every density). Finish, 18 Oct: 88% quieter
+             (was 50%, and a bright head read as a strikethrough on the lead); the head's tint too. */
+          "vec2 fc=gl_FragCoord.xy;float fo=60.*uQd,fi=40.*uQd;float qx=smoothstep(uQ.x-fo,uQ.x+fi,fc.x)*smoothstep(uQ.z+fo,uQ.z-fi,fc.x);float qy=smoothstep(uQ.y-fo,uQ.y+fi,fc.y)*smoothstep(uQ.w+fo,uQ.w-fi,fc.y);",
+          "float quiet=1.-.88*qx*qy;",
+          "vec3 c=mix(uC1,uC2,smoothstep(.2,1.,vT));c=mix(c,uH,pk*.55*quiet);",
           "float a=(uBase*(.55+.45*vT)+pk*.55)*vK*e*ends*quiet*uK;gl_FragColor=linearToOutputTexel(vec4(c*a,a));}"
         ].join("\n")
       }), true));
@@ -554,6 +557,7 @@
       flow.layout({ w: w * d, h: h * d, gx: (L.sx + L.s / 2) * d, gy: (L.sy + L.s / 2) * d, gr: gr * d, mode: L.mode });
       flow.u.uW.value = 1.05 * d;
       flow.u.uAmp.value = (lite ? 6 : 10) * d;
+      flow.u.uQd.value = d;
       if (L.qw) flow.u.uQ.value.set(L.qx * d, (h - L.qy - L.qh) * d, (L.qx + L.qw) * d, (h - L.qy) * d);
       else flow.u.uQ.value.set(0, 0, 0, 0);
     };

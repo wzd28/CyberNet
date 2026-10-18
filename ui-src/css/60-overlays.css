@@ -47,7 +47,6 @@ html.cn .cn-legal-modal {
   --cn-text-3: #97a2b4;        /* 6.5:1 on the sheet; 5.4:1 on surface-3 */
   --cn-on-cyan: #04121a;
   --cn-focus: 0 0 0 3px #0c1220, 0 0 0 5px var(--cn-cyan);
-  --cn-shadow: 0 40px 80px -36px rgba(0, 0, 0, .85);
   /* legacy tokens the add-on sheets and JS templates read */
   --bg: var(--cn-bg);
   --bg-alt: var(--cn-bg-2);
@@ -79,8 +78,9 @@ html.cn .modal {
   overscroll-behavior: contain;
 }
 
+/* v5: the scrim fades in over 220 ms (settle ease); flat, no blur */
 html.cn .modal.show {
-  animation: cn-ov-fade var(--cn-dur-2) var(--cn-ease-out) both;
+  animation: cn-ov-fade 220ms var(--cn-ease-settle) backwards;
 }
 
 /* ---------- 2. The sheet ---------- */
@@ -99,7 +99,7 @@ html.cn :is(#authModal, #feedbackModal, #accountDetailsModal, #cybernetHowToGetK
   border: 1px solid var(--cn-line-2);
   border-radius: var(--cn-r-panel);
   background: var(--cn-sheet);
-  box-shadow: var(--cn-shadow), inset 0 1px 0 rgba(255, 255, 255, .05);
+  box-shadow: var(--cn-sh-3), inset 0 1px 0 var(--cn-hair-lit);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   color: var(--cn-text);
@@ -107,7 +107,7 @@ html.cn :is(#authModal, #feedbackModal, #accountDetailsModal, #cybernetHowToGetK
   text-align: start;
   scrollbar-width: thin;
   scrollbar-color: var(--cn-line-2) transparent;
-  animation: cn-ov-in var(--cn-dur-3) var(--cn-ease-out) both;
+  animation: cn-ov-in var(--cn-t-overlay) var(--cn-ease-expo) both;
 }
 
 /* When a sheet scrolls, its last visible line fades into the surface instead of being cut.
@@ -130,6 +130,9 @@ html.cn #accountDetailsModal > .modal-card { width: min(880px, 100%); }
 html.cn #cybernetHowToGetKeyModal > .modal-card { width: min(620px, 100%); }
 html.cn #businessTeamModal > .modal-card { width: min(900px, 100%); max-height: min(90dvh, 960px); }
 html.cn #acceptInviteModal > .modal-card { width: min(560px, 100%); }
+
+/* v5 finish: no grain on the dialogs (18 Oct: at 1x it read as speckle under small text); the
+   grain stays on the hero stage and the Threats and Flow panels only. */
 
 /* ---------- 3. Close buttons: one drawn cross, centred by construction ----------
    Every round close button (.close-modal in the sheets, .cn-legal-close in the Legal Center) draws its
@@ -730,10 +733,10 @@ html.cn #howtoVideoModal .video-player-shell {
   border: 1px solid var(--cn-line-2);
   border-radius: var(--cn-r-panel);
   background: var(--cn-sheet);
-  box-shadow: var(--cn-shadow), inset 0 1px 0 rgba(255, 255, 255, .05);
+  box-shadow: var(--cn-sh-3), inset 0 1px 0 var(--cn-hair-lit);
   color: var(--cn-text);
   font-family: var(--cn-font);
-  animation: cn-ov-in var(--cn-dur-3) var(--cn-ease-out) both;
+  animation: cn-ov-in var(--cn-t-overlay) var(--cn-ease-expo) both;
 }
 
 /* the shell is a fixed-height flex column: only the player may shrink */
@@ -1773,9 +1776,9 @@ html.cn .cn-legal-modal .cn-legal-dialog {
   border: 1px solid var(--cn-line-2);
   border-radius: var(--cn-r-panel);
   background: var(--cn-sheet);
-  box-shadow: var(--cn-shadow), inset 0 1px 0 rgba(255, 255, 255, .05);
+  box-shadow: var(--cn-sh-3), inset 0 1px 0 var(--cn-hair-lit);
   font-family: var(--cn-font);
-  animation: cn-ov-in var(--cn-dur-3) var(--cn-ease-out) both;
+  animation: cn-ov-in var(--cn-t-overlay) var(--cn-ease-expo) both;
 }
 
 html.cn .cn-legal-modal .cn-legal-dialog-head {
@@ -2144,7 +2147,7 @@ html.cn .cn-consent-text a:focus-visible {
     margin: 0;
     border-bottom: 0;
     border-radius: var(--cn-r-panel) var(--cn-r-panel) 0 0;
-    animation: cn-ov-sheet var(--cn-dur-3) var(--cn-ease-out) both;
+    animation: cn-ov-sheet 340ms var(--cn-ease-expo) both;
   }
 
   html.cn :is(#authModal, #feedbackModal, #accountDetailsModal, #cybernetHowToGetKeyModal, #businessTeamModal, #acceptInviteModal, .modal) > .modal-card {
@@ -2439,13 +2442,16 @@ html.cn :where(.cn-legal-modal .cn-legal-tab.active):is(.cn-legal-modal .cn-lega
   to { opacity: 1; }
 }
 
+/* v5: the centred card rises 14px from .985 (380 ms expo); the phone sheet rises 32px (340 ms
+   expo). No inner stagger: the form works from the first frame. Closing is instant (legacy
+   toggles display). The end frames stay: add-on cards carry .reveal and rely on them. */
 @keyframes cn-ov-in {
-  from { opacity: 0; transform: translateY(14px) scale(.98); }
+  from { opacity: 0; transform: translateY(14px) scale(.985); }
   to { opacity: 1; transform: none; }
 }
 
 @keyframes cn-ov-sheet {
-  from { opacity: .6; transform: translateY(100%); }
+  from { opacity: 0; transform: translateY(32px); }
   to { opacity: 1; transform: none; }
 }
 

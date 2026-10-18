@@ -9,13 +9,16 @@
 
    v4.1 stage: a quiet decorative scene (.cn-flow-stage, aria-hidden) is built next to the tabs:
    the chrome shield floats inside two thin tilted orbit lines (the section's motion canvas
-   draws the travelling light). A tool change sets data-cn-tool on the reel (scan | ai | rec) and
-   the shield settles in again (CSS). Its one small loop runs only while the stage is on screen,
+   draws the travelling light). A tool change sets data-cn-tool on the reel (scan | ai | rec); v5
+   the shield stays still through it. Its one small loop runs only while the stage is on screen,
    the tab is visible, motion is allowed and the section is not paused (data-cn-play on the
    stage). The one Pause/Play button pauses all motion in the section (the tour and the
    stage); Play also restarts a tour stopped by a tab click.
    CN.pause() / CN.resume() (the page-wide motion control) reach it through CN.register.
-   Reduced motion: no auto-advance, no streaming, no loops, instant switches. */
+   Reduced motion: no auto-advance, no streaming, no loops, instant switches.
+   v5 (owner: home-close): the reel SETTLEs as one block (CN.motion.reveal), and from the first
+   tool change on data-cn-swap is set on it, so CSS runs the panel swap (out 180 ms exit, in 520 ms
+   expo) only for real changes, never on the first show. */
 (function () {
   "use strict";
   var CN = window.CN;
@@ -183,9 +186,9 @@
         if (on) { p.removeAttribute("aria-hidden"); p.removeAttribute("inert"); }
         else { p.setAttribute("aria-hidden", "true"); p.setAttribute("inert", ""); }
       });
-      /* the stage's shield settles in again (a data attribute: legacy observers watch "class") */
+      /* the current tool (a data attribute: legacy observers watch "class") */
       if (reel.getAttribute("data-cn-tool") !== keys[i]) reel.setAttribute("data-cn-tool", keys[i]);
-      if (changed && reel.classList.contains("is-shown")) stream(streams[i]);
+      if (changed && reel.classList.contains("is-shown")) { stream(streams[i]); reel.setAttribute("data-cn-swap", ""); }
       keepVisible(tabs[i]);
     }
 
@@ -260,6 +263,7 @@
     }
 
     if (btn) btn.removeAttribute("aria-pressed");
+    if (CN.motion) CN.motion.reveal(reel);
     reel.classList.add("is-ready");
     select(idx, true);
     orient();

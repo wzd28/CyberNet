@@ -12,7 +12,10 @@
    placed with custom properties. Per step it writes only inline style (clip-path and
    three custom properties), which the legacy MutationObservers do not watch; the class
    is toggled once at the start and once at the end.
-   Reduced motion: nothing plays; the title is simply there. */
+   Reduced motion and Pause motion (CN.reduced): nothing plays and the title is simply
+   there; Pause turned on mid-title stops it at once (full title). v5: the layout is measured once
+   when a title starts (Range rects), never per step; the page-in (480 ms from opacity .35) is
+   readable by LEAD, so the first character lands as the page settles. */
 (function () {
   "use strict";
   var CN = window.CN;
@@ -20,10 +23,10 @@
 
   var PAGES = ["cybernet", "cybernetai", "recovery"];
   var STEP = 28;    /* ms per character (owner request) */
-  var LEAD = 160;   /* pages fade in over 500 ms; start once the title is readable */
+  var LEAD = 160;   /* pages settle in over 480 ms from opacity .35; start once the title is readable */
   var HOLD = 1200;  /* caret blinks, then fades (cn-tw-caret in 32-typewriter.css) */
   var SPACE = /\s/;
-  var cur = null;   /* { h, t0, shown, total, done, end } while a title is typing */
+  var cur = null;   /* { h, m (measured once), t0, shown, total, done, end } while a title is typing */
 
   function titleOf(id) { return CN.qs("#" + id + " > .feature-page-header h1"); }
   function r1(v) { return Math.round(v * 2) / 2; }
@@ -109,7 +112,7 @@
   /* Reveal the first `shown` steps: whole lines before the typing line, the typing line up
      to the newest character, and the caret just after it. */
   function render(s) {
-    var m = measure(s.h);
+    var m = s.m;
     if (!m || !m.lines.length) return;
     var last = null;
     for (var k = Math.min(s.shown, m.steps.length) - 1; k >= 0 && !last; k--) last = m.steps[k];
@@ -171,7 +174,7 @@
     if (!h || CN.reduced()) return;
     var probe = measure(h);
     if (!probe || !probe.steps.length) return;
-    cur = { h: h, t0: CN.now(), shown: -1, total: probe.steps.length, done: false, end: 0 };
+    cur = { h: h, m: probe, t0: CN.now(), shown: -1, total: probe.steps.length, done: false, end: 0 };
     h.classList.add("cn-tw-on");
     render(cur);
     ticker.start();
@@ -181,4 +184,6 @@
     if (cur && (!id || cur.h !== titleOf(id))) stop();
     if (PAGES.indexOf(id) >= 0) play(titleOf(id));
   });
+  /* Pause motion mid-title: the full title at once (last, so a missing CN.onStill costs nothing else) */
+  CN.onStill(function (v) { if (v) stop(); });
 })();

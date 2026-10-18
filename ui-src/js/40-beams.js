@@ -9,7 +9,12 @@
    is set once about half of it is visible
    and cleared after it has fully left, so the next visit replays it. Nothing loops (a run is about
    4 s), and reduced motion never starts a run. A data attribute, not a class, because legacy
-   observers re-scan the page on every class change. */
+   observers re-scan the page on every class change.
+   v5 (owner: home-close): if the diagram's first report finds it off screen, data-cn-arm holds its
+   nodes back, and each run first brings them in (inputs, the checks, then the Verdict; CSS) before
+   the pulses travel; the Verdict's ring ignites once as the last pulse lands. Start-up also arms the
+   AI picture (reveal "trigger": .why-choose::before scales in) and the three facts' short rules
+   (reveal "rule-before"). */
 (function () {
   "use strict";
   var CN = window.CN;
@@ -123,13 +128,13 @@
     if (nodes) { svg.insertBefore(pulses, nodes); svg.appendChild(ports); }
     gradients(svg, span);
 
-    /* the Verdict's soft ring and its arrival ping, sized from the node's own rect */
+    /* the Verdict's soft ring (v5: it ignites as the result lands; the arrival ping is gone),
+       sized from the node's own rect */
     var outNode = CN.qs(".cn-node-out", svg), r = outNode && CN.qs("rect", outNode);
     if (r) {
       var x = +r.getAttribute("x"), y = +r.getAttribute("y"), w = +r.getAttribute("width"), h = +r.getAttribute("height");
       var rx = +(r.getAttribute("rx") || 0), pad = 7;
       outNode.insertBefore(svgEl("rect", { x: x - pad, y: y - pad, width: w + pad * 2, height: h + pad * 2, rx: rx + pad, "class": "cn-node-ring" }), r);
-      outNode.insertBefore(svgEl("rect", { x: x, y: y, width: w, height: h, rx: rx, "class": "cn-node-ping" }), r.nextSibling);
     }
 
     /* vertical version: inputs -> one box holding both checks -> Verdict */
@@ -153,13 +158,23 @@
     }
   }
 
-  var RUN = "data-cn-run", ENOUGH = 0.45;
+  var RUN = "data-cn-run", SEEN = "data-cn-seen", ENOUGH = 0.45;
 
   function init(box) {
     build(box);
-    var seen = false;
+    var seen = false, first = true;
     function play(vis, entry) {
-      if (!vis) { seen = false; box.removeAttribute(RUN); return; }  /* fully left: the next visit replays */
+      if (first && !vis && !CN.reduced()) box.setAttribute("data-cn-arm", "");
+      first = false;
+      if (!vis) {
+        seen = false;
+        box.removeAttribute(RUN);   /* fully left: the next visit replays the pulses */
+        /* finish: the nodes rose once; from now on they rest in place (no blank panel on return) */
+        if (box.hasAttribute(SEEN)) { box.removeAttribute(SEEN); box.removeAttribute("data-cn-arm"); }
+        return;
+      }
+      /* the labels come in on the in-view report (composited, cheap), never waiting for a stop */
+      if (!entry || entry.intersectionRatio >= .25) box.setAttribute(SEEN, "");
       if (box.hasAttribute(RUN) || CN.reduced()) return;
       /* wait until the diagram is properly in view (or fills most of a short viewport) */
       var vh = window.innerHeight || doc.documentElement.clientHeight || 1;
@@ -175,6 +190,10 @@
   }
 
   /* build early (cheap) so narrow screens never see the scaled-down SVG first; play lazily */
-  CN.onReady(function () { CN.qsa('[data-cn="beams"]').forEach(build); });
+  CN.onReady(function () {
+    var M = CN.motion;
+    CN.qsa('[data-cn="beams"]').forEach(build);
+    if (M) { M.reveal("#home > .why-choose", "trigger"); M.reveal("#home .wow-stat", "rule-before"); }
+  });
   CN.register("beams", init);
 })();

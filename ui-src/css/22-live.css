@@ -66,13 +66,7 @@ html.cn #home > .cn-demo {
 html.cn #home > :is(.cn-live, .cn-demo) :is(.cn-head h2, .cn-demo-copy h2) > span {
   color: var(--cn-text-2);
 }
-/* Eyebrow on light: a white pill with a cyan hairline and deep teal text (7.1:1). */
-html.cn #home > :is(.cn-live, .cn-demo) .cn-eyebrow {
-  border: 1px solid rgba(14, 116, 144, .28);
-  background: #ffffff;
-  color: #0b5f77;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, .05);
-}
+/* (v5: the eyebrows are corner labels, 02-components.css; the live dot leads Live's) */
 
 /* ---------- Live: section ---------- */
 html.cn #home .cn-live {
@@ -216,10 +210,26 @@ html.cn #home .cn-live .hero-live-stats {
 html.cn #home .cn-live .hero-live-stat {
   --cn-g1: var(--cn-text);
   --cn-dot: linear-gradient(135deg, #22d3ee, #3b82f6);
+  position: relative;
   min-inline-size: 0;
   padding-block-start: 16px;
-  border-block-start: 1px solid var(--cn-line);
 }
+/* the hairline over each number (v5: a pseudo, so it can RULE from its start edge at +200 ms
+   once the totals card settles in; 25-live.js arms the card) */
+html.cn #home .cn-live .hero-live-stat::before {
+  content: "";
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  block-size: 1px;
+  background: var(--cn-line);
+  transform-origin: 0 50%;
+}
+html.cn[dir="rtl"] #home .cn-live .hero-live-stat::before { transform-origin: 100% 50%; }
+html.cn.cn-js #home .cn-live .hero-stats-panel[data-cn-reveal]:not(.is-in) .hero-live-stat::before { scale: 0 1; }
+html.cn #home .cn-live .hero-stats-panel.is-in .hero-live-stat::before { transition: scale var(--cn-t-rule) var(--cn-ease-expo) 200ms; }
+html.cn #home .cn-live .hero-stats-panel.is-in .hero-live-stat:nth-child(2)::before { transition-delay: 260ms; }
+html.cn #home .cn-live .hero-stats-panel.is-in .hero-live-stat:nth-child(3)::before { transition-delay: 320ms; }
 html.cn #home .cn-live .hero-live-stat:nth-child(2) { --cn-dot: #3b82f6; }
 html.cn #home .cn-live .hero-live-stat:nth-child(3) { --cn-dot: linear-gradient(135deg, #2dd4bf, #14b8a6); }
 html.cn #home .cn-live .hero-live-stat strong {
@@ -227,17 +237,19 @@ html.cn #home .cn-live .hero-live-stat strong {
   /* Sized so a 7-character count ("123,456") still fits a third of the panel. */
   font-family: var(--cn-font);
   font-size: clamp(1.5rem, calc((100cqi - 2 * var(--cn-stat-gap)) / 3 / 4.25), 3.5rem);
-  font-weight: 650;
-  line-height: 1.02;
-  letter-spacing: -.04em;
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum" 1;
+  /* the big-figure voice (v5): light, a touch narrow, tabular lining digits */
+  font-weight: var(--cn-fw-fig, 380);
+  font-stretch: var(--cn-fst-fig, 96%);
+  line-height: 1;
+  letter-spacing: var(--cn-track-fig, -.04em);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
   color: var(--cn-g1);
   white-space: nowrap;
 }
 /* Before data the dash stays quiet (5.5:1). No gradient text: the numbers are plain ink. */
 html.cn #home .cn-live:not(.is-live) .hero-live-stat strong { --cn-g1: #5b6576; }
-html.cn #home .cn-live .hero-live-stat span {
+html.cn #home .cn-live .hero-live-stat > span {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -250,7 +262,7 @@ html.cn #home .cn-live .hero-live-stat span {
   text-transform: uppercase;
   color: var(--cn-text-2);
 }
-html.cn #home .cn-live .hero-live-stat span::before {
+html.cn #home .cn-live .hero-live-stat > span::before {
   content: "";
   flex: none;
   inline-size: 8px;
@@ -274,7 +286,7 @@ html.cn #home .cn-live .hero-live-stat span::before {
     padding-block: 14px;
   }
   html.cn #home .cn-live .hero-live-stat strong { font-size: clamp(1.75rem, 11cqi, 2.5rem); }
-  html.cn #home .cn-live .hero-live-stat span { margin: 0; min-inline-size: 0; }
+  html.cn #home .cn-live .hero-live-stat > span { margin: 0; min-inline-size: 0; }
 }
 
 /* Small and folded phones: the label above its number. */
@@ -329,11 +341,11 @@ html.cn #home .cn-live .cn-funnel-row > i > b {
 }
 html.cn[dir="rtl"] #home .cn-live .cn-funnel-row > i > b { transform-origin: 100% 50%; }
 html.cn.cn-js #home .cn-live .cn-funnel:not(.is-grown) .cn-funnel-row > i > b { transform: scaleX(0); }
-html.cn #home .cn-live .cn-funnel.is-grown .cn-funnel-row > i > b { transition: transform 1.4s var(--cn-ease-out); }
+html.cn #home .cn-live .cn-funnel.is-grown .cn-funnel-row > i > b { transition: transform 1200ms var(--cn-ease-expo) 200ms; }
 html.cn #home .cn-live .cn-funnel-row[data-key="threats"] > i > b { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
 html.cn #home .cn-live .cn-funnel-row[data-key="recoveries"] > i > b { background: linear-gradient(90deg, #2dd4bf, #14b8a6); }
-html.cn #home .cn-live .cn-funnel.is-grown .cn-funnel-row:nth-child(2) > i > b { transition-delay: 140ms; }
-html.cn #home .cn-live .cn-funnel.is-grown .cn-funnel-row:nth-child(3) > i > b { transition-delay: 280ms; }
+html.cn #home .cn-live .cn-funnel.is-grown .cn-funnel-row:nth-child(2) > i > b { transition-delay: 290ms; }
+html.cn #home .cn-live .cn-funnel.is-grown .cn-funnel-row:nth-child(3) > i > b { transition-delay: 380ms; }
 html.cn #home .cn-live .cn-funnel-row > em {
   font-family: var(--cn-font-mono);
   font-size: .8125rem;
@@ -540,13 +552,16 @@ html.cn #home .cn-live .hero-why-panel .secondary-btn:focus-visible { outline: 2
 
 @media (prefers-reduced-motion: reduce) {
   html.cn #home .cn-live .cn-funnel.is-grown .cn-funnel-row > i > b { transition: none; }
+  html.cn.cn-js #home .cn-live .hero-live-stat::before { scale: none; transition: none; }
 }
+html.cn.cn-still #home .cn-live .cn-funnel-row > i > b { transition: none; }
+html.cn.cn-js.cn-still #home .cn-live .hero-live-stat::before { scale: none; transition: none; }
 
 @media (forced-colors: active) {
   html.cn #home .cn-live .cn-funnel-row > i > b { background: Highlight; }
 }
 
 /* Label floor: no text under --cn-step-label (12px), phones included (DESIGN.md rule 6). */
-html.cn #home .cn-live :is(.hero-live-stat span),
+html.cn #home .cn-live :is(.hero-live-stat > span),
 html.cn #home .cn-live :is(.cn-funnel-row > span) { font-size: var(--cn-step-label); }
 

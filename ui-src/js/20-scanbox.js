@@ -13,7 +13,12 @@
       the page scrolls (and goes on 400 ms after), and writes two characters
       per step when typing and four when deleting (the same speed, about half
       the placeholder writes: each one restyles the field).
-   e) The one cyan sweep across "seconds", 600ms after load, once.
+   e) The one cyan sweep across "seconds", 600ms after load, once (1.6 s, 20-hero.css). On the
+      first Home view of a session (html.cn-intro, set by the head snippet in index.html) the
+      v5 Exposure plays it from CSS at 760 ms instead, so it is not started here.
+   h) v5 Exposure (20-hero.css): html.cn-intro is removed 2.6 s after start (when the page is
+      still) or at the first page switch, whichever comes first. Hidden SPA pages restart their
+      CSS animations when shown again, so a return to Home never replays it.
    f) An optional Pause button (.cn-stage-pause) stops the hero's motion.
    g) On Home, the skip link (.cn-skip) lands in the scan box; on every other
       page it keeps its normal jump to <main id="cnMain">.
@@ -85,7 +90,16 @@
     if (nav) nav.click(); else if (fallbackBtn) fallbackBtn.click();
   }
 
+  var root = doc.documentElement, intro = root.classList.contains("cn-intro");
+
   CN.onReady(function () {
+    var M = CN.motion;
+    /* ---- h) Exposure ends ---- */
+    if (intro) {
+      var endIntro = function () { root.classList.remove("cn-intro"); };
+      setTimeout(function () { CN.whenStill(endIntro); }, 2600);
+      if (M) M.onNavigate(endIntro);
+    }
     var box = byId("cnScanBox"), input = byId("cnScanInput");
     if (!box || !input) return;
     var startBtn = box.querySelector('.hero-buttons [data-page="cybernet"]');
@@ -224,6 +238,7 @@
        stage) and the placeholder typer; .is-paused on the stage is the CSS hook. */
     var stage = box.closest ? box.closest(".cn-stage") : null;
     var pauseBtn = stage ? stage.querySelector(".cn-stage-pause") : null;
+
     if (pauseBtn) {
       pauseBtn.addEventListener("click", function () {
         motionPaused = !motionPaused;
@@ -238,11 +253,11 @@
     /* Deep links (/pricing ...) load with Home active but hidden (html.cn-deep)
        and then switch away, so the sweep waits until Home is really shown. */
     var word = doc.querySelector("#heroSection .hero-title .cn-sweep");
-    if (word && !CN.reduced()) {
+    if (word && !CN.reduced() && !intro) {
       var home = byId("home"), loaded = doc.readyState === "complete", played = false, armed = false;
       var homeShown = function () {
         return !!home && home.classList.contains("active-page") && !home.classList.contains("leaving") &&
-          !doc.documentElement.classList.contains("cn-deep");
+          !root.classList.contains("cn-deep");
       };
       var play = function () {
         if (CN.reduced() || motionPaused) return;

@@ -59,20 +59,8 @@ html.cn {
   /* Palette primitives. These never change with the section tone: use them only where a colour
      must stay the same on dark and light grounds (the brand pill, stage meshes, 3D accents).
      The old violet names are kept as aliases so rules in other partials stay on palette. */
-  --cn-p-ink: #050810;          /* near-black navy: text on cyan, deepest depth */
   --cn-p-night: #060a14;        /* page ground */
-  --cn-p-stage: #0c1220;        /* a dark stage: white text 18.0:1 */
-  --cn-p-violet-700: #172036;   /* (alias) a raised navy */
-  --cn-p-electric: #3b82f6;     /* (alias) the supporting blue */
-  --cn-p-violet: #818cf8;       /* the AI mark (indigo): marks only, never fills */
-  --cn-p-lilac: #aab4c3;        /* (alias) slate: quiet text and hairline light */
-  --cn-p-cyan: #22d3ee;
-  --cn-p-cyan-light: #67e8f9;
-  --cn-p-cyan-ink: #0e7490;     /* cyan on light grounds (5.4:1 on white) */
-  --cn-p-blue: #60a5fa;
-  --cn-p-magenta: #60a5fa;      /* (alias) magenta is retired: resolves to the supporting blue */
   --cn-p-mint: #5eead4;
-  --cn-p-lavender: #f5f7fa;     /* (alias) the light band ground */
 
   /* Brand pill. Fixed on purpose: the primary button is cyan with ink text on every ground
      (10.6:1), so it never follows --cn-cyan into the deeper light-band cyan. */
@@ -88,7 +76,6 @@ html.cn {
   --cn-surface-3: #18223a;      /* hover of raised items */
   /* Glass: a navy tint (no blur inside <main>). */
   --cn-glass: rgba(14, 21, 36, .74);
-  --cn-glass-2: rgba(20, 29, 48, .82);
   --cn-sheen: linear-gradient(180deg, rgba(255, 255, 255, .035), rgba(255, 255, 255, 0) 40%);
   --cn-hi: rgba(255, 255, 255, .06);        /* the lit top edge of a panel (an inset 1px line) */
   --cn-fill-1: rgba(255, 255, 255, .05);    /* neutral wash: secondary buttons, quiet chips */
@@ -107,7 +94,6 @@ html.cn {
   --cn-cyan-2: #67e8f9;         /* cyan text: 10.9:1 on surface-3 */
   --cn-ice: #e6fbff;
   --cn-teal: #0e7490;
-  --cn-deep: #082f49;
   --cn-cyan-tint: rgba(34, 211, 238, .10);
   --cn-cyan-line: rgba(34, 211, 238, .36);
   --cn-on-cyan: #061018;
@@ -115,30 +101,20 @@ html.cn {
 
   /* Colour: the supporting blue (inside cyan -> blue gradients and charts only) */
   --cn-blue: #60a5fa;
-  --cn-blue-2: #3b82f6;
-  --cn-ink: #050810;
   /* Retired voices, kept as aliases so older rules stay on palette: violet now means the small
      AI mark (indigo); purple and magenta resolve to blue and navy. */
   --cn-violet: #818cf8;
-  --cn-violet-2: #a5b4fc;       /* AI mark text: 7.9:1 on surface-3 */
-  --cn-purple: #3b82f6;
-  --cn-purple-700: #172036;
-  --cn-purple-deep: #0c1220;
-  --cn-magenta: #60a5fa;
-  --cn-magenta-2: #93c5fd;      /* 9.5:1 on surface-3 */
 
   /* Colour: "iris", the AI identity mark (Analysis AI, the AI lane of the engine diagram).
      Small marks only: an eyebrow, a caret, a 2px rule, a thin line. Never a fill or a glow. */
   --cn-iris: #a5b4fc;           /* 7.9:1 on surface-3 */
   --cn-iris-2: #c7d2fe;         /* 10.6:1 on surface-3 */
-  --cn-iris-deep: #1b2246;
   --cn-iris-tint: rgba(129, 140, 248, .10);
   --cn-iris-line: rgba(165, 180, 252, .34);
 
   /* Recovery identity colour (progress and marks only, never a verdict) */
   --cn-mint: #5eead4;
   --cn-mint-2: #99f6e4;
-  --cn-mint-deep: #115e59;
   --cn-mint-tint: rgba(94, 234, 212, .10);
   --cn-mint-line: rgba(94, 234, 212, .36);
 
@@ -159,10 +135,6 @@ html.cn {
 
   /* Gradients. The brand gradient is cyan -> blue. Gradient text is retired outside the hero
      word, so --cn-grad-text is a flat cyan (rules that still clip it to text read as plain cyan). */
-  --cn-grad-brand: linear-gradient(120deg, #22d3ee 0%, #38bdf8 50%, #3b82f6 100%);
-  --cn-grad-text: linear-gradient(90deg, #67e8f9, #67e8f9);
-  --cn-grad-hair: linear-gradient(140deg, rgba(103, 232, 249, .42), rgba(148, 163, 184, .16) 36%, rgba(148, 163, 184, .06) 64%, rgba(96, 165, 250, .3));
-  --cn-grad-signal: linear-gradient(90deg, #0e7490 0%, #22d3ee 45%, #e6fbff 100%);
   /* The hairline of a panel is a conic light in these four colours (a cyan pass, slate between,
      a faint blue pass); 02-components.css builds it and turns it once. */
   --cn-edge-1: rgba(103, 232, 249, .5);
@@ -179,7 +151,6 @@ html.cn {
   --cn-font: "Mona Sans", "Mona Sans Fallback", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   --cn-font-hero: "Mona Sans", "Mona Sans Hero Fallback", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   --cn-font-mono: "JetBrains Mono", "JetBrains Mono Fallback", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-  --cn-font-ar: "IBM Plex Sans Arabic", var(--cn-font);
   --cn-step-hero: clamp(2.5rem, 1.6rem + 4.4vw, 5.5rem);
   --cn-step-h1: clamp(2.125rem, 1.5rem + 2.8vw, 4rem);
   --cn-step-h2: clamp(1.75rem, 1.3rem + 2vw, 3.25rem);
@@ -189,7 +160,10 @@ html.cn {
   --cn-step-small: .875rem;
   --cn-step-label: .75rem;
   --cn-track-hero: -.035em;
-  --cn-track-h2: -.025em;
+  --cn-track-h2: -.03em;
+  --cn-fw-fig: 380;          /* big figures: live totals, $442B, wow, About stats */
+  --cn-fst-fig: 96%;
+  --cn-track-fig: -.04em;
   --cn-track-body: -.01em;
   --cn-track-label: .08em;
 
@@ -211,33 +185,50 @@ html.cn {
   --cn-r-pill: 999px;
   --cn-r-band: clamp(28px, 1rem + 3vw, 56px);   /* the corners of a light band */
 
-  /* Motion */
-  --cn-ease-out: cubic-bezier(.22, 1, .36, 1);
-  --cn-ease-in-out: cubic-bezier(.65, 0, .35, 1);
+  /* v5 finish: elevation (aliases of the surfaces above), hairlines in three weights, a lit top
+     edge, light from above (neutral falloff), the hover-only key light, the static grain tile
+     (dark panels, >= 1024px only) and layered neutral shadows (never animated). */
+   --cn-e1: #0a101c; --cn-e2: #0c1220; --cn-e3: #121a2b; --cn-e4: #18223a;
+  --cn-hair-1: rgba(148, 163, 184, .10);
+  --cn-hair-2: rgba(148, 163, 184, .14);
+  --cn-hair-3: rgba(148, 163, 184, .26);
+  --cn-hair-lit: rgba(255, 255, 255, .07);
+  --cn-falloff: radial-gradient(120% 70% at 50% -12%, rgba(148, 163, 184, .075), rgba(148, 163, 184, 0) 62%);
+  --cn-key: radial-gradient(120% 90% at 18% 0%, rgba(103, 232, 249, .10), transparent 60%);
+  --cn-grain: url("/ui/img/grain-160.png");
+  --cn-sh-2: 0 1px 2px rgba(0, 0, 0, .22), 0 6px 12px -6px rgba(0, 0, 0, .36), 0 22px 40px -24px rgba(0, 0, 0, .6);
+  --cn-sh-3: 0 2px 4px rgba(0, 0, 0, .2), 0 14px 28px -12px rgba(0, 0, 0, .45), 0 44px 88px -32px rgba(0, 0, 0, .72);
+
+  /* Motion (v5 grammar: RULE, SET, SETTLE, TALLY; LIGHT and PASS reserved; retimed faster at the
+     finish, 18 Oct: a head lands in about 1 s). GSAP names in
+     comments. The older --cn-ease-out / -in-out / -emph and --cn-dur-* stay as aliases. */
+  --cn-ease-expo: cubic-bezier(.16, 1, .3, 1);    /* expo.out: SET, rules, overlays */
+  --cn-ease-settle: cubic-bezier(.22, 1, .36, 1); /* power3.out */
+  --cn-ease-exit: cubic-bezier(.55, 0, 1, .45);   /* power2.in: leaving */
+  --cn-ease-swap: cubic-bezier(.65, 0, .35, 1);   /* power3.inOut: passes, swaps */
+  --cn-ease-press: cubic-bezier(.3, 0, .5, 1);
+  --cn-t-tap: 120ms; --cn-t-state: 200ms; --cn-t-overlay: 380ms; --cn-t-exit: 160ms;
+  --cn-t-rule: 480ms; --cn-t-settle: 560ms; --cn-t-set: 720ms; --cn-t-pass: 1100ms; --cn-t-tally: 1100ms;
+  --cn-st-line: 60ms; --cn-st-item: 50ms; --cn-st-word: 35ms; --cn-st-digit: 45ms;
+  --cn-rise: 14px;
+  --cn-ease-out: var(--cn-ease-settle);
+  --cn-ease-in-out: var(--cn-ease-swap);
   --cn-ease-emph: cubic-bezier(.2, 0, 0, 1);
   --cn-dur-1: 150ms;
   --cn-dur-2: 300ms;
   --cn-dur-3: 500ms;
   --cn-dur-4: 900ms;
-  --cn-loop-a: 61s;
-  --cn-loop-b: 43s;
-  --cn-loop-c: 29s;
 
   /* Layers (the legacy auth modal sits at 1600). Section motion canvases sit at z-index -1
      inside their own section (04-bgfx.css). */
-  --cn-z-raised: 10;
   --cn-z-header: 100;
-  --cn-z-sheet: 1000;
-  --cn-z-toast: 1100;
 
   color-scheme: dark;
 }
 
-/* oklch interpolation where it exists: a clean cyan -> blue with no grey middle. */
-@supports (background-image: linear-gradient(in oklch, red, blue)) {
-  html.cn {
-    --cn-grad-brand: linear-gradient(in oklch 120deg, #22d3ee 0%, #3b82f6 100%);
-  }
+/* Phones and tablets: shorter sets and settles, a smaller rise. */
+@media (pointer: coarse), (max-width: 760px) {
+  html.cn { --cn-t-rule: 420ms; --cn-t-settle: 480ms; --cn-t-set: 620ms; --cn-st-line: 50ms; --cn-rise: 12px; }
 }
 
 /* ==========================================================================================
@@ -266,7 +257,6 @@ html.cn :is(#home > .wow-section) {
   --cn-surface-2: #f5f7fa;
   --cn-surface-3: #ebeff5;
   --cn-glass: rgba(255, 255, 255, .86);
-  --cn-glass-2: #ffffff;
   --cn-sheen: linear-gradient(180deg, rgba(255, 255, 255, .9), rgba(255, 255, 255, 0) 46%);
   --cn-hi: rgba(255, 255, 255, .95);
   --cn-fill-1: #ffffff;
@@ -283,29 +273,21 @@ html.cn :is(#home > .wow-section) {
   --cn-cyan-2: #0b6a84;
   --cn-ice: #0b6a84;
   --cn-teal: #0e7490;
-  --cn-deep: #e0f7fb;
   --cn-cyan-tint: rgba(14, 116, 144, .08);
   --cn-cyan-line: rgba(14, 116, 144, .32);
   --cn-on-cyan: #ffffff;        /* white on #0e7490: 5.4:1 */
   --cn-ring: #0b6a84;
 
   --cn-blue: #2563eb;
-  --cn-blue-2: #1d4ed8;
   --cn-violet: #4f46e5;
-  --cn-violet-2: #4338ca;       /* 7.4 on surface-3 */
-  --cn-purple: #2563eb;
-  --cn-magenta: #2563eb;
-  --cn-magenta-2: #1d4ed8;
 
   --cn-iris: #4f46e5;           /* 5.5 on surface-3 */
   --cn-iris-2: #4338ca;
-  --cn-iris-deep: #eef2ff;
   --cn-iris-tint: rgba(79, 70, 229, .07);
   --cn-iris-line: rgba(79, 70, 229, .26);
 
   --cn-mint: #0d6b64;           /* 5.5 on surface-3 */
   --cn-mint-2: #0b5f58;
-  --cn-mint-deep: #ccf5ee;
   --cn-mint-tint: rgba(13, 107, 100, .08);
   --cn-mint-line: rgba(13, 107, 100, .3);
 
@@ -318,12 +300,20 @@ html.cn :is(#home > .wow-section) {
 
   --cn-shadow: 0 30px 60px -32px rgba(15, 23, 42, .28);
   --cn-shadow-card: 0 1px 2px rgba(15, 23, 42, .05), 0 16px 32px -24px rgba(15, 23, 42, .22);
-  --cn-grad-text: linear-gradient(90deg, #0b6a84, #0b6a84);
-  --cn-grad-hair: linear-gradient(140deg, rgba(14, 116, 144, .4), rgba(15, 23, 42, .1) 40%, rgba(15, 23, 42, .05) 66%, rgba(37, 99, 235, .24));
   --cn-edge-1: rgba(14, 116, 144, .42);
   --cn-edge-2: rgba(15, 23, 42, .1);
   --cn-edge-3: rgba(15, 23, 42, .05);
   --cn-edge-4: rgba(37, 99, 235, .24);
+  /* v5 finish on light */
+  --cn-sel: 16%;           /* ::selection: rgba(14, 116, 144, .16) */
+  --cn-hair-1: rgba(15, 23, 42, .06);
+  --cn-hair-2: rgba(15, 23, 42, .08);
+  --cn-hair-3: rgba(15, 23, 42, .16);
+  --cn-hair-lit: rgba(255, 255, 255, .95);
+  --cn-falloff: radial-gradient(120% 70% at 50% -12%, rgba(255, 255, 255, .9), rgba(255, 255, 255, 0) 60%);
+  --cn-key: radial-gradient(120% 90% at 18% 0%, rgba(14, 116, 144, .07), transparent 60%);
+  --cn-sh-2: 0 1px 2px rgba(15, 23, 42, .05), 0 8px 16px -10px rgba(15, 23, 42, .12), 0 24px 44px -28px rgba(15, 23, 42, .22);
+  --cn-sh-3: 0 2px 4px rgba(15, 23, 42, .06), 0 16px 32px -14px rgba(15, 23, 42, .18), 0 44px 88px -36px rgba(15, 23, 42, .3);
 
   color-scheme: light;
   color: var(--cn-text);
@@ -347,7 +337,6 @@ html.cn :is(#home > .wow-section) {
   --cn-id-line: var(--cn-cyan-line);
   --cn-focus: 0 0 0 3px var(--cn-bg), 0 0 0 5px var(--cn-ring);
   /* The hero sweep: the brand gradient passing through the word once. */
-  --cn-grad-sweep: linear-gradient(100deg, var(--cn-text) 0%, var(--cn-text) 34%, var(--cn-cyan-2) 43%, var(--cn-ice) 50%, var(--cn-blue) 58%, var(--cn-text) 72%, var(--cn-text) 100%);
   /* The legacy variables that style.css, the add-on sheets and JS template strings read. */
   --bg: var(--cn-bg);
   --bg-alt: var(--cn-bg-2);
@@ -366,6 +355,3 @@ html.cn :is(#home > .wow-section) {
   --warning: var(--cn-warn);
   --safe: var(--cn-safe);
 }
-
-/* Reserved for the app: a whole-app light theme can reuse the light scope's values later. */
-html.cn[data-theme="light"] { color-scheme: dark; }
