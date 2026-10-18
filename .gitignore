@@ -7,3 +7,8 @@ node_modules/
 .DS_Store
 .impeccable/
 .tmp/
+
+# Encrypted backups and opened backups (scripts/decrypt-backup.mjs) must never be committed.
+*.cnbk
+*.restore.sql
+cybernet-backup-*.json

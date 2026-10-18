@@ -7,6 +7,7 @@ import {
 } from "./recovery-mode.mts";
 import { runAiUpdate, sanitizeUpdate, writeUpdatedVersion } from "./recovery-update.mts";
 import { rekeyPlan, planActions as listPlanActions, buildTaskRows, supersededTaskKeys, taskKeyInList } from "../lib/recovery-tasks.mjs";
+import { reportError } from "../lib/report-error.mjs";
 
 // Builds the AI recovery plan (or AI update) after the user's request has
 // already returned. Netlify runs this as a background function: the caller
@@ -126,6 +127,9 @@ async function runStart(job: StartJob) {
       code: (error as any)?.code,
       requestId: (error as any)?.request_id,
     });
+    // A background function has no waiting visitor, so the report is awaited
+    // (it is time-boxed and never throws) before the job finishes.
+    await reportError(error, { fn: "recovery-plan-background", label: "AI recovery plan failed" });
   }
   // No AI plan means the deterministic version stays current; the page stops
   // polling on its own and tells the user the essential actions still apply.
@@ -140,6 +144,7 @@ async function runUpdate(job: UpdateJob) {
   if (!caseRow) return;
 
   let rawUpdate: any = null;
+  let reported: Promise<unknown> | null = null;
   try {
     rawUpdate = await runAiUpdate(
       { previousPlan: job.previousPlan, completedTaskTitles: job.completedTaskTitles, updateText: job.updateText, riskFloor: job.riskFloor, region: job.region || String(caseRow.region || "") },
@@ -154,6 +159,8 @@ async function runUpdate(job: UpdateJob) {
       code: (error as any)?.code,
       requestId: (error as any)?.request_id,
     });
+    // Not awaited here, so the fallback version below is written without delay.
+    reported = reportError(error, { fn: "recovery-plan-background", label: "AI recovery update failed" });
   }
 
   // Even without the model, the update is recorded as a new version so the
@@ -161,6 +168,7 @@ async function runUpdate(job: UpdateJob) {
   const updatedPlan = sanitizeUpdate(rawUpdate, job.previousPlan);
   const taskList = await loadTasks(job.caseId);
   await writeUpdatedVersion({ caseId: job.caseId, caseRow, updatedPlan, taskList });
+  if (reported) await reported;
 }
 
 export default async function handler(request: Request): Promise<Response> {
@@ -185,6 +193,7 @@ export default async function handler(request: Request): Promise<Response> {
     else return new Response("Unknown job", { status: 400 });
   } catch (error) {
     console.error("CyberNet Recovery background job failed", { kind: job.kind, caseId: job.caseId, error });
+    await reportError(error, { fn: "recovery-plan-background", label: "Recovery background job failed" });
   }
 
   return new Response("ok");

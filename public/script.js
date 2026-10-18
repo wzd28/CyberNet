@@ -78,6 +78,30 @@
   });
 })();
 
+/* ─── Links back from Supabase (email confirmation, password reset, Google sign-in) ───
+   Read once, as soon as this file runs: the Supabase client reads the same URL when it starts
+   and clears the #hash. Only the kind of return is kept, never a token:
+   - type: "signup", "recovery", "email_change", ... (the #hash of a link that worked)
+   - error / error_code / error_description: an expired or used link, a cancelled Google sign-in
+     (Supabase puts these in the #hash or the ?query)
+   - reset: ?reset=1, which the password-reset email link carries. */
+const CYBERNET_AUTH_RETURN=(function readAuthReturn(){
+  const empty={type:"",hasSession:false,error:"",errorCode:"",errorDescription:"",reset:false};
+  try{
+    const query=new URLSearchParams(window.location.search);
+    const hash=new URLSearchParams(String(window.location.hash||"").replace(/^#/,""));
+    const pick=key=>String(hash.get(key)||query.get(key)||"").slice(0,300);
+    return Object.freeze({
+      type:String(hash.get("type")||"").toLowerCase().slice(0,40),
+      hasSession:hash.has("access_token"),
+      error:pick("error"),
+      errorCode:pick("error_code"),
+      errorDescription:pick("error_description"),
+      reset:query.get("reset")==="1"
+    });
+  }catch{return Object.freeze(empty)}
+})();
+
 document.addEventListener("DOMContentLoaded",()=>{
 
   /* ─── Core ─── */
@@ -233,6 +257,22 @@ document.addEventListener("DOMContentLoaded",()=>{
   const pricingNotice=document.getElementById("pricingNotice");
   const aiUpgradeBtn=document.getElementById("aiUpgradeBtn");
   const manageBillingBtn=document.getElementById("manageBillingBtn");
+  const resetForm=document.getElementById("authResetForm");
+  const newPasswordForm=document.getElementById("authNewPasswordForm");
+  const sendResetBtn=document.getElementById("sendResetBtn");
+  const resetBackBtn=document.getElementById("resetBackBtn");
+  const updatePasswordBtn=document.getElementById("updatePasswordBtn");
+  const signupResendBtn=document.getElementById("signupResendBtn");
+  const authNotice=document.getElementById("authNotice");
+  const authMessageActions=document.getElementById("authMessageActions");
+  const authTitleEl=document.getElementById("authModalTitle");
+  const authIntroEl=document.getElementById("authModalIntro");
+  const authTabsEl=authModal?.querySelector(".auth-tabs")||null;
+  const loginEmailEl=document.getElementById("loginEmail");
+  const loginPasswordEl=document.getElementById("loginPassword");
+  const resetEmailEl=document.getElementById("resetEmail");
+  const newPasswordEl=document.getElementById("authNewPassword");
+  const newPasswordConfirmEl=document.getElementById("authNewPasswordConfirm");
 
   const appState={
     supabase:null,
@@ -256,11 +296,46 @@ document.addEventListener("DOMContentLoaded",()=>{
     !String(publicConfig.SUPABASE_ANON_KEY).includes("YOUR_")
   );
 
-  function setAuthMessage(message="",tone=""){
+  /* ─── Sign-in dialog: the message under the form, with optional next steps as buttons ─── */
+  let authMessageText="";
+  function renderAuthMessageActions(actions=[]){
+    if(!authMessageActions)return;
+    authMessageActions.replaceChildren(...actions.map(action=>{
+      const button=document.createElement("button");
+      button.type="button";
+      button.className="auth-text-btn cn-auth-action";
+      button.textContent=action.label;
+      button.addEventListener("click",action.run);
+      return button;
+    }));
+    authMessageActions.hidden=!actions.length;
+  }
+  /* actions: [{label,run}], e.g. "Sign in instead" after a sign-up for an address that already has an account. */
+  function setAuthMessage(message="",tone="",actions=[]){
     if(!authMessage)return;
+    authMessageText=message;
     authMessage.textContent=message;
     authMessage.className=`auth-message ${tone}`.trim();
+    renderAuthMessageActions(actions);
   }
+  /* The legal module writes its own messages here; next steps that belonged to an older message go with it. */
+  if(authMessage&&"MutationObserver" in window)new MutationObserver(()=>{if(authMessage.textContent!==authMessageText)renderAuthMessageActions([])}).observe(authMessage,{childList:true,characterData:true,subtree:true});
+
+  /* A notice at the top of the dialog about the link the visitor came back from (tone: info | warn | success).
+     #authNotice is a status region that stays in the page; CSS hides it while it is empty. */
+  function setAuthNotice(title="",text="",tone="info"){
+    if(!authNotice)return;
+    if(!title&&!text){authNotice.replaceChildren();authNotice.removeAttribute("data-tone");return}
+    authNotice.setAttribute("data-tone",tone);
+    const icon=document.createElement("span");
+    icon.className="cn-auth-notice-icon";
+    icon.setAttribute("aria-hidden","true");
+    const body=document.createElement("div");
+    if(title){const strong=document.createElement("strong");strong.textContent=title;body.appendChild(strong)}
+    if(text){const line=document.createElement("p");line.textContent=text;body.appendChild(line)}
+    authNotice.replaceChildren(icon,body);
+  }
+  function clearAuthNotice(){setAuthNotice("")}
 
   function authSetupMessage(){
     if(!window.supabase?.createClient)return "The Supabase browser library did not load. Refresh the page and check your internet connection.";
@@ -269,30 +344,261 @@ document.addEventListener("DOMContentLoaded",()=>{
     return "The account service could not start. Open /config.js on the live site, confirm the values appear, then hard-refresh.";
   }
 
+  /* ─── Plain-language errors ─── */
+  const SUPPORT_CONTACT="support@cybernetai.app";
+  /* A request that never got an answer (offline, blocked, timed out) or a server that is down. Returns ""
+     for anything else, so a caller falls back to the server's own message:
+     friendlyNetworkError(error)||error.message||"…". */
+  function friendlyNetworkError(error){
+    if(!error)return "";
+    const name=String(error.name||"");
+    const message=String(error.message||"").toLowerCase();
+    const status=Number(error.status)||0;
+    if(name==="AbortError"||name==="TimeoutError"||message.includes("signal is aborted")||message.includes("the operation was aborted"))
+      return "This is taking longer than usual, so we stopped waiting. Check your connection, then try again in a moment.";
+    if(/failed to fetch|load failed|networkerror|network request failed|network error|fetch failed|err_internet_disconnected|err_network/.test(message)||(name==="AuthRetryableFetchError"&&!status)){
+      if(typeof navigator!=="undefined"&&navigator.onLine===false)return "You're offline. Check your internet connection, then try again.";
+      return "We couldn't reach CyberNet AI. Check your internet connection, then try again.";
+    }
+    if((status>=500&&status<600&&/^Auth/.test(name))||/\breturned 5\d\d\b/.test(message))
+      return "Our service is having a problem right now. Please try again in a minute.";
+    return "";
+  }
+
+  function authErrorCode(error){return String(error?.code||"").toLowerCase()}
+  /* Supabase: "For security purposes, you can only request this after 52 seconds." */
+  function authWaitSeconds(error){const match=String(error?.message||"").match(/after (\d+) seconds?/i);return match?Math.min(3600,Number(match[1])||0):0}
+  function isUnconfirmedEmailError(error){return authErrorCode(error)==="email_not_confirmed"||/email not confirmed/i.test(String(error?.message||""))}
+  const AUTH_FALLBACK={
+    login:"We couldn't sign you in just now. Please try again in a moment.",
+    signup:"We couldn't create your account just now. Please try again in a moment.",
+    reset:"We couldn't send the reset email just now. Please try again in a minute.",
+    resend:"We couldn't send the email just now. Please try again in a minute.",
+    recovery:"We couldn't save your new password just now. Please try again in a moment.",
+    google:"Google sign-in isn't available right now. Please try again, or sign in with your email and password."
+  };
+  /* Supabase Auth errors in plain words, each with a next step. mode: login | signup | reset | resend | recovery | google.
+     Unknown errors get a calm message for the mode; the raw text goes to the console only. */
   function friendlyAuthError(error,mode="login"){
     const raw=String(error?.message||"").trim();
     const message=raw.toLowerCase();
-    if(message.includes("invalid login credentials"))return "Email or password not recognized. Check your details. If you do not have an account yet, choose Create Account.";
-    if(message.includes("email not confirmed"))return "Confirm your email first, then return and sign in.";
-    if(message.includes("user already registered"))return "An account may already exist for this email. Switch to Sign In or use Forgot your password.";
-    if(message.includes("password should be at least")||message.includes("weak password"))return "Use a stronger password with at least 8 characters.";
-    if(message.includes("rate limit"))return "Too many account attempts. Wait a few minutes, then try again.";
-    if(message.includes("network")||message.includes("fetch"))return "The account service could not be reached. Check your connection and try again.";
-    return raw||(mode==="signup"?"Account creation failed.":"Sign in failed.");
+    const code=authErrorCode(error);
+    const status=Number(error?.status)||0;
+    const wait=authWaitSeconds(error);
+    if(code==="invalid_credentials"||message.includes("invalid login credentials"))
+      return "That email and password don't match an account. Check them and try again. New to CyberNet AI? Choose Create Account.";
+    if(isUnconfirmedEmailError(error))
+      return "Your email isn't confirmed yet. Open the link we emailed you, or choose Resend confirmation email below.";
+    if(code==="user_already_exists"||code==="email_exists"||message.includes("user already registered")||message.includes("already been registered"))
+      return "An account already exists for this email. Sign in instead, or choose Forgot your password? to reset it.";
+    if(code==="same_password"||message.includes("different from the old password"))
+      return "That's the password you use now. Choose a different one.";
+    if(message.includes("longer than 72"))return "Use 72 characters or fewer.";
+    if(code==="weak_password"||message.includes("password should")||message.includes("weak password")||message.includes("known to be weak")||message.includes("pwned")){
+      if(/known to be weak|pwned|leak|easy to guess/.test(message))return "That password has shown up in data leaks, so it's easy to guess. Choose a different one.";
+      if(message.includes("at least one character"))return "Use a mix of letters, numbers and symbols in your password.";
+      return "Use a stronger password with at least 8 characters.";
+    }
+    if(wait)return `For your security, please wait ${wait} second${wait===1?"":"s"} before asking for another email.`;
+    if(code==="over_email_send_rate_limit"||message.includes("email rate limit"))
+      return "We've sent several emails in a short time. Please wait a few minutes, then try again.";
+    if(code==="over_request_rate_limit"||message.includes("rate limit")||status===429)
+      return "Too many attempts in a short time. Wait a few minutes, then try again.";
+    if(code==="email_address_invalid"||message.includes("unable to validate email")||message.includes("invalid format")||/email address .* is invalid/.test(message))
+      return "That email address doesn't look right. Check it for typos and try again.";
+    if(code==="email_address_not_authorized")
+      return `We can't send email to that address right now. Use a different email, or contact ${SUPPORT_CONTACT}.`;
+    if(code==="provider_disabled"||message.includes("provider is not enabled")||message.includes("unsupported provider"))
+      return "Google sign-in is turned off right now. Please sign in with your email and password instead.";
+    if(code==="email_provider_disabled"||message.includes("email logins are disabled"))
+      return "Signing in with email is turned off right now. Try Continue with Google, or try again later.";
+    if(code==="signup_disabled"||message.includes("signups not allowed"))
+      return "New accounts can't be created right now. Please try again later.";
+    if(code==="session_not_found"||code==="session_expired"||message.includes("auth session missing")||message.includes("session from session_id"))
+      return mode==="recovery"?"Your reset link has timed out. Close this window, choose Forgot your password? and we'll send a new one.":"Your session has ended. Please sign in again.";
+    if(code==="otp_expired"||message.includes("token has expired")||message.includes("invalid or has expired"))
+      return "This link has expired or was already used. Ask for a new one and try again.";
+    if(code==="reauthentication_needed")return "For your security, please sign in again before changing your password.";
+    const network=friendlyNetworkError(error);
+    if(network)return network;
+    if(code==="unexpected_failure"||message.includes("database error")||status>=500)
+      return `Our account service had a problem. Please try again in a minute. If it keeps happening, email ${SUPPORT_CONTACT}.`;
+    if(raw)console.warn("CyberNet auth error",code||status||"",raw);
+    return AUTH_FALLBACK[mode]||AUTH_FALLBACK.login;
   }
 
-  function setAuthTab(mode="login"){
-    authTabs.forEach(tab=>tab.classList.toggle("active",tab.dataset.auth===mode));
-    loginForm?.classList.toggle("active-auth-form",mode==="login");
-    signupForm?.classList.toggle("active-auth-form",mode==="signup");
-    // Google works for both tabs — an existing Google account signs in, a new one
-    // is created — so only the divider's wording follows the tab.
-    if(googleAuthWrap){
-      googleAuthWrap.hidden=false;
-      const divider=document.getElementById("googleAuthDivider");
-      if(divider)divider.textContent=mode==="signup"?"or sign up with email":"or sign in with email";
+  /* ─── Busy and wait states on buttons ─── */
+  const buttonLabels=new WeakMap();
+  const buttonCooldowns=new WeakMap();
+  function rememberLabel(button){if(!buttonLabels.has(button))buttonLabels.set(button,button.innerHTML);return buttonLabels.get(button)}
+  function isBusy(button){return button?.getAttribute("aria-busy")==="true"}
+  function coolingDown(button){return buttonCooldowns.has(button)}
+  /* Disables the button, marks it aria-busy and shows a spinner with `text`. Returns the function that puts
+     the button back (call it in finally). A cooldown started meanwhile keeps the button waiting. */
+  function setBusy(button,text){
+    if(!button)return()=>{};
+    rememberLabel(button);
+    const hadFocus=document.activeElement===button;
+    button.disabled=true;
+    button.setAttribute("aria-busy","true");
+    button.innerHTML=`<span class="btn-spinner" aria-hidden="true"></span><span>${escapeHTML(text)}</span>`;
+    let restored=false;
+    return function restore(){
+      if(restored)return;
+      restored=true;
+      button.removeAttribute("aria-busy");
+      if(coolingDown(button))return;
+      button.innerHTML=buttonLabels.get(button);
+      button.disabled=false;
+      // A disabled button drops keyboard focus; give it back if nothing else took it.
+      if(hadFocus&&(!document.activeElement||document.activeElement===document.body))button.focus({preventScroll:true});
+    };
+  }
+  /* After an email is sent the button waits (Supabase allows about one email a minute) and counts down. */
+  function startCooldown(button,seconds,label=left=>`Send again in ${left}s`){
+    if(!button||!(seconds>0))return;
+    stopCooldown(button);
+    rememberLabel(button);
+    let left=Math.ceil(seconds);
+    button.disabled=true;
+    button.textContent=label(left);
+    const timer=setInterval(()=>{
+      left-=1;
+      if(left<=0){stopCooldown(button);return}
+      // The text node is edited in place, so the add-on scripts' page-wide observers are not woken every second.
+      if(button.childNodes.length===1&&button.firstChild.nodeType===3)button.firstChild.data=label(left);
+      else button.textContent=label(left);
+    },1000);
+    buttonCooldowns.set(button,timer);
+  }
+  function stopCooldown(button){
+    if(!coolingDown(button))return;
+    clearInterval(buttonCooldowns.get(button));
+    buttonCooldowns.delete(button);
+    if(isBusy(button))return;
+    button.innerHTML=buttonLabels.get(button);
+    button.disabled=false;
+  }
+
+  /* ─── Field checks. The forms are novalidate: these inline messages replace the browser's bubbles, and
+     nothing invalid is sent to Supabase. ─── */
+  const EMAIL_PATTERN=/^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)*\.[a-z0-9-]{2,}$/i;
+  const MIN_PASSWORD=8,MAX_PASSWORD=72;
+  const FIELD_RULES={
+    loginEmail:"email",loginPassword:"current-password",
+    signupFirstName:"first-name",signupLastName:"last-name",signupEmail:"email",signupPassword:"new-password",
+    resetEmail:"email",
+    authNewPassword:"new-password",authNewPasswordConfirm:"confirm-password"
+  };
+  function fieldProblem(field){
+    const raw=String(field?.value||"");
+    const value=raw.trim();
+    switch(FIELD_RULES[field?.id]){
+      case "email":
+        if(!value)return "Enter your email address.";
+        if(value.length>254||!EMAIL_PATTERN.test(value))return "Enter a full email address, like name@example.com.";
+        return "";
+      case "current-password":return raw?"":"Enter your password.";
+      case "first-name":return value?"":"Enter your first name.";
+      case "last-name":return value?"":"Enter your last name.";
+      case "new-password":
+        if(!raw)return field.id==="authNewPassword"?"Enter a new password.":"Choose a password.";
+        if(raw.length<MIN_PASSWORD)return `Use at least ${MIN_PASSWORD} characters. This one has ${raw.length}.`;
+        if(raw.length>MAX_PASSWORD)return `Use ${MAX_PASSWORD} characters or fewer.`;
+        return "";
+      case "confirm-password":
+        if(!raw)return "Type your new password again.";
+        if(newPasswordEl&&raw!==newPasswordEl.value)return "The two passwords don't match. Check them and try again.";
+        return "";
+      default:return "";
     }
   }
+  /* The message goes in the <p id="<field id>Error"> that the field's aria-describedby already names. */
+  function setFieldError(field,message=""){
+    if(!field)return;
+    const box=document.getElementById(`${field.id}Error`);
+    if(message)field.setAttribute("aria-invalid","true");else field.removeAttribute("aria-invalid");
+    if(box){box.textContent=message;box.hidden=!message}
+  }
+  function clearFieldErrors(scope){scope?.querySelectorAll("[aria-invalid]").forEach(field=>setFieldError(field,""))}
+  /* Checks every field, shows each problem under its field and moves focus to the first one. */
+  function fieldsValid(fields){
+    let first=null;
+    fields.filter(Boolean).forEach(field=>{
+      const problem=fieldProblem(field);
+      setFieldError(field,problem);
+      if(problem&&!first)first=field;
+    });
+    if(first)first.focus();
+    return !first;
+  }
+  Object.keys(FIELD_RULES).forEach(id=>{
+    const field=document.getElementById(id);
+    if(!field)return;
+    // A field that shows a problem is re-checked as the visitor types, so the message goes once it is fixed.
+    field.addEventListener("input",()=>{
+      if(field.getAttribute("aria-invalid")==="true")setFieldError(field,fieldProblem(field));
+      if(field===newPasswordEl&&newPasswordConfirmEl?.getAttribute("aria-invalid")==="true")setFieldError(newPasswordConfirmEl,fieldProblem(newPasswordConfirmEl));
+    });
+    // Moving from a filled-in field to the next one in the same form checks it. Empty fields wait for submit.
+    field.addEventListener("blur",event=>{
+      const next=event.relatedTarget;
+      if(!field.value.trim()||!next||!field.form?.contains(next)||next.closest?.(".cn-pw-toggle"))return;
+      setFieldError(field,fieldProblem(field));
+    });
+  });
+
+  /* Show / Hide on password fields. They go back to hidden whenever the dialog changes view or closes. */
+  function setPasswordShown(button,show){
+    const field=document.getElementById(button.dataset.cnPwToggle);
+    if(!field)return;
+    field.type=show?"text":"password";
+    button.textContent=show?"Hide":"Show";
+    button.setAttribute("aria-label",show?"Hide password":"Show password");
+  }
+  function hidePasswords(scope=authModal){scope?.querySelectorAll("[data-cn-pw-toggle]").forEach(button=>setPasswordShown(button,false))}
+  authModal?.querySelectorAll("[data-cn-pw-toggle]").forEach(button=>button.addEventListener("click",()=>{
+    setPasswordShown(button,document.getElementById(button.dataset.cnPwToggle)?.type==="password");
+  }));
+
+  /* ─── Dialog views: login | signup | reset (ask for a reset link) | recovery (choose a new password) ─── */
+  const AUTH_HEADINGS={
+    login:["Sign in or create an account","Use an existing CyberNet account, or create a free account in seconds."],
+    reset:["Reset your password","Enter the email you use for CyberNet AI. We'll send you a link to choose a new password."],
+    recovery:["Choose a new password","Pick a new password for your CyberNet AI account. You'll stay signed in on this device."]
+  };
+  let authView="login";
+  let recoveryEmail="";
+  function setAuthView(view="login",{keepMessages=false}={}){
+    if(!["login","signup","reset","recovery"].includes(view))view="login";
+    const tabbed=view==="login"||view==="signup";
+    authView=view;
+    if(authModal)authModal.dataset.authView=view;
+    authTabs.forEach(tab=>tab.classList.toggle("active",tab.dataset.auth===view));
+    if(authTabsEl)authTabsEl.hidden=!tabbed;
+    [[loginForm,"login"],[signupForm,"signup"],[resetForm,"reset"],[newPasswordForm,"recovery"]].forEach(([form,name])=>{
+      if(!form)return;
+      if(name!==view&&form.classList.contains("active-auth-form")){clearFieldErrors(form);hidePasswords(form)}
+      form.classList.toggle("active-auth-form",name===view);
+    });
+    // Google works for both tabs (an existing Google account signs in, a new one is created), so only the
+    // divider's wording follows the tab. The reset and new-password steps have no Google button.
+    if(googleAuthWrap){
+      googleAuthWrap.hidden=!tabbed;
+      const divider=document.getElementById("googleAuthDivider");
+      if(divider&&tabbed)divider.textContent=view==="signup"?"or sign up with email":"or sign in with email";
+    }
+    const [title,intro]=AUTH_HEADINGS[view]||AUTH_HEADINGS.login;
+    if(authTitleEl&&authTitleEl.textContent!==title)authTitleEl.textContent=title;
+    const introText=view==="recovery"&&recoveryEmail?`Pick a new password for ${recoveryEmail}. You'll stay signed in on this device.`:intro;
+    if(authIntroEl&&authIntroEl.textContent!==introText)authIntroEl.textContent=introText;
+    if(!keepMessages){
+      setAuthMessage("");
+      clearAuthNotice();
+      if(resendConfirmBtn&&!coolingDown(resendConfirmBtn))resendConfirmBtn.hidden=true;
+    }
+  }
+  function setAuthTab(mode="login"){setAuthView(mode==="signup"?"signup":"login")}
 
   /* Moves keyboard focus to the first visible field of a dialog. */
   function focusFirstField(container){
@@ -302,10 +608,13 @@ document.addEventListener("DOMContentLoaded",()=>{
       field?.focus({preventScroll:true});
     });
   }
+  function focusField(field){if(field)requestAnimationFrame(()=>field.focus({preventScroll:true}))}
   let authReturnFocus=null;
+  /* mode: "login" | "signup" | "reset". */
   function openAuthModal(mode="login"){
-    setAuthTab(mode);
-    setAuthMessage("");
+    // The choose-a-new-password step stays on screen until it is finished or closed.
+    if(authView==="recovery"&&authModal?.classList.contains("show")){focusFirstField(newPasswordForm);return}
+    setAuthView(mode==="signup"||mode==="reset"?mode:"login");
     if(!authModal?.classList.contains("show"))authReturnFocus=document.activeElement;
     authModal?.classList.add("show");
     focusFirstField(authModal?.querySelector(".auth-form.active-auth-form"));
@@ -316,13 +625,202 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(authReturnFocus?.isConnected)authReturnFocus.focus?.({preventScroll:true});
     authReturnFocus=null;
   }
+  /* However the dialog closes (Close, Escape, a click outside, a finished sign-in), it starts fresh next time:
+     the reset and new-password steps go back to Sign In, and notices, field errors and shown passwords go. */
+  let recoveryCloseTimer=0;
+  function onAuthModalClosed(){
+    clearTimeout(recoveryCloseTimer);
+    if(authView==="recovery")leaveRecoveryMode();
+    else if(authView==="reset")setAuthView("login");
+    clearAuthNotice();
+    clearFieldErrors(authModal);
+    hidePasswords();
+    if(signupResendBtn&&!coolingDown(signupResendBtn))signupResendBtn.hidden=true;
+  }
+  if(authModal&&"MutationObserver" in window){
+    let authModalShown=authModal.classList.contains("show");
+    new MutationObserver(()=>{
+      const shown=authModal.classList.contains("show");
+      if(authModalShown&&!shown)onAuthModalClosed();
+      authModalShown=shown;
+    }).observe(authModal,{attributes:true,attributeFilter:["class"]});
+  }
+
+  /* "Forgot your password?" opens the reset step with the email already typed. */
+  function openResetView(email=""){
+    const value=String(email||loginEmailEl?.value||"").trim();
+    if(resetEmailEl&&value)resetEmailEl.value=value;
+    setAuthView("reset");
+    focusFirstField(resetForm);
+  }
 
   if(openAuth)openAuth.addEventListener("click",()=>openAuthModal("login"));
-  if(switchToSignupBtn)switchToSignupBtn.addEventListener("click",()=>setAuthTab("signup"));
-  if(switchToLoginBtn)switchToLoginBtn.addEventListener("click",()=>setAuthTab("login"));
+  // These links hide with their form, so focus moves on to the new form's first field.
+  if(switchToSignupBtn)switchToSignupBtn.addEventListener("click",()=>{setAuthTab("signup");focusFirstField(signupForm)});
+  if(switchToLoginBtn)switchToLoginBtn.addEventListener("click",()=>{setAuthTab("login");focusFirstField(loginForm)});
+  if(forgotPasswordBtn)forgotPasswordBtn.addEventListener("click",()=>openResetView());
+  if(resetBackBtn)resetBackBtn.addEventListener("click",()=>{
+    if(loginEmailEl&&!loginEmailEl.value.trim()&&resetEmailEl?.value.trim())loginEmailEl.value=resetEmailEl.value.trim();
+    setAuthView("login");
+    focusFirstField(loginForm);
+  });
   if(closeAuth&&authModal)closeAuth.addEventListener("click",closeAuthModal);
   if(authModal)authModal.addEventListener("click",event=>{if(event.target===authModal)closeAuthModal()});
   authTabs.forEach(tab=>tab.addEventListener("click",()=>setAuthTab(tab.dataset.auth)));
+
+  /* ─── A short confirmation at the bottom of the screen. It has no buttons: it goes by itself after a few
+     seconds, or on a click or Escape. ─── */
+  let authToastTimer=0;
+  function hideAuthToast(){
+    clearTimeout(authToastTimer);
+    const toast=document.getElementById("cnAuthToast");
+    if(!toast||!toast.classList.contains("is-shown"))return;
+    toast.classList.remove("is-shown");
+    setTimeout(()=>{if(!toast.classList.contains("is-shown"))toast.replaceChildren()},400);
+  }
+  function showAuthToast(message){
+    if(!message)return;
+    let toast=document.getElementById("cnAuthToast");
+    if(!toast){
+      toast=document.createElement("div");
+      toast.id="cnAuthToast";
+      toast.className="cn-toast";
+      toast.setAttribute("role","status");
+      toast.addEventListener("click",hideAuthToast);
+      document.body.appendChild(toast);
+    }
+    clearTimeout(authToastTimer);
+    toast.classList.add("is-shown");
+    // The words go in one frame after the region shows, so screen readers announce them.
+    requestAnimationFrame(()=>{
+      const icon=document.createElement("span");
+      icon.className="cn-toast-icon";
+      icon.setAttribute("aria-hidden","true");
+      const text=document.createElement("span");
+      text.textContent=message;
+      toast.replaceChildren(icon,text);
+    });
+    authToastTimer=setTimeout(hideAuthToast,6500);
+  }
+  document.addEventListener("keydown",event=>{if(event.key==="Escape")hideAuthToast()});
+
+  /* ─── Choose a new password. The link in the reset email signs the visitor in, then lands here. ─── */
+  function enterRecoveryMode(session){
+    appState.recoveryMode=true;
+    if(authView==="recovery"&&authModal?.classList.contains("show"))return;
+    recoveryEmail=String(session?.user?.email||appState.user?.email||"");
+    const username=document.getElementById("authRecoveryUsername");
+    if(username)username.value=recoveryEmail;
+    if(updatePasswordBtn&&!isBusy(updatePasswordBtn))updatePasswordBtn.disabled=false;
+    setAuthView("recovery");
+    if(!authModal?.classList.contains("show")){authReturnFocus=document.activeElement;authModal?.classList.add("show")}
+    focusFirstField(newPasswordForm);
+  }
+  function leaveRecoveryMode(){
+    appState.recoveryMode=false;
+    recoveryEmail="";
+    [newPasswordEl,newPasswordConfirmEl].forEach(field=>{if(field){field.value="";setFieldError(field,"")}});
+    hidePasswords(newPasswordForm);
+    if(updatePasswordBtn&&!isBusy(updatePasswordBtn))updatePasswordBtn.disabled=false;
+    if(authView==="recovery")setAuthView("login");
+    cleanAuthReturnUrl({dropReset:true});
+  }
+
+  /* ─── Returning from a Supabase link ─── */
+  /* Removes what Supabase added to the address (error fields, the #hash, and ?reset=1 when asked), keeping
+     the path and every other parameter (an invite ?token=, campaign tags). Tokens are only dropped once the
+     client has read them (dropTokens). */
+  function cleanAuthReturnUrl({dropReset=false,dropTokens=false}={}){
+    try{
+      const url=new URL(window.location.href);
+      ["error","error_code","error_description","error_uri","sb"].forEach(key=>url.searchParams.delete(key));
+      if(dropReset)url.searchParams.delete("reset");
+      const hash=new URLSearchParams(url.hash.replace(/^#/,""));
+      const errorHash=["error","error_code","error_description"].some(key=>hash.has(key));
+      const tokenHash=["access_token","refresh_token","type"].some(key=>hash.has(key));
+      if(errorHash||(dropTokens&&tokenHash))url.hash="";
+      const next=`${url.pathname}${url.search}${url.hash}`;
+      if(next!==`${window.location.pathname}${window.location.search}${window.location.hash}`||window.location.href.endsWith("#"))history.replaceState(history.state,"",next);
+    }catch{}
+  }
+  /* What to tell someone who came back with an error. view: the dialog step that offers the next step. */
+  function describeAuthReturnError(ret){
+    const code=String(ret.errorCode||"").toLowerCase();
+    const description=String(ret.errorDescription||"").toLowerCase();
+    const expired=["otp_expired","flow_state_expired","flow_state_not_found"].includes(code)||/expired|already (been )?used/.test(description);
+    if(expired&&ret.reset)return{kind:"link-expired",view:"reset",tone:"warn",
+      title:"This link has expired or was already used",
+      text:"Reset links work once and only for a limited time. Enter your email and we'll send a new one.",
+      signedIn:"That reset link has expired or was already used. You're still signed in."};
+    if(expired)return{kind:"link-expired",view:"login",tone:"warn",resend:true,
+      title:"This link has expired or was already used",
+      text:"Email links work once and only for a limited time. If you've already confirmed your email, just sign in. If not, enter your email below and choose Resend confirmation email.",
+      signedIn:"That email link has expired or was already used. You're still signed in."};
+    if(code==="provider_disabled"||/provider is not enabled|unsupported provider/.test(description))return{kind:"error",view:"login",tone:"info",
+      title:"Google sign-in isn't available right now",
+      text:"Please sign in with your email and password instead."};
+    if(code==="signup_disabled"||/signups? not allowed/.test(description))return{kind:"error",view:"login",tone:"info",
+      title:"New accounts can't be created right now",
+      text:"Please try again later. If you already have an account, you can sign in below."};
+    if(String(ret.error||"").toLowerCase()==="access_denied")return{kind:"sign-in-cancelled",view:"login",tone:"info",
+      title:"Google sign-in was cancelled",
+      text:"You're not signed in. You can choose Continue with Google again, or sign in with your email and password."};
+    return{kind:"error",view:"login",tone:"warn",
+      title:"Sign-in didn't finish",
+      text:`Something went wrong on the way back to CyberNet AI. Please try again. If it keeps happening, email ${SUPPORT_CONTACT}.`};
+  }
+  /* Other scripts (onboarding, analytics) can follow these returns without reading the address themselves. */
+  function announceAuthReturn(kind){try{window.dispatchEvent(new CustomEvent("cybernet:auth-return",{detail:{kind}}))}catch{}}
+  function showAuthReturnNotice(view,notice,{resend=false}={}){
+    openAuthModal(view);
+    if(resend&&resendConfirmBtn)resendConfirmBtn.hidden=false;
+    requestAnimationFrame(()=>setAuthNotice(notice.title,notice.text,notice.tone));
+  }
+  const authReturnError=Boolean(CYBERNET_AUTH_RETURN.error||CYBERNET_AUTH_RETURN.errorCode||CYBERNET_AUTH_RETURN.errorDescription);
+  let authReturnHandled=false;
+  /* Runs once, when the client has finished reading the address (session: the session it found, or null). */
+  function handleAuthReturn(session){
+    if(authReturnHandled)return;
+    authReturnHandled=true;
+    const ret=CYBERNET_AUTH_RETURN;
+    const signedIn=Boolean(session?.user);
+    if(authReturnError){
+      const notice=describeAuthReturnError(ret);
+      announceAuthReturn(notice.kind);
+      if(signedIn){showAuthToast(notice.signedIn||notice.title);return}
+      showAuthReturnNotice(notice.view,notice,{resend:notice.resend});
+      return;
+    }
+    if(ret.type==="recovery"||(ret.reset&&!ret.type)){
+      cleanAuthReturnUrl({dropTokens:true});
+      if(signedIn){enterRecoveryMode(session);announceAuthReturn("password-recovery");return}
+      appState.recoveryMode=false;
+      cleanAuthReturnUrl({dropReset:true});
+      // A reset link whose sign-in did not work: offer a new link.
+      if(ret.type==="recovery"){
+        announceAuthReturn("link-expired");
+        showAuthReturnNotice("reset",describeAuthReturnError({errorCode:"otp_expired",reset:true}));
+      }
+      return;
+    }
+    if(ret.hasSession){
+      cleanAuthReturnUrl({dropTokens:true});
+      if(ret.type==="signup"||ret.type==="email_change"){
+        if(signedIn){
+          showAuthToast(ret.type==="signup"?"Email confirmed. You're signed in.":"Your new email address is confirmed.");
+          announceAuthReturn("email-confirmed");
+        }else{
+          announceAuthReturn("link-expired");
+          const notice=describeAuthReturnError({errorCode:"otp_expired"});
+          showAuthReturnNotice(notice.view,notice,{resend:true});
+        }
+      }
+    }
+  }
+  /* An error from Supabase is cleared from the address before the client starts, so the client never acts on
+     it (it would sign this device out) and any session already here is kept. */
+  if(authReturnError)cleanAuthReturnUrl({dropReset:true});
+  if(CYBERNET_AUTH_RETURN.type==="recovery"&&CYBERNET_AUTH_RETURN.hasSession&&!authReturnError)appState.recoveryMode=true;
 
   function firstName(value=""){
     const raw=String(value||"").trim().split(/\s+/)[0]||"User";
@@ -595,29 +1093,29 @@ document.addEventListener("DOMContentLoaded",()=>{
     appState.supabase=window.supabase.createClient(publicConfig.SUPABASE_URL,publicConfig.SUPABASE_ANON_KEY,{
       auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
     });
-    appState.supabase.auth.getSession().then(({data})=>syncSession(data.session)).catch(()=>syncSession(null));
+    /* getSession waits until the client has read the address, so the return (if any) is handled after it. */
+    appState.supabase.auth.getSession()
+      .then(({data})=>{syncSession(data.session);handleAuthReturn(data.session)})
+      .catch(()=>{syncSession(null);handleAuthReturn(null)});
     /* Failsafe: if the session check never answers, the Sign In button still appears. */
     setTimeout(()=>{if(openAuth&&openAuth.hidden&&!isSignedIn()){openAuth.hidden=false;const skeleton=document.getElementById("authCheckingSkeleton");if(skeleton)skeleton.hidden=true}},5000);
     appState.supabase.auth.onAuthStateChange((event,session)=>{
-      if(event==="PASSWORD_RECOVERY"){
-        appState.recoveryMode=true;
-        setAuthTab("login");
-        if(loginBtn)loginBtn.textContent="Update Password";
-        setAuthMessage("Enter your new password below, then choose Update Password.","success");
-        authModal?.classList.add("show");
-      }
+      if(event==="PASSWORD_RECOVERY")enterRecoveryMode(session);
       if(event==="SIGNED_OUT"){try{resetChatState()}catch{}}
       setTimeout(()=>syncSession(session),0);
     });
   }else{
     updateAccountUI();
+    if(authReturnError)handleAuthReturn(null);
   }
 
   /* Signing up or using Google from an invite link comes back to that invite, not the home page. */
   function inviteReturnUrl(){const token=new URLSearchParams(window.location.search).get("token")||"";return window.location.pathname.replace(/\/+$/,"")==="/accept-invite"&&/^[a-f0-9]{64}$/.test(token)?`${window.location.origin}/accept-invite?token=${encodeURIComponent(token)}`:""}
   const googleAuthBtn=document.getElementById("googleAuthBtn");
-  /* Coming back from Google with the browser's Back button restores the page from cache with the button still disabled. */
-  window.addEventListener("pageshow",event=>{if(event.persisted&&googleAuthBtn)googleAuthBtn.disabled=false});
+  let googleBusyDone=null,googleBusyTimer=0;
+  function endGoogleBusy(){clearTimeout(googleBusyTimer);if(googleBusyDone){googleBusyDone();googleBusyDone=null}}
+  /* Coming back from Google with the browser's Back button restores the page from cache with the button still busy. */
+  window.addEventListener("pageshow",event=>{if(event.persisted)endGoogleBusy()});
   /* In-app browsers (Instagram, TikTok, LinkedIn, Facebook) often cannot complete Google sign-in. */
   if(googleAuthBtn&&/FBAN|FBAV|FB_IAB|Instagram|musical_ly|BytedanceWebview|TikTok|LinkedInApp|Snapchat/i.test(navigator.userAgent||"")){
     const note=document.createElement("p");
@@ -627,75 +1125,98 @@ document.addEventListener("DOMContentLoaded",()=>{
   }
   if(googleAuthBtn)googleAuthBtn.addEventListener("click",async()=>{
     if(!appState.supabase){setAuthMessage(authSetupMessage(),"error");return}
-    googleAuthBtn.disabled=true;
+    if(isBusy(googleAuthBtn))return;
+    setAuthMessage("");
+    googleBusyDone=setBusy(googleAuthBtn,"Opening Google…");
+    // The page normally leaves for Google. If it never does (an in-app browser can block it), the button comes back.
+    googleBusyTimer=setTimeout(endGoogleBusy,15000);
     try{
       const{error}=await appState.supabase.auth.signInWithOAuth({
         provider:"google",
         options:{redirectTo:inviteReturnUrl()||window.location.origin}
       });
-      if(error){setAuthMessage(error.message||"Google sign-in is not available right now.","error");googleAuthBtn.disabled=false}
+      if(error)throw error;
     }catch(error){
-      setAuthMessage(error.message||"Google sign-in is not available right now.","error");
-      googleAuthBtn.disabled=false;
+      setAuthMessage(friendlyAuthError(error,"google"),"error");
+      endGoogleBusy();
     }
   });
 
-  if(loginBtn)loginBtn.addEventListener("click",async()=>{
+  /* Enter in any field submits its form: the forms have a submit button, so the old Enter-key handlers are gone. */
+  if(loginForm)loginForm.addEventListener("submit",async event=>{
+    event.preventDefault();
+    if(isBusy(loginBtn))return;
     if(!appState.supabase){setAuthMessage(authSetupMessage(),"error");return}
-    const email=document.getElementById("loginEmail")?.value.trim()||"";
-    const password=document.getElementById("loginPassword")?.value||"";
-    loginBtn.disabled=true;
+    setAuthMessage("");
+    if(!fieldsValid([loginEmailEl,loginPasswordEl]))return;
+    const email=loginEmailEl.value.trim();
+    const password=loginPasswordEl.value;
+    const done=setBusy(loginBtn,"Signing in…");
     try{
-      if(appState.recoveryMode){
-        if(password.length<8)throw new Error("Use at least 8 characters for the new password.");
-        const {error}=await appState.supabase.auth.updateUser({password});
-        if(error)throw error;
-        appState.recoveryMode=false;
-        loginBtn.textContent="Sign In";
-        setAuthMessage("Password updated successfully.","success");
-        setTimeout(()=>authModal?.classList.remove("show"),900);
-      }else{
-        if(!email||!password)throw new Error("Enter your email and password.");
-        const {error}=await appState.supabase.auth.signInWithPassword({email,password});
-        if(error)throw error;
-        setAuthMessage("Signed in successfully.","success");
-        authModal?.classList.remove("show");
-        if(resendConfirmBtn)resendConfirmBtn.hidden=true;
-      }
+      const {error}=await appState.supabase.auth.signInWithPassword({email,password});
+      if(error)throw error;
+      if(resendConfirmBtn)resendConfirmBtn.hidden=true;
+      hidePasswords(loginForm);
+      setAuthMessage("You're signed in.","success");
+      closeAuthModal();
     }catch(error){
       setAuthMessage(friendlyAuthError(error,"login"),"error");
-      if(resendConfirmBtn)resendConfirmBtn.hidden=!String(error.message||"").toLowerCase().includes("email not confirmed");
-    }
-    finally{loginBtn.disabled=false}
+      if(resendConfirmBtn&&!coolingDown(resendConfirmBtn))resendConfirmBtn.hidden=!isUnconfirmedEmailError(error);
+    }finally{done()}
   });
 
-  if(resendConfirmBtn)resendConfirmBtn.addEventListener("click",async()=>{
-    if(!appState.supabase)return;
-    const email=document.getElementById("loginEmail")?.value.trim()||"";
-    if(!email){setAuthMessage("Enter your email above first, then resend the confirmation.","error");return}
-    resendConfirmBtn.disabled=true;
+  /* Sends the sign-up confirmation email again, then makes the button wait a minute. */
+  async function sendConfirmationEmail(email,button){
+    if(!appState.supabase){setAuthMessage(authSetupMessage(),"error");return}
+    if(!email||isBusy(button)||coolingDown(button))return;
+    const done=setBusy(button,"Sending…");
+    const waitLabel=left=>`Resend available in ${left}s`;
     try{
       const returnUrl=inviteReturnUrl();
       const{error}=await appState.supabase.auth.resend(returnUrl?{type:"signup",email,options:{emailRedirectTo:returnUrl}}:{type:"signup",email});
       if(error)throw error;
-      setAuthMessage("Confirmation email resent. Check your inbox (and spam folder).","success");
+      clearAuthNotice();
+      setAuthMessage(`We sent a new confirmation link to ${email}. It can take a minute to arrive, so check your spam folder too.`,"success");
+      startCooldown(button,60,waitLabel);
     }catch(error){
-      setAuthMessage(error.message||"Could not resend the confirmation email.","error");
-    }finally{
-      resendConfirmBtn.disabled=false;
-    }
+      setAuthMessage(friendlyAuthError(error,"resend"),"error");
+      const wait=authWaitSeconds(error);
+      if(wait)startCooldown(button,wait,waitLabel);
+    }finally{done()}
+  }
+  if(resendConfirmBtn)resendConfirmBtn.addEventListener("click",()=>{
+    setAuthMessage("");
+    if(!fieldsValid([loginEmailEl]))return;
+    sendConfirmationEmail(loginEmailEl.value.trim().toLowerCase(),resendConfirmBtn);
   });
 
-  if(signupBtn)signupBtn.addEventListener("click",async()=>{
+  function signupFields(){return ["signupFirstName","signupLastName","signupEmail","signupPassword"].map(id=>document.getElementById(id)).filter(Boolean)}
+  /* Fields first, then the terms box. The legal module checks the terms on a click of Create Free Account (a
+     capture listener on document). This one runs before it (capture on window), so an incomplete form shows
+     its field errors instead of opening the Terms. Pressing Enter in a field clicks the button too. */
+  window.addEventListener("click",event=>{
+    if(!signupBtn||!event.target?.closest?.("#signupBtn")||isBusy(signupBtn))return;
+    const fields=signupFields();
+    if(fields.every(field=>!fieldProblem(field)))return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    setAuthMessage("");
+    fieldsValid(fields);
+  },true);
+  let lastSignupEmail="";
+  if(signupForm)signupForm.addEventListener("submit",async event=>{
+    event.preventDefault();
+    if(isBusy(signupBtn))return;
     if(!appState.supabase){setAuthMessage(authSetupMessage(),"error");return}
-    const first=document.getElementById("signupFirstName")?.value.trim()||"";
-    const last=document.getElementById("signupLastName")?.value.trim()||"";
+    setAuthMessage("");
+    if(!fieldsValid(signupFields()))return;
+    const first=document.getElementById("signupFirstName").value.trim();
+    const last=document.getElementById("signupLastName").value.trim();
     const fullName=`${first} ${last}`.trim();
-    const email=document.getElementById("signupEmail")?.value.trim().toLowerCase()||"";
-    const password=document.getElementById("signupPassword")?.value||"";
-    signupBtn.disabled=true;
+    const email=document.getElementById("signupEmail").value.trim().toLowerCase();
+    const password=document.getElementById("signupPassword").value;
+    const done=setBusy(signupBtn,"Creating your account…");
     try{
-      if(!first||!last||!email||password.length<8)throw new Error("Enter your first name, last name, a valid email, and a password of at least 8 characters.");
       const {data,error}=await appState.supabase.auth.signUp({
         email,password,
         options:{
@@ -704,37 +1225,88 @@ document.addEventListener("DOMContentLoaded",()=>{
         }
       });
       if(error)throw error;
-      if(data.session){
-        setAuthMessage("Your free account is ready.","success");
-        authModal?.classList.remove("show");
-      }else{
-        setAuthMessage("Account request received. Check your email to confirm it, then return and sign in.","success");
+      // For an address that already has an account, Supabase answers with no identities and sends no email.
+      if(data?.user&&Array.isArray(data.user.identities)&&data.user.identities.length===0){
+        hidePasswords(signupForm);
+        setAuthMessage(`There's already a CyberNet AI account for ${email}. Sign in instead, or reset your password if you've forgotten it.`,"warning",[
+          {label:"Sign in instead",run:()=>{if(loginEmailEl)loginEmailEl.value=email;setAuthView("login");focusField(loginPasswordEl)}},
+          {label:"Reset my password",run:()=>openResetView(email)}
+        ]);
+        return;
       }
+      if(data?.session){
+        setAuthMessage("Your free account is ready.","success");
+        closeAuthModal();
+        showAuthToast("Your free account is ready. You're signed in.");
+        return;
+      }
+      lastSignupEmail=email;
+      hidePasswords(signupForm);
+      setAuthMessage(`Almost done. We sent a confirmation link to ${email}. Open it and you'll be signed in. If it isn't in your inbox in a minute or two, check your spam folder.`,"success");
+      if(signupResendBtn){signupResendBtn.hidden=false;startCooldown(signupResendBtn,60,left=>`Resend available in ${left}s`)}
     }catch(error){setAuthMessage(friendlyAuthError(error,"signup"),"error")}
-    finally{signupBtn.disabled=false}
+    finally{done()}
+  });
+  if(signupResendBtn)signupResendBtn.addEventListener("click",()=>{
+    const email=lastSignupEmail||document.getElementById("signupEmail")?.value.trim().toLowerCase()||"";
+    setAuthMessage("");
+    sendConfirmationEmail(email,signupResendBtn);
   });
 
-  if(forgotPasswordBtn)forgotPasswordBtn.addEventListener("click",async()=>{
+  /* Reset step. The answer is the same whether or not an account exists, so this never tells anyone which
+     emails have accounts. */
+  if(resetForm)resetForm.addEventListener("submit",async event=>{
+    event.preventDefault();
+    if(isBusy(sendResetBtn)||coolingDown(sendResetBtn))return;
     if(!appState.supabase){setAuthMessage(authSetupMessage(),"error");return}
-    const email=document.getElementById("loginEmail")?.value.trim()||"";
-    if(!email){setAuthMessage("Enter your email address first.","error");return}
-    forgotPasswordBtn.disabled=true;
-    let sent=false;
+    setAuthMessage("");
+    if(!fieldsValid([resetEmailEl]))return;
+    const email=resetEmailEl.value.trim();
+    const done=setBusy(sendResetBtn,"Sending link…");
     try{
       const {error}=await appState.supabase.auth.resetPasswordForEmail(email,{redirectTo:`${window.location.origin}/?reset=1`});
       if(error)throw error;
-      sent=true;
-      setAuthMessage("Password reset email sent.","success");
+      clearAuthNotice();
+      setAuthMessage(`If an account exists for ${email}, a reset link is on its way. It can take a minute to arrive, so check your spam folder too. The link works once.`,"success");
+      startCooldown(sendResetBtn,60);
     }catch(error){
-      setAuthMessage(friendlyAuthError(error,"login"),"error");
-    }finally{
-      /* After a successful send, wait before allowing another reset email. */
-      setTimeout(()=>{forgotPasswordBtn.disabled=false},sent?30000:0);
-    }
+      setAuthMessage(friendlyAuthError(error,"reset"),"error");
+      const wait=authWaitSeconds(error);
+      if(wait)startCooldown(sendResetBtn,wait);
+    }finally{done()}
   });
 
-  document.getElementById("loginPassword")?.addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();loginBtn?.click()}});
-  document.getElementById("signupPassword")?.addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();signupBtn?.click()}});
+  /* New-password step: saves the password for the session the reset link opened. */
+  if(newPasswordForm)newPasswordForm.addEventListener("submit",async event=>{
+    event.preventDefault();
+    if(isBusy(updatePasswordBtn)||updatePasswordBtn?.disabled)return;
+    if(!appState.supabase){setAuthMessage(authSetupMessage(),"error");return}
+    setAuthMessage("");
+    if(!fieldsValid([newPasswordEl,newPasswordConfirmEl]))return;
+    const password=newPasswordEl.value;
+    const done=setBusy(updatePasswordBtn,"Saving new password…");
+    let saved=false;
+    try{
+      const {error}=await appState.supabase.auth.updateUser({password});
+      if(error)throw error;
+      saved=true;
+      hidePasswords(newPasswordForm);
+      clearAuthNotice();
+      setAuthMessage("Your new password is saved. You're signed in.","success");
+      appState.recoveryMode=false;
+      cleanAuthReturnUrl({dropReset:true});
+      recoveryCloseTimer=setTimeout(()=>{closeAuthModal();showAuthToast("Password updated. You're signed in.")},1800);
+    }catch(error){
+      const message=friendlyAuthError(error,"recovery");
+      const code=authErrorCode(error),text=String(error?.message||"").toLowerCase();
+      // A problem with the password itself is shown under the field; anything else under the form.
+      if(code==="same_password"||code==="weak_password"||/different from the old password|password should|known to be weak|longer than 72/.test(text)){setFieldError(newPasswordEl,message);newPasswordEl?.focus()}
+      else setAuthMessage(message,"error");
+    }finally{
+      done();
+      if(saved&&updatePasswordBtn)updatePasswordBtn.disabled=true;
+    }
+  });
 
   /* Reload after signing out, like the Account modal does, so the previous user's chat, Recovery plan and scan lists are gone. */
   if(logoutBtn)logoutBtn.addEventListener("click",async()=>{
@@ -779,7 +1351,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       if(plan==="business"){try{sessionStorage.setItem("cybernet_pending_business_checkout","1")}catch{}}
       window.location.assign(data.url);
     }catch(error){
-      showPricingNotice(error.message||"Checkout could not start.","error");
+      showPricingNotice(friendlyNetworkError(error)||error.message||"Checkout could not start. Please try again in a moment.","error");
     }
     finally{if(btn)btn.disabled=false;businessBtns.forEach(b=>b.disabled=false)}
   }
@@ -796,7 +1368,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       const data=await response.json().catch(()=>({}));
       if(!response.ok)throw new Error(data.error||"Billing portal unavailable.");
       window.location.assign(data.url);
-    }catch(error){showPricingNotice(error.message||"Billing portal unavailable.","error");switchPage("pricing")}
+    }catch(error){showPricingNotice(friendlyNetworkError(error)||error.message||"The billing page isn't available right now. Please try again in a moment.","error");switchPage("pricing")}
   }
 
   if(freePlanBtn)freePlanBtn.addEventListener("click",()=>{if(!isSignedIn())openAuthModal("signup")});
@@ -1374,6 +1946,14 @@ document.addEventListener("DOMContentLoaded",()=>{
       if(data.usage){appState.usage=data.usage;updateAccountUI()}
       if(Array.isArray(data.history))appState.history=data.history;
       return normalizeServerResult(data);
+    }catch(error){
+      // The 36-second wait above ran out: say so in words instead of the browser's "signal is aborted".
+      if(error?.name==="AbortError"||controller.signal.aborted){
+        const timeout=new Error("Analysis AI is taking longer than usual, so we stopped waiting. Please try again in a moment.");
+        timeout.code="analysis_timeout";
+        throw timeout;
+      }
+      throw error;
     }finally{clearTimeout(timer)}
   }
   /* ─── CyberNet Text ─── */
@@ -1594,7 +2174,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       serviceState.online=false;
       serviceState.lastChecked=Date.now();
       if(aiModelName)aiModelName.textContent="Service unavailable";
-      if(aiApiStatus)aiApiStatus.innerHTML=`<span class="warning">${escapeHTML(error.message||"The secure analysis service is unavailable.")}</span>`;
+      if(aiApiStatus)aiApiStatus.innerHTML=`<span class="warning">${escapeHTML(friendlyNetworkError(error)||error.message||"The secure analysis service is unavailable.")}</span>`;
       if(aiConnPill){aiConnPill.textContent=isSignedIn()?"Account online":"Signed out";aiConnPill.className="status-pill status-pill-warn"}
       if(aiReqLeft)aiReqLeft.textContent=isSignedIn()?String(appState.usage.remaining||0):"—";
       return false;
@@ -1825,7 +2405,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       if(isPro())await refreshAccountStatus();
     }catch(error){
       if(stopDiagnostic)stopDiagnostic();
-      if(inner)inner.innerHTML=`<span class="warning">${escapeHTML(error.message||"Analysis failed.")}</span>${error.code==="daily_limit_reached"?'<button class="report-download-btn" data-upgrade-now>Upgrade to Pro</button>':""}`;
+      if(inner)inner.innerHTML=`<span class="warning">${escapeHTML(friendlyNetworkError(error)||error.message||"The analysis didn't finish. Please try again.")}</span>${error.code==="daily_limit_reached"?'<button class="report-download-btn" data-upgrade-now>Upgrade to Pro</button>':""}`;
     }
     if(chatMessages)chatMessages.scrollTop=chatMessages.scrollHeight;
   }
@@ -2210,7 +2790,7 @@ document.addEventListener("DOMContentLoaded",()=>{
           setIntakeMessage(`${error.message}${recoveryLimitSuffix(error.usage,"Upgrade to Pro for more Recovery cases per day.","Recovery cases reset at 12:00 PM Gulf time.")}`,"warning");
           if(error.usage){appState.recoveryUsage={used:Number(error.usage.used)||0,limit:Number(error.usage.limit??error.usage.daily_limit)||1};updateAccountUI()}
         }else{
-          setIntakeMessage(error.message||"Recovery Mode couldn't start right now. Please try again.","warning");
+          setIntakeMessage(friendlyNetworkError(error)||error.message||"Recovery Mode couldn't start right now. Please try again.","warning");
         }
       }finally{
         startBtn.disabled=false;
@@ -2429,7 +3009,7 @@ document.addEventListener("DOMContentLoaded",()=>{
         }else if(error.code==="daily_limit_reached"){
           setUpdateMessage(`${error.message}${error.usage?.plan==="free"||!error.usage?.plan?" Upgrade to Pro for more updates per day.":" Updates reset at 12:00 PM Gulf time."}`,"warning");
         }else{
-          setUpdateMessage(error.message||"Couldn't update this case right now.","warning");
+          setUpdateMessage(friendlyNetworkError(error)||error.message||"Couldn't update this case right now. Please try again.","warning");
         }
       }finally{
         updateBtn.disabled=false;

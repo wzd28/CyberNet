@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { redactForTeamLog } from "../lib/team-log.mjs";
 import { DEFAULT_MODEL, DEFAULT_MINI_MODEL, modelParams, createResponse, autoReplaceEnabled, retirementOf } from "../lib/ai-models.mjs";
+import { reportError } from "../lib/report-error.mjs";
 // The rule set Quick Scan runs in the browser. It registers itself on
 // globalThis, so the page, this function and the tests all read one copy.
 import "../../public/cybernet-engine.js";
@@ -1383,6 +1384,7 @@ export default async function handler(request: Request, context: any): Promise<R
       usage = await usagePromise!;
     } catch (error) {
       console.error("CyberNet usage reservation failed", error);
+      reportError(error, { fn: "analyze", label: "Usage reservation failed", context });
       return json({ error: "We couldn't check your daily allowance just now. Please try again in a minute. This attempt was not counted.", code: "usage_service_unavailable" }, 503);
     }
     if (!usage.allowed) {
@@ -1447,6 +1449,7 @@ export default async function handler(request: Request, context: any): Promise<R
       type: (error as any)?.error?.type,
       requestId: (error as any)?.request_id,
     });
+    reportError(error, { fn: "analyze", label: "AI analysis failed", context });
   }
 
   const analysis = sanitizeAnalysisResult(rawAnalysis || fallback, fallback);

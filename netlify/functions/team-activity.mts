@@ -1,5 +1,6 @@
 import { json, verifyUser, getActiveTeamMembership, serviceFetch } from "../lib/supabase.mjs";
 import { redactForTeamLog } from "../lib/team-log.mjs";
+import { reportError } from "../lib/report-error.mjs";
 
 // Quick Scan runs entirely in the visitor's browser, so the server never sees
 // it and it used to be missing from the team owner's activity log. A team
@@ -159,6 +160,7 @@ export default async (request: Request) => {
     if (body?.kind === "analysis_shown") return await attachShownResult(user.id, team.businessAccountId, body);
     return json({ error: "Unknown activity kind." }, 400);
   } catch (error: any) {
+    reportError(error, { fn: "team-activity", label: "Team activity log failed", status: error?.status });
     return json({ error: error.message || "Could not record team activity." }, Number(error.status) || 500);
   }
 };

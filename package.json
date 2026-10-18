@@ -9,10 +9,16 @@
     "build:ui": "node scripts/build-ui.mjs",
     "check:ui": "node scripts/build-ui.mjs --check",
     "deploy": "netlify deploy --prod --dir=public --functions=netlify/functions",
-    "test": "node tests/run-engine.mjs && node tests/run-recovery.mjs && node tests/run-models.mjs",
+    "test": "node tests/run-engine.mjs && node tests/run-recovery.mjs && node tests/run-models.mjs && node tests/run-auth-messages.mjs && node tests/run-privacy.mjs && node tests/run-errors.mjs && node tests/run-error-hooks.mjs && node tests/run-onboarding.mjs && node tests/run-legal-copy.mjs && node tests/run-backup.mjs",
     "test:engine": "node tests/run-engine.mjs",
     "test:recovery": "node tests/run-recovery.mjs",
-    "test:models": "node tests/run-models.mjs"
+    "test:models": "node tests/run-models.mjs",
+    "test:auth": "node tests/run-auth-messages.mjs",
+    "test:privacy": "node tests/run-privacy.mjs",
+    "test:errors": "node tests/run-errors.mjs && node tests/run-error-hooks.mjs",
+    "test:onboarding": "node tests/run-onboarding.mjs",
+    "test:legal": "node tests/run-legal-copy.mjs",
+    "test:backup": "node tests/run-backup.mjs"
   },
   "dependencies": {
     "@netlify/functions": "5.3.0",

@@ -5,6 +5,7 @@ import {
   verifyUser,
   getProfile
 } from "../lib/supabase.mjs";
+import { reportError } from "../lib/report-error.mjs";
 
 function env(name) {
   try {
@@ -55,6 +56,7 @@ export default async (request) => {
     return json({ url: session.url });
   } catch (error) {
     console.error("Stripe customer portal error", error);
+    reportError(error, { fn: "customer-portal", label: "Billing portal failed", status: error?.status });
 
     return json(
       {

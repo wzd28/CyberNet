@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { DEFAULT_MODEL, DEFAULT_MINI_MODEL, modelParams, createResponse, autoReplaceEnabled } from "../lib/ai-models.mjs";
+import { reportError } from "../lib/report-error.mjs";
 
 declare const Netlify: {
   env: {
@@ -881,6 +882,7 @@ export default async function handler(request: Request, context: any): Promise<R
         : await consumeRecoveryCase(user.id);
     } catch (error) {
       console.error("CyberNet Recovery usage reservation failed", error);
+      reportError(error, { fn: "recovery-mode", label: "Recovery usage reservation failed", context });
       return json({ error: "Recovery Mode couldn't check your daily allowance just now. Please try again in a minute.", code: "usage_service_unavailable" }, 503);
     }
     if (!usage.allowed) {
@@ -942,6 +944,7 @@ export default async function handler(request: Request, context: any): Promise<R
       team && team.role !== "owner" ? description : null,
       (newCaseId) => triggerBackgroundJob(request, context, buildJob(newCaseId)).catch((error) => {
         console.error("CyberNet Recovery background trigger failed", { caseId: newCaseId, error });
+        reportError(error, { fn: "recovery-mode", label: "Recovery background trigger failed", context });
         return false;
       }),
     );
@@ -949,6 +952,7 @@ export default async function handler(request: Request, context: any): Promise<R
     aiPending = Boolean(saved.after);
   } catch (error) {
     console.error("CyberNet Recovery case save failed", error);
+    reportError(error, { fn: "recovery-mode", label: "Recovery case save failed", context });
     return json({ error: "Your recovery plan was generated, but it could not be saved. Please try again.", code: "save_failed" }, 500);
   }
 
@@ -990,6 +994,7 @@ async function triggerBackgroundJob(request: Request, context: any, job: Record<
   // once so the deterministic plan stands without three failing calls.
   if (utf8Length(body) > MAX_BACKGROUND_JOB_CHARS) {
     console.error("CyberNet Recovery background job too large", { kind: job.kind, caseId: job.caseId, bytes: utf8Length(body) });
+    reportError(`Recovery background job too large (${utf8Length(body)} bytes)`, { fn: "recovery-mode", label: `Background ${String(job.kind)} job not started`, context });
     return false;
   }
   const signature = await hmacHex(body);
@@ -1021,6 +1026,9 @@ async function triggerBackgroundJob(request: Request, context: any, job: Record<
       console.error("CyberNet Recovery background trigger failed", { origin, error });
     }
   }
+  // Each origin failing on its own can be normal; all of them failing means
+  // the AI plan never arrives, so that is the one worth an alert.
+  reportError(`Recovery background job could not be started on any of ${candidates.length} origins`, { fn: "recovery-mode", label: `Background ${String(job.kind)} job not started`, context });
   return false;
 }
 

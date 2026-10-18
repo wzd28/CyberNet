@@ -1,4 +1,5 @@
 import { json, verifyUser, getActiveTeamMembership, serviceFetch, expireStaleInvites } from "../lib/supabase.mjs";
+import { reportError } from "../lib/report-error.mjs";
 
 declare const Netlify: {
   env: {
@@ -51,6 +52,7 @@ async function sendInviteEmail(toEmail: string, inviterName: string, acceptUrl: 
   const apiKey = env("RESEND_API_KEY");
   if (!apiKey) {
     console.error("CyberNet invite: RESEND_API_KEY missing");
+    reportError("RESEND_API_KEY is not set", { fn: "business-invite", label: "Invite email not sent" });
     throw Object.assign(new Error("Invite emails can't be sent right now. Please try again later."), { status: 503 });
   }
 
@@ -143,7 +145,7 @@ export default async (request: Request) => {
 
     if (seatsTaken >= seatCap) {
       return json(
-        { error: `Team is full (${seatsTaken}/${seatCap} seats, including you). Remove a member, or email cybernetai.26@gmail.com to move up a tier.` },
+        { error: `Team is full (${seatsTaken}/${seatCap} seats, including you). Remove a member, or email support@cybernetai.app to move up a tier.` },
         409
       );
     }
@@ -182,6 +184,7 @@ export default async (request: Request) => {
         body: JSON.stringify({ status: "revoked" }),
       }).catch(() => null);
       console.error("CyberNet invite email failed", sendError?.message);
+      reportError(sendError, { fn: "business-invite", label: "Invite email failed" });
       if (sendError?.status) throw sendError;
       throw Object.assign(
         new Error("The invite email could not be sent, so the invite was not created. Please try again in a moment."),
@@ -191,6 +194,8 @@ export default async (request: Request) => {
 
     return json({ ok: true, expiresAt });
   } catch (error: any) {
+    // The 502/503 email failures above are already reported; 401 and other 4xx answers are expected.
+    if (!error?.status) reportError(error, { fn: "business-invite", label: "Invite send failed" });
     return json({ error: error.message || "Could not send the invite." }, Number(error.status) || 500);
   }
 };

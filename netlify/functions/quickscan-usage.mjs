@@ -1,4 +1,5 @@
 import { json, verifyUser, serviceFetch, isAdminUser, getActiveTeamMembership } from "../lib/supabase.mjs";
+import { reportError } from "../lib/report-error.mjs";
 
 export default async (request) => {
   if (request.method !== "POST") {
@@ -76,6 +77,7 @@ export default async (request) => {
     return json({ allowed: true, used, limit, plan });
   } catch (error) {
     console.error("CyberNet quickscan-usage failed", error);
+    reportError(error, { fn: "quickscan-usage", label: "Quick Scan usage check failed" });
     return json({ error: "Could not check Quick Scan usage right now. Please try again." }, 503);
   }
 };

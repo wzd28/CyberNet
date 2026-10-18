@@ -1,4 +1,5 @@
 import { serviceFetch } from "../lib/supabase.mjs";
+import { reportError } from "../lib/report-error.mjs";
 
 function env(name) {
   try {
@@ -85,6 +86,7 @@ async function checkinForPlan(plan, thresholdMinutes, siteUrl) {
   );
   if (!profilesRes.ok) {
     console.error(`CyberNet recovery-checkin ${plan} profiles query failed`, await profilesRes.text().catch(() => ""));
+    await reportError(`Profiles query failed (HTTP ${profilesRes.status})`, { fn: "recovery-checkin", label: `${plan} check-ins` });
     return { checked: 0, sent: 0, skipped: 0 };
   }
   const users = await profilesRes.json();
@@ -101,6 +103,7 @@ async function checkinForPlan(plan, thresholdMinutes, siteUrl) {
 
   if (!casesRes.ok) {
     console.error(`CyberNet recovery-checkin ${plan} cases query failed`, await casesRes.text().catch(() => ""));
+    await reportError(`Recovery cases query failed (HTTP ${casesRes.status})`, { fn: "recovery-checkin", label: `${plan} check-ins` });
     return { checked: 0, sent: 0, skipped: 0 };
   }
 
@@ -157,6 +160,8 @@ export default async () => {
     }), { status: 200 });
   } catch (error) {
     console.error("CyberNet recovery-checkin failed", error);
+    // A scheduled run has no visitor waiting; the report is time-boxed.
+    await reportError(error, { fn: "recovery-checkin", label: "Scheduled check-in run failed" });
     return new Response("error", { status: 500 });
   }
 };
