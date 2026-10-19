@@ -1,3 +1,5 @@
+import { fetchWithJwtRetry, RETRY_STANDARD } from "./supabase-retry.mjs";
+
 function env(name) {
   try {
     return globalThis.Netlify?.env?.get?.(name) || process.env[name] || "";
@@ -84,7 +86,10 @@ export async function verifyUser(request) {
   return { user, token };
 }
 
-export async function serviceFetch(path, options = {}) {
+// Retries only Supabase's passing 401 PGRST303 "JWT issued at future"
+// (netlify/lib/supabase-retry.mjs). `retry` is RETRY_STANDARD unless the
+// caller passes RETRY_TIGHT, or adds a `label` for the log line.
+export async function serviceFetch(path, options = {}, retry = RETRY_STANDARD) {
   const { url, serviceKey } = requireSupabaseEnv();
 
   const headers = {
@@ -94,10 +99,10 @@ export async function serviceFetch(path, options = {}) {
     ...(options.headers || {})
   };
 
-  return fetch(`${url}${path}`, {
+  return fetchWithJwtRetry(`${url}${path}`, {
     ...options,
     headers
-  });
+  }, retry);
 }
 
 export function effectivePlan(profile = {}) {

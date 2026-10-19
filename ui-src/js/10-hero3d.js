@@ -226,9 +226,17 @@
       } else win.addEventListener("resize", function () { dirty = true; }, { passive: true });
       if (!coarse && stage) dragSetup();
       /* v5 Exposure (html.cn-intro, the first Home view of a session): the live globe crossfades
-         over its poster no earlier than 1.4 s after the page started, once the veil has lifted */
+         over its poster no earlier than 1.4 s after the page started, once the veil has lifted.
+         The head snippet's font hold (html.cn-intro-hold, up to 700 ms) starts the veil later, so
+         the crossfade moves by the time it held (window.CN_introDelay), or by the cap while it
+         still holds. */
       var live = function () { if (state === "ready" && allowed()) { box.classList.add("is-live"); liveAt = CN.now(); } };
-      CN.raf(function () { setTimeout(live, root.classList.contains("cn-intro") ? 1400 - CN.now() : 0); });
+      var introWait = function () {
+        if (!root.classList.contains("cn-intro")) return 0;
+        var held = root.classList.contains("cn-intro-hold") ? 700 : (+win.CN_introDelay || 0);
+        return 1400 + held - CN.now();
+      };
+      CN.raf(function () { setTimeout(live, introWait()); });
       play();
     }
     function fail(err) {

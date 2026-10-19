@@ -309,7 +309,11 @@ html.cn #home .cn-threats .cn-qr-code:focus-visible {
 }
 
 /* The two addresses: an icon in a ring, the tag, then the address on its own line, so the
-   longest one ("cybernet-ai.app-verify.co") never has to break on a phone. */
+   longest one never has to break on a phone. The lookalike is "cybernetai-app.invalid" (the
+   reserved .invalid name, never a registrable one; DESIGN.md). Measured 19 Oct: from 320px to
+   430px wide the address column is 190-252px and the 22 characters take 169-183px (the
+   tightest is 360-375px, where the larger QR code leaves 190px), so a replacement must stay
+   at 22 characters or fewer. The old "cybernet-ai.app-verify.co" (25) broke at 360-375px. */
 html.cn #home .cn-threats .cn-qr-links {
   display: grid;
   gap: 8px;
@@ -440,6 +444,14 @@ html.cn #home .cn-threats .cn-tile--qr figcaption::after { content: none; }
   }
   html.cn #home .cn-threats .cn-qr-links li::before,
   html.cn #home .cn-threats .cn-qr-links li::after { content: none; }
+  html.cn #home .cn-threats .cn-qr-links :where(a):is(a, .cn-qr-fake),
+  html.cn #home .cn-threats .cn-qr-links .cn-qr-fake { font-size: .8125rem; }
+}
+/* 1024-1079px wide (the first desktop grid, e.g. a tablet in landscape): the QR tile is at its
+   narrowest there and the address column is 178-192px, so at 14px the lookalike broke onto two
+   lines up to about 1052px (measured 19 Oct). Both addresses step down to 13px in that range
+   only, which keeps "cybernetai-app.invalid" on one line. */
+@media (min-width: 1024px) and (max-width: 1079.98px) {
   html.cn #home .cn-threats .cn-qr-links :where(a):is(a, .cn-qr-fake),
   html.cn #home .cn-threats .cn-qr-links .cn-qr-fake { font-size: .8125rem; }
 }

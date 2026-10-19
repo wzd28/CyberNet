@@ -1,5 +1,6 @@
 import { json, verifyUser } from "../lib/supabase.mjs";
 import { reportError } from "../lib/report-error.mjs";
+import { fetchWithJwtRetry, RETRY_STANDARD } from "../lib/supabase-retry.mjs";
 
 // Privacy controls for the signed-in user: export, clear-history and
 // delete-account. Every request is checked against the caller's own Supabase
@@ -65,13 +66,17 @@ function serverConfig() {
   return { url, key };
 }
 
+// Supabase's passing 401 PGRST303 "JWT issued at future" is retried for
+// every PostgREST call here (netlify/lib/supabase-retry.mjs); nothing else is.
+const RETRY = { ...RETRY_STANDARD, label: "privacy-data" };
+
 // One PostgREST call with the service role. `code` names the step, so a
 // failure stops the request with a clear reason.
 async function rest(path, { code, ...options } = {}) {
   const { url, key } = serverConfig();
   let response;
   try {
-    response = await fetch(`${url}/rest/v1/${path}`, {
+    response = await fetchWithJwtRetry(`${url}/rest/v1/${path}`, {
       ...options,
       headers: {
         apikey: key,
@@ -79,7 +84,7 @@ async function rest(path, { code, ...options } = {}) {
         "Content-Type": "application/json",
         ...(options.headers || {})
       }
-    });
+    }, RETRY);
   } catch (error) {
     console.error("CyberNet privacy-data db unreachable", code, error?.message || error);
     reportError(error, { fn: "privacy-data", label: `Database unreachable (${code})` });
@@ -183,10 +188,10 @@ async function removeCounted(path, code) {
   const { url, key } = serverConfig();
   let response;
   try {
-    response = await fetch(`${url}/rest/v1/${path}`, {
+    response = await fetchWithJwtRetry(`${url}/rest/v1/${path}`, {
       method: "DELETE",
       headers: { apikey: key, Authorization: `Bearer ${key}`, Prefer: "return=minimal, count=exact" }
-    });
+    }, RETRY);
   } catch (error) {
     console.error("CyberNet privacy-data db unreachable", code, error?.message || error);
     reportError(error, { fn: "privacy-data", label: `Database unreachable (${code})` });

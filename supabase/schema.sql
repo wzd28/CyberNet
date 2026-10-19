@@ -1048,3 +1048,140 @@ $$;
 
 revoke execute on function public.consume_recovery_update_business(uuid) from public, anon, authenticated;
 grant execute on function public.consume_recovery_update_business(uuid) to service_role;
+
+-- Rate limiting and the checkout error log.
+-- These four objects were created directly in the live database (checked on
+-- 18 Oct 2026) and were missing from this file until 19 Oct 2026; they are
+-- copied here as they are live, so this file describes the whole schema.
+-- Used by: consume_api_quota (screenshot-preview, the error alerts in
+-- netlify/lib/report-error.mjs), check_protect_rate_limit (analyze),
+-- api_rate_limits (cleaned daily by rate-limit-cleanup), checkout_debug_log
+-- (create-checkout-session). Safe to run more than once.
+-- Rate-limit counters, used by consume_api_quota.
+create table if not exists public.api_rate_limits (
+  rate_key text primary key,
+  window_started_at timestamptz not null default clock_timestamp(),
+  request_count integer not null default 0,
+  updated_at timestamptz not null default clock_timestamp(),
+  constraint api_rate_limits_key_length check (char_length(rate_key) between 1 and 200),
+  constraint api_rate_limits_request_count_check check (request_count >= 0)
+);
+create index if not exists api_rate_limits_updated_idx on public.api_rate_limits (updated_at);
+alter table public.api_rate_limits enable row level security;
+revoke all on public.api_rate_limits from anon, authenticated;
+
+-- Checkout error log, written by create-checkout-session.
+create table if not exists public.checkout_debug_log (
+  id bigint generated always as identity primary key,
+  created_at timestamptz not null default now(),
+  user_id uuid,
+  lookup_key text,
+  cycle text,
+  target_plan text,
+  error_type text,
+  error_code text,
+  error_message text,
+  error_raw text
+);
+alter table public.checkout_debug_log enable row level security;
+revoke all on public.checkout_debug_log from anon, authenticated;
+
+create or replace function public.consume_api_quota(p_key text, p_window_seconds integer, p_max_requests integer)
+returns jsonb
+language plpgsql
+security definer
+set search_path to 'public', 'pg_temp'
+as $function$
+declare
+  v_now timestamptz := clock_timestamp();
+  v_count integer;
+  v_started timestamptz;
+  v_reset timestamptz;
+begin
+  if p_key is null or char_length(p_key) not between 1 and 200 then
+    raise exception 'invalid quota key';
+  end if;
+  if p_window_seconds not between 60 and 2592000 then
+    raise exception 'invalid quota window';
+  end if;
+  if p_max_requests not between 1 and 10000 then
+    raise exception 'invalid quota limit';
+  end if;
+
+  loop
+    update public.api_rate_limits
+       set request_count = case
+             when v_now >= window_started_at + make_interval(secs => p_window_seconds) then 1
+             else request_count + 1
+           end,
+           window_started_at = case
+             when v_now >= window_started_at + make_interval(secs => p_window_seconds) then v_now
+             else window_started_at
+           end,
+           updated_at = v_now
+     where rate_key = p_key
+       and (
+         v_now >= window_started_at + make_interval(secs => p_window_seconds)
+         or request_count < p_max_requests
+       )
+     returning request_count, window_started_at
+          into v_count, v_started;
+
+    if found then
+      v_reset := v_started + make_interval(secs => p_window_seconds);
+      return jsonb_build_object(
+        'allowed', true,
+        'used', v_count,
+        'limit', p_max_requests,
+        'remaining', greatest(0, p_max_requests - v_count),
+        'reset_at', v_reset
+      );
+    end if;
+
+    select request_count, window_started_at
+      into v_count, v_started
+      from public.api_rate_limits
+     where rate_key = p_key;
+
+    if found then
+      v_reset := v_started + make_interval(secs => p_window_seconds);
+      return jsonb_build_object(
+        'allowed', false,
+        'used', v_count,
+        'limit', p_max_requests,
+        'remaining', 0,
+        'reset_at', v_reset
+      );
+    end if;
+
+    begin
+      insert into public.api_rate_limits (rate_key, window_started_at, request_count, updated_at)
+      values (p_key, v_now, 1, v_now);
+      return jsonb_build_object(
+        'allowed', true,
+        'used', 1,
+        'limit', p_max_requests,
+        'remaining', greatest(0, p_max_requests - 1),
+        'reset_at', v_now + make_interval(secs => p_window_seconds)
+      );
+    exception when unique_violation then
+      -- Another request inserted the bucket first; retry under the row lock.
+    end;
+  end loop;
+end;
+$function$;
+
+create or replace function public.check_protect_rate_limit(p_key text, p_window_seconds integer, p_max_requests integer)
+returns boolean
+language sql
+security definer
+set search_path to 'public', 'pg_temp'
+as $function$
+  select coalesce((public.consume_api_quota(p_key, p_window_seconds, p_max_requests)->>'allowed')::boolean, false);
+$function$;
+
+-- Only the server (service role) may call them, as in the live database.
+revoke execute on function public.consume_api_quota(text, integer, integer) from public, anon, authenticated;
+revoke execute on function public.check_protect_rate_limit(text, integer, integer) from public, anon, authenticated;
+grant execute on function public.consume_api_quota(text, integer, integer) to service_role;
+grant execute on function public.check_protect_rate_limit(text, integer, integer) to service_role;

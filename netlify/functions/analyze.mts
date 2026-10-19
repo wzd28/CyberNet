@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import { redactForTeamLog } from "../lib/team-log.mjs";
 import { DEFAULT_MODEL, DEFAULT_MINI_MODEL, modelParams, createResponse, autoReplaceEnabled, retirementOf } from "../lib/ai-models.mjs";
 import { reportError } from "../lib/report-error.mjs";
+import { fetchWithJwtRetry, RETRY_TIGHT } from "../lib/supabase-retry.mjs";
 // The rule set Quick Scan runs in the browser. It registers itself on
 // globalThis, so the page, this function and the tests all read one copy.
 import "../../public/cybernet-engine.js";
@@ -815,7 +816,10 @@ async function serviceFetch(path: string, init: RequestInit = {}): Promise<Respo
   headers.set("apikey", serviceKey);
   headers.set("Authorization", `Bearer ${serviceKey}`);
   if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
-  return fetch(`${url}${path}`, { ...init, headers, signal: init.signal || AbortSignal.timeout(7_000) });
+  // PGRST303 retry (netlify/lib/supabase-retry.mjs): one try after ~400 ms at
+  // most, inside the same 7 s signal, because the AI call already runs
+  // close to the ~30 s gateway limit.
+  return fetchWithJwtRetry(`${url}${path}`, { ...init, headers, signal: init.signal || AbortSignal.timeout(7_000) }, { ...RETRY_TIGHT, label: "analyze" });
 }
 
 type UsageReservation = {

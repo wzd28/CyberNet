@@ -16,7 +16,21 @@
   (function(){
     var d=document,r=d.documentElement;
     try{if(localStorage.getItem("cn-still-2")==="1")r.classList.add("cn-still")}catch(e){}
-    try{if(location.pathname==="/"&&!r.classList.contains("cn-still")&&!matchMedia("(prefers-reduced-motion: reduce)").matches&&(localStorage.getItem("cn-fx")||"").indexOf("-exposure")<0&&!sessionStorage.getItem("cn-intro")){r.classList.add("cn-intro");sessionStorage.setItem("cn-intro","1")}}catch(e){}
+    /* v5 Exposure (html.cn-intro, 20-hero.css) holds on its first frame (html.cn-intro-hold) until the
+       two first-screen faces (00-fonts.css) are in, at most 700 ms after the first frame, so a font
+       swap never lands mid-entrance. The first rAF runs once the CSS is in, so the faces are known.
+       window.CN_introDelay (ms held) lets 10-hero3d.js shift the globe's crossfade to match. */
+    var hold=function(){
+      var t0=0,go=function(){if(!r.classList.contains("cn-intro-hold"))return;r.classList.remove("cn-intro-hold");window.CN_introDelay=t0?Math.round(performance.now()-t0):0};
+      requestAnimationFrame(function(){
+        t0=performance.now();
+        var f=d.fonts,a='600 1em "Mona Sans"',b='700 1em "JetBrains Mono"';
+        if(!f||!f.load||(f.check(a)&&f.check(b))){go();return}
+        setTimeout(go,700);
+        Promise.all([f.load(a),f.load(b)]).then(go,go);
+      });
+    };
+    try{if(location.pathname==="/"&&!r.classList.contains("cn-still")&&!matchMedia("(prefers-reduced-motion: reduce)").matches&&(localStorage.getItem("cn-fx")||"").indexOf("-exposure")<0&&!sessionStorage.getItem("cn-intro")){r.classList.add("cn-intro","cn-intro-hold");sessionStorage.setItem("cn-intro","1");hold()}}catch(e){r.classList.remove("cn-intro-hold")}
     if(/^\/(quick-scan|analysis-ai|recovery|learn|pricing|about)\/?$/.test(location.pathname)){
       r.classList.add("cn-deep");
       var t=0,done=function(){clearTimeout(t);r.classList.remove("cn-deep")};
@@ -33,17 +47,18 @@
   <!-- First-party error reporter. Keep it the first deferred script so it is listening before every
        later script runs (deferred scripts run in document order); defer keeps it off the critical path. -->
   <script src="/cybernet-errors.js?v=20261018-h2" defer></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <!-- Fonts use display=swap, so the stylesheet does not need to block the first paint. -->
-  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Mona+Sans:wdth,wght@75..125,300..800&amp;family=JetBrains+Mono:wght@400..700&amp;display=swap" onload="this.onload=null;this.rel='stylesheet'" />
-  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mona+Sans:wdth,wght@75..125,300..800&amp;family=JetBrains+Mono:wght@400..700&amp;display=swap" /></noscript>
+  <!-- Self-hosted fonts (ui-src/css/00-fonts.css declares them). The two latin files the first screen
+       uses are preloaded so they arrive with the CSS: Mona Sans (the H1, the text and the nav) and
+       JetBrains Mono (the wordmark). crossorigin is required: fonts are fetched in CORS mode, and a
+       preload without it would be downloaded twice. -->
+  <link rel="preload" href="/ui/fonts/mona-sans-v4-latin.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="/ui/fonts/jetbrains-mono-v24-latin.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="stylesheet" href="/style.css?v=20260930-2" />
   <link id="cybernetAccountUpgradeStylesheet" rel="stylesheet" href="/cybernet-account-api-upgrade.css?v=20261005-2" />
   <link rel="stylesheet" href="/cybernet-howto.css?v=20260905-1" />
   <link id="cybernetBusinessTeamStylesheet" rel="stylesheet" href="/cybernet-business-team.css?v=20260927-2" />
   <link rel="stylesheet" href="/cybernet-consent.css?v=20260927-2" />
-  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261018-7" />
+  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261019-1" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=20260830-5">
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=20260830-5">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=20260830-5">
@@ -700,7 +715,7 @@
               <a class="cn-qr-code" href="https://cybernetai.app" aria-label="QR code that opens cybernetai.app"><img src="/ui/img/qr-cybernetai.svg?v=20261014-5" alt="QR code that opens cybernetai.app" width="232" height="232" loading="lazy" decoding="async" /></a>
               <ul class="cn-qr-links" aria-label="A real link next to a lookalike">
                 <li class="is-real"><span class="cn-qr-tag">Real</span><a href="https://cybernetai.app">cybernetai.app</a></li>
-                <li class="is-fake"><span class="cn-qr-tag">Lookalike</span><span class="cn-qr-fake">cybernet-ai.app-verify.co</span></li>
+                <li class="is-fake"><span class="cn-qr-tag">Lookalike</span><span class="cn-qr-fake">cybernetai-app.invalid</span></li>
               </ul>
             </div>
             <figcaption><b>Lookalike links and QR codes</b><span>Addresses that copy a real brand, one letter at a time. This code is real: it opens cybernetai.app.</span></figcaption>
@@ -1091,7 +1106,7 @@
 
           <ul class="scan-list" id="linkScanList">
             <li>
-              <span class="scan-list-main">Lookalike PayPal sign-in link</span>
+              <span class="scan-list-main">Lookalike bank sign-in link</span>
               <span class="risk-tag risk-tag-danger">Scam</span>
             </li>
 
@@ -1173,7 +1188,7 @@
 
           <ul class="scan-list" id="imageScanList">
             <li>
-              <span class="scan-list-main">QR code that opens a lookalike PayPal sign-in</span>
+              <span class="scan-list-main">QR code that opens a lookalike bank sign-in</span>
               <span class="risk-tag risk-tag-danger">Scam</span>
             </li>
 
@@ -2765,7 +2780,7 @@
   <script src="/cybernet-engine.js?v=20261015-1" defer></script>
   <script src="/script.js?v=20261018-h2" defer></script>
   <script src="/cybernet-account-api-upgrade.js?v=20261018-h2" defer></script>
-  <script src="/cybernet-howto.js?v=20261005-2" defer></script>
+  <script src="/cybernet-howto.js?v=20261019-1" defer></script>
 <script src="/cybernet-business-team.js?v=20261018-h2" defer></script>
   <script src="/cybernet-final-ui-fix.js?v=20260930-2" defer></script>
       <script src="/cybernet-legal-upgrade.js?v=20261018-h2" defer></script>
@@ -2773,7 +2788,7 @@
   <script src="/cybernet-privacy-controls.js?v=20261018-h2" defer></script>
   <!-- After script.js (cybernet:session event, appState). -->
   <script src="/cybernet-onboarding.js?v=20261018-h2" defer></script>
-  <script src="/ui/cybernet-ui.js?v=20261018-7" defer></script>
+  <script src="/ui/cybernet-ui.js?v=20261019-1" defer></script>
 </body>
 </html>
 

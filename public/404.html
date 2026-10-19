@@ -26,11 +26,10 @@
     a.secondary{border:1px solid var(--border);background:#0c1220;color:#f5f7fa}
     a.btn:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
   </style>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Mona+Sans:wdth,wght@75..125,300..800&amp;family=JetBrains+Mono:wght@400..700&amp;display=swap" onload="this.onload=null;this.rel='stylesheet'" />
-  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mona+Sans:wdth,wght@75..125,300..800&amp;family=JetBrains+Mono:wght@400..700&amp;display=swap" /></noscript>
-  <link rel="stylesheet" href="/ui/cybernet-ui-legal.css?v=20261018-6" />
+  <!-- Self-hosted fonts, declared in /ui/cybernet-ui-legal.css (ui-src/css/00-fonts.css); the two latin files are preloaded (crossorigin: fonts load in CORS mode). -->
+  <link rel="preload" href="/ui/fonts/mona-sans-v4-latin.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="/ui/fonts/jetbrains-mono-v24-latin.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="/ui/cybernet-ui-legal.css?v=20261019-1" />
 </head>
 <body class="cn-404">
   <main>
