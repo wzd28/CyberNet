@@ -842,8 +842,8 @@
     if (!box || !input) return;
     var startBtn = box.querySelector('[data-page="cybernet"]');
     var EX = {
-      parcel: "Your parcel is on hold. Pay the $1.99 redelivery fee today to avoid return: parcel-redeliver-help.com",
-      bank: "ALERT: Your bank account is locked. Verify now at secure-acct-verify.help or it will be closed in 2 hours.",
+      parcel: "Your parcel is on hold. Pay the $1.99 redelivery fee today to avoid return: parcel-redeliver-help.invalid",
+      bank: "ALERT: Your bank account is locked. Verify now at secure-acct-verify.invalid or it will be closed in 2 hours.",
       normal: "Meeting moved to 3pm, see you in room 4. Sam"
     };
     var typing = null;

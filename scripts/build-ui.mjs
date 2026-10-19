@@ -38,7 +38,7 @@ const srcRoot = srcArg ? path.resolve(srcArg.slice(6)) : path.join(root, "ui-src
 const CHECK = args.has("--check");
 const DEV = args.has("--dev");
 
-const LEGAL_PARTIALS = ["00-tokens.css", "01-base.css", "70-legal.css", "90-a11y.css"];
+const LEGAL_PARTIALS = ["00-fonts.css", "00-tokens.css", "01-base.css", "70-legal.css", "90-a11y.css"];
 const DOC_RULES = /#cnConsentBar|\.cn-consent|\.cn-cookie/;
 // DESIGN.md performance budget, as brotli transfer size (a warning only; the build never fails on it)
 const BUDGET = { "cybernet-ui.css": 45 * 1024, "cybernet-ui-legal.css": 12 * 1024, "cybernet-ui.js": 20 * 1024 };

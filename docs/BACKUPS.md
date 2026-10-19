@@ -121,7 +121,7 @@ This writes `<file>.json` and `<file>.restore.sql`.
 **Step 3. Create the tables and functions.** In the new project's SQL Editor:
 
 1. Paste the whole of `supabase/schema.sql` and run it. Use the version of the file from the date of the backup if the structure changed since then (`git log supabase/schema.sql` shows the history).
-2. Then run the SQL in the appendix "Objects that schema.sql does not have yet" at the end of this page. It adds two tables and two functions that were created directly in the live database and are not in `schema.sql` yet. Without them, rate limiting and error alerts stop working.
+2. Only if that copy of `schema.sql` is older than 19 Oct 2026: also run the SQL in the appendix "Objects that older copies of schema.sql do not have" at the end of this page. It adds two tables and two functions that were created directly in the live database; `schema.sql` has them since 19 Oct 2026. Without them, rate limiting and error alerts stop working.
 
 **Step 4. Recreate the sign-in accounts**, keeping their ids so every row still points at the right person. In PowerShell, in the project folder:
 
@@ -203,9 +203,9 @@ Set the new passphrase in Netlify and deploy. Keep the old one in your password 
 - Data is read through the Supabase REST API (`/rest/v1/<table>`, paged with `Range` headers in primary-key order) and the Auth admin API (`/auth/v1/admin/users`), with `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (or `SUPABASE_SECRET_KEY`). Only GET requests are made to Supabase.
 - Failures are also passed to `reportError` (`netlify/lib/report-error.mjs`).
 
-## Appendix: objects that schema.sql does not have yet
+## Appendix: objects that older copies of schema.sql do not have
 
-These were created directly in the live database and are missing from `supabase/schema.sql` (checked on 18 Oct 2026). Run this in the new project after `schema.sql` and before Step 4. It is safe to run more than once.
+These were created directly in the live database (checked on 18 Oct 2026). Since 19 Oct 2026 they are also at the end of `supabase/schema.sql`, so this is only needed with an older copy of that file: run it in the new project after `schema.sql` and before Step 4. It is safe to run more than once.
 
 ```sql
 -- Rate-limit counters, used by consume_api_quota.
@@ -338,4 +338,4 @@ grant execute on function public.consume_api_quota(text, integer, integer) to se
 grant execute on function public.check_protect_rate_limit(text, integer, integer) to service_role;
 ```
 
-Once these are added to `supabase/schema.sql`, this appendix can go.
+They are the same as the last section of `supabase/schema.sql`. If one of them changes, change both.

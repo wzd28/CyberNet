@@ -1,4 +1,5 @@
 import { reportError } from "../lib/report-error.mjs";
+import { fetchWithJwtRetry, RETRY_STANDARD } from "../lib/supabase-retry.mjs";
 
 declare const Netlify: {
   env: {
@@ -52,7 +53,8 @@ async function serviceFetch(path: string, init: RequestInit = {}): Promise<Respo
   const headers = new Headers(init.headers || {});
   headers.set("apikey", serviceKey);
   headers.set("Authorization", `Bearer ${serviceKey}`);
-  return fetch(`${url}${path}`, { ...init, headers, signal: init.signal || AbortSignal.timeout(7_000) });
+  // PGRST303 retry (netlify/lib/supabase-retry.mjs), inside the same 7 s signal.
+  return fetchWithJwtRetry(`${url}${path}`, { ...init, headers, signal: init.signal || AbortSignal.timeout(7_000) }, { ...RETRY_STANDARD, label: "recovery-case" });
 }
 
 export default async function handler(request: Request): Promise<Response> {

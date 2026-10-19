@@ -32,6 +32,7 @@
 
 import { createHash } from "node:crypto";
 import { serviceFetch } from "./supabase.mjs";
+import { RETRY_TIGHT } from "./supabase-retry.mjs";
 
 // Mutable on purpose so the tests can shorten the timeouts.
 export const limits = {
@@ -316,7 +317,7 @@ export async function consumeQuota(key, windowSeconds, max) {
       method: "POST",
       body: JSON.stringify({ p_key: key, p_window_seconds: windowSeconds, p_max_requests: max }),
       signal: AbortSignal.timeout(limits.rpcTimeoutMs)
-    });
+    }, RETRY_TIGHT); // time-boxed: at most one PGRST303 retry, inside the same timeout
     if (!response.ok) return null;
     const data = await response.json().catch(() => null);
     if (!data || typeof data.allowed !== "boolean") return null;

@@ -188,8 +188,9 @@ html.cn #home .cn-hero4-scene.is-live > .cn-hero4-poster { opacity: 0; }
    frame 1, then the light arrives: a navy veil over the globe scene lifts, the poster settles
    from a touch above its size, one hairline of light runs along the stage's top edge, and
    "seconds" catches the light at 760 ms (the live globe crossfades in no earlier than 1.4 s,
-   10-hero3d.js). The H1, the lead, the scan box and the Recovery line never move. Finite
-   keyframes, backwards fill only: each one rests at the element's own style. */
+   plus any font hold below, 10-hero3d.js). The H1, the lead, the scan box and the Recovery
+   line never move. Finite keyframes, backwards fill only: each one rests at the element's own
+   style. */
 html.cn.cn-intro #home .cn-hero4 { --cn-xv: .72; --cn-xvt: 1.2s; --cn-xs: 1.04; --cn-xst: 1.6s; }
 @media (pointer: coarse), (max-width: 760px) {
   html.cn.cn-intro #home .cn-hero4 { --cn-xv: .5; --cn-xvt: .7s; --cn-xs: 1.03; --cn-xst: 1.2s; }
@@ -222,6 +223,17 @@ html.cn.cn-intro #home .cn-hero4 { --cn-xv: .72; --cn-xvt: 1.2s; --cn-xs: 1.04; 
     pointer-events: none;
     animation: cn-pass 1.1s var(--cn-ease-swap) .3s backwards;
   }
+}
+/* Font hold (19 Oct): the head snippet also sets html.cn-intro-hold and lifts it once Mona Sans
+   and JetBrains Mono (00-fonts.css) are in, at most 700 ms after the first frame. Until then every
+   Exposure animation, the "seconds" sweep included, waits on its first frame (paused at 0, so the
+   backwards fill shows the start), so a font swap can never land mid-entrance. Usually the faces
+   are already in on the first frame (preloaded) and nothing waits. */
+html.cn.cn-intro.cn-intro-hold:not(.cn-still) #home .cn-hero4-scene::after,
+html.cn.cn-intro.cn-intro-hold:not(.cn-still) #home .cn-hero4-scene > .cn-hero4-poster,
+html.cn.cn-intro.cn-intro-hold:not(.cn-still) #home .cn-hero4::after,
+html.cn.cn-intro.cn-intro-hold:not(.cn-still) #home .hero-content .hero-title .cn-sweep {
+  animation-play-state: paused;
 }
 @keyframes cn-x-veil { from { opacity: var(--cn-xv); } }
 @keyframes cn-x-poster { from { scale: var(--cn-xs); } }

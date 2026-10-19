@@ -16,7 +16,8 @@
    e) The one cyan sweep across "seconds", 600ms after load, once (1.6 s, 20-hero.css). On the
       first Home view of a session (html.cn-intro, set by the head snippet in index.html) the
       v5 Exposure plays it from CSS at 760 ms instead, so it is not started here.
-   h) v5 Exposure (20-hero.css): html.cn-intro is removed 2.6 s after start (when the page is
+   h) v5 Exposure (20-hero.css): html.cn-intro (with the head snippet's font hold,
+      html.cn-intro-hold, if it is still on) is removed 2.6 s after start (when the page is
       still) or at the first page switch, whichever comes first. Hidden SPA pages restart their
       CSS animations when shown again, so a return to Home never replays it.
    f) An optional Pause button (.cn-stage-pause) stops the hero's motion.
@@ -96,7 +97,7 @@
     var M = CN.motion;
     /* ---- h) Exposure ends ---- */
     if (intro) {
-      var endIntro = function () { root.classList.remove("cn-intro"); };
+      var endIntro = function () { root.classList.remove("cn-intro", "cn-intro-hold"); };
       setTimeout(function () { CN.whenStill(endIntro); }, 2600);
       if (M) M.onNavigate(endIntro);
     }

@@ -1,5 +1,6 @@
 import { json, verifyUser } from "../lib/supabase.mjs";
 import { reportError } from "../lib/report-error.mjs";
+import { fetchWithJwtRetry, RETRY_STANDARD } from "../lib/supabase-retry.mjs";
 
 const CURRENT_VERSION = "2026-09-04";
 const ALLOWED_TYPES = new Set(["signup", "checkout", "reaccept"]);
@@ -17,7 +18,8 @@ async function insertAcceptance(payload) {
   const serviceKey = env("SUPABASE_SERVICE_ROLE_KEY") || env("SUPABASE_SECRET_KEY");
   if (!url || !serviceKey) throw Object.assign(new Error("Server privacy storage is not configured."), { status: 503 });
 
-  const response = await fetch(`${url}/rest/v1/legal_acceptances`, {
+  // Retries only Supabase's passing 401 PGRST303 (netlify/lib/supabase-retry.mjs).
+  const response = await fetchWithJwtRetry(`${url}/rest/v1/legal_acceptances`, {
     method: "POST",
     headers: {
       apikey: serviceKey,
@@ -26,7 +28,7 @@ async function insertAcceptance(payload) {
       Prefer: "return=minimal"
     },
     body: JSON.stringify(payload)
-  });
+  }, { ...RETRY_STANDARD, label: "legal-acceptance" });
 
   if (!response.ok) {
     const detail = await response.text().catch(() => "");

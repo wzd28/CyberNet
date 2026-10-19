@@ -3,6 +3,7 @@ import { triggerBackgroundJob, modelForRiskFloor } from "./recovery-mode.mts";
 import { modelParams, createResponse, autoReplaceEnabled } from "../lib/ai-models.mjs";
 import { rekeyPlan, planActions, buildTaskRows, supersededTaskKeys, taskKeyInList } from "../lib/recovery-tasks.mjs";
 import { reportError } from "../lib/report-error.mjs";
+import { fetchWithJwtRetry, RETRY_STANDARD } from "../lib/supabase-retry.mjs";
 
 declare const Netlify: {
   env: {
@@ -308,7 +309,8 @@ async function serviceFetch(path: string, init: RequestInit = {}): Promise<Respo
   headers.set("apikey", serviceKey);
   headers.set("Authorization", `Bearer ${serviceKey}`);
   if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
-  return fetch(`${url}${path}`, { ...init, headers, signal: init.signal || AbortSignal.timeout(7_000) });
+  // PGRST303 retry (netlify/lib/supabase-retry.mjs), inside the same 7 s signal.
+  return fetchWithJwtRetry(`${url}${path}`, { ...init, headers, signal: init.signal || AbortSignal.timeout(7_000) }, { ...RETRY_STANDARD, label: "recovery-update" });
 }
 
 async function consumeRecoveryUpdate(userId: string) {

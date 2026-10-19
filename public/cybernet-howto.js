@@ -79,7 +79,7 @@
             "Paste the whole thing, including any links. More context means a more confident answer — a lone sentence gives the engine very little to work with.",
           visual: field(
             "Paste your text here...",
-            "URGENT: Your account has been suspended. Verify within 24 hours at secure-verify-account.tk or lose access.",
+            "URGENT: Your account has been suspended. Verify within 24 hours at secure-verify-account.invalid or lose access.",
             false
           ),
           callout: {
@@ -108,7 +108,7 @@
           visual: `${list("Why We Think This Is A Scam", "⚠", [
             "Uses urgency or a deadline to reduce careful thinking.",
             "Mentions account verification or a security alert.",
-            "Most suspicious destination: secure-verify-account.tk",
+            "Most suspicious destination: secure-verify-account.invalid",
           ])}
           ${list("What You Should Do", "→", [
             "Do not click the link.",
@@ -135,7 +135,7 @@
             "One box for everything. Paste a message, drop a link, or attach a screenshot — it works out what it is looking at and runs the right analysis.",
           visual: field(
             "Paste a message, link, or describe what happened...",
-            "I got an SMS saying a payment of £849 to Apple is pending, cancel at hsbc-secure-cancel.info — is this real?",
+            "I got an SMS saying a $849 payment to an online store is pending, cancel at bank-secure-cancel.invalid — is this real?",
             false
           ),
           callout: {

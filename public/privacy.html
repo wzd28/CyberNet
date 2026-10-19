@@ -12,13 +12,12 @@
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://cybernetai.app/privacy.html" />
   <link rel="icon" type="image/png" href="/cybernetshield.png?v=20260830-3" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!-- Self-hosted fonts, declared in /ui/cybernet-ui-legal.css (ui-src/css/00-fonts.css); the two latin files are preloaded (crossorigin: fonts load in CORS mode). -->
+  <link rel="preload" href="/ui/fonts/mona-sans-v4-latin.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="/ui/fonts/jetbrains-mono-v24-latin.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="stylesheet" href="/cybernet-legal.css?v=20260930-2" />
   <link rel="stylesheet" href="/cybernet-consent.css?v=20260927-2" />
-  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Mona+Sans:wdth,wght@75..125,300..800&amp;family=JetBrains+Mono:wght@400..700&amp;display=swap" onload="this.onload=null;this.rel='stylesheet'" />
-  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mona+Sans:wdth,wght@75..125,300..800&amp;family=JetBrains+Mono:wght@400..700&amp;display=swap" /></noscript>
-  <link rel="stylesheet" href="/ui/cybernet-ui-legal.css?v=20261018-6" />
+  <link rel="stylesheet" href="/ui/cybernet-ui-legal.css?v=20261019-1" />
   <script src="/cybernet-errors.js?v=20261018-h2" defer></script>
 </head>
 <body class="cn-legal-page">
@@ -137,7 +136,7 @@
 <li><strong>Google (Google sign-in):</strong> only if you choose Continue with Google; Google confirms who you are and shares your name, email address, and profile picture with CyberNet, and Google knows that you signed in to CyberNet;</li>
 <li><strong>Google (Google Analytics):</strong> only if you accept analytics cookies, visit statistics as described in <a href="#browser">section 9</a>;</li>
 <li><strong>Google (Gmail):</strong> hosts the inbox that receives email sent to CyberNet’s cybernetai.app addresses, including support requests, error alerts, and the encrypted backups described in <a href="#security">section 10</a>;</li>
-<li><strong>jsDelivr and Google Fonts:</strong> your browser downloads some of the site’s code libraries and its typefaces directly from these networks, so, as with any website, they receive your IP address and basic browser details, but nothing you type or scan;</li>
+<li><strong>jsDelivr:</strong> your browser downloads some of the site’s code libraries directly from this network, so, as with any website, it receives your IP address and basic browser details, but nothing you type or scan. The site’s typefaces are served from CyberNet AI’s own servers;</li>
 <li><strong>professional advisers and authorities:</strong> where reasonably necessary for legal, security, fraud, accounting, insurance, or compliance purposes; and</li>
 <li><strong>business successors:</strong> in a merger, financing, acquisition, restructuring, or sale, subject to appropriate safeguards.</li>
 </ul>

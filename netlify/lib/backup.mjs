@@ -18,6 +18,7 @@ import { createCipheriv, createHash, pbkdf2, randomBytes, randomUUID, timingSafe
 import { promisify } from "node:util";
 import { gzipSync } from "node:zlib";
 import { reportError } from "./report-error.mjs";
+import { fetchWithJwtRetry, RETRY_STANDARD } from "./supabase-retry.mjs";
 
 const pbkdf2Async = promisify(pbkdf2);
 
@@ -235,6 +236,10 @@ function supabaseConfig() {
   return { url, serviceKey };
 }
 
+// Every /rest/v1 read retries Supabase's passing 401 PGRST303 "JWT issued at
+// future" (netlify/lib/supabase-retry.mjs), inside the same per-request timeout.
+const REST_RETRY = { ...RETRY_STANDARD, label: "backup" };
+
 function serviceHeaders(cfg, extra = {}) {
   return { apikey: cfg.serviceKey, Authorization: `Bearer ${cfg.serviceKey}`, ...extra };
 }
@@ -255,10 +260,10 @@ export function parseContentRange(value) {
 // fingerprint the schema. A failure here only adds a note to the email.
 async function discoverSchema(cfg, deadline) {
   try {
-    const response = await fetch(`${cfg.url}/rest/v1/`, {
+    const response = await fetchWithJwtRetry(`${cfg.url}/rest/v1/`, {
       headers: serviceHeaders(cfg, { Accept: "application/openapi+json" }),
       signal: AbortSignal.timeout(requestTimeout(deadline))
-    });
+    }, REST_RETRY);
     if (!response.ok) {
       return { ok: false, detail: `HTTP ${response.status} ${await bodyText(response)}` };
     }
@@ -304,7 +309,7 @@ export async function exportTable(cfg, table, deadline) {
 
     let response;
     try {
-      response = await fetch(`${cfg.url}/rest/v1/${encodeURIComponent(table.name)}?select=*${order}`, {
+      response = await fetchWithJwtRetry(`${cfg.url}/rest/v1/${encodeURIComponent(table.name)}?select=*${order}`, {
         headers: serviceHeaders(cfg, {
           Accept: "application/json",
           "Range-Unit": "items",
@@ -312,7 +317,7 @@ export async function exportTable(cfg, table, deadline) {
           Prefer: "count=exact"
         }),
         signal: AbortSignal.timeout(requestTimeout(deadline))
-      });
+      }, REST_RETRY);
     } catch (error) {
       if (isTimeout(error)) throw new BackupError(`Reading the ${table.name} table took too long.`, { hint: TOO_SLOW_HINT });
       throw new BackupError(`The database could not be reached while reading the ${table.name} table.`, {

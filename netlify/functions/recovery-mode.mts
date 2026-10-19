@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { DEFAULT_MODEL, DEFAULT_MINI_MODEL, modelParams, createResponse, autoReplaceEnabled } from "../lib/ai-models.mjs";
 import { reportError } from "../lib/report-error.mjs";
+import { fetchWithJwtRetry, RETRY_STANDARD } from "../lib/supabase-retry.mjs";
 
 declare const Netlify: {
   env: {
@@ -684,7 +685,8 @@ async function serviceFetch(path: string, init: RequestInit = {}): Promise<Respo
   headers.set("apikey", serviceKey);
   headers.set("Authorization", `Bearer ${serviceKey}`);
   if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
-  return fetch(`${url}${path}`, { ...init, headers, signal: init.signal || AbortSignal.timeout(7_000) });
+  // PGRST303 retry (netlify/lib/supabase-retry.mjs), inside the same 7 s signal.
+  return fetchWithJwtRetry(`${url}${path}`, { ...init, headers, signal: init.signal || AbortSignal.timeout(7_000) }, { ...RETRY_STANDARD, label: "recovery-mode" });
 }
 
 const ADMIN_EMAILS = (Netlify.env.get("ADMIN_EMAILS") || "")

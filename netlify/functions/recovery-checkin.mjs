@@ -1,5 +1,12 @@
 import { serviceFetch } from "../lib/supabase.mjs";
+import { RETRY_STANDARD } from "../lib/supabase-retry.mjs";
 import { reportError } from "../lib/report-error.mjs";
+
+// Every PostgREST call below retries Supabase's passing 401 PGRST303 "JWT
+// issued at future" (see netlify/lib/supabase-retry.mjs) and logs one line
+// tagged recovery-checkin when it does. A failure is only reported (and
+// emailed) when the call still fails after those retries.
+const RETRY = { ...RETRY_STANDARD, label: "recovery-checkin" };
 
 function env(name) {
   try {
@@ -82,7 +89,9 @@ async function checkinForPlan(plan, thresholdMinutes, siteUrl) {
   const cutoff = new Date(Date.now() - thresholdMinutes * 60 * 1000).toISOString();
 
   const profilesRes = await serviceFetch(
-    `/rest/v1/profiles?select=id&plan=eq.${plan}&subscription_status=in.(active,trialing)&limit=1000`
+    `/rest/v1/profiles?select=id&plan=eq.${plan}&subscription_status=in.(active,trialing)&limit=1000`,
+    {},
+    RETRY
   );
   if (!profilesRes.ok) {
     console.error(`CyberNet recovery-checkin ${plan} profiles query failed`, await profilesRes.text().catch(() => ""));
@@ -98,7 +107,9 @@ async function checkinForPlan(plan, thresholdMinutes, siteUrl) {
     `/rest/v1/recovery_cases?select=id,owner_user_id,case_title,status,updated_at,last_checkin_sent_at` +
     `&status=neq.resolved&updated_at=lt.${encodeURIComponent(cutoff)}` +
     `&or=(last_checkin_sent_at.is.null,last_checkin_sent_at.lt.${encodeURIComponent(cutoff)})` +
-    `&owner_user_id=in.(${idList})&limit=100`
+    `&owner_user_id=in.(${idList})&limit=100`,
+    {},
+    RETRY
   );
 
   if (!casesRes.ok) {
@@ -115,7 +126,7 @@ async function checkinForPlan(plan, thresholdMinutes, siteUrl) {
     method: "PATCH",
     headers: { Prefer: "return=minimal" },
     body: JSON.stringify({ last_checkin_sent_at: new Date().toISOString() })
-  });
+  }, RETRY);
 
   for (const item of cases) {
     const user = await getUser(item.owner_user_id);

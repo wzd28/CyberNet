@@ -1,8 +1,9 @@
 /* CyberNet AI design tokens. The single source for colour, type, space, shape and motion.
    See ui-src/DESIGN.md. Change values here; components only read these variables. */
 
-/* Metric-matched fallbacks. The web fonts load without blocking first paint, so the first frame
-   is set in a local font. These faces stretch a local font to Mona Sans / JetBrains Mono
+/* Metric-matched fallbacks. The web fonts (self-hosted and preloaded, 00-fonts.css) never block
+   the first paint (font-display: swap), so when one is late the first frame is set in a local
+   font. These faces stretch a local font to Mona Sans / JetBrains Mono
    metrics (measured: CLS on a cold load fell from 0.07-0.09 to under 0.006), so the late swap
    no longer re-wraps the hero H1, the nav or the operator line. Roboto stands in on Android,
    which has no Arial. The hero H1 (600, 110% wide) has its own face; see --cn-font-hero. */
