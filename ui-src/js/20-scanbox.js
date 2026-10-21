@@ -98,7 +98,8 @@
     /* ---- h) Exposure ends ---- */
     if (intro) {
       var endIntro = function () { root.classList.remove("cn-intro", "cn-intro-hold"); };
-      setTimeout(function () { CN.whenStill(endIntro); }, 2600);
+      /* the boot intro (21-boot.css) holds Exposure for up to 1.5 s more */
+      setTimeout(function () { CN.whenStill(endIntro); }, 2600 + (root.classList.contains("cn-boot") ? 1500 : 0));
       if (M) M.onNavigate(endIntro);
     }
     var box = byId("cnScanBox"), input = byId("cnScanInput");
