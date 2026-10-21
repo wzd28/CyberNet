@@ -266,10 +266,11 @@
     if (CN.motion) CN.motion.reveal(reel);
     reel.classList.add("is-ready");
     select(idx, true);
-    orient();
     sync();
+    /* the observer's first report comes after the next layout, before that frame paints, so the
+       start-up never forces a layout of its own here (v5.1: it cost ~100 ms on a slow phone) */
     if ("ResizeObserver" in window) new ResizeObserver(orient).observe(reel);
-    else window.addEventListener("resize", orient);
+    else { orient(); window.addEventListener("resize", orient); }
 
     CN.inView(reel, function (vis, e) {
       inview = e ? vis && e.intersectionRatio >= .25 : vis;
