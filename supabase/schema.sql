@@ -1185,3 +1185,43 @@ revoke execute on function public.consume_api_quota(text, integer, integer) from
 revoke execute on function public.check_protect_rate_limit(text, integer, integer) from public, anon, authenticated;
 grant execute on function public.consume_api_quota(text, integer, integer) to service_role;
 grant execute on function public.check_protect_rate_limit(text, integer, integer) to service_role;
+
+-- Feedback form submissions (added 21 Oct 2026).
+-- Source of truth: supabase/migrations/20261021120000_feedback.sql (apply that
+-- file; this copy only documents the table). Written by
+-- netlify/functions/feedback.mjs and read/updated by
+-- netlify/functions/feedback-admin.mjs, both with the service role. Browsers
+-- have no access: RLS is on, a restrictive policy denies anon and
+-- authenticated, and only service_role holds grants.
+create table if not exists public.feedback (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  user_id uuid references auth.users (id) on delete set null,
+  email text,
+  category text not null default 'other',
+  message text not null,
+  page text,
+  ui_version text,
+  user_agent_summary text,
+  status text not null default 'new',
+  handled_at timestamptz,
+  constraint feedback_category_check check (category in ('bug', 'feature', 'billing', 'other')),
+  constraint feedback_status_check check (status in ('new', 'read', 'replied')),
+  constraint feedback_message_length check (char_length(message) between 1 and 5000),
+  constraint feedback_email_length check (email is null or char_length(email) between 3 and 254),
+  constraint feedback_page_length check (page is null or char_length(page) <= 200),
+  constraint feedback_ui_version_length check (ui_version is null or char_length(ui_version) <= 32),
+  constraint feedback_ua_length check (user_agent_summary is null or char_length(user_agent_summary) <= 60)
+);
+create index if not exists feedback_created_idx on public.feedback (created_at desc);
+create index if not exists feedback_status_created_idx on public.feedback (status, created_at desc);
+create index if not exists feedback_user_idx on public.feedback (user_id) where user_id is not null;
+alter table public.feedback enable row level security;
+drop policy if exists feedback_service_role_all on public.feedback;
+create policy feedback_service_role_all on public.feedback
+  for all to service_role using (true) with check (true);
+drop policy if exists feedback_no_browser_access on public.feedback;
+create policy feedback_no_browser_access on public.feedback
+  as restrictive for all to anon, authenticated using (false) with check (false);
+revoke all on table public.feedback from public, anon, authenticated;
+grant select, insert, update on table public.feedback to service_role;

@@ -340,7 +340,8 @@ ENV = fullEnv();
 install({ owned: [{ id: TEAM, seat_tier: 5, subscription_status: "canceled" }] });
 r = await call({ action: "export" });
 const d = r.data.data || {};
-check("export: 200 with every section", r.status === 200 && ["account", "profile", "dailyUsage", "savedHistory", "legalAcceptances", "recoveryCases", "recoveryVersions", "recoveryTasks", "recoveryUsage", "quickscanUsage", "teamMemberships", "ownedTeams", "checkoutErrors", "usageCounters"].every(k => k in d), Object.keys(d));
+check("export: 200 with every section", r.status === 200 && ["account", "profile", "dailyUsage", "savedHistory", "legalAcceptances", "recoveryCases", "recoveryVersions", "recoveryTasks", "recoveryUsage", "quickscanUsage", "teamMemberships", "ownedTeams", "checkoutErrors", "usageCounters", "feedback"].every(k => k in d), Object.keys(d));
+check("export: the user's own feedback is read", calls.some(c => c.target.startsWith(`/rest/v1/feedback?user_id=eq.${USER}&select=`)), calls.map(c => c.target));
 check("export: checkout error log and usage counters are read for this user", calls.some(c => c.target.startsWith(`/rest/v1/checkout_debug_log?user_id=eq.${USER}`)) && calls.some(c => c.target.startsWith(`/rest/v1/api_rate_limits?rate_key=like.*${USER}`)), calls.map(c => c.target));
 check("export: account is the caller", d.account?.id === USER && d.account?.email === "person@example.com", d.account);
 check("export: Recovery versions and tasks of the user's cases", d.recoveryVersions?.length === 1 && d.recoveryTasks?.length === 1 && calls.some(c => c.target.startsWith(`/rest/v1/recovery_tasks?case_id=in.(${CASE})`)), d);
@@ -351,6 +352,11 @@ check("export: every read is filtered to this user or their cases", calls.slice(
 install({ fail: { "GET /rest/v1/quickscan_usage": 500 } });
 r = await call({ action: "export" });
 check("export failure: 502 EXPORT_FAILED", r.status === 502 && r.data.code === "EXPORT_FAILED", r);
+
+// The feedback table not there yet (migration not applied): an empty section, not a failure.
+install({ fail: { "GET /rest/v1/feedback": 404 } });
+r = await call({ action: "export" });
+check("export: missing feedback table reads as empty", r.status === 200 && Array.isArray(r.data.data?.feedback) && r.data.data.feedback.length === 0, r);
 
 // ── 12. clear-history ──
 install();

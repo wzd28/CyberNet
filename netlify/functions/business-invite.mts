@@ -65,6 +65,8 @@ async function sendInviteEmail(toEmail: string, inviterName: string, acceptUrl: 
     },
     body: JSON.stringify({
       from: "CyberNet AI <team@cybernetai.app>",
+      // team@ has no Email Routing rule (only support@ and walidzd@ do), so replies go to support@.
+      reply_to: "support@cybernetai.app",
       to: [toEmail],
       subject: `${inviterName || "Your team"} invited you to a CyberNet AI Business team`,
       html: `

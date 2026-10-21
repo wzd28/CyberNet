@@ -56,6 +56,8 @@ async function sendCheckinEmail(email, caseTitle, caseId, siteUrl) {
       },
       body: JSON.stringify({
         from: "CyberNet AI <notifications@cybernetai.app>",
+        // notifications@ has no Email Routing rule, so a user who replies reaches support@ instead of a bounce.
+        reply_to: "support@cybernetai.app",
         to: [email],
         subject: "Checking in on your recovery case",
         html: `

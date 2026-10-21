@@ -2496,3 +2496,24 @@ html.cn :where(.cn-legal-modal .cn-legal-tab.active):is(.cn-legal-modal .cn-lega
     background: rgba(3, 6, 12, .94);
   }
 }
+
+/* Admin feedback inbox (public/cybernet-admin-feedback.js, Account > Feedback inbox). */
+html.cn #feedbackInboxModal > .modal-card { width: min(760px, 100%); max-height: min(90dvh, 920px); overflow: auto; }
+html.cn #feedbackInboxModal h2 { margin: 6px 0 6px; }
+html.cn .cn-fbinbox-sub { color: var(--cn-text-2); font-size: 13px; line-height: 1.6; margin: 0 0 14px; }
+html.cn .cn-fbinbox-filter { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 10px; }
+html.cn .cn-fbinbox-filter .secondary-btn { min-height: 36px; padding: 6px 14px; font-size: 13px; }
+html.cn .cn-fbinbox-filter .secondary-btn[aria-pressed="true"] { border-color: var(--cn-cyan); color: var(--cn-cyan); background: var(--cn-cyan-tint); }
+html.cn .cn-fbinbox-status { min-height: 20px; margin: 0 0 10px; }
+html.cn .cn-fbinbox-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+html.cn .cn-fbinbox-item { border: 1px solid var(--cn-line); border-radius: 12px; padding: 14px 16px; background: var(--cn-fill-1); }
+html.cn .cn-fbinbox-item[data-status="new"] { border-color: var(--cn-cyan-line); }
+html.cn .cn-fbinbox-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 12px; margin-bottom: 6px; color: var(--cn-text); }
+html.cn .cn-fbinbox-pill { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--cn-cyan); border: 1px solid var(--cn-cyan-line); border-radius: 999px; padding: 1px 8px; }
+html.cn .cn-fbinbox-time { margin-left: auto; color: var(--cn-text-3); font-size: 12px; }
+html.cn .cn-fbinbox-meta { color: var(--cn-text-3); font-size: 12px; line-height: 1.5; margin: 4px 0; overflow-wrap: anywhere; }
+html.cn .cn-fbinbox-meta a { color: var(--cn-cyan); }
+html.cn .cn-fbinbox-message { color: var(--cn-text); font-size: 14px; line-height: 1.6; margin: 8px 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+html.cn .cn-fbinbox-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+html.cn .cn-fbinbox-actions .secondary-btn, html.cn .cn-fbinbox-more { min-height: 34px; padding: 6px 12px; font-size: 13px; }
+html.cn .cn-fbinbox-more { margin-top: 12px; }

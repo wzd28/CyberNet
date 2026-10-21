@@ -107,7 +107,7 @@
   <link rel="stylesheet" href="/cybernet-howto.css?v=20260905-1" />
   <link id="cybernetBusinessTeamStylesheet" rel="stylesheet" href="/cybernet-business-team.css?v=20260927-2" />
   <link rel="stylesheet" href="/cybernet-consent.css?v=20260927-2" />
-  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261021-3" />
+  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261021-5" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=20260830-5">
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=20260830-5">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=20260830-5">
@@ -506,34 +506,32 @@
           <label>Leave this empty: <input name="bot-field" tabindex="-1" autocomplete="off" /></label>
         </p>
 
-        <div class="feedback-name-grid">
+        <!-- Not shown or required: /api/feedback stores no name. Kept (filled from the account) for the Netlify Forms fallback. -->
+        <div class="feedback-name-grid" hidden>
           <div>
             <label for="feedbackFirstName">First name</label>
-            <input id="feedbackFirstName" name="first_name" type="text" autocomplete="given-name" maxlength="80" required />
+            <input id="feedbackFirstName" name="first_name" type="text" autocomplete="given-name" maxlength="80" />
           </div>
           <div>
             <label for="feedbackLastName">Last name</label>
-            <input id="feedbackLastName" name="last_name" type="text" autocomplete="family-name" maxlength="80" required />
+            <input id="feedbackLastName" name="last_name" type="text" autocomplete="family-name" maxlength="80" />
           </div>
         </div>
 
-        <label for="feedbackEmail">Contact email</label>
-        <input id="feedbackEmail" name="email" type="email" autocomplete="email" maxlength="200" placeholder="you@example.com" required />
+        <label for="feedbackEmail">Contact email (so we can reply)</label>
+        <input id="feedbackEmail" name="email" type="email" autocomplete="email" maxlength="254" placeholder="you@example.com" required />
 
         <label for="feedbackType">What is this about?</label>
         <select id="feedbackType" name="feedback_type" required>
           <option value="">Choose one</option>
-          <option value="Website problem">Website problem</option>
-          <option value="Account or sign-in problem">Account or sign-in problem</option>
-          <option value="Quick Scan result">Quick Scan result</option>
-          <option value="Billing or plan question">Billing or plan question</option>
-          <option value="Feature request">Feature request</option>
-          <option value="General feedback">General feedback</option>
-          <option value="Other">Other</option>
+          <option value="bug">Something is broken or wrong (website, account, a scan result)</option>
+          <option value="feature">Feature request</option>
+          <option value="billing">Billing or plan question</option>
+          <option value="other">Question or other feedback</option>
         </select>
 
         <label for="feedbackProblem">What is the problem or feedback?</label>
-        <textarea id="feedbackProblem" name="message" maxlength="6000" placeholder="Explain what you expected, what happened, the page or feature you used, and any error message you saw." required></textarea>
+        <textarea id="feedbackProblem" name="message" maxlength="5000" placeholder="Explain what you expected, what happened, the page or feature you used, and any error message you saw." required></textarea>
 
         <input type="hidden" id="feedbackPageUrl" name="page_url" />
         <input type="hidden" id="feedbackSubmittedAt" name="submitted_at" />
@@ -2836,7 +2834,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" defer></script>
   <script src="/config.js?v=20260830-3" defer></script>
   <script src="/cybernet-engine.js?v=20261015-1" defer></script>
-  <script src="/script.js?v=20261018-h2" defer></script>
+  <script src="/script.js?v=20261021-1" defer></script>
   <script src="/cybernet-account-api-upgrade.js?v=20261018-h2" defer></script>
   <script src="/cybernet-howto.js?v=20261019-1" defer></script>
 <script src="/cybernet-business-team.js?v=20261018-h2" defer></script>
@@ -2846,7 +2844,9 @@
   <script src="/cybernet-privacy-controls.js?v=20261018-h2" defer></script>
   <!-- After script.js (cybernet:session event, appState). -->
   <script src="/cybernet-onboarding.js?v=20261018-h2" defer></script>
-  <script src="/ui/cybernet-ui.js?v=20261021-3" defer></script>
+  <!-- After script.js and cybernet-account-api-upgrade.js (CyberNetAccount, account modal); admin-only, gated on the server. -->
+  <script src="/cybernet-admin-feedback.js?v=20261021-1" defer></script>
+  <script src="/ui/cybernet-ui.js?v=20261021-5" defer></script>
 </body>
 </html>
 

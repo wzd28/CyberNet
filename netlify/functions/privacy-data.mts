@@ -71,8 +71,9 @@ function serverConfig() {
 const RETRY = { ...RETRY_STANDARD, label: "privacy-data" };
 
 // One PostgREST call with the service role. `code` names the step, so a
-// failure stops the request with a clear reason.
-async function rest(path, { code, ...options } = {}) {
+// failure stops the request with a clear reason. `optional`: a table that is
+// not there yet (404, e.g. PGRST205 before its migration) reads as no rows.
+async function rest(path, { code, optional = false, ...options } = {}) {
   const { url, key } = serverConfig();
   let response;
   try {
@@ -91,6 +92,7 @@ async function rest(path, { code, ...options } = {}) {
     throw fail(502, code);
   }
   if (!response.ok) {
+    if (optional && response.status === 404) return [];
     const detail = await response.text().catch(() => "");
     console.error("CyberNet privacy-data db error", code, response.status, detail.slice(0, 500));
     // Never pass `detail` to reportError: it can echo row data.
@@ -263,7 +265,7 @@ async function deleteAccount(user) {
 async function exportData(user) {
   const uid = id(user.id);
   const code = "EXPORT_FAILED";
-  const [profile, usage, history, acceptances, recoveryCases, recoveryUsage, quickscanUsage, teamMemberships, ownedTeams, checkoutErrors, usageCounters] = await Promise.all([
+  const [profile, usage, history, acceptances, recoveryCases, recoveryUsage, quickscanUsage, teamMemberships, ownedTeams, checkoutErrors, usageCounters, feedback] = await Promise.all([
     getProfile(user.id, code),
     getRows("daily_usage", user.id, code),
     getRows("scan_history", user.id, code),
@@ -274,7 +276,8 @@ async function exportData(user) {
     get(`business_members?user_id=eq.${uid}&select=business_account_id,role,status,joined_at,removed_at`, code),
     get(`business_accounts?owner_user_id=eq.${uid}&select=id,seat_tier,subscription_status,billing_interval,created_at`, code),
     getRows("checkout_debug_log", user.id, code),
-    get(`api_rate_limits?rate_key=like.*${uid}&select=rate_key,window_started_at,request_count,updated_at`, code)
+    get(`api_rate_limits?rate_key=like.*${uid}&select=rate_key,window_started_at,request_count,updated_at`, code),
+    rest(`feedback?user_id=eq.${uid}&select=created_at,category,message,email,page,status`, { method: "GET", code, optional: true })
   ]);
   const caseIds = (Array.isArray(recoveryCases) ? recoveryCases : []).map(c => c.id).filter(Boolean);
   const inList = caseIds.map(encodeURIComponent).join(",");
@@ -299,7 +302,8 @@ async function exportData(user) {
       teamMemberships: teamMemberships || [],
       ownedTeams: ownedTeams || [],
       checkoutErrors: checkoutErrors || [],
-      usageCounters: usageCounters || []
+      usageCounters: usageCounters || [],
+      feedback: feedback || []
     }
   });
 }
