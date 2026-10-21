@@ -95,7 +95,16 @@
     window.dataLayer.push(arguments);
   }
 
-  function loadAnalytics() {
+  // After window load, once the browser is idle: the tag never competes with the first paint.
+  function afterLoadIdle(fn) {
+    const idle = () => (window.requestIdleCallback ? window.requestIdleCallback(fn, { timeout: 3000 }) : setTimeout(fn, 1));
+    if (document.readyState === "complete") idle();
+    else window.addEventListener("load", idle, { once: true });
+  }
+
+  // atStart: a returning visitor who already allowed analytics. The queue (dataLayer) is set up
+  // at once; only the network tag waits for load + idle (gtag.js replays the queue when it runs).
+  function loadAnalytics(atStart = false) {
     window[`ga-disable-${MEASUREMENT_ID}`] = false;
 
     if (gaLoaded) {
@@ -114,12 +123,15 @@
       ad_personalization: "denied"
     });
 
-    if (!document.querySelector(`script[src="${GTAG_SRC}"]`)) {
+    const inject = () => {
+      if (window[`ga-disable-${MEASUREMENT_ID}`] || document.querySelector(`script[src="${GTAG_SRC}"]`)) return;
       const script = document.createElement("script");
       script.async = true;
       script.src = GTAG_SRC;
       document.head.appendChild(script);
-    }
+    };
+    if (atStart) afterLoadIdle(inject);
+    else inject();
 
     window.gtag("js", new Date());
     window.gtag("config", MEASUREMENT_ID, {
@@ -215,6 +227,9 @@
       return;
     }
     root.classList.add("cn-consent-visible");
+    // Kept synchronous on purpose (21 Oct): this read is the page's first full layout. Moving it
+    // into a rAF merged it with the DOMContentLoaded changes into one longer task after the first
+    // paint, which raised mobile Total Blocking Time by 25-120 ms in Lighthouse.
     root.style.setProperty("--cn-consent-space", `${Math.ceil(bar.getBoundingClientRect().height)}px`);
   }
 
@@ -279,7 +294,7 @@
     document.documentElement.dataset.cybernetConsent = "ready";
 
     const choice = currentChoice();
-    if (choice === "granted") loadAnalytics();
+    if (choice === "granted") loadAnalytics(true);
     else if (choice === "denied") deleteAnalyticsCookies();
     else showBar();
 

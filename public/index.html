@@ -80,6 +80,10 @@
        preload without it would be downloaded twice. -->
   <link rel="preload" href="/ui/fonts/mona-sans-v4-latin.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="/ui/fonts/jetbrains-mono-v24-latin.woff2" as="font" type="font/woff2" crossorigin />
+  <!-- Warm the two other origins the page needs: jsDelivr (supabase-js now, three.js for the hero
+       globe after load; both load in CORS mode) and Supabase (sign-in and account data). -->
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="preconnect" href="https://ndtcxippbufqzwcxkyjd.supabase.co" crossorigin />
   <link rel="stylesheet" href="/style.css?v=20260930-2" />
   <link id="cybernetAccountUpgradeStylesheet" rel="stylesheet" href="/cybernet-account-api-upgrade.css?v=20261005-2" />
   <link rel="stylesheet" href="/cybernet-howto.css?v=20260905-1" />
@@ -2644,7 +2648,7 @@
         <h1 data-cn-lines="head">Built to make cybersecurity <b>simple</b>.</h1>
 
         <div class="cn-about-mark" data-cn-glow="50 50" aria-hidden="true">
-          <img src="/ui/3d/shield-320.webp?v=20261014-5" srcset="/ui/3d/shield-320.webp?v=20261014-5 320w, /ui/3d/shield.webp?v=20261014-5 640w" sizes="(min-width: 64rem) 340px, 200px" alt="" width="640" height="640" decoding="async" />
+          <img src="/ui/3d/shield-320.webp?v=20261014-5" srcset="/ui/3d/shield-320.webp?v=20261014-5 320w, /ui/3d/shield.webp?v=20261014-5 640w" sizes="(min-width: 64rem) 340px, 200px" alt="" width="640" height="640" loading="lazy" decoding="async" />
         </div>
 
         <p class="cn-about-tag">Secure today. Safer tomorrow.</p>
@@ -2801,7 +2805,7 @@
     </nav>
   </footer>
 
-  <script src="/cybernet-consent.js?v=20260927-2" defer></script>
+  <script src="/cybernet-consent.js?v=20261021-1" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" defer></script>
   <script src="/config.js?v=20260830-3" defer></script>
   <script src="/cybernet-engine.js?v=20261015-1" defer></script>
@@ -2815,7 +2819,7 @@
   <script src="/cybernet-privacy-controls.js?v=20261018-h2" defer></script>
   <!-- After script.js (cybernet:session event, appState). -->
   <script src="/cybernet-onboarding.js?v=20261018-h2" defer></script>
-  <script src="/ui/cybernet-ui.js?v=20261019-1" defer></script>
+  <script src="/ui/cybernet-ui.js?v=20261021-1" defer></script>
 </body>
 </html>
 

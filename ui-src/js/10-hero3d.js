@@ -18,12 +18,19 @@
      then) or Save-Data: the poster stays. No WebGL, a failed load, a software renderer
      (failIfMajorPerformanceCaveat), slow frames or a lost context also leave the poster.
    - v4.7 (owner: "make it super smooth"): DPR <= 1.5 on desktop and 1 on touch screens, with a
-     pixel cap (2 M desktop, 0.6 M touch), about 30 fps everywhere (a slow spin reads the same
-     at 30 as at 60, and every frame not drawn is main-thread time back for the scroll). A
-     governor lowers the resolution, then the frame rate (and drops the extras), then gives up.
-   - Low-end phones keep the poster: a touch screen with deviceMemory <= 4 GB or <= 4 cores
-     never loads three.js (the poster is the scene's own frame, so the hero looks the same, only
-     still). Save-Data keeps it too.
+     pixel cap (2 M desktop, 0.6 M touch). A governor lowers the resolution, then the frame rate
+     (and drops the extras), then gives up.
+   - v5.1 (owner: "the globe lags as the page opens"): frames are paced on the display's own
+     frames, not by a timer (the 30 fps timer missed vsync: 22 fps with late frames on a phone,
+     an uneven 41 fps on desktop). Desktop draws at up to 60 fps (every other frame on a 120 Hz
+     screen), touch screens and weak machines at 30 fps (every other 60 Hz frame, exactly).
+     Motion follows the real time between drawn frames, clamped to 50 ms, so the spin is the
+     same at 60 and 120 Hz and never jumps after a slow frame. It starts right after load + idle
+     (it used to wait another 0.5 s, 1.2 s on phones, before fetching three.js).
+   - Low-end: a touch screen with deviceMemory <= 4 GB or <= 4 cores never loads three.js (the
+     poster is the scene's own frame, so the hero looks the same, only still). A desktop that
+     weak gets the lighter scene (the phones' one) at DPR 1 and 30 fps. Save-Data keeps the
+     poster.
    - Stops completely off screen (no timer, no frame), while the tab is hidden, while Home is not shown, while the phone
      menu sheet covers it (CN.onCover) and while the hero's Pause button is pressed
      (20-scanbox.js dispatches "cn-hero-motion").
@@ -74,52 +81,56 @@
   /* ============================================================== runtime */
   var SETTLE_MS = 1400;       /* after Home is opened from another page */
   var DPR_FINE = 1.5, DPR_COARSE = 1;
-  var MAX_PX_FINE = 2000000, MAX_PX_COARSE = 600000;
-  var FRAME_MS = 33;          /* ~30 fps everywhere */
+  var MAX_PX_FINE = 2000000, MAX_PX_WEAK = 1200000, MAX_PX_COARSE = 600000;
+  var FRAME_FULL = 1000 / 60, FRAME_LITE = 1000 / 30;  /* desktop; touch screens and weak machines */
   var LINK_WAIT_MS = 400, LINK_GIVEUP_MS = 10000;
   var HOLD_MS = 450, RAMP_MS = 1100;  /* the poster frame holds, then time eases in */
-  /* after load + idle: let the page's own start-up finish first (longer on phones) */
-  var START_FINE = 500, START_COARSE = 1200;
+  /* after load + idle (phones give their own start-up a little longer) */
+  var START_FINE = 0, START_COARSE = 400;
 
   /* no test context (one live WebGL context at a time): if the real one cannot be created,
      the renderer throws, fail() keeps the poster */
   function hasWebGL() { return !!(win.WebGLRenderingContext && doc.createElement("canvas").getContext); }
-  /* a low-end phone: the poster is the hero there (deviceMemory is Chromium-only; cores everywhere) */
-  function lowEnd() {
-    if (CN.finePointer()) return false;
+  /* <= 4 GB or <= 4 cores (deviceMemory is Chromium-only; cores everywhere) */
+  function weak() {
     var mem = navigator.deviceMemory, cores = navigator.hardwareConcurrency;
     return (typeof mem === "number" && mem > 0 && mem <= 4) || (typeof cores === "number" && cores > 0 && cores <= 4);
   }
+  /* a low-end phone: the poster is the hero there */
+  function lowEnd() { return !CN.finePointer() && weak(); }
   var idle = win.requestIdleCallback ? function (f) { win.requestIdleCallback(f, { timeout: 1200 }); } : function (f) { setTimeout(f, 150); };
   /* idle slices for the build and the shader compiles, so a tap is never kept waiting long */
   function idleTask(f) {
     if (win.requestIdleCallback) win.requestIdleCallback(f, { timeout: 2000 });
     else setTimeout(function () { f(null); }, 60);
   }
-  /* The frame loop, paced to rate() ms. At full rate it is a plain rAF chain. At a lower rate a
-     timer waits out the gap and then asks for one animation frame, so the page only runs its
-     rendering steps for the frames that are drawn (a rAF chain that skips frames still runs
-     the whole document lifecycle 60 times a second). rAF never fires in a hidden tab, so the
-     loop rests there by itself. fn(t, dt) */
+  /* The frame loop: one CN.raf per display frame, drawing every n-th one, n = the whole number
+     of display frames closest to rate() ms (from the display's measured frame interval). So
+     30 fps is exactly every other frame at 60 Hz and every fourth at 120 Hz, 60 fps is every
+     frame at 60 Hz and every other one at 120 Hz (a 75 Hz screen draws every frame), and the
+     cadence never wobbles, which a timer could not promise. A skipped frame costs the page
+     almost nothing (no DOM work). rAF never fires in a hidden tab, so the loop rests there by
+     itself. fn(t, dt): dt is the time since the last drawn frame, clamped to MAX_DT. */
+  var MAX_DT = 50;
   function pacedLoop(fn, rate) {
-    var on = false, raf = 0, timer = 0, last = 0;
+    var on = false, raf = 0, last = 0, prev = 0, vs = 1000 / 60;
     function tick(t) {
       raf = 0;
       if (!on) return;
-      var dt = last ? Math.min(100, t - last) : 16;
-      last = t;
-      fn(t, dt);
-      next();
-    }
-    function next() {
-      if (!on) return;
-      var ms = rate();
-      if (!ms) { raf = CN.raf(tick); return; }
-      timer = setTimeout(function () { timer = 0; if (on) raf = CN.raf(tick); }, Math.max(0, ms - (CN.now() - last) - 7));
+      var d = prev ? t - prev : 0;
+      prev = t;
+      if (d > 4 && d < vs * 1.5) vs += (d - vs) * .1;   /* on-time frames only */
+      var n = Math.max(1, Math.floor(rate() / vs + .25));
+      if (!last || t - last >= (n - .5) * vs) {
+        var dt = last ? Math.min(MAX_DT, t - last) : vs;
+        last = t;
+        fn(t, dt);
+      }
+      if (on && !raf) raf = CN.raf(tick);
     }
     return {
-      start: function () { if (on) return; on = true; last = 0; raf = CN.raf(tick); },
-      stop: function () { on = false; if (raf) CN.cancelRaf(raf); if (timer) clearTimeout(timer); raf = timer = 0; },
+      start: function () { if (on) return; on = true; last = prev = 0; raf = CN.raf(tick); },
+      stop: function () { on = false; if (raf) CN.cancelRaf(raf); raf = 0; },
       running: function () { return on; }
     };
   }
@@ -129,10 +140,10 @@
     var poster = box ? box.querySelector(".cn-hero4-poster") : null;
     var copy = stage ? stage.querySelector(".hero-content") : null;
     var home = doc.getElementById("home"), root = doc.documentElement;
-    var coarse = !CN.finePointer();
+    var coarse = !CN.finePointer(), lite = coarse || weak();
     var G = null, state = "idle"; /* idle | loading | ready | dead */
     var visible = false, held = false, loaded = false, queued = false, deepTimer = 0, pageSeen = false, switchedAt = -1e9;
-    var frameMs = FRAME_MS, dirty = true, stageH = 600;
+    var frameMs = lite ? FRAME_LITE : FRAME_FULL, dirty = true, stageH = 600, scrollY = 0;
     var slow = { n: 0, sum: 0, warm: 0, last: 0, level: 0 };
     var ro = null, offs = [], liveAt = 0;
     var disc = null;            /* the globe on screen: centre and radius, CSS px in the canvas */
@@ -181,7 +192,7 @@
         idleTask(function () {
           if (state !== "loading") return;
           try {
-            G = win.CNHero3D.scene(T, canvas, { lite: coarse });
+            G = win.CNHero3D.scene(T, canvas, { lite: lite });
           } catch (e) { fail(e); return; }
           canvas.addEventListener("webglcontextlost", onLost, false);
           idleTask(function () {
@@ -225,6 +236,10 @@
         if (poster) ro.observe(poster);
       } else win.addEventListener("resize", function () { dirty = true; }, { passive: true });
       if (!coarse && stage) dragSetup();
+      /* the scroll tilt reads a cached offset, so a frame never touches the DOM */
+      var onScroll = function () { scrollY = win.pageYOffset || root.scrollTop || 0; };
+      win.addEventListener("scroll", onScroll, { passive: true });
+      offs.push(function () { win.removeEventListener("scroll", onScroll); });
       /* v5 Exposure (html.cn-intro, the first Home view of a session): the live globe crossfades
          over its poster no earlier than 1.4 s after the page started, once the veil has lifted.
          The head snippet's font hold (html.cn-intro-hold, up to 700 ms) starts the veil later, so
@@ -258,8 +273,8 @@
       if (!w || !h || !poster) return false;
       var cr = canvas.getBoundingClientRect(), pr = poster.getBoundingClientRect();
       if (!pr.width) return false;
-      var cap = coarse ? MAX_PX_COARSE : MAX_PX_FINE;
-      var d = Math.min(win.devicePixelRatio || 1, coarse ? DPR_COARSE : DPR_FINE) * (slow.level > 0 ? .75 : 1);
+      var cap = coarse ? MAX_PX_COARSE : lite ? MAX_PX_WEAK : MAX_PX_FINE;
+      var d = Math.min(win.devicePixelRatio || 1, lite ? DPR_COARSE : DPR_FINE) * (slow.level > 0 ? .75 : 1);
       if (w * h * d * d > cap) d = Math.sqrt(cap / (w * h));
       G.size(w, h, d);
       var L = { s: pr.width, sx: pr.left - cr.left, sy: pr.top - cr.top, mode: "side" };
@@ -271,6 +286,7 @@
       G.layout(L);
       disc = { x: L.sx + L.s / 2, y: L.sy + L.s / 2, r: L.s * win.CNHero3D.FILL / 2 };
       stageH = (stage && stage.offsetHeight) || h;
+      scrollY = win.pageYOffset || root.scrollTop || 0;
       dirty = false;
       return true;
     }
@@ -351,8 +367,8 @@
       if (avg < budget) return;
       slow.level += 1; slow.warm = 20;
       if (slow.level === 1) { dirty = true; return; }                  /* lower resolution */
-      if (slow.level === 2) { frameMs = Math.max(frameMs, 33); G.setExtras(false); return; } /* 30 fps, fewer extras */
-      if (slow.level === 3 && frameMs < 48) { frameMs = 48; return; }  /* 20 fps */
+      if (slow.level === 2) { frameMs = Math.max(frameMs, FRAME_LITE); G.setExtras(false); return; } /* 30 fps, fewer extras */
+      if (slow.level === 3 && frameMs < 50) { frameMs = 50; return; }  /* 20 fps */
       fail(new Error("too slow"));
     }
 
@@ -362,7 +378,7 @@
       /* v4.7: hold the frame while the page scrolls (the compositor moves the page; a held globe
          is invisible while everything moves) and carry on once it is still */
       if (!drag && CN.scrolling()) { pause(); CN.whenStill(play); return; }
-      var stepMs = Math.min(dt, 100);
+      var stepMs = dt;
       if (slow.last) watch(now - slow.last);
       slow.last = now;
       if (dirty && !size()) return;
@@ -376,9 +392,8 @@
         if (Math.abs(spinV) < .002) spinV = 0;
         G.pitch *= Math.exp(-s * 2.2);
       }
-      var sy = win.pageYOffset || root.scrollTop || 0;
       /* eased, so the tilt glides to the new scroll position after a held stretch */
-      tilt += (clamp(sy / Math.max(1, stageH), 0, 1) * ramp - tilt) * (1 - Math.exp(-stepMs / 160));
+      tilt += (clamp(scrollY / Math.max(1, stageH), 0, 1) * ramp - tilt) * (1 - Math.exp(-stepMs / 160));
       G.scroll = tilt;
       try { G.frame(s * ramp); } catch (e) { fail(e); }
     }
