@@ -11,7 +11,8 @@
 // existing consume_api_quota RPC: 6 an hour per address (one of 4096 hashed
 // keys, cn_fb:ip:000 to fff), 6 an hour per signed-in account, 100 an hour
 // for everyone, and at most 20 notification emails a day (Resend's free plan
-// sends 100 a day for the whole site). The quota checks fail open, like the
+// sends 100 a day for the whole site), counting the copies sent when the
+// database refuses a row (past the cap that is a 503). The quota checks fail open, like the
 // other ones. A signed-in sender is recognised from the verified Supabase
 // token; an invalid token is ignored and the feedback is kept as anonymous.
 
@@ -128,6 +129,11 @@ export default async (request, context) => {
 
   if (!stored) {
     // The database did not take it: the email is now the only copy, so wait for it.
+    // It still counts against the daily mail cap, so a refused insert is never a
+    // way past it. Blocked, the browser falls back to Netlify Forms.
+    if (blocked(await consumeQuota("cn_fb:mail:day", 86_400, feedbackLimits.maxMailsPerDay))) {
+      return reply(503, { error: "Your message could not be saved right now." });
+    }
     const emailed = await notifyFeedback(row, null);
     if (emailed) return reply(202, { ok: true, stored: false });
     return reply(503, { error: "Your message could not be saved right now." });

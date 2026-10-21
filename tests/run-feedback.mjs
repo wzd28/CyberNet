@@ -38,6 +38,7 @@ const restCalls = [];
 let dbDown = false;
 let mailDown = false;
 let quotaDown = false;
+let dbReject = false; // the insert fails like a CHECK violation (23514)
 let nextId = 1;
 
 function json(data, status = 200, headers = {}) {
@@ -71,6 +72,10 @@ globalThis.fetch = async (input, init = {}) => {
     restCalls.push({ method, search: url.search });
     if (dbDown) return json({ code: "PGRST205", message: "Could not find the table 'public.feedback'" }, 404);
     if (method === "POST") {
+      // Like Postgres: text refuses U+0000 and lone surrogates (22P05), and the
+      // error's details carry the whole row.
+      const unsafe = /\\u0000|\\ud[89a-f]/i.test(init.body);
+      if (dbReject || unsafe) return json({ code: unsafe ? "22P05" : "23514", message: "refused", details: `Failing row contains (${init.body})` }, 400);
       const row = { id: `00000000-0000-4000-8000-${String(nextId++).padStart(12, "0")}`, created_at: new Date(Date.now() + rows.length).toISOString(), status: "new", handled_at: null, ...JSON.parse(init.body) };
       rows.push(row);
       return json([{ id: row.id, created_at: row.created_at }], 201);
@@ -97,7 +102,7 @@ const { uaSummary, validateFeedback } = await import("../netlify/lib/feedback.mj
 
 function reset() {
   quota.clear(); rows.length = 0; mails.length = 0; restCalls.length = 0;
-  dbDown = mailDown = quotaDown = false;
+  dbDown = mailDown = quotaDown = dbReject = false;
   feedback.resetFeedbackMemory();
 }
 
@@ -199,6 +204,27 @@ reset();
   mailDown = true;
   const both = await send(good());
   check("db-and-mail-down-503", both.status === 503, both);
+}
+
+reset();
+{
+  // U+0000 and a lone surrogate are cleaned, so Postgres takes the row.
+  const r = await send(good({ message: "Hi\u0000 there \ud800" }));
+  check("nul-and-lone-surrogate-cleaned", r.status === 201 && rows[0]?.message === "Hi there �", { r, row: rows[0] });
+  check("email-nul-or-surrogate-400", Boolean(validateFeedback(good({ email: "a\u0000b@example.com" })).error && validateFeedback(good({ email: "a\ud800@example.com" })).error), null);
+  // Rows the database refuses still count against the 20 emails a day.
+  reset();
+  dbReject = true;
+  const statuses = [];
+  for (let i = 0; i < 22; i++) statuses.push((await send(good())).status);
+  check("refused-rows-mail-capped", mails.length === 20 && statuses.slice(0, 20).every((s) => s === 202) && statuses.slice(20).every((s) => s === 503), { statuses, mails: mails.length });
+  // The log keeps the error code, never PostgREST's details (the visitor's row).
+  const logged = [];
+  const quiet = console.error;
+  console.error = (line) => logged.push(String(line));
+  await send(good({ email: "pii@example.com" }));
+  console.error = quiet;
+  check("store-failed-log-code-only", logged.some((l) => l.includes('"code":"23514"')) && !logged.some((l) => /pii@example|Failing row|scan button/.test(l)), logged);
 }
 
 reset();

@@ -26,8 +26,15 @@ export const limits = {
 
 const MAIL_FROM = "CyberNet AI <notifications@cybernetai.app>";
 const MAIL_TO = "support@cybernetai.app";
-const EMAIL = /^[^\s@<>()[\]\\,;:"]{1,64}@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$/;
+const EMAIL = /^[^\s@<>()[\]\\,;:"\u0000-\u001f\u007f]{1,64}@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$/;
 const UI_VERSION = /^[\w.-]{1,32}$/;
+const LONE_SURROGATE = /[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/g;
+
+// Postgres text refuses U+0000 and lone surrogates (22P05). A refused insert
+// must not be something a visitor can cause, so both are cleaned out first.
+function cleanText(value) {
+  return value.replace(/\u0000/g, "").replace(LONE_SURROGATE, "�");
+}
 
 export function env(name) {
   try {
@@ -60,14 +67,14 @@ export function validateFeedback(body) {
   if (!body || typeof body !== "object" || Array.isArray(body)) return { error: "The feedback could not be read." };
   if (typeof body.bot_field === "string" && body.bot_field.trim()) return { honeypot: true, error: "The feedback could not be sent." };
 
-  const message = typeof body.message === "string" ? body.message.replace(/\r\n?/g, "\n").trim() : "";
+  const message = typeof body.message === "string" ? cleanText(body.message).replace(/\r\n?/g, "\n").trim() : "";
   if (!message) return { error: "Write a message before sending." };
   if (message.length > MAX_MESSAGE_CHARS) return { error: `Keep the message under ${MAX_MESSAGE_CHARS} characters.` };
 
   const category = Object.hasOwn(CATEGORIES, body.category) ? body.category : "other";
 
   let email = typeof body.email === "string" ? body.email.trim() : "";
-  if (email && (email.length > 254 || !EMAIL.test(email))) return { error: "Enter a valid contact email, or leave it empty." };
+  if (email && (email.length > 254 || !EMAIL.test(email) || cleanText(email) !== email)) return { error: "Enter a valid contact email, or leave it empty." };
 
   // The path only: a query or hash can carry tokens.
   let page = typeof body.page === "string" ? body.page.slice(0, 400).split(/[?#]/)[0] : "";
@@ -95,8 +102,11 @@ export async function storeFeedback(row) {
       body: JSON.stringify(row)
     });
     if (!response.ok) {
-      const detail = await response.text().catch(() => "");
-      console.error(JSON.stringify({ tag: "cn_feedback", event: "store_failed", status: response.status, detail: detail.slice(0, 300) }));
+      // The error code only: PostgREST's "details" can hold the whole row
+      // ("Failing row contains (...)"), which is the visitor's email and message.
+      let code = null;
+      try { code = String(JSON.parse(await response.text())?.code || "").slice(0, 16) || null; } catch { /* no code */ }
+      console.error(JSON.stringify({ tag: "cn_feedback", event: "store_failed", status: response.status, code }));
       return null;
     }
     const rows = await response.json().catch(() => []);
