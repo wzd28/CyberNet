@@ -27,6 +27,11 @@
 //     emails, tokens and keys, ids, IP addresses, long numbers and the query
 //     and hash of every URL before they are logged or emailed.
 //
+// Browser reports that client-error.mjs marks as not worth an email (an
+// injected in-app script, or a browser older than the supported minimum) pass
+// meta.skipAlert: they are logged with "filter": "ignored" or
+// "unsupported-browser" and never use the alert limits.
+//
 // Kill switch: set ERROR_ALERTS=off in the Netlify environment to stop the
 // emails (the log lines stay). ERROR_ALERT_EMAIL overrides the recipient.
 
@@ -194,9 +199,13 @@ function safeLabel(value, max) {
 // (public/cybernet-errors.js) only ever sends these shapes, and anything else
 // is dropped, because the sender cannot be trusted:
 //   file  a script on this site: /script.js or /ui/cybernet-ui.js, plus :line:col
-//   ua    "Chrome 141 on Android" (browserFamily() in cybernet-errors.js)
+//   ua    "Chrome 141 on Android" (browserFamily() in cybernet-errors.js), or
+//         one built from the User-Agent header (describeUserAgent() in
+//         client-error-filters.mjs): "Instagram in-app (iOS 18)",
+//         "Android WebView 69 (Android 9)"
 export const CLIENT_FILE = /^\/(?!\/)[\w./-]{1,200}\.m?js(?::\d{1,7}){0,2}$/;
-export const CLIENT_UA = /^(?:Edge|Opera|Samsung Internet|Chrome|Firefox|Safari|Other)(?: \d{1,4})? on (?:Windows|iOS|Android|ChromeOS|macOS|Linux|Other)$/;
+export const CLIENT_UA = /^(?:(?:Edge|Opera|Samsung Internet|Chrome|Firefox|Safari|Other)(?: \d{1,4})? on (?:Windows|iOS|Android|ChromeOS|macOS|Linux|Other)|(?:Instagram|Facebook|TikTok|Snapchat|LinkedIn|WhatsApp|Google app|News app|Other) in-app \((?:iOS|Android)(?: \d{1,3})?\)|Android WebView(?: \d{1,4})? \(Android(?: \d{1,3})?\))$/;
+const SKIP_ALERT = new Set(["ignored", "unsupported-browser"]);
 const CLIENT_VERSION = /^[\w-]{1,32}$/;
 
 // The pages of the site, for the subject line of a browser alert. Any other
@@ -249,6 +258,7 @@ function buildRecord(error, meta, now) {
     tag: "cn_error",
     source,
     fingerprint: "",
+    filter: source === "client" && SKIP_ALERT.has(meta.skipAlert) ? meta.skipAlert : undefined,
     fn: source === "server" ? safeLabel(meta.fn, 60) || "unknown" : undefined,
     page: source === "client" ? safeLabel(cleanUrl(String(meta.page || "")), 200) || "/" : undefined,
     where: safeLabel(meta.label || meta.where, 120) || undefined,
@@ -524,7 +534,8 @@ async function alertFor(record, entry, local) {
  * meta.fn       server function name            meta.label  what was being done
  * meta.context  the Netlify context (waitUntil)  meta.status skip when 400-499 (expected)
  * Browser reports (from /api/client-error) pass source "client" with page,
- * file, kind, version, ua and ts.
+ * file, kind, version, ua and ts, plus skipAlert ("ignored" or
+ * "unsupported-browser") to log without emailing.
  */
 export function reportError(error, meta = {}) {
   try {
@@ -541,6 +552,8 @@ export function reportError(error, meta = {}) {
     try {
       console.error(JSON.stringify({ ...record, seenHere: entry.count }));
     } catch { /* logging must not break the caller */ }
+    // Logged only: no alert, and no alert limit is used.
+    if (record.filter) return Promise.resolve({ fingerprint: record.fingerprint, logged: true, email: record.filter, record });
 
     // Claim the alert slot synchronously, so two reports of the same error in
     // this instance cannot both email.

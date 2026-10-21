@@ -2,6 +2,33 @@
 <html lang="en" class="cn">
 <head>
   <meta charset="UTF-8" />
+  <!-- Old-browser notice (Chrome/Edge 90+, Safari/iOS 14+, Firefox 90+ are supported). ES5 on
+       purpose (no arrow functions, let/const or template strings): it must run where our modern
+       scripts cannot. The next tag uses ?. and ??; a browser that cannot parse it gets a notice at
+       the top of the page. No eval: the CSP has no 'unsafe-eval' (inline scripts are allowed by
+       'unsafe-inline'). Nothing is reported: cybernet-errors.js is not listening yet, and this
+       listener does not cancel the event. Same copy in index.html and privacy.html
+       (tests/run-errors.mjs checks both). -->
+  <script>
+  (function (w, d) {
+    var failed = false;
+    function onError(e) {
+      if (e && ((e.error && e.error.name === "SyntaxError") || /SyntaxError/.test(String(e.message)))) failed = true;
+    }
+    w.addEventListener("error", onError);
+    d.addEventListener("DOMContentLoaded", function () {
+      w.removeEventListener("error", onError);
+      if (w.CN_modernJs === true || !failed || d.getElementById("cn-old-browser")) return;
+      var b = d.createElement("div");
+      b.id = "cn-old-browser";
+      b.setAttribute("role", "alert");
+      b.style.cssText = "position:relative;z-index:2147483647;margin:0;padding:14px 16px;background:#08152a;color:#eaf6ff;border-bottom:2px solid #22d3ee;font:600 15px/1.5 Arial,sans-serif;text-align:center";
+      b.appendChild(d.createTextNode("Your browser is too old to run CyberNet AI. Please update your browser."));
+      d.body.insertBefore(b, d.body.firstChild);
+    });
+  })(window, document);
+  </script>
+  <script>window.CN_modernJs = (null ?? { a: 1 })?.a === 1;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>CyberNet AI | AI-Powered Cybersecurity</title>
   <meta name="description" content="CyberNet AI provides on-demand threat analysis, deep evidence correlation, account-based AI access, and clear defensive next actions for suspicious messages, links, email headers, QR codes, and screenshots." />
@@ -46,7 +73,7 @@
   </script>
   <!-- First-party error reporter. Keep it the first deferred script so it is listening before every
        later script runs (deferred scripts run in document order); defer keeps it off the critical path. -->
-  <script src="/cybernet-errors.js?v=20261018-h2" defer></script>
+  <script src="/cybernet-errors.js?v=20261021-1" defer></script>
   <!-- Self-hosted fonts (ui-src/css/00-fonts.css declares them). The two latin files the first screen
        uses are preloaded so they arrive with the CSS: Mona Sans (the H1, the text and the nav) and
        JetBrains Mono (the wordmark). crossorigin is required: fonts are fetched in CORS mode, and a

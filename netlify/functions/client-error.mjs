@@ -8,7 +8,14 @@
 // text field is scrubbed again here (the browser already scrubs), because the
 // sender cannot be trusted. Cookies and other headers are never read, apart
 // from the connection address used for rate limiting, which is hashed and
-// never stored or logged as is.
+// never stored or logged as is, and the User-Agent, which only becomes a short
+// browser name ("Instagram in-app (iOS 18)") and is never stored or logged.
+//
+// Logged but not emailed (lib/client-error-filters.mjs): messages from scripts
+// that in-app browsers inject, and other known noise (tagged "ignored"), and
+// any report from a browser older than Chrome/Edge 90, Safari/iOS 14 or
+// Firefox 90 (tagged "unsupported-browser"). These skip the durable limits
+// below, so they cannot use up the budget that real reports need.
 //
 // Limits: 10 reports a minute per address in each warm instance, then 30 an
 // hour per address and 300 an hour for everyone together through the
@@ -18,6 +25,7 @@
 
 import { createHmac } from "node:crypto";
 import { reportError, scrubText, consumeQuota, CLIENT_FILE, CLIENT_UA } from "../lib/report-error.mjs";
+import { isIgnoredError, describeUserAgent, labelSupported } from "../lib/client-error-filters.mjs";
 
 const MAX_BODY_BYTES = 8 * 1024;
 const PER_ADDRESS_PER_MINUTE = 10;
@@ -113,10 +121,9 @@ export function validateReport(body) {
 
 const EXTENSION = /\b(?:chrome|moz|safari|safari-web|ms-browser)-extension:\/\/|webkit-masked-url:/i;
 
-// Noise the browser script already drops; checked again for old or forged senders.
+// Browser extensions' errors: dropped without a log line (the browser script
+// drops them too). Known noise that is logged is in client-error-filters.mjs.
 export function isNoise(report) {
-  if (/ResizeObserver loop/i.test(report.message)) return true;
-  if (/^Script error\.?$/i.test(report.message) && !report.rawFile && !report.stack) return true;
   if (EXTENSION.test(report.rawFile || report.file || "") || EXTENSION.test(report.stack.split("\n").slice(0, 3).join("\n"))) return true;
   return false;
 }
@@ -198,25 +205,36 @@ export default async (request, context) => {
   const bucket = addressBucket(request, context);
   if (!withinMemoryLimit(bucket)) return reply(429, { error: "Too many reports. Try again in a minute." });
 
+  // The header names in-app browsers that old copies of the browser script
+  // call "Other on iOS"; the label the browser sent is the fallback.
+  const browser = describeUserAgent(request.headers.get("user-agent"));
+  if (browser) report.ua = browser.name;
+  const supported = browser?.supported ?? labelSupported(report.ua);
+  const skipAlert = isIgnoredError(report.message) ? "ignored" : supported === false ? "unsupported-browser" : "";
+
+  const meta = {
+    source: "client",
+    kind: report.kind,
+    page: report.page,
+    file: report.file,
+    version: report.version,
+    ua: report.ua,
+    where: report.where,
+    ts: report.ts,
+    context
+  };
+  const error = { name: report.name, message: report.message, stack: scrubText(report.stack, 2048) };
+  if (skipAlert) {
+    reportError(error, { ...meta, skipAlert });
+    return accepted();
+  }
+
   const perAddress = await consumeQuota(durableAddressKey(bucket), 3600, PER_ADDRESS_PER_HOUR);
   if (perAddress && !perAddress.allowed) return reply(429, { error: "Too many reports. Try again later." });
   const everyone = await consumeQuota("cn_cerr:all", 3600, ALL_PER_HOUR);
   if (everyone && !everyone.allowed) return reply(429, { error: "Too many reports. Try again later." });
 
-  reportError(
-    { name: report.name, message: report.message, stack: scrubText(report.stack, 2048) },
-    {
-      source: "client",
-      kind: report.kind,
-      page: report.page,
-      file: report.file,
-      version: report.version,
-      ua: report.ua,
-      where: report.where,
-      ts: report.ts,
-      context
-    }
-  );
+  reportError(error, meta);
 
   return accepted();
 };
