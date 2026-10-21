@@ -26,6 +26,7 @@
    first report is never split; typewriter titles are skipped; reduced = not split. "head": the
    parent's other children settle 180 ms after (lists stagger; corner labels draw their rule).
    Word stagger (#cnCore lead): +30 ms per word, capped at 8. CSS: 29-lines.css.
+   A split heading (H1-H6) gets its full text as aria-label and aria-hidden word boxes (21 Oct).
 
    ALSO
    - Auto-tags at start-up (each only if its first report says off screen): rule-before on
@@ -152,7 +153,10 @@
   var SKIP = /^(BR|SVG|IMG|PICTURE|VIDEO|CANVAS|MATH|SCRIPT|STYLE|TEMPLATE|TEXTAREA|INPUT|SELECT|BUTTON|CN-LM|CN-LM-I)$/;
   function splitLines(h) {
     if (h.__cnLines) return h.__cnLines;
-    var masks = [];
+    /* a heading keeps its full text as its name and the word boxes are hidden from assistive tech
+       (some readers stop at each inline-block); other elements may not carry aria-label */
+    var head = /^H[1-6]$/.test(h.nodeName), masks = [];
+    if (head && !h.hasAttribute("aria-label")) h.setAttribute("aria-label", h.textContent.replace(/\s+/g, " ").trim());
     (function walk(node) {
       Array.prototype.slice.call(node.childNodes).forEach(function (k) {
         if (k.nodeType === 3) {
@@ -162,6 +166,7 @@
             if (/^[ \t\n\r]+$/.test(s)) { frag.appendChild(doc.createTextNode(s)); return; }
             var o = doc.createElement("cn-lm"), i = doc.createElement("cn-lm-i");
             o.className = "cn-lm"; i.className = "cn-lm-i";
+            if (head) o.setAttribute("aria-hidden", "true");
             i.textContent = s;
             o.appendChild(i); frag.appendChild(o); masks.push(o);
           });

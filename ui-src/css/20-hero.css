@@ -232,9 +232,31 @@ html.cn.cn-intro #home .cn-hero4 { --cn-xv: .72; --cn-xvt: 1.2s; --cn-xs: 1.04; 
 html.cn.cn-intro.cn-intro-hold:not(.cn-still) #home .cn-hero4-scene::after,
 html.cn.cn-intro.cn-intro-hold:not(.cn-still) #home .cn-hero4-scene > .cn-hero4-poster,
 html.cn.cn-intro.cn-intro-hold:not(.cn-still) #home .cn-hero4::after,
-html.cn.cn-intro.cn-intro-hold:not(.cn-still) #home .hero-content .hero-title .cn-sweep {
+html.cn.cn-intro.cn-intro-hold:not(.cn-still) #home .hero-content .hero-title .cn-sweep,
+html.cn.cn-intro.cn-intro-hold:not(.cn-still) #home .hero-content .hero-title cn-w,
+/* Boot intro (21-boot.css, 21 Oct): the same holds while the boot screen is up, so all of it
+   plays as the screen lifts (.cn-boot-out at 1.5 s, or at once on a tap, key or scroll) */
+html.cn.cn-intro.cn-boot:not(.cn-boot-out, .cn-still) #home .cn-hero4-scene::after,
+html.cn.cn-intro.cn-boot:not(.cn-boot-out, .cn-still) #home .cn-hero4-scene > .cn-hero4-poster,
+html.cn.cn-intro.cn-boot:not(.cn-boot-out, .cn-still) #home .cn-hero4::after,
+html.cn.cn-intro.cn-boot:not(.cn-boot-out, .cn-still) #home .hero-content .hero-title .cn-sweep,
+html.cn.cn-intro.cn-boot:not(.cn-boot-out, .cn-still) #home .hero-content .hero-title cn-w {
   animation-play-state: paused;
 }
+/* Kinetic H1 (21 Oct): index.html ships the headline already split into words (cn-w, each
+   aria-hidden; the H1 carries the full text as its aria-label; the text stays real, selectable
+   and crawlable). The words are inline-block on every view, so their boxes never change and
+   nothing shifts. During Exposure each word rises a little and sharpens from a blur, 60 ms
+   apart ("seconds" lands just before its light sweep at 760 ms). Transform, opacity and filter
+   only, backwards fill: each word rests at its own style. CSS only, so phones get it too; the
+   poster, not the H1, is the LCP element, and it paints on the first frame as before. */
+html.cn #home .hero-content .hero-title cn-w { display: inline-block; }
+@media (prefers-reduced-motion: no-preference) {
+  html.cn.cn-intro:not(.cn-still) #home .hero-content .hero-title cn-w {
+    animation: cn-x-word .9s var(--cn-ease-expo) calc(.08s + var(--i, 0) * 60ms) backwards;
+  }
+}
+@keyframes cn-x-word { from { opacity: 0; transform: translateY(.3em); filter: blur(12px); } }
 @keyframes cn-x-veil { from { opacity: var(--cn-xv); } }
 @keyframes cn-x-poster { from { scale: var(--cn-xs); } }
 /* one PASS of light along an edge (also the dialogs' top edge, 60-overlays.css) */
