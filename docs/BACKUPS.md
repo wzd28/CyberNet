@@ -122,6 +122,7 @@ This writes `<file>.json` and `<file>.restore.sql`.
 
 1. Paste the whole of `supabase/schema.sql` and run it. Use the version of the file from the date of the backup if the structure changed since then (`git log supabase/schema.sql` shows the history).
 2. Only if that copy of `schema.sql` is older than 19 Oct 2026: also run the SQL in the appendix "Objects that older copies of schema.sql do not have" at the end of this page. It adds two tables and two functions that were created directly in the live database; `schema.sql` has them since 19 Oct 2026. Without them, rate limiting and error alerts stop working.
+3. Run every file in `supabase/migrations/`, oldest first. New Supabase projects no longer grant table access automatically, and `schema.sql` alone does not give the server (service role) access to the tables: without this step every function answers "permission denied".
 
 **Step 4. Recreate the sign-in accounts**, keeping their ids so every row still points at the right person. In PowerShell, in the project folder:
 
