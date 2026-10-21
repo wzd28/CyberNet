@@ -33,15 +33,19 @@
     /* Boot intro (21-boot.css, the .cn-boot block at the top of <body>): the same first view, at "/"
        with no hash and no query beyond campaign tags (flag "boot"), opens on a ~2 s branded screen that
        lifts by itself from CSS at 1.5 s (gone at 2.1 s). Never a gate: aria-hidden, pointer-events none, and any tap,
-       key, wheel or scroll lifts it at once. Exposure waits on its first frame under it (html.cn-boot
-       without .cn-boot-out), so it plays as the screen lifts. Storage is written first: blocked
-       storage means no Exposure and no intro. */
+       key, wheel or scroll lifts it at once. The tap that lifts it is used up (its touchend,
+       mousedown and click are cancelled), so it never lands on the page it could not see.
+       Exposure waits on its first frame under it (html.cn-boot without .cn-boot-out), so it plays
+       as the screen lifts. Storage is written first: blocked storage means no Exposure and no intro. */
     var boot=function(){
       if(location.hash||location.search.replace(/[?&](utm_\w+|ref|gclid|fbclid)=[^&]*/g,"")||(localStorage.getItem("cn-fx")||"").indexOf("-boot")>=0)return;
-      var E=["pointerdown","keydown","wheel","touchstart","scroll"],skip=function(){out(1)},
-      out=function(s){if(r.classList.contains("cn-boot-out"))return;r.classList.add("cn-boot-out");if(s)r.classList.add("cn-boot-skip");E.forEach(function(n){removeEventListener(n,skip,true)});setTimeout(function(){r.classList.remove("cn-boot","cn-boot-out","cn-boot-skip")},s?350:700)};
+      var E=["pointerdown","keydown","wheel","touchstart","scroll"],T=["touchend","mousedown","click"],w=0,
+      eat=function(e){if(w){e.preventDefault();e.stopPropagation();if(e.type!="mousedown")w=0}},
+      skip=function(e){if(e.type=="pointerdown"||e.type=="touchstart")w=1;out(1)},
+      out=function(s){if(r.classList.contains("cn-boot-out"))return;r.classList.add("cn-boot-out");if(s)r.classList.add("cn-boot-skip");E.forEach(function(n){removeEventListener(n,skip,true)});setTimeout(function(){w=0;T.forEach(function(n){removeEventListener(n,eat,true)});r.classList.remove("cn-boot","cn-boot-out","cn-boot-skip")},s?350:700)};
       r.classList.add("cn-boot");
       E.forEach(function(n){addEventListener(n,skip,{capture:true,passive:true})});
+      T.forEach(function(n){addEventListener(n,eat,{capture:true,passive:false})});
       requestAnimationFrame(function(){setTimeout(function(){out()},1500)});
     };
     try{if(location.pathname==="/"&&!r.classList.contains("cn-still")&&!matchMedia("(prefers-reduced-motion: reduce)").matches&&(localStorage.getItem("cn-fx")||"").indexOf("-exposure")<0&&!sessionStorage.getItem("cn-intro")){sessionStorage.setItem("cn-intro","1");r.classList.add("cn-intro","cn-intro-hold");hold();boot()}}catch(e){r.classList.remove("cn-intro-hold")}
