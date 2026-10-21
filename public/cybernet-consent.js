@@ -227,13 +227,10 @@
       return;
     }
     root.classList.add("cn-consent-visible");
-    // Measured in the next frame, before it paints. This script runs while the page is still
-    // loading, and reading the size here forced a full layout of the page on its own
-    // (~110 ms on desktop, ~180 ms on a slow phone, before the first paint).
-    requestAnimationFrame(() => {
-      if (bar.hidden || !root.classList.contains("cn-consent-visible")) return;
-      root.style.setProperty("--cn-consent-space", `${Math.ceil(bar.getBoundingClientRect().height)}px`);
-    });
+    // Kept synchronous on purpose (21 Oct): this read is the page's first full layout. Moving it
+    // into a rAF merged it with the DOMContentLoaded changes into one longer task after the first
+    // paint, which raised mobile Total Blocking Time by 25-120 ms in Lighthouse.
+    root.style.setProperty("--cn-consent-space", `${Math.ceil(bar.getBoundingClientRect().height)}px`);
   }
 
   function showBar({ focus = false } = {}) {
