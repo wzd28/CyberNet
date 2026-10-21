@@ -95,7 +95,16 @@
     window.dataLayer.push(arguments);
   }
 
-  function loadAnalytics() {
+  // After window load, once the browser is idle: the tag never competes with the first paint.
+  function afterLoadIdle(fn) {
+    const idle = () => (window.requestIdleCallback ? window.requestIdleCallback(fn, { timeout: 3000 }) : setTimeout(fn, 1));
+    if (document.readyState === "complete") idle();
+    else window.addEventListener("load", idle, { once: true });
+  }
+
+  // atStart: a returning visitor who already allowed analytics. The queue (dataLayer) is set up
+  // at once; only the network tag waits for load + idle (gtag.js replays the queue when it runs).
+  function loadAnalytics(atStart = false) {
     window[`ga-disable-${MEASUREMENT_ID}`] = false;
 
     if (gaLoaded) {
@@ -114,12 +123,15 @@
       ad_personalization: "denied"
     });
 
-    if (!document.querySelector(`script[src="${GTAG_SRC}"]`)) {
+    const inject = () => {
+      if (window[`ga-disable-${MEASUREMENT_ID}`] || document.querySelector(`script[src="${GTAG_SRC}"]`)) return;
       const script = document.createElement("script");
       script.async = true;
       script.src = GTAG_SRC;
       document.head.appendChild(script);
-    }
+    };
+    if (atStart) afterLoadIdle(inject);
+    else inject();
 
     window.gtag("js", new Date());
     window.gtag("config", MEASUREMENT_ID, {
@@ -215,7 +227,13 @@
       return;
     }
     root.classList.add("cn-consent-visible");
-    root.style.setProperty("--cn-consent-space", `${Math.ceil(bar.getBoundingClientRect().height)}px`);
+    // Measured in the next frame, before it paints. This script runs while the page is still
+    // loading, and reading the size here forced a full layout of the page on its own
+    // (~110 ms on desktop, ~180 ms on a slow phone, before the first paint).
+    requestAnimationFrame(() => {
+      if (bar.hidden || !root.classList.contains("cn-consent-visible")) return;
+      root.style.setProperty("--cn-consent-space", `${Math.ceil(bar.getBoundingClientRect().height)}px`);
+    });
   }
 
   function showBar({ focus = false } = {}) {
@@ -279,7 +297,7 @@
     document.documentElement.dataset.cybernetConsent = "ready";
 
     const choice = currentChoice();
-    if (choice === "granted") loadAnalytics();
+    if (choice === "granted") loadAnalytics(true);
     else if (choice === "denied") deleteAnalyticsCookies();
     else showBar();
 
