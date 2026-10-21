@@ -7,8 +7,9 @@
    Never sent: anything typed into the page, page content, cookies, storage,
    emails, tokens or query strings.
    At most 5 reports per page load, each distinct error once. Extension errors,
-   cross-origin "Script error." and the harmless ResizeObserver loop warning are
-   ignored. Manual reports: window.CN_reportError(error, "what was happening"). */
+   scripts injected by in-app browsers, cross-origin "Script error." and the
+   harmless ResizeObserver loop warning are ignored (IGNORED below).
+   Manual reports: window.CN_reportError(error, "what was happening"). */
 (function () {
   "use strict";
   if (window.CN_reportError) return;
@@ -21,6 +22,17 @@
   var busy = false;
   var origin = location.origin;
   var EXTENSION = /\b(?:chrome|moz|safari|safari-web|ms-browser)-extension:\/\/|webkit-masked-url:/i;
+  // Not our bugs. A copy of IGNORED_ERRORS in netlify/lib/client-error-filters.mjs (one
+  // comment per pattern there); keep both the same, tests/run-errors.mjs compares them.
+  var IGNORED = [
+    /_AutofillCallbackHandler/,
+    /_pcmBridgeCallbackHandler/,
+    /webkit\.messageHandlers/,
+    /instantSearchSDKJSBridge/,
+    /Can't find variable: gmo/,
+    /ResizeObserver loop (limit exceeded|completed with undelivered notifications)/,
+    /^Script error\.?$/
+  ];
 
   // Origin + path only; a trailing :line:col is kept. Same-origin URLs lose the origin.
   function cleanUrl(url) {
@@ -98,9 +110,8 @@
       if (!message) message = kind === "rejection" ? "Unhandled promise rejection (not an Error)" : "Unknown error";
       message = String(message).replace(/^Uncaught\s+/, "");
 
-      // Noise: extensions, muted cross-origin errors, other sites' scripts, ResizeObserver.
-      if (/ResizeObserver loop/i.test(message)) return;
-      if (/^Script error\.?$/i.test(message) && !file) return;
+      // Noise: injected scripts, muted cross-origin errors, ResizeObserver, extensions, other sites' scripts.
+      for (var i = 0; i < IGNORED.length; i++) if (IGNORED[i].test(message)) return;
       if (EXTENSION.test(file || "") || EXTENSION.test(stack.split("\n").slice(0, 3).join("\n"))) return;
       if (file && /^[a-z][\w+.-]*:\/\//i.test(file) && file.indexOf(origin + "/") !== 0 && stack.indexOf(origin + "/") === -1) return;
 

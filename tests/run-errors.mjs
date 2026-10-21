@@ -260,9 +260,6 @@ reset();
 reset();
 {
   for (const noise of [
-    goodReport({ message: "ResizeObserver loop completed with undelivered notifications." }),
-    goodReport({ message: "ResizeObserver loop limit exceeded", file: "", stack: "" }),
-    { message: "Script error.", page: "/" },
     goodReport({ stack: "Error: x\n    at chrome-extension://abcdefghijklmnop/content.js:1:1", file: "" }),
     goodReport({ file: "moz-extension://1234/inject.js" }),
     goodReport({ file: "webkit-masked-url://hidden/", stack: "" })
@@ -271,6 +268,49 @@ reset();
     check(`client/noise-204/${noise.message.slice(0, 20)}`, response.status === 204, response.status);
   }
   check("client/noise-not-reported", errorLines().length === 0 && emails.length === 0, errorLines());
+  // Known noise is logged, tagged "ignored", never emailed, and uses no durable quota.
+  for (const noise of [
+    goodReport({ message: "ResizeObserver loop completed with undelivered notifications." }),
+    goodReport({ message: "ResizeObserver loop limit exceeded", file: "", stack: "" }),
+    { message: "Script error.", page: "/" },
+    goodReport({ name: "TypeError", message: "TypeError: undefined is not an object (evaluating 'window.webkit.messageHandlers.x')" })
+  ]) {
+    const { response } = await post(noise);
+    check(`client/ignored-204/${noise.message.slice(0, 20)}`, response.status === 204, response.status);
+  }
+  check("client/ignored-logged-not-emailed", errorLines().length === 4 && errorLines().every((l) => l.filter === "ignored") && emails.length === 0 && quotaKeys.length === 0, [errorLines(), quotaKeys]);
+}
+
+// The reports behind the 21 Oct 2026 alerts, and a real bug that must still alert.
+const IG_UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/22A3354 Instagram 350.0.0.20.104 (iPhone14,5; iOS 18_0; en_US; en; scale=3.00; 1170x2532; 653131379)";
+const CHROME69_UA = "Mozilla/5.0 (Linux; Android 9; SM-N960F Build/PPR1.180610.011; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/69.0.3497.100 Mobile Safari/537.36 open_news open_news_u_s/6211";
+const CHROME_DESKTOP_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36";
+reset();
+{
+  const autofill = { kind: "error", name: "ReferenceError", message: "ReferenceError: Can't find variable: _AutofillCallbackHandler", stack: "global code@/quick-scan:1:25", page: "/quick-scan", version: "20261019-1", ua: "Other on iOS", ts: new Date().toISOString() };
+  const { response } = await post(autofill, { headers: { "user-agent": IG_UA } });
+  const [line] = errorLines();
+  check("filter/autofill-ignored", response.status === 204 && errorLines().length === 1 && line.filter === "ignored" && emails.length === 0 && quotaKeys.length === 0, [line, quotaKeys]);
+  check("filter/autofill-browser-name", line?.ua === "Instagram in-app (iOS 18)", line?.ua);
+  check("filter/no-full-ua-logged", !logs.some((l) => /Mobile\/22A3354|iPhone14,5|653131379/.test(l)), logs);
+}
+reset();
+{
+  const parseError = { kind: "error", name: "SyntaxError", message: "SyntaxError: Unexpected token .", stack: "", file: "/cybernet-account-api-upgrade.js", line: 96, col: 18, page: "/quick-scan", version: "20261019-1", ua: "Chrome 69 on Android", ts: new Date().toISOString() };
+  const { response } = await post(parseError, { headers: { "user-agent": CHROME69_UA } });
+  const [line] = errorLines();
+  check("filter/chrome69-unsupported", response.status === 204 && line?.filter === "unsupported-browser" && emails.length === 0 && quotaKeys.length === 0, [line, quotaKeys]);
+  check("filter/chrome69-name", line?.ua === "News app in-app (Android 9)" && !logs.some((l) => /SM-N960F|open_news_u_s|PPR1/.test(l)), line?.ua);
+  reset();
+  await post(parseError); // an old cached client and no User-Agent header: its own label decides
+  check("filter/chrome69-label-fallback", errorLines()[0]?.filter === "unsupported-browser" && emails.length === 0, errorLines()[0]);
+}
+reset();
+{
+  const bug = goodReport({ message: "TypeError: Cannot read properties of undefined (reading 'score')", page: "/quick-scan", ua: "Chrome 130 on Windows" });
+  const { response } = await post(bug, { headers: { "user-agent": CHROME_DESKTOP_UA.replace("141.0", "130.0") } });
+  const [line] = errorLines();
+  check("filter/real-bug-emailed", response.status === 204 && line && !line.filter && line.ua === "Chrome 130 on Windows" && emails.length === 1 && emails[0].body.text.includes("Browser: Chrome 130 on Windows"), [line, emails.length]);
 }
 reset();
 {
@@ -705,6 +745,92 @@ const ALLOWED_KEYS = new Set(["kind", "name", "message", "stack", "file", "line"
   const [body] = await sb.bodies();
   check("browser/number-shapes-scrubbed", body && !/5551234567|15551234567|4111111111111111|DE89370400440532013000|89370400440532013000/.test(body.message), body?.message);
   check("browser/stack-numbers-kept", body && /cybernet-errors|\d/.test(body.stack || "x"), body?.stack);
+}
+
+/* ---------- 5b. noise filters, browser names, old-browser notice ---------- */
+
+{
+  const { IGNORED_ERRORS, describeUserAgent } = await import("../netlify/lib/client-error-filters.mjs");
+  const { CLIENT_UA } = await import("../netlify/lib/report-error.mjs");
+  // The browser copy of the ignore list matches the server's.
+  const block = /var IGNORED = \[([\s\S]*?)\];/.exec(reporterSource);
+  const clientList = block ? vm.runInNewContext(`[${block[1]}]`) : [];
+  check("filter/lists-match", clientList.length === IGNORED_ERRORS.length && clientList.every((p, i) => p.source === IGNORED_ERRORS[i].source && p.flags === IGNORED_ERRORS[i].flags), clientList.map(String));
+
+  const sb = sandbox({ ua: IG_UA });
+  sb.fire("error", { target: sb.win, message: "ReferenceError: Can't find variable: _AutofillCallbackHandler", filename: "https://cybernetai.app/quick-scan", lineno: 1, colno: 25 });
+  sb.fire("error", { target: sb.win, message: "Uncaught TypeError: Cannot read properties of undefined (reading 'score')", filename: "https://cybernetai.app/script.js", lineno: 10, colno: 2 });
+  const sent = await sb.bodies();
+  check("browser/injected-script-ignored", sent.length === 1 && sent[0].message.includes("'score'"), sent);
+
+  for (const [ua, name, supported] of [
+    [IG_UA, "Instagram in-app (iOS 18)", true],
+    ["Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/21F90 [FBAN/FBIOS;FBAV/470.0.0.37.110;FBBV/615713488;FBDV/iPhone15,2;FBMD/iPhone;FBSN/iOS;FBSV/17.5;FBSS/3;FBID/phone;FBLC/en_US;FBOP/80]", "Facebook in-app (iOS 17)", true],
+    ["Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1", "Safari 18 on iOS", true],
+    [CHROME69_UA, "News app in-app (Android 9)", false],
+    [CHROME_DESKTOP_UA, "Chrome 141 on Windows", true],
+    ["Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/141.0.7390.41 Mobile/15E148 Safari/604.1", "Chrome 141 on iOS", true],
+    ["Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 musical_ly_36.5.0 JsSdk/2.0 BytedanceWebview/d8a21c6", "TikTok in-app (iOS 18)", true],
+    ["Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148", "Other in-app (iOS 18)", true],
+    ["Mozilla/5.0 (Linux; Android 14; Pixel 8 Build/AP2A; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/141.0.0.0 Mobile Safari/537.36", "Android WebView 141 (Android 14)", true],
+    ["Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/24.0 Chrome/117.0.0.0 Mobile Safari/537.36", "Samsung Internet 24 on Android", true],
+    ["Mozilla/5.0 (iPhone; CPU iPhone OS 12_5_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.1.2 Mobile/15E148 Safari/604.1", "Safari 12 on iOS", false],
+    ["Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.1 Safari/605.1.15", "Safari 13 on macOS", false],
+    ["Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0", "Firefox 89 on Windows", false]
+  ]) {
+    const got = describeUserAgent(ua);
+    check(`ua/${name}`, got && got.name === name && got.supported === supported && CLIENT_UA.test(got.name), got);
+  }
+  check("ua/empty", describeUserAgent("") === null && describeUserAgent(null) === null);
+}
+{
+  // The inline old-browser notice: ES5, first script in the head, the same on both pages.
+  const pages = ["index.html", "privacy.html"].map((p) => readFileSync(path.join(root, "public", p), "utf8"));
+  const grab = (html) => {
+    const m = /<script>\n(  \(function \(w, d\) \{[\s\S]*?)<\/script>\n  <script>(window\.CN_modernJs = [^<]*)<\/script>/.exec(html);
+    return m ? { notice: m[1], probe: m[2], first: html.indexOf("<script") === m.index } : null;
+  };
+  const [a, b] = pages.map(grab);
+  check("oldbrowser/same-on-both-pages", a && b && a.notice === b.notice && a.probe === b.probe, [!!a, !!b]);
+  check("oldbrowser/first-script", a?.first && b?.first);
+  check("oldbrowser/es5-only", a && !/=>|`|\b(?:let|const|class)\s/.test(a.notice), a?.notice);
+  try {
+    const acorn = (await import("acorn")).default ?? (await import("acorn"));
+    let es5 = true;
+    try { acorn.parse(a.notice, { ecmaVersion: 5 }); } catch { es5 = false; }
+    check("oldbrowser/parses-as-es5", es5);
+  } catch { /* acorn is optional here */ }
+  const run = (mode) => {
+    const winListeners = {};
+    const docListeners = {};
+    const inserted = [];
+    const element = () => ({ style: {}, attrs: {}, children: [], setAttribute(k, v) { this.attrs[k] = v; }, appendChild(c) { this.children.push(c); } });
+    const doc = {
+      getElementById: () => null,
+      createElement: element,
+      createTextNode: (text) => ({ text }),
+      addEventListener: (type, fn) => (docListeners[type] ||= []).push(fn),
+      body: { firstChild: null, insertBefore: (node) => inserted.push(node) }
+    };
+    const win = {
+      document: doc,
+      addEventListener: (type, fn) => (winListeners[type] ||= []).push(fn),
+      removeEventListener: (type, fn) => { winListeners[type] = (winListeners[type] || []).filter((f) => f !== fn); }
+    };
+    win.window = win;
+    const ctx = vm.createContext(win);
+    vm.runInContext(a.notice, ctx);
+    if (mode === "modern") vm.runInContext(a.probe, ctx);
+    if (mode === "old") (winListeners.error || []).forEach((fn) => fn({ message: "Uncaught SyntaxError: Unexpected token .", error: { name: "SyntaxError" } }));
+    (docListeners.DOMContentLoaded || []).forEach((fn) => fn());
+    return { inserted, left: (winListeners.error || []).length, flag: win.CN_modernJs };
+  };
+  const modern = run("modern");
+  check("oldbrowser/modern-untouched", modern.flag === true && modern.inserted.length === 0 && modern.left === 0, modern);
+  const old = run("old");
+  check("oldbrowser/old-gets-notice", old.inserted.length === 1 && old.inserted[0].id === "cn-old-browser" && old.inserted[0].attrs.role === "alert" && old.inserted[0].children[0].text === "Your browser is too old to run CyberNet AI. Please update your browser." && old.left === 0, old.inserted);
+  // A probe that never ran (blocked, not a parse failure) shows nothing.
+  check("oldbrowser/blocked-probe-no-notice", run("blocked").inserted.length === 0);
 }
 
 /* ---------- 6. optional: a real page in headless Edge ---------- */
