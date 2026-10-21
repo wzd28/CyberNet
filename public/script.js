@@ -1458,10 +1458,11 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(first&&!first.value)first.value=metadata.first_name||parts[0]||"";
     if(last&&!last.value)last.value=metadata.last_name||parts.slice(1).join(" ")||"";
     if(email&&!email.value)email.value=user?.email||"";
+    /* These hidden fields only go to the Netlify Forms fallback; the page is sent without its query or hash. */
     const page=document.getElementById("feedbackPageUrl");
     const submitted=document.getElementById("feedbackSubmittedAt");
     const browser=document.getElementById("feedbackBrowser");
-    if(page)page.value=window.location.href.slice(0,1000);
+    if(page)page.value=(window.location.origin+window.location.pathname).slice(0,1000);
     if(submitted)submitted.value=new Date().toISOString();
     if(browser)browser.value=navigator.userAgent.slice(0,500);
   }
@@ -1613,7 +1614,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       setFeedbackMessage("Thank you. Your report was received.","success");
       return;
     }
-    const required=["first_name","last_name","email","feedback_type","message"];
+    const required=["email","feedback_type","message"];
     if(required.some(name=>!String(formData.get(name)||"").trim())){
       setFeedbackMessage("Complete every required field before sending.","error");
       return;
@@ -1621,16 +1622,42 @@ document.addEventListener("DOMContentLoaded",()=>{
     const button=document.getElementById("feedbackSubmitBtn");
     if(button)button.disabled=true;
     setFeedbackMessage("Sending your report securely…");
+    /* Saved in the database by /api/feedback (netlify/functions/feedback.mjs). A 4xx answer is shown as is;
+       only when that endpoint is down does the form fall back to the Netlify Forms submission it used before. */
+    const uiVersion=(/[?&]v=([\w.-]{1,32})/.exec(document.querySelector('script[src*="/ui/cybernet-ui.js"]')?.getAttribute("src")||"")||[])[1]||"";
     try{
-      const response=await fetch("/",{
-        method:"POST",
-        headers:{"Content-Type":"application/x-www-form-urlencoded"},
-        body:new URLSearchParams(formData).toString()
-      });
-      if(!response.ok)throw new Error(`Submission failed with ${response.status}`);
+      let saved=false;
+      try{
+        const response=await fetch("/api/feedback",{
+          method:"POST",
+          headers:authHeaders({"Content-Type":"application/json",Accept:"application/json"}),
+          body:JSON.stringify({
+            category:String(formData.get("feedback_type")||""),
+            message:String(formData.get("message")||""),
+            email:String(formData.get("email")||"").trim(),
+            page:window.location.pathname.slice(0,200),
+            uiVersion,
+            bot_field:String(formData.get("bot-field")||"")
+          })
+        });
+        if(response.ok)saved=true;
+        else if(response.status<500){
+          const data=await response.json().catch(()=>({}));
+          setFeedbackMessage(data.error||`The message could not be sent. Email ${SUPPORT_EMAIL} directly.`,"error");
+          return;
+        }
+      }catch(error){console.warn("CyberNet feedback endpoint unavailable",error)}
+      if(!saved){
+        const response=await fetch("/",{
+          method:"POST",
+          headers:{"Content-Type":"application/x-www-form-urlencoded"},
+          body:new URLSearchParams(formData).toString()
+        });
+        if(!response.ok)throw new Error(`Submission failed with ${response.status}`);
+      }
       feedbackForm.reset();
       prefillFeedback();
-      setFeedbackMessage(`Thank you. Your report was submitted to CyberNet support at ${SUPPORT_EMAIL}.`,"success");
+      setFeedbackMessage("Thank you. Your message reached CyberNet support. If you gave an email, we will reply there.","success");
     }catch(error){
       console.error("CyberNet feedback submission failed",error);
       setFeedbackMessage(`The survey could not be sent. Email ${SUPPORT_EMAIL} directly.`,"error");
