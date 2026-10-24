@@ -1,5 +1,6 @@
 import { json, verifyUser, getProfile, effectivePlan, getActiveTeamMembership, serviceFetch, isAdminUser } from "../lib/supabase.mjs";
 import { reportError } from "../lib/report-error.mjs";
+import { lookup as dnsLookup } from "node:dns/promises";
 
 // Every preview spends a paid GetScreenshot credit (or the shared keyless
 // Microlink allowance), so each account gets a short-burst and a daily cap.
@@ -62,6 +63,160 @@ function normalizeUrl(value) {
   }
 }
 
+// Test seams (tests/run-preview.mjs swaps these for stubs; production never
+// changes them). fetch is always the global one, so tests stub globalThis.fetch.
+export const previewDeps = {
+  lookup: (host, options) => dnsLookup(host, options),
+  now: () => Date.now(),
+  dnsTimeoutMs: 2_500
+};
+
+// An address the name resolves to that is not on the public internet: a
+// public-looking name can still point at 127.0.0.1 or a private network, so the
+// answer is checked as well as the name. Anything not recognised counts as
+// private.
+function isPrivateAddress(address) {
+  const a = String(address || "").toLowerCase().replace(/^\[|\]$/g, "");
+  const mapped = a.match(/^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/);
+  const v4 = (mapped ? mapped[1] : a).match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (v4) {
+    const [o1, o2] = [Number(v4[1]), Number(v4[2])];
+    return o1 === 0 || o1 === 10 || o1 === 127 || o1 >= 224 ||
+      (o1 === 169 && o2 === 254) || (o1 === 172 && o2 >= 16 && o2 <= 31) ||
+      (o1 === 192 && o2 === 168) || (o1 === 100 && o2 >= 64 && o2 <= 127);
+  }
+  if (!a.includes(":")) return true;
+  return a === "::" || a === "::1" || a.startsWith("::ffff:") || /^f[cd]/.test(a) || /^fe[89ab]/.test(a) || /^ff/.test(a);
+}
+
+function dnsReason(code) {
+  if (code === "ETIMEOUT" || code === "EAI_AGAIN") return "timeout";
+  if (code === "EREFUSED" || code === "ECONNREFUSED") return "refused";
+  return "dns";
+}
+
+// Resolves a host name with a short timeout. Never throws.
+async function resolveHost(host) {
+  let timer;
+  try {
+    const answer = await Promise.race([
+      previewDeps.lookup(host, { all: true }),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(Object.assign(new Error("DNS lookup timed out."), { code: "ETIMEOUT" })), previewDeps.dnsTimeoutMs);
+      })
+    ]);
+    const addresses = (Array.isArray(answer) ? answer : [answer]).map((e) => (typeof e === "string" ? e : e?.address)).filter(Boolean);
+    return addresses.length ? { ok: true, addresses } : { ok: false, reason: "dns" };
+  } catch (error) {
+    return { ok: false, reason: dnsReason(error?.code) };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Decides what, if anything, gets sent to a screenshot provider.
+//   { kind: "ok", url, wwwFallback?, requestedHost?, shownHost? }
+//   { kind: "blocked" }                  resolves to a private address
+//   { kind: "unreachable", reason }      no DNS answer (dns | timeout | refused)
+// A bare name with no DNS record (totalpadel.com) is retried as www.<name>,
+// through the same URL and address checks as the original.
+async function resolvePreviewTarget(safeUrl) {
+  const url = new URL(safeUrl);
+  const first = await resolveHost(url.hostname);
+  if (first.ok) return first.addresses.some(isPrivateAddress) ? { kind: "blocked" } : { kind: "ok", url: safeUrl };
+  if (!/^www\./i.test(url.hostname)) {
+    const alt = new URL(safeUrl);
+    alt.hostname = `www.${url.hostname}`;
+    const wwwUrl = normalizeUrl(alt.toString());
+    if (wwwUrl) {
+      const shownHost = new URL(wwwUrl).hostname;
+      const second = await resolveHost(shownHost);
+      if (second.ok) {
+        if (second.addresses.some(isPrivateAddress)) return { kind: "blocked" };
+        return { kind: "ok", url: wwwUrl, wwwFallback: true, requestedHost: url.hostname, shownHost };
+      }
+    }
+  }
+  return { kind: "unreachable", reason: first.reason };
+}
+
+// GetScreenshot answers 401/402/403 when the account is unpaid or the key is
+// refused; every preview then lost seconds on it before the fallback. After
+// one such answer it is skipped for 30 minutes on this instance.
+const BREAKER_MS = 30 * 60_000;
+const breaker = { until: 0 };
+export function resetPreviewBreaker() {
+  breaker.until = 0;
+}
+function getScreenshotPaused() {
+  return previewDeps.now() < breaker.until;
+}
+function tripGetScreenshotBreaker(status) {
+  const wasPaused = getScreenshotPaused();
+  breaker.until = previewDeps.now() + BREAKER_MS;
+  if (!wasPaused) console.error(`CyberNet screenshot-preview: GetScreenshot answered ${status}; skipping it for 30 minutes (Microlink only). Renew the GetScreenshot plan or remove GETSCREENSHOT_API_KEY.`);
+}
+
+// A provider rendered the page but the site itself did not load: no answer at
+// all (Microlink's statusCode null, which is a picture of the browser's own
+// "This site can't be reached" page) or an HTTP error.
+function targetFailure(status) {
+  const error = new Error(status == null ? "The site did not load." : `The site answered ${status}.`);
+  error.target = true;
+  error.reason = status == null ? "load" : "http";
+  error.status = status == null ? null : status;
+  return error;
+}
+
+// Everything after the request checks: DNS, then the providers. Exported for
+// tests/run-preview.mjs.
+//   { kind: "shot", screenshot, provider, url, wwwFallback?, requestedHost?, shownHost? }
+//   { kind: "unreachable", reason, status?, url }
+//   { kind: "blocked" } | { kind: "failed" }
+export async function buildPreview(safeUrl, { apiKey, deadline = previewDeps.now() + 25_000 } = {}) {
+  const target = await resolvePreviewTarget(safeUrl);
+  if (target.kind === "blocked") return target;
+  if (target.kind === "unreachable") return { ...target, url: safeUrl };
+  const remaining = () => Math.max(1_000, deadline - previewDeps.now());
+  const shotUrl = target.url;
+
+  const attempt = (name, run) =>
+    run().then((screenshot) => {
+      if (!screenshot) throw new Error("Provider returned no image.");
+      return { screenshot, provider: name };
+    }).catch((error) => {
+      console.error("CyberNet screenshot-preview provider failed", { provider: name, message: error?.message });
+      throw error;
+    });
+
+  try {
+    let result;
+    if (!apiKey || getScreenshotPaused()) {
+      result = await attempt("microlink", () => microlinkScreenshot(shotUrl, remaining));
+    } else {
+      const primary = attempt("getscreenshot", () => rasterwiseScreenshot(apiKey, shotUrl, remaining));
+      const fallback = new Promise((resolve, reject) => {
+        let started = false;
+        const start = () => {
+          if (started) return;
+          started = true;
+          attempt("microlink", () => microlinkScreenshot(shotUrl, remaining)).then(resolve, reject);
+        };
+        const headStart = setTimeout(start, 9_000);
+        primary.then(() => clearTimeout(headStart), () => { clearTimeout(headStart); start(); });
+      });
+      result = await Promise.any([primary, fallback]);
+    }
+    const www = target.wwwFallback ? { wwwFallback: true, requestedHost: target.requestedHost, shownHost: target.shownHost } : {};
+    return { kind: "shot", screenshot: result.screenshot, provider: result.provider, url: shotUrl, ...www };
+  } catch (error) {
+    const errors = error instanceof AggregateError ? error.errors : [error];
+    const failed = errors.find((e) => e?.target);
+    if (failed) return { kind: "unreachable", reason: failed.reason, status: failed.status, url: shotUrl };
+    return { kind: "failed" };
+  }
+}
+
 export default async (request) => {
   if (request.method !== "POST") {
     return json({ error: "Method not allowed." }, 405);
@@ -118,40 +273,21 @@ export default async (request) => {
   // has not answered after nine (a heavy page) or it fails outright, the
   // keyless fallback starts alongside it and whichever finishes first wins.
   // Running them one after the other left slow pages with no picture at all.
-  const deadline = Date.now() + 25_000;
-  const remaining = () => Math.max(1_000, deadline - Date.now());
-
-  const attempt = (name, run) =>
-    run().then((screenshot) => {
-      if (!screenshot) throw new Error("Provider returned no image.");
-      return { screenshot, provider: name };
-    }).catch((error) => {
-      console.error("CyberNet screenshot-preview provider failed", { provider: name, message: error?.message });
-      throw error;
-    });
-
-  try {
-    let result;
-    if (!apiKey) {
-      result = await attempt("microlink", () => microlinkScreenshot(safeUrl, remaining));
-    } else {
-      const primary = attempt("getscreenshot", () => rasterwiseScreenshot(apiKey, safeUrl, remaining));
-      const fallback = new Promise((resolve, reject) => {
-        let started = false;
-        const start = () => {
-          if (started) return;
-          started = true;
-          attempt("microlink", () => microlinkScreenshot(safeUrl, remaining)).then(resolve, reject);
-        };
-        const headStart = setTimeout(start, 9_000);
-        primary.then(() => clearTimeout(headStart), () => { clearTimeout(headStart); start(); });
-      });
-      result = await Promise.any([primary, fallback]);
-    }
-    return json({ screenshot: result.screenshot, url: safeUrl, provider: result.provider });
-  } catch {
+  // Before either is asked, the name is looked up: a name with no DNS record
+  // is not sent to a provider at all (it used to come back as a picture of the
+  // browser's "This site can't be reached" page).
+  const outcome = await buildPreview(safeUrl, { apiKey, deadline: previewDeps.now() + 25_000 });
+  if (outcome.kind === "blocked") {
+    return json({ error: "That link can't be previewed safely." }, 400);
+  }
+  if (outcome.kind === "unreachable") {
+    return json({ unreachable: true, reason: outcome.reason, status: outcome.status ?? null, url: outcome.url });
+  }
+  if (outcome.kind !== "shot") {
     return json({ error: "Couldn't generate a preview of that link right now." }, 503);
   }
+  const www = outcome.wwwFallback ? { wwwFallback: true, requestedHost: outcome.requestedHost, shownHost: outcome.shownHost } : {};
+  return json({ screenshot: outcome.screenshot, url: outcome.url, provider: outcome.provider, ...www });
 };
 
 async function isActiveTeamMember(userId) {
@@ -173,6 +309,7 @@ async function rasterwiseScreenshot(apiKey, safeUrl, remaining) {
   endpoint.searchParams.set("height", "800");
   endpoint.searchParams.set("format", "jpeg");
   const response = await fetch(endpoint, { signal: AbortSignal.timeout(Math.min(20_000, remaining())) });
+  if ([401, 402, 403].includes(response.status)) tripGetScreenshotBreaker(response.status);
   const data = await response.json().catch(() => ({}));
   const imageUrl = data?.screenshotImage || data?.screenshot;
   if (!response.ok || data?.status === "error" || !imageUrl) {
@@ -193,8 +330,8 @@ async function imageToDataUrl(imageUrl, remaining) {
   return `data:${type};base64,${bytes.toString("base64")}`;
 }
 
-// Keyless fallback, used when GetScreenshot is not configured or refuses a URL
-// (it blocks link shorteners, for one).
+// Keyless fallback, used when GetScreenshot is not configured, refuses a URL
+// (it blocks link shorteners, for one) or is paused by the breaker above.
 async function microlinkScreenshot(safeUrl, remaining) {
   const endpoint = new URL("https://api.microlink.io/");
   endpoint.searchParams.set("url", safeUrl);
@@ -206,6 +343,10 @@ async function microlinkScreenshot(safeUrl, remaining) {
   const data = await response.json().catch(() => ({}));
   const imageUrl = data?.data?.screenshot?.url;
   if (!response.ok || data?.status !== "success" || !imageUrl) throw new Error(data?.message || data?.code || "Microlink returned an error.");
+  // statusCode is the site's own answer. null means the page never loaded and
+  // the picture is the browser's error page; 400 and up is an error page too.
+  const status = typeof data.statusCode === "number" ? data.statusCode : null;
+  if (status === null || status >= 400) throw targetFailure(status);
   return imageToDataUrl(imageUrl, remaining);
 }
 

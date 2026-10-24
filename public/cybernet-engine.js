@@ -46,7 +46,7 @@ function nonlinearScore(raw){return clamp(Math.round(100*(1-Math.exp(-Math.max(0
 // Official domains per brand. The link engine flags a brand name inside any
 // other registered domain, and the previews say which real site it imitates.
 const KNOWN_BRANDS={
-  paypal:["paypal.com"],microsoft:["microsoft.com","microsoftonline.com","office.com","office365.com","microsoft365.com","live.com","sharepoint.com","onedrive.com","azure.com","windows.com","msn.com"],apple:["apple.com","apple.co"],google:["google.com"],amazon:["amazon.com","amazon.ae","amazon.sa"],netflix:["netflix.com"],instagram:["instagram.com"],facebook:["facebook.com"],whatsapp:["whatsapp.com"],dropbox:["dropbox.com"],dhl:["dhl.com"],fedex:["fedex.com"],ups:["ups.com"],usps:["usps.com"],adobe:["adobe.com"],coinbase:["coinbase.com"],binance:["binance.com"],icloud:["icloud.com"],walmart:["walmart.com"],chase:["chase.com"],wellsfargo:["wellsfargo.com"],bankofamerica:["bankofamerica.com"],venmo:["venmo.com"],zelle:["zelle.com"],cashapp:["cash.app"],steam:["steampowered.com"],linkedin:["linkedin.com"],tiktok:["tiktok.com"],snapchat:["snapchat.com"],discord:["discord.com"],spotify:["spotify.com"],ezpass:["e-zpass.com"],xfinity:["xfinity.com"],verizon:["verizon.com"],
+  paypal:["paypal.com","paypal.me"],microsoft:["microsoft.com","microsoftonline.com","office.com","office365.com","microsoft365.com","live.com","sharepoint.com","onedrive.com","azure.com","windows.com","msn.com"],apple:["apple.com","apple.co"],google:["google.com","google.ae","google.com.sa","google.com.qa","google.com.kw","google.com.om","google.com.bh","google.com.eg","google.jo","google.com.lb","google.co.uk","google.de","google.fr","google.it","google.es","google.com.cy","google.gr","google.co.in","google.com.pk","google.ca","google.com.au","google.com.tr"],amazon:["amazon.com","amazon.ae","amazon.sa","amazon.eg","amazon.co.uk","amazon.de","amazon.fr","amazon.it","amazon.es","amazon.in","amazon.ca","amazon.com.au","amazon.com.tr","amazon.co.jp"],netflix:["netflix.com"],instagram:["instagram.com"],facebook:["facebook.com"],whatsapp:["whatsapp.com"],dropbox:["dropbox.com"],dhl:["dhl.com"],fedex:["fedex.com"],ups:["ups.com"],usps:["usps.com"],adobe:["adobe.com"],coinbase:["coinbase.com"],binance:["binance.com"],icloud:["icloud.com"],walmart:["walmart.com"],chase:["chase.com"],wellsfargo:["wellsfargo.com"],bankofamerica:["bankofamerica.com"],venmo:["venmo.com"],zelle:["zelle.com"],cashapp:["cash.app"],steam:["steampowered.com"],linkedin:["linkedin.com"],tiktok:["tiktok.com"],snapchat:["snapchat.com"],discord:["discord.com"],spotify:["spotify.com"],ezpass:["e-zpass.com"],xfinity:["xfinity.com"],verizon:["verizon.com"],
   hsbc:["hsbc.com","hsbc.ae","hsbc.co.uk"],barclays:["barclays.co.uk"],lloyds:["lloydsbank.com"],santander:["santander.co.uk","santander.com"],citibank:["citi.com","citibank.com"],revolut:["revolut.com"],
   adcb:["adcb.com"],emiratesnbd:["emiratesnbd.com"],enbd:["emiratesnbd.com"],mashreq:["mashreq.com","mashreqbank.com"],rakbank:["rakbank.ae"],bankfab:["bankfab.com"],adib:["adib.ae"],dib:["dib.ae"],
   alrajhi:["alrajhibank.com.sa"],riyadbank:["riyadbank.com"],alahli:["alahli.com"],qnb:["qnb.com"],kfh:["kfh.com"],nbk:["nbk.com"],boubyan:["boubyan.com"],bankmuscat:["bankmuscat.com"],
@@ -823,6 +823,18 @@ function analyzeTextRulesCore(text){
   if(inPersonOnly)state.counterEvidence.push("The only thing it asks is a visit to a branch or office in person.");
   if(!inPersonOnly&&(/\b(paypal|microsoft|apple|google|amazon|netflix|instagram|facebook|whatsapp|dhl|fedex|bank|adcb|enbd|emirates nbd|mashreq|rakbank|hsbc|al ?rajhi|riyad bank|qnb|nbk|kfh|etisalat|stc|mobily|zain|ooredoo|dewa|sewa|salik|uae pass|emirates id|emirates post|aramex|smsa|noon|careem|talabat)\b/i.test(noUrlText)||/(بنك|الراجحي|اتصالات|بريد الإمارات|أرامكس|الهوية|هيئة كهرباء|سالك)/u.test(clean))&&hasTerm(variants,["verify","locked","suspended","refund","security alert","reactivate","restore access","account limited","will be closed","deactivated","customs","blocked","تحقق من حسابك","تحقق من بياناتك","تأكيد حسابك","موقوف","استرداد","تفعيل","تعليق","إيقاف","تحديث","رسوم","إغلاق","تعطيل"]))addSignal(state,"brand-pressure",18,"Combines a well-known brand with account or payment pressure.","Brand impersonation phishing","impersonation");
   if(hiddenChars)addSignal(state,"hidden-chars",16,"Contains hidden bidirectional or zero-width Unicode characters that can disguise content.","Obfuscated phishing","style",true);
+  // A brand name written with look-alike letters ("Gοogle", "Αpple ID"), or a
+  // word mixing two alphabets ("Bаnk"): real senders never do this; it slips
+  // past filters and looks real at a glance.
+  let lookalikeTextBrand=null,mixedScriptText=false;
+  for(const word of (raw.normalize("NFKC").match(/[\p{L}\p{N}]{3,}/gu)||[])){
+    if(!/[^\x00-\x7f]/.test(word))continue;
+    const b=lookalikeBrand(word);
+    if(b){lookalikeTextBrand=lookalikeTextBrand||b;continue}
+    if(word.length>=4&&isMixedScript(word))mixedScriptText=true;
+  }
+  if(lookalikeTextBrand)addSignal(state,"homoglyph-text",36,`Writes “${brandLabel(lookalikeTextBrand)}” with look-alike letters from another alphabet (for example a Greek “ο” instead of an English “o”). Real companies never do this; it is a trick to look genuine and slip past filters.`,"Brand impersonation","impersonation",true);
+  else if(mixedScriptText)addSignal(state,"mixed-script-text",14,"Mixes letters from different alphabets inside a word, a trick used to slip past spam filters.","Obfuscated phishing","style");
   if(containsAny(clean,["unpaid toll","outstanding toll","toll balance","e-zpass","ezpass","toll invoice"])&&containsAny(clean,["pay","suspend","fine","fee","link","click"]))addSignal(state,"toll-smishing",30,"Claims an unpaid road toll and pressures payment or a link click — a widely-reported smishing pattern.","Toll-fee smishing scam","impersonation",true);
   if(!settled&&containsAny(clean,["package could not be delivered","delivery failed","parcel is on hold","redelivery fee","customs fee","shipment is on hold","update your delivery"]))addSignal(state,"delivery-smishing",26,"Claims a package or delivery problem requiring a fee or link click.","Package-delivery smishing scam","impersonation",true);
   if((/work from home/.test(clean)&&WFH_PAY.test(clean)&&!WFH_SEEKING.test(clean))||containsAny(clean,["earn $","rate products","rating products","rate and review products","no experience needed","no experience required","flexible hours easy money","daily payout","task completion bonus","product boosting","earn per task","بدون خبرة","راتب يومي","دخل يومي","أرباح يومية","وظيفة بدوام جزئي براتب","أرسل نعم","أرسل 'نعم'","عمل من المنزل براتب"]))addSignal(state,"job-scam",24,"Uses work-from-home or easy-money task language typical of job and task scams.","Job / task scam","money",true);
@@ -1005,6 +1017,85 @@ function levenshtein(a,b){
   return prev[b.length];
 }
 
+// Look-alike letters (owner request, 24 Oct 2026: "google can be written with
+// the Greek o instead of the English o"). Scammers spell a brand with letters
+// from another alphabet that look identical: a Greek "ο" or Cyrillic "о" in
+// "gοogle", a Greek "Α" in "Αpple", or a whole word in Cyrillic ("аррӏе").
+// confusableSkeleton() reads a word the way a person sees it: look-alike
+// letters, full-width forms, accents and 0/1/i/l swaps all collapse to one
+// plain Latin reading. Both sides of a comparison go through it.
+const CONFUSABLES={
+  // Cyrillic
+  "а":"a","в":"b","г":"r","е":"e","ё":"e","і":"l","ї":"l","ј":"j","к":"k","м":"m","н":"h","о":"o","п":"n","р":"p","с":"c","т":"t","у":"y","х":"x","ь":"b","ѕ":"s","ԁ":"d","ԛ":"q","ԝ":"w","ӏ":"l","ү":"y","һ":"h","ԍ":"g",
+  // Greek
+  "α":"a","β":"b","γ":"y","ε":"e","η":"n","ι":"l","κ":"k","ν":"v","ο":"o","ρ":"p","τ":"t","υ":"u","χ":"x","ω":"w","ϲ":"c","ϳ":"j","ς":"c",
+  // Armenian
+  "օ":"o","ս":"u","ց":"g","հ":"h","ո":"n","զ":"q",
+  // Latin look-alikes and swaps
+  "ı":"l","ł":"l","ɩ":"l","ǀ":"l","ɡ":"g","i":"l","1":"l","|":"l","0":"o","@":"a","$":"s"
+};
+function confusableSkeleton(word){
+  return String(word||"").normalize("NFKC").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"")
+    .replace(/[\s\S]/gu,ch=>CONFUSABLES[ch]||ch);
+}
+const SCRIPT_TESTS={latin:/[a-zß-ɏ]/i,cyrillic:/[Ѐ-ԯ]/,greek:/[Ͱ-Ͽἀ-῿]/,armenian:/[Ա-֏]/,cherokee:/[Ꭰ-᏿]/};
+const LOOKALIKE_SCRIPTS=["cyrillic","greek","armenian","cherokee"];
+function scriptsOf(word){return Object.keys(SCRIPT_TESTS).filter(k=>SCRIPT_TESTS[k].test(word))}
+// One alphabet mixed into another inside a single word: "Gοogle" (Latin + Greek).
+function isMixedScript(word){const s=scriptsOf(word);return s.includes("latin")&&s.some(x=>LOOKALIKE_SCRIPTS.includes(x))}
+const BRAND_NAMES={paypal:"PayPal",emiratesnbd:"Emirates NBD",enbd:"Emirates NBD",adcb:"ADCB",hsbc:"HSBC",linkedin:"LinkedIn",whatsapp:"WhatsApp",tiktok:"TikTok",uaepass:"UAE Pass",emiratesid:"Emirates ID",emiratespost:"Emirates Post",metamask:"MetaMask",trustwallet:"Trust Wallet",onedrive:"OneDrive",sharepoint:"SharePoint",docusign:"DocuSign",royalmail:"Royal Mail",disneyplus:"Disney+",bankfab:"FAB",alrajhi:"Al Rajhi",riyadbank:"Riyad Bank",alahli:"Al Ahli",bankmuscat:"Bank Muscat",rakbank:"RAKBANK",dewa:"DEWA",sewa:"SEWA",adnoc:"ADNOC",stcpay:"STC Pay",luluhypermarket:"Lulu Hypermarket",dubaidutyfree:"Dubai Duty Free"};
+function brandLabel(brand){return BRAND_NAMES[brand]||String(brand||"").replace(/^./,c=>c.toUpperCase())}
+let BRAND_SKELETONS=null;
+// Which brand a word imitates with look-alike letters, or null. Only words that
+// actually use non-ASCII letters count: plain swaps like "paypa1" are the
+// typo rules' job. A word written wholly in another alphabet only matches
+// brands of five letters or more, so ordinary Russian or Greek words that
+// happen to read like a short brand ("мета") are left alone.
+function lookalikeBrand(word){
+  const w=String(word||"").normalize("NFKC");
+  if(!/[^\x00-\x7f]/.test(w))return null;
+  if(!BRAND_SKELETONS)BRAND_SKELETONS=Object.keys(KNOWN_BRANDS).filter(b=>b.length>=4).map(b=>[b,confusableSkeleton(b)]);
+  const sc=scriptsOf(w),mixed=isMixedScript(w),foreignOnly=!sc.includes("latin")&&sc.some(x=>LOOKALIKE_SCRIPTS.includes(x));
+  if(!mixed&&!foreignOnly&&!/[À-ɏ]/.test(w))return null;
+  const s=confusableSkeleton(w),m=s.replace(/rn/g,"m").replace(/vv/g,"w");
+  for(const [brand,bs] of BRAND_SKELETONS){
+    if(foreignOnly&&bs.length<5)continue;
+    if(s===bs||(bs.length>=6&&m===bs))return brand;
+  }
+  return null;
+}
+// RFC 3492 punycode decoder for one "xn--" label (without the prefix), so a
+// look-alike address can be read in the letters a person actually sees.
+function punyDecode(input){
+  try{
+    const base=36,tMin=1,tMax=26,skew=38,damp=700,out=[];let n=128,i=0,bias=72;
+    const b=Math.max(0,input.lastIndexOf("-"));
+    for(let j=0;j<b;j++){const c=input.charCodeAt(j);if(c>=128)return null;out.push(c)}
+    for(let idx=b>0?b+1:0;idx<input.length;){
+      const oldi=i;let w=1;
+      for(let k=base;;k+=base){
+        if(idx>=input.length)return null;
+        const cp=input.charCodeAt(idx++);
+        const digit=cp>=48&&cp<=57?cp-22:cp>=65&&cp<=90?cp-65:cp>=97&&cp<=122?cp-97:base;
+        if(digit>=base)return null;
+        i+=digit*w;
+        const t=k<=bias?tMin:k>=bias+tMax?tMax:k-bias;
+        if(digit<t)break;
+        w*=base-t;
+      }
+      const len=out.length+1;
+      let delta=oldi===0?Math.floor((i-oldi)/damp):Math.floor((i-oldi)/2);
+      delta+=Math.floor(delta/len);let k=0;
+      while(delta>((base-tMin)*tMax)>>1){delta=Math.floor(delta/(base-tMin));k+=base}
+      bias=k+Math.floor((base-tMin+1)*delta/(delta+skew));
+      n+=Math.floor(i/len);i%=len;
+      out.splice(i++,0,n);
+    }
+    return String.fromCodePoint(...out);
+  }catch{return null}
+}
+function unicodeHost(host){return String(host||"").split(".").map(l=>/^xn--/i.test(l)?(punyDecode(l.slice(4).toLowerCase())||l):l).join(".")}
+
 function hostnameEntropy(value){
   const label=String(value||"").replace(/[^a-z0-9]/gi,"");if(label.length<10)return 0;
   const counts={};for(const ch of label)counts[ch]=(counts[ch]||0)+1;
@@ -1071,10 +1162,24 @@ function analyzeLinkRules(rawLink){
   if(shorteners.has(registered)&&!officialShortLink(host,url.pathname))addSignal(state,"shortener",28,"Uses a URL-shortening service that hides the final destination.","Hidden destination link","deception",true);
   else if(QR_REDIRECTORS.has(registered)||QR_REDIRECTORS.has(host))addSignal(state,"qr-redirector",14,"Uses a QR-code redirect service that hides the final destination.","Hidden destination link","deception");
   if(/^\d{1,3}(\.\d{1,3}){3}$/.test(host)||/^\[[0-9a-f:]+\]$/i.test(url.hostname))addSignal(state,"ip",34,"Uses a raw IP address instead of a normal domain name.","IP-based phishing link","structure",true);
-  if(host.includes("xn--"))addSignal(state,"punycode",31,"Uses special hidden characters in the web address that can make it look like a different, trusted website.","Lookalike-domain phishing","deception",true);
+  // Read the address in the letters a person sees: a look-alike of a known
+  // brand, or one word mixing two alphabets, is the trick. A local website
+  // written in its own alphabet (münchen.de, ελλάδα.gr, пример.рф) is not.
+  let homoglyphBrand=null,mixedScriptHost=false;
+  if(host.includes("xn--")){
+    for(const token of unicodeHost(host).split(/[.\-]/).filter(Boolean)){
+      if(isMixedScript(token))mixedScriptHost=true;
+      const b=lookalikeBrand(token);
+      if(b&&!(KNOWN_BRANDS[b]||[]).includes(registered))homoglyphBrand=homoglyphBrand||b;
+    }
+    if(homoglyphBrand||mixedScriptHost)addSignal(state,"punycode",31,"Uses special hidden characters in the web address that can make it look like a different, trusted website.","Lookalike-domain phishing","deception",true);
+    else addSignal(state,"intl-domain",6,"Uses letters from another alphabet, or with accents, in the web address. That is normal for many local websites; just check it is the address you expected.","International web address","structure");
+  }
+  if(homoglyphBrand)addSignal(state,"homoglyph-brand",52,`Imitates “${brandLabel(homoglyphBrand)}” using look-alike letters from another alphabet (for example a Greek “ο” instead of an English “o”). It is not ${brandLabel(homoglyphBrand)}’s real website.`,"Lookalike-domain phishing","impersonation",true);
+  else if(mixedScriptHost)addSignal(state,"mixed-script",34,"Mixes letters from different alphabets inside one word of the web address, a trick used to imitate real addresses.","Lookalike-domain phishing","deception",true);
   if(/[\u0080-\uffff]/.test(host))addSignal(state,"unicode",25,"Contains internationalized characters that may visually imitate another domain.","Lookalike-domain phishing","deception",true);
   if(labels.length>=5)addSignal(state,"subdomains",13,"Uses an unusually deep subdomain chain.","Subdomain deception","structure");
-  if((registered.match(/-/g)||[]).length>=3)addSignal(state,"hyphens",11,"The registered domain contains many hyphens.","Suspicious domain structure","structure");
+  if((registered.replace(/xn--/g,"").match(/-/g)||[]).length>=3)addSignal(state,"hyphens",11,"The registered domain contains many hyphens.","Suspicious domain structure","structure");
   if(/^[a-z0-9]+-com[a-z0-9.-]*\./i.test(host)||/-com-[a-z]/i.test(host))addSignal(state,"com-prefix-trick",29,"Uses \"-com\" combined with other text in the domain, a common trick to visually mimic a real \".com\" address.","Domain lookalike deception","deception",true);
   if(hostnameEntropy(domainCore)>3.65&&domainCore.length>=14)addSignal(state,"entropy",13,"The main domain label looks randomly generated or unusually complex.","Algorithmic-looking domain","structure");
   if(/^(?:0x[0-9a-f]+|\d{8,})$/i.test(host))addSignal(state,"encoded-ip",35,"The hostname resembles an encoded numeric IP address.","Obfuscated IP destination","deception",true);
@@ -1103,8 +1208,9 @@ function analyzeLinkRules(rawLink){
   if(mismatch)addSignal(state,`brand-${mismatch.brand}`,35,`References “${mismatch.brand}” but the registered domain is ${registered}, not ${mismatch.official}.`,"Brand impersonation phishing","impersonation",true);
   // "micr0soft", "app1e", "rnicrosoft": read each host token with the usual
   // look-alike substitutions undone and compare it to the brand exactly.
-  // The rn/vv tricks only apply to long brands: "stearn" must not become "steam".
-  const unmask=(t,brand)=>{const digits=t.replace(/0/g,"o").replace(/1/g,"l");return brand.length>=7?digits.replace(/rn/g,"m").replace(/vv/g,"w"):digits};
+  // The rn/vv tricks only apply to brands of six letters or more ("arnazon" for
+  // amazon): "stearn" must not become "steam".
+  const unmask=(t,brand)=>{const digits=t.replace(/0/g,"o").replace(/1/g,"l");return brand.length>=6?digits.replace(/rn/g,"m").replace(/vv/g,"w"):digits};
   const hostTokens=host.split(/[.-]/).filter(Boolean);
   Object.entries(brands).forEach(([brand,officials])=>{
     if(officials.includes(registered)||brand.length<5)return;
@@ -1329,6 +1435,8 @@ const PLAIN_POINTS=[
   {ids:["service-code-domain"],text:"The address is just a government service, utility or company name plus a country code, but it is not that organization’s website."},
   {ids:["free-host-brand","free-host-lure"],text:"It is a free website anyone can make in minutes, dressed up with a company, government or payment name. Real organizations don’t send you there to pay or sign in."},
   {ids:["brand-pressure"],text:"It uses a well-known company’s name to make you trust it, then says your account or payment is in trouble."},
+  {ids:["homoglyph-brand","homoglyph-text"],text:"It writes a real company’s name with look-alike letters from another alphabet (like a Greek ‘ο’ for an English ‘o’), so it looks genuine at a glance but isn’t."},
+  {ids:["mixed-script","mixed-script-text"],text:"It mixes letters from different alphabets inside one word, a trick to dodge filters and look like something it isn’t."},
   {ids:[/^brand-(?!pressure)/,/^typo-/,"substitution","punycode","unicode","com-prefix-trick"],text:"The web address copies a real company’s name with a look-alike spelling."},
   {ids:["dangerous-embedded-link"],text:"The link inside it looks unsafe: it does not go where it claims."},
   {ids:["threat"],text:"It uses threats, such as arrest, legal action or losing your account, to scare you into acting."},

@@ -2403,10 +2403,23 @@ document.addEventListener("DOMContentLoaded",()=>{
     try{
       const res=await fetch("/api/screenshot-preview",{method:"POST",headers:authHeaders({"Content-Type":"application/json"}),body:JSON.stringify({url})});
       const data=await res.json().catch(()=>({}));
+      // The site did not load (no such address, or it is down): say so instead
+      // of showing a picture of a browser error page. The verdict is unchanged.
+      if(res.ok&&data.unreachable){
+        container.innerHTML=`
+          <div class="dest-shot-unreachable" role="status">
+            <strong>We couldn't load this website.</strong>
+            <p class="dest-shot-note">The address may not exist or the site may be down. Double-check the spelling — scam links often use addresses that look almost right.</p>
+          </div>
+        `;
+        return;
+      }
       if(!res.ok||!data.screenshot){container.remove();return}
+      const wwwNote=data.wwwFallback&&data.shownHost&&data.requestedHost?`<p class="screenshot-disclaimer dest-shot-www">Showing ${escapeHTML(data.shownHost)}: ${escapeHTML(data.requestedHost)} on its own doesn't load.</p>`:"";
       container.innerHTML=`
         <strong>📷 Here's what this page looks like right now:</strong>
         <img src="${escapeHTML(data.screenshot)}" alt="Preview of the destination page" loading="lazy"/>
+        ${wwwNote}
         <p class="screenshot-disclaimer">A screenshot shows what a page looked like at this moment — it doesn't prove the page is safe. A convincing fake login page can look exactly like a real one.</p>
       `;
     }catch{
