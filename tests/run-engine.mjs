@@ -90,7 +90,9 @@ for (const c of CASES.filter((c) => !only || c.id.includes(only))) {
   // The server may be stricter than the page (its extra rules), never softer.
   const consistent = srv.score >= local.score - 1;
   const agrees = summaryAgrees(local);
-  const pass = okLocal && okServer && consistent && agrees;
+  // "min": the case must reach at least this score on both layers (75 = malicious).
+  const minOk = !c.min || (local.score >= c.min && srv.score >= c.min);
+  const pass = okLocal && okServer && consistent && agrees && minOk;
   if (!pass) failures++;
   rows.push({ id: c.id, expect: c.expect, local: `${gotLocal}/${local.score}`, server: `${gotServer}/${srv.score}`, ok: pass ? "ok" : `FAIL${!okLocal ? " page" : ""}${!okServer ? " server" : ""}${!consistent ? " server<page" : ""}${!agrees ? " summary" : ""}` });
   if (verbose || !pass) {
