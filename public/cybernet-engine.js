@@ -22,7 +22,34 @@ function containsAny(text,terms){return terms.some(term=>text.includes(term))}
 
 function countMatches(text,regex){return (text.match(regex)||[]).length}
 
-function normalizeText(text){return String(text||"").normalize("NFKC").replace(/[\u200B-\u200D\u2060\uFEFF]/g,"").replace(/[‐‑‒–—]/g,"-").replace(/\s+/g," ").trim().toLowerCase()}
+// Invisible characters (Unicode default-ignorables: soft hyphen, zero-width
+// space and joiners, word joiner, BOM, bidi marks and controls, variation
+// selectors, Hangul fillers, Mongolian vowel separator, tag characters). A
+// reader never sees them; inside a word they split a brand name past filters.
+const INVISIBLE_CLASS="\\u00AD\\u034F\\u061C\\u115F\\u1160\\u17B4\\u17B5\\u180B-\\u180F\\u200B-\\u200F\\u202A-\\u202E\\u2060-\\u206F\\u3164\\uFE00-\\uFE0F\\uFEFF\\uFFA0\\u{E0000}-\\u{E0FFF}";
+const INVISIBLE_ALL=new RegExp(`[${INVISIBLE_CLASS}]`,"gu");
+// Hidden between two letters of a Latin, Greek, Cyrillic or Armenian word or
+// an address ("Goo[ZWSP]gle", "pay[VS16]pal"). Not soft hyphens (copied
+// articles), not bidi marks, embeddings or isolates (phones wrap names and
+// numbers in them), and never next to emoji, Arabic or Indic letters, where
+// ZWJ and ZWNJ are part of the spelling.
+const HIDDEN_RUN="[\\u034F\\u115F\\u1160\\u17B4\\u17B5\\u180B-\\u180F\\u200B-\\u200D\\u2060-\\u2064\\u3164\\uFE00-\\uFE0F\\uFEFF\\uFFA0\\u{E0000}-\\u{E0FFF}]+";
+const HIDDEN_IN_WORD=new RegExp(`[\\p{Script=Latin}\\p{Script=Greek}\\p{Script=Cyrillic}\\p{Script=Armenian}0-9@.]${HIDDEN_RUN}[\\p{Script=Latin}\\p{Script=Greek}\\p{Script=Cyrillic}\\p{Script=Armenian}0-9@.]`,"u");
+const SPLIT_BY_HIDDEN=new RegExp(`[\\p{L}\\p{N}]${HIDDEN_RUN}[\\p{L}\\p{N}]`,"u");
+// Left-to-right / right-to-left override: reverses how the text after it is drawn.
+const BIDI_OVERRIDE=/[\u202D\u202E]/;
+// What a browser or mail app opens: full-width letters and dots folded
+// (NFKC), the invisible characters a browser silently drops removed, the
+// ideographic full stop read as a dot. Bidi controls, ZWNJ and ZWJ stay: they
+// make an address invalid, and the link engine says so.
+const LINK_DROPPED=/[\u00AD\u034F\u115F\u1160\u17B4\u17B5\u180B-\u180F\u200B\u2060-\u2064\u3164\uFE00-\uFE0F\uFEFF\uFFA0\u{E0000}-\u{E0FFF}]/gu;
+function linkReadable(text){return String(text||"").normalize("NFKC").replace(LINK_DROPPED,"").replace(/\u3002/g,".")}
+// Web addresses in a message. A label may use accented, Greek, Cyrillic,
+// Armenian or Cherokee letters ("gοogle-security.com", "enbd-sеcure.com"); an
+// ASCII-only label cut those to "ogle-security.com" and "cure.com". No
+// lookbehind: older iPhones cannot parse it.
+const TEXT_URL_RE=/(?:https?:\/\/|www\.)[^\s<>()]+|(?:[a-z0-9\u00C0-\u058F\u13A0-\u13FF\u1D00-\u1EFF-]+\.)+[a-z]{2,}(?:\/[^\s<>()]*)?/gi;
+function normalizeText(text){return String(text||"").normalize("NFKC").replace(INVISIBLE_ALL,"").replace(/[‐‑‒–—]/g,"-").replace(/\s+/g," ").trim().toLowerCase()}
 
 function deobfuscate(text){return text.replace(/0/g,"o").replace(/[1!|]/g,"i").replace(/3/g,"e").replace(/4/g,"a").replace(/5/g,"s").replace(/7/g,"t").replace(/@/g,"a").replace(/\$/g,"s")}
 
@@ -58,6 +85,8 @@ const KNOWN_BRANDS={
   carrefour:["carrefouruae.com","carrefourksa.com","carrefourqatar.com","carrefourkuwait.com","carrefourbahrain.com","carrefouroman.com","carrefour.com","mafcarrefour.com"],meta:["meta.com","facebook.com"],rta:["rta.ae"],parkin:["parkin.ae"],dubizzle:["dubizzle.com"],emirates:["emirates.com"],skywards:["emirates.com"],etihad:["etihad.com"],flydubai:["flydubai.com"],knet:["knet.com.kw","knetpay.com.kw","kpay.com.kw"],fab:["bankfab.com"],smartdubai:["smartdubai.ae","digitaldubai.ae","dubai.ae"],
   eand:["eand.com","etisalat.ae"],adnoc:["adnoc.ae","adnocdistribution.ae"],luluhypermarket:["luluhypermarket.com"],dubaidutyfree:["dubaidutyfree.com"],stc:["stc.com.sa","stcpay.com.sa"],stcpay:["stcpay.com.sa"],naqel:["naqelexpress.com"],spl:["splonline.com.sa"],qpost:["qpost.qa"]
 };
+// Free mailbox domains: an address there is a person, not the company.
+const FREE_MAIL=new Set(["gmail.com","googlemail.com","outlook.com","hotmail.com","live.com","msn.com","icloud.com","yahoo.com"]);
 const GULF_CODES=["ae","uae","sa","ksa","saudi","kw","qa","bh","om","dubai","abudhabi","sharjah","kuwait","qatar","oman","bahrain","riyadh"];
 const GULF_CODES_SHORT=["ae","uae","sa","ksa","kw","qa","bh","om"];
 const PAY_LURES=["pay","payment","payments","paynow","fine","fines","toll","tolls","bonus","reward","rewards","gift","refund","refunds","bill","bills","billing","topup","recharge","penalty","penalties","prize","claim","wallet","fee","fees","unpaid","cashback","voucher"];
@@ -192,8 +221,8 @@ function lureWordsIn(registered){
 }
 
 function collectLinksInText(text){
-  const raw=String(text||"");
-  const urls=unique((raw.match(/(?:https?:\/\/|www\.)[^\s<>()]+|\b(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s<>()]*)?/gi)||[]).filter(value=>!value.includes("@")));
+  const raw=linkReadable(text);
+  const urls=unique((raw.match(TEXT_URL_RE)||[]).filter(value=>!value.includes("@")));
   return urls.slice(0,4).map(url=>({url,result:analyzeLinkRules(url)}));
 }
 
@@ -716,15 +745,18 @@ const REMOTE_ASK=/\b(?:click|tap|open|log ?in|sign ?in|reply|respond|send|share|
 // 7. "Send a trusted person with your Emirates ID" sends a person, not the ID.
 const SEND_PERSON=/\bsend\s+(?:a|an|your|someone|somebody|one)\s+(?:trusted\s+|family\s+)?(?:person|someone|representative|relative|member|friend|driver|colleague|agent)\b/g;
 
+// Account-trouble words that turn a company name into pressure (brand-pressure, homoglyph-lure).
+const ACCOUNT_TROUBLE=["verify","locked","suspended","refund","security alert","reactivate","restore access","account limited","will be closed","deactivated","customs","blocked","تحقق من حسابك","تحقق من بياناتك","تأكيد حسابك","موقوف","استرداد","تفعيل","تعليق","إيقاف","تحديث","رسوم","إغلاق","تعطيل"];
 function analyzeTextRulesCore(text){
   const raw=String(text||"");
   // deobfuscate() reads 1 as i; "detai1s" and "acc0unt" need 1 as l too.
   const clean=normalizeText(raw),obfuscated=deobfuscate(clean),variants=[clean,obfuscated,clean.replace(/0/g,"o").replace(/1/g,"l")];
   const state=createState();
-  const urls=unique((raw.match(/(?:https?:\/\/|www\.)[^\s<>()]+|\b(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s<>()]*)?/gi)||[]).filter(value=>!value.includes("@")));
-  const emails=raw.match(/[\w.+-]+@[\w.-]+\.[a-z]{2,}/gi)||[];
+  const linkSrc=linkReadable(raw);
+  const urls=unique((linkSrc.match(TEXT_URL_RE)||[]).filter(value=>!value.includes("@")));
+  const emails=linkSrc.match(/[\w.+-]+@[\w.-]+\.[a-z]{2,}/gi)||[];
   const phones=raw.match(/(?:\+?\d[\d\s().-]{7,}\d)/g)||[];
-  const hiddenChars=/[\u200B-\u200D\u2060\uFEFF\u202A-\u202E\u2066-\u2069]/.test(raw);
+  const hiddenChars=HIDDEN_IN_WORD.test(raw)||BIDI_OVERRIDE.test(raw);
 
   const groups=[
     {id:"urgency",terms:["urgent","immediately","act now","final warning","last chance","within 24 hours","today only","expires today","immédiatement","dernière chance","عاجل","فوراً","فورا","حالاً","اليوم فقط","ستنتهي اليوم","تنتهي اليوم","ينتهي اليوم","تنتهي الليلة","استبدلها الآن","سارع الآن"],weight:10,reason:"Uses urgency or a deadline to reduce careful thinking.",type:"Urgency-based social engineering",category:"pressure"},
@@ -778,7 +810,7 @@ function analyzeTextRulesCore(text){
   // A bare "code" or "pin" is only a secret next to a security word, and some
   // everyday codes are never one: "send me the code for the meeting room",
   // "the pin location", "the promo code", "the wifi password".
-  const noUrlText=clean.replace(/(?:https?:\/\/|www\.)\S+|\b(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/\S*)?/g," ");
+  const noUrlText=clean.replace(/(?:https?:\/\/|www\.)\S+|(?:[a-z0-9\u00C0-\u058F\u13A0-\u13FF\u1D00-\u1EFF-]+\.)+[a-z]{2,}(?:\/\S*)?/g," ");
   const settled=/\b(?:no (?:further |additional )?(?:payment|action|fee)s? (?:is |are )?(?:required|needed|necessary)|nothing (?:more )?to pay|already (?:paid|included)|included in (?:the|your) (?:price|total|order))\b/.test(clean);
   const WEAK_SECRET=/^(?:codes?|pins?|رمز|الرمز|كود|الكود)$/iu;
   const SECURITY_CONTEXT=/(?:otp|one[- ]time|verification|security code|log-?in|sign[- ]?in|sms|text message|whatsapp|telegram|authenticator|2fa|digit|just sent|just received|sent to (?:you|your)|(?:codes?|pins?) (?:that )?you(?:'ve| have| just)? (?:received|got)|(?:we|they|it) (?:just )?sent (?:you|it to you)|your phone|your number|your (?:bank|account|card)|bank|cvv|gift[- ]?cards?|voucher|itunes|google play|steam card|تحقق|التحقق|الأمان|وصلك|وصلتك|بنك|حسابك|هاتفك|جوالك)/iu;
@@ -799,7 +831,13 @@ function analyzeTextRulesCore(text){
   const training=/(?:^|[^\p{L}\p{N}_])(this is a test|training example|security awareness|example of phishing|sample scam|educational purposes|simulation|exemple de phishing|تدريب توعوي|مثال احتيال)(?![\p{L}\p{N}_])/iu.test(clean);
   if(training){state.raw-=22;state.counterEvidence.push("The text identifies itself as training, simulation, or an educational example.")}
 
-  if(urls.length)addSignal(state,"links",Math.min(14,5+urls.length*3),`Contains ${urls.length} visible web link${urls.length>1?"s":""}.`,"Link-based social engineering","action");
+  // A real alert from the company's own address ("no-reply@accounts.google.com",
+  // "https://myaccount.google.com") is not a click lure: when every address in
+  // it is on the company's official domain (free mailboxes excluded) and there
+  // is no number to call and no code to send, it does not count as a link.
+  const officialRefsOnly=urls.length>0&&!phones.length&&!directSecretRequest&&urls.every(u=>{const r=analyzeLinkRules(u);return Boolean(r.officialBrand)&&r.score<20&&!FREE_MAIL.has(r.registeredDomain)});
+  if(officialRefsOnly)state.counterEvidence.push("Every web or email address in it is on the company’s own official domain.");
+  if(urls.length&&!officialRefsOnly)addSignal(state,"links",Math.min(14,5+urls.length*3),`Contains ${urls.length} visible web link${urls.length>1?"s":""}.`,"Link-based social engineering","action");
   const linkPressureHit=!protective&&(/(?:^|[^\p{L}\p{N}_])(click|tap|open|visit|scan|cliquez|ouvrez|اضغط|انقر|امسح)(?![\p{L}\p{N}_]).{0,55}(?:^|[^\p{L}\p{N}_])(link|url|qr|button|here|lien|الرابط|رمز)(?![\p{L}\p{N}_])/iu.test(clean)||/(?:^|[^\p{L}\p{N}_])(?:click|tap)\s*[:：]\s*(?:https?:\/\/|www\.|[a-z0-9-]+\.[a-z]{2,})/iu.test(clean));
   if(directSecretRequest)addSignal(state,"secret-request",52,"Explicitly asks for credentials, authentication codes, payment details, or a recovery phrase.","Credential theft attempt","credentials",true);
   if(/\b(buy|purchase|pay with|send|transfer)\b.{0,55}\b(gift cards?|bitcoin|btc|crypto|usdt|western union|moneygram|vouchers?)\b/i.test(clean)||/\bpay\b.{0,45}\b(?:via|in|using|by|through)\s+(?:crypto|bitcoin|btc|usdt|gift cards?|western union|moneygram)\b/i.test(clean)||/(اشتر|شراء|اشتري|ابتع|ادفع|أرسل|ارسل|حول).{0,45}(بطاقات? هدايا|بطاقات? شحن|كروت شحن|بطاقات? آيتونز|بطاقات? ايتونز|بطاقات? جوجل|بطاقات? ستيم|بيتكوين|عملات رقمية|ويسترن يونيون)/u.test(clean))addSignal(state,"irreversible-payment",39,"Requests an unusual or difficult-to-reverse payment method.","Payment scam","money",true);
@@ -821,17 +859,54 @@ function analyzeTextRulesCore(text){
   if(emails.some(e=>/@(gmail|yahoo|outlook|hotmail|protonmail)\./i.test(e))&&hasTerm(variants,["bank","support","security team","government","microsoft","apple","paypal","procurement","purchase order","accounts payable","finance department","hr department","البنك","الدعم","المشتريات"]))addSignal(state,"public-email",25,"Claims to represent an organization while using a public email provider.","Brand impersonation","impersonation",true);
   const inPersonOnly=IN_PERSON_ONLY.test(clean)&&!urls.length&&!phones.length&&!emails.length&&!directSecretRequest&&!REMOTE_ASK.test(clean);
   if(inPersonOnly)state.counterEvidence.push("The only thing it asks is a visit to a branch or office in person.");
-  if(!inPersonOnly&&(/\b(paypal|microsoft|apple|google|amazon|netflix|instagram|facebook|whatsapp|dhl|fedex|bank|adcb|enbd|emirates nbd|mashreq|rakbank|hsbc|al ?rajhi|riyad bank|qnb|nbk|kfh|etisalat|stc|mobily|zain|ooredoo|dewa|sewa|salik|uae pass|emirates id|emirates post|aramex|smsa|noon|careem|talabat)\b/i.test(noUrlText)||/(بنك|الراجحي|اتصالات|بريد الإمارات|أرامكس|الهوية|هيئة كهرباء|سالك)/u.test(clean))&&hasTerm(variants,["verify","locked","suspended","refund","security alert","reactivate","restore access","account limited","will be closed","deactivated","customs","blocked","تحقق من حسابك","تحقق من بياناتك","تأكيد حسابك","موقوف","استرداد","تفعيل","تعليق","إيقاف","تحديث","رسوم","إغلاق","تعطيل"]))addSignal(state,"brand-pressure",18,"Combines a well-known brand with account or payment pressure.","Brand impersonation phishing","impersonation");
+  if(!inPersonOnly&&(/\b(paypal|microsoft|apple|google|amazon|netflix|instagram|facebook|whatsapp|dhl|fedex|bank|adcb|enbd|emirates nbd|mashreq|rakbank|hsbc|al ?rajhi|riyad bank|qnb|nbk|kfh|etisalat|stc|mobily|zain|ooredoo|dewa|sewa|salik|uae pass|emirates id|emirates post|aramex|smsa|noon|careem|talabat)\b/i.test(noUrlText)||/(بنك|الراجحي|اتصالات|بريد الإمارات|أرامكس|الهوية|هيئة كهرباء|سالك)/u.test(clean))&&hasTerm(variants,ACCOUNT_TROUBLE))addSignal(state,"brand-pressure",18,"Combines a well-known brand with account or payment pressure.","Brand impersonation phishing","impersonation");
   if(hiddenChars)addSignal(state,"hidden-chars",16,"Contains hidden bidirectional or zero-width Unicode characters that can disguise content.","Obfuscated phishing","style",true);
   // A brand name written with look-alike letters ("Gοogle", "Αpple ID"), or a
   // word mixing two alphabets ("Bаnk"): real senders never do this; it slips
   // past filters and looks real at a glance.
+  // Also caught: small capitals and IPA letters ("ɢᴏᴏɢʟᴇ"), a brand split by
+  // invisible characters ("Goo[CGJ]gle"), and two or three neighbouring words
+  // read together ("Emirates Pоst"). Accented Latin letters are a language,
+  // not a trick: in running text they count only inside an address
+  // ("@gòogle.com") or in a message not itself written with accents, and never
+  // for names that are everyday words with an accent ("metà", "Zaïn", "salık").
+  // A word wholly in Greek or Cyrillic counts only in a message written mostly
+  // in Latin letters: "στο τικτοκ" in a Greek message is Greek.
   let lookalikeTextBrand=null,mixedScriptText=false;
-  for(const word of (raw.normalize("NFKC").match(/[\p{L}\p{N}]{3,}/gu)||[])){
-    if(!/[^\x00-\x7f]/.test(word))continue;
-    const b=lookalikeBrand(word);
-    if(b){lookalikeTextBrand=lookalikeTextBrand||b;continue}
-    if(word.length>=4&&isMixedScript(word))mixedScriptText=true;
+  const prose=raw.normalize("NFKC"),proseWords=[];
+  const wordRe=new RegExp(`[\\p{L}\\p{M}\\p{N}${INVISIBLE_CLASS}]+`,"gu");
+  for(let hit=wordRe.exec(prose);hit;hit=wordRe.exec(prose)){
+    const word=hit[0].replace(INVISIBLE_ALL,"");
+    if(word)proseWords.push({word,index:hit.index,split:SPLIT_BY_HIDDEN.test(hit[0]),before:prose.slice(Math.max(0,hit.index-1),hit.index),after:prose.slice(hit.index+hit[0].length,hit.index+hit[0].length+4)});
+  }
+  const latinLetters=(prose.match(/[a-z]/gi)||[]).length,foreignLetters=(prose.match(/[\u0370-\u03FF\u1F00-\u1FFF\u0400-\u052F\u0530-\u058F\u13A0-\u13FF]/g)||[]).length;
+  const accentedWords=proseWords.filter(item=>/[\u00C0-\u02AF\u1E00-\u1EFF]|\p{M}/u.test(item.word)&&scriptsOf(item.word).every(s=>s==="latin")).length;
+  // A sender line ("From: аԁсь <alerts@…>") is where a name is copied: a
+  // short name written wholly in Cyrillic counts there, and so does an accent
+  // in a message otherwise written with accents.
+  const headerLines=[];
+  for(let start=0;start<=prose.length;){const end=prose.indexOf("\n",start)<0?prose.length:prose.indexOf("\n",start),line=prose.slice(start,Math.min(end,start+400));if(/^\s*(?:from|sender|reply-to)\s*:/i.test(line)||/<[^<>\s@]+@[^<>\s]+>/.test(line))headerLines.push([start,end]);start=end+1}
+  for(const item of proseWords)item.header=headerLines.some(([a,b])=>item.index>=a&&item.index<b);
+  const proseMin=foreignLetters>latinLetters?99:4,lookalikeCache=new Map();
+  for(let i=0;i<proseWords.length&&!lookalikeTextBrand;i++){
+    for(let n=1;n<=3&&i+n<=proseWords.length;n++){
+      const word=proseWords.slice(i,i+n).map(item=>item.word).join("");
+      if(!/[^\x00-\x7f]/.test(word)){
+        const plain=word.toLowerCase();
+        if(n===1&&proseWords[i].split&&plain.length>=4&&KNOWN_BRANDS[plain]){lookalikeTextBrand=plain;break}
+        continue;
+      }
+      // Neighbouring words only count together when they mix two alphabets ("Emirates Pоst").
+      if(n>1&&!isMixedScript(word))continue;
+      const inAddress=n===1&&(/[@\/.]$/.test(proseWords[i].before)||/^\.[a-z]{2}/i.test(proseWords[i].after));
+      const header=n===1&&proseWords[i].header&&proseMin<99;
+      const options={wholeScriptMin:header?2:proseMin,falseFriends:true,accent:n>1?"none":inAddress?"any":header?"header":accentedWords>=3?"none":"prose"};
+      const key=word+"|"+options.wholeScriptMin+"|"+options.accent;
+      if(!lookalikeCache.has(key))lookalikeCache.set(key,lookalikeBrand(word,options));
+      const b=lookalikeCache.get(key);
+      if(b){lookalikeTextBrand=b;break}
+      if(n===1&&word.length>=4&&isMixedScript(word))mixedScriptText=true;
+    }
   }
   if(lookalikeTextBrand)addSignal(state,"homoglyph-text",36,`Writes “${brandLabel(lookalikeTextBrand)}” with look-alike letters from another alphabet (for example a Greek “ο” instead of an English “o”). Real companies never do this; it is a trick to look genuine and slip past filters.`,"Brand impersonation","impersonation",true);
   else if(mixedScriptText)addSignal(state,"mixed-script-text",14,"Mixes letters from different alphabets inside a word, a trick used to slip past spam filters.","Obfuscated phishing","style");
@@ -944,7 +1019,7 @@ function analyzeTextRulesCore(text){
     if(!highestEmbedded||linkResult.score>highestEmbedded.score)highestEmbedded=linkResult;
   }
   if(subscriptionLure)addSignal(state,"subscription-lure",10,"Says a subscription expired or a payment failed and asks you to renew — a common lure for card details.","Subscription renewal phishing",embedded.length&&embedded.some(r=>!r.officialBrand)?"pressure":"");
-  if(highestEmbedded?.score>=58)addSignal(state,"dangerous-embedded-link",34,`An embedded link has high-risk structural indicators: ${highestEmbedded.reasons[0]||highestEmbedded.scamType}.`,"Message carrying a suspicious link","action",true);
+  if(highestEmbedded?.score>=58)addSignal(state,"dangerous-embedded-link",34,`An embedded link has high-risk structural indicators: ${highestEmbedded.reasons[Math.max(0,(highestEmbedded.signals||[]).findIndex(s=>s.strong))]||highestEmbedded.scamType}.`,"Message carrying a suspicious link","action",true);
   else if(highestEmbedded?.score>=32)addSignal(state,"suspicious-embedded-link",18,"An embedded link contains multiple suspicious structural indicators.","Message carrying an unverified link","action");
   if(highestEmbedded?.registeredDomain)state.reasons.push(`Most suspicious visible destination: ${highestEmbedded.registeredDomain}.`);
   // "Click the link" / "scan the QR code" is how every real meeting invite, menu
@@ -957,6 +1032,10 @@ function analyzeTextRulesCore(text){
     addSignal(state,"link-pressure",allOfficial?4:doubtful?18:10,"Directly pressures the recipient to open a link or scan a QR code.","Phishing call-to-action","action",doubtful&&!allOfficial);
   }
 
+  // A look-alike company name next to an account, payment or delivery demand
+  // is decisive, as a look-alike web address is ("Gοogle: your account has
+  // been limited. Reply YES to restore access").
+  if(state.signals.has("homoglyph-text")&&(["credentials","pressure","money","delivery","reward","extortion","device"].some(c=>state.categories.has(c))||hasTerm(variants,ACCOUNT_TROUBLE)))addSignal(state,"homoglyph-lure",20,"Pairs the look-alike company name with an account, payment or delivery demand.","Brand impersonation","impersonation",true);
   const combo=(id,needs,weight,reason,type,category)=>{if(needs.every(x=>state.signals.has(x)))addSignal(state,id,weight,reason,type,category,true)};
   combo("credential-chain",["credentials","urgency","links"],28,"Combines account pressure, urgency, and a clickable link.","Credential phishing","credentials");
   combo("otp-chain",["otp","urgency"],18,"Combines authentication-code language with urgency.","OTP theft scam","credentials");
@@ -1032,10 +1111,17 @@ const CONFUSABLES={
   // Armenian
   "օ":"o","ս":"u","ց":"g","հ":"h","ո":"n","զ":"q",
   // Latin look-alikes and swaps
-  "ı":"l","ł":"l","ɩ":"l","ǀ":"l","ɡ":"g","i":"l","1":"l","|":"l","0":"o","@":"a","$":"s"
+  "ı":"l","ł":"l","ɩ":"l","ǀ":"l","ɡ":"g","i":"l","1":"l","|":"l","0":"o","@":"a","$":"s",
+  // Latin letters with a stroke or hook (no accent to strip)
+  "ħ":"h","đ":"d","ƀ":"b","ɓ":"b","ƈ":"c","ȼ":"c","ɗ":"d","ɇ":"e","ƒ":"f","ɠ":"g","ɦ":"h","ɨ":"l","ƙ":"k","ƚ":"l","ɱ":"m","ɲ":"n","ø":"o","ƥ":"p","ɍ":"r","ɽ":"r","ʂ":"s","ŧ":"t","ƭ":"t","ʋ":"v","ƴ":"y","ɏ":"y","ȥ":"z",
+  // Latin small capitals and IPA letters
+  "ɑ":"a","ᴀ":"a","ʙ":"b","ᴄ":"c","ᴅ":"d","ᴇ":"e","ꜰ":"f","ɢ":"g","ʜ":"h","ɪ":"l","ᴊ":"j","ᴋ":"k","ʟ":"l","ᴍ":"m","ɴ":"n","ᴏ":"o","ᴘ":"p","ʀ":"r","ꜱ":"s","ᴛ":"t","ᴜ":"u","ᴠ":"v","ᴡ":"w","ʏ":"y","ᴢ":"z"
 };
+// Capitals read before lower-casing: Greek Η Ν Μ Υ Ζ lower-case to letters that
+// look different (η ν μ υ ζ), and Cherokee letters look like Latin capitals.
+const CONFUSABLE_CAPS={"Α":"a","Β":"b","Ε":"e","Η":"h","Ι":"l","Κ":"k","Μ":"m","Ν":"n","Ο":"o","Ρ":"p","Τ":"t","Υ":"y","Χ":"x","Ζ":"z","Ꭺ":"a","Ᏼ":"b","Ꮯ":"c","Ꭰ":"d","Ꭼ":"e","Ꮐ":"g","Ꮋ":"h","Ꭵ":"l","Ꭻ":"j","Ꮶ":"k","Ꮮ":"l","Ꮇ":"m","Ꮲ":"p","Ꭱ":"r","Ꮪ":"s","Ꭲ":"t","Ꮩ":"v","Ꮃ":"w","Ꮓ":"z"};
 function confusableSkeleton(word){
-  return String(word||"").normalize("NFKC").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"")
+  return String(word||"").normalize("NFKC").replace(INVISIBLE_ALL,"").replace(/[\s\S]/gu,ch=>CONFUSABLE_CAPS[ch]||ch).toLowerCase().normalize("NFD").replace(/\p{M}/gu,"")
     .replace(/[\s\S]/gu,ch=>CONFUSABLES[ch]||ch);
 }
 const SCRIPT_TESTS={latin:/[a-zß-ɏ]/i,cyrillic:/[Ѐ-ԯ]/,greek:/[Ͱ-Ͽἀ-῿]/,armenian:/[Ա-֏]/,cherokee:/[Ꭰ-᏿]/};
@@ -1045,22 +1131,51 @@ function scriptsOf(word){return Object.keys(SCRIPT_TESTS).filter(k=>SCRIPT_TESTS
 function isMixedScript(word){const s=scriptsOf(word);return s.includes("latin")&&s.some(x=>LOOKALIKE_SCRIPTS.includes(x))}
 const BRAND_NAMES={paypal:"PayPal",emiratesnbd:"Emirates NBD",enbd:"Emirates NBD",adcb:"ADCB",hsbc:"HSBC",linkedin:"LinkedIn",whatsapp:"WhatsApp",tiktok:"TikTok",uaepass:"UAE Pass",emiratesid:"Emirates ID",emiratespost:"Emirates Post",metamask:"MetaMask",trustwallet:"Trust Wallet",onedrive:"OneDrive",sharepoint:"SharePoint",docusign:"DocuSign",royalmail:"Royal Mail",disneyplus:"Disney+",bankfab:"FAB",alrajhi:"Al Rajhi",riyadbank:"Riyad Bank",alahli:"Al Ahli",bankmuscat:"Bank Muscat",rakbank:"RAKBANK",dewa:"DEWA",sewa:"SEWA",adnoc:"ADNOC",stcpay:"STC Pay",luluhypermarket:"Lulu Hypermarket",dubaidutyfree:"Dubai Duty Free"};
 function brandLabel(brand){return BRAND_NAMES[brand]||String(brand||"").replace(/^./,c=>c.toUpperCase())}
-let BRAND_SKELETONS=null;
-// Which brand a word imitates with look-alike letters, or null. Only words that
-// actually use non-ASCII letters count: plain swaps like "paypa1" are the
-// typo rules' job. A word written wholly in another alphabet only matches
-// brands of five letters or more, so ordinary Russian or Greek words that
-// happen to read like a short brand ("мета") are left alone.
-function lookalikeBrand(word){
+let BRAND_SKELETONS=null,GLUE_SKELETONS=null;
+// Brand names that are everyday words or names in another language: Italian
+// "metà", French "méta", Polish "metą", the name "Zaïn", Turkish "salık"
+// (advice), French "Émirates"; written wholly in Cyrillic or Greek, Russian
+// "мета" (goal) and Greek "ΜΕΤΑ" (after).
+const ACCENT_FALSE_FRIENDS=new Set(["meta","zain","salik","emirates"]);
+const SCRIPT_FALSE_FRIENDS=new Set(["meta"]);
+// Which brand or Gulf service a word imitates with look-alike letters, or null.
+// Only words that use non-ASCII letters count: plain swaps like "paypa1" are
+// the typo rules' job. Two- and three-letter names ("du", "FAB", "STC") only
+// match a word mixing two alphabets, written wholly in another one, or (in a
+// web address under ".com" and the like) accented. Options:
+//   wholeScriptMin  a word wholly in another alphabet matches names of this
+//                   many letters or more (default 5), so ordinary Russian or
+//                   Greek words that read like a short brand are left alone;
+//   accent          how a word of accented Latin letters counts: "any" (in an
+//                   address), "header" (a sender name), "prose" (running text:
+//                   not a Polish case ending such as "Teslą") or "none";
+//   accentMin       shortest name an accented word can match (default 4);
+//   falseFriends    skip the false friends below for accented and whole-script words.
+function lookalikeBrand(word,options={}){
+  const wholeScriptMin=options.wholeScriptMin||5,accent=options.accent||"any",accentMin=options.accentMin||4;
   const w=String(word||"").normalize("NFKC");
   if(!/[^\x00-\x7f]/.test(w))return null;
-  if(!BRAND_SKELETONS)BRAND_SKELETONS=Object.keys(KNOWN_BRANDS).filter(b=>b.length>=4).map(b=>[b,confusableSkeleton(b)]);
-  const sc=scriptsOf(w),mixed=isMixedScript(w),foreignOnly=!sc.includes("latin")&&sc.some(x=>LOOKALIKE_SCRIPTS.includes(x));
-  if(!mixed&&!foreignOnly&&!/[À-ɏ]/.test(w))return null;
+  if(!BRAND_SKELETONS)BRAND_SKELETONS=unique([...Object.keys(KNOWN_BRANDS),...GULF_SERVICES]).map(b=>[b,confusableSkeleton(b)]);
+  if(!GLUE_SKELETONS)GLUE_SKELETONS=new Set([...LURE_WORDS,...BRAND_GLUE].map(x=>confusableSkeleton(x)));
+  const sc=scriptsOf(w),foreignOnly=!sc.includes("latin")&&sc.some(x=>LOOKALIKE_SCRIPTS.includes(x));
+  // Small capitals and IPA letters (ɡ ɑ ᴏ ʟ) belong to no everyday alphabet:
+  // as telling as a word that mixes two.
+  const mixed=isMixedScript(w)||/[\u0250-\u02AF\u1D00-\u1D2B\uA730\uA731]/.test(w);
+  const accentOnly=!mixed&&!foreignOnly;
+  if(accentOnly&&(accent==="none"||!/[\u00C0-\u02AF\u1E00-\u1EFF]|\p{M}/u.test(w)))return null;
+  // In running text a Polish or Lithuanian case ending is grammar ("Teslą",
+  // "Teslę"), not a disguise.
+  if(accentOnly&&accent==="prose"&&/^[\x00-\x7f]+[ąęįųĄĘĮŲ]$/.test(w))return null;
+  if(foreignOnly&&wholeScriptMin>=99)return null;
   const s=confusableSkeleton(w),m=s.replace(/rn/g,"m").replace(/vv/g,"w");
   for(const [brand,bs] of BRAND_SKELETONS){
-    if(foreignOnly&&bs.length<5)continue;
+    if(foreignOnly&&(bs.length<wholeScriptMin||(options.falseFriends&&SCRIPT_FALSE_FRIENDS.has(brand))))continue;
+    // Accented words: brands only (Spanish "pací" is not PACI), and Gulf
+    // services only inside an address.
+    if(accentOnly&&(bs.length<accentMin||(accent!=="any"&&!KNOWN_BRANDS[brand])||(options.falseFriends&&ACCENT_FALSE_FRIENDS.has(brand))))continue;
     if(s===bs||(bs.length>=6&&m===bs))return brand;
+    // Glued to a lure word or a number ("àppleid", "gòoglesupport", "pаypal365").
+    if(bs.length>=5&&s.length>bs.length){const rest=s.startsWith(bs)?s.slice(bs.length):s.endsWith(bs)?s.slice(0,-bs.length):"";if(rest&&(GLUE_SKELETONS.has(rest)||/^\d{1,4}$/.test(rest)))return brand}
   }
   return null;
 }
@@ -1167,9 +1282,15 @@ function analyzeLinkRules(rawLink){
   // written in its own alphabet (münchen.de, ελλάδα.gr, пример.рф) is not.
   let homoglyphBrand=null,mixedScriptHost=false;
   if(host.includes("xn--")){
+    // A word wholly in another alphabet under a Latin ending (".com") reads as
+    // a brand at any length ("аԁсь.com" is ADCB), as browsers also judge it;
+    // under its own country's ending (".рф") it is a local word. Accented words
+    // under a European country ending are words there ("metà.it", "zaïn.fr").
+    const tld=labels.at(-1)||"";
+    const hostOptions={wholeScriptMin:/^[a-z]{2,}$/.test(tld)?2:5,accentMin:/^[a-z]{3,}$/.test(tld)||GULF_CODES_SHORT.includes(tld)?2:4,falseFriends:/^[a-z]{2}$/.test(tld)&&!GULF_CODES_SHORT.includes(tld)};
     for(const token of unicodeHost(host).split(/[.\-]/).filter(Boolean)){
       if(isMixedScript(token))mixedScriptHost=true;
-      const b=lookalikeBrand(token);
+      const b=lookalikeBrand(token,hostOptions);
       if(b&&!(KNOWN_BRANDS[b]||[]).includes(registered))homoglyphBrand=homoglyphBrand||b;
     }
     if(homoglyphBrand||mixedScriptHost)addSignal(state,"punycode",31,"Uses special hidden characters in the web address that can make it look like a different, trusted website.","Lookalike-domain phishing","deception",true);
@@ -1204,24 +1325,54 @@ function analyzeLinkRules(rawLink){
   if(/[?&](email|user|username|phone|card|account)=/i.test(url.search)&&state.categories.has("credentials"))addSignal(state,"prefill-identity",12,"Pre-fills identity or account information on a credential-related page.","Targeted credential page","credentials");
   if(/[?&](token|session|auth|password|pass|otp|code|key)=/i.test(url.search))addSignal(state,"secrets-query",24,"Places authentication-like information in the query string.","Credential-bearing URL","credentials",true);
 
-  const mismatch=brandMismatch(host,registered,pathQuery);
+  // A look-alike brand in the page path ("/gοogle/login"): the path arrives
+  // percent-encoded, so read it decoded. Accented words are left to the
+  // language they are in ("/metà-prezzo").
+  let pathBrand=null;
+  if(!homoglyphBrand&&!officialBrand){
+    let decoded="";try{decoded=decodeURIComponent(url.pathname)}catch{}
+    for(const word of decoded.match(/[\p{L}\p{M}\p{N}]{2,}/gu)||[]){pathBrand=lookalikeBrand(word,{accent:"none"});if(pathBrand)break}
+  }
+  if(pathBrand)addSignal(state,"homoglyph-brand",52,`Writes “${brandLabel(pathBrand)}” in the page address with look-alike letters from another alphabet (for example a Greek “ο” instead of an English “o”). It is not ${brandLabel(pathBrand)}’s real website.`,"Lookalike-domain phishing","impersonation",true);
+  const mismatch=brandMismatch(host,registered,pathQuery+(pathBrand?"/"+pathBrand:""));
   if(mismatch)addSignal(state,`brand-${mismatch.brand}`,35,`References “${mismatch.brand}” but the registered domain is ${registered}, not ${mismatch.official}.`,"Brand impersonation phishing","impersonation",true);
-  // "micr0soft", "app1e", "rnicrosoft": read each host token with the usual
-  // look-alike substitutions undone and compare it to the brand exactly.
-  // The rn/vv tricks only apply to brands of six letters or more ("arnazon" for
-  // amazon): "stearn" must not become "steam".
-  const unmask=(t,brand)=>{const digits=t.replace(/0/g,"o").replace(/1/g,"l");return brand.length>=6?digits.replace(/rn/g,"m").replace(/vv/g,"w"):digits};
-  const hostTokens=host.split(/[.-]/).filter(Boolean);
+  // "micr0soft", "rnicrosoft", "appIe", "clropbox", "gooogle": read each host
+  // token the way it looks and compare it with the brand. The address as it
+  // was typed keeps the capitals the browser drops, and a capital I passes for
+  // a lowercase l ("appIe", "PAYPAI.COM"). 0 reads as o, 1 as l, 5 as s, rn as
+  // m, vv as w, cl as d; a final "rn" stays for five-letter brands ("stearn" is
+  // not "steam"). Brands of six letters or more also match a doubled or dropped
+  // double letter ("gooogle", "gogle") or two swapped neighbours ("mircosoft");
+  // shorter ones would hit words ("chasse", "appel"). The brand's other
+  // official names count too ("rnicrosoftonline", "0ffice").
+  const readings=t=>{let out=[""];for(const ch of t)out=ch==="I"&&out.length<16?out.flatMap(p=>[p+"l",p+"i"]):out.map(p=>p+ch.toLowerCase());return out};
+  const visual=(t,short)=>t.toLowerCase().replace(/0/g,"o").replace(/1/g,"l").replace(/5/g,"s").replace(/vv/g,"w").replace(/cl/g,"d").replace(short?/rn(?!$)/g:/rn/g,"m");
+  const squeeze=t=>t.replace(/(.)\1+/g,"$1");
+  const swapped=(a,b)=>{if(a.length!==b.length||a===b)return false;let i=0;while(a[i]===b[i])i++;return i<a.length-1&&a[i]===b[i+1]&&a[i+1]===b[i]&&a.slice(i+2)===b.slice(i+2)};
+  const typed=((original.match(/^(?:[a-z][a-z0-9+.-]*:\/\/)?([^\/?#]*)/i)||[])[1]||"").replace(/^.*@/,"").replace(/:\d*$/,"").replace(/^www\./i,"").replace(/\.$/,"");
+  // The address as typed when it is plain ASCII; otherwise the decoded host
+  // (the ASCII remainder of a punycode label, "xn--gogle-…", is not what anyone sees).
+  const shownTokens=/^[a-z0-9.-]+$/i.test(typed)&&typed.toLowerCase()===host.replace(/\.$/,"")?typed.split(/[.-]/).filter(Boolean):unicodeHost(host).split(/[.-]/).filter(Boolean);
+  let lookalikeLetters=false,otherNameHit=false;
   Object.entries(brands).forEach(([brand,officials])=>{
     if(officials.includes(registered)||brand.length<5)return;
     const core=registered.split(".")[0];const d=levenshtein(core,brand);
-    const masked=hostTokens.some(t=>t!==brand&&unmask(t,brand)===brand);
+    const short=brand.length<6,vb=visual(brand,short);
+    const otherCores=otherNameHit?[]:officials.map(o=>o.split(".")[0]).filter(c=>c.length>=6&&c!==brand&&!c.includes("-")&&!KNOWN_BRANDS[c]);
+    const masked=shownTokens.some(t=>{const lt=t.toLowerCase();if(lt===brand||otherCores.includes(lt))return false;return readings(t).some(r=>{const v=visual(r,short);return v===vb||(!short&&(squeeze(v)===squeeze(vb)||swapped(v,vb)))||otherCores.some(c=>v===visual(c,false))})});
     if(TYPO_EXEMPT.has(brand)&&!masked)return;
-    if(masked||(d>0&&d<=1&&core.length>=6))addSignal(state,`typo-${brand}`,37,masked?`The domain spells “${brand}” with look-alike characters.`:`The domain is one character away from the brand “${brand}”.`,"Typosquatting phishing","impersonation",true);
+    if(masked||(d>0&&d<=1&&core.length>=6)){
+      addSignal(state,`typo-${brand}`,37,masked?`The domain spells “${brand}” with look-alike, doubled or swapped letters.`:`The domain is one character away from the brand “${brand}”.`,"Typosquatting phishing","impersonation",true);
+      if(masked){lookalikeLetters=true;otherNameHit=true}
+    }
   });
   const lures=officialBrand?[]:lureWordsIn(registered);
   if(lures.length)addSignal(state,"lure-domain",(mismatch||registered.includes("-")?16:10)+8*(Math.min(lures.length,3)-1),`The domain name itself uses account or security wording (“${lures.slice(0,2).join("”, “")}”) to look official.`,"Lookalike-domain phishing","deception");
-  if(/[a-z]\d[a-z]|\d[a-z]{2,}|[a-z]{2,}\d/i.test(registered.split(".")[0])&&state.categories.has("impersonation"))addSignal(state,"substitution",16,"Uses letter-number substitutions commonly found in lookalike domains.","Typosquatting phishing","impersonation",true);
+  // Not on a punycode label: "xn--caf-noon-d1a" is the encoding, not a 1-for-l swap.
+  if(!/^xn--/.test(registered)&&/[a-z]\d[a-z]|\d[a-z]{2,}|[a-z]{2,}\d/i.test(registered.split(".")[0])&&state.categories.has("impersonation"))addSignal(state,"substitution",16,"Uses letter-number substitutions commonly found in lookalike domains.","Typosquatting phishing","impersonation",true);
+  // The same trick with letters instead of digits (rn for m, a capital I for l,
+  // a doubled or swapped letter) is the second sign too.
+  if(lookalikeLetters&&!state.signals.has("substitution"))addSignal(state,"lookalike-letters",16,"Swaps in letters that look the same at a glance (rn for m, vv for w, cl for d, a capital I for l, a doubled or swapped letter) to copy a real name.","Typosquatting phishing","impersonation",true);
 
   // A police, government, tax or court name inside a commercial domain is the
   // shape of fine-and-fee scams ("cy-police-fines.com"): real authorities use
@@ -1435,9 +1586,9 @@ const PLAIN_POINTS=[
   {ids:["service-code-domain"],text:"The address is just a government service, utility or company name plus a country code, but it is not that organization’s website."},
   {ids:["free-host-brand","free-host-lure"],text:"It is a free website anyone can make in minutes, dressed up with a company, government or payment name. Real organizations don’t send you there to pay or sign in."},
   {ids:["brand-pressure"],text:"It uses a well-known company’s name to make you trust it, then says your account or payment is in trouble."},
-  {ids:["homoglyph-brand","homoglyph-text"],text:"It writes a real company’s name with look-alike letters from another alphabet (like a Greek ‘ο’ for an English ‘o’), so it looks genuine at a glance but isn’t."},
+  {ids:["homoglyph-brand","homoglyph-text","homoglyph-lure"],text:"It writes a real company’s name with look-alike letters from another alphabet (like a Greek ‘ο’ for an English ‘o’), so it looks genuine at a glance but isn’t."},
   {ids:["mixed-script","mixed-script-text"],text:"It mixes letters from different alphabets inside one word, a trick to dodge filters and look like something it isn’t."},
-  {ids:[/^brand-(?!pressure)/,/^typo-/,"substitution","punycode","unicode","com-prefix-trick"],text:"The web address copies a real company’s name with a look-alike spelling."},
+  {ids:[/^brand-(?!pressure)/,/^typo-/,"substitution","lookalike-letters","punycode","unicode","com-prefix-trick"],text:"The web address copies a real company’s name with a look-alike spelling."},
   {ids:["dangerous-embedded-link"],text:"The link inside it looks unsafe: it does not go where it claims."},
   {ids:["threat"],text:"It uses threats, such as arrest, legal action or losing your account, to scare you into acting."},
   {ids:["money-pressure","fine-demand"],text:"It pushes you to pay quickly, before you can check whether the bill is real."},

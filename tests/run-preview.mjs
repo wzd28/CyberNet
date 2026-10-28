@@ -220,7 +220,10 @@ for (const bad of ["http://localhost/", "http://127.0.0.1/", "http://[::1]/", "h
   check("UI unreachable needs a 200", (await run(429, { unreachable: true })).removed === true);
   check("UI: verdict code does not read the preview result", !/unreachable/.test(source.slice(0, start)) && !/unreachable/.test(source.slice(end)), "unreachable used outside loadScreenshotPreview");
   const html = readFileSync(path.join(root, "public/index.html"), "utf8");
-  check("index.html loads script.js with a bumped ?v=", /\/script\.js\?v=20261024-\d+"/.test(html), html.match(/\/script\.js\?v=[^"]+/)?.[0]);
+  // The page loads the ES2018 copy (/legacy/script.js, scripts/build-legacy.mjs) since 28 Oct 2026; any
+  // version from 24 Oct on carries loadScreenshotPreview.
+  const scriptVersion = html.match(/\/(?:legacy\/)?script\.js\?v=(\d{8})-[\w-]+"/);
+  check("index.html loads script.js with a bumped ?v=", Boolean(scriptVersion) && Number(scriptVersion[1]) >= 20261024, html.match(/\/(?:legacy\/)?script\.js\?v=[^"]+/)?.[0]);
 }
 
 {
