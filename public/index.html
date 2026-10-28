@@ -2,9 +2,9 @@
 <html lang="en" class="cn">
 <head>
   <meta charset="UTF-8" />
-  <!-- Old-browser notice (Chrome/Edge 90+, Safari/iOS 14+, Firefox 90+ are supported). ES5 on
+  <!-- Old-browser notice (Chrome/Android WebView 69+, Safari/iOS 14+, Firefox 78+ are supported). ES5 on
        purpose (no arrow functions, let/const or template strings): it must run where our modern
-       scripts cannot. The next tag uses ?. and ??; a browser that cannot parse it gets a notice at
+       scripts cannot. The next tag uses object spread (ES2018, the level of /legacy/*.js); a browser that cannot parse it gets a notice at
        the top of the page. No eval: the CSP has no 'unsafe-eval' (inline scripts are allowed by
        'unsafe-inline'). Nothing is reported: cybernet-errors.js is not listening yet, and this
        listener does not cancel the event. Same copy in index.html and privacy.html
@@ -28,7 +28,7 @@
     });
   })(window, document);
   </script>
-  <script>window.CN_modernJs = (null ?? { a: 1 })?.a === 1;</script>
+  <script>window.CN_modernJs = ({ ...{ a: 1 } }).a === 1;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>CyberNet AI | AI-Powered Cybersecurity</title>
   <meta name="description" content="CyberNet AI provides on-demand threat analysis, deep evidence correlation, account-based AI access, and clear defensive next actions for suspicious messages, links, email headers, QR codes, and screenshots." />
@@ -91,6 +91,7 @@
   </script>
   <!-- First-party error reporter. Keep it the first deferred script so it is listening before every
        later script runs (deferred scripts run in document order); defer keeps it off the critical path. -->
+  <script src="/cybernet-compat.js?v=20261028-1" defer></script>
   <script src="/cybernet-errors.js?v=20261021-1" defer></script>
   <!-- Self-hosted fonts (ui-src/css/00-fonts.css declares them). The two latin files the first screen
        uses are preloaded so they arrive with the CSS: Mona Sans (the H1, the text and the nav) and
@@ -2830,22 +2831,22 @@
     </nav>
   </footer>
 
-  <script src="/cybernet-consent.js?v=20261021-1" defer></script>
+  <script src="/legacy/cybernet-consent.js?v=20261028-1" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" defer></script>
   <script src="/config.js?v=20260830-3" defer></script>
-  <script src="/cybernet-engine.js?v=20261024-1" defer></script>
-  <script src="/script.js?v=20261024-1" defer></script>
-  <script src="/cybernet-account-api-upgrade.js?v=20261018-h2" defer></script>
+  <script src="/legacy/cybernet-engine.js?v=20261028-1" defer></script>
+  <script src="/legacy/script.js?v=20261028-1" defer></script>
+  <script src="/legacy/cybernet-account-api-upgrade.js?v=20261028-1" defer></script>
   <script src="/cybernet-howto.js?v=20261019-1" defer></script>
-<script src="/cybernet-business-team.js?v=20261018-h2" defer></script>
-  <script src="/cybernet-final-ui-fix.js?v=20260930-2" defer></script>
-      <script src="/cybernet-legal-upgrade.js?v=20261019-2" defer></script>
+<script src="/legacy/cybernet-business-team.js?v=20261028-1" defer></script>
+  <script src="/legacy/cybernet-final-ui-fix.js?v=20261028-1" defer></script>
+      <script src="/legacy/cybernet-legal-upgrade.js?v=20261028-1" defer></script>
   <!-- After script.js, cybernet-account-api-upgrade.js and cybernet-final-ui-fix.js (account modal tabs). -->
-  <script src="/cybernet-privacy-controls.js?v=20261018-h2" defer></script>
+  <script src="/legacy/cybernet-privacy-controls.js?v=20261028-1" defer></script>
   <!-- After script.js (cybernet:session event, appState). -->
-  <script src="/cybernet-onboarding.js?v=20261018-h2" defer></script>
+  <script src="/legacy/cybernet-onboarding.js?v=20261028-1" defer></script>
   <!-- After script.js and cybernet-account-api-upgrade.js (CyberNetAccount, account modal); admin-only, gated on the server. -->
-  <script src="/cybernet-admin-feedback.js?v=20261021-1" defer></script>
+  <script src="/legacy/cybernet-admin-feedback.js?v=20261028-1" defer></script>
   <script src="/ui/cybernet-ui.js?v=20261021-5" defer></script>
 </body>
 </html>

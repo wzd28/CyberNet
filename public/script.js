@@ -1762,10 +1762,33 @@ document.addEventListener("DOMContentLoaded",()=>{
   function countMatches(text,regex){return (text.match(regex)||[]).length}
   /* The detection rules live in cybernet-engine.js (shared with the server and
      the tests). These names stay so the page code reads as before. */
+  /* When the engine did not load (a dropped download in an in-app browser:
+     alert of 25 Oct 2026), reading it here used to stop the rest of this
+     script, so no button on the page worked. Now the page carries on, and a
+     scan first loads the engine again (scanEngineReady). */
   if(!window.CyberNetEngine)console.error("CyberNet AI: cybernet-engine.js did not load; scans cannot run.");
-  const KNOWN_BRANDS=window.CyberNetEngine.KNOWN_BRANDS;
-  const SHORTENERS=window.CyberNetEngine.SHORTENERS;
-  const LURE_WORDS=window.CyberNetEngine.LURE_WORDS;
+  const KNOWN_BRANDS=window.CyberNetEngine?.KNOWN_BRANDS||{};
+  const SHORTENERS=window.CyberNetEngine?.SHORTENERS||new Set();
+  const LURE_WORDS=window.CyberNetEngine?.LURE_WORDS||[];
+  const ENGINE_MISSING="Quick Scan could not load on this connection. Refresh the page and try again.";
+  let engineRetry=null;
+  function scanEngineReady(){
+    if(window.CyberNetEngine)return Promise.resolve(true);
+    if(!engineRetry){
+      const tag=document.querySelector('script[src*="cybernet-engine.js"]:not([data-retry])');
+      const src=tag?tag.src:"/legacy/cybernet-engine.js";
+      const retry=document.createElement("script");
+      retry.dataset.retry="1";
+      retry.src=src+(src.includes("?")?"&":"?")+"retry=1";
+      engineRetry=new Promise(resolve=>{
+        retry.onload=()=>resolve(!!window.CyberNetEngine);
+        retry.onerror=()=>resolve(false);
+        setTimeout(()=>resolve(!!window.CyberNetEngine),15000);
+        document.head.appendChild(retry);
+      }).then(ok=>{if(!ok){engineRetry=null;retry.remove()}return ok});
+    }
+    return engineRetry;
+  }
   function isOfficialDomain(...args){return window.CyberNetEngine.isOfficialDomain(...args)}
   function brandMismatch(...args){return window.CyberNetEngine.brandMismatch(...args)}
   function lureWordsIn(...args){return window.CyberNetEngine.lureWordsIn(...args)}
@@ -1910,7 +1933,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(mismatch)badges.push({cls:"bad",text:`Looks like ${mismatch.brand} but the real site is ${mismatch.official}`});
     if(isOfficialDomain(registered))badges.push({cls:"good",text:"This is the brand's official domain"});
     if(url.protocol==="http:")badges.push({cls:"warn",text:"Not encrypted (http)"});
-    if(SHORTENERS.has(registered))badges.push({cls:"warn",text:"Shortened link — the real destination is hidden"});
+    if((window.CyberNetEngine?.SHORTENERS||SHORTENERS).has(registered))badges.push({cls:"warn",text:"Shortened link — the real destination is hidden"});
     if(/^\d{1,3}(\.\d{1,3}){3}$/.test(host))badges.push({cls:"bad",text:"Raw IP address instead of a website name"});
     const lures=isOfficialDomain(registered)?[]:lureWordsIn(registered);
     if(lures.length)badges.push({cls:"warn",text:`Uses “${lures.slice(0,2).join("”, “")}” in the domain name to look official`});
@@ -2080,6 +2103,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(!isSignedIn()){openAuthModal("signup");return}
     const text=cyberTextInput.value.trim();if(!text){cyberTextResult.innerHTML=`<span class="warning">Paste a suspicious message first.</span>`;return}
     cyberTextBtn.disabled=true;
+    if(!await scanEngineReady()){cyberTextResult.innerHTML=`<span class="warning">${ENGINE_MISSING}</span>`;cyberTextBtn.disabled=false;return}
     // The quota check and the ring run together; the result (computed locally
     // in a few ms) is only shown once the server has allowed this scan.
     const quotaCheck=checkQuickScanQuota();
@@ -2114,6 +2138,10 @@ document.addEventListener("DOMContentLoaded",()=>{
   if(cyberLinkBtn&&cyberLinkInput&&cyberLinkResult)cyberLinkBtn.addEventListener("click",async()=>{
     if(!isSignedIn()){openAuthModal("signup");return}
     const link=cyberLinkInput.value.trim();if(!link){cyberLinkResult.innerHTML=`<span class="warning">Paste a suspicious link first.</span>`;return}
+    cyberLinkBtn.disabled=true;
+    const engineReady=await scanEngineReady();
+    cyberLinkBtn.disabled=false;
+    if(!engineReady){cyberLinkResult.innerHTML=`<span class="warning">${ENGINE_MISSING}</span>`;return}
     // Plain sentences used to be parsed as an "encoded URL" and scored, which
     // read as a verdict on nothing. Only web addresses get a report.
     if(!looksLikeWebAddress(link)){cyberLinkResult.innerHTML=`<span class="warning">That doesn't look like a web address. Paste the full link, for example https://example.com/page.</span>`;return}
@@ -2180,6 +2208,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(!file||!cyberImageResult)return;
     if(!file.type.startsWith("image/")){cyberImageResult.innerHTML=`<span class="warning">Please upload a JPG, PNG, or WEBP image.</span>`;return}
     if(file.size>10*1024*1024){cyberImageResult.innerHTML=`<span class="warning">The image must be smaller than 10 MB.</span>`;return}
+    if(!await scanEngineReady()){cyberImageResult.innerHTML=`<span class="warning">${ENGINE_MISSING}</span>`;return}
     // The QR decode runs while the quota check is in flight; nothing is shown
     // (preview, result, scan list, team log) unless the server allows the scan.
     cyberImageResult.innerHTML=`<div class="scanning-placeholder"><span class="scanning-placeholder-text">Inspecting QR and visual signals</span><div class="scan-dots"><span></span><span></span><span></span></div></div>`;
@@ -2442,6 +2471,9 @@ document.addEventListener("DOMContentLoaded",()=>{
   const MAX_ANALYSIS_CHARS=14000;
   async function analyzeChat(type,content,imageData=""){
     if(!canStartAiAnalysis())return;
+    if(!await scanEngineReady()){addChatBubble("ai",`<span class="warning">${ENGINE_MISSING}</span>`);return}
+    // Typed messages arrive as "auto": telling a link from text needs the engine.
+    if(type==="auto")type=detectChatContentType(content);
     content=String(content||"").slice(0,MAX_ANALYSIS_CHARS);
     let local;
     let serverContent=content;
@@ -2532,7 +2564,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(!canStartAiAnalysis())return;
     addChatBubble("user",escapeHTML(text));
     if(chatInput)chatInput.value="";
-    analyzeChat(detectChatContentType(text),text);
+    analyzeChat("auto",text);
   }
   if(chatSendBtn)chatSendBtn.addEventListener("click",sendChatMessage);
   if(chatInput)chatInput.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();sendChatMessage()}});
