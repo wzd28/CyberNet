@@ -96,7 +96,7 @@
   <link rel="stylesheet" href="/cybernet-howto.css?v=20260905-1" />
   <link id="cybernetBusinessTeamStylesheet" rel="stylesheet" href="/cybernet-business-team.css?v=20260927-2" />
   <link rel="stylesheet" href="/cybernet-consent.css?v=20260927-2" />
-  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261028-g2" />
+  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261028-g3" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=20260830-5">
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=20260830-5">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=20260830-5">
@@ -338,11 +338,12 @@
   <!-- ═══ LOGIN / SIGNUP MODAL ═══ -->
   <div id="authModal" class="modal">
     <!-- Sign-in gate (63-gate.css; owner, 28 Oct 2026: every visitor signs in before using the site).
-         Shown while html.cn-gate is set (head snippet: no saved session). The mark draws, the wordmark
-         rises, the lines type themselves, then the sign-in card below rises in over the blurred page.
-         Decorative copy: aria-hidden; the dialog's own heading names it, and #cnGateStatus speaks the
-         nudge and the welcome. Each typed line lists the texts it can show in data-alt, so its box is
-         sized for the longest one from the start and nothing moves when the words change. -->
+         Shown while html.cn-gate is set (head snippet: no saved session). One thing moves at a time:
+         the mark draws, the wordmark rises, the quote types and fades, the mark glides up, the three
+         pitch lines type, then the stage settles and the sign-in card rises in. Decorative copy:
+         aria-hidden; the dialog's own heading names it, and #cnGateStatus speaks the nudge and the
+         welcome. Each typed line lists the texts it can show in data-alt, so its box is sized for the
+         longest one from the start and nothing moves when the words change. -->
     <div class="cn-gate-stage" id="cnGateStage" aria-hidden="true">
       <div class="cn-gate-brand">
         <span class="cn-gate-mark"><svg viewBox="0 0 24 26" fill="none"><path class="cn-gate-shield" pathLength="1" d="M12 2 L21 6 L20 15 L12 24 L4 15 L3 6 Z" stroke="#22D3EE" stroke-width="1.3" stroke-linejoin="round"/><g class="cn-gate-lock"><rect x="8.3" y="12.5" width="7.4" height="6.2" rx="1.2" fill="#22D3EE"/><path d="M9.6 12.5v-2.3a2.4 2.4 0 0 1 4.8 0v2.3" stroke="#22D3EE" stroke-width="1.3" fill="none" stroke-linecap="round"/><circle cx="12" cy="15.2" r="1" fill="#08152a"/><path d="M12 15.9v1.4" stroke="#08152a" stroke-width="1" stroke-linecap="round"/></g></svg><i class="cn-gate-scan"></i></span>
@@ -350,9 +351,9 @@
       </div>
       <p class="cn-gate-quote"><span class="cn-gate-t">“That message looks real. That’s the point.”</span></p>
       <div class="cn-gate-pitch">
-        <p class="cn-gate-head"><span class="cn-gate-t" data-alt="Not signed in yet.|You’re in.">Stay protected.</span></p>
-        <p class="cn-gate-sub"><span class="cn-gate-t" data-alt="Sign in or create a free account to unlock every tool.">Every message, link and screenshot, checked in one place.</span></p>
-        <p class="cn-gate-perks"><span class="cn-gate-t">Free · 5 scans a day · No card needed</span></p>
+        <p class="cn-gate-head"><span class="cn-gate-t" data-alt="Not signed in yet.|You’re in.">Stay secure.</span></p>
+        <p class="cn-gate-sub"><span class="cn-gate-t">All in one place.</span></p>
+        <p class="cn-gate-tag"><span class="cn-gate-t" data-alt="Sign in to unlock every tool">Designed for protection and recovery</span></p>
       </div>
     </div>
     <p class="cn-gate-status" id="cnGateStatus" role="status"></p>
@@ -361,7 +362,9 @@
        instead of waiting for the deferred scripts. It reaches script.js only through what script.js
        offers other scripts: window.CyberNetAccount.openAuthModal (or a click on #openAuth before it
        exists), #closeAuth, and the "cybernet:session" event. It never opens the card over a step
-       script.js already put on screen (an expired link notice, the reset or new-password step). */
+       script.js already put on screen (an expired link notice, the reset or new-password step).
+       Pacing (owner: "smooth, everything flows to its spot"): each step starts when the one before
+       it has landed; the times below are the full intro, the same visit's later pages use quick(). */
     (function (w, d) {
       var r = d.documentElement, stage = d.getElementById("cnGateStage"), modal = d.getElementById("authModal"), status = d.getElementById("cnGateStatus");
       if (!stage || !modal) return;
@@ -369,7 +372,9 @@
       var reduced = r.classList.contains("cn-still") || !!(w.matchMedia && w.matchMedia("(prefers-reduced-motion: reduce)").matches);
       var coarse = !!(w.matchMedia && w.matchMedia("(pointer: coarse)").matches);
       var timers = [], skipping = false, phase = 0, ready = false, wantCard = false, cardShown = false, lastView = "signup", eatClick = 0;
-      var NUDGE = ["Not signed in yet.", "Sign in or create a free account to unlock every tool."], WELCOME = "You’re in.";
+      var NUDGE = ["Not signed in yet.", "Sign in to unlock every tool"], WELCOME = "You’re in.";
+      /* how long the glides in 63-gate.css take (--cn-gate-glide) */
+      var GLIDE = 1200;
       function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
       function clear() { while (timers.length) clearTimeout(timers.pop()); }
       function q(sel) { return stage.querySelector(sel); }
@@ -386,9 +391,9 @@
       }
 
       /* A typed line: invisible copies of every text it can show share one grid cell and hold the
-         box; the visible copy types over them. Each step edits one text node, at most every 48 ms,
-         and adds as many characters as the speed needs. A newer type() on the same line stops the
-         older one. */
+         box; the visible copy types over them, one character at a time at an even pace (a short
+         breath after punctuation), never faster than one text edit every 48 ms. A newer type() on
+         the same line stops the older one. */
       var lines = stage.querySelectorAll(".cn-gate-t");
       for (var k = 0; k < lines.length; k++) setup(lines[k]);
       function setup(el) {
@@ -401,7 +406,7 @@
         el.cnText = el.cnOrig = text; el.cnNode = node; el.cnRun = 0;
         el.className = "cn-gate-t is-ready";
       }
-      function type(el, text, cps, done) {
+      function type(el, text, ms, done) {
         if (!el) { if (done) done(); return; }
         var run = ++el.cnRun, i = 0, all = el.cnText = text == null ? el.cnText : text;
         el.className = "cn-gate-t is-ready is-typing";
@@ -409,7 +414,7 @@
           if (run !== el.cnRun) return;
           el.cnNode.data = all;
           el.className = "cn-gate-t is-ready is-typed";
-          later(function () { if (run === el.cnRun) el.className = "cn-gate-t is-ready is-typed is-rested"; }, 2100);
+          later(function () { if (run === el.cnRun) el.className = "cn-gate-t is-ready is-typed is-rested"; }, 2300);
           if (done) done();
         }
         if (skipping || reduced) { fin(); return; }
@@ -417,11 +422,10 @@
         (function step() {
           if (run !== el.cnRun) return;
           if (skipping) { fin(); return; }
-          var n = Math.max(1, Math.round(cps * 0.055 * (0.7 + Math.random() * 0.6)));
-          i = Math.min(all.length, i + n);
-          el.cnNode.data = all.slice(0, i);
+          el.cnNode.data = all.slice(0, ++i);
           if (i >= all.length) { fin(); return; }
-          later(step, 55 + (/[.,·”]/.test(all.charAt(i - 1)) ? 160 : 0));
+          var ch = all.charAt(i - 1);
+          later(step, Math.max(48, ms * (0.9 + Math.random() * 0.2)) + (/[.,”]/.test(ch) ? 170 : ch === " " ? 16 : 0));
         })();
       }
       function finishAll() { for (var j = 0; j < lines.length; j++) { lines[j].cnRun++; lines[j].cnNode.data = lines[j].cnText; lines[j].className = "cn-gate-t is-ready is-typed is-rested"; } }
@@ -438,7 +442,7 @@
         el.style.transition = "none";
         el.style.transform = "translate(" + dx + "px," + dy + "px) scale(" + s + ")";
         el.getBoundingClientRect();
-        requestAnimationFrame(function () { el.style.transition = ""; el.style.transform = ""; });
+        requestAnimationFrame(function () { requestAnimationFrame(function () { el.style.transition = ""; el.style.transform = ""; }); });
       }
 
       function openAuth(view) {
@@ -452,28 +456,46 @@
           var a = d.activeElement; if (a && a.blur && modal.contains(a) && /^(INPUT|TEXTAREA)$/.test(a.tagName)) a.blur();
         }); });
       }
+      /* The stage glides to where it rests beside or above the card; the card rises in as the glide
+         eases out (its delay is in 63-gate.css), its parts one after another. */
       function showCard() {
         if (cardShown) return;
         if (!ready) { wantCard = true; return; }
         cardShown = true; wantCard = false;
         flip(stage, function () { r.classList.add("cn-gate-card", "cn-gate-enter"); }, true);
-        setTimeout(function () { r.classList.remove("cn-gate-enter"); }, 1300);
+        setTimeout(function () { r.classList.remove("cn-gate-enter"); }, 2600);
         openAuth(lastView);
       }
-      function rest() { type(q(".cn-gate-sub .cn-gate-t"), null, 60, function () { type(q(".cn-gate-perks .cn-gate-t"), null, 70); }); }
+      function pitch(fast) {
+        var m = fast ? 0.75 : 1;
+        type(q(".cn-gate-head .cn-gate-t"), null, 64 * m, function () {
+          later(function () {
+            type(q(".cn-gate-sub .cn-gate-t"), null, 48 * m, function () {
+              later(function () {
+                showCard();
+                later(function () { type(q(".cn-gate-tag .cn-gate-t"), null, 48); }, fast ? 500 : 900);
+              }, fast ? 200 : 380);
+            });
+          }, fast ? 150 : 260);
+        });
+      }
+      /* the quote has been read: it fades up and away, then the mark glides up and smaller */
       function compact() {
         phase = 2;
-        flip(q(".cn-gate-brand"), function () { r.classList.add("cn-gate-compact"); });
-        later(function () { type(q(".cn-gate-head .cn-gate-t"), null, 24, function () { showCard(); later(rest, 120); }); }, 380);
+        r.classList.add("cn-gate-leaving");
+        later(function () {
+          flip(q(".cn-gate-brand"), function () { r.classList.add("cn-gate-compact"); r.classList.remove("cn-gate-leaving"); });
+          later(function () { pitch(false); }, GLIDE - 250);
+        }, 650);
       }
       function full() {
         phase = 1;
-        later(function () { type(q(".cn-gate-quote .cn-gate-t"), null, 34, function () { later(compact, 600); }); }, 1300);
+        later(function () { type(q(".cn-gate-quote .cn-gate-t"), null, 46, function () { later(compact, 900); }); }, 1900);
       }
       function quick() {
         phase = 2;
         r.classList.add("cn-gate-compact", "cn-gate-quick");
-        later(function () { type(q(".cn-gate-head .cn-gate-t"), null, 30, function () { showCard(); later(rest, 100); }); }, 240);
+        later(function () { pitch(true); }, 420);
       }
       /* A tap or a key during the intro jumps to the card. The tap itself is used up, so it never
          lands on the card that appears under the finger. */
@@ -481,20 +503,20 @@
         if (!gated() || cardShown || phase === 3) return;
         if (e && (e.type === "pointerdown" || e.type === "touchstart")) eatClick = Date.now();
         skipping = true; clear(); phase = 3;
-        r.classList.add("cn-gate-compact"); finishAll();
+        r.classList.remove("cn-gate-leaving"); r.classList.add("cn-gate-compact"); finishAll();
         skipping = false;
         if (ready) showCard(); else wantCard = true;
       }
       function nudge() {
         if (!cardShown || phase < 2 || r.classList.contains("cn-gate-welcome")) return;
-        say(NUDGE[0] + " " + NUDGE[1]);
+        say(NUDGE[0] + " " + NUDGE[1] + ".");
         if (r.classList.contains("cn-gate-nudge")) return;
         r.classList.add("cn-gate-nudge");
-        type(q(".cn-gate-head .cn-gate-t"), NUDGE[0], 30, function () { type(q(".cn-gate-sub .cn-gate-t"), NUDGE[1], 70); });
+        type(q(".cn-gate-head .cn-gate-t"), NUDGE[0], 60, function () { type(q(".cn-gate-tag .cn-gate-t"), NUDGE[1], 48); });
       }
       function reset() {
         for (var j = 0; j < lines.length; j++) { lines[j].cnRun++; lines[j].cnText = lines[j].cnOrig; lines[j].cnNode.data = ""; lines[j].className = "cn-gate-t is-ready"; }
-        r.classList.remove("cn-gate-card", "cn-gate-compact", "cn-gate-quick", "cn-gate-nudge", "cn-gate-welcome", "cn-gate-enter");
+        r.classList.remove("cn-gate-card", "cn-gate-compact", "cn-gate-quick", "cn-gate-nudge", "cn-gate-welcome", "cn-gate-enter", "cn-gate-leaving");
         cardShown = false; wantCard = false; phase = 0; stage.style.transform = ""; say("");
       }
       function unlock() {
@@ -509,12 +531,12 @@
             r.classList.remove("cn-gate", "cn-gate-out");
             reset(); page(false); covered(false);
             try { w.dispatchEvent(new CustomEvent("cn:gate-open")); } catch (e) {}
-          }, 820);
+          }, 1150);
         };
         say(WELCOME);
         if (cardShown && !reduced) {
           r.classList.remove("cn-gate-nudge"); r.classList.add("cn-gate-welcome");
-          type(q(".cn-gate-head .cn-gate-t"), WELCOME, 30, function () { setTimeout(go, 380); });
+          type(q(".cn-gate-head .cn-gate-t"), WELCOME, 60, function () { setTimeout(go, 500); });
         } else go();
       }
       function lock() {
@@ -3060,7 +3082,7 @@
   <script src="/legacy/cybernet-onboarding.js?v=20261028-1" defer></script>
   <!-- After script.js and cybernet-account-api-upgrade.js (CyberNetAccount, account modal); admin-only, gated on the server. -->
   <script src="/legacy/cybernet-admin-feedback.js?v=20261028-1" defer></script>
-  <script src="/ui/cybernet-ui.js?v=20261028-g2" defer></script>
+  <script src="/ui/cybernet-ui.js?v=20261028-g3" defer></script>
 </body>
 </html>
 
