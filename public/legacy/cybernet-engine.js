@@ -217,7 +217,7 @@
   const QR_REDIRECTORS = /* @__PURE__ */ new Set(["qrco.de", "l.ead.me", "qr.io", "me-qr.com", "qrfy.com"]);
   const SHORTENERS = /* @__PURE__ */ new Set(["bit.ly", "tinyurl.com", "t.co", "goo.gl", "ow.ly", "is.gd", "buff.ly", "cutt.ly", "rebrand.ly", "shorturl.at", "tiny.one", "rb.gy", "v.gd", "s.id", "lnkd.in", "tr.im", "clickmeter.com", "t.ly", "short.io", "tiny.cc", "bl.ink", "shorte.st", "urlz.fr", "surl.li", "cutt.us"]);
   const LURE_WORDS = ["secure", "security", "verify", "verification", "login", "signin", "update", "support", "alert", "confirm", "unlock", "refund", "billing", "payment", "pay", "wallet", "account", "auth", "helpdesk", "service", "redelivery", "reschedule", "customs", "claim", "prize", "bonus", "activate", "reactivate", "bill", "fee", "fees", "reward", "rewards", "gift", "promo", "lottery", "winner", "notice", "fines", "penalty", "parcel", "package"];
-  const BRAND_GLUE = ["id", "ids", "app", "apps", "online", "official", "store", "shop", "care", "help", "team", "mail", "web", "tv", "plus", "live", "info", "center", "centre", "portal"];
+  const BRAND_GLUE = ["id", "ids", "app", "apps", "online", "official", "store", "shop", "care", "help", "team", "mail", "web", "tv", "plus", "live", "info", "center", "centre", "portal", "prime", "play", "business", "credit", "pay", "wallet", "music", "drive", "cloud", "premium"];
   function isOfficialDomain(registered) {
     return Object.values(KNOWN_BRANDS).some((domains) => domains.includes(registered));
   }
@@ -718,7 +718,8 @@
       state.raw -= 22;
       state.counterEvidence.push("The text identifies itself as training, simulation, or an educational example.");
     }
-    const officialRefsOnly = urls.length > 0 && !phones.length && !directSecretRequest && urls.every((u) => {
+    const asksPersonalData = /(?:^|[^\p{L}])(?:date of birth|birth date|dob|password|passcode|pin|otp|one-time code|verification code|security code|cvv|card number|iban|passport|emirates id|id number)(?!\p{L})/u.test(clean);
+    const officialRefsOnly = urls.length > 0 && !phones.length && !directSecretRequest && !asksPersonalData && urls.every((u) => {
       const r = analyzeLinkRules(u);
       return Boolean(r.officialBrand) && r.score < 20 && !FREE_MAIL.has(r.registeredDomain);
     });
@@ -750,10 +751,31 @@
     const wordRe = new RegExp(`[\\p{L}\\p{M}\\p{N}${INVISIBLE_CLASS}]+`, "gu");
     for (let hit = wordRe.exec(prose); hit; hit = wordRe.exec(prose)) {
       const word = hit[0].replace(INVISIBLE_ALL, "");
-      if (word) proseWords.push({ word, index: hit.index, split: SPLIT_BY_HIDDEN.test(hit[0]), before: prose.slice(Math.max(0, hit.index - 1), hit.index), after: prose.slice(hit.index + hit[0].length, hit.index + hit[0].length + 4) });
+      if (word) proseWords.push({ word, index: hit.index, end: hit.index + hit[0].length, split: SPLIT_BY_HIDDEN.test(hit[0]), before: prose.slice(Math.max(0, hit.index - 1), hit.index), after: prose.slice(hit.index + hit[0].length, hit.index + hit[0].length + 4) });
     }
-    const latinLetters = (prose.match(/[a-z]/gi) || []).length, foreignLetters = (prose.match(/[\u0370-\u03FF\u1F00-\u1FFF\u0400-\u052F\u0530-\u058F\u13A0-\u13FF]/g) || []).length;
-    const accentedWords = proseWords.filter((item) => /[\u00C0-\u02AF\u1E00-\u1EFF]|\p{M}/u.test(item.word) && scriptsOf(item.word).every((s) => s === "latin")).length;
+    const LOOKALIKE_LETTER = /[\u0370-\u03FF\u1F00-\u1FFF\u0400-\u052F\u0530-\u058F\u13A0-\u13FF]/gu, ANY_LETTER = /\p{L}/gu;
+    const letterCount = (text2, re) => (text2.match(re) || []).length;
+    const sentences = [];
+    for (let start = 0; start <= prose.length; ) {
+      let end = start;
+      while (end < prose.length && !/[.!?\n\u3002]/.test(prose[end])) end++;
+      const text2 = prose.slice(start, end);
+      sentences.push({ end, all: letterCount(text2, ANY_LETTER), look: letterCount(text2, LOOKALIKE_LETTER) });
+      start = end + 1;
+    }
+    const allLetters = letterCount(prose, ANY_LETTER), allLookalike = letterCount(prose, LOOKALIKE_LETTER);
+    for (let i = 0, si = 0; i < proseWords.length; i++) {
+      const item = proseWords[i];
+      while (si < sentences.length - 1 && sentences[si].end < item.index) si++;
+      const own = letterCount(item.word, ANY_LETTER), ownLook = letterCount(item.word, LOOKALIKE_LETTER);
+      let all = sentences[si].all - own, look = sentences[si].look - ownLook;
+      if (all < 8) {
+        all = allLetters - own;
+        look = allLookalike - ownLook;
+      }
+      item.wholeMin = look * 2 > all ? 99 : 4;
+    }
+    const troubleContext = directSecretRequest || hasTerm(variants, ACCOUNT_TROUBLE) || /(?:^|[^\p{L}])(?:reply|call|unpaid|suspend|suspended|blocked|password|date of birth)(?!\p{L})/u.test(clean);
     const headerLines = [];
     for (let start = 0; start <= prose.length; ) {
       const end = prose.indexOf("\n", start) < 0 ? prose.length : prose.indexOf("\n", start), line = prose.slice(start, Math.min(end, start + 400));
@@ -761,7 +783,7 @@
       start = end + 1;
     }
     for (const item of proseWords) item.header = headerLines.some(([a, b]) => item.index >= a && item.index < b);
-    const proseMin = foreignLetters > latinLetters ? 99 : 4, lookalikeCache = /* @__PURE__ */ new Map();
+    const lookalikeCache = /* @__PURE__ */ new Map();
     for (let i = 0; i < proseWords.length && !lookalikeTextBrand; i++) {
       for (let n = 1; n <= 3 && i + n <= proseWords.length; n++) {
         const word = proseWords.slice(i, i + n).map((item) => item.word).join("");
@@ -775,8 +797,8 @@
         }
         if (n > 1 && !isMixedScript(word)) continue;
         const inAddress = n === 1 && (/[@\/.]$/.test(proseWords[i].before) || /^\.[a-z]{2}/i.test(proseWords[i].after));
-        const header = n === 1 && proseWords[i].header && proseMin < 99;
-        const options = { wholeScriptMin: header ? 2 : proseMin, falseFriends: true, accent: n > 1 ? "none" : inAddress ? "any" : header ? "header" : accentedWords >= 3 ? "none" : "prose" };
+        const header = n === 1 && proseWords[i].header && proseWords[i].wholeMin < 99;
+        const options = { wholeScriptMin: header ? 2 : proseWords[i].wholeMin, falseFriends: !troubleContext, accent: n > 1 ? "none" : inAddress ? "any" : header ? "header" : "prose" };
         const key = word + "|" + options.wholeScriptMin + "|" + options.accent;
         if (!lookalikeCache.has(key)) lookalikeCache.set(key, lookalikeBrand(word, options));
         const b = lookalikeCache.get(key);
@@ -994,6 +1016,11 @@
     "0": "o",
     "@": "a",
     "$": "s",
+    // digits read as letters inside a word that is already disguised ("Pаyp4l", "N3tflіx", "Tik7оk")
+    "3": "e",
+    "4": "a",
+    "5": "s",
+    "7": "t",
     // Latin letters with a stroke or hook (no accent to strip)
     "ħ": "h",
     "đ": "d",
@@ -1211,7 +1238,7 @@
     let homoglyphBrand = null, mixedScriptHost = false;
     if (host.includes("xn--")) {
       const tld = labels.at(-1) || "";
-      const hostOptions = { wholeScriptMin: /^[a-z]{2,}$/.test(tld) ? 2 : 5, accentMin: /^[a-z]{3,}$/.test(tld) || GULF_CODES_SHORT.includes(tld) ? 2 : 4, falseFriends: /^[a-z]{2}$/.test(tld) && !GULF_CODES_SHORT.includes(tld) };
+      const hostOptions = { wholeScriptMin: /^[a-z]{2,}$/.test(tld) ? 2 : 5, accentMin: /^[a-z]{3,}$/.test(tld) || GULF_CODES_SHORT.includes(tld) ? 2 : 4, falseFriends: /^[a-z]{2}$/.test(tld) && !GULF_CODES_SHORT.includes(tld) && !lureWordsIn(registered).length };
       for (const token of unicodeHost(host).split(/[.\-]/).filter(Boolean)) {
         if (isMixedScript(token)) mixedScriptHost = true;
         const b = lookalikeBrand(token, hostOptions);

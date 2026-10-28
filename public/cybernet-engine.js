@@ -175,7 +175,7 @@ const SHORTENERS=new Set(["bit.ly","tinyurl.com","t.co","goo.gl","ow.ly","is.gd"
 // Words criminals put in a domain name to make it feel official.
 const LURE_WORDS=["secure","security","verify","verification","login","signin","update","support","alert","confirm","unlock","refund","billing","payment","pay","wallet","account","auth","helpdesk","service","redelivery","reschedule","customs","claim","prize","bonus","activate","reactivate","bill","fee","fees","reward","rewards","gift","promo","lottery","winner","notice","fines","penalty","parcel","package"];
 // Fragments a brand name gets glued to in a lookalike host ("appleid", "paypal365").
-const BRAND_GLUE=["id","ids","app","apps","online","official","store","shop","care","help","team","mail","web","tv","plus","live","info","center","centre","portal"];
+const BRAND_GLUE=["id","ids","app","apps","online","official","store","shop","care","help","team","mail","web","tv","plus","live","info","center","centre","portal","prime","play","business","credit","pay","wallet","music","drive","cloud","premium"];
 
 function isOfficialDomain(registered){return Object.values(KNOWN_BRANDS).some(domains=>domains.includes(registered))}
 
@@ -835,7 +835,10 @@ function analyzeTextRulesCore(text){
   // "https://myaccount.google.com") is not a click lure: when every address in
   // it is on the company's official domain (free mailboxes excluded) and there
   // is no number to call and no code to send, it does not count as a link.
-  const officialRefsOnly=urls.length>0&&!phones.length&&!directSecretRequest&&urls.every(u=>{const r=analyzeLinkRules(u);return Boolean(r.officialBrand)&&r.score<20&&!FREE_MAIL.has(r.registeredDomain)});
+  // A pasted "From:" line is easy to fake, so a message that asks for a password, a code or a
+  // date of birth never counts as an official alert, whatever addresses it shows.
+  const asksPersonalData=/(?:^|[^\p{L}])(?:date of birth|birth date|dob|password|passcode|pin|otp|one-time code|verification code|security code|cvv|card number|iban|passport|emirates id|id number)(?!\p{L})/u.test(clean);
+  const officialRefsOnly=urls.length>0&&!phones.length&&!directSecretRequest&&!asksPersonalData&&urls.every(u=>{const r=analyzeLinkRules(u);return Boolean(r.officialBrand)&&r.score<20&&!FREE_MAIL.has(r.registeredDomain)});
   if(officialRefsOnly)state.counterEvidence.push("Every web or email address in it is on the company’s own official domain.");
   if(urls.length&&!officialRefsOnly)addSignal(state,"links",Math.min(14,5+urls.length*3),`Contains ${urls.length} visible web link${urls.length>1?"s":""}.`,"Link-based social engineering","action");
   const linkPressureHit=!protective&&(/(?:^|[^\p{L}\p{N}_])(click|tap|open|visit|scan|cliquez|ouvrez|اضغط|انقر|امسح)(?![\p{L}\p{N}_]).{0,55}(?:^|[^\p{L}\p{N}_])(link|url|qr|button|here|lien|الرابط|رمز)(?![\p{L}\p{N}_])/iu.test(clean)||/(?:^|[^\p{L}\p{N}_])(?:click|tap)\s*[:：]\s*(?:https?:\/\/|www\.|[a-z0-9-]+\.[a-z]{2,})/iu.test(clean));
@@ -877,17 +880,38 @@ function analyzeTextRulesCore(text){
   const wordRe=new RegExp(`[\\p{L}\\p{M}\\p{N}${INVISIBLE_CLASS}]+`,"gu");
   for(let hit=wordRe.exec(prose);hit;hit=wordRe.exec(prose)){
     const word=hit[0].replace(INVISIBLE_ALL,"");
-    if(word)proseWords.push({word,index:hit.index,split:SPLIT_BY_HIDDEN.test(hit[0]),before:prose.slice(Math.max(0,hit.index-1),hit.index),after:prose.slice(hit.index+hit[0].length,hit.index+hit[0].length+4)});
+    if(word)proseWords.push({word,index:hit.index,end:hit.index+hit[0].length,split:SPLIT_BY_HIDDEN.test(hit[0]),before:prose.slice(Math.max(0,hit.index-1),hit.index),after:prose.slice(hit.index+hit[0].length,hit.index+hit[0].length+4)});
   }
-  const latinLetters=(prose.match(/[a-z]/gi)||[]).length,foreignLetters=(prose.match(/[\u0370-\u03FF\u1F00-\u1FFF\u0400-\u052F\u0530-\u058F\u13A0-\u13FF]/g)||[]).length;
-  const accentedWords=proseWords.filter(item=>/[\u00C0-\u02AF\u1E00-\u1EFF]|\p{M}/u.test(item.word)&&scriptsOf(item.word).every(s=>s==="latin")).length;
+  // Whether a word written wholly in Greek, Cyrillic or Armenian is simply that language: it is when
+  // most letters around it are in those alphabets, counted over its own sentence (or, when the
+  // sentence is little more than the word, over the whole message), never counting the word itself.
+  // Arabic and every other alphabet count against it, so a Cyrillic "\u0420\u0430\u0443\u0420\u0430\u04CF" in an Arabic or English
+  // sentence is a disguise and a padded Russian footer cannot hide it; "\u03C3\u03C4\u03BF \u03C4\u03B9\u03BA\u03C4\u03BF\u03BA" in a Greek
+  // sentence stays Greek.
+  const LOOKALIKE_LETTER=/[\u0370-\u03FF\u1F00-\u1FFF\u0400-\u052F\u0530-\u058F\u13A0-\u13FF]/gu,ANY_LETTER=/\p{L}/gu;
+  const letterCount=(text,re)=>(text.match(re)||[]).length;
+  const sentences=[];
+  for(let start=0;start<=prose.length;){let end=start;while(end<prose.length&&!/[.!?\n\u3002]/.test(prose[end]))end++;const text=prose.slice(start,end);sentences.push({end,all:letterCount(text,ANY_LETTER),look:letterCount(text,LOOKALIKE_LETTER)});start=end+1}
+  const allLetters=letterCount(prose,ANY_LETTER),allLookalike=letterCount(prose,LOOKALIKE_LETTER);
+  for(let i=0,si=0;i<proseWords.length;i++){
+    const item=proseWords[i];
+    while(si<sentences.length-1&&sentences[si].end<item.index)si++;
+    const own=letterCount(item.word,ANY_LETTER),ownLook=letterCount(item.word,LOOKALIKE_LETTER);
+    let all=sentences[si].all-own,look=sentences[si].look-ownLook;
+    if(all<8){all=allLetters-own;look=allLookalike-ownLook}
+    item.wholeMin=look*2>all?99:4;
+  }
+  // An everyday word that happens to read as a brand ("met\u00E0", "Za\u00EFn", "\u00C9mirates") is still a
+  // disguise when the message is about an account, a bill or a code ("Za\u00EFn: your line has been
+  // suspended. Call 107").
+  const troubleContext=directSecretRequest||hasTerm(variants,ACCOUNT_TROUBLE)||/(?:^|[^\p{L}])(?:reply|call|unpaid|suspend|suspended|blocked|password|date of birth)(?!\p{L})/u.test(clean);
   // A sender line ("From: аԁсь <alerts@…>") is where a name is copied: a
   // short name written wholly in Cyrillic counts there, and so does an accent
   // in a message otherwise written with accents.
   const headerLines=[];
   for(let start=0;start<=prose.length;){const end=prose.indexOf("\n",start)<0?prose.length:prose.indexOf("\n",start),line=prose.slice(start,Math.min(end,start+400));if(/^\s*(?:from|sender|reply-to)\s*:/i.test(line)||/<[^<>\s@]+@[^<>\s]+>/.test(line))headerLines.push([start,end]);start=end+1}
   for(const item of proseWords)item.header=headerLines.some(([a,b])=>item.index>=a&&item.index<b);
-  const proseMin=foreignLetters>latinLetters?99:4,lookalikeCache=new Map();
+  const lookalikeCache=new Map();
   for(let i=0;i<proseWords.length&&!lookalikeTextBrand;i++){
     for(let n=1;n<=3&&i+n<=proseWords.length;n++){
       const word=proseWords.slice(i,i+n).map(item=>item.word).join("");
@@ -899,8 +923,10 @@ function analyzeTextRulesCore(text){
       // Neighbouring words only count together when they mix two alphabets ("Emirates Pоst").
       if(n>1&&!isMixedScript(word))continue;
       const inAddress=n===1&&(/[@\/.]$/.test(proseWords[i].before)||/^\.[a-z]{2}/i.test(proseWords[i].after));
-      const header=n===1&&proseWords[i].header&&proseMin<99;
-      const options={wholeScriptMin:header?2:proseMin,falseFriends:true,accent:n>1?"none":inAddress?"any":header?"header":accentedWords>=3?"none":"prose"};
+      const header=n===1&&proseWords[i].header&&proseWords[i].wholeMin<99;
+      // A French or Italian message is written with accents, but a brand inside it is no less a
+      // brand ("Votre compte Pàypal a été suspendu"): "prose" keeps the false friends out.
+      const options={wholeScriptMin:header?2:proseWords[i].wholeMin,falseFriends:!troubleContext,accent:n>1?"none":inAddress?"any":header?"header":"prose"};
       const key=word+"|"+options.wholeScriptMin+"|"+options.accent;
       if(!lookalikeCache.has(key))lookalikeCache.set(key,lookalikeBrand(word,options));
       const b=lookalikeCache.get(key);
@@ -1112,6 +1138,8 @@ const CONFUSABLES={
   "օ":"o","ս":"u","ց":"g","հ":"h","ո":"n","զ":"q",
   // Latin look-alikes and swaps
   "ı":"l","ł":"l","ɩ":"l","ǀ":"l","ɡ":"g","i":"l","1":"l","|":"l","0":"o","@":"a","$":"s",
+  // digits read as letters inside a word that is already disguised ("Pаyp4l", "N3tflіx", "Tik7оk")
+  "3":"e","4":"a","5":"s","7":"t",
   // Latin letters with a stroke or hook (no accent to strip)
   "ħ":"h","đ":"d","ƀ":"b","ɓ":"b","ƈ":"c","ȼ":"c","ɗ":"d","ɇ":"e","ƒ":"f","ɠ":"g","ɦ":"h","ɨ":"l","ƙ":"k","ƚ":"l","ɱ":"m","ɲ":"n","ø":"o","ƥ":"p","ɍ":"r","ɽ":"r","ʂ":"s","ŧ":"t","ƭ":"t","ʋ":"v","ƴ":"y","ɏ":"y","ȥ":"z",
   // Latin small capitals and IPA letters
@@ -1287,7 +1315,7 @@ function analyzeLinkRules(rawLink){
     // under its own country's ending (".рф") it is a local word. Accented words
     // under a European country ending are words there ("metà.it", "zaïn.fr").
     const tld=labels.at(-1)||"";
-    const hostOptions={wholeScriptMin:/^[a-z]{2,}$/.test(tld)?2:5,accentMin:/^[a-z]{3,}$/.test(tld)||GULF_CODES_SHORT.includes(tld)?2:4,falseFriends:/^[a-z]{2}$/.test(tld)&&!GULF_CODES_SHORT.includes(tld)};
+    const hostOptions={wholeScriptMin:/^[a-z]{2,}$/.test(tld)?2:5,accentMin:/^[a-z]{3,}$/.test(tld)||GULF_CODES_SHORT.includes(tld)?2:4,falseFriends:/^[a-z]{2}$/.test(tld)&&!GULF_CODES_SHORT.includes(tld)&&!lureWordsIn(registered).length};
     for(const token of unicodeHost(host).split(/[.\-]/).filter(Boolean)){
       if(isMixedScript(token))mixedScriptHost=true;
       const b=lookalikeBrand(token,hostOptions);

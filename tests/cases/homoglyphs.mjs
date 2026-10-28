@@ -140,4 +140,17 @@ export const CASES = [
   { id: "safe-double-word-goggles", type: "link", expect: "safe", input: "https://goggles.com" },
   { id: "safe-swap-short-appel", type: "link", expect: "safe", input: "https://appel.nl" },
   { id: "safe-office-word", type: "link", expect: "safe", input: "https://office-chairs.ae" },
+  // ---- 28 Oct 2026 verification pass: regressions found by an independent checker, now fixed ----
+  { id: "hg-cyrillic-paypal-in-arabic", type: "text", expect: "scam", min: 75, input: "РауРаӏ: تم تعليق حسابك. يرجى الرد بنعم لإعادة التفعيل." },
+  { id: "hg-cyrillic-paypal-russian-padding", type: "text", expect: "scam", min: 75, input: "РауРаӏ: your account has been suspended. Reply YES to restore access. " + "Спасибо за ваш заказ. Мы ценим ваше доверие. ".repeat(3) },
+  { id: "hg-accent-emirates-id-trouble", type: "text", expect: "scam", min: 75, input: "Émirates ID: your ID has been blocked. Reply with your date of birth to reactivate it." },
+  { id: "hg-accent-zain-trouble", type: "text", expect: "scam", min: 75, input: "Zaïn: your line has been suspended due to an unpaid bill. Call 107 now to restore it." },
+  { id: "hg-accent-paypal-french-message", type: "text", expect: "scam", min: 75, input: "Votre compte Pàypal a été suspendu. Vérifiez vos coordonnées immédiatement en répondant OUI." },
+  { id: "hg-leet-digit-paypal", type: "text", expect: "scam", min: 75, input: "Pаyp4l: your account has been suspended. Reply YES to restore access." },
+  { id: "hg-glued-amazon-prime", type: "text", expect: "scam", min: 75, input: "АmazonPrime: your account has been suspended. Reply YES to restore access." },
+  { id: "hg-fake-official-from-asks-dob", type: "text", expect: "scam", input: "From: Apple Support <no-reply@apple.com>\nYour Apple ID has been locked for security reasons. Reply with your date of birth to unlock it." },
+  { id: "hg-false-friend-glued-lure-link", type: "link", expect: "scam", min: 75, input: "https://méta-support.it/" },
+  { id: "safe-french-emirates-flight", type: "text", expect: "safe", input: "Votre vol Émirates pour Dubaï est confirmé. Bon voyage et à bientôt !" },
+  { id: "safe-russian-meta-goal", type: "text", expect: "safe", input: "Наша мета — закончить проект до пятницы." },
+  { id: "safe-german-uber", type: "text", expect: "safe", input: "Ich bin über das Wochenende in München, wir sehen uns Montag." },
 ];
