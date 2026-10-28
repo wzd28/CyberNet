@@ -26,8 +26,18 @@
     return String(text || "").normalize("NFKC").replace(LINK_DROPPED, "").replace(/\u3002/g, ".");
   }
   const TEXT_URL_RE = /(?:https?:\/\/|www\.)[^\s<>()]+|(?:[a-z0-9\u00C0-\u058F\u13A0-\u13FF\u1D00-\u1EFF-]+\.)+[a-z]{2,}(?:\/[^\s<>()]*)?/gi;
+  const FILE_ENDING_RE = /\.(?:pdf|jpe?g|png|gif|heic|webp|bmp|tiff?|docx?|xlsx?|pptx?|txt|csv|rtf|odt|pages|key|numbers|mp3|mp4|m4a|mov|wav|ogg|opus|avi|mkv|zip|rar|7z|apk|exe|msi|dmg|ics|vcf)$/i;
+  function textUrls(text) {
+    const found = [];
+    for (const m of String(text || "").matchAll(TEXT_URL_RE)) {
+      const value = m[0], bare = !/^(?:https?:\/\/|www\.)/i.test(value);
+      if (bare && (FILE_ENDING_RE.test(value.replace(/\/.*$/, "")) || /[\p{L}\p{N}_]/u.test(text[m.index - 1] || ""))) continue;
+      if (!value.includes("@")) found.push(value);
+    }
+    return unique(found);
+  }
   function normalizeText(text) {
-    return String(text || "").normalize("NFKC").replace(INVISIBLE_ALL, "").replace(/[‐‑‒–—]/g, "-").replace(/\s+/g, " ").trim().toLowerCase();
+    return String(text || "").normalize("NFKC").replace(INVISIBLE_ALL, "").replace(/[ـً-ٰٟ]/g, "").replace(/ک/g, "ك").replace(/[یے]/g, "ي").replace(/[‐‑‒–—]/g, "-").replace(/\s+/g, " ").trim().toLowerCase();
   }
   function deobfuscate(text) {
     return text.replace(/0/g, "o").replace(/[1!|]/g, "i").replace(/3/g, "e").replace(/4/g, "a").replace(/5/g, "s").replace(/7/g, "t").replace(/@/g, "a").replace(/\$/g, "s");
@@ -264,8 +274,7 @@
     return LURE_WORDS.filter((word) => parts.includes(word) || word.length >= 5 && compact.includes(word));
   }
   function collectLinksInText(text) {
-    const raw = linkReadable(text);
-    const urls = unique((raw.match(TEXT_URL_RE) || []).filter((value) => !value.includes("@")));
+    const urls = textUrls(linkReadable(text));
     return urls.slice(0, 4).map((url) => ({ url, result: analyzeLinkRules(url) }));
   }
   function analyzeQrPayload(data) {
@@ -643,7 +652,7 @@
     const clean = normalizeText(raw), obfuscated = deobfuscate(clean), variants = [clean, obfuscated, clean.replace(/0/g, "o").replace(/1/g, "l")];
     const state = createState();
     const linkSrc = linkReadable(raw);
-    const urls = unique((linkSrc.match(TEXT_URL_RE) || []).filter((value) => !value.includes("@")));
+    const urls = textUrls(linkSrc);
     const emails = linkSrc.match(/[\w.+-]+@[\w.-]+\.[a-z]{2,}/gi) || [];
     const phones = raw.match(/(?:\+?\d[\d\s().-]{7,}\d)/g) || [];
     const hiddenChars = HIDDEN_IN_WORD.test(raw) || BIDI_OVERRIDE.test(raw);
@@ -750,7 +759,7 @@
     const prose = raw.normalize("NFKC"), proseWords = [];
     const wordRe = new RegExp(`[\\p{L}\\p{M}\\p{N}${INVISIBLE_CLASS}]+`, "gu");
     for (let hit = wordRe.exec(prose); hit; hit = wordRe.exec(prose)) {
-      const word = hit[0].replace(INVISIBLE_ALL, "");
+      const word = hit[0].replace(INVISIBLE_ALL, "").replace(/İ/g, "I");
       if (word) proseWords.push({ word, index: hit.index, end: hit.index + hit[0].length, split: SPLIT_BY_HIDDEN.test(hit[0]), before: prose.slice(Math.max(0, hit.index - 1), hit.index), after: prose.slice(hit.index + hit[0].length, hit.index + hit[0].length + 4) });
     }
     const LOOKALIKE_LETTER = /[\u0370-\u03FF\u1F00-\u1FFF\u0400-\u052F\u0530-\u058F\u13A0-\u13FF]/gu, ANY_LETTER = /\p{L}/gu;
@@ -797,6 +806,7 @@
         }
         if (n > 1 && !isMixedScript(word)) continue;
         const inAddress = n === 1 && (/[@\/.]$/.test(proseWords[i].before) || /^\.[a-z]{2}/i.test(proseWords[i].after));
+        if (n === 1 && !inAddress && !proseWords[i].header && !troubleContext && /^[ɐ-ʯᴀ-ᴫꜰꜱ]+$/u.test(word)) continue;
         const header = n === 1 && proseWords[i].header && proseWords[i].wholeMin < 99;
         const options = { wholeScriptMin: header ? 2 : proseWords[i].wholeMin, falseFriends: !troubleContext, accent: n > 1 ? "none" : inAddress ? "any" : header ? "header" : "prose" };
         const key = word + "|" + options.wholeScriptMin + "|" + options.accent;
@@ -1098,7 +1108,7 @@
   const SCRIPT_FALSE_FRIENDS = /* @__PURE__ */ new Set(["meta"]);
   function lookalikeBrand(word, options = {}) {
     const wholeScriptMin = options.wholeScriptMin || 5, accent = options.accent || "any", accentMin = options.accentMin || 4;
-    const w = String(word || "").normalize("NFKC");
+    const w = String(word || "").normalize("NFKC").replace(/İ/g, "I");
     if (!/[^\x00-\x7f]/.test(w)) return null;
     if (!BRAND_SKELETONS) BRAND_SKELETONS = unique([...Object.keys(KNOWN_BRANDS), ...GULF_SERVICES]).map((b) => [b, confusableSkeleton(b)]);
     if (!GLUE_SKELETONS) GLUE_SKELETONS = new Set([...LURE_WORDS, ...BRAND_GLUE].map((x) => confusableSkeleton(x)));
@@ -1238,7 +1248,8 @@
     let homoglyphBrand = null, mixedScriptHost = false;
     if (host.includes("xn--")) {
       const tld = labels.at(-1) || "";
-      const hostOptions = { wholeScriptMin: /^[a-z]{2,}$/.test(tld) ? 2 : 5, accentMin: /^[a-z]{3,}$/.test(tld) || GULF_CODES_SHORT.includes(tld) ? 2 : 4, falseFriends: /^[a-z]{2}$/.test(tld) && !GULF_CODES_SHORT.includes(tld) && !lureWordsIn(registered).length };
+      const nativeScriptTld = /^(?:ru|ua|by|bg|kz|kg|rs|mk|mn|tj|md|me|ba|gr|cy)$/.test(tld);
+      const hostOptions = { wholeScriptMin: /^[a-z]{2,}$/.test(tld) && !nativeScriptTld ? 2 : 5, accent: "header", accentMin: /^[a-z]{3,}$/.test(tld) || GULF_CODES_SHORT.includes(tld) ? 3 : 4, falseFriends: /^[a-z]{2}$/.test(tld) && !GULF_CODES_SHORT.includes(tld) && !lureWordsIn(registered).length };
       for (const token of unicodeHost(host).split(/[.\-]/).filter(Boolean)) {
         if (isMixedScript(token)) mixedScriptHost = true;
         const b = lookalikeBrand(token, hostOptions);
@@ -1289,7 +1300,7 @@
       } catch (e) {
       }
       for (const word of decoded.match(/[\p{L}\p{M}\p{N}]{2,}/gu) || []) {
-        pathBrand = lookalikeBrand(word, { accent: "none" });
+        pathBrand = lookalikeBrand(word, { accent: "none", wholeScriptMin: 99 });
         if (pathBrand) break;
       }
     }
@@ -1318,18 +1329,25 @@
       const d = levenshtein(core, brand);
       const short = brand.length < 6, vb = visual(brand, short);
       const otherCores = otherNameHit ? [] : officials.map((o) => o.split(".")[0]).filter((c) => c.length >= 6 && c !== brand && !c.includes("-") && !KNOWN_BRANDS[c]);
-      const masked = shownTokens.some((t) => {
+      let substituted = false, typoed = false;
+      for (const t of shownTokens) {
         const lt = t.toLowerCase();
-        if (lt === brand || otherCores.includes(lt)) return false;
-        return readings(t).some((r) => {
+        if (lt === brand || otherCores.includes(lt)) continue;
+        for (const r of readings(t)) {
           const v = visual(r, short);
-          return v === vb || !short && (squeeze(v) === squeeze(vb) || swapped(v, vb)) || otherCores.some((c) => v === visual(c, false));
-        });
-      });
+          if (v === vb || otherCores.some((c) => v === visual(c, false))) {
+            substituted = true;
+            break;
+          }
+          if (!short && !TYPO_EXEMPT.has(brand) && (v !== vb && /(.)\1/.test(vb) && squeeze(v) === squeeze(vb) || brand.length >= 7 && swapped(v, vb) && v[0] === vb[0])) typoed = true;
+        }
+        if (substituted) break;
+      }
+      const masked = substituted || typoed;
       if (TYPO_EXEMPT.has(brand) && !masked) return;
       if (masked || d > 0 && d <= 1 && core.length >= 6) {
         addSignal(state, `typo-${brand}`, 37, masked ? `The domain spells “${brand}” with look-alike, doubled or swapped letters.` : `The domain is one character away from the brand “${brand}”.`, "Typosquatting phishing", "impersonation", true);
-        if (masked) {
+        if (substituted) {
           lookalikeLetters = true;
           otherNameHit = true;
         }

@@ -103,8 +103,10 @@ export const CASES = [
   { id: "hg-cl-for-d-dropbox-link", type: "link", expect: "scam", min: 75, input: "https://clropbox.com" },
   { id: "hg-rn-for-m-gmail-link", type: "link", expect: "scam", min: 75, input: "https://grnail.com" },
   { id: "hg-5-for-s-chase-link", type: "link", expect: "scam", min: 75, input: "https://cha5e.com" },
-  { id: "hg-dropped-letter-google-link", type: "link", expect: "scam", min: 75, input: "https://gogle.com" },
-  { id: "hg-swapped-letters-microsoft-link", type: "link", expect: "scam", min: 75, input: "https://mircosoft.com" },
+  // A doubled, dropped or swapped letter is one sign only (SCAM, not malicious): the stricter
+  // reading also caught real names (Basher, Park Inn, Carême), see the safe-typo-* cases below.
+  { id: "hg-dropped-letter-google-link", type: "link", expect: "scam", input: "https://gogle.com" },
+  { id: "hg-swapped-letters-microsoft-link", type: "link", expect: "scam", input: "https://mircosoft.com" },
   { id: "hg-rn-microsoftonline-link", type: "link", expect: "scam", min: 75, input: "https://login.rnicrosoftonline.com/common/oauth2" },
   { id: "hg-rn-sender-email", type: "text", expect: "scam", min: 75, input: "From: Microsoft <no-reply@rnicrosoft.com>\nSubject: Your password was changed\nThe password for your Microsoft account was changed. If this was you, you can safely ignore this email." },
 
@@ -153,4 +155,17 @@ export const CASES = [
   { id: "safe-french-emirates-flight", type: "text", expect: "safe", input: "Votre vol Émirates pour Dubaï est confirmé. Bon voyage et à bientôt !" },
   { id: "safe-russian-meta-goal", type: "text", expect: "safe", input: "Наша мета — закончить проект до пятницы." },
   { id: "safe-german-uber", type: "text", expect: "safe", input: "Ich bin über das Wochenende in München, wir sehen uns Montag." },
+  // ---- 28 Oct 2026 false-alarm check: everyday inputs the first fix wrongly flagged, now clean ----
+  { id: "safe-file-name-underscore", type: "text", expect: "safe", input: "Download the menu: menu_ramadan.pdf, prices include VAT" },
+  { id: "safe-file-name-accented", type: "text", expect: "safe", input: "Can you download my résumé.pdf from the drive and print two copies?" },
+  { id: "safe-file-name-photo", type: "text", expect: "safe", input: "Download Zoë_birthday.jpg from the group, it's the best photo" },
+  { id: "safe-typo-basher-not-absher", type: "link", expect: "safe", input: "https://basher-group.ae" },
+  { id: "safe-typo-parkinn-not-parkin", type: "link", expect: "safe", input: "https://www.parkinn.com" },
+  { id: "safe-typo-careme-not-careem", type: "link", expect: "safe", input: "https://careme.ae" },
+  { id: "safe-turkish-dotted-i", type: "text", expect: "safe", input: "İnstagram stories are fun, I posted three today" },
+  { id: "safe-small-caps-fancy-font", type: "text", expect: "safe", input: "ꜰᴏʟʟᴏᴡ ᴜꜱ ᴏɴ ɪɴꜱᴛᴀɢʀᴀᴍ @noor_beauty_dxb new collection" },
+  { id: "safe-vietnamese-idn-moi", type: "link", expect: "safe", input: "https://nhà-mới.com" },
+  { id: "safe-ukrainian-idn-moi", type: "link", expect: "safe", input: "https://мої.com.ua" },
+  { id: "safe-greek-wikipedia-path", type: "link", expect: "unverified", input: "https://el.wikipedia.org/wiki/τικτοκ" },
+  { id: "hg-arabic-tatweel-enbd-otp", type: "text", expect: "scam", min: 75, input: "بـنـك الإمارات دبي الوطني: تم تعليق حـسـابـك بشكل عاجل. أرسل رمـز الـتـحـقـق الذي وصلك الآن لإعادة تفعيل بطاقتك." },
 ];

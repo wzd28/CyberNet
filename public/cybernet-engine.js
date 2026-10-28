@@ -49,7 +49,22 @@ function linkReadable(text){return String(text||"").normalize("NFKC").replace(LI
 // ASCII-only label cut those to "ogle-security.com" and "cure.com". No
 // lookbehind: older iPhones cannot parse it.
 const TEXT_URL_RE=/(?:https?:\/\/|www\.)[^\s<>()]+|(?:[a-z0-9\u00C0-\u058F\u13A0-\u13FF\u1D00-\u1EFF-]+\.)+[a-z]{2,}(?:\/[^\s<>()]*)?/gi;
-function normalizeText(text){return String(text||"").normalize("NFKC").replace(INVISIBLE_ALL,"").replace(/[‐‑‒–—]/g,"-").replace(/\s+/g," ").trim().toLowerCase()}
+// File names are not web addresses ("menu_ramadan.pdf", "IMG_2041.jpg", "résumé.pdf"): a bare
+// match (no scheme, no "www.") is dropped when it ends in a file type or starts in the middle of a
+// word (after a letter, a digit or "_").
+const FILE_ENDING_RE=/\.(?:pdf|jpe?g|png|gif|heic|webp|bmp|tiff?|docx?|xlsx?|pptx?|txt|csv|rtf|odt|pages|key|numbers|mp3|mp4|m4a|mov|wav|ogg|opus|avi|mkv|zip|rar|7z|apk|exe|msi|dmg|ics|vcf)$/i;
+function textUrls(text){
+  const found=[];
+  for(const m of String(text||"").matchAll(TEXT_URL_RE)){
+    const value=m[0],bare=!/^(?:https?:\/\/|www\.)/i.test(value);
+    if(bare&&(FILE_ENDING_RE.test(value.replace(/\/.*$/,""))||/[\p{L}\p{N}_]/u.test(text[m.index-1]||"")))continue;
+    if(!value.includes("@"))found.push(value);
+  }
+  return unique(found);
+}
+// Arabic letters as phones type them: the stretching mark (tatweel, "بـنـك") and the vowel marks
+// change nothing a reader sees, and Persian/Urdu keyboards write ک and ی for ك and ي.
+function normalizeText(text){return String(text||"").normalize("NFKC").replace(INVISIBLE_ALL,"").replace(/[ـً-ٰٟ]/g,"").replace(/ک/g,"ك").replace(/[یے]/g,"ي").replace(/[‐‑‒–—]/g,"-").replace(/\s+/g," ").trim().toLowerCase()}
 
 function deobfuscate(text){return text.replace(/0/g,"o").replace(/[1!|]/g,"i").replace(/3/g,"e").replace(/4/g,"a").replace(/5/g,"s").replace(/7/g,"t").replace(/@/g,"a").replace(/\$/g,"s")}
 
@@ -221,8 +236,7 @@ function lureWordsIn(registered){
 }
 
 function collectLinksInText(text){
-  const raw=linkReadable(text);
-  const urls=unique((raw.match(TEXT_URL_RE)||[]).filter(value=>!value.includes("@")));
+  const urls=textUrls(linkReadable(text));
   return urls.slice(0,4).map(url=>({url,result:analyzeLinkRules(url)}));
 }
 
@@ -753,7 +767,7 @@ function analyzeTextRulesCore(text){
   const clean=normalizeText(raw),obfuscated=deobfuscate(clean),variants=[clean,obfuscated,clean.replace(/0/g,"o").replace(/1/g,"l")];
   const state=createState();
   const linkSrc=linkReadable(raw);
-  const urls=unique((linkSrc.match(TEXT_URL_RE)||[]).filter(value=>!value.includes("@")));
+  const urls=textUrls(linkSrc);
   const emails=linkSrc.match(/[\w.+-]+@[\w.-]+\.[a-z]{2,}/gi)||[];
   const phones=raw.match(/(?:\+?\d[\d\s().-]{7,}\d)/g)||[];
   const hiddenChars=HIDDEN_IN_WORD.test(raw)||BIDI_OVERRIDE.test(raw);
@@ -879,7 +893,8 @@ function analyzeTextRulesCore(text){
   const prose=raw.normalize("NFKC"),proseWords=[];
   const wordRe=new RegExp(`[\\p{L}\\p{M}\\p{N}${INVISIBLE_CLASS}]+`,"gu");
   for(let hit=wordRe.exec(prose);hit;hit=wordRe.exec(prose)){
-    const word=hit[0].replace(INVISIBLE_ALL,"");
+    // Turkish keyboards capitalise i as "İ" ("İnstagram"): that is spelling, not a disguise.
+    const word=hit[0].replace(INVISIBLE_ALL,"").replace(/İ/g,"I");
     if(word)proseWords.push({word,index:hit.index,end:hit.index+hit[0].length,split:SPLIT_BY_HIDDEN.test(hit[0]),before:prose.slice(Math.max(0,hit.index-1),hit.index),after:prose.slice(hit.index+hit[0].length,hit.index+hit[0].length+4)});
   }
   // Whether a word written wholly in Greek, Cyrillic or Armenian is simply that language: it is when
@@ -923,6 +938,9 @@ function analyzeTextRulesCore(text){
       // Neighbouring words only count together when they mix two alphabets ("Emirates Pоst").
       if(n>1&&!isMixedScript(word))continue;
       const inAddress=n===1&&(/[@\/.]$/.test(proseWords[i].before)||/^\.[a-z]{2}/i.test(proseWords[i].after));
+      // "Fancy font" posts write whole words in small capitals ("ꜰᴏʟʟᴏᴡ ᴜꜱ ᴏɴ ɪɴꜱᴛᴀɢʀᴀᴍ"): in running
+      // text that counts only when the message is about an account, a bill or a code.
+      if(n===1&&!inAddress&&!proseWords[i].header&&!troubleContext&&/^[ɐ-ʯᴀ-ᴫꜰꜱ]+$/u.test(word))continue;
       const header=n===1&&proseWords[i].header&&proseWords[i].wholeMin<99;
       // A French or Italian message is written with accents, but a brand inside it is no less a
       // brand ("Votre compte Pàypal a été suspendu"): "prose" keeps the false friends out.
@@ -1181,7 +1199,7 @@ const SCRIPT_FALSE_FRIENDS=new Set(["meta"]);
 //   falseFriends    skip the false friends below for accented and whole-script words.
 function lookalikeBrand(word,options={}){
   const wholeScriptMin=options.wholeScriptMin||5,accent=options.accent||"any",accentMin=options.accentMin||4;
-  const w=String(word||"").normalize("NFKC");
+  const w=String(word||"").normalize("NFKC").replace(/İ/g,"I");
   if(!/[^\x00-\x7f]/.test(w))return null;
   if(!BRAND_SKELETONS)BRAND_SKELETONS=unique([...Object.keys(KNOWN_BRANDS),...GULF_SERVICES]).map(b=>[b,confusableSkeleton(b)]);
   if(!GLUE_SKELETONS)GLUE_SKELETONS=new Set([...LURE_WORDS,...BRAND_GLUE].map(x=>confusableSkeleton(x)));
@@ -1315,7 +1333,12 @@ function analyzeLinkRules(rawLink){
     // under its own country's ending (".рф") it is a local word. Accented words
     // under a European country ending are words there ("metà.it", "zaïn.fr").
     const tld=labels.at(-1)||"";
-    const hostOptions={wholeScriptMin:/^[a-z]{2,}$/.test(tld)?2:5,accentMin:/^[a-z]{3,}$/.test(tld)||GULF_CODES_SHORT.includes(tld)?2:4,falseFriends:/^[a-z]{2}$/.test(tld)&&!GULF_CODES_SHORT.includes(tld)&&!lureWordsIn(registered).length};
+    // Countries that write in Cyrillic or Greek (".ua", ".bg", ".gr") are judged like ".рф": a
+    // local word there ("мої.com.ua") is a word. An accented word matches a brand of three letters
+    // or more under ".com" ("dħl.com"), never a Gulf service name ("nhà-mới.com" is Vietnamese,
+    // not MOI).
+    const nativeScriptTld=/^(?:ru|ua|by|bg|kz|kg|rs|mk|mn|tj|md|me|ba|gr|cy)$/.test(tld);
+    const hostOptions={wholeScriptMin:/^[a-z]{2,}$/.test(tld)&&!nativeScriptTld?2:5,accent:"header",accentMin:/^[a-z]{3,}$/.test(tld)||GULF_CODES_SHORT.includes(tld)?3:4,falseFriends:/^[a-z]{2}$/.test(tld)&&!GULF_CODES_SHORT.includes(tld)&&!lureWordsIn(registered).length};
     for(const token of unicodeHost(host).split(/[.\-]/).filter(Boolean)){
       if(isMixedScript(token))mixedScriptHost=true;
       const b=lookalikeBrand(token,hostOptions);
@@ -1359,7 +1382,9 @@ function analyzeLinkRules(rawLink){
   let pathBrand=null;
   if(!homoglyphBrand&&!officialBrand){
     let decoded="";try{decoded=decodeURIComponent(url.pathname)}catch{}
-    for(const word of decoded.match(/[\p{L}\p{M}\p{N}]{2,}/gu)||[]){pathBrand=lookalikeBrand(word,{accent:"none"});if(pathBrand)break}
+    // Only words that mix two alphabets: a page named in its own language ("/wiki/τικτοκ" on the
+    // Greek Wikipedia) is not a disguise.
+    for(const word of decoded.match(/[\p{L}\p{M}\p{N}]{2,}/gu)||[]){pathBrand=lookalikeBrand(word,{accent:"none",wholeScriptMin:99});if(pathBrand)break}
   }
   if(pathBrand)addSignal(state,"homoglyph-brand",52,`Writes “${brandLabel(pathBrand)}” in the page address with look-alike letters from another alphabet (for example a Greek “ο” instead of an English “o”). It is not ${brandLabel(pathBrand)}’s real website.`,"Lookalike-domain phishing","impersonation",true);
   const mismatch=brandMismatch(host,registered,pathQuery+(pathBrand?"/"+pathBrand:""));
@@ -1387,11 +1412,27 @@ function analyzeLinkRules(rawLink){
     const core=registered.split(".")[0];const d=levenshtein(core,brand);
     const short=brand.length<6,vb=visual(brand,short);
     const otherCores=otherNameHit?[]:officials.map(o=>o.split(".")[0]).filter(c=>c.length>=6&&c!==brand&&!c.includes("-")&&!KNOWN_BRANDS[c]);
-    const masked=shownTokens.some(t=>{const lt=t.toLowerCase();if(lt===brand||otherCores.includes(lt))return false;return readings(t).some(r=>{const v=visual(r,short);return v===vb||(!short&&(squeeze(v)===squeeze(vb)||swapped(v,vb)))||otherCores.some(c=>v===visual(c,false))})});
+    // Two kinds of reading: substituted look-alike letters (rn, vv, cl, I, 0, 1, 5) are a disguise
+    // on their own; a doubled, dropped or swapped letter is only a typo, so it counts as one sign
+    // and only where real words do not sit that close: the brand has the doubled letter itself
+    // ("gogle", "gooogle"; not "parkinn"), a swap is not at the start ("mircosoft"; not "basher"
+    // for Absher) and the brand has 7+ letters ("careme" is a name, not Careem).
+    let substituted=false,typoed=false;
+    for(const t of shownTokens){
+      const lt=t.toLowerCase();
+      if(lt===brand||otherCores.includes(lt))continue;
+      for(const r of readings(t)){
+        const v=visual(r,short);
+        if(v===vb||otherCores.some(c=>v===visual(c,false))){substituted=true;break}
+        if(!short&&!TYPO_EXEMPT.has(brand)&&((v!==vb&&/(.)\1/.test(vb)&&squeeze(v)===squeeze(vb))||(brand.length>=7&&swapped(v,vb)&&v[0]===vb[0])))typoed=true;
+      }
+      if(substituted)break;
+    }
+    const masked=substituted||typoed;
     if(TYPO_EXEMPT.has(brand)&&!masked)return;
     if(masked||(d>0&&d<=1&&core.length>=6)){
       addSignal(state,`typo-${brand}`,37,masked?`The domain spells “${brand}” with look-alike, doubled or swapped letters.`:`The domain is one character away from the brand “${brand}”.`,"Typosquatting phishing","impersonation",true);
-      if(masked){lookalikeLetters=true;otherNameHit=true}
+      if(substituted){lookalikeLetters=true;otherNameHit=true}
     }
   });
   const lures=officialBrand?[]:lureWordsIn(registered);
