@@ -57,25 +57,13 @@
         Promise.all([f.load(a),f.load(b)]).then(go,go);
       });
     };
-    /* Boot intro (21-boot.css, the .cn-boot block at the top of <body>): the same first view, at "/"
-       with no hash and no query beyond campaign tags (flag "boot"), opens on a ~2 s branded screen that
-       lifts by itself from CSS at 1.5 s (gone at 2.1 s). Never a gate: aria-hidden, pointer-events none, and any tap,
-       key, wheel or scroll lifts it at once. The tap that lifts it is used up (its touchend,
-       mousedown and click are cancelled), so it never lands on the page it could not see.
-       Exposure waits on its first frame under it (html.cn-boot without .cn-boot-out), so it plays
-       as the screen lifts. Storage is written first: blocked storage means no Exposure and no intro. */
-    var boot=function(){
-      if(location.hash||location.search.replace(/[?&](utm_\w+|ref|gclid|fbclid)=[^&]*/g,"")||(localStorage.getItem("cn-fx")||"").indexOf("-boot")>=0)return;
-      var E=["pointerdown","keydown","wheel","touchstart","scroll"],T=["touchend","mousedown","click"],w=0,
-      eat=function(e){if(w){e.preventDefault();e.stopPropagation();if(e.type!="mousedown")w=0}},
-      skip=function(e){if(e.type=="pointerdown"||e.type=="touchstart")w=1;out(1)},
-      out=function(s){if(r.classList.contains("cn-boot-out"))return;r.classList.add("cn-boot-out");if(s)r.classList.add("cn-boot-skip");E.forEach(function(n){removeEventListener(n,skip,true)});setTimeout(function(){w=0;T.forEach(function(n){removeEventListener(n,eat,true)});r.classList.remove("cn-boot","cn-boot-out","cn-boot-skip")},s?350:700)};
-      r.classList.add("cn-boot");
-      E.forEach(function(n){addEventListener(n,skip,{capture:true,passive:true})});
-      T.forEach(function(n){addEventListener(n,eat,{capture:true,passive:false})});
-      requestAnimationFrame(function(){setTimeout(function(){out()},1500)});
-    };
-    try{if(location.pathname==="/"&&!r.classList.contains("cn-still")&&!matchMedia("(prefers-reduced-motion: reduce)").matches&&(localStorage.getItem("cn-fx")||"").indexOf("-exposure")<0&&!sessionStorage.getItem("cn-intro")){sessionStorage.setItem("cn-intro","1");r.classList.add("cn-intro","cn-intro-hold");hold();boot()}}catch(e){r.classList.remove("cn-intro-hold")}
+    /* Sign-in gate (63-gate.css; the stage and its controller open #authModal; owner, 28 Oct 2026):
+       with no saved Supabase session, html.cn-gate shows the gate from the first frame on every page.
+       Not when the address carries a sign-in return (email link, Google, invite): script.js finishes
+       that first, and the gate locks afterwards only if it did not sign the visitor in. Signed-in
+       visitors go straight to the page; the old boot intro is gone. Blocked storage: no gate. */
+    try{if(!/access_token|refresh_token|token_hash|error_description|[?&#]code=|type=recovery/.test(location.search+location.hash)&&!/^\/accept-invite/.test(location.pathname)&&!localStorage.getItem("sb-ndtcxippbufqzwcxkyjd-auth-token"))r.classList.add("cn-gate")}catch(e){}
+    try{if(location.pathname==="/"&&!r.classList.contains("cn-gate")&&!r.classList.contains("cn-still")&&!matchMedia("(prefers-reduced-motion: reduce)").matches&&(localStorage.getItem("cn-fx")||"").indexOf("-exposure")<0&&!sessionStorage.getItem("cn-intro")){sessionStorage.setItem("cn-intro","1");r.classList.add("cn-intro","cn-intro-hold");hold()}}catch(e){r.classList.remove("cn-intro-hold")}
     if(/^\/(quick-scan|analysis-ai|recovery|learn|pricing|about)\/?$/.test(location.pathname)){
       r.classList.add("cn-deep");
       var t=0,done=function(){clearTimeout(t);r.classList.remove("cn-deep")};
@@ -108,7 +96,7 @@
   <link rel="stylesheet" href="/cybernet-howto.css?v=20260905-1" />
   <link id="cybernetBusinessTeamStylesheet" rel="stylesheet" href="/cybernet-business-team.css?v=20260927-2" />
   <link rel="stylesheet" href="/cybernet-consent.css?v=20260927-2" />
-  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261021-5" />
+  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261028-g2" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=20260830-5">
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=20260830-5">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=20260830-5">
@@ -347,17 +335,242 @@
 </head>
 <body>
   <a class="cn-skip" href="#cnMain">Skip to content</a>
-  <!-- Boot intro: shown only while html.cn-boot is set (head snippet, the first Home view of a session;
-       21-boot.css). Decorative: the page under it is already loading, painted and usable. -->
-  <div class="cn-boot" aria-hidden="true">
-    <div class="cn-boot-in">
-      <span class="cn-boot-mark"><svg viewBox="0 0 24 26" fill="none" width="56" height="61"><path d="M12 2 L21 6 L20 15 L12 24 L4 15 L3 6 Z" stroke="#22D3EE" stroke-width="1.5" stroke-linejoin="round"/><rect x="8.3" y="12.5" width="7.4" height="6.2" rx="1.2" fill="#22D3EE"/><path d="M9.6 12.5v-2.3a2.4 2.4 0 0 1 4.8 0v2.3" stroke="#22D3EE" stroke-width="1.4" fill="none" stroke-linecap="round"/><circle cx="12" cy="15.2" r="1" fill="#08152a"/><path d="M12 15.9v1.4" stroke="#08152a" stroke-width="1" stroke-linecap="round"/></svg><i class="cn-boot-scan"></i></span>
-      <span class="cn-boot-word">Cyber<b>Net</b><small>AI</small></span>
-      <span class="cn-boot-tag"><span class="cn-boot-type">Rules first. Then AI.</span><i class="cn-boot-caret"></i></span>
-    </div>
-  </div>
   <!-- ═══ LOGIN / SIGNUP MODAL ═══ -->
   <div id="authModal" class="modal">
+    <!-- Sign-in gate (63-gate.css; owner, 28 Oct 2026: every visitor signs in before using the site).
+         Shown while html.cn-gate is set (head snippet: no saved session). The mark draws, the wordmark
+         rises, the lines type themselves, then the sign-in card below rises in over the blurred page.
+         Decorative copy: aria-hidden; the dialog's own heading names it, and #cnGateStatus speaks the
+         nudge and the welcome. Each typed line lists the texts it can show in data-alt, so its box is
+         sized for the longest one from the start and nothing moves when the words change. -->
+    <div class="cn-gate-stage" id="cnGateStage" aria-hidden="true">
+      <div class="cn-gate-brand">
+        <span class="cn-gate-mark"><svg viewBox="0 0 24 26" fill="none"><path class="cn-gate-shield" pathLength="1" d="M12 2 L21 6 L20 15 L12 24 L4 15 L3 6 Z" stroke="#22D3EE" stroke-width="1.3" stroke-linejoin="round"/><g class="cn-gate-lock"><rect x="8.3" y="12.5" width="7.4" height="6.2" rx="1.2" fill="#22D3EE"/><path d="M9.6 12.5v-2.3a2.4 2.4 0 0 1 4.8 0v2.3" stroke="#22D3EE" stroke-width="1.3" fill="none" stroke-linecap="round"/><circle cx="12" cy="15.2" r="1" fill="#08152a"/><path d="M12 15.9v1.4" stroke="#08152a" stroke-width="1" stroke-linecap="round"/></g></svg><i class="cn-gate-scan"></i></span>
+        <span class="cn-gate-word"><span style="--i:0">C</span><span style="--i:1">y</span><span style="--i:2">b</span><span style="--i:3">e</span><span style="--i:4">r</span><b><span style="--i:5">N</span><span style="--i:6">e</span><span style="--i:7">t</span></b><small><span style="--i:8">A</span><span style="--i:9">I</span></small></span>
+      </div>
+      <p class="cn-gate-quote"><span class="cn-gate-t">“That message looks real. That’s the point.”</span></p>
+      <div class="cn-gate-pitch">
+        <p class="cn-gate-head"><span class="cn-gate-t" data-alt="Not signed in yet.|You’re in.">Stay protected.</span></p>
+        <p class="cn-gate-sub"><span class="cn-gate-t" data-alt="Sign in or create a free account to unlock every tool.">Every message, link and screenshot, checked in one place.</span></p>
+        <p class="cn-gate-perks"><span class="cn-gate-t">Free · 5 scans a day · No card needed</span></p>
+      </div>
+    </div>
+    <p class="cn-gate-status" id="cnGateStatus" role="status"></p>
+    <script>
+    /* Sign-in gate controller (63-gate.css). ES5 and inline, so the intro types from the first frames
+       instead of waiting for the deferred scripts. It reaches script.js only through what script.js
+       offers other scripts: window.CyberNetAccount.openAuthModal (or a click on #openAuth before it
+       exists), #closeAuth, and the "cybernet:session" event. It never opens the card over a step
+       script.js already put on screen (an expired link notice, the reset or new-password step). */
+    (function (w, d) {
+      var r = d.documentElement, stage = d.getElementById("cnGateStage"), modal = d.getElementById("authModal"), status = d.getElementById("cnGateStatus");
+      if (!stage || !modal) return;
+      var TOKEN = "sb-ndtcxippbufqzwcxkyjd-auth-token";
+      var reduced = r.classList.contains("cn-still") || !!(w.matchMedia && w.matchMedia("(prefers-reduced-motion: reduce)").matches);
+      var coarse = !!(w.matchMedia && w.matchMedia("(pointer: coarse)").matches);
+      var timers = [], skipping = false, phase = 0, ready = false, wantCard = false, cardShown = false, lastView = "signup", eatClick = 0;
+      var NUDGE = ["Not signed in yet.", "Sign in or create a free account to unlock every tool."], WELCOME = "You’re in.";
+      function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
+      function clear() { while (timers.length) clearTimeout(timers.pop()); }
+      function q(sel) { return stage.querySelector(sel); }
+      function gated() { return r.classList.contains("cn-gate") && !r.classList.contains("cn-gate-out"); }
+      function storage() { try { w.localStorage.getItem(TOKEN); return true; } catch (e) { return false; } }
+      function hasToken() { try { return !!w.localStorage.getItem(TOKEN); } catch (e) { return false; } }
+      function signedIn() { var a = w.CyberNetAccount; try { return hasToken() || !!(a && a.isSignedIn && a.isSignedIn()); } catch (e) { return hasToken(); } }
+      function covered(on) { try { if (w.CN && w.CN.setCovered) w.CN.setCovered(on); } catch (e) {} }
+      function say(text) { if (status) status.textContent = text; }
+      /* the page under the gate is out of reach for keyboards and screen readers until it opens */
+      function page(off) {
+        var els = d.querySelectorAll("body > header, body > nav, body > main, body > footer, body > .navbar, #cnMain");
+        for (var j = 0; j < els.length; j++) { if (off) { els[j].setAttribute("inert", ""); els[j].setAttribute("aria-hidden", "true"); } else { els[j].removeAttribute("inert"); els[j].removeAttribute("aria-hidden"); } }
+      }
+
+      /* A typed line: invisible copies of every text it can show share one grid cell and hold the
+         box; the visible copy types over them. Each step edits one text node, at most every 48 ms,
+         and adds as many characters as the speed needs. A newer type() on the same line stops the
+         older one. */
+      var lines = stage.querySelectorAll(".cn-gate-t");
+      for (var k = 0; k < lines.length; k++) setup(lines[k]);
+      function setup(el) {
+        var text = el.textContent, alts = [text].concat((el.getAttribute("data-alt") || "").split("|").filter(Boolean));
+        var ghost = d.createElement("span"), live = d.createElement("span"), node = d.createTextNode("");
+        ghost.className = "cn-gate-ghost";
+        for (var a = 0; a < alts.length; a++) { var g = d.createElement("span"); g.textContent = alts[a]; ghost.appendChild(g); }
+        live.className = "cn-gate-live"; live.appendChild(node);
+        el.textContent = ""; el.appendChild(ghost); el.appendChild(live);
+        el.cnText = el.cnOrig = text; el.cnNode = node; el.cnRun = 0;
+        el.className = "cn-gate-t is-ready";
+      }
+      function type(el, text, cps, done) {
+        if (!el) { if (done) done(); return; }
+        var run = ++el.cnRun, i = 0, all = el.cnText = text == null ? el.cnText : text;
+        el.className = "cn-gate-t is-ready is-typing";
+        function fin() {
+          if (run !== el.cnRun) return;
+          el.cnNode.data = all;
+          el.className = "cn-gate-t is-ready is-typed";
+          later(function () { if (run === el.cnRun) el.className = "cn-gate-t is-ready is-typed is-rested"; }, 2100);
+          if (done) done();
+        }
+        if (skipping || reduced) { fin(); return; }
+        el.cnNode.data = "";
+        (function step() {
+          if (run !== el.cnRun) return;
+          if (skipping) { fin(); return; }
+          var n = Math.max(1, Math.round(cps * 0.055 * (0.7 + Math.random() * 0.6)));
+          i = Math.min(all.length, i + n);
+          el.cnNode.data = all.slice(0, i);
+          if (i >= all.length) { fin(); return; }
+          later(step, 55 + (/[.,·”]/.test(all.charAt(i - 1)) ? 160 : 0));
+        })();
+      }
+      function finishAll() { for (var j = 0; j < lines.length; j++) { lines[j].cnRun++; lines[j].cnNode.data = lines[j].cnText; lines[j].className = "cn-gate-t is-ready is-typed is-rested"; } }
+
+      /* FLIP: measure, change the layout, measure again, then glide from the old box to the new one.
+         move only (no scale) where the change is a reflow rather than a resize. */
+      function flip(el, mutate, moveOnly) {
+        if (reduced || skipping) { mutate(); return; }
+        var a = el.getBoundingClientRect();
+        mutate();
+        var b = el.getBoundingClientRect();
+        var dx = a.left + a.width / 2 - (b.left + b.width / 2), dy = a.top + a.height / 2 - (b.top + b.height / 2), s = moveOnly || !b.width ? 1 : a.width / b.width;
+        if (Math.abs(dx) < 1 && Math.abs(dy) < 1 && Math.abs(s - 1) < 0.01) return;
+        el.style.transition = "none";
+        el.style.transform = "translate(" + dx + "px," + dy + "px) scale(" + s + ")";
+        el.getBoundingClientRect();
+        requestAnimationFrame(function () { el.style.transition = ""; el.style.transform = ""; });
+      }
+
+      function openAuth(view) {
+        /* script.js already shows a step of its own (a link notice, reset, a new password): keep it */
+        if (modal.classList.contains("show")) return;
+        var api = w.CyberNetAccount, btn;
+        if (api && api.openAuthModal) api.openAuthModal(view === "login" ? "login" : "signup");
+        else if ((btn = d.getElementById("openAuth"))) { btn.click(); if (view !== "login" && (btn = d.getElementById("switchToSignupBtn"))) btn.click(); }
+        /* phones keep the keyboard down until the visitor taps a field */
+        if (coarse) requestAnimationFrame(function () { requestAnimationFrame(function () {
+          var a = d.activeElement; if (a && a.blur && modal.contains(a) && /^(INPUT|TEXTAREA)$/.test(a.tagName)) a.blur();
+        }); });
+      }
+      function showCard() {
+        if (cardShown) return;
+        if (!ready) { wantCard = true; return; }
+        cardShown = true; wantCard = false;
+        flip(stage, function () { r.classList.add("cn-gate-card", "cn-gate-enter"); }, true);
+        setTimeout(function () { r.classList.remove("cn-gate-enter"); }, 1300);
+        openAuth(lastView);
+      }
+      function rest() { type(q(".cn-gate-sub .cn-gate-t"), null, 60, function () { type(q(".cn-gate-perks .cn-gate-t"), null, 70); }); }
+      function compact() {
+        phase = 2;
+        flip(q(".cn-gate-brand"), function () { r.classList.add("cn-gate-compact"); });
+        later(function () { type(q(".cn-gate-head .cn-gate-t"), null, 24, function () { showCard(); later(rest, 120); }); }, 380);
+      }
+      function full() {
+        phase = 1;
+        later(function () { type(q(".cn-gate-quote .cn-gate-t"), null, 34, function () { later(compact, 600); }); }, 1300);
+      }
+      function quick() {
+        phase = 2;
+        r.classList.add("cn-gate-compact", "cn-gate-quick");
+        later(function () { type(q(".cn-gate-head .cn-gate-t"), null, 30, function () { showCard(); later(rest, 100); }); }, 240);
+      }
+      /* A tap or a key during the intro jumps to the card. The tap itself is used up, so it never
+         lands on the card that appears under the finger. */
+      function skip(e) {
+        if (!gated() || cardShown || phase === 3) return;
+        if (e && (e.type === "pointerdown" || e.type === "touchstart")) eatClick = Date.now();
+        skipping = true; clear(); phase = 3;
+        r.classList.add("cn-gate-compact"); finishAll();
+        skipping = false;
+        if (ready) showCard(); else wantCard = true;
+      }
+      function nudge() {
+        if (!cardShown || phase < 2 || r.classList.contains("cn-gate-welcome")) return;
+        say(NUDGE[0] + " " + NUDGE[1]);
+        if (r.classList.contains("cn-gate-nudge")) return;
+        r.classList.add("cn-gate-nudge");
+        type(q(".cn-gate-head .cn-gate-t"), NUDGE[0], 30, function () { type(q(".cn-gate-sub .cn-gate-t"), NUDGE[1], 70); });
+      }
+      function reset() {
+        for (var j = 0; j < lines.length; j++) { lines[j].cnRun++; lines[j].cnText = lines[j].cnOrig; lines[j].cnNode.data = ""; lines[j].className = "cn-gate-t is-ready"; }
+        r.classList.remove("cn-gate-card", "cn-gate-compact", "cn-gate-quick", "cn-gate-nudge", "cn-gate-welcome", "cn-gate-enter");
+        cardShown = false; wantCard = false; phase = 0; stage.style.transform = ""; say("");
+      }
+      function unlock() {
+        if (!gated()) return;
+        clear(); skipping = false;
+        var go = function () {
+          r.classList.add("cn-gate-out");
+          setTimeout(function () {
+            /* signed in from elsewhere (the email link in another tab): the card must not stay up */
+            var close = d.getElementById("closeAuth");
+            if (modal.classList.contains("show") && close && (modal.dataset.authView || "login") !== "recovery") close.click();
+            r.classList.remove("cn-gate", "cn-gate-out");
+            reset(); page(false); covered(false);
+            try { w.dispatchEvent(new CustomEvent("cn:gate-open")); } catch (e) {}
+          }, 820);
+        };
+        say(WELCOME);
+        if (cardShown && !reduced) {
+          r.classList.remove("cn-gate-nudge"); r.classList.add("cn-gate-welcome");
+          type(q(".cn-gate-head .cn-gate-t"), WELCOME, 30, function () { setTimeout(go, 380); });
+        } else go();
+      }
+      function lock() {
+        /* no storage (nothing can stay signed in), an invite (its own dialog leads to sign-in) or a
+           sign-in library that never loaded: no gate */
+        if (r.classList.contains("cn-gate") || !storage() || /^\/accept-invite/.test(location.pathname) || !w.supabase) return;
+        r.classList.add("cn-gate"); covered(true); page(true);
+        if (reduced) { phase = 3; r.classList.add("cn-gate-compact"); finishAll(); showCard(); } else quick();
+      }
+      /* The sign-in library never answered (blocked or offline): open the page rather than a card
+         that can only show an error */
+      function giveUp() {
+        if (ready) return;
+        ready = true;
+        if (!w.supabase && gated()) { r.classList.remove("cn-gate"); reset(); page(false); covered(false); return; }
+        if (wantCard) showCard();
+      }
+
+      w.addEventListener("cybernet:session", function (e) {
+        var id = e && e.detail && e.detail.userId;
+        ready = true;
+        if (id) unlock();
+        else if (!r.classList.contains("cn-gate")) lock();
+        else if (wantCard) showCard();
+      });
+      /* Closing the card while signed out (a tap outside, Escape) is not a way in: the card stays.
+         Escape during the intro skips it, like any other key. */
+      modal.addEventListener("click", function (e) { if (gated() && e.target === modal) { e.stopImmediatePropagation(); nudge(); } });
+      w.addEventListener("keydown", function (e) {
+        if (!gated()) return;
+        var esc = e.key === "Escape" || e.key === "Esc";
+        if (!cardShown) { if (esc || !/^(Tab|Shift|Control|Alt|Meta)$/.test(e.key)) skip(e); return; }
+        if (esc && !d.querySelector("#cnLegalModal.show") && !/^(reset|recovery)$/.test(modal.dataset.authView || "")) { e.stopImmediatePropagation(); nudge(); }
+      }, true);
+      if (w.MutationObserver) new w.MutationObserver(function () {
+        var v = modal.dataset.authView;
+        if (v === "login" || v === "signup") lastView = v;
+        if (!gated() || !cardShown || modal.classList.contains("show")) return;
+        later(function () { if (gated() && !signedIn() && !modal.classList.contains("show")) { openAuth(lastView); nudge(); } }, 450);
+      }).observe(modal, { attributes: true, attributeFilter: ["class", "data-auth-view"] });
+
+      ["pointerdown", "touchstart"].forEach(function (n) { w.addEventListener(n, skip, { capture: true, passive: true }); });
+      /* only the visitor's own click is used up, never the gate's own clicks on script.js buttons */
+      w.addEventListener("click", function (e) { if (e.isTrusted && eatClick && Date.now() - eatClick < 700) { eatClick = 0; e.preventDefault(); e.stopPropagation(); } }, true);
+      d.addEventListener("DOMContentLoaded", function () {
+        if (gated()) { covered(true); page(true); }
+        setTimeout(giveUp, 6000);
+      });
+      if (!r.classList.contains("cn-gate")) return;
+      var seen = false;
+      try { seen = w.sessionStorage.getItem("cn-gate-seen") === "1"; w.sessionStorage.setItem("cn-gate-seen", "1"); } catch (e) {}
+      if (reduced) { phase = 3; r.classList.add("cn-gate-compact"); finishAll(); wantCard = true; }
+      else if (seen) quick();
+      else full();
+    })(window, document);
+    </script>
     <div class="modal-card glass reveal" role="dialog" aria-modal="true" aria-labelledby="authModalTitle" aria-describedby="authModalIntro authNotice">
       <button class="close-modal" id="closeAuth" aria-label="Close">&times;</button>
       <div class="auth-logo">
@@ -1019,7 +1232,7 @@
             <p>Analyze suspicious text, emails, or messages for potential threats and scams.</p>
             <textarea id="cyberTextInput" class="feature-textarea" aria-label="Suspicious message to scan" placeholder="Paste your text here..." maxlength="5000"></textarea>
             <div class="input-tools"><button type="button" class="input-clear-btn" data-clear="cyberTextInput" hidden>Clear</button><div class="char-count"><span id="cyberTextCount">0</span>/5000</div></div>
-            <button class="primary-btn full" id="cyberTextBtn">Analyze Text</button>
+            <button class="primary-btn full" id="cyberTextBtn">Start the analysis</button>
             <div id="cyberTextResult" class="result-box">Your text scam result will appear here.</div>
           </div>
 
@@ -1090,7 +1303,7 @@
             <p>Check URLs for phishing, malware, and other malicious activity.</p>
             <input id="cyberLinkInput" type="text" aria-label="Link to scan" placeholder="Enter URL to analyze..."/>
             <div class="input-tools"><button type="button" class="input-clear-btn" data-clear="cyberLinkInput" hidden>Clear</button></div>
-            <button class="primary-btn full" id="cyberLinkBtn">Analyze Link</button>
+            <button class="primary-btn full" id="cyberLinkBtn">Start the analysis</button>
             <div id="cyberLinkResult" class="result-box">Your link scam result will appear here.</div>
           </div>
 
@@ -2835,7 +3048,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" defer></script>
   <script src="/config.js?v=20260830-3" defer></script>
   <script src="/legacy/cybernet-engine.js?v=20261028-1" defer></script>
-  <script src="/legacy/script.js?v=20261028-1" defer></script>
+  <script src="/legacy/script.js?v=20261028-g1" defer></script>
   <script src="/legacy/cybernet-account-api-upgrade.js?v=20261028-1" defer></script>
   <script src="/cybernet-howto.js?v=20261019-1" defer></script>
 <script src="/legacy/cybernet-business-team.js?v=20261028-1" defer></script>
@@ -2847,7 +3060,7 @@
   <script src="/legacy/cybernet-onboarding.js?v=20261028-1" defer></script>
   <!-- After script.js and cybernet-account-api-upgrade.js (CyberNetAccount, account modal); admin-only, gated on the server. -->
   <script src="/legacy/cybernet-admin-feedback.js?v=20261028-1" defer></script>
-  <script src="/ui/cybernet-ui.js?v=20261021-5" defer></script>
+  <script src="/ui/cybernet-ui.js?v=20261028-g2" defer></script>
 </body>
 </html>
 
