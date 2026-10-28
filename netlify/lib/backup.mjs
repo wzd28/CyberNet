@@ -77,7 +77,8 @@ export const TABLES = [
   { name: "recovery_cases", key: ["id"] },
   { name: "recovery_versions", key: ["id"], identity: "id" },
   { name: "recovery_tasks", key: ["id"], identity: "id" },
-  { name: "checkout_debug_log", key: ["id"], identity: "id", identityAlways: true }
+  { name: "checkout_debug_log", key: ["id"], identity: "id", identityAlways: true },
+  { name: "feedback", key: ["id"] }
 ];
 
 // Public tables that are deliberately left out of the backup:
@@ -91,7 +92,7 @@ export const EXCLUDED_TABLES = ["api_rate_limits"];
 // The newest database migration when TABLES was last checked. Bump it
 // together with TABLES. The manifest also carries a fingerprint of the
 // live columns, so a schema change since then is visible in the backup.
-export const SCHEMA_VERSION = "20260922163128_platform_stats_count_all_scans";
+export const SCHEMA_VERSION = "20261021135311_explicit_grants";
 
 // Account fields kept for each sign-in account. This is an allowlist on
 // purpose: password hashes, confirmation and recovery tokens and anything

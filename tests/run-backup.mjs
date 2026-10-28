@@ -81,6 +81,7 @@ function fixtureTables() {
   t.recovery_tasks = [7, 3, 1, 6, 2, 5, 4].map((n) => ({ id: n, case_id: uid(400), title: `Task ${n}`, done: n % 2 === 0 }));
   t.api_rate_limits = [{ rate_key: "ip:1.2.3.4", count: 3, window_start: "2026-10-18T00:00:00+00:00" }];
   t.checkout_debug_log = [];
+  t.feedback = [];
   t.client_errors = [{ id: 2, message: "extra table row" }, { id: 1, message: "first" }];
   return t;
 }
@@ -235,7 +236,7 @@ try {
   // ── Config of the two functions ──
   check("weekly-schedule", weekly.config?.schedule === "@weekly" && !("path" in weekly.config), weekly.config);
   check("now-path", now.config?.path === "/api/backup-now" && !("schedule" in now.config), now.config);
-  check("table-list", lib.TABLES.length === 15 && new Set(lib.TABLES.map((t) => t.name)).size === 15 && lib.TABLES.every((t) => t.key.length), lib.TABLES.map((t) => t.name));
+  check("table-list", lib.TABLES.length === 16 && new Set(lib.TABLES.map((t) => t.name)).size === 16 && lib.TABLES.every((t) => t.key.length), lib.TABLES.map((t) => t.name));
   check("rate-limits-excluded", JSON.stringify(lib.EXCLUDED_TABLES) === '["api_rate_limits"]' && !lib.TABLES.some((t) => t.name === "api_rate_limits"), lib.EXCLUDED_TABLES);
   check("restore-order-fk", ["business_accounts", "business_members", "recovery_cases", "recovery_versions", "recovery_tasks"].map((n) => lib.TABLES.findIndex((t) => t.name === n)).every((v, i, a) => !i || v > a[i - 1]), lib.TABLES.map((t) => t.name));
 

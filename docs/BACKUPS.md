@@ -13,7 +13,7 @@ CyberNet AI runs on the Supabase free plan, which makes no backups of its own. T
 
 In the backup:
 
-- Every table in the database's `public` schema: profiles and plans, usage counters, scan history, Recovery cases, their versions and tasks, Business teams, members and invites, legal acceptances and the checkout error log.
+- Every table in the database's `public` schema: profiles and plans, usage counters, scan history, Recovery cases, their versions and tasks, Business teams, members and invites, legal acceptances, the checkout error log and feedback form messages (with the sender's email if given).
 - Every sign-in account: id, email, phone, when it was created, confirmed and last used, whether it is banned, its metadata, and which sign-in methods it used (email, Google).
 
 Not in the backup:
@@ -141,7 +141,7 @@ Creating the accounts also creates an empty profile for each one (the `on_auth_u
 
 The file:
 
-- loads the tables in this order, so every row comes after the rows it points to: profiles, business_accounts, business_members, business_invites, business_daily_usage, business_recovery_usage, daily_usage, quickscan_usage, recovery_usage, legal_acceptances, scan_history, recovery_cases, recovery_versions, recovery_tasks, checkout_debug_log, then any newer tables;
+- loads the tables in this order, so every row comes after the rows it points to: profiles, business_accounts, business_members, business_invites, business_daily_usage, business_recovery_usage, daily_usage, quickscan_usage, recovery_usage, legal_acceptances, scan_history, recovery_cases, recovery_versions, recovery_tasks, checkout_debug_log, feedback, then any newer tables;
 - runs as one transaction: if anything fails, nothing is changed, and you can fix the problem and run it again;
 - adds rows and sets rows with the same key back to the saved values, and never deletes anything;
 - moves the numbering of `scan_history`, `recovery_versions`, `recovery_tasks` and `checkout_debug_log` past the restored rows;

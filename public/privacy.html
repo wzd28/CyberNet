@@ -2,9 +2,9 @@
 <html lang="en" class="cn cn-legal">
 <head>
   <meta charset="UTF-8" />
-  <!-- Old-browser notice (Chrome/Edge 90+, Safari/iOS 14+, Firefox 90+ are supported). ES5 on
+  <!-- Old-browser notice (Chrome/Android WebView 69+, Safari/iOS 14+, Firefox 78+ are supported). ES5 on
        purpose (no arrow functions, let/const or template strings): it must run where our modern
-       scripts cannot. The next tag uses ?. and ??; a browser that cannot parse it gets a notice at
+       scripts cannot. The next tag uses object spread (ES2018, the level of /legacy/*.js); a browser that cannot parse it gets a notice at
        the top of the page. No eval: the CSP has no 'unsafe-eval' (inline scripts are allowed by
        'unsafe-inline'). Nothing is reported: cybernet-errors.js is not listening yet, and this
        listener does not cancel the event. Same copy in index.html and privacy.html
@@ -28,7 +28,7 @@
     });
   })(window, document);
   </script>
-  <script>window.CN_modernJs = (null ?? { a: 1 })?.a === 1;</script>
+  <script>window.CN_modernJs = ({ ...{ a: 1 } }).a === 1;</script>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="robots" content="index,follow" />
   <title>Privacy Policy | CyberNet AI</title>
@@ -45,6 +45,7 @@
   <link rel="stylesheet" href="/cybernet-legal.css?v=20260930-2" />
   <link rel="stylesheet" href="/cybernet-consent.css?v=20260927-2" />
   <link rel="stylesheet" href="/ui/cybernet-ui-legal.css?v=20261019-1" />
+  <script src="/cybernet-compat.js?v=20261028-1" defer></script>
   <script src="/cybernet-errors.js?v=20261021-1" defer></script>
 </head>
 <body class="cn-legal-page">
@@ -251,6 +252,6 @@
       © 2026 CyberNet AI — operated by Marks Events FZ LLE, registration number 20116/2025. Contact: <a href="mailto:support@cybernetai.app">support@cybernetai.app</a>.
     </footer>
   </main>
-  <script src="/cybernet-consent.js?v=20261021-1" defer></script>
+  <script src="/legacy/cybernet-consent.js?v=20261028-1" defer></script>
 </body>
 </html>
