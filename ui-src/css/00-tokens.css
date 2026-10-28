@@ -219,6 +219,7 @@ html.cn {
   --cn-dur-2: 300ms;
   --cn-dur-3: 500ms;
   --cn-dur-4: 900ms;
+  --cn-z-toast: 1700;     /* toasts and notices: above dialogs and the sign-in gate (1600), below the Legal Center */
 
   /* Layers (the legacy auth modal sits at 1600). Section motion canvases sit at z-index -1
      inside their own section (04-bgfx.css). */

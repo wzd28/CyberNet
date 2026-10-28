@@ -233,14 +233,7 @@ html.cn.cn-intro.cn-intro-hold:not(.cn-still) #home .cn-hero4-scene::after,
 html.cn.cn-intro.cn-intro-hold:not(.cn-still) #home .cn-hero4-scene > .cn-hero4-poster,
 html.cn.cn-intro.cn-intro-hold:not(.cn-still) #home .cn-hero4::after,
 html.cn.cn-intro.cn-intro-hold:not(.cn-still) #home .hero-content .hero-title .cn-sweep,
-html.cn.cn-intro.cn-intro-hold:not(.cn-still) #home .hero-content .hero-title cn-w,
-/* Boot intro (21-boot.css, 21 Oct): the same holds while the boot screen is up, so all of it
-   plays as the screen lifts (.cn-boot-out at 1.5 s, or at once on a tap, key or scroll) */
-html.cn.cn-intro.cn-boot:not(.cn-boot-out, .cn-still) #home .cn-hero4-scene::after,
-html.cn.cn-intro.cn-boot:not(.cn-boot-out, .cn-still) #home .cn-hero4-scene > .cn-hero4-poster,
-html.cn.cn-intro.cn-boot:not(.cn-boot-out, .cn-still) #home .cn-hero4::after,
-html.cn.cn-intro.cn-boot:not(.cn-boot-out, .cn-still) #home .hero-content .hero-title .cn-sweep,
-html.cn.cn-intro.cn-boot:not(.cn-boot-out, .cn-still) #home .hero-content .hero-title cn-w {
+html.cn.cn-intro.cn-intro-hold:not(.cn-still) #home .hero-content .hero-title cn-w {
   animation-play-state: paused;
 }
 /* Kinetic H1 (21 Oct): index.html ships the headline already split into words (cn-w, each

@@ -2561,7 +2561,7 @@ html.cn #cybernetai #chatSendBtn.send-btn::before {
   height: 18px;
   background-color: currentColor;
 }
-/* Signed out the button reads "Register for Free to Scan". */
+/* Unused since 28 Oct 2026 (the send button always shows the arrow); kept for an older cached script.js. */
 html.cn #cybernetai #chatSendBtn.send-btn.send-btn-wide {
   display: inline-flex;
   align-items: center;

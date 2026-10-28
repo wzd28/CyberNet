@@ -963,14 +963,16 @@ document.addEventListener("DOMContentLoaded",()=>{
     const cyberUploadHeading=document.querySelector("#cyberDropZone h3");
     const chatSendBtnEl=document.getElementById("chatSendBtn");
     const recoveryStartBtnEl=document.getElementById("recoveryStartBtn");
-    if(cyberTextBtnEl)cyberTextBtnEl.textContent=signedIn?"Analyze Text":"Register for Free to Scan";
-    if(cyberLinkBtnEl)cyberLinkBtnEl.textContent=signedIn?"Analyze Link":"Register for Free to Scan";
-    if(cyberUploadHeading)cyberUploadHeading.textContent=signedIn?"Drag & Drop Your Image Here":"Register for Free to Scan";
+    /* One label whether or not the visitor is signed in (owner, 28 Oct 2026). Signed out, a tap opens
+       the sign-in card, and the sign-in gate (63-gate.css) asks for an account before anything else. */
+    if(cyberTextBtnEl)cyberTextBtnEl.textContent="Start the analysis";
+    if(cyberLinkBtnEl)cyberLinkBtnEl.textContent="Start the analysis";
+    if(cyberUploadHeading)cyberUploadHeading.textContent="Drag & Drop Your Image Here";
     if(chatSendBtnEl){
-      chatSendBtnEl.innerHTML=signedIn?"➤":"Register for Free to Scan";
-      chatSendBtnEl.classList.toggle("send-btn-wide",!signedIn);
+      chatSendBtnEl.innerHTML="➤";
+      chatSendBtnEl.classList.remove("send-btn-wide");
     }
-    if(recoveryStartBtnEl&&!recoveryStartBtnEl.disabled)recoveryStartBtnEl.textContent=signedIn?"Start Recovery":"Register for Free to Start a Recovery Case";
+    if(recoveryStartBtnEl&&!recoveryStartBtnEl.disabled)recoveryStartBtnEl.textContent="Start Recovery";
 
     const badgeText=isBusiness()?"BUSINESS":pro?"PRO":"FREE";
     [navPlanBadge,document.getElementById("aiPlanBadge")].forEach(badge=>{
