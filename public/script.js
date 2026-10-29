@@ -583,7 +583,8 @@ document.addEventListener("DOMContentLoaded",()=>{
 
   /* ─── Dialog views: login | signup | reset (ask for a reset link) | recovery (choose a new password) ─── */
   const AUTH_HEADINGS={
-    login:["Sign in or create an account","Use an existing CyberNet account, or create a free account in seconds."],
+    // Owner, 29 Oct 2026: the card itself carries the pitch and invites a free sign-up.
+    login:["Stay secure.","All in one place, designed for protection and recovery. Create your free account in seconds, or sign in."],
     reset:["Reset your password","Enter the email you use for CyberNet AI. We'll send you a link to choose a new password."],
     recovery:["Choose a new password","Pick a new password for your CyberNet AI account. You'll stay signed in on this device."]
   };
