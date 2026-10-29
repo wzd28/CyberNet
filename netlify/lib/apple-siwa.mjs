@@ -29,10 +29,21 @@ function env(name) {
   }
 }
 
+// Netlify's secret fields are single-line, so the .p8 often arrives with its
+// line breaks removed, turned into spaces or written as "\n": rebuild a valid
+// PEM from whatever arrived.
+export function normalizePem(raw) {
+  const text = String(raw || "").replace(/\\n/g, "\n");
+  const m = text.match(/-----BEGIN ([A-Z ]+)-----([\s\S]*?)-----END \1-----/);
+  if (!m) return text;
+  const body = m[2].replace(/[^A-Za-z0-9+/=]/g, "");
+  return body ? `-----BEGIN ${m[1]}-----\n${body.match(/.{1,64}/g).join("\n")}\n-----END ${m[1]}-----\n` : text;
+}
+
 export function appleConfig() {
   const teamId = env("APPLE_TEAM_ID");
   const keyId = env("APPLE_SIWA_KEY_ID");
-  const privateKey = env("APPLE_SIWA_PRIVATE_KEY").replace(/\\n/g, "\n");
+  const privateKey = normalizePem(env("APPLE_SIWA_PRIVATE_KEY"));
   const clientId = env("APPLE_SIWA_CLIENT_ID") || DEFAULT_CLIENT_ID;
   return teamId && keyId && privateKey ? { teamId, keyId, privateKey, clientId } : null;
 }

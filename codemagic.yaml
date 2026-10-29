@@ -3,20 +3,13 @@
 # No triggers: a build starts only when the owner presses "Start new build" in Codemagic (the free
 # plan has 500 macOS minutes a month). Netlify never reads this file.
 #
-# This repository is PUBLIC. Nothing secret is written here. Every credential is read from
-# Codemagic environment groups that the owner creates in Codemagic > the app > Environment variables
-# (Claude never sees the values):
-#
-#   Group "cybernet_asc"  (tick "Secret" on every variable)
-#     APP_STORE_CONNECT_ISSUER_ID       Issuer ID (App Store Connect > Users and Access > Integrations)
-#     APP_STORE_CONNECT_KEY_IDENTIFIER  Key ID of the "Codemagic CyberNet" API key (App Manager access)
-#     APP_STORE_CONNECT_PRIVATE_KEY     the whole AuthKey_XXXXXXXXXX.p8 file, BEGIN/END lines included
-#     CERTIFICATE_PRIVATE_KEY           private key for the Apple Distribution certificate. On Windows,
-#                                       in PowerShell: ssh-keygen -t rsa -b 2048 -m PEM -f cybernet_dist_key
-#                                       (press Enter twice: no passphrase), open cybernet_dist_key in
-#                                       Notepad and paste all of it. Keep the file with your other keys.
-#   Group "cybernet_app"  (not secret)
-#     APP_STORE_APPLE_ID                the app's Apple ID number (App Store Connect > App Information)
+# This repository is PUBLIC. Nothing secret is written here. Signing uses what the owner set up in
+# Codemagic > Settings (personal account), referenced by name only (set up 29 Oct 2026):
+#   Developer Portal integration  "CyberNet ASC"   the App Store Connect API key (App Manager)
+#   iOS certificate               cybernet_dist    Apple Distribution, generated in Codemagic
+#   iOS provisioning profiles     cybernet_app_store (app.cybernetai)
+#                                 cybernet_share_app_store (app.cybernetai.share)
+# The app's Apple ID (6828596086) and Team ID (5VT6U6GMC2) are not secret.
 #
 # Workflows: ios-simulator (no Apple account needed) and ios-testflight (signed build uploaded to
 # TestFlight; the owner presses Submit for review in App Store Connect).
@@ -147,26 +140,24 @@ workflows:
     name: iOS TestFlight (signed release build)
     instance_type: mac_mini_m2
     max_build_duration: 60
+    integrations:
+      app_store_connect: CyberNet ASC   # Codemagic Developer Portal integration (key name, not the key)
     environment:
       xcode: "26.6"        # same pin as ios-simulator
       node: 22
-      groups:
-        - cybernet_asc     # App Store Connect API key + certificate private key (secret)
-        - cybernet_app     # APP_STORE_APPLE_ID (not secret)
+      ios_signing:
+        provisioning_profiles:
+          - cybernet_app_store         # app.cybernetai, App Store
+          - cybernet_share_app_store   # app.cybernetai.share, App Store
+        certificates:
+          - cybernet_dist              # Apple Distribution
       vars:
         XCODE_PROJECT: mobile/ios/App/App.xcodeproj
         XCODE_SCHEME: App
         BUNDLE_ID: app.cybernetai
         SHARE_BUNDLE_ID: app.cybernetai.share
+        APP_STORE_APPLE_ID: 6828596086   # App Store Connect > App Information (not secret)
     scripts:
-      - name: Check that the owner's Codemagic variables exist (values are never printed)
-        script: |
-          missing=0
-          for v in APP_STORE_CONNECT_ISSUER_ID APP_STORE_CONNECT_KEY_IDENTIFIER APP_STORE_CONNECT_PRIVATE_KEY \
-                   CERTIFICATE_PRIVATE_KEY APP_STORE_APPLE_ID; do
-            if [ -z "$(printenv "$v" || true)" ]; then echo "Missing Codemagic variable: $v"; missing=1; fi
-          done
-          exit $missing
       - name: Install, release bundle, gate, sync, native check
         working_directory: mobile
         script: |
@@ -176,18 +167,8 @@ workflows:
           npm run check:bundle
           npx cap sync ios
           node scripts/add-share-extension.cjs --check
-      - name: Signing files for the app and the Share Extension
-        script: |
-          set -euo pipefail
-          keychain initialize
-          # Reads APP_STORE_CONNECT_* from the environment. The App IDs (with App Groups and
-          # Sign in with Apple) must already exist (OWNER-WINDOWS-GUIDE Part 5).
-          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create \
-            --certificate-key=@env:CERTIFICATE_PRIVATE_KEY
-          app-store-connect fetch-signing-files "$SHARE_BUNDLE_ID" --type IOS_APP_STORE --create \
-            --certificate-key=@env:CERTIFICATE_PRIVATE_KEY
-          keychain add-certificates
-          xcode-project use-profiles --project "$XCODE_PROJECT"
+      - name: Signing for the app and the Share Extension (profiles from ios_signing above)
+        script: xcode-project use-profiles --project "$XCODE_PROJECT"
       - name: Build number (latest TestFlight build + 1, app and extension together)
         script: |
           set -euo pipefail
@@ -235,9 +216,7 @@ workflows:
       - /tmp/xcodebuild_logs/*.log
     publishing:
       app_store_connect:
-        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
-        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
-        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        auth: integration             # the "CyberNet ASC" integration above
         submit_to_testflight: false   # internal testers get every processed build without beta review;
                                       # set to true only for the optional external beta review
                                       # (OWNER-WINDOWS-GUIDE Part 14) once its test information is filled in
