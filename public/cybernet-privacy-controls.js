@@ -69,6 +69,11 @@
       title: "Your account is still open",
       text: `We couldn't cancel your paid plan with our payment provider, so your account has not been deleted. Please try again in a few minutes. If this keeps happening, email ${SUPPORT} and we will cancel the plan and remove your account for you.`
     },
+    BILLING_CHECK_FAILED: {
+      tone: "error",
+      title: "Your account is still open",
+      text: `We couldn't confirm with our payment provider that nothing is still charging this account, so your account has not been deleted. Please try again in a few minutes. If this keeps happening, email ${SUPPORT} and we will remove your account for you.`
+    },
     TEAM_ACTIVE: {
       tone: "warn",
       title: "Your account is still open",

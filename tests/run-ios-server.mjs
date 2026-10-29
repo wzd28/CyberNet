@@ -165,6 +165,7 @@ globalThis.fetch = async (input, init = {}) => {
       return json(1);
     case "check_protect_rate_limit":
     case "consume_api_quota":
+      if (rpc === "consume_api_quota" && state.quotaDenied && String(body?.p_key || "").startsWith(state.quotaDenied)) return json({ allowed: false, used: body.p_max_requests + 1, reset_at: "2026-11-01T11:00:00Z" });
       return json(rpc === "consume_api_quota" ? { allowed: true, used: 1, limit: 100 } : true);
     case "consume_analysis_app":
       return json([{ allowed: state.allowApp, used: state.allowApp ? 1 : body.p_limit, daily_limit: body.p_limit, plan: "app" }]);
@@ -487,6 +488,14 @@ for (const [token, limit] of [["t-free", 3], ["t-pro", 3], ["t-member", 3], ["t-
   r = await run(fn["ai-consent"], req("/api/ai-consent", { token: "t-free", ios: true, body: { version: consentLib.AI_CONSENT_VERSION, p_user_id: USERS["t-pro"].id, userId: USERS["t-pro"].id } }));
   const grant = rpcCalls("grant_ai_consent")[0]?.body;
   check("ai-consent POST: recorded for the verified user only, platform ios, with the user agent", r.status === 200 && r.data.granted === true && grant?.p_user_id === USERS["t-free"].id && grant?.p_platform === "ios" && grant?.p_version === consentLib.AI_CONSENT_VERSION && /CyberNetAI-iOS/.test(grant?.p_user_agent || ""), grant);
+  // Allow answers are counted per account (a POST/DELETE loop must not grow ai_consents); withdrawing never is.
+  const quota = rpcCalls("consume_api_quota")[0]?.body;
+  check("ai-consent POST: counted per account, 30 an hour", quota?.p_key === `ai_consent:${USERS["t-free"].id}` && quota?.p_window_seconds === 3600 && quota?.p_max_requests === 30, quota);
+  reset({ quotaDenied: "ai_consent:" });
+  r = await run(fn["ai-consent"], req("/api/ai-consent", { token: "t-free", ios: true, origin: APP, body: { version: consentLib.AI_CONSENT_VERSION } }));
+  check("ai-consent POST over the limit: 429, nothing stored, CORS kept", r.status === 429 && r.data.code === "rate_limited" && !rpcCalls("grant_ai_consent").length && corsOk(r), r.data);
+  r = await run(fn["ai-consent"], req("/api/ai-consent", { method: "DELETE", token: "t-free", ios: true }));
+  check("ai-consent DELETE over the limit: still withdrawn (never refused)", r.status === 200 && r.data.granted === false && rpcCalls("withdraw_ai_consent").length === 1, r.data);
   reset();
   r = await run(fn["ai-consent"], req("/api/ai-consent", { method: "DELETE", token: "t-free", ios: true }));
   check("ai-consent DELETE: withdrawn", r.status === 200 && r.data.granted === false && r.data.withdrawn === 1 && rpcCalls("withdraw_ai_consent")[0]?.body.p_platform === "ios", r.data);
@@ -601,7 +610,9 @@ for (const [token, limit] of [["t-free", 3], ["t-pro", 3], ["t-member", 3], ["t-
 
 // ══════════ 10. source checks: routes and wrapping ══════════
 {
-  const { readFileSync } = await import("node:fs");
+  const { readFileSync, mkdtempSync, writeFileSync, rmSync } = await import("node:fs");
+  const { spawnSync } = await import("node:child_process");
+  const { tmpdir } = await import("node:os");
   const src = (f) => readFileSync(path.join(root, "netlify/functions", f), "utf8");
   for (const f of ["account-status.mjs", "analyze.mts", "recovery-mode.mts", "recovery-update.mts", "recovery-case.mts", "privacy-data.mts", "legal-acceptance.mts", "ai-consent.mjs", "client-error.mjs", "feedback.mjs", "team-activity.mts"]) {
     const s = src(f);
@@ -613,7 +624,37 @@ for (const [token, limit] of [["t-free", 3], ["t-pro", 3], ["t-member", 3], ["t-
     check(`source: ${f} is not CORS-wrapped`, !/withCors/.test(src(f)));
   }
   const toml = readFileSync(path.join(root, "netlify.toml"), "utf8");
-  check("netlify.toml: mobile-only commits skip the Netlify build", /^\s*ignore = "git diff --quiet \$CACHED_COMMIT_REF \$COMMIT_REF -- public netlify netlify.toml package.json package-lock.json supabase"/m.test(toml));
+  const ignore = /^\s*ignore = '([^'\n]*)'\s*$/m.exec(toml)?.[1] || "";
+  check("netlify.toml: mobile-only commits skip the Netlify build", /git diff --quiet "\$CACHED_COMMIT_REF" "\$COMMIT_REF" -- public netlify netlify\.toml package\.json package-lock\.json supabase$/.test(ignore), ignore);
+  check("netlify.toml: a build with nothing to compare always runs", /^if \[ "\$CACHED_COMMIT_REF" = "\$COMMIT_REF" \]; then exit 1; fi; /.test(ignore), ignore);
+  // Run the command for real in a scratch git repository when a POSIX shell and git are available
+  // (Netlify runs it with bash; on Windows, Git for Windows provides sh). Exit 0 = skip the build.
+  const sh = spawnSync("sh", ["-c", "git --version"], { encoding: "utf8" });
+  if (sh.status === 0 && ignore) {
+    const repo = mkdtempSync(path.join(tmpdir(), "cn-ignore-"));
+    const git = (...a) => spawnSync("git", ["-c", "user.email=t@example.invalid", "-c", "user.name=t", "-c", "commit.gpgsign=false", ...a], { cwd: repo, encoding: "utf8" });
+    const head = () => git("rev-parse", "HEAD").stdout.trim();
+    git("init", "-q");
+    mkdirSync(path.join(repo, "public"), { recursive: true });
+    mkdirSync(path.join(repo, "mobile"), { recursive: true });
+    writeFileSync(path.join(repo, "public", "a.txt"), "1");
+    git("add", "-A"); git("commit", "-qm", "one");
+    const c1 = head();
+    writeFileSync(path.join(repo, "mobile", "b.txt"), "2");
+    git("add", "-A"); git("commit", "-qm", "mobile only");
+    const c2 = head();
+    writeFileSync(path.join(repo, "public", "a.txt"), "3");
+    git("add", "-A"); git("commit", "-qm", "website");
+    const c3 = head();
+    const runIgnore = (cached, commit) => spawnSync("sh", ["-c", ignore], { cwd: repo, env: { ...process.env, CACHED_COMMIT_REF: cached, COMMIT_REF: commit }, encoding: "utf8" }).status;
+    check("ignore command: mobile-only change -> skip (0)", runIgnore(c1, c2) === 0);
+    check("ignore command: website change -> build (non-zero)", runIgnore(c2, c3) !== 0);
+    check("ignore command: same commit (no cache / redeploy) -> build", runIgnore(c3, c3) !== 0);
+    check("ignore command: no cached ref -> build", runIgnore("", c3) !== 0);
+    rmSync(repo, { recursive: true, force: true });
+  } else {
+    console.log("(netlify.toml ignore command not executed: no sh/git on this machine)");
+  }
 }
 
 console.log(`ios server: ${checks - failures}/${checks} checks passed`);

@@ -1294,12 +1294,12 @@ begin
     and c.withdrawn_at is null
     and c.consent_version <> v_version;
 
+  -- Two Allow taps at the same moment (a double tap, or a retry while the
+  -- first request is still running) must not fail: the second insert meets
+  -- the open row through the partial unique index and does nothing.
   insert into public.ai_consents (user_id, consent_version, platform, user_agent)
-  select p_user_id, v_version, v_platform, left(p_user_agent, 500)
-  where not exists (
-    select 1 from public.ai_consents c
-    where c.user_id = p_user_id and c.platform = v_platform and c.withdrawn_at is null
-  );
+  values (p_user_id, v_version, v_platform, left(p_user_agent, 500))
+  on conflict (user_id, platform) where withdrawn_at is null do nothing;
 
   return query
   select c.consent_version, c.granted_at

@@ -112,6 +112,32 @@ check("consent: can be given again after withdrawal", (await has(FREE, V1)) === 
 await one("select * from public.grant_ai_consent($1, $2, 'banana', null)", [PRO, V1]);
 check("consent: an unknown platform is stored as ios", (await has(PRO, V1, "ios")) === true);
 
+// Two Allow requests at the same moment. PGlite has one connection, so the other request is simulated by a
+// test-only trigger that inserts the "winning" open row just before grant_ai_consent's own insert, which
+// is exactly the window a concurrent request hits after the old WHERE NOT EXISTS check.
+await db.exec(`
+create or replace function public.cn_test_race() returns trigger language plpgsql as $t$
+begin
+  if pg_trigger_depth() = 1 and current_setting('cn.test_race', true) = 'on' then
+    insert into public.ai_consents (user_id, consent_version, platform, user_agent)
+    values (new.user_id, new.consent_version, new.platform, 'the other request');
+  end if;
+  return new;
+end $t$;
+create trigger cn_test_race before insert on public.ai_consents for each row execute function public.cn_test_race();
+set cn.test_race = 'on';
+`);
+let plain = null;
+try { await db.query("insert into public.ai_consents (user_id, consent_version, platform) values ($1, $2, 'web')", [PRO, V1]); }
+catch (error) { plain = error.code || error.message; }
+check("race: the simulation really collides (a plain insert hits the unique index)", plain === "23505", plain);
+let raced = null, racedError = null;
+try { raced = await one("select * from public.grant_ai_consent($1, $2, 'web', 'CyberNetAI-iOS/1.0.0')", [PRO, V1]); }
+catch (error) { racedError = error.code || error.message; }
+check("race: the second Allow succeeds and returns the open consent", !racedError && raced?.consent_version === V1, racedError || raced);
+check("race: still exactly one open consent", Number((await one("select count(*)::int as n from public.ai_consents where user_id = $1 and platform = 'web' and withdrawn_at is null", [PRO])).n) === 1);
+await db.exec(`set cn.test_race = 'off'; drop trigger cn_test_race on public.ai_consents; drop function public.cn_test_race();`);
+
 // ── App-tier: AI explanations ──
 const appAnalysis = async (user, limit) => one("select * from public.consume_analysis_app($1, $2)", [user, limit]);
 const results = [];

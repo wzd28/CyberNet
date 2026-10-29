@@ -47,11 +47,24 @@ async function cancelOne(stripe, id) {
 // account's Stripe customers; each one is also listed at Stripe, so an open
 // subscription the database missed (a lost webhook) is cancelled too.
 // Returns the subscriptions that were open and are now cancelled.
+//
+// A stored customer that Stripe no longer knows (resource_missing: deleted in
+// the Dashboard, or a test-mode cus_ saved before the live keys; the Upgrade
+// button saves the customer before any payment, see
+// create-checkout-session.mjs) can bill nothing, so it is skipped. Without
+// this, every deletion of such an account would fail the same way, for good.
 export async function cancelOpenSubscriptions(stripe, { subscriptionIds = [], customerIds = [] } = {}) {
   const ids = new Set(subscriptionIds.map((value) => String(value || "").trim()).filter((value) => /^sub_[\w]+$/.test(value)));
   for (const customer of new Set(customerIds.map((value) => String(value || "").trim()).filter((value) => /^cus_[\w]+$/.test(value)))) {
-    for await (const sub of stripe.subscriptions.list({ customer, status: "all", limit: 100 })) {
-      if (sub?.id && !isClosed(sub.status)) ids.add(sub.id);
+    try {
+      for await (const sub of stripe.subscriptions.list({ customer, status: "all", limit: 100 })) {
+        if (sub?.id && !isClosed(sub.status)) ids.add(sub.id);
+      }
+    } catch (error) {
+      if (error?.code === "resource_missing") continue;
+      // Lets the caller tell "could not check" from "could not cancel".
+      try { error.cnPhase = "list"; } catch { /* frozen error object */ }
+      throw error;
     }
   }
   const results = [];

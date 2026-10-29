@@ -62,6 +62,29 @@ export function hasAppleIdentity(user) {
     (Array.isArray(user?.identities) && user.identities.some((identity) => identity?.provider === "apple"));
 }
 
+// Apple's user id ("sub") for the account's Sign in with Apple identity, or "".
+// Supabase stores it as the identity's provider id and in identity_data.sub.
+export function appleSubOf(user) {
+  const identity = Array.isArray(user?.identities) ? user.identities.find((item) => item?.provider === "apple") : null;
+  if (!identity) return "";
+  return String(identity.identity_data?.sub || identity.provider_id || identity.id || "").trim();
+}
+
+// The "sub" claim of the id_token Apple returned with the token exchange. The
+// token came straight from appleid.apple.com over TLS in answer to our own
+// signed request, so reading the claim without verifying the signature is
+// enough to compare it.
+export function idTokenSub(idToken) {
+  try {
+    const part = String(idToken || "").split(".")[1];
+    if (!part) return "";
+    const payload = JSON.parse(Buffer.from(part, "base64url").toString("utf8"));
+    return typeof payload?.sub === "string" ? payload.sub : "";
+  } catch {
+    return "";
+  }
+}
+
 async function post(path, form) {
   return fetch(`${APPLE}${path}`, {
     method: "POST",
@@ -72,7 +95,14 @@ async function post(path, form) {
 }
 
 // Never throws. Returns { revoked: true } or { revoked: false, reason }.
-export async function revokeAppleTokens(authorizationCode, config = appleConfig()) {
+//
+// expectedSub: Apple's user id for the account being deleted (appleSubOf).
+// The code the app sends is issued for the Apple ID signed in on the device,
+// which can differ from the one the account was created with. Then the grant
+// just created by that code is still revoked (it must not be left behind),
+// but the answer is { revoked: false, reason: "different_apple_id" }, because
+// the account's own grant is still listed in the person's Apple settings.
+export async function revokeAppleTokens(authorizationCode, config = appleConfig(), { expectedSub = "" } = {}) {
   const code = cleanAuthorizationCode(authorizationCode);
   if (!code) return { revoked: false, reason: "no_code" };
   if (!config) return { revoked: false, reason: "not_configured" };
@@ -95,6 +125,9 @@ export async function revokeAppleTokens(authorizationCode, config = appleConfig(
       token_type_hint: tokens.refresh_token ? "refresh_token" : "access_token"
     });
     if (!revoke.ok) return { revoked: false, reason: `revoke_${revoke.status}` };
+    const expected = String(expectedSub || "").trim();
+    const actual = idTokenSub(tokens.id_token);
+    if (expected && actual && actual !== expected) return { revoked: false, reason: "different_apple_id" };
     return { revoked: true };
   } catch (error) {
     return { revoked: false, reason: `error_${String(error?.name || "Error").slice(0, 40)}` };

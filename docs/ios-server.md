@@ -35,15 +35,18 @@ requests are unchanged.
 | `account-status` | `profile.plan: "app"`, no billing fields, `isAdmin: false`, App-tier `usage`, `recoveryUsage`, `aiConsent {granted, known, version}`, history with `?includeHistory=1` for every account, `profile.isTeamMember` for the team notice |
 | `analyze` | 428 `AI_CONSENT_REQUIRED` without consent; `consume_analysis_app`; mini model; history saved for every account; `mode=investigation` 403; team members' results still go to the owner's log |
 | `recovery-mode`, `recovery-update` | Consent first (428), then `consume_recovery_case_app` / `consume_recovery_update_app`; plan-free limit messages |
-| `ai-consent` (new) | `GET` state, `POST {version}` grant (409 if the version is not the current one), `DELETE` withdraw. Current version: `2026-11-ios-1` (`netlify/lib/ai-consent.mjs`) |
-| `privacy-data` | `delete-account` accepts `appleAuthorizationCode`; reply adds `cancelledSubscriptions` and `appleTokensRevoked` |
+| `ai-consent` (new) | `GET` state, `POST {version}` grant (409 if the version is not the current one; 429 `rate_limited` after 30 grants an hour per account), `DELETE` withdraw (never rate-limited). Current version: `2026-11-ios-1` (`netlify/lib/ai-consent.mjs`) |
+| `privacy-data` | `delete-account` accepts `appleAuthorizationCode`; reply adds `cancelledSubscriptions` and `appleTokensRevoked` (`false` with reason `different_apple_id` in the log when the device's Apple ID is not the account's: the code's own new grant is still revoked) |
 | `feedback` | Result reports: `{kind, resultId, comment?, platform: "ios", appVersion}`; `kind` is one of `quick_scan`, `qr`, `share`, `analysis_ai`, `recovery` |
 | `client-error`, `legal-acceptance`, `recovery-case`, `team-activity` | CORS only (`team-activity` does not log on-device Quick Scans from the app) |
 | `create-checkout-session`, `customer-portal`, `byok-analyze`, `validate-openai-key`, `screenshot-preview`, `quickscan-usage`, `feedback-admin`, `business-*` | 403 `NOT_AVAILABLE_IN_APP` |
 
 Account deletion is immediate on the website too (owner decision, 29 Oct 2026): open Stripe
 subscriptions, including owned Business teams, are cancelled at once with no refund, then the
-account is deleted. If Stripe cannot cancel, nothing is deleted.
+account is deleted. If Stripe cannot cancel, nothing is deleted (`SUBSCRIPTION_CANCEL_FAILED`). A stored
+Stripe customer that Stripe no longer knows (`resource_missing`: deleted, or a test-mode id) is
+skipped, because nothing can bill it. If only the check for stray subscriptions fails and no plan is
+known to be open, the reply is `BILLING_CHECK_FAILED`, which does not mention a paid plan.
 
 Tests: `node tests/run-ios-server.mjs`, `node tests/run-ios-migration.mjs` (PGlite) and
 `node tests/run-privacy.mjs`.

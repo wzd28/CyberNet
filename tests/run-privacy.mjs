@@ -54,6 +54,7 @@ const ANON = "test-anon-key";
 const SERVICE = "test-service-key";
 const SECRET = "test-secret-key";
 const USER = "11111111-1111-4111-8111-111111111111";
+const APPLE_SUB = "001234.abcdef0123456789.0042"; // Apple's user id for the test account's Apple identity
 const OTHER_USER = "22222222-2222-4222-8222-222222222222";
 const TEAM = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const OTHER_TEAM = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
@@ -95,6 +96,7 @@ function install(db = {}) {
     // Apple: status of /auth/token and /auth/revoke.
     appleToken: 200,
     appleRevoke: 200,
+    appleSub: APPLE_SUB, // the Apple ID that authorised the deletion on the device
     ...db
   };
   state.owned = state.owned.map(team => ({ ...team }));
@@ -138,7 +140,9 @@ function install(db = {}) {
     if (url.hostname === "appleid.apple.com") {
       const form = Object.fromEntries(new URLSearchParams(String(init.body || "")));
       appleCalls.push({ method, path: url.pathname, form });
-      if (url.pathname === "/auth/token") return respond(state.appleToken, state.appleToken === 200 ? { access_token: "a-token", refresh_token: "r-token", token_type: "Bearer", expires_in: 3600 } : { error: "invalid_grant" });
+      // id_token: an unsigned stand-in whose payload carries the Apple user id ("sub") of the device's Apple ID.
+      const idToken = `${Buffer.from('{"alg":"none"}').toString("base64url")}.${Buffer.from(JSON.stringify({ iss: "https://appleid.apple.com", aud: "app.cybernetai", sub: state.appleSub })).toString("base64url")}.sig`;
+      if (url.pathname === "/auth/token") return respond(state.appleToken, state.appleToken === 200 ? { access_token: "a-token", refresh_token: "r-token", token_type: "Bearer", expires_in: 3600, id_token: idToken } : { error: "invalid_grant" });
       if (url.pathname === "/auth/revoke") return new Response(null, { status: state.appleRevoke });
       return respond(404, {});
     }
@@ -157,7 +161,7 @@ function install(db = {}) {
     if (target === "/auth/v1/user") {
       const base = { id: USER, email: "person@example.com", created_at: "2026-10-01T00:00:00Z", user_metadata: { full_name: "Test Person" } };
       if (call.auth === "Bearer good-user-token") return respond(200, base);
-      if (call.auth === "Bearer apple-user-token") return respond(200, { ...base, email: "abc123@privaterelay.appleid.com", app_metadata: { provider: "apple", providers: ["apple"] }, identities: [{ provider: "apple" }] });
+      if (call.auth === "Bearer apple-user-token") return respond(200, { ...base, email: "abc123@privaterelay.appleid.com", app_metadata: { provider: "apple", providers: ["apple"] }, identities: [{ provider: "apple", id: APPLE_SUB, identity_data: { sub: APPLE_SUB } }] });
       return respond(401, { msg: "invalid JWT" });
     }
     if (target.startsWith("/auth/v1/admin/users/")) return respond(state.authDelete, {});
@@ -184,7 +188,7 @@ function install(db = {}) {
     if (method === "GET" && target.startsWith("/rest/v1/recovery_versions?")) return respond(200, [{ case_id: CASE, version: 1 }]);
     if (method === "GET" && target.startsWith("/rest/v1/recovery_tasks?")) return respond(200, [{ case_id: CASE, title: "Call the bank" }]);
     if (method === "GET" && target.startsWith(`/rest/v1/business_members?user_id=eq.${USER}`)) return respond(200, [{ business_account_id: OTHER_TEAM, role: "member", status: "active" }]);
-    if (method === "GET" && target.startsWith(`/rest/v1/ai_consents?user_id=eq.${USER}`)) return respond(200, [{ consent_version: "2026-11-ios-1", platform: "ios", provider: "openai", granted_at: "2026-11-01T00:00:00Z", withdrawn_at: null }]);
+    if (method === "GET" && target.startsWith(`/rest/v1/ai_consents?user_id=eq.${USER}`)) return respond(200, [{ consent_version: "2026-11-ios-1", platform: "ios", provider: "openai", granted_at: "2026-11-01T00:00:00Z", withdrawn_at: null, user_agent: "Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 CyberNetAI-iOS/1.0.0" }]);
     if (method === "GET") return respond(200, []);
     if (method === "DELETE") {
       const hit = Object.entries(state.deleted).find(([prefix]) => target.startsWith(prefix));
@@ -316,6 +320,30 @@ install({
 });
 r = await call({ action: "delete-account", confirmation: "DELETE" });
 check("Stripe list fails: 502 SUBSCRIPTION_CANCEL_FAILED, nothing written", r.status === 502 && r.data.code === "SUBSCRIPTION_CANCEL_FAILED" && writes().length === 0, { r, w: writes() });
+
+// A stored customer Stripe no longer knows (deleted in the Dashboard, or a test-mode cus_ from before the
+// live keys; Upgrade saves it before any payment): nothing can bill it, so deletion goes ahead.
+install({
+  profile: { id: USER, plan: "free", subscription_status: "", stripe_customer_id: CUS },
+  stripeFail: { "GET /v1/subscriptions": { status: 404, type: "invalid_request_error", code: "resource_missing" } }
+});
+r = await call({ action: "delete-account", confirmation: "DELETE" });
+check("stale Stripe customer (resource_missing): deleted, 0 cancelled", r.status === 200 && r.data.deleted === true && r.data.cancelledSubscriptions === 0 && stripeCalls.some(c => c.method === "GET" && c.path === "/v1/subscriptions"), { r, stripeCalls });
+install({
+  profile: { id: USER, plan: "pro", subscription_status: "active", stripe_subscription_id: SUB, stripe_customer_id: CUS },
+  stripe: [{ id: SUB, customer: CUS, status: "active" }],
+  stripeFail: { "GET /v1/subscriptions": { status: 404, type: "invalid_request_error", code: "resource_missing" } }
+});
+r = await call({ action: "delete-account", confirmation: "DELETE" });
+check("stale customer + open plan: the known subscription is still cancelled", r.status === 200 && r.data.deleted === true && r.data.cancelledSubscriptions === 1 && stripeCalls.some(c => c.method === "DELETE" && c.path === `/v1/subscriptions/${SUB}`), { r, stripeCalls });
+// Stripe down while only checking a Free account for stray subscriptions: not deleted, and the message
+// does not talk about a paid plan the person never had.
+install({
+  profile: { id: USER, plan: "free", subscription_status: "", stripe_customer_id: CUS },
+  stripeFail: { "GET /v1/subscriptions": { status: 500, type: "api_error" } }
+});
+r = await call({ action: "delete-account", confirmation: "DELETE" });
+check("Stripe down, no plan known: 502 BILLING_CHECK_FAILED, no 'paid plan', nothing written", r.status === 502 && r.data.code === "BILLING_CHECK_FAILED" && !/paid plan/.test(r.data.error) && /has not been deleted/.test(r.data.error) && writes().length === 0, { r, w: writes() });
 
 // Already cancelled at Stripe (the webhook was late), or already gone: not an error.
 install({ profile: { id: USER, plan: "pro", subscription_status: "active", stripe_subscription_id: SUB, stripe_customer_id: CUS }, stripe: [{ id: SUB, customer: "cus_other", status: "canceled" }] });
@@ -576,6 +604,16 @@ check("apple: revoked only after the account was deleted", (() => {
   check("apple: client secret signature verifies", valid, secret.slice(0, 40));
   check("apple: the same client secret on both calls", revokeCall?.form.client_secret === secret);
 }
+// The device's Apple ID is not the one this account was made with: the grant the code just created is
+// revoked (so nothing is left behind), but the answer says the account's own grant was not.
+install({ appleSub: "000999.someone-else.0001" });
+r = await call({ action: "delete-account", confirmation: "DELETE", appleAuthorizationCode: APPLE_CODE }, { token: "apple-user-token" });
+check("apple: a different Apple ID on the device -> deleted, its new grant revoked, reported as not revoked", r.status === 200 && r.data.deleted === true && r.data.appleTokensRevoked === false && appleCalls.some(c => c.path === "/auth/revoke"), { r, appleCalls });
+{
+  const siwa = await import(pathToFileURL(path.join(root, "netlify/lib/apple-siwa.mjs")).href);
+  check("apple: appleSubOf reads the identity's Apple id", siwa.appleSubOf({ identities: [{ provider: "email", id: "x" }, { provider: "apple", id: "p-1", identity_data: { sub: "s-1" } }] }) === "s-1" && siwa.appleSubOf({ identities: [{ provider: "apple", id: "p-2" }] }) === "p-2" && siwa.appleSubOf({ identities: [] }) === "");
+  check("apple: idTokenSub reads the claim and never throws", siwa.idTokenSub(`a.${Buffer.from('{"sub":"s-9"}').toString("base64url")}.c`) === "s-9" && siwa.idTokenSub("garbage") === "" && siwa.idTokenSub(undefined) === "");
+}
 install({ appleRevoke: 400 });
 r = await call({ action: "delete-account", confirmation: "DELETE", appleAuthorizationCode: APPLE_CODE }, { token: "apple-user-token" });
 check("apple: revoke refused -> still deleted, reported as not revoked", r.status === 200 && r.data.deleted === true && r.data.appleTokensRevoked === false, r);
@@ -616,6 +654,7 @@ install();
 r = await call({ action: "export" });
 check("website: no CORS headers", r.status === 200 && r.headers.get("access-control-allow-origin") === null, [...r.headers]);
 check("export: AI consents included for this user", Array.isArray(r.data.data.aiConsents) && r.data.data.aiConsents[0]?.consent_version === "2026-11-ios-1" && calls.some(c => c.target.startsWith(`/rest/v1/ai_consents?user_id=eq.${USER}&select=`)), r.data.data.aiConsents);
+check("export: the stored user agent of each AI consent is included", /CyberNetAI-iOS\/1\.0\.0/.test(r.data.data.aiConsents[0]?.user_agent || "") && calls.some(c => c.target.startsWith(`/rest/v1/ai_consents?user_id=eq.${USER}&select=`) && /[,=]user_agent(,|$)/.test(c.target.split("select=")[1] || "")), calls.filter(c => c.target.includes("ai_consents")).map(c => c.target));
 install({ fail: { "GET /rest/v1/ai_consents": 404 } });
 r = await call({ action: "export" });
 check("export: missing ai_consents table reads as empty", r.status === 200 && Array.isArray(r.data.data.aiConsents) && r.data.data.aiConsents.length === 0, r.status);

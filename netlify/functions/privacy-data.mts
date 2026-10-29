@@ -3,7 +3,7 @@ import { reportError } from "../lib/report-error.mjs";
 import { fetchWithJwtRetry, RETRY_STANDARD } from "../lib/supabase-retry.mjs";
 import { withCors } from "../lib/cors.mjs";
 import { makeStripe, cancelOpenSubscriptions } from "../lib/billing-cancel.mjs";
-import { revokeAppleTokens, cleanAuthorizationCode, hasAppleIdentity } from "../lib/apple-siwa.mjs";
+import { revokeAppleTokens, cleanAuthorizationCode, hasAppleIdentity, appleConfig, appleSubOf } from "../lib/apple-siwa.mjs";
 
 // Privacy controls for the signed-in user: export, clear-history and
 // delete-account. Every request is checked against the caller's own Supabase
@@ -36,6 +36,11 @@ const MESSAGES = {
   SUBSCRIPTION_CANCEL_FAILED:
     "We couldn't cancel your paid plan with our payment provider, so your account has not been deleted. " +
     `Please try again in a few minutes. If this keeps happening, email ${SUPPORT_EMAIL} and we will cancel the plan and remove your account for you.`,
+  // No plan was known to be open; only the check for a stray subscription
+  // at Stripe failed (an outage), so the message does not talk about a plan.
+  BILLING_CHECK_FAILED:
+    "We couldn't confirm with our payment provider that nothing is still charging this account, so your account has not been deleted. " +
+    `Please try again in a few minutes. If this keeps happening, email ${SUPPORT_EMAIL} and we will remove your account for you.`,
   TEAM_ACTIVE:
     "Your Business team's plan changed while your account was being deleted, so the deletion stopped and your account " +
     `and sign-in still work. Please press Delete again in a few minutes. If this keeps happening, email ${SUPPORT_EMAIL}.`,
@@ -255,7 +260,10 @@ async function cancelBilling(profile, teams, personalOpen) {
   } catch (error) {
     console.error("CyberNet privacy-data Stripe cancel failed", error?.type || "", error?.code || "", error?.message || error);
     reportError(error, { fn: "privacy-data", label: "Subscription cancel on delete failed" });
-    throw fail(502, "SUBSCRIPTION_CANCEL_FAILED");
+    // Only the stray-subscription listing failed and no plan is known to be
+    // open: say that, not "your paid plan".
+    const checkOnly = error?.cnPhase === "list" && !subscriptionIds.length;
+    throw fail(502, checkOnly ? "BILLING_CHECK_FAILED" : "SUBSCRIPTION_CANCEL_FAILED");
   }
 }
 
@@ -329,7 +337,7 @@ async function deleteAccount(user, body = {}) {
   const appleCode = cleanAuthorizationCode(body?.appleAuthorizationCode);
   if (hasAppleIdentity(user)) {
     if (appleCode) {
-      const apple = await revokeAppleTokens(appleCode);
+      const apple = await revokeAppleTokens(appleCode, appleConfig(), { expectedSub: appleSubOf(user) });
       appleTokensRevoked = apple.revoked;
       if (!apple.revoked) {
         console.error("CyberNet privacy-data Apple token revocation failed", apple.reason);
@@ -360,7 +368,7 @@ async function exportData(user) {
     getRows("checkout_debug_log", user.id, code),
     get(`api_rate_limits?rate_key=like.*${uid}&select=rate_key,window_started_at,request_count,updated_at`, code),
     rest(`feedback?user_id=eq.${uid}&select=created_at,category,message,email,page,status`, { method: "GET", code, optional: true }),
-    rest(`ai_consents?user_id=eq.${uid}&select=consent_version,platform,provider,granted_at,withdrawn_at`, { method: "GET", code, optional: true })
+    rest(`ai_consents?user_id=eq.${uid}&select=consent_version,platform,provider,granted_at,withdrawn_at,user_agent`, { method: "GET", code, optional: true })
   ]);
   const caseIds = (Array.isArray(recoveryCases) ? recoveryCases : []).map(c => c.id).filter(Boolean);
   const inList = caseIds.map(encodeURIComponent).join(",");

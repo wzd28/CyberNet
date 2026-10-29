@@ -18,7 +18,14 @@ import {
   AI_CONSENT_VERSION, AI_CONSENT_PROVIDER, platformOf,
   hasAiConsent, grantAiConsent, withdrawAiConsent
 } from "../lib/ai-consent.mjs";
-import { reportError } from "../lib/report-error.mjs";
+import { reportError, consumeQuota } from "../lib/report-error.mjs";
+
+// "Allow" answers per account per hour. Each Allow after a withdrawal adds a
+// row, so a POST/DELETE loop must not grow ai_consents without limit. Only
+// POST is counted: withdrawing (DELETE) closes rows and is never refused, and
+// reading the setting (GET) is free. The key ends in the user id, so deleting
+// the account removes the counter (privacy-data.mts).
+export const CONSENT_GRANTS_PER_HOUR = 30;
 
 async function handler(request) {
   if (!["GET", "POST", "DELETE"].includes(request.method)) {
@@ -34,6 +41,15 @@ async function handler(request) {
   }
 
   const platform = platformOf(isIOS(request));
+
+  if (request.method === "POST") {
+    // null = the counter could not be reached: the answer is let through, as
+    // feedback.mjs does (one row at most per Allow; the limit is a backstop).
+    const quota = await consumeQuota(`ai_consent:${user.id}`, 3600, CONSENT_GRANTS_PER_HOUR);
+    if (quota && !quota.allowed) {
+      return json({ error: "Too many changes to this setting. Please try again later.", code: "rate_limited" }, 429);
+    }
+  }
 
   try {
     if (request.method === "GET") {

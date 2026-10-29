@@ -260,7 +260,7 @@
 <h3>Billing and support information</h3>
 <ul><li>Stripe customer, checkout, subscription, invoice, payment status, refund, cancellation, and dispute identifiers; CyberNet does not intentionally store complete card numbers;</li><li>support form details, contact email, message, category, page URL, submission time, and browser information; for a problem reported with a result in the iPhone app, the kind of result and its reference number (what you checked is not attached unless you type it in).</li></ul>
 <h3>Legal-acceptance records</h3>
-<ul><li>user ID, acceptance type, document versions, server timestamp, page URL, billing cycle when relevant, and limited user-agent information.</li><li>in the iPhone app, your “Allow AI analysis?” choice: the version of the notice you saw, when you allowed or withdrew it, and the app version.</li></ul>
+<ul><li>user ID, acceptance type, document versions, server timestamp, page URL, billing cycle when relevant, and limited user-agent information.</li><li>in the iPhone app, your “Allow AI analysis?” choice: the version of the notice you saw, when you allowed or withdrew it, and the app’s user-agent text (the app version and the iOS version).</li></ul>
 </section>
 <section class="cn-legal-section" id="feature-storage">
 <h2>3. How specific features handle information</h2>
