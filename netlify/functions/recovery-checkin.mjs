@@ -73,7 +73,7 @@ async function sendCheckinEmail(email, caseTitle, caseId, siteUrl) {
                   so we can adjust your plan and check what's left to secure.
                 </p>
                 <a href="${caseUrl}" style="display:inline-block;background:#22d3ee;color:#04141c;font-weight:700;font-size:14px;text-decoration:none;padding:13px 28px;border-radius:10px;">Update My Case</a>
-                <p style="color:#5b6b7a;font-size:11px;margin-top:22px;">You're receiving this because you have an open Recovery case on a Pro or Business CyberNet AI account.</p>
+                <p style="color:#5b6b7a;font-size:11px;margin-top:22px;">You're receiving this because you have an open Recovery case on a Pro CyberNet AI account.</p>
                 <p style="color:#5b6b7a;font-size:11px;margin-top:6px;">You can turn these emails off any time in your CyberNet AI account settings.</p>
               </td></tr>
             </table>

@@ -91,8 +91,16 @@ html.cn.cn-gate #authModal::before {
   background: linear-gradient(100deg, transparent 38%, rgba(34, 211, 238, .06) 50%, transparent 62%);
   transform: translateX(-100%);
   pointer-events: none;
-  animation: cn-gate-sweep 3.2s var(--cn-gate-ease) .3s both;
+  /* backwards, not both: held at its end (+100%) the light would leave a screen of sideways
+     scroll in the layer; at rest it sits at -100%, to the left, where nothing can scroll to it */
+  animation: cn-gate-sweep 3.2s var(--cn-gate-ease) .3s backwards;
 }
+/* While the gate is up the skip link and the cookie bar sit under it: keep them out of the Tab
+   order instead of letting focus land on controls nobody can see. */
+html.cn.cn-gate .cn-skip,
+html.cn.cn-gate #cnConsentBar { visibility: hidden; }
+/* the Sign In / Create Account tabs meet the 44 px tap target */
+html.cn #authModal .auth-tab { min-height: 44px; }
 /* spoken copy of the nudge and the welcome (the stage itself is decorative) */
 html.cn.cn-gate .cn-gate-status {
   display: block;

@@ -286,7 +286,12 @@
   };
 
   CN.onReady(function () { last = tier(); });
-  CN.afterLoad(function () { CN.whenStill(load); });
+  /* behind the sign-in gate (63-gate.css) GSAP, ScrollTrigger and Lenis have nothing to drive:
+     they load once the gate opens */
+  CN.afterLoad(function () {
+    if (doc.documentElement.classList.contains("cn-gate")) win.addEventListener("cn:gate-open", function () { CN.whenStill(load); }, { once: true });
+    else CN.whenStill(load);
+  });
   function giveUp() {
     setTimeout(function () {
       gaveUp = true;

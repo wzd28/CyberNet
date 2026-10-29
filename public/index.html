@@ -96,7 +96,7 @@
   <link rel="stylesheet" href="/cybernet-howto.css?v=20260905-1" />
   <link id="cybernetBusinessTeamStylesheet" rel="stylesheet" href="/cybernet-business-team.css?v=20260927-2" />
   <link rel="stylesheet" href="/cybernet-consent.css?v=20260927-2" />
-  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261029-g4" />
+  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261029-g5" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=20260830-5">
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=20260830-5">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=20260830-5">
@@ -539,7 +539,11 @@
       function giveUp() {
         if (ready) return;
         ready = true;
-        if (!w.supabase && gated()) { r.classList.remove("cn-gate"); reset(); page(false); covered(false); return; }
+        if (!w.supabase && gated()) {
+          r.classList.remove("cn-gate"); reset(); page(false); covered(false);
+          try { w.dispatchEvent(new CustomEvent("cn:gate-open")); } catch (e) {}
+          return;
+        }
         if (wantCard) showCard();
       }
 
@@ -556,7 +560,8 @@
       w.addEventListener("keydown", function (e) {
         if (!gated()) return;
         var esc = e.key === "Escape" || e.key === "Esc";
-        if (!cardShown) { if (esc || !/^(Tab|Shift|Control|Alt|Meta)$/.test(e.key)) skip(e); return; }
+        /* the Escape that skips must not reach script.js too, which would close the card it opened */
+        if (!cardShown) { if (esc || !/^(Tab|Shift|Control|Alt|Meta)$/.test(e.key)) skip(e); if (esc) e.stopImmediatePropagation(); return; }
         if (esc && !d.querySelector("#cnLegalModal.show") && !/^(reset|recovery)$/.test(modal.dataset.authView || "")) { e.stopImmediatePropagation(); nudge(); }
       }, true);
       if (w.MutationObserver) new w.MutationObserver(function () {
@@ -577,7 +582,8 @@
       var seen = false;
       try { seen = w.sessionStorage.getItem("cn-gate-seen") === "1"; w.sessionStorage.setItem("cn-gate-seen", "1"); } catch (e) {}
       if (reduced) { phase = 3; r.classList.add("cn-gate-compact"); finishAll(); wantCard = true; }
-      else if (seen) quick();
+      /* a visitor who came to sign in (/login, /signup and the 404 page send ?auth=) gets the short form */
+      else if (seen || /[?&]auth=/.test(location.search)) quick();
       else full();
     })(window, document);
     </script>
@@ -1143,7 +1149,7 @@
           </div>
           <div class="why-choose-item">
             <span class="wc-icon-box"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12l5 5L20 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-            <div><h4>Rules set the floor</h4><p>The AI can add warnings, but it can never lower the risk the rules found.</p></div>
+            <div><h4>Rules set the floor</h4><p>When the rules find a clear scam sign, the AI can add warnings but can never clear it.</p></div>
           </div>
         </div>
       </div>
@@ -1815,7 +1821,7 @@
           </div>
           <div id="recoveryTimelineActions" class="recovery-action-list"></div>
           <div id="recoveryTimelineLocked" class="recovery-locked-note" hidden>
-            <p>Free unlocks your immediate actions. <strong>Pro unlocks the full recovery timeline</strong>, progress tracking, verification steps, and remaining-risk analysis.</p>
+            <p>Free covers your immediate actions and the first 10 minutes. <strong>Pro unlocks the full recovery timeline</strong>: the first hour, the first 24 hours and the next 7 days.</p>
             <button class="secondary-btn" data-page="pricing" type="button">See Pro Recovery</button>
           </div>
         </div>
@@ -1829,7 +1835,7 @@
           <div class="recovery-pro-upsell-icon"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" aria-hidden="true"><path d="M12 2 L21 6 L20 15 L12 22 L4 15 L3 6 Z" stroke="currentColor" stroke-width="1.7"/><path d="M9 12l2 2 4-4.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
           <div class="recovery-pro-upsell-body">
             <h4>You've addressed the immediate danger. Let's finish the job.</h4>
-            <p>Pro unlocks the complete recovery timeline (first hour, first 24 hours, next 7 days), verification steps for every action, remaining-risk analysis, more daily updates with a shorter wait between them, and a downloadable case report you can keep for your records.</p>
+            <p>Pro unlocks the complete recovery timeline (first hour, first 24 hours, next 7 days), more daily updates with a shorter wait between them, a reminder email if a case sits idle, and a downloadable case report you can keep for your records.</p>
             <button class="primary-btn recovery-primary-btn" data-page="pricing" type="button">See Pro Recovery</button>
           </div>
         </div>
@@ -2779,7 +2785,6 @@
             <li>Faster AI responses</li>
             <li><strong>3 Recovery cases per day</strong>, with a reminder email if a case sits idle for a day</li>
             <li>Full recovery timeline: first hour, 24 hours, and 7 days</li>
-            <li>Verification steps and remaining-risk analysis</li>
             <li>Downloadable Recovery case report</li>
           </ul>
           <button class="primary-btn full plan-select-btn" id="proPlanBtn" data-plan="pro" data-cycle="monthly">Upgrade to Pro</button>
@@ -2820,7 +2825,6 @@
             <li><strong>Full team activity log:</strong> see who ran what, and the full result of every analysis</li>
             <li><strong>Shared daily pool:</strong> 50 analyses/day on 5 seats, 90 on 10, 160 on 20</li>
             <li><strong>Shared Recovery pool:</strong> 20 cases/day on 5 seats, 36 on 10, 64 on 20</li>
-            <li><strong>Email check-in reminders</strong> while an open Recovery case is idle</li>
             <li>Faster Recovery update cooldown (1 hour)</li>
             <li>Owner controls who joins and who is removed</li>
           </ul>
@@ -3058,7 +3062,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" defer></script>
   <script src="/config.js?v=20260830-3" defer></script>
   <script src="/legacy/cybernet-engine.js?v=20261028-4" defer></script>
-  <script src="/legacy/script.js?v=20261029-1" defer></script>
+  <script src="/legacy/script.js?v=20261029-2" defer></script>
   <script src="/legacy/cybernet-account-api-upgrade.js?v=20261028-1" defer></script>
   <script src="/cybernet-howto.js?v=20261019-1" defer></script>
 <script src="/legacy/cybernet-business-team.js?v=20261028-1" defer></script>
@@ -3070,7 +3074,7 @@
   <script src="/legacy/cybernet-onboarding.js?v=20261028-1" defer></script>
   <!-- After script.js and cybernet-account-api-upgrade.js (CyberNetAccount, account modal); admin-only, gated on the server. -->
   <script src="/legacy/cybernet-admin-feedback.js?v=20261028-1" defer></script>
-  <script src="/ui/cybernet-ui.js?v=20261029-g4" defer></script>
+  <script src="/ui/cybernet-ui.js?v=20261029-g5" defer></script>
 </body>
 </html>
 

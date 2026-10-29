@@ -114,6 +114,9 @@ type ClassifierResult = {
   // starts with a call to the bank. Optional so jobs queued before this field
   // existed still parse.
   moneyInvolved?: boolean;
+  // A suspicious file was opened or the device acts strangely: the instant plan then includes
+  // the step that cleans the device before passwords are changed on it.
+  deviceRisk?: boolean;
 };
 
 // Money that left, or card/bank details or bank sign-in details that were
@@ -281,6 +284,10 @@ function classifyIncident(
   if (quickAnswers.cryptoInvolved) { riskScore += 1; signals.push("Cryptocurrency is involved."); }
   if (quickAnswers.identityExposed) { riskScore += 1; signals.push("Identity information may be exposed."); }
   if (quickAnswers.deviceStrange) { riskScore += 1; signals.push("Device is behaving unusually."); }
+  // The page also sends these three ticks (index.html recovery intake); they used to be ignored.
+  if (quickAnswers.sharedPayment) { riskScore += 2; signals.push("User confirmed sharing card or payment details."); }
+  if (quickAnswers.clickedLink) { riskScore += 1; signals.push("User clicked a suspicious link."); }
+  if (quickAnswers.downloadedFile) { riskScore += 1; signals.push("User downloaded a suspicious file."); }
 
   const extra = extraRecoverySignals(description);
   riskScore += extra.points;
@@ -310,19 +317,21 @@ function classifyIncident(
   // Money already gone or a code already handed over, said in the description
   // rather than ticked in the quick answers, is just as urgent.
   let urgencyFloor: Urgency = "soon";
-  if (quickAnswers.sentMoney || quickAnswers.sharedOtp || quickAnswers.lostAccess || extra.moneyLost || extra.codeShared || riskFloor === "critical") urgencyFloor = "immediate";
+  if (quickAnswers.sentMoney || quickAnswers.sharedOtp || quickAnswers.sharedPayment || quickAnswers.lostAccess || extra.moneyLost || extra.codeShared || riskFloor === "critical") urgencyFloor = "immediate";
   else if (riskFloor === "high" || quickAnswers.unknownLogin || quickAnswers.sharedPassword) urgencyFloor = "today";
 
   // An explicit selection beats the keyword guess for naming the incident; a
   // keyword match beats the phrase patterns.
   const incidentCategory = selected ? selected.label : bestCategory.id !== "other" ? bestCategory.label : extra.category || bestCategory.label;
 
-  const moneyInvolved = Boolean(quickAnswers.sentMoney) || extra.moneyLost ||
+  const moneyInvolved = Boolean(quickAnswers.sentMoney) || Boolean(quickAnswers.sharedPayment) || extra.moneyLost ||
     bestCategory.id === "financial_fraud" ||
     selected?.label === "Financial / payment fraud" ||
     unnegatedMatch(MONEY_INVOLVED_EN, description) || unnegatedMatch(MONEY_INVOLVED_AR, description);
 
-  return { incidentCategory, riskFloor, urgencyFloor, signals: uniqueStrings(signals, 10), moneyInvolved };
+  const deviceRisk = Boolean(quickAnswers.downloadedFile) || Boolean(quickAnswers.deviceStrange);
+
+  return { incidentCategory, riskFloor, urgencyFloor, signals: uniqueStrings(signals, 10), moneyInvolved, deviceRisk };
 }
 
 // ─── Verified official resource allowlist (never invented by the AI) ───
@@ -347,12 +356,14 @@ const OFFICIAL_RESOURCES: OfficialResource[] = [
 
 function selectResources(region: string): OfficialResource[] {
   const normalized = region.toLowerCase();
+  // Whole words for the short codes: "australia" contains "us", so a plain includes("us")
+  // used to send Australians to the US agencies.
   const matches = OFFICIAL_RESOURCES.filter((resource) => {
     const country = resource.country.toLowerCase();
-    if (normalized.includes("us") || normalized.includes("united states") || normalized.includes("america")) return country === "united states";
-    if (normalized.includes("uk") || normalized.includes("united kingdom") || normalized.includes("england") || normalized.includes("britain")) return country === "united kingdom";
-    if (normalized.includes("canada")) return country === "canada";
     if (normalized.includes("australia")) return country === "australia";
+    if (/\b(?:us|usa|u\.s\.a?)\b/.test(normalized) || normalized.includes("united states") || normalized.includes("america")) return country === "united states";
+    if (/\buk\b/.test(normalized) || normalized.includes("united kingdom") || normalized.includes("england") || normalized.includes("britain")) return country === "united kingdom";
+    if (normalized.includes("canada")) return country === "canada";
     if (normalized.includes("uae") || normalized.includes("emirates") || normalized.includes("dubai") || normalized.includes("abu dhabi")) return country === "united arab emirates";
     if (normalized.includes("saudi") || normalized.includes("ksa") || normalized.includes("riyadh") || normalized.includes("jeddah")) return country === "saudi arabia";
     if (normalized.includes("qatar") || normalized.includes("doha")) return country === "qatar";
@@ -552,8 +563,20 @@ function fallbackPlan(classifier: ClassifierResult, region: string) {
     priority: "critical",
     estimatedMinutes: 15,
   };
+  // A device that may run malware is cleaned before passwords are changed on it: a new
+  // password typed on an infected device can be stolen again.
+  const deviceAction: RecoveryAction = {
+    id: "clean-device",
+    title: "Disconnect and check the device",
+    instruction: "Turn off Wi-Fi and mobile data on the affected device, do not open the file again, and run the built-in security scan (Windows Security, Google Play Protect, or a reputable antivirus). Remove apps or files you do not recognise, and change your passwords from a different, trusted device.",
+    why: "Malware can record what you type, so passwords changed on an infected device can be stolen again.",
+    verification: "The security scan finishes with no threats found, and nothing unfamiliar is installed.",
+    priority: "high",
+    estimatedMinutes: 20,
+  };
   const immediateActions: RecoveryAction[] = [
     ...(classifier.moneyInvolved ? [bankAction] : []),
+    ...(classifier.deviceRisk ? [deviceAction] : []),
     {
       id: "secure-primary-email",
       title: "Secure your primary email account",

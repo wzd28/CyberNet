@@ -2928,7 +2928,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       wrap.className=`recovery-action-item${completed?" completed":""}`;
       wrap.innerHTML=`
         <label class="recovery-action-check">
-          <input type="checkbox" data-task-key="${escapeHTML(action.id)}" ${completed?"checked":""}/>
+          <input type="checkbox" data-task-key="${escapeHTML(action.id)}" aria-label="Mark done: ${escapeHTML(action.title||"")}" ${completed?"checked":""}/>
         </label>
         <div class="recovery-action-body">
           <div class="recovery-action-title-row">

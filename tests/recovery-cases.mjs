@@ -14,6 +14,9 @@ export const RECOVERY_CASES = [
   { id: "seed-phrase", description: "I typed my seed phrase into a site that said it would fix my MetaMask wallet.", category: "Cryptocurrency / wallet incident", minRisk: "medium" },
   { id: "selected-type-and-quick-answers", description: "Something is wrong", quickAnswers: { sharedOtp: true, sentMoney: true }, incidentType: "Account hacked", category: "Account compromise", minRisk: "critical", minUrgency: "immediate", money: true },
   { id: "quick-answer-money-only", description: "Please help, I think I was scammed.", quickAnswers: { sentMoney: true }, minRisk: "high", minUrgency: "immediate", money: true },
+  // 29 Oct 2026 audit: these ticks were sent by the page but ignored.
+  { id: "quick-answer-shared-card", description: "Please help, I think I was scammed.", quickAnswers: { sharedPayment: true }, minRisk: "high", minUrgency: "immediate", money: true },
+  { id: "quick-answer-clicked-and-downloaded", description: "I got a weird message.", quickAnswers: { clickedLink: true, downloadedFile: true }, minRisk: "high", money: false },
   { id: "malware-attachment", description: "I opened an attachment from an unknown sender and now my laptop is acting strange.", category: "Malware / device compromise", money: false },
   { id: "no-money-account-locked", description: "I am locked out of my account after someone changed my password.", minRisk: "medium", money: false },
   { id: "calm-question", description: "I got a strange email but I did not click anything. What should I watch for?", maxRisk: "medium", money: false },
