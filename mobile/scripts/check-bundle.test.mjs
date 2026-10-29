@@ -8,7 +8,7 @@ import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
-import { checkBundle, wordHits } from "./check-bundle.mjs";
+import { checkBundle, wordHits, checkMetadata } from "./check-bundle.mjs";
 import { applyRegions, pruneCss, applyTextOverrides } from "./build-web.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -139,6 +139,24 @@ check("Pro is case-sensitive", wordHits("protect your accounts").length === 0 &&
   let threw = false;
   try { applyTextOverrides("nothing", "f", [{ find: "Stripe", replace: "x", min: 1 }]); } catch { threw = true; }
   check("override that no longer matches fails", threw);
+}
+
+/* ---------- App Store text (--metadata) ---------- */
+{
+  const dir = await mkdtemp(path.join(os.tmpdir(), "cn-meta-test-"));
+  const md = async body => { const file = path.join(dir, "m.md"); await writeFile(file, body); return checkMetadata(file); };
+  const F = "```";
+  const clean = await md(`## 2. Texts\n${F}\nCheck a text or a link. It is not antivirus software.\n${F}\n## 8. Notes\n${F}\nIf the person taps Allow on the tracking prompt, the app loads Google Analytics.\n${F}\n`);
+  check("metadata: clean copy passes; the review notes may name Google Analytics", clean.length === 0, clean);
+  const desc = await md(`## 2. Texts\n${F}\nUsage is counted with Google Analytics.\n${F}\n`);
+  check("metadata: Google outside the review notes fails", desc.some(h => h.term === "google"), desc);
+  const google = await md(`## 8. Notes\n${F}\nSign in with Google is not offered.\n${F}\n`);
+  check("metadata: any other Google wording in the review notes fails", google.some(h => h.term === "google"), google);
+  const track = await md(`## 2. Texts\n${F}\nNo ads, no tracking.\n${F}\n`);
+  check("metadata: 'no tracking' fails (the app tracks after Allow)", track.some(h => h.term === "tracking"), track);
+  const outside = await md(`## 8. Notes\nGuidance outside a fenced block may mention Stripe pricing.\n`);
+  check("metadata: only the fenced copy is checked", outside.length === 0, outside);
+  await rm(dir, { recursive: true, force: true });
 }
 
 /* ---------- CSS pruning ---------- */

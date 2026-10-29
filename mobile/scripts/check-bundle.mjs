@@ -295,7 +295,10 @@ export async function checkMetadata(file) {
     const h = !fenced && /^#{1,3}\s*(?:§\s*)?(\d+)[.)]?\s/.exec(line);
     if (h) section = Number(h[1]);
     if (!fenced || section < 1 || section > 9) return;
-    const copy = line.replace(/\bhttps?:\/\/\S+/g, " ");
+    let copy = line.replace(/\bhttps?:\/\/\S+/g, " ");
+    // The notes for App Review (section 8) must say plainly that the app loads Google Analytics after
+    // the tracking prompt's Allow; that exact product name is the only Google term allowed there.
+    if (section === 8) copy = copy.replace(/\bGoogle Analytics\b/g, " ");
     for (const w of wordHits(copy)) hits.push({ file: path.basename(file), line: i + 1, rule: "metadata", term: w, detail: line.trim().slice(0, 140) });
     // the app tracks (Google Analytics, only after App Tracking Transparency "Allow"; owner, 29 Oct 2026)
     if (/\bno tracking\b|\bnot used to track\b|\bdoes not track\b/i.test(copy)) hits.push({ file: path.basename(file), line: i + 1, rule: "metadata", term: "tracking", detail: `says the app does not track, but it uses Google Analytics after ATT Allow: ${line.trim().slice(0, 100)}` });
