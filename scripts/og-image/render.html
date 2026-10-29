@@ -39,12 +39,14 @@
   for (let i = 0; i < W; i += 48) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, H); x.stroke(); }
   for (let j = 0; j < H; j += 48) { x.beginPath(); x.moveTo(0, j); x.lineTo(W, j); x.stroke(); }
 
-  // The real shield logo, with the same glow it has on the site.
+  // The site's mark (public/cybernet-mark.svg, from scripts/render-icons.mjs; viewBox 24 x 26), drawn
+  // as a vector at its own size with a soft cyan glow: centred at (940, 259.5), 231 px tall.
   const img = new Image();
-  img.src = '/public/cybernetshield.png';
+  img.src = '/public/cybernet-mark.svg';
   await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
+  const S = 9.7;
   x.save(); x.shadowColor = 'rgba(34,211,238,0.55)'; x.shadowBlur = 70;
-  x.drawImage(img, 790, 110, 300, 300); x.restore();
+  x.drawImage(img, 940 - 12 * S, 259.5 - 13 * S, 24 * S, 26 * S); x.restore();
 
   // Wordmark.
   x.fillStyle = '#eaf3fb'; x.font = '700 34px "JetBrains Mono", monospace';
