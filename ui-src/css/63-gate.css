@@ -15,13 +15,12 @@
      2.1 s   the quote types itself under the wordmark, at an even pace
      ~5.3 s  the quote has been read: it fades up and away, then the mark and wordmark glide up and
              smaller (FLIP)
-     ~6.3 s  "Stay secure." types, then "All in one place."
-     ~8 s    the stage glides to its resting place (above the card on phones, to the left from
-             900 px) and, as the glide eases out, the sign-in card rises in, its parts one after
-             another, while "Designed for protection and recovery" types under the pitch
+     ~6.3 s  as the glide eases out, the sign-in card rises in (beside the mark from 900 px), its
+             parts one after another; its heading carries the pitch, "Stay secure." (owner, 29 Oct
+             2026: "keep the logo only")
 
    The same visit's later pages open on the short form (html.cn-gate-quick): the compact mark, the
-   pitch and the card within about two seconds. A tap or any key (Escape too) jumps to the card.
+   card within about a second. A tap or any key (Escape too) jumps to the card.
    Closing the card while signed out re-types "Not signed in yet." (html.cn-gate-nudge). Signing in
    types "You're in." (html.cn-gate-welcome), then the layer dissolves (html.cn-gate-out) into the
    page, sharp.
@@ -92,8 +91,16 @@ html.cn.cn-gate #authModal::before {
   background: linear-gradient(100deg, transparent 38%, rgba(34, 211, 238, .06) 50%, transparent 62%);
   transform: translateX(-100%);
   pointer-events: none;
-  animation: cn-gate-sweep 3.2s var(--cn-gate-ease) .3s both;
+  /* backwards, not both: held at its end (+100%) the light would leave a screen of sideways
+     scroll in the layer; at rest it sits at -100%, to the left, where nothing can scroll to it */
+  animation: cn-gate-sweep 3.2s var(--cn-gate-ease) .3s backwards;
 }
+/* While the gate is up the skip link and the cookie bar sit under it: keep them out of the Tab
+   order instead of letting focus land on controls nobody can see. */
+html.cn.cn-gate .cn-skip,
+html.cn.cn-gate #cnConsentBar { visibility: hidden; }
+/* the Sign In / Create Account tabs meet the 44 px tap target */
+html.cn #authModal .auth-tab { min-height: 44px; }
 /* spoken copy of the nudge and the welcome (the stage itself is decorative) */
 html.cn.cn-gate .cn-gate-status {
   display: block;
@@ -258,51 +265,30 @@ html.cn.cn-gate .cn-gate-quote {
 html.cn.cn-gate-leaving .cn-gate-quote { opacity: 0; transform: translateY(-10px); }
 html.cn.cn-gate-compact .cn-gate-quote { display: none; }
 
-html.cn.cn-gate .cn-gate-pitch { display: none; }
-html.cn.cn-gate-compact .cn-gate-pitch {
+/* The pitch is the card's heading (owner, 29 Oct 2026: "keep the logo only"). The one line here
+   is the nudge or the welcome, typed into the gap under the mark; it takes no room, so the card
+   never moves when it appears. */
+html.cn.cn-gate .cn-gate-pitch {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-top: 20px;
+  margin-top: 6px;
+  visibility: hidden;
 }
+html.cn.cn-gate-nudge .cn-gate-pitch,
+html.cn.cn-gate-welcome .cn-gate-pitch { visibility: visible; }
 html.cn.cn-gate .cn-gate-head {
   margin: 0;
-  font-family: var(--cn-font-hero);
-  font-weight: 600;
-  font-size: 42px;
-  font-size: clamp(34px, 2.8vw + 20px, 56px);
-  line-height: 1.06;
-  letter-spacing: -.03em;
-  color: #f5f7fa;
-}
-html.cn.cn-gate .cn-gate-sub {
-  margin: 8px 0 0;
   font-family: var(--cn-font);
-  font-weight: 300;
-  font-size: 22px;
-  font-size: clamp(19px, 1vw + 15px, 27px);
-  line-height: 1.3;
-  letter-spacing: -.01em;
-  color: #c9d2df;
-}
-html.cn.cn-gate .cn-gate-tag {
-  margin: 16px 0 0;
-  font-family: var(--cn-font-mono);
   font-weight: 500;
-  font-size: 12px;
-  line-height: 1.5;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: #8fd6e4;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #a5f3fc;
 }
-/* signing in: only "You're in." stays while the layer dissolves */
-html.cn.cn-gate .cn-gate-sub,
-html.cn.cn-gate .cn-gate-tag { transition: opacity .5s var(--cn-gate-ease); }
-html.cn.cn-gate-welcome .cn-gate-sub,
-html.cn.cn-gate-welcome .cn-gate-tag { opacity: 0; }
-/* the nudge: the headline turns a quiet cyan while it asks */
-html.cn.cn-gate .cn-gate-head { transition: color .6s var(--cn-gate-ease); }
-html.cn.cn-gate-nudge .cn-gate-head { color: #a5f3fc; }
 
 /* ---------- 3. The card ---------- */
 html.cn.cn-gate:not(.cn-gate-card) #authModal > .modal-card { display: none; }
@@ -353,23 +339,19 @@ html.cn.cn-gate-out .cn-gate-stage { opacity: 0; transform: translateY(-10px); t
     align-items: center;
     justify-content: center;
   }
+  /* the mark stays large beside the card, centred in its own column */
   html.cn.cn-gate.cn-gate-card .cn-gate-stage {
-    width: 520px;
-    max-width: 44vw;
-    margin: auto 96px auto 0;
-    align-items: flex-start;
-    text-align: left;
+    width: 380px;
+    max-width: 38vw;
+    margin: auto 88px auto 0;
   }
-  html.cn.cn-gate.cn-gate-card .cn-gate-brand,
-  html.cn.cn-gate.cn-gate-card .cn-gate-pitch { align-items: flex-start; }
+  html.cn.cn-gate-compact .cn-gate-brand { --cn-gm: 108px; --cn-gw: 50px; }
   html.cn.cn-gate.cn-gate-card #authModal > .modal-card { margin: auto 0; }
-  html.cn.cn-gate.cn-gate-card .cn-gate-head { font-size: 56px; font-size: clamp(44px, 2.6vw + 22px, 66px); }
 }
 
 /* ---------- 6. Phones ---------- */
 @media (max-width: 560px) {
   html.cn.cn-gate.cn-gate-card .cn-gate-stage { margin-bottom: 22px; }
-  html.cn.cn-gate .cn-gate-tag { letter-spacing: .08em; }
   html.cn.cn-gate #authModal > .modal-card { width: 100%; }
 }
 @media (max-height: 700px) {

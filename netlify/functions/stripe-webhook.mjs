@@ -214,9 +214,10 @@ export default async (request) => {
   const stripe = new Stripe(secret);
   let event;
 
+  let signature = "";
   try {
     const payload = await request.text();
-    const signature =
+    signature =
       request.headers.get("stripe-signature") || "";
 
     event = stripe.webhooks.constructEvent(
@@ -225,6 +226,14 @@ export default async (request) => {
       webhookSecret
     );
   } catch (error) {
+    // A delivery that carries a Stripe signature but fails the check means the endpoint in
+    // Stripe signs with a different secret than STRIPE_WEBHOOK_SECRET: paid plans would not
+    // activate. It used to fail silently (28 Oct 2026); now it is logged and alerted.
+    // Requests with no signature at all (bots, probes) stay quiet.
+    if (signature) {
+      console.error("stripe-webhook: signature check failed", error?.message);
+      await Promise.resolve(reportError(error, { fn: "stripe-webhook", label: "Stripe webhook signature check failed: check that STRIPE_WEBHOOK_SECRET matches this endpoint's signing secret in Stripe" })).catch(() => {});
+    }
     return json(
       {
         error:

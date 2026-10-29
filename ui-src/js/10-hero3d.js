@@ -169,8 +169,15 @@
         !root.classList.contains("cn-deep") && canvas.clientWidth > 0;
     }
     function allowed() { return !CN.reduced() && !CN.saveData() && !lowEnd(); }
+    var gateWait = false;
     function maybe() {
       if (state !== "idle" || queued || !loaded || !visible || !allowed()) return;
+      /* behind the sign-in gate (63-gate.css) nobody can see the globe: three.js and the scene
+         wait until the gate opens */
+      if (root.classList.contains("cn-gate")) {
+        if (!gateWait) { gateWait = true; win.addEventListener("cn:gate-open", function () { gateWait = false; maybe(); }, { once: true }); }
+        return;
+      }
       if (!homeShown()) {
         if (root.classList.contains("cn-deep") && !deepTimer) deepTimer = setTimeout(function () { deepTimer = 0; maybe(); }, 4300);
         return;
