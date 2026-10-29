@@ -4,52 +4,78 @@
 // through here, so switching models in the Netlify environment variables
 // cannot send a parameter value the new model rejects.
 //
-// Sources (OpenAI API docs, read 2026-10-14):
+// Sources (OpenAI API docs, read 2026-10-29):
 // - https://developers.openai.com/api/docs/deprecations - entry of 2026-06-11:
-//   gpt-5-2025-08-07 and gpt-5-mini-2025-08-07 (the snapshots behind the
-//   "gpt-5" and "gpt-5-mini" aliases, see /docs/models/gpt-5 and
-//   /docs/models/gpt-5-mini) shut down on 2026-12-11; recommended replacements
-//   gpt-5.6-sol and gpt-5.6-terra (gpt-5-nano -> gpt-5.6-luna). Entry of
-//   2026-10-01: gpt-5.1 and gpt-5.4-nano shut down on 2027-04-01 (-> gpt-6-sol,
-//   gpt-6-luna).
-// - Model pages, "reasoning.effort supports":
+//   gpt-5 / gpt-5-2025-08-07 and gpt-5-mini / gpt-5-mini-2025-08-07 shut down
+//   on 2026-12-11; OpenAI's named replacements are gpt-5.6-sol and
+//   gpt-5.6-terra (gpt-5-nano -> gpt-5.6-luna). Entry of 2026-10-01: gpt-5.1
+//   and gpt-5.4-nano shut down on 2027-04-01 (-> gpt-6-sol, gpt-6-luna).
+//   Entry of 2026-10-14: the dated gpt-4o, gpt-4o-mini, gpt-4.1 and
+//   gpt-4.1-mini snapshots shut down on 2027-01-14 (-> gpt-6-luna).
+// - Model pages (/api/docs/models/<id>), "reasoning.effort supports":
 //   gpt-5: minimal, low, medium, high.
 //   gpt-5.1: none (default), low, medium, high.
 //   gpt-5.2, gpt-5.4: none (default), low, medium, high, xhigh.
-//   gpt-5.6-sol / gpt-5.6-terra / gpt-5.6-luna, gpt-6-luna: none, low,
-//   medium (default), high, xhigh, max.
+//   gpt-5.6-sol / -terra / -luna, gpt-6-sol, gpt-6-luna, gpt-6.1-terra: none,
+//   low, medium (default), high, xhigh, max.
 //   gpt-6-astra, gpt-6.1-sol: low, medium (default), high, xhigh, max - no
 //   "none" and no "minimal".
+//   Every GPT-6 model lists Structured Outputs, image input and the Responses
+//   API; none takes temperature/top_p when effort is not none (these requests
+//   never send them).
 // - https://developers.openai.com/api/docs/guides/latest-model: "If your
-//   existing request uses minimal, start with low"; GPT-6 Sol and GPT-6 Luna
-//   support none; when effort is not none, temperature/top_p/top_logprobs must
-//   not be sent (none of these requests send them).
-// - https://developers.openai.com/api/docs/guides/prompt-caching: caching is
-//   automatic from 1,024 prompt tokens, needs an identical prefix (static
-//   instructions first, dynamic content after), and prompt_cache_key is
-//   "optional for separate cache accounting" on GPT-5.6+ and recommended for
-//   cache routing on earlier models.
+//   existing request uses minimal, start with low"; Astra and Sol have no
+//   "none" ("use low instead").
+// - https://developers.openai.com/api/docs/guides/prompt-caching: on GPT-5.6
+//   and later caching is on by default from 1,024 prompt tokens with a 30-minute
+//   lifetime, a cache write costs 1.25x the input rate, and prompt_cache_key is
+//   only for separate cache accounting (it is still accepted).
+// - https://developers.openai.com/api/docs/guides/safety-checks: send a stable,
+//   hashed end-user ID (safety_identifier) so a flag stays with that user.
 
-// TODO(owner, before 2026-12-11): the defaults below are the models production
-// runs today. Their snapshots are removed on 2026-12-11. Run the eval
-// (research item 3), then set ANALYSIS_MODEL and ANALYSIS_MODEL_MINI in Netlify
-// (Site configuration > Environment variables) to the chosen models and
-// redeploy. If nothing is set by then, the call that fails because the model
-// is gone is retried once on OpenAI's named replacement (below), unless
-// ANALYSIS_MODEL_AUTO_REPLACE is set to "off".
-export const DEFAULT_MODEL = "gpt-5";
-export const DEFAULT_MINI_MODEL = "gpt-5-mini";
+import { createHash } from "node:crypto";
 
-export const RETIRING_MODELS = {
-  "gpt-5": { retiresOn: "2026-12-11", replacement: "gpt-5.6-sol" },
-  "gpt-5-2025-08-07": { retiresOn: "2026-12-11", replacement: "gpt-5.6-sol" },
-  "gpt-5-mini": { retiresOn: "2026-12-11", replacement: "gpt-5.6-terra" },
-  "gpt-5-mini-2025-08-07": { retiresOn: "2026-12-11", replacement: "gpt-5.6-terra" },
-  "gpt-5-nano": { retiresOn: "2026-12-11", replacement: "gpt-5.6-luna" },
-  "gpt-5-nano-2025-08-07": { retiresOn: "2026-12-11", replacement: "gpt-5.6-luna" },
-  "gpt-5.1": { retiresOn: "2027-04-01", replacement: "gpt-6-sol" },
-  "gpt-5.4-nano": { retiresOn: "2027-04-01", replacement: "gpt-6-luna" },
-};
+// The two models, chosen 29 Oct 2026 by price, speed and quality for short
+// scam-analysis answers (prices per 1M tokens, input / cached / output):
+// - DEFAULT_MODEL (Pro/Business ambiguous Analysis AI, investigation, critical
+//   Recovery): gpt-6.1-terra, $1 / $0.05 / $5, against gpt-5's $1.25 / $0.125
+//   / $10. It accepts "none", so the 24 s quick call stays about as fast as
+//   gpt-5 at "minimal". OpenAI's own pick, gpt-5.6-sol, is $4 / $0.40 / $20.
+// - DEFAULT_MINI_MODEL (Free Analysis AI, other Recovery cases):
+//   gpt-6-luna, $0.10 / $0.01 / $0.50, against gpt-5-mini's $0.25 / $0.025 /
+//   $2. OpenAI's own pick, gpt-5.6-terra, is $2 / $0.20 / $12.
+// ANALYSIS_MODEL and ANALYSIS_MODEL_MINI in Netlify still override both. To go
+// back before 2026-12-11, set them to gpt-5 and gpt-5-mini; after that date a
+// call to a removed model is retried once on the replacement below (unless
+// ANALYSIS_MODEL_AUTO_REPLACE is "off").
+export const DEFAULT_MODEL = "gpt-6.1-terra";
+export const DEFAULT_MINI_MODEL = "gpt-6-luna";
+
+// Snapshots OpenAI has scheduled for removal. `replacement` is where the
+// one-time retry in createResponse goes: the defaults above, not OpenAI's named
+// replacement (`openai`): for these calls gpt-5.6-sol costs about four times
+// gpt-6.1-terra, and gpt-5.6-terra about twenty times gpt-6-luna. Keys are
+// lower case.
+function retiring(retiresOn, replacement, openai) {
+  return Object.freeze({ retiresOn, replacement, openai });
+}
+export const RETIRING_MODELS = Object.freeze({
+  "gpt-5": retiring("2026-12-11", DEFAULT_MODEL, "gpt-5.6-sol"),
+  "gpt-5-2025-08-07": retiring("2026-12-11", DEFAULT_MODEL, "gpt-5.6-sol"),
+  "gpt-5-mini": retiring("2026-12-11", DEFAULT_MINI_MODEL, "gpt-5.6-terra"),
+  "gpt-5-mini-2025-08-07": retiring("2026-12-11", DEFAULT_MINI_MODEL, "gpt-5.6-terra"),
+  "gpt-5-nano": retiring("2026-12-11", DEFAULT_MINI_MODEL, "gpt-5.6-luna"),
+  "gpt-5-nano-2025-08-07": retiring("2026-12-11", DEFAULT_MINI_MODEL, "gpt-5.6-luna"),
+  "gpt-4o-2024-08-06": retiring("2027-01-14", DEFAULT_MINI_MODEL, "gpt-6-luna"),
+  "gpt-4o-2024-11-20": retiring("2027-01-14", DEFAULT_MINI_MODEL, "gpt-6-luna"),
+  "gpt-4o-mini-2024-07-18": retiring("2027-01-14", DEFAULT_MINI_MODEL, "gpt-6-luna"),
+  "gpt-4.1-2025-04-14": retiring("2027-01-14", DEFAULT_MINI_MODEL, "gpt-6-luna"),
+  "gpt-4.1-mini-2025-04-14": retiring("2027-01-14", DEFAULT_MINI_MODEL, "gpt-6-luna"),
+  "gpt-5.1": retiring("2027-04-01", DEFAULT_MODEL, "gpt-6-sol"),
+  "gpt-5.1-2025-11-13": retiring("2027-04-01", DEFAULT_MODEL, "gpt-6-sol"),
+  "gpt-5.4-nano": retiring("2027-04-01", DEFAULT_MINI_MODEL, "gpt-6-luna"),
+  "gpt-5.4-nano-2026-03-17": retiring("2027-04-01", DEFAULT_MINI_MODEL, "gpt-6-luna"),
+});
 
 const EFFORTS_GPT5 = ["minimal", "low", "medium", "high"];
 const EFFORTS_NONE_TO_HIGH = ["none", "low", "medium", "high"];
@@ -66,7 +92,7 @@ const FAMILIES = [
   { re: new RegExp(`^gpt-5\\.1${SNAPSHOT}`), efforts: EFFORTS_NONE_TO_HIGH },
   { re: new RegExp(`^gpt-5\\.[24]${SNAPSHOT}`), efforts: EFFORTS_NONE_TO_XHIGH },
   { re: new RegExp(`^gpt-5\\.6(?:-(?:sol|terra|luna))?${SNAPSHOT}`), efforts: EFFORTS_NONE_TO_MAX },
-  { re: new RegExp(`^gpt-6-(?:sol|luna)${SNAPSHOT}`), efforts: EFFORTS_NONE_TO_MAX },
+  { re: new RegExp(`^(?:gpt-6-(?:sol|luna)|gpt-6\\.1-terra)${SNAPSHOT}`), efforts: EFFORTS_NONE_TO_MAX },
   { re: new RegExp(`^(?:gpt-6-astra|gpt-6\\.1-sol)${SNAPSHOT}`), efforts: EFFORTS_LOW_TO_MAX },
   { re: /^o\d/, efforts: EFFORTS_SAFE },
   // Not reasoning models: a reasoning field is rejected outright.
@@ -101,17 +127,41 @@ export function outputBudget(base, reasoning) {
   return base + 4_000;
 }
 
-// The parameters that depend on the model. prompt_cache_key is only sent to
-// OpenAI itself (not through a custom OPENAI_BASE_URL gateway, which may not
-// pass unknown fields through).
-export function modelParams(model, { preferredEfforts, baseOutputTokens, cacheKey = "", effortOverride = "", customBaseUrl = false }) {
+// The parameters that depend on the model. prompt_cache_key and
+// safety_identifier are only sent to OpenAI itself (not through a custom
+// OPENAI_BASE_URL gateway, which may not pass unknown fields through).
+export function modelParams(model, { preferredEfforts, baseOutputTokens, cacheKey = "", effortOverride = "", customBaseUrl = false, safetyIdentifier = "" }) {
   const reasoning = reasoningFor(model, preferredEfforts, effortOverride);
   return {
     model,
     ...(reasoning ? { reasoning } : {}),
     max_output_tokens: outputBudget(baseOutputTokens, reasoning),
     ...(cacheKey && !customBaseUrl ? { prompt_cache_key: cacheKey } : {}),
+    ...(safetyIdentifier && !customBaseUrl ? { safety_identifier: safetyIdentifier } : {}),
   };
+}
+
+// A stable ID for one signed-in user that does not reveal who they are: a
+// one-way hash of their account id, for modelParams' safetyIdentifier. OpenAI
+// asks for one so that, if a safety classifier flags a request (scam content
+// can look like attack material), the flag stays with that user instead of
+// counting against the whole organisation. Empty for a visitor without an id.
+export function safetyIdentifierFor(userId) {
+  const id = String(userId || "").trim();
+  if (!id) return "";
+  return createHash("sha256").update(`cybernet-ai:${id}`).digest("hex").slice(0, 32);
+}
+
+// Bring-your-own-key Analysis AI (website only, byok-analyze.mts) sends the
+// model the visitor's key was validated for. A key saved before OpenAI removed
+// that model would fail on every call, so a model past its removal date goes
+// to its replacement. No model, or a malformed name: DEFAULT_MINI_MODEL.
+export function byokModel(value, today = new Date().toISOString().slice(0, 10)) {
+  const model = String(value || "").trim();
+  if (!/^[A-Za-z0-9._:-]{1,80}$/.test(model)) return DEFAULT_MINI_MODEL;
+  const entry = retirementOf(model);
+  if (entry && entry.retiresOn <= today) return entry.replacement;
+  return model;
 }
 
 export function replacementFor(model) {

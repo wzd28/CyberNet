@@ -9,7 +9,7 @@ import {
   getHistory,
   getActiveTeamMembership
 } from "../lib/supabase.mjs";
-import { modelParams } from "../lib/ai-models.mjs";
+import { modelParams, byokModel } from "../lib/ai-models.mjs";
 import { reportError } from "../lib/report-error.mjs";
 // Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
 // management, admin): requests from the app get 403 (netlify/lib/cors.mjs).
@@ -94,14 +94,10 @@ function looksLikeOpenAIKey(value) {
   return /^sk-[A-Za-z0-9_-]{20,}$/.test(String(value || ""));
 }
 
+// The model the visitor's key was validated for (validate-openai-key.mts); a
+// removed model goes to its replacement (ai-models.mjs byokModel).
 function safeModel(value) {
-  const model = String(value || "gpt-5-mini").trim();
-
-  if (!/^[A-Za-z0-9._:-]{1,80}$/.test(model)) {
-    return "gpt-5-mini";
-  }
-
-  return model;
+  return byokModel(value);
 }
 
 function outputText(payload) {
