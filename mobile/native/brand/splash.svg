@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2732" height="2732" viewBox="0 0 2732 2732">
+  <!-- Launch screen image (DRAFT for the owner's approval): brand background and the centred mark,
+       no text (BUILD-PLAN §6.7). Shown with scaleAspectFill, so only the centre is visible on a phone.
+       Render: run mobile/scripts/add-share-extension.cjs with the icons flag (see its header). -->
+  <defs>
+    <linearGradient id="mark" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#67e8f9"/>
+      <stop offset="1" stop-color="#22d3ee"/>
+    </linearGradient>
+  </defs>
+  <rect width="2732" height="2732" fill="#060a14"/>
+  <g transform="translate(1366 1366) scale(0.62) translate(-512 -516)">
+    <path d="M512 176 C592 230 680 258 780 266 L780 518 C780 672 672 786 512 856 C352 786 244 672 244 518 L244 266 C344 258 432 230 512 176 Z"
+          fill="none" stroke="url(#mark)" stroke-width="48" stroke-linejoin="round"/>
+    <path d="M436 486 L436 428 A76 76 0 0 1 588 428 L588 486" fill="none" stroke="url(#mark)" stroke-width="40" stroke-linecap="round"/>
+    <rect x="384" y="472" width="256" height="196" rx="34" fill="url(#mark)"/>
+    <circle cx="512" cy="550" r="27" fill="#060a14"/>
+    <path d="M498 560 L526 560 L534 620 L490 620 Z" fill="#060a14"/>
+  </g>
+</svg>
