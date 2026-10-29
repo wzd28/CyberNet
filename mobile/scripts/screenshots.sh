@@ -11,6 +11,13 @@
 # ".invalid" examples. It saves a PNG and an alpha-free JPEG of each screen, records one video per
 # device, and fails if the app is not running after a launch on a required device.
 #
+# Each launch runs with `simctl launch --console-pty` (as engine-parity.sh does) and keeps the app's
+# console in <screen>.log. A demo screen counts only when debug.js printed "CN_DEMO_READY <screen>";
+# otherwise the step fails on a required device (a capture of a half-drawn or covered screen is not
+# a pass). debug.js also skips the first-run intro and answers the tracking prompt with "denied" in
+# demo runs, so neither covers the screenshots; the plain launch (00-launch) keeps the real first-run
+# intro on purpose.
+#
 # The Share Extension over the share sheet (screenshot #3) cannot be captured here; the owner takes it
 # during the TestFlight pass (APP-STORE-CONNECT-METADATA §9).
 #
@@ -83,23 +90,44 @@ save_crash_logs() { # $1 slug
   echo "Crash logs (if any) copied to $OUT_DIR/crash for $1"
 }
 
+stop_console() { # $1 pid of a `simctl launch --console-pty` that is still attached
+  kill "$1" 2>/dev/null || true
+  wait "$1" 2>/dev/null || true
+}
+
 launch_and_capture() { # $1 udid, $2 slug, $3 index, $4 screen ("" = plain launch), $5 required
-  local udid="$1" slug="$2" index="$3" screen="$4" required="$5" label file
+  local udid="$1" slug="$2" index="$3" screen="$4" required="$5" label file log console_pid waited
   label="${screen:-launch}"
+  file="$OUT_DIR/$slug/$(printf '%02d' "$index")-$label.png"
+  log="${file%.png}.log"
+  : > "$log"
   if [ -n "$screen" ]; then
-    SIMCTL_CHILD_CN_DEMO_SCREEN="$screen" xcrun simctl launch --terminate-running-process "$udid" "$BUNDLE_ID" >/dev/null
+    SIMCTL_CHILD_CN_DEMO_SCREEN="$screen" xcrun simctl launch --console-pty --terminate-running-process "$udid" "$BUNDLE_ID" > "$log" 2>&1 &
   else
-    xcrun simctl launch --terminate-running-process "$udid" "$BUNDLE_ID" >/dev/null
+    xcrun simctl launch --console-pty --terminate-running-process "$udid" "$BUNDLE_ID" > "$log" 2>&1 &
   fi
+  console_pid=$!
   sleep "$WAIT_SECONDS"
+  if [ -n "$screen" ]; then
+    waited=0
+    until grep -q "CN_DEMO_READY $screen" "$log" 2>/dev/null; do
+      if grep -q "CN_DEMO_FAILED $screen" "$log" 2>/dev/null || [ "$waited" -ge 20 ]; then break; fi
+      sleep 1
+      waited=$((waited + 1))
+    done
+  fi
   if ! app_running "$udid"; then
     report "$required" "$slug: the app was not running ${WAIT_SECONDS}s after launch ($label)"
     save_crash_logs "$slug"
+    stop_console "$console_pid"
     return 0
   fi
-  file="$OUT_DIR/$slug/$(printf '%02d' "$index")-$label.png"
   xcrun simctl io "$udid" screenshot --type=png "$file" >/dev/null
   sips -s format jpeg -s formatOptions 92 "$file" --out "${file%.png}.jpg" >/dev/null
+  stop_console "$console_pid"
+  if [ -n "$screen" ] && ! grep -q "CN_DEMO_READY $screen" "$log"; then
+    report "$required" "$slug: demo screen \"$screen\" never reported ready ($(grep -m1 "CN_DEMO_FAILED" "$log" || echo "no CN_DEMO_READY line; see ${log#"$OUT_DIR"/}"))"
+  fi
 }
 
 shoot_device() { # $1 name, $2 required|optional, $3 expected size

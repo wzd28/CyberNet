@@ -35,6 +35,19 @@ the one web deploy:
     PrivacyInfo.xcprivacy must keep saying the same thing.
 [ ] The Support page (/support) names the operator and explains deletion;
     check the reply-time promise ("within two working days").
+[ ] Team members in the app (added 29 Oct 2026): Check, Scan QR and the
+    Share sheet are never sent or logged, also for team members; only Analysis
+    AI and Recovery results reach the team owner's log. The app's Privacy
+    section, the Account note and the "Allow AI analysis?" sheet now all say
+    this (the sheet adds one sentence for team members only). The website's
+    Privacy Policy keeps its Quick Scan logging text for the website.
+[ ] Privacy section 2 now says the AI-consent record keeps the app's
+    user-agent text (app version and iOS version), which the data export
+    now includes.
+[ ] App wording (29 Oct 2026): a low score reads "LOW RISK" in the app and
+    the Share Extension instead of "NOT A SCAM" (no certainty claim); the
+    Recovery screen says "guidance, not legal or financial advice" and to
+    contact local emergency services if unsafe. Owner to approve the wording.
 
 DATABASE / INFRASTRUCTURE
 -------------------------------------------------------------------

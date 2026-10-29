@@ -519,8 +519,9 @@ document.addEventListener("DOMContentLoaded",()=>{
         if(value.length>254||!EMAIL_PATTERN.test(value))return "Enter a full email address, like name@example.com.";
         return "";
       case "current-password":return raw?"":"Enter your password.";
-      case "first-name":return value?"":"Enter your first name.";
-      case "last-name":return value?"":"Enter your last name.";
+/*@web*/      case "first-name":return value?"":"Enter your first name.";
+      case "last-name":return value?"":"Enter your last name.";/*@end-web*/
+      /*@ios case "first-name":case "last-name":return ""; @end-ios*/
       case "new-password":
         if(!raw)return field.id==="authNewPassword"?"Enter a new password.":"Choose a password.";
         if(raw.length<MIN_PASSWORD)return `Use at least ${MIN_PASSWORD} characters. This one has ${raw.length}.`;
@@ -584,7 +585,8 @@ document.addEventListener("DOMContentLoaded",()=>{
   /* ─── Dialog views: login | signup | reset (ask for a reset link) | recovery (choose a new password) ─── */
   const AUTH_HEADINGS={
     // Owner, 29 Oct 2026: the card itself carries the pitch and invites a free sign-up.
-    login:["Stay secure.","All in one place, designed for protection and recovery. Create your free account in seconds, or sign in."],
+/*@web*/    login:["Stay secure.","All in one place, designed for protection and recovery. Create your free account in seconds, or sign in."],/*@end-web*/
+    /*@ios login:["Stay secure.","Sign in to get AI explanations and Recovery plans. Check, Scan QR and Share work without an account."], @end-ios*/
     reset:["Reset your password","Enter the email you use for CyberNet AI. We'll send you a link to choose a new password."],
     recovery:["Choose a new password","Pick a new password for your CyberNet AI account. You'll stay signed in on this device."]
   };
@@ -878,6 +880,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   function isLoggedTeamMember(){return Boolean(appState.profile?.isTeamMember)&&appState.profile?.teamRole!=="owner"}
   function reportTeamActivity(payload){
     if(!isSignedIn()||!isLoggedTeamMember())return;
+    /*@ios if(payload?.kind==="quick_scan")return; @end-ios*/
     try{fetch("/api/team-activity",{method:"POST",headers:authHeaders({"Content-Type":"application/json"}),body:JSON.stringify(payload),keepalive:true}).catch(()=>{})}catch{}
   }
   function quickScanLogResult(result,extra={}){
@@ -1314,7 +1317,8 @@ document.addEventListener("DOMContentLoaded",()=>{
       const {data,error}=await appState.supabase.auth.signUp({
         email,password,
         options:{
-          data:{full_name:fullName,first_name:first,last_name:last},
+          /*@web*/data:{full_name:fullName,first_name:first,last_name:last},/*@end-web*/
+          /*@ios data:{...(fullName?{full_name:fullName}:{}),...(first?{first_name:first}:{}),...(last?{last_name:last}:{})}, @end-ios*/
           /*@web*/emailRedirectTo:inviteReturnUrl()||`${window.location.origin}/`/*@end-web*//*@ios emailRedirectTo:"https://cybernetai.app/app/confirmed.html" @end-ios*/
         }
       });
@@ -1878,7 +1882,10 @@ document.addEventListener("DOMContentLoaded",()=>{
     // one shared rule (CyberNetEngine.linkNeedsCaution). The AI's own
     // "inconclusive" verdict does not change the label: it follows the score.
     if(meta&&meta.kind==="link"&&!meta.officialBrand)return window.CyberNetEngine.linkNeedsCaution({...meta,score})?{label:"Can't Confirm",headline:"CAN'T CONFIRM",css:"uncertain"}:{label:"Low Risk",headline:"LOW RISK",css:"safe"};
-    return{label:"Not A Scam",headline:"NOT A SCAM",css:"safe"};
+    /*@web*/return{label:"Not A Scam",headline:"NOT A SCAM",css:"safe"};/*@end-web*/
+    // In the app a low score reads LOW RISK, never a certainty (App Review 2.3.1(a), 1.1.6; dossier risk D2).
+    // Same score and threshold; only the words differ (mobile/web-ios/ios.js verdictOf, engine.html).
+    /*@ios return{label:"Low Risk",headline:"LOW RISK",css:"safe"}; @end-ios*/
   }
 
   function showDeepScanPrompt(resultBox,advice){

@@ -8,8 +8,9 @@
   file and the engine are inside the extension bundle. engine/cybernet-engine.js is the website's
   public/cybernet-engine.js copied unchanged at build time (BUILD-PLAN §5.1 step 5).
   The bridge below only reads results; it adds no detection rules. Labels follow
-  verdictLabel() in public/script.js: 32+ is SCAM; a link on a domain nobody vouched for is
-  CAN'T CONFIRM (linkNeedsCaution) or LOW RISK; everything else is NOT A SCAM.
+  the app's getDanger() in public/script.js: 32+ is SCAM; a link on a domain nobody vouched for
+  is CAN'T CONFIRM (linkNeedsCaution) or LOW RISK; everything else is LOW RISK too (the app never
+  says "not a scam": a low score is not proof, App Review 2.3.1(a), dossier risk D2).
 -->
 <script src="engine/cybernet-engine.js"></script>
 <script>
@@ -23,7 +24,7 @@
       var caution = engine.linkNeedsCaution(Object.assign({}, result, { score: score }));
       return caution ? { band: "unverified", headline: "CAN'T CONFIRM" } : { band: "safe", headline: "LOW RISK" };
     }
-    return { band: "safe", headline: "NOT A SCAM" };
+    return { band: "safe", headline: "LOW RISK" };
   }
 
   function summarize(engine, result, subject) {

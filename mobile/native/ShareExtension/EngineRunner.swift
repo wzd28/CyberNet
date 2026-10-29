@@ -4,7 +4,7 @@ import WebKit
 /// One verdict from the engine, as returned by `cnRun` in engine.html.
 struct EngineVerdict: Decodable {
     let band: String       // "scam" | "unverified" | "safe" | "none"
-    let headline: String   // "SCAM" | "CAN'T CONFIRM" | "LOW RISK" | "NOT A SCAM" | "NOTHING TO CHECK"
+    let headline: String   // "SCAM" | "CAN'T CONFIRM" | "LOW RISK" | "NOTHING TO CHECK"
     let score: Double
     let lead: String
     let points: [String]

@@ -34,6 +34,34 @@
       "replace": "that our payment provider must keep by law",
       "min": 0,
       "why": "the in-app Privacy Policy names the processor; app screens do not mention purchases"
+    },
+    {
+      "find": "<li>Your place in any Business team. A team you own closes; its members keep their own accounts.</li>",
+      "replace": "<li>Your place in any team. A team you own closes; its members keep their own accounts.</li>",
+      "min": 1,
+      "max": 1,
+      "why": "risk A1: the app's screens name no website plan (Business is a website plan)"
+    },
+    {
+      "find": "If you are on a Business team, your past scans also leave the team's activity log.",
+      "replace": "If you are a member of a team, your past AI explanations also leave the team's activity log.",
+      "min": 1,
+      "max": 1,
+      "why": "risk A1 (no plan name); clearing history removes scan_history rows, which in the app are AI explanations only"
+    },
+    {
+      "find": "Your Business team's plan changed while your account was being deleted",
+      "replace": "Your team's plan changed while your account was being deleted",
+      "min": 1,
+      "max": 1,
+      "why": "risk A1: no plan name on app screens"
+    },
+    {
+      "find": "Some of your Business team details were already removed",
+      "replace": "Some of your team details were already removed",
+      "min": 1,
+      "max": 1,
+      "why": "risk A1: no plan name on app screens"
     }
   ]
 }

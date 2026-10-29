@@ -226,8 +226,14 @@ enum SharedPicture {
 
     /// QR payload and printed text, read on the device with Vision.
     static func read(_ picture: CGImage) -> (qr: String?, text: String?) {
+        let handler = VNImageRequestHandler(cgImage: picture, orientation: .up, options: [:])
+
+        // The QR code first, in its own request: if text recognition fails (a language model that is
+        // not on this iPhone, memory pressure in the extension), the QR result is never lost with it.
         let barcodes = VNDetectBarcodesRequest()
         barcodes.symbologies = [.qr]
+        try? handler.perform([barcodes])
+        let qr = barcodes.results?.compactMap { $0.payloadStringValue }.first { !$0.isEmpty }
 
         let english = VNRecognizeTextRequest()
         english.recognitionLevel = .accurate
@@ -237,12 +243,13 @@ enum SharedPicture {
         if !englishCodes.isEmpty {
             english.recognitionLanguages = englishCodes
         }
-
-        let handler = VNImageRequestHandler(cgImage: picture, orientation: .up, options: [:])
-        try? handler.perform([barcodes, english])
-
-        let qr = barcodes.results?.compactMap { $0.payloadStringValue }.first { !$0.isEmpty }
-        var lines = english.results?.compactMap { $0.topCandidates(1).first?.string } ?? []
+        // Vision's intermediate buffers are released as soon as each pass ends (extensions have a
+        // small memory limit).
+        var lines: [String] = []
+        autoreleasepool {
+            try? handler.perform([english])
+            lines = english.results?.compactMap { $0.topCandidates(1).first?.string } ?? []
+        }
 
         // Arabic, when this iOS version can read it and English found little (UNCERTAIN per iOS
         // version: Vision lists its languages at run time). Run separately, never mixed.
@@ -251,8 +258,11 @@ enum SharedPicture {
             let arabic = VNRecognizeTextRequest()
             arabic.recognitionLevel = .accurate
             arabic.recognitionLanguages = arabicCodes
-            try? handler.perform([arabic])
-            let arabicLines = arabic.results?.compactMap { $0.topCandidates(1).first?.string } ?? []
+            var arabicLines: [String] = []
+            autoreleasepool {
+                try? handler.perform([arabic])
+                arabicLines = arabic.results?.compactMap { $0.topCandidates(1).first?.string } ?? []
+            }
             if arabicLines.joined().count > lines.joined().count {
                 lines = arabicLines
             }

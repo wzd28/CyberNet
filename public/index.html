@@ -594,7 +594,8 @@
       </div>
       <div class="auth-heading">
         <h2 id="authModalTitle">Stay secure.</h2>
-        <p id="authModalIntro">All in one place, designed for protection and recovery. Create your free account in seconds, or sign in.</p>
+        <p id="authModalIntro" data-web-only>All in one place, designed for protection and recovery. Create your free account in seconds, or sign in.</p>
+        <!--@ios <p id="authModalIntro">Sign in to get AI explanations and Recovery plans. Check, Scan QR and Share work without an account.</p> @end-ios-->
       </div>
       <!-- Notices about a link the visitor came back from (expired, already used, cancelled). script.js fills it; empty means hidden. -->
       <div id="authNotice" class="cn-auth-notice" role="status"></div>
@@ -631,7 +632,7 @@
         </div>
       </form>
       <form id="authSignupForm" class="auth-form" method="post" action="/" novalidate>
-        <div class="auth-name-grid">
+        <div class="auth-name-grid" data-web-only>
           <div>
             <label for="signupFirstName">First name</label>
             <input type="text" id="signupFirstName" name="given-name" autocomplete="given-name" maxlength="60" placeholder="First name" required aria-describedby="signupFirstNameError" />
@@ -643,6 +644,18 @@
             <p class="cn-field-error" id="signupLastNameError" hidden></p>
           </div>
         </div>
+        <!--@ios <div class="auth-name-grid">
+          <div>
+            <label for="signupFirstName">First name (optional)</label>
+            <input type="text" id="signupFirstName" name="given-name" autocomplete="given-name" maxlength="60" placeholder="Optional" aria-describedby="signupFirstNameError" />
+            <p class="cn-field-error" id="signupFirstNameError" hidden></p>
+          </div>
+          <div>
+            <label for="signupLastName">Last name (optional)</label>
+            <input type="text" id="signupLastName" name="family-name" autocomplete="family-name" maxlength="60" placeholder="Optional" aria-describedby="signupLastNameError" />
+            <p class="cn-field-error" id="signupLastNameError" hidden></p>
+          </div>
+        </div> @end-ios-->
         <label for="signupEmail">Email</label>
         <input type="email" id="signupEmail" name="email" autocomplete="email" autocapitalize="off" spellcheck="false" maxlength="254" placeholder="you@example.com" required aria-describedby="signupEmailError" />
         <p class="cn-field-error" id="signupEmailError" hidden></p>
@@ -1658,6 +1671,7 @@
         <p class="cn-edlabel cn-rec-label">Recovery</p>
         <h1>Take a breath. <span>Let’s <b>fix</b> <span class="cn-rec-keep">what happened.</span></span></h1>
         <p class="cn-rec-lead">CyberNet AI turns what happened into a clear recovery plan: what to do now, what to secure next, and what risks remain.</p>
+        <!--@ios <p class="cn-rec-lead cn-ios-rec-note" id="cnRecoveryNote">CyberNet AI gives guidance, not legal or financial advice. If you feel unsafe, contact your local emergency services.</p> @end-ios-->
 
         <div class="usage-meter-card" id="recoveryUsageCard">
           <div class="usage-meter-labels">

@@ -16,6 +16,16 @@
   "use strict";
   var w = window, d = document;
   var errors = [];
+
+  // CI runs (screenshots.sh, engine-parity.sh) start from a fresh simulator. Without this the first-run
+  // intro sheet would cover every demo screen and, once it is gone, Apple's tracking alert would cover the
+  // next capture. This runs before ios.js's start() timer (600 ms) reads either: deferred scripts all run
+  // before DOMContentLoaded, and cn-ios-boot.js has already defined CNNative. A plain launch (no demo,
+  // no self-test) keeps the real first-run flow.
+  if (w.CN_DEMO_SCREEN || w.CN_ENGINE_SELFTEST) {
+    try { w.localStorage.setItem("cn-ios-intro-1", "demo"); } catch (e) { /* storage blocked */ }
+    if (w.CNNative) w.CNNative.requestTracking = function () { return Promise.resolve("denied"); };
+  }
   function panel() {
     var box = d.getElementById("cn-debug-errors");
     if (!box) {
@@ -45,7 +55,7 @@
     var score = Number(r && r.score) || 0;
     if (score >= E.SCAM_THRESHOLD) return "SCAM";
     if (r && r.kind === "link" && !r.officialBrand) return E.linkNeedsCaution(r) ? "CAN'T CONFIRM" : "LOW RISK";
-    return "NOT A SCAM";
+    return "LOW RISK";
   }
   function selfTest() {
     var E = w.CyberNetEngine;
@@ -91,7 +101,12 @@
   function start() {
     if (on(w.CN_ENGINE_SELFTEST) || /[?&]selftest=1/.test(location.search)) setTimeout(selfTest, 800);
     var demo = w.CN_DEMO_SCREEN || (/[?&]demo=([\w-]+)/.exec(location.search) || [])[1];
-    if (demo && Object.prototype.hasOwnProperty.call(DEMO, demo)) setTimeout(function () { try { DEMO[demo](); } catch (e) { add("demo " + demo + ": " + e); } }, 1500);
+    if (demo && Object.prototype.hasOwnProperty.call(DEMO, demo)) setTimeout(function () {
+      try { DEMO[demo](); } catch (e) { add("demo " + demo + ": " + e); console.log("CN_DEMO_FAILED " + demo + " " + e); return; }
+      // screenshots.sh waits for this line (simctl launch --console-pty) before it trusts the capture.
+      setTimeout(function () { console.log("CN_DEMO_READY " + demo); }, 400);
+    }, 1500);
+    else if (demo) console.log("CN_DEMO_FAILED " + demo + " unknown screen");
   }
   if (d.readyState === "loading") d.addEventListener("DOMContentLoaded", start, { once: true }); else start();
 })();

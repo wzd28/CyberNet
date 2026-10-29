@@ -199,6 +199,12 @@
     const providers = user?.app_metadata?.providers || [user?.app_metadata?.provider];
     return (providers || []).includes("apple") || (user?.identities || []).some(i => i?.provider === "apple");
   }
+  // A member (not the owner) of a team joined on the website: their AI explanations and Recovery activity
+  // also go to the team owner's activity log (owner answer 8). Checks on the iPhone never do.
+  function isTeamMember() {
+    const s = state();
+    return Boolean(s?.profile?.isTeamMember) && s?.profile?.teamRole !== "owner";
+  }
   function renderAccount() {
     const page = $("#account");
     if (!page) return;
@@ -217,8 +223,7 @@
       $("#cnAcctAi").textContent = limit ? `${Math.max(0, limit - used)} of ${limit} left` : "—";
       const r = s?.recoveryUsage || {};
       $("#cnAcctRec").textContent = Number(r.limit) ? `${Math.max(0, Number(r.limit) - (Number(r.used) || 0))} of ${Number(r.limit)} left` : "—";
-      const member = Boolean(s?.profile?.isTeamMember) && s?.profile?.teamRole !== "owner";
-      $("#cnAcctTeam").hidden = !member;
+      $("#cnAcctTeam").hidden = !isTeamMember();
       refreshConsentSwitch();
     }
     refreshReminderSwitch();
@@ -327,6 +332,7 @@
         <div class="cn-ios-sheet-body">
           <p>To explain a message, link, screenshot or Recovery case, CyberNet AI sends it from your iPhone to our server, which passes it to <strong>OpenAI</strong>, a third-party AI provider, to write the explanation.</p>
           <p>It is sent only when you send it yourself: Send in Analysis AI, or Start and Update in Recovery. OpenAI processes it under its API terms and does not use it to train its models. Remove passwords, one-time codes and card numbers first.</p>
+          ${isTeamMember() ? "<p><strong>You are a member of a team:</strong> your AI explanations and Recovery activity also appear in your team owner&rsquo;s activity log.</p>" : ""}
           <p>Quick Scan, QR scanning and the Share sheet work on your iPhone and do not use AI.</p>
           <p>You can turn this off any time in Account, under Privacy &amp; data.</p>
           <p class="cn-ios-sheet-error" role="alert" hidden></p>
@@ -773,7 +779,7 @@
     const score = Number(result?.score) || 0;
     if (score >= (E?.SCAM_THRESHOLD ?? 32)) return { headline: "SCAM", tone: "danger", haptic: "ERROR" };
     if (result?.kind === "link" && !result.officialBrand) return E?.linkNeedsCaution?.(result) ? { headline: "CAN'T CONFIRM", tone: "uncertain", haptic: "WARNING" } : { headline: "LOW RISK", tone: "safe", haptic: "SUCCESS" };
-    return { headline: "NOT A SCAM", tone: "safe", haptic: "SUCCESS" };
+    return { headline: "LOW RISK", tone: "safe", haptic: "SUCCESS" }; // never "NOT A SCAM" in the app (risk D2)
   }
   function linkParts(value) {
     try {

@@ -210,7 +210,7 @@
    "input": "Team lunch is at 1 pm today, see you at the usual place.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "meeting-reschedule",
@@ -218,7 +218,7 @@
    "input": "Hi Sara, can we move tomorrow's meeting to 3 pm? The client asked for an earlier slot in the morning.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "bank-awareness",
@@ -226,7 +226,7 @@
    "input": "Security tip from your bank: we will never ask for your OTP or password. Do not share them with anyone, and report suspicious messages to us.",
    "score": 0,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "delivery-legit",
@@ -234,7 +234,7 @@
    "input": "Your order #48213 has been shipped and will arrive on Thursday. Track it in the app you ordered from.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "dentist",
@@ -242,7 +242,7 @@
    "input": "Reminder: your dental appointment is on Monday at 10:30. Reply C to confirm or call the clinic to reschedule.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "school-note",
@@ -250,7 +250,7 @@
    "input": "Dear parents, the school trip to the science museum is on 3 October. Please sign the permission slip your child brought home.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "invoice-normal",
@@ -258,7 +258,7 @@
    "input": "Hi, please find attached the invoice for September as agreed. Payment terms are 30 days as usual. Thanks for your business.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "arabic-safe",
@@ -266,7 +266,7 @@
    "input": "مرحباً، الاجتماع غداً الساعة العاشرة صباحاً في المكتب، أراك هناك.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "google-docs",
@@ -274,7 +274,7 @@
    "input": "https://docs.google.com/document/d/1AbC/edit",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "enbd-official",
@@ -282,7 +282,7 @@
    "input": "https://www.emiratesnbd.com/en/personal-banking",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "apple-official-login",
@@ -290,7 +290,7 @@
    "input": "https://appleid.apple.com/sign-in",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "dewa-official",
@@ -298,7 +298,7 @@
    "input": "https://www.dewa.gov.ae/en/consumer/billing",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "unknown-shop",
@@ -379,56 +379,56 @@
    "input": "Your OTP for transaction of AED 500.00 at AMAZON is 482913. Do not share it with anyone. Bank staff will never ask for it.",
    "score": 0,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "audit-oct29/guard-legit-enter-code",
    "input": "Enter the verification code 482913 to log in. Never share this code with anyone.",
    "score": 0,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "audit-oct29/guard-legit-never-ask-send",
    "input": "Do not share this code. We will never ask you to send it to us.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "audit-oct29/guard-legit-never-ask-password",
    "input": "We will never ask you to send us your password by email or text.",
    "score": 0,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "audit-oct29/guard-legit-bank-tip",
    "input": "Security tip: never share your PIN or OTP with anyone, even if they say they are from the bank. Report suspicious calls to 800 123.",
    "score": 0,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "audit-oct29/guard-legit-app-store",
    "input": "Never share your password. Download our official app from the App Store to manage your account.",
    "score": 0,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "audit-oct29/refund-processed",
    "input": "Your Amazon refund of AED 129.00 has been processed to your original payment method.",
    "score": 16,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "audit-oct29/refund-within-24h",
    "input": "Your refund will be credited within 24 hours to your card ending 1234.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "audit-oct29/refund-ask-still-scam",
@@ -443,7 +443,7 @@
    "input": "https://discord.gg/abcd",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "audit-oct29/official-spotify-link",
@@ -451,7 +451,7 @@
    "input": "https://open.spotify.link/xyz",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "audit-oct29/official-instagr-am",
@@ -459,7 +459,7 @@
    "input": "https://instagr.am/p/abc",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "audit-oct29/official-telegram-me",
@@ -467,7 +467,7 @@
    "input": "https://telegram.me/somechannel",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "audit-oct29/official-netflix-net",
@@ -475,7 +475,7 @@
    "input": "https://netflix.net/",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "audit-oct29/official-microsoftstore",
@@ -483,7 +483,7 @@
    "input": "https://www.microsoftstore.com/",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "audit-oct29/lookalike-discord-gift",
@@ -592,42 +592,42 @@
    "input": "Don't tell anyone, it's a surprise party for mom on Saturday!",
    "score": 22,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "audit-oct29/everyday-darling",
    "input": "Darling, can you pick up milk on your way home?",
    "score": 15,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "audit-oct29/everyday-bank-debit-800",
    "input": "Your card ending 1234 was charged AED 250.00 at Carrefour. If this wasn't you, call 600 54 0000.",
    "score": 6,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "audit-oct29/everyday-terminal-dev",
    "input": "Open Terminal and paste this command to install Node: brew install node",
    "score": 10,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "audit-oct29/everyday-atm-fee",
    "input": "A withdrawal fee of AED 2 applies to ATM withdrawals at other banks.",
    "score": 6,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "audit-oct29/everyday-fixed-deposit",
    "input": "To withdraw from your fixed deposit early you will pay a penalty fee of 1%.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "audit-oct29/app-install-itms",
@@ -867,7 +867,7 @@
    "input": "https://outlook.office.com/mail/inbox",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "business/link-linkedin-official",
@@ -875,7 +875,7 @@
    "input": "https://www.linkedin.com/jobs/view/4123456",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "business/safe-bank-change-invites-call",
@@ -883,7 +883,7 @@
    "input": "Hi Jonathan, as discussed on the call yesterday, our bank details have changed following our move to a new bank. The updated details are in the attached letter on our letterhead. Please call me on the usual office number to confirm before you make the next payment.",
    "score": 26,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "business/safe-invoice-payable-within-30-days",
@@ -891,7 +891,7 @@
    "input": "Good afternoon, attached is invoice 2026-118 for the consulting work in August, total EUR 3,200, payable within 30 days to the account shown on the invoice as usual. Let me know if you need a PO number. Best regards, Hana",
    "score": 16,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "business/safe-calendar-invite",
@@ -899,7 +899,7 @@
    "input": "Invitation: Q4 planning review @ Thu 2 Oct 2026 10:00 - 11:00 (GST). Join Microsoft Teams meeting. Organizer: Layla. Accept / Tentative / Decline",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "business/safe-supplier-overdue-polite",
@@ -907,7 +907,7 @@
    "input": "Hello, a gentle reminder that the outstanding balance of AED 4,800 on invoice 5520 is now overdue. Could you let us know when we can expect payment? Happy to resend the invoice if it helps. Kind regards, Accounts team",
    "score": 26,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "business/safe-it-password-policy",
@@ -915,7 +915,7 @@
    "input": "IT notice: from 1 October, passwords must be at least 14 characters and will expire every 180 days. Windows will remind you 7 days before expiry. No action is needed now. IT will never ask you for your password by email or phone.",
    "score": 0,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "business/safe-hr-payroll-dates",
@@ -923,7 +923,7 @@
    "input": "HR update: September salaries will be paid on Thursday 25 September. Payslips will be available in the HR portal the day before. Questions to your usual HR contact.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "business/safe-customer-complaint",
@@ -931,7 +931,7 @@
    "input": "I'm writing to complain about order 77120. The delivery arrived two weeks late and the invoice charged me twice for shipping. I'd like a refund of the duplicate charge. Please respond within 5 working days.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "business/safe-contract-for-review",
@@ -939,7 +939,7 @@
    "input": "Hi, attached is the draft services agreement for your review. Key changes are in section 4 (payment terms: net 45) and section 9 (liability cap). Please send your comments by the end of next week and we can set up a call.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "business/safe-sharepoint-real-share",
@@ -947,7 +947,7 @@
    "input": "Omar shared 'Board deck v3.pptx' with you. Open: https://contoso.sharepoint.com/sites/finance/Shared%20Documents/board-deck-v3.pptx",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "business/safe-boss-are-you-free",
@@ -955,7 +955,7 @@
    "input": "Hi Sam, are you free for 10 minutes this afternoon? Want to go over the budget slides before Thursday's board meeting. My calendar is up to date, grab any slot.",
    "score": 25,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "business/safe-it-mfa-rollout",
@@ -963,7 +963,7 @@
    "input": "Reminder: multi-factor authentication becomes mandatory for all staff on 15 October. Set it up from Settings > Security in your account before then. IT will run drop-in sessions on Tuesday. No links are needed, and we will never ask for your password.",
    "score": 0,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "business/safe-vendor-onboarding-w9",
@@ -971,7 +971,7 @@
    "input": "Welcome aboard as a supplier. Before we can pay your first invoice, our AP team needs a completed W-9 and a certificate of insurance. Please upload them through the vendor portal you registered on, not by email.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "business/safe-recruiter-intro",
@@ -979,7 +979,7 @@
    "input": "Hi, I'm a recruiter at a fintech in Dubai. Your background in data engineering looks like a strong match for a senior role we're hiring for. If you're open to it, happy to share the job description and set up a 20-minute intro call next week.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "business/safe-arabic-invoice",
@@ -987,7 +987,7 @@
    "input": "مرحباً فريق المحاسبة، مرفق فاتورة شهر أغسطس رقم 2210 بقيمة 12,500 درهم حسب العقد. شروط الدفع 30 يوماً كالمعتاد. شكراً لتعاونكم",
    "score": 16,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "business/safe-hr-bank-change-reminder",
@@ -995,7 +995,7 @@
    "input": "Payroll reminder: if you need to change the bank account your salary is paid into, do it yourself in the HR self-service portal. HR will never change bank details based on an email request.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "global/usps-address-hold",
@@ -1211,7 +1211,7 @@
    "input": "Your code is 482913. Do not share it.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "global/real-google-code",
@@ -1219,7 +1219,7 @@
    "input": "G-733921 is your Google verification code.",
    "score": 14,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "global/real-bank-alert-card",
@@ -1227,7 +1227,7 @@
    "input": "Chase Fraud Alert: did you attempt $212.50 at PETROL STATION on 09/21? Reply YES or NO. If NO, call the number on the back of your card.",
    "score": 27,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "global/real-supplier-invoice",
@@ -1235,7 +1235,7 @@
    "input": "Hi Tom, invoice INV-2291 for the September web hosting is attached, total 340 USD, due 15 October. Same account details as always. Thanks, Priya",
    "score": 16,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "global/newsletter-link",
@@ -1243,7 +1243,7 @@
    "input": "The Weekly Byte, issue 84: 5 tools for faster code reviews, plus our take on the new EU AI rules. Read online: https://weeklybyte.substack.com/p/issue-84 Unsubscribe anytime.",
    "score": 10,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "global/friend-pay-back",
@@ -1251,7 +1251,7 @@
    "input": "hey can you send me the 40 for the concert tickets when you get a chance? bank transfer or revolut is fine",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "global/landlord-rent-reminder",
@@ -1259,7 +1259,7 @@
    "input": "Hi, just a reminder that rent for October is due on the 1st. Same amount as usual to the account you have on file. Let me know if you need the details again.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "global/hr-payroll-dates",
@@ -1267,7 +1267,7 @@
    "input": "Hi all, payroll for September will be processed on the 27th and should land in your accounts by the 30th. Payslips will be available in Workday as usual. HR",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "global/dhl-out-for-delivery",
@@ -1275,7 +1275,7 @@
    "input": "DHL: your shipment 4471 2290 15 is out for delivery today between 10:00 and 14:00. No action is needed.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "global/hmrc-self-assessment",
@@ -1283,7 +1283,7 @@
    "input": "HMRC: Your Self Assessment tax return for 2025-26 is due by 31 January. Sign in to your HMRC online account to file. We will never ask for bank details by text.",
    "score": 0,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "global/spotify-payment-received",
@@ -1291,7 +1291,7 @@
    "input": "Your Spotify Premium payment of $10.99 was received. Next billing date: 24 Oct. Manage your plan in Settings.",
    "score": 0,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "global/new-sign-in-notice",
@@ -1299,7 +1299,7 @@
    "input": "New sign-in to your account from Chrome on Windows. If this was you, you can ignore this message. If not, change your password from account settings in the app.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "global/arabic-clinic-reminder",
@@ -1307,7 +1307,7 @@
    "input": "تذكير: موعدك في العيادة يوم الثلاثاء الساعة 4 مساءً. للإلغاء أو إعادة الجدولة اتصل بنا.",
    "score": 14,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "global/etisalat-otp-warning",
@@ -1315,7 +1315,7 @@
    "input": "Etisalat: your one-time password is 551204. It expires in 5 minutes. Do not share this with anyone, including Etisalat staff.",
    "score": 0,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "global/spotify-official-account",
@@ -1323,7 +1323,7 @@
    "input": "https://www.spotify.com/account/overview",
    "score": 12,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "global/gov-uk-self-assessment",
@@ -1331,7 +1331,7 @@
    "input": "https://www.gov.uk/self-assessment-tax-returns",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "gulf/enbd-card-blocked-ar",
@@ -1547,7 +1547,7 @@
    "input": "DEWA: Your bill for September 2026 is AED 412.30, due on 12 October. You can pay through the DEWA app, dewa.gov.ae or any authorised payment channel.",
    "score": 16,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "gulf/salik-topup-ar",
@@ -1555,7 +1555,7 @@
    "input": "سالك: تمت إضافة 100 درهم إلى حسابك بنجاح. رصيدك الحالي 143.50 درهم. شكراً لاستخدامك سالك.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "gulf/enbd-otp-en",
@@ -1563,7 +1563,7 @@
    "input": "Emirates NBD: 482913 is your OTP for a purchase of AED 349.00 at NOON. Valid for 3 minutes. Never share this code with anyone, not even bank staff.",
    "score": 0,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "gulf/adcb-otp-ar",
@@ -1571,7 +1571,7 @@
    "input": "بنك أبوظبي التجاري: رمز التحقق لعملية الشراء بقيمة 250 درهم هو 573921. لا تشارك هذا الرمز مع أي شخص، البنك لن يطلبه منك أبداً.",
    "score": 5,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "gulf/mashreq-txn-alert-ar",
@@ -1579,7 +1579,7 @@
    "input": "بنك المشرق: تمت عملية شراء بقيمة 89.00 درهم من كارفور باستخدام بطاقتك المنتهية بـ 4412 في 14:32. إن لم تكن أنت، اتصل بنا على الرقم خلف بطاقتك.",
    "score": 26,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "gulf/uaepass-signin-alert-en",
@@ -1587,7 +1587,7 @@
    "input": "UAE PASS: You have successfully signed in on a new device (iPhone) at 09:14. If this was not you, change your password from the UAE PASS app.",
    "score": 25,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "gulf/icp-renewal-received-ar",
@@ -1595,7 +1595,7 @@
    "input": "الهيئة الاتحادية للهوية والجنسية: تم استلام طلب تجديد الهوية الإماراتية الخاص بك، مدة الإنجاز 3 أيام عمل. ستصلك رسالة عند جاهزية البطاقة.",
    "score": 15,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "gulf/eand-data-usage-en",
@@ -1603,7 +1603,7 @@
    "input": "e&: You have used 80% of your 20GB data. Your plan renews on 1 October. To add data, use the e& app or dial *170#.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "gulf/aramex-out-for-delivery-en",
@@ -1611,7 +1611,7 @@
    "input": "Aramex: Your shipment 4471 8823 0091 is out for delivery today between 2pm and 6pm. No payment is required. Track it at aramex.com",
    "score": 0,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "gulf/epost-arrival-ar",
@@ -1619,7 +1619,7 @@
    "input": "بريد الإمارات: طردك رقم EE123456789AE وصل إلى مركز التوزيع وسيتم توصيله غداً. لا حاجة لأي إجراء من طرفك.",
    "score": 14,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "gulf/dentist-reminder-ar",
@@ -1627,7 +1627,7 @@
    "input": "تذكير: موعدك في عيادة الأسنان يوم الثلاثاء الساعة 4:30 مساءً. للإلغاء أو التغيير يرجى الاتصال بالعيادة.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "gulf/school-holiday-ar",
@@ -1635,7 +1635,7 @@
    "input": "أولياء الأمور الكرام، غداً إجازة بمناسبة اليوم الوطني ويستأنف الدوام يوم الاثنين. نتمنى لكم عطلة سعيدة.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "gulf/link-adcb-official",
@@ -1643,7 +1643,7 @@
    "input": "https://www.adcb.com/en/personal/accounts/",
    "score": 12,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "gulf/link-salik-official",
@@ -1651,7 +1651,7 @@
    "input": "https://www.salik.ae/en",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "gulf/link-enbd-noscheme",
@@ -1659,7 +1659,7 @@
    "input": "emiratesnbd.com/en/help/otp",
    "score": 5,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "gulf/link-parking-rates",
@@ -1923,7 +1923,7 @@
    "input": "https://www.google.ae",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-google-sa",
@@ -1931,7 +1931,7 @@
    "input": "https://google.com.sa",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-amazon-uk",
@@ -1939,7 +1939,7 @@
    "input": "https://www.amazon.co.uk",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-paypal-me",
@@ -1947,7 +1947,7 @@
    "input": "https://paypal.me/friend",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-totalpadel-www",
@@ -1971,7 +1971,7 @@
    "input": "Привет! Я купил новый Samsung и Apple Watch",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-text-russian-meta",
@@ -1979,7 +1979,7 @@
    "input": "Ваша мета на неделю: 5 км",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-text-greek",
@@ -1987,7 +1987,7 @@
    "input": "Καλημέρα, το Google Maps δεν δουλεύει σήμερα",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-text-greek-netflix",
@@ -1995,7 +1995,7 @@
    "input": "Το Netflix ανέβασε τις τιμές του",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-text-accents",
@@ -2003,7 +2003,7 @@
    "input": "José paid the invoice for the Zürich office, see you at the café",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-text-german",
@@ -2011,7 +2011,7 @@
    "input": "Tschüss, wir sehen uns in München",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/hg-friend-greek-o-sender",
@@ -2339,7 +2339,7 @@
    "input": "From: Google <no-reply@accounts.google.com>\nSubject: Security alert\n\nA new sign-in on Windows. If this was you, you don't need to do anything.",
    "score": 29,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-real-google-alert-link",
@@ -2347,7 +2347,7 @@
    "input": "From: Google <no-reply@accounts.google.com>\nSubject: Security alert\n\nA new sign-in on Windows. If this was you, you don't need to do anything. If not, we'll help you secure your account. Check activity at https://myaccount.google.com/notifications",
    "score": 29,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-real-paypal-alert",
@@ -2355,7 +2355,7 @@
    "input": "From: PayPal <service@paypal.com>\nSubject: Security alert\nWe noticed a new login to your PayPal account from a new device. If this was you, no action is needed.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-italian-meta-half",
@@ -2363,7 +2363,7 @@
    "input": "Ciao! Ti mando la metà del conto stasera, il resto domani. Grazie mille!",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-italian-meta-short",
@@ -2371,7 +2371,7 @@
    "input": "Ho pagato metà.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-french-meta-analyse",
@@ -2379,7 +2379,7 @@
    "input": "J'ai lu une méta-analyse sur le sommeil, je te l'envoie ce soir.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-polish-tesla-case",
@@ -2387,7 +2387,7 @@
    "input": "Jadę Teslą do pracy, będę o 9.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-turkish-salik-advice",
@@ -2395,7 +2395,7 @@
    "input": "Arkadaşım bu kitabı okumamı salık verdi, yarın kütüphaneden alacağım.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-french-name-zain",
@@ -2403,7 +2403,7 @@
    "input": "Zaïn arrive demain.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-french-emirates",
@@ -2411,7 +2411,7 @@
    "input": "Mon vol avec Émirates part demain matin.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-greek-tiktok",
@@ -2419,7 +2419,7 @@
    "input": "Είδα ένα βίντεο στο τικτοκ χθες, ήταν πολύ αστείο.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-russian-du-number",
@@ -2427,7 +2427,7 @@
    "input": "Мой номер у du теперь другой, запиши.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-vietnamese-example",
@@ -2435,7 +2435,7 @@
    "input": "Chào bạn, ví dụ này rất hay. Hẹn gặp lại ngày mai nhé.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-family-emoji-zwj",
@@ -2443,7 +2443,7 @@
    "input": "Happy birthday Sara! 👨‍👩‍👧 We're all coming tonight 🎉",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-persian-zwnj",
@@ -2451,7 +2451,7 @@
    "input": "سلام، می‌خواهم فردا ساعت ۵ بیایم خانه‌تان.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-leading-bom",
@@ -2459,7 +2459,7 @@
    "input": "﻿Hi team, the meeting moved to 3pm tomorrow. Thanks!",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-german-soft-hyphens",
@@ -2467,7 +2467,7 @@
    "input": "Die Bundes­regierung hat heute die neuen Regeln ver­kündet.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-ipa-transcription",
@@ -2475,7 +2475,7 @@
    "input": "The phonetic spelling is /ˈɡuːɡəl/ in IPA.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-idn-italian-meta",
@@ -2523,7 +2523,7 @@
    "input": "https://goo​gle.com/signin",
    "score": 12,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-fullwidth-real-google",
@@ -2531,7 +2531,7 @@
    "input": "https://ｇｏｏｇｌｅ.com",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-rn-word-stearn",
@@ -2659,7 +2659,7 @@
    "input": "Votre vol Émirates pour Dubaï est confirmé. Bon voyage et à bientôt !",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-russian-meta-goal",
@@ -2667,7 +2667,7 @@
    "input": "Наша мета — закончить проект до пятницы.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-german-uber",
@@ -2675,7 +2675,7 @@
    "input": "Ich bin über das Wochenende in München, wir sehen uns Montag.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-file-name-underscore",
@@ -2683,7 +2683,7 @@
    "input": "Download the menu: menu_ramadan.pdf, prices include VAT",
    "score": 10,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-file-name-accented",
@@ -2691,7 +2691,7 @@
    "input": "Can you download my résumé.pdf from the drive and print two copies?",
    "score": 10,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-file-name-photo",
@@ -2699,7 +2699,7 @@
    "input": "Download Zoë_birthday.jpg from the group, it's the best photo",
    "score": 10,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-typo-basher-not-absher",
@@ -2731,7 +2731,7 @@
    "input": "İnstagram stories are fun, I posted three today",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-small-caps-fancy-font",
@@ -2739,7 +2739,7 @@
    "input": "ꜰᴏʟʟᴏᴡ ᴜꜱ ᴏɴ ɪɴꜱᴛᴀɢʀᴀᴍ @noor_beauty_dxb new collection",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "homoglyphs/safe-vietnamese-idn-moi",
@@ -2947,7 +2947,7 @@
    "input": "https://accounts.google.com/signin/v2/identifier",
    "score": 12,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "links/google-signin-continue-param",
@@ -2955,7 +2955,7 @@
    "input": "https://accounts.google.com/signin/v2/identifier?continue=https://mail.google.com/mail/",
    "score": 12,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "links/apple-id-manage",
@@ -2963,7 +2963,7 @@
    "input": "https://id.apple.com/account/manage",
    "score": 12,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "links/uaepass-bare-no-scheme",
@@ -2971,7 +2971,7 @@
    "input": "uaepass.ae",
    "score": 5,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "links/absher-no-scheme",
@@ -2979,7 +2979,7 @@
    "input": "www.absher.sa/portal/individuals.html",
    "score": 5,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "links/enbd-otp-help-page",
@@ -2987,7 +2987,7 @@
    "input": "https://www.emiratesnbd.com/en/help-and-support/security-centre/otp-safety",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "links/microsoftonline-real-login",
@@ -2995,7 +2995,7 @@
    "input": "https://login.microsoftonline.com/common/oauth2/authorize",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "links/outlook-office-real",
@@ -3003,7 +3003,7 @@
    "input": "https://outlook.office.com/mail/inbox",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "links/gov-uk-tax-service",
@@ -3011,7 +3011,7 @@
    "input": "https://www.tax.service.gov.uk/personal-account",
    "score": 12,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "links/police-uk-met",
@@ -3019,7 +3019,7 @@
    "input": "https://www.met.police.uk/ro/report/",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "links/gouv-fr-impots",
@@ -3027,7 +3027,7 @@
    "input": "https://www.impots.gouv.fr/particulier",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "links/gov-cy-police",
@@ -3035,7 +3035,7 @@
    "input": "https://www.police.gov.cy/en/news",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "links/gov-sa-portal",
@@ -3043,7 +3043,7 @@
    "input": "https://www.my.gov.sa/wps/portal/snp/main",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "links/bakery-menu",
@@ -3179,7 +3179,7 @@
    "input": "https://www.emiratesnbd.com/en",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "links/uae-portal-unlisted",
@@ -3195,7 +3195,7 @@
    "input": "https://www.moe.gov.ae/en/pages/home.aspx",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "links/free-host-du-billing",
@@ -3323,7 +3323,7 @@
    "input": "https://www.carrefouruae.com/",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "links/meta-official",
@@ -3331,7 +3331,7 @@
    "input": "https://www.meta.com/",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "links/rta-official",
@@ -3339,7 +3339,7 @@
    "input": "https://www.rta.ae/wps/portal/rta/ae/home",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "links/parkin-official",
@@ -3347,7 +3347,7 @@
    "input": "https://www.parkin.ae/",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "links/dubizzle-official",
@@ -3355,7 +3355,7 @@
    "input": "https://www.dubizzle.com/",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "links/emirates-skywards-official",
@@ -3363,7 +3363,7 @@
    "input": "https://www.emirates.com/ae/english/skywards/",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "links/etihad-official",
@@ -3371,7 +3371,7 @@
    "input": "https://www.etihad.com/en-ae/",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "links/knet-official",
@@ -3379,7 +3379,7 @@
    "input": "https://www.knet.com.kw/",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "links/mof-sa-official",
@@ -3387,7 +3387,7 @@
    "input": "https://www.mof.gov.sa/",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "links/dubai-portal-official",
@@ -3395,7 +3395,7 @@
    "input": "https://www.dubai.ae/",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "links/fab-official",
@@ -3403,7 +3403,7 @@
    "input": "https://www.bankfab.com/en-ae/personal",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "links/github-io-portfolio",
@@ -3795,7 +3795,7 @@
    "input": "https://www.knetpay.com.kw/CGW302/hppaction",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "links/kpay-official-gateway",
@@ -3803,7 +3803,7 @@
    "input": "https://www.kpay.com.kw/kpg/PaymentHTTP.htm",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "links/tamm-pay-government-gtld",
@@ -3811,7 +3811,7 @@
    "input": "https://pay.tamm.abudhabi/",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "links/adnoc-official",
@@ -3819,7 +3819,7 @@
    "input": "https://www.adnoc.ae/en/",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "links/stc-pay-official",
@@ -3827,7 +3827,7 @@
    "input": "https://stcpay.com.sa/en/send-money",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "links/parking-com-real",
@@ -4259,7 +4259,7 @@
    "input": "Sorry, wrong number!",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/fp-wrong-number-sister",
@@ -4267,7 +4267,7 @@
    "input": "Oh sorry, wrong number, I was trying to reach my sister. Have a good day!",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/fp-wrong-number-good-luck",
@@ -4275,7 +4275,7 @@
    "input": "Sorry wrong number 😅 but good luck with your exam tomorrow!",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/fp-you-have-wrong-number",
@@ -4283,7 +4283,7 @@
    "input": "I think you have the wrong number, this is Omar not Sami.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/fp-wrong-number-my-gold-investment",
@@ -4291,7 +4291,7 @@
    "input": "Sorry, wrong number. I meant to send this to my financial advisor: please move the meeting about my gold investment to Thursday.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/fp-uncle-gold-trader",
@@ -4299,7 +4299,7 @@
    "input": "My uncle is a gold trader in Dubai, he says prices went up again this week.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/fp-friend-teach-investing",
@@ -4307,7 +4307,7 @@
    "input": "If you want, I can teach you the basics of investing this weekend, just bring a notebook. You don't need to buy anything.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/fp-teach-excel",
@@ -4315,7 +4315,7 @@
    "input": "I can teach you Excel this weekend if you want, pivot tables are easy.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/fp-broker-newsletter",
@@ -4323,7 +4323,7 @@
    "input": "Sarwa Learn: this week we explain how index funds work and why diversification matters. Investing involves risk and past performance is not a guarantee of future results.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/fp-news-army-officer",
@@ -4331,7 +4331,7 @@
    "input": "News: an army officer serving in Syria was honoured for rescuing civilians during the floods.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/fp-news-diplomat-consignment",
@@ -4339,7 +4339,7 @@
    "input": "The diplomat said the consignment of humanitarian aid reached the border on Monday.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/fp-trunk-in-car",
@@ -4347,7 +4347,7 @@
    "input": "The trunk is in the car, I left the box of books there for you.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/fp-brother-army-box",
@@ -4355,7 +4355,7 @@
    "input": "My brother is in the army and serving abroad, he sent a box of gifts for the kids, it should arrive next week.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/fp-charity-fundraiser",
@@ -4363,7 +4363,7 @@
    "input": "Our school is raising funds for the Red Crescent flood appeal. Every dirham helps, you can donate at the school office this week.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/fp-colleague-30-discount",
@@ -4371,7 +4371,7 @@
    "input": "Hey, Carrefour has 30% off all coffee machines this week, and you will get 30% back as points if you pay with the app.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/fp-bake-sale-share",
@@ -4379,7 +4379,7 @@
    "input": "We'll share the money from the bake sale 50/50, you made half the cupcakes!",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/fp-grandma-inheritance",
@@ -4387,7 +4387,7 @@
    "input": "The lawyer called about grandma's inheritance, we need to sign the papers at the notary on Sunday.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/fp-ar-wrong-number",
@@ -4395,7 +4395,7 @@
    "input": "عفواً أخطأت الرقم، كنت أبحث عن محل الحلويات",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/fp-ar-uncle-gold",
@@ -4403,7 +4403,7 @@
    "input": "خالي يعمل في تداول الذهب في دبي وقال إن الأسعار ارتفعت هذا الأسبوع",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/fp-ar-news-officer",
@@ -4411,7 +4411,7 @@
    "input": "ضابط في الجيش يتسلم وسام الشجاعة بعد عملية إنقاذ في سوريا",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/fp-ar-discount-30",
@@ -4419,7 +4419,7 @@
    "input": "خصم 30% على جميع المنتجات هذا الأسبوع، وستحصل على 30% إضافية عند الدفع بالتطبيق",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/fp-ar-charity-box",
@@ -4427,7 +4427,7 @@
    "input": "ساهموا في صندوق التبرعات للمدرسة، 30% من المبلغ يذهب للهلال الأحمر",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/fp-wrong-number-broker-no-offer",
@@ -4435,7 +4435,7 @@
    "input": "Sorry wrong number. I'm a stock broker and thought you were my client Ali. Have a nice day.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/fp-got-number-tutor",
@@ -4443,7 +4443,7 @@
    "input": "I got your number from Fatima, I'm the maths tutor. I can teach you algebra on Saturdays.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/fp-news-general-funds",
@@ -4451,7 +4451,7 @@
    "input": "As the army general said, the funds for the new hospital were approved, you will get 30% more beds.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/fp-warning-wrong-number",
@@ -4459,7 +4459,7 @@
    "input": "Beware: scammers send a 'sorry, wrong number' text, then say they are gold traders who can teach you how to invest. Don't reply.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/fp-warning-trunk-box-ar",
@@ -4467,7 +4467,7 @@
    "input": "تحذير: المحتالون يدّعون أنهم ضباط في الجيش ولديهم صندوق أموال ويعدونك بنسبة 30% مقابل مساعدتهم في نقله",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/hunt-wrongnum-add-whatsapp",
@@ -4651,7 +4651,7 @@
    "input": "Sorry, wrong number. I'm a gold trader in the Deira souq and I just closed for the day. Profit was good today alhamdulillah.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/hunt-fp-show-photos-gold",
@@ -4659,7 +4659,7 @@
    "input": "Oops wrong person! I wanted to show you the photos from the gold souk trip, but I sent them to the wrong chat. Sorry!",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/hunt-fp-friend-from-uni",
@@ -4667,7 +4667,7 @@
    "input": "Sorry, wrong number haha. Hey, if you are the Walid I know from uni, I can teach you how to trade stocks, you told me you wanted to learn.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/hunt-fp-gold-shop-designs",
@@ -4675,7 +4675,7 @@
    "input": "Sorry for the wrong number, madam. This is Malabar Gold. We will show you the new designs: earn 10% extra gold on exchange.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/hunt-fp-real-estate-agent",
@@ -4683,7 +4683,7 @@
    "input": "Hi, sorry I think I have the wrong person. I'm Ravi, a broker at a Dubai real estate agency. Anyway I can help you invest in Dubai property if you are looking. Income yield 7%.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/hunt-fp-ar-shop-profits",
@@ -4691,7 +4691,7 @@
    "input": "غلطت في الرقم، آسف. كنت راح أشرح لك عن أرباح المحل لأبوي بس الرقم غلط.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/hunt-fp-referral-wealth-manager",
@@ -4699,7 +4699,7 @@
    "input": "Salam, got your number from Mr. Tariq. I'm a wealth manager at a Dubai bank. Would you like to learn how to invest in our fixed income funds? Income of 4% per year.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/hunt-fp-ar-referral-academy",
@@ -4707,7 +4707,7 @@
    "input": "حصلت على رقمك من الأستاذ ماجد. أنا مدرب في أكاديمية دبي للأسواق المالية، أعلمك التداول في الأسهم عبر دورة معتمدة.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/hunt-fp-bank-sent-by-mistake",
@@ -4715,7 +4715,7 @@
    "input": "Dear client, we sent it by mistake. Please ignore the earlier SMS. We can guide you on how to invest in our new gold fund if you wish.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/hunt-fp-group-added-by-mistake",
@@ -4723,7 +4723,7 @@
    "input": "Sorry guys, I added you by mistake to the Dubai Gold Traders group. Remove yourself if you want. I am a gold trader and I earn from commissions, not tips.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/hunt-fp-forwarded-warning",
@@ -4731,7 +4731,7 @@
    "input": "Careful everyone, a message is going around: 'sorry wrong number, I am a gold trader in Dubai, I can teach you how to make money'. It's a trap, do not reply.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/hunt-fp-advisor-delete-it",
@@ -4739,7 +4739,7 @@
    "input": "Sorry, I sent this by mistake. I'm a financial advisor and that was meant for a client. Would you like me to delete it?",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/hunt-fp-fish-market-trader",
@@ -4747,7 +4747,7 @@
    "input": "Sorry to bother you, wrong number. I'm a trader at the fish market, if you ever want fresh hammour message me.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/hunt-fp-trade-on-dfm-app",
@@ -4755,7 +4755,7 @@
    "input": "Sorry wrong number! Do you trade on the DFM app too? Mine keeps crashing, that's why I was texting my brother.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/hunt-fp-soldier-eid-share",
@@ -4763,7 +4763,7 @@
    "input": "I am a soldier in National Service and I'll be at the camp until Thursday. You will get your share of the Eid gift money on Friday from my brother.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/hunt-fp-ar-police-wallet",
@@ -4771,7 +4771,7 @@
    "input": "اسمي العقيد ناصر من شرطة أبوظبي، لقينا محفظتك وفيها أموال. أرسل شخص موثوق ومعاه هويتك لاستلامها.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/hunt-fp-airline-captain-refund",
@@ -4779,7 +4779,7 @@
    "input": "This is Captain Majid from the airline. Your flight is cancelled; you will receive 50% of the ticket money back now and the rest after 7 days.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/hunt-fp-cricket-captain",
@@ -4787,7 +4787,7 @@
    "input": "I am captain of the cricket team. Prize money: 40% for your team, 60% for ours.",
    "score": 19,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/hunt-fp-family-dormant-50-50",
@@ -4795,7 +4795,7 @@
    "input": "The bank said my late father's dormant account still has funds. As his next of kin you and I must share the amount equally, 50/50. We will go to the branch together.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/hunt-fp-family-millions-split",
@@ -4803,7 +4803,7 @@
    "input": "My grandfather passed away and left 2 million dirhams. My lawyer says we will split it between us four brothers.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/hunt-fp-real-lawyer-heir",
@@ -4811,7 +4811,7 @@
    "input": "I'm a lawyer at Al Tamimi. Our client's estate of AED 4 million will be distributed; your share is 25% as per the will. Please visit our office with your Emirates ID.",
    "score": 21,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/hunt-fp-iraq-contract",
@@ -4819,7 +4819,7 @@
    "input": "Our company won a $3 million contract in Iraq. As agreed, you will receive 10% commission.",
    "score": 6,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/hunt-fp-movers-trunk-box",
@@ -4827,7 +4827,7 @@
    "input": "Movers will collect the metal box and the trunk box from the villa tomorrow morning. Please receive them on my behalf.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/hunt-fp-gold-consignment-partner",
@@ -4835,7 +4835,7 @@
    "input": "Looking for a reliable partner to receive our consignment of gold in Mumbai. We are a registered DMCC trading firm and can share all licences.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/hunt-fp-ar-gold-shipment-discount",
@@ -4843,7 +4843,7 @@
    "input": "وصلت شحنة جديدة من سبائك الذهب لمحلنا! لك 10% خصم على المصنعية هذا الأسبوع.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/hunt-fp-ar-car-trunk-gold",
@@ -4851,7 +4851,7 @@
    "input": "حطيت صندوق السيارة، فيه ذهب العروس. ساعدني في نقله للبيت قبل لا يجي الضيوف.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/hunt-fp-general-information-refund",
@@ -4859,7 +4859,7 @@
    "input": "This is general information only. If you cancel within 14 days you will receive 90% of the money back.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/hunt-fp-un-aid-news",
@@ -4867,7 +4867,7 @@
    "input": "The UN said $3 million in aid reached Sudan. Our team will share the update with you tomorrow.",
    "score": 6,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14/hunt-fp-fake-officers-warning",
@@ -4875,7 +4875,7 @@
    "input": "Fake army officers are emailing about a trunk box of dollars and offering you 30% to help move it. These are frauds, delete them.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/widow-gold-ghana-30",
@@ -5131,7 +5131,7 @@
    "input": "صندوق الاستثمار حقق عائد 8% هذا العام حسب التقرير السنوي",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fa-fund-annual-report-en",
@@ -5139,7 +5139,7 @@
    "input": "The investment fund returned 8% this year, according to the annual report.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fa-gold-rose-reuters",
@@ -5147,7 +5147,7 @@
    "input": "Gold rose 2% this week as investors bought safe-haven assets, Reuters reported.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fa-sp500-bitcoin",
@@ -5155,7 +5155,7 @@
    "input": "The S&P 500 gained 1.5% this month while bitcoin fell 3%, according to market data.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fa-mining-etf-fell",
@@ -5163,7 +5163,7 @@
    "input": "The gold mining ETF fell 4% this week as gold prices dropped.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fa-broker-update-disclaimer",
@@ -5171,7 +5171,7 @@
    "input": "Sarwa: Your portfolio is up 2.4% this month. Investing involves risk; past performance is not a guarantee of future returns.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fa-question-3pct-monthly",
@@ -5179,7 +5179,7 @@
    "input": "Question: is 3% monthly return realistic for a forex fund? Sounds too good to be true.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fa-no-guaranteed-returns",
@@ -5187,7 +5187,7 @@
    "input": "There is no such thing as guaranteed returns in investing, so be wary of anyone who says otherwise.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fa-own-trading-up-3",
@@ -5195,7 +5195,7 @@
    "input": "Honest question: should I invest in Dubai property or gold? I'm a stock trader myself and profit is up 3% this month.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fa-recruiter-profit-share",
@@ -5203,7 +5203,7 @@
    "input": "Hi, I got your number from your LinkedIn profile. I work in gold trading at a DMCC firm and we have a role for a commodities analyst. Salary AED 20k plus profit share. Interested?",
    "score": 6,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fa-ar-index-question",
@@ -5211,7 +5211,7 @@
    "input": "سؤال: هل الاستثمار في صناديق المؤشرات أفضل من الذهب؟ سمعت أن العائد كان 9% السنة الماضية",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fa-ar-company-trading-profits",
@@ -5219,7 +5219,7 @@
    "input": "أعلنت الشركة أن أرباح التداول ارتفعت 12% في النصف الأول من العام",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fa-ar-dad-pension",
@@ -5227,7 +5227,7 @@
    "input": "أبوي استثمر في صندوق تقاعد وحقق عائد 4% السنة الماضية",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fa-ar-monthly-report",
@@ -5235,7 +5235,7 @@
    "input": "التقرير الشهري: تداول الأسهم سجل ارتفاعاً بنسبة 3% في الشهر الماضي",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fa-ar-fund-profits-shareholders",
@@ -5243,7 +5243,7 @@
    "input": "صندوق الاستثمار حقق أرباح 3 ملايين درهم هذا العام وسيتم توزيعها على المساهمين",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fa-ar-wrongnum-gold-profits",
@@ -5251,7 +5251,7 @@
    "input": "عفواً رقم غلط، فكرتك زميلي أحمد. على فكرة أعمل في تداول الذهب وأرباحي ممتازة هالأسبوع",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fa-ar-linkedin-salary",
@@ -5259,7 +5259,7 @@
    "input": "حصلت على رقمك من ملفك في لينكدإن. أعمل في شركة تداول الذهب بدبي ولدينا وظيفة محلل، الراتب والأرباح ممتازة",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fa-ar-dad-gold-eid",
@@ -5267,7 +5267,7 @@
    "input": "أبوي يقول الذهب نزل اليوم، تبغى نروح السوق نشتري قبل العيد؟ أنا أتداول بالذهب من سنتين وأرباحي معقولة.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fa-ar-property-expo-8-yearly",
@@ -5275,7 +5275,7 @@
    "input": "السلام عليكم، حصلت على رقمك من معرض العقارات. أوريك فرص استثمار في دبي، العائد 8% سنوياً. متى يناسبك؟",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fa-ar-wrongnum-broker",
@@ -5283,7 +5283,7 @@
    "input": "آسف، غلطت في الرقم. أنا أتداول في الأسهم وكنت أراسل السمسار عن الأرباح.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fa-warning-fake-brokers-daily",
@@ -5291,7 +5291,7 @@
    "input": "Scam alert: fake brokers promise 5% daily profits. Don't reply.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fa-ar-warning-guaranteed",
@@ -5299,7 +5299,7 @@
    "input": "احذروا من المحتالين الذين يعدون بأرباح مضمونة 10% شهرياً",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fp-mum-dads-gold-papers",
@@ -5307,7 +5307,7 @@
    "input": "Mum here. Since your father passed away the bank wants us to sign the papers for his gold savings. Can you help me sort it out on Saturday?",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fp-ar-mama-gold-papers",
@@ -5315,7 +5315,7 @@
    "input": "ماما: الله يرحم أبوك، البنك طلب نوقع على أوراق الذهب اللي تركه، تقدر تجي معي يوم السبت؟",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fp-widow-bank-customer",
@@ -5323,7 +5323,7 @@
    "input": "Hi, my name is Mariam. My late husband left me some savings. Could you help me open a deposit account at your branch?",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fp-widow-known-contact-2m",
@@ -5331,7 +5331,7 @@
    "input": "Hi Khalid, it's Huda. My late husband left me AED 2 million and I want to invest it safely, could you help me find an adviser?",
    "score": 6,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fp-widow-valuer",
@@ -5339,7 +5339,7 @@
    "input": "I lost my husband in March. He left me his gold collection and I don't know what it's worth, can you recommend an honest valuer in Dubai?",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fp-widow-documentary",
@@ -5347,7 +5347,7 @@
    "input": "The documentary tells the story of a widow who turned her late husband's small gold shop into a jewellery chain worth $5 million.",
    "score": 6,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fp-goldmine-news-barrick",
@@ -5355,7 +5355,7 @@
    "input": "Barrick says production at its Loulo-Gounkoto gold mine in Mali resumed this week after a two-month halt.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fp-ar-goldmine-news-maaden",
@@ -5363,7 +5363,7 @@
    "input": "أعلنت معادن عن ارتفاع إنتاج منجم الذهب في الربع الثالث حسب تقريرها الربعي",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fp-cousin-engineer-mine",
@@ -5371,7 +5371,7 @@
    "input": "My cousin works as an engineer at a gold mine in Western Australia, he's home for two weeks in December.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fp-mine-prospectus",
@@ -5379,7 +5379,7 @@
    "input": "Shareholders: our gold mine in Sudan produced 2.1 tonnes this year; we are seeking new investors for the expansion, see the prospectus.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fp-mine-arrest-news",
@@ -5387,7 +5387,7 @@
    "input": "BREAKING: Ghana arrests man who claimed to own a gold mine and promised foreign investors 40% of the profit.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fp-gold-rate-today",
@@ -5395,7 +5395,7 @@
    "input": "Gold rate today in Dubai: 24K AED 312.50 per gram, 22K AED 289.25. Visit Malabar Gold & Diamonds for this week's offers.",
    "score": 6,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fp-jeweller-making-charges",
@@ -5403,7 +5403,7 @@
    "input": "Weekend sale at Joyalukkas: 50% off making charges on all gold jewellery, until Sunday.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fp-ar-jeweller-discount",
@@ -5411,7 +5411,7 @@
    "input": "تخفيضات نهاية الأسبوع: خصم 50% على المصنعية لجميع المشغولات الذهبية",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fp-kilo-bars-at-spot",
@@ -5419,7 +5419,7 @@
    "input": "Kilo bars available at spot plus a small premium. Visit our store in the Gold Souk or call for today's rate.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fp-wholesale-chains-market",
@@ -5427,7 +5427,7 @@
    "input": "Wholesale: we supply 5 kg of 22K gold chains per month to jewellers in Oman at market price plus making charges.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fp-police-seized-below-market",
@@ -5435,7 +5435,7 @@
    "input": "Police seized 40 kg of gold bars that a gang was selling below market price on Instagram.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fp-broker-gold-fell",
@@ -5443,7 +5443,7 @@
    "input": "Gold fell 2% this week to $2,350 an ounce as the dollar strengthened, analysts said.",
    "score": 6,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fp-proposal-after-call",
@@ -5451,7 +5451,7 @@
    "input": "Hi Sam, following our call, attached is the business proposal for the Q4 catering contract (AED 45,000). Let me know if you need more details.",
    "score": 6,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fp-proposal-board-12m",
@@ -5459,7 +5459,7 @@
    "input": "The board approved the AED 12 million business proposal for the new Abu Dhabi branch, according to the minutes.",
    "score": 6,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fp-proposal-client-confidential",
@@ -5467,7 +5467,7 @@
    "input": "Hi team, the client wants a confidential business proposal for the AED 3 million fit-out by Thursday. Please prepare the draft.",
    "score": 6,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fp-ar-proposal-attached",
@@ -5475,7 +5475,7 @@
    "input": "مرفق العرض التجاري لمشروع صيانة المبنى بقيمة 45 ألف درهم كما اتفقنا في الاجتماع",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fp-proposal-coffee-cart",
@@ -5483,7 +5483,7 @@
    "input": "I have a business proposal for you: let's open a coffee cart together at uni, I'll make the coffee and you do the marketing 😄",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fp-proposal-no-risk-distributor",
@@ -5491,7 +5491,7 @@
    "input": "We have an exciting business opportunity with no risk: become a distributor of our skincare brand. Reply for details.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fp-warn-wrongnum-gold",
@@ -5499,7 +5499,7 @@
    "input": "Beware of scammers online! They text 'sorry, wrong number', then say they are gold traders and offer to teach you to invest. Don't reply, block and report the number.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fp-warn-widows",
@@ -5507,7 +5507,7 @@
    "input": "Police warn: messages from 'widows' saying their late husband left them gold and asking you to help invest it are fraud. Do not respond.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fp-warn-gold-bars-facebook",
@@ -5515,7 +5515,7 @@
    "input": "Be careful of people on Facebook offering gold bars at 30% below market price with 'documents ready'. It's a scam, my uncle lost AED 40,000.",
    "score": 6,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fp-warn-quoted-goldmine",
@@ -5523,7 +5523,7 @@
    "input": "Warning: 'I own a gold mine in Ghana and need a partner, you get 40% of the profit' is a well-known scam. Report such messages.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fp-warn-quoted-proposal",
@@ -5531,7 +5531,7 @@
    "input": "Fraud alert: emails saying 'I have a business proposal worth $10.4M, 100% risk free, reply for details' are advance-fee scams. Delete them.",
    "score": 6,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fp-warn-aunt-got-message",
@@ -5539,7 +5539,7 @@
    "input": "My aunt got this message: 'I am a widow, my late husband left me $4M, help me invest it, you get 30%.' Obviously a scam, I told her to block them.",
    "score": 6,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fp-warn-shop-own-line",
@@ -5547,7 +5547,7 @@
    "input": "Beware of fake gold sellers on Instagram offering 10 kg bars below market price. At our shop we sell certified gold at the live market rate, visit our store.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fp-warn-wrongnum-genuine",
@@ -5555,7 +5555,7 @@
    "input": "Beware of scammers. Sorry, wrong number by the way, I was trying to reach my cousin.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fp-ar-warn-widows",
@@ -5563,7 +5563,7 @@
    "input": "احذروا: رسائل من أشخاص يدعون أنهم أرامل ترك لهم أزواجهم ذهباً ويطلبون مساعدتك في استثماره هي احتيال، لا تردوا عليها",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fp-ar-warn-police-gold-bars",
@@ -5571,7 +5571,7 @@
    "input": "تحذير من الشرطة: عروض بيع سبائك الذهب بأقل من سعر السوق مع أوراق جاهزة هي عمليات نصب",
    "score": 15,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/fp-ar-warn-quoted-officer",
@@ -5579,7 +5579,7 @@
    "input": "رسالة نصب منتشرة: أنا ضابط في الجيش ولدي صندوق أموال وسأعطيك 30% إذا ساعدتني في نقله. لا تتجاوبون معهم.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-widow-a07-ty",
@@ -6275,7 +6275,7 @@
    "input": "Ghana's central bank is selling 15 tonnes of gold to local refiners at a 5% discount to the London price, the finance minister said on Friday.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-gold-news-02",
@@ -6283,7 +6283,7 @@
    "input": "Central bank bought 20 tonnes of gold in September, the largest purchase in a decade, the World Gold Council said. Purchases were made below the market price in off-market deals.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-gold-news-03",
@@ -6291,7 +6291,7 @@
    "input": "أخبار الذهب: بنك مركزي يبيع 10 أطنان من الذهب بسعر أقل من سعر السوق العالمي لتمويل العجز، حسب مصادر مطلعة.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-family-inherit-04",
@@ -6299,7 +6299,7 @@
    "input": "Hi cousin, my late husband left me this gold set and I want to sell it. Can you help me find an honest person who values it fairly? I don't trust the shops near my house.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-biz-real-05",
@@ -6307,7 +6307,7 @@
    "input": "Dear Mr Ahmed, thank you for your interest. I have a business proposal for your fleet maintenance contract, worth around AED 3.5 million a year. It is a win-win for both companies. Kindly reply with a convenient time to discuss the details.",
    "score": 6,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-biz-real-06",
@@ -6315,7 +6315,7 @@
    "input": "Salam bro, I have a business opportunity for us. A cafe in JLT is for sale, 2 million AED, the owner is leaving the country. It is a win-win if we buy it together. Interested?",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-biz-real-07",
@@ -6323,7 +6323,7 @@
    "input": "Bro I have a business proposal for you, 100% legal and risk free, we open a car wash together in Sharjah. I put the equipment, you put the shop. It will benefit both of us. Reply and I will send details.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-biz-real-08",
@@ -6331,7 +6331,7 @@
    "input": "Good morning Mr Faisal, my name is Sarah from Dubai Properties. I would like to share a lucrative business opportunity: off-plan units with 8% net yield. A confidential preview for selected clients. Reply for details.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-biz-real-09",
@@ -6339,7 +6339,7 @@
    "input": "Brother Hamad, I have a business proposition worth about 1.5 million for the farm in Al Ain. Please keep it confidential, I do not want the neighbours to know. Call me tonight.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-biz-real-10",
@@ -6347,7 +6347,7 @@
    "input": "Subject: Business proposal for joint venture. Dear Mr Yousef, I have a business proposal for our joint venture on EV charging stations in Dubai worth USD 4 million. It is mutually beneficial and I would appreciate your reply with a suitable time to meet.",
    "score": 6,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-biz-real-11",
@@ -6355,7 +6355,7 @@
    "input": "السلام عليكم أستاذ خالد، لدي عرض عمل لشركتكم بقيمة 5 ملايين درهم، العرض سري ومربح للطرفين، أرجو الرد لتحديد موعد.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-biz-real-12",
@@ -6363,7 +6363,7 @@
    "input": "أخي عبدالله، عندي فرصة عمل مع شريك جديد، مشروع تجاري مربح لكلينا وبدون مخاطر. رد علي نتكلم بالتفاصيل.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-biz-real-13",
@@ -6371,7 +6371,7 @@
    "input": "أهلاً أبو سعود، لدي صفقة تجارية بقيمة 3 ملايين درهم لشراء المخزن في الصناعية. الصفقة سرية حتى توقيع العقد وهي مربحة للطرفين. اتصل بي الليلة.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-friends-partner-14",
@@ -6379,7 +6379,7 @@
    "input": "نحن شركة تعدين مرخصة ولدينا منجم ذهب في عسير ونبحث عن شريك استراتيجي لتمويل التوسعة بحصة 15% من الإنتاج. المستندات الرسمية والترخيص على موقعنا.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-fund-report-15",
@@ -6387,7 +6387,7 @@
    "input": "صندوق الاستثمار حقق عائد 8% هذا العام حسب التقرير السنوي",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-fund-report-16",
@@ -6395,7 +6395,7 @@
    "input": "Emirates NBD monthly market update: gold trading profits for Q3 were up 6% versus last year, helped by record volumes. Download the full report from our website.",
    "score": 10,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-fund-report-17",
@@ -6403,7 +6403,7 @@
    "input": "Your weekly investment digest: Bitcoin trading volume fell 8% this week and Ethereum returns are down 3%. Read more in the app. Unsubscribe | Contact us",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-fund-report-18",
@@ -6411,7 +6411,7 @@
    "input": "Dear client, your gold investment account earned a return of 1.8% this month. Your statement is attached. For queries please call us on 800 5 1234.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-fund-report-19",
@@ -6419,7 +6419,7 @@
    "input": "Analyst note: gold investment looks attractive here. My view is that returns of 10-12% a year are realistic if the Fed cuts. Not financial advice. Message me if you want the full note.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-fund-report-20",
@@ -6427,7 +6427,7 @@
    "input": "Mashreq fund factsheet: gold investment fund monthly return +2.1%, YTD +11.3%. Risk level: high. Register for our investor webinar on 20 October.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-fund-report-21",
@@ -6435,7 +6435,7 @@
    "input": "Our forex trading desk made a profit of AED 2.1M in Q3, up 9% on last year. The finance team will send the report by email. Call me if you need the numbers earlier.",
    "score": 16,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-fund-report-22",
@@ -6443,7 +6443,7 @@
    "input": "Class notice: today's lesson covers how forex trading works, what a pip is, and why profits and losses are magnified by leverage. Please register on the school portal by Friday.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-fund-report-23",
@@ -6451,7 +6451,7 @@
    "input": "I attended a seminar on gold investment. The speaker said average returns of 6% a year over the long term. Not a promise, just history. Message me if you want the slides.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-fund-report-24",
@@ -6459,7 +6459,7 @@
    "input": "Crypto trading roundup: Bitcoin returned 6% this week as volumes rose. Binance says it will list a new token on Friday. Join the discussion in the community group.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-fund-report-25",
@@ -6467,7 +6467,7 @@
    "input": "My gold trading profit this month was 4% after fees. It is slow but steady and I am no expert, just sharing. Call me if you want to chat about it over coffee.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-fund-report-26",
@@ -6475,7 +6475,7 @@
    "input": "Hi Dad, the bank sent the fund statement. The gold fund made 3% this month and the bond fund 0.4%. If you want to change anything call us before the 25th.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-fund-report-27",
@@ -6483,7 +6483,7 @@
    "input": "Market update: crypto trading profits at the exchange fell 11% in Q3 as volumes dropped, the exchange said in its earnings. Shares fell 4%.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-fund-report-28",
@@ -6491,7 +6491,7 @@
    "input": "Good morning. The monthly investment review is attached. Equities returned 1.6% monthly average, gold 2.2%. Please contact us to book your annual review.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-fund-report-29",
@@ -6499,7 +6499,7 @@
    "input": "تقرير شهري: عائد صندوق الذهب 2.1% شهرياً، والعائد منذ بداية العام 11.3%. للاستفسار تواصل معنا.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-fund-report-30",
@@ -6507,7 +6507,7 @@
    "input": "بنك الإمارات دبي الوطني: صندوق الاستثمار حقق عائداً بنسبة 9% في عام 2025 وفق التقرير السنوي. للاطلاع على التقرير زر موقعنا.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-fund-report-31",
@@ -6515,7 +6515,7 @@
    "input": "محلل اقتصادي: التداول في الذهب هذا الأسبوع حقق أرباحاً بنسبة 3% للمضاربين ونتوقع استقرار الأسعار. اشترك في نشرتنا الأسبوعية.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-fund-report-32",
@@ -6523,7 +6523,7 @@
    "input": "الأسهم السعودية: التداول اليوم حقق أرباحاً بنسبة 1.2% للمؤشر، وقادت المصارف الارتفاع. تابعنا للمزيد.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-fund-report-33",
@@ -6531,7 +6531,7 @@
    "input": "اخوي، أنا أتداول في الأسهم من فترة والأرباح كويسة حوالي 5% كل شهر بس مو مضمونة طبعاً. تعال نسولف عنها.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-fund-report-34",
@@ -6539,7 +6539,7 @@
    "input": "عائد الاستثمار في الذهب هذا العام 15% حسب تقرير مجلس الذهب العالمي، لكن الأداء السابق لا يضمن النتائج المستقبلية.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-should-i-invest-35",
@@ -6547,7 +6547,7 @@
    "input": "Bro my colleague says his forex trading made 30% profit last month and wants me to join his group. Is this legit or a scam? What do you think?",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-should-i-invest-36",
@@ -6555,7 +6555,7 @@
    "input": "Anyone tried the new robo advisor from the bank? A friend of mine got 1.5% monthly. Not sure if I should deposit AED 5000. Thoughts?",
    "score": 16,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-should-i-invest-37",
@@ -6563,7 +6563,7 @@
    "input": "My uncle wants me to invest in his friend's gold trading company. He says the profit last year was 25%. I'm not convinced, should I ask for the audited accounts first?",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-should-i-invest-38",
@@ -6571,7 +6571,7 @@
    "input": "يا شباب الأخ هذا يقول أرباح التداول عنده 10% بالأسبوع وعايزني أسجل في المنصة. أحد جربها؟ أحس إنها نصب بس أبي رأيكم.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-warning-39",
@@ -6579,7 +6579,7 @@
    "input": "Cyber awareness tip: if someone you have never met offers you 10 kg of gold at a discount with documents ready and an urgent sale, it is a scam. Report it to your bank.",
    "score": 12,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-warning-40",
@@ -6587,7 +6587,7 @@
    "input": "Alert from the bank fraud team: criminals are calling customers with a 'secret business proposal' and promising risk free profit. We will never ask you to transfer money to a safe account.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-warning-41",
@@ -6595,7 +6595,7 @@
    "input": "Heads up, a new scam is going around: a stranger texts 'sorry wrong number' and then talks about gold trading and profits. Don't engage. If you get one, report it to aecert.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-warning-42",
@@ -6603,7 +6603,7 @@
    "input": "تنبيه من البنك: لا تثق بأي عرض استثماري يضمن عائداً مضموناً أو أرباحاً يومية 5%. المحتالون يستخدمون واتساب لإقناعك. لا تشارك رمز التحقق.",
    "score": 0,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-realestate-43",
@@ -6611,7 +6611,7 @@
    "input": "Exclusive business opportunity: fully leased building in Al Barsha, AED 24 million, 7% yield, confidential listing for serious investors only. Interested? Reply for details.",
    "score": 6,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-realestate-44",
@@ -6619,7 +6619,7 @@
    "input": "فرصة استثمارية سرية: عمارة مؤجرة بالكامل في البرشاء بقيمة 24 مليون درهم وعائد 7%. للجادين فقط. للتفاصيل تواصل معي.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-realestate-45",
@@ -6627,7 +6627,7 @@
    "input": "لدي صفقة عقارية بقيمة 8 ملايين درهم لأرض في أم القيوين، الصفقة مربحة للطرفين والأوراق جاهزة. هل أنت مهتم؟ اتصل بي.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-gold-souk-46",
@@ -6635,7 +6635,7 @@
    "input": "نبيع الذهب بكميات كبيرة للتجار وأصحاب المحلات، قائمة أسعار الجملة متوفرة عند الطلب. خصم 10% على الطلبات الكبيرة. زورونا في سوق الذهب بدبي.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-b2b-bullion-47",
@@ -6643,7 +6643,7 @@
    "input": "Dear Mr Ravi, as discussed, we can deliver 3 kg of 22K gold chains next week. Price is today's spot plus making charges. Documents ready, FOB Dubai. Please confirm the order.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-b2b-bullion-48",
@@ -6651,7 +6651,7 @@
    "input": "Procurement: we need 4 kg of 18K gold bars for the watch line. Please quote per gram with delivery to Jebel Ali and send the certificates and papers. Price below market will raise a flag with our compliance.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-everyday-49",
@@ -6659,7 +6659,7 @@
    "input": "Good evening Madam, I'm the manager of Sharjah Gold Exchange. We have a business offer for your family trading firm: a 15% discount on bulk gold purchases of over 2 kg, spot price plus fixed premium. If you are interested, call me at the office tomorrow.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-gold-news2-50",
@@ -6667,7 +6667,7 @@
    "input": "Russia's central bank is offering 50 tonnes of gold to domestic banks at a discount of 3% to the spot price, Interfax reports.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-gold-news2-51",
@@ -6675,7 +6675,7 @@
    "input": "Gold dealers in Dubai are offering a discount of 2% on 1 kg bars as demand slows, with large quantities available in stock, a trader told Reuters.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-b2b2-52",
@@ -6683,7 +6683,7 @@
    "input": "Good afternoon. Please find our quote for 6 kg of 24K gold bars: price per gram AED 301.5 (spot plus 0.4%), paperwork and certificates ready, delivery FOB Dubai. Quote valid for 24 hours.",
    "score": 6,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-b2b2-53",
@@ -6691,7 +6691,7 @@
    "input": "نوفر لكم سبائك ذهب 3 كيلو معتمدة بسعر السوق الحالي مع خصم 1% للمشتريات الكبيرة، الأوراق والشهادات جاهزة، التسليم في دبي. يرجى تأكيد الطلب.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-biz2-54",
@@ -6699,7 +6699,7 @@
    "input": "Dear Mr Tariq, our company has a business proposal worth AED 2 million for your hotel's laundry services. The contract is mutually beneficial and risk free thanks to our 30 day trial. Kindly reply to schedule a demo.",
    "score": 6,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-biz2-55",
@@ -6707,7 +6707,7 @@
    "input": "Brother, I got a business opportunity: buying the shop next to yours in Deira for 3 million. It is a win-win for both of us if we share. Call me before you decide, I want to keep it confidential.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-biz2-56",
@@ -6715,7 +6715,7 @@
    "input": "Greetings from Dubai Chamber. We are seeking your partnership for a business proposal on the Expo legacy project, valued at AED 15 million. The proposal is confidential. Please reply with a time for a call.",
    "score": 6,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-biz2-57",
@@ -6723,7 +6723,7 @@
    "input": "أستاذ سالم، عندي عرض تجاري لك بقيمة مليوني درهم لتوريد مواد البناء، مربح لكلينا وبدون مخاطر. أرجو الرد للتفاصيل.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-fund2-58",
@@ -6731,7 +6731,7 @@
    "input": "Dear investor, your portfolio returned 2.3% this month. The full monthly report is in your account. If you have any questions, please contact us.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-fund2-59",
@@ -6739,7 +6739,7 @@
    "input": "Weekly newsletter: gold trading stayed in a tight range, bitcoin investment products saw inflows of $1.2bn, and forex profits at major banks rose 5% in Q3. Subscribe to get this every Monday.",
    "score": 16,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-fund2-60",
@@ -6747,7 +6747,7 @@
    "input": "Hi, it's the relationship manager from Mashreq. Your gold investment account returned 1.4% this month. Call me if you want to review your portfolio.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-fund2-61",
@@ -6755,7 +6755,7 @@
    "input": "Bank of Sharjah: your savings account earned interest of 0.8% monthly. Join our new rewards programme in the app to earn double points on card spend.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-fund2-62",
@@ -6763,7 +6763,7 @@
    "input": "Weekly update: crypto trading profits for the exchange rose 9% in October. Message us if you want a copy of the earnings call transcript.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-fund2-63",
@@ -6771,7 +6771,7 @@
    "input": "تقرير الأداء: حققت محفظتك الاستثمارية عائداً 2.3% هذا الشهر. التقرير الكامل في حسابك. للاستفسار اتصل بنا.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-fund2-64",
@@ -6779,7 +6779,7 @@
    "input": "نشرة أسبوعية: التداول في الذهب استقر في نطاق ضيق، وتدفقت 1.2 مليار دولار على منتجات البتكوين الاستثمارية، وارتفعت أرباح الفوركس في البنوك الكبرى 5%. اشترك لتصلك كل اثنين.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-warning2-65",
@@ -6787,7 +6787,7 @@
    "input": "Do not trust any offer that guarantees returns. Real investments carry risk. If someone promises guaranteed profits on WhatsApp, hang up and call your bank.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-warning2-66",
@@ -6795,7 +6795,7 @@
    "input": "Reminder from your bank: no legitimate investment offers guaranteed returns. If you receive one, do not click any link and report it to us on the number on the back of your card.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-warning2-67",
@@ -6803,7 +6803,7 @@
    "input": "لا تصدق أي عرض يضمن عائداً مضموناً في الاستثمار. من يعدك بأرباح مضمونة على واتساب فاتصل ببنكك مباشرة.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-family2-68",
@@ -6811,7 +6811,7 @@
    "input": "أنا أرملة وزوجي المرحوم ترك لي مبلغ 300,000 درهم. هل أحد يعرف شركة موثوقة تساعدني في استثماره في صندوق مرخص؟ أثق في توصياتكم.",
    "score": 16,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-mine2-69",
@@ -6819,7 +6819,7 @@
    "input": "Our company owns a gold mining licence in Saudi Arabia and is seeking an engineering partner for the feasibility study. The profit sharing agreement is 15% of production, as in the signed MoU. NDA attached.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-disclaimer-70",
@@ -6827,7 +6827,7 @@
    "input": "We cannot offer guaranteed returns. Our advisers will explain the risks of the bond fund (annual return 4.1%) during your appointment on Sunday.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-disclaimer-71",
@@ -6835,7 +6835,7 @@
    "input": "Bank notice: there are no guaranteed profits in forex trading. Customers who trade should understand leverage. Learn more on our website.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-disclaimer-72",
@@ -6843,7 +6843,7 @@
    "input": "أرباح التداول غير مضمونة وقد تخسر رأس المال. حقق الصندوق 7% هذا العام وفق التقرير السنوي المدقق.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-disclaimer-73",
@@ -6851,7 +6851,7 @@
    "input": "Beware of anyone promising guaranteed returns or risk-free profits. Dubai Financial Services Authority has published a list of unlicensed investment firms. Check before you invest.",
    "score": 19,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-disclaimer-74",
@@ -6859,7 +6859,7 @@
    "input": "My friend said she gets guaranteed returns of 10% a month from some app. I told her nobody can promise that. Do you know this app? I think it's a scam.",
    "score": 19,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-victim-lost-20k",
@@ -6867,7 +6867,7 @@
    "input": "I lost $20,000 to a fake gold seller who offered me 10 kg of gold bars at 30% below market with documents ready. Please don't make my mistake.",
    "score": 6,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-victim-story-dust",
@@ -6875,7 +6875,7 @@
    "input": "Story time: a guy on Instagram offered me 5 kg of gold dust at half price, I asked for an assay and he blocked me.",
    "score": 21,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-victim-told-me-mine",
@@ -6883,7 +6883,7 @@
    "input": "Be careful! Last week a man told me he owns a gold mine in Ghana and wanted me to invest, promising 40% of profits. I almost fell for it.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-ar-victim-lost-gold",
@@ -6891,7 +6891,7 @@
    "input": "خسرت 10 آلاف درهم مع واحد عرض علي سبائك ذهب 5 كيلو بأقل من سعر السوق، لا تكررون غلطتي",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-course-anyone-promising",
@@ -6899,7 +6899,7 @@
    "input": "The forex course covers risk management: most traders lose money, and anyone promising guaranteed profits is lying.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-widow-lost-husband-debts",
@@ -6907,7 +6907,7 @@
    "input": "Watch out, scammers say they're widows. My late husband left me nothing but debts, lol.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct14b/r3-fp-ar-aunt-goldmine-msg",
@@ -6915,7 +6915,7 @@
    "input": "عمتي وصلها مسج من واحد يقول عنده منجم ذهب ويبي شريك بنسبة 40%، قلت لها هذا نصب",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct15/fa-ar-fund-statement-800",
@@ -6923,7 +6923,7 @@
    "input": "عزيزي العميل، حقق حسابك الاستثماري عائداً بنسبة 1.8% هذا الشهر. للاستفسار اتصل بنا على 800 5 1234.",
    "score": 15,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct15/fa-adcb-otp-alert-600",
@@ -6931,7 +6931,7 @@
    "input": "ADCB alert: never share your OTP. Fraudsters may call claiming to be from the bank, offer investments with guaranteed returns or ask you to help transfer funds. Call us on 600 5 00 000 if in doubt.",
    "score": 7,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct15/fa-bank-beware-600",
@@ -6939,7 +6939,7 @@
    "input": "Beware of scammers impersonating our bank. We will never ask for your PIN. Call us on 600 54 0000 if in doubt.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct15/fa-ar-enbd-debit-alert-600",
@@ -6947,7 +6947,7 @@
    "input": "بنك الإمارات دبي الوطني: تم خصم 85.50 درهم من بطاقتك المنتهية بـ 4401 لدى كارفور. إذا لم تكن أنت اتصل بنا على 600540000",
    "score": 26,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct15/fa-bank-helpline-statement",
@@ -6955,7 +6955,7 @@
    "input": "Your statement for September is ready in the app. For any questions call our bank helpline on 600 52 2229.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct15/fa-ar-bank-never-ask-600",
@@ -6963,7 +6963,7 @@
    "input": "تذكير من البنك: لن نطلب منك أبداً رمز التحقق أو كلمة المرور. للاستفسار اتصل بنا على 600 54 0000",
    "score": 0,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct15/line-scam-blocked-official-otp",
@@ -7035,7 +7035,7 @@
    "input": "Dubai Police warns: beware of fraudsters posing as gold dealers who offer gold bars at prices below the market and ask for a deposit. Always buy from licensed shops. Report on 901.",
    "score": 25,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct15/fa-ad-police-safe-account-warning",
@@ -7043,7 +7043,7 @@
    "input": "Abu Dhabi Police warn the public: fraudsters pretend to be bank staff and ask for a bank transfer to a 'safe account'. Never transfer money to anyone who calls you.",
    "score": 25,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct15/warn-scam-unpaid-fine-transfer",
@@ -7083,7 +7083,7 @@
    "input": "Dubai Police arrested a gang that sent 'wrong number' messages and then offered to teach victims how to invest in gold. Victims lost AED 2 million.",
    "score": 21,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct15/fa-police-arrested-five-suspects",
@@ -7091,7 +7091,7 @@
    "input": "Sharjah Police have arrested five suspects who posed as bank employees. Residents are reminded never to share card details.",
    "score": 15,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct15/arrest-scam-case-against-you",
@@ -7131,7 +7131,7 @@
    "input": "Hi Mr Rashid, I have an offer for you: 2BR in Dubai Marina, AED 1.9 million, 8% net yield, motivated seller, urgent sale. Reply for details and viewing.",
    "score": 6,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct15/fa-jvc-studio-urgent-sale",
@@ -7139,7 +7139,7 @@
    "input": "Urgent sale: studio in JVC, AED 520,000, owner relocating. Viewing this weekend, call me if interested.",
    "score": 6,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct15/rush-scam-car-deposit-transfer",
@@ -7179,7 +7179,7 @@
    "input": "Your villa valuation came in at AED 6.5 million. A buyer is offering 5% below the asking price for a quick sale, all documents ready. Do you want to proceed?",
    "score": 6,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct15/fa-see-you-on-campus",
@@ -7187,7 +7187,7 @@
    "input": "See you on campus tomorrow at 9",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct15/fa-wedding-video-of-you",
@@ -7195,7 +7195,7 @@
    "input": "Here is the video of you dancing at the wedding, so cute",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct15/fa-webcam-meeting",
@@ -7203,7 +7203,7 @@
    "input": "Is your webcam working for the 3pm meeting?",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct15/sext-scam-webcam-bitcoin",
@@ -7259,7 +7259,7 @@
    "input": "Hello, I'm Mariam, a widow from Abu Dhabi. I'm looking for part time work from home and I can help with bookkeeping. My late husband was an accountant and taught me. Please let me know if you have any openings.",
    "score": 19,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct15/fa-wfh-friday-plumber",
@@ -7267,7 +7267,7 @@
    "input": "Work from home on Friday? I have a plumber coming in the morning.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct15/fa-sister-looking-for-wfh",
@@ -7275,7 +7275,7 @@
    "input": "My sister is looking for work from home, she is a translator. Do you know anyone hiring?",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct15/wfh-scam-earn-per-day",
@@ -7315,7 +7315,7 @@
    "input": "ما في عائد مضمون في السوق يا خالد، أي واحد يقول لك أرباح مضمونة فهو يكذب. أنا ربحت 6% هذه السنة بالتداول وخسرت قبلها.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct15/fa-no-guaranteed-returns-sara",
@@ -7323,7 +7323,7 @@
    "input": "There are no guaranteed returns in the stock market, Sara. I made 5% last year and lost 3% the year before.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct15/guar-scam-group-20-monthly",
@@ -7363,7 +7363,7 @@
    "input": "Hi uncle, I got your number from Baba. I'm Omar, I work in gold trading at a jewellery group and I'd love to learn from your experience investing in real estate. Profit margins in gold are small.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct15/fa-gold-trading-seminar-invite",
@@ -7371,7 +7371,7 @@
    "input": "We'd love to invite you to our gold trading seminar at the DMCC on Sunday. Entry is free, registration at the door.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct15/love-scam-my-love-platform",
@@ -7403,7 +7403,7 @@
    "input": "This is Sgt. Mohammed from the lost property office at the police station. We found your wallet with cash inside. You may send a trusted person with your Emirates ID to collect it.",
    "score": 15,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct15/fa-lost-and-found-sergeant-wallet",
@@ -7411,7 +7411,7 @@
    "input": "This is Sergeant Hamdan from the police lost-and-found. We found your wallet with cash and cards. Collect it with your Emirates ID or send a trusted person.",
    "score": 15,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct15/fa-found-wallet-in-taxi",
@@ -7419,7 +7419,7 @@
    "input": "Hi, I think I found your wallet in the taxi, it has your Emirates ID inside. Where can I drop it?",
    "score": 15,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct15/fa-police-station-renew-report",
@@ -7427,7 +7427,7 @@
    "input": "I was at the police station to renew my report, took 2 hours.",
    "score": 15,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct15/lost-scam-wallet-seed-phrase",
@@ -7483,7 +7483,7 @@
    "input": "Your dormant account at the bank has been identified. Visit any branch with your Emirates ID to reactivate. You may nominate a trusted person to act for you.",
    "score": 25,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct15/branch-scam-dormant-click-link",
@@ -7523,7 +7523,7 @@
    "input": "This is general information about the refund policy. If you return the item you will receive 80% of the money paid, within 7 days.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct15/fa-refund-credited-within-5-days",
@@ -7531,7 +7531,7 @@
    "input": "Thanks for your order. Your refund will be credited to your card within 5 days.",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "owner-oct15/time-scam-pay-fee-within-24h",
@@ -7763,7 +7763,7 @@
    "input": "Hi, can you send me the code for the meeting room? I'm outside.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-promo-code",
@@ -7771,7 +7771,7 @@
    "input": "Can you send me the promo code for the discount you mentioned?",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-pin-when-there",
@@ -7779,7 +7779,7 @@
    "input": "Send me the pin when you get there",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-pin-location",
@@ -7787,7 +7787,7 @@
    "input": "Send me the pin location please, I cannot find the building",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-gate-code",
@@ -7795,7 +7795,7 @@
    "input": "Tell me the gate code, I am downstairs",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-wifi-password",
@@ -7803,7 +7803,7 @@
    "input": "Can you share with me the wifi password?",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-qr-menu",
@@ -7811,7 +7811,7 @@
    "input": "Scan the QR code on the table to see our menu and order",
    "score": 12,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-qr-checkin",
@@ -7819,7 +7819,7 @@
    "input": "Scan the QR code at the entrance to check in to the event",
    "score": 12,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-tap-button-track",
@@ -7827,7 +7827,7 @@
    "input": "Tap the button below to track your order in the Talabat app",
    "score": 12,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-teams-join",
@@ -7835,7 +7835,7 @@
    "input": "Click the link below to join our Teams meeting: https://teams.microsoft.com/l/meetup-join/19%3ameeting_abc",
    "score": 5,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-google-verify-email",
@@ -7843,7 +7843,7 @@
    "input": "Please verify your email address to finish creating your account: https://accounts.google.com/signin/verify",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-official-bank-link",
@@ -7851,7 +7851,7 @@
    "input": "Please click the link to complete your payment on our official site https://www.emiratesnbd.com/en/pay",
    "score": 15,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-photos-album-link",
@@ -7859,7 +7859,7 @@
    "input": "Open the link to view the photos from the wedding: https://photos.app.goo.gl/AbCdEf",
    "score": 21,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-maps-location",
@@ -7867,7 +7867,7 @@
    "input": "Here is my location https://maps.app.goo.gl/AbC123xyz so you can find me",
    "score": 10,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-maps-link-alone",
@@ -7891,7 +7891,7 @@
    "input": "https://apple.co/3abc",
    "score": 2,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-download-eand-app",
@@ -7899,7 +7899,7 @@
    "input": "Download the e& app from the App Store to pay your bill",
    "score": 10,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-install-careem",
@@ -7907,7 +7907,7 @@
    "input": "Install the Careem app and use code WELCOME20 for 20% off your first ride",
    "score": 10,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-police-marathon",
@@ -7915,7 +7915,7 @@
    "input": "The police said the road will be closed tonight because of the marathon. Avoid the area.",
    "score": 20,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-customs-included",
@@ -7923,7 +7923,7 @@
    "input": "Customs fee for your order from Amazon is included in the price you already paid. No further payment needed.",
    "score": 24,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-hi-mum-mall",
@@ -7931,7 +7931,7 @@
    "input": "Hi Mum, I'm at the mall, will be back at 6. Can you pick up bread on your way? x",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-dad-lunch-money",
@@ -7939,7 +7939,7 @@
    "input": "Hi dad, I'm running late, can you transfer me 100 AED for lunch? Thanks, see you tonight",
    "score": 6,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-new-number-no-ask",
@@ -7947,7 +7947,7 @@
    "input": "Hi Mum, I got a new number, here it is. Call me tonight when you are free.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-casual-crypto",
@@ -7955,7 +7955,7 @@
    "input": "I trade crypto a bit on the side, made some gains last month but also lost some, it is risky so be careful",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-bank-hotline-alert",
@@ -7963,7 +7963,7 @@
    "input": "Mashreq: purchase of AED 89.00 at CARREFOUR on card ending 4412. If this was not you, call 800 2222 or use the app to block the card.",
    "score": 6,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-delivery-retry",
@@ -7971,7 +7971,7 @@
    "input": "Aramex: we missed you today. We will deliver again tomorrow between 2pm and 6pm. No action needed.",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-its-me-new-number-address",
@@ -7979,7 +7979,7 @@
    "input": "Hi, it's me Sam, this is my new number. Send me the address for tonight",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-its-me-new-number-paid-class",
@@ -7987,7 +7987,7 @@
    "input": "It's me, new number. Did you pay for the class already?",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-win-r-cmd-help",
@@ -7995,7 +7995,7 @@
    "input": "Press Win+R, type cmd and press Enter to open the command prompt",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-door-code-whatsapp",
@@ -8003,7 +8003,7 @@
    "input": "The door code is 4512, send it to her on WhatsApp so she can get in",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-qr-verify-ticket",
@@ -8011,7 +8011,7 @@
    "input": "Scan the QR code to verify your ticket at the gate",
    "score": 12,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-parcel-on-hold-no-action",
@@ -8019,7 +8019,7 @@
    "input": "Your parcel is on hold at our facility. No further action needed, it will be delivered tomorrow: https://www.aramex.com/track/123",
    "score": 0,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-hotel-confirmation-code",
@@ -8027,7 +8027,7 @@
    "input": "Can you send me the confirmation code for our hotel booking?",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-code-when-you-get-there",
@@ -8035,7 +8035,7 @@
    "input": "Send me the code when you get there",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-dad-lost-phone-no-ask",
@@ -8043,7 +8043,7 @@
    "input": "Dad it's me, I lost my phone at the gym, using Ali's. I'm fine, will call you tonight",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-signup-code-sent-to-phone",
@@ -8051,7 +8051,7 @@
    "input": "We sent a verification code to your phone. Enter it in the app to finish signing up.",
    "score": 14,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-tap-button-rate-ride",
@@ -8059,7 +8059,7 @@
    "input": "Open the Careem app and tap the button to rate your ride",
    "score": 12,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/code-you-received",
@@ -8131,7 +8131,7 @@
    "input": "اكتب كلمة المرور الجديدة ثم اضغط حفظ",
    "score": 11,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   },
   {
    "id": "trends2026/fp-ar-share-promo-code",
@@ -8139,7 +8139,7 @@
    "input": "شارك الكود الترويجي مع صديقك ليحصل على خصم",
    "score": 3,
    "band": "safe",
-   "headline": "NOT A SCAM"
+   "headline": "LOW RISK"
   }
  ]
 }

@@ -40,6 +40,12 @@ workflows:
         # --debug adds web-ios/debug.js (demo screens, engine self-test, on-screen error panel). The
         # release bundle never contains it; ios-testflight rejects it. The native side passes
         # CN_DEMO_SCREEN / CN_ENGINE_SELFTEST to the page only in Debug builds (#if DEBUG).
+      - name: Bundle behaviour and engine-fixture checks (Node)
+        working_directory: mobile
+        script: node tests/run-bundle.mjs && node tests/make-engine-fixtures.mjs --check
+        # Release-bundle structure, the compiled sign-up/team-log/verdict behaviour, and the Share
+        # Extension's engine.html labels against every engine case (the WebKit parity run below covers
+        # the app's own WebKit only).
       - name: Capacitor sync + native project check
         working_directory: mobile
         script: |
@@ -97,6 +103,27 @@ workflows:
         script: bash mobile/scripts/engine-parity.sh   # every engine test case, Node vs the app's WebKit
       - name: Smoke run + screenshots
         script: bash mobile/scripts/screenshots.sh
+      - name: Cloudflare check (information only, never fails the build)
+        ignore_failure: true
+        script: |
+          # The app calls https://cybernetai.app/api/* from capacitor://localhost. Cloudflare has
+          # challenged data-centre traffic before (recovery-mode.mts). These are the requests the app
+          # sends first, without any sign-in. Before the web deploy the CORS header is expected to be
+          # missing; afterwards each must answer 2xx/204 with access-control-allow-origin and no
+          # cf-mitigated header (PRE-SUBMISSION-CHECKLIST F18).
+          for spec in "OPTIONS /api/account-status GET" "OPTIONS /api/ai-consent POST" "GET /api/account-status -"; do
+            set -- $spec
+            echo "== $1 $2"
+            if [ "$1" = "OPTIONS" ]; then
+              curl -s -o /dev/null -D - -m 15 -X OPTIONS "https://cybernetai.app$2" -H "Origin: capacitor://localhost" \
+                -H "Access-Control-Request-Method: $3" -H "Access-Control-Request-Headers: authorization,content-type,x-cybernet-platform,x-cybernet-app-version" \
+                | grep -iE "^HTTP/|^access-control-allow-origin|^cf-mitigated|^server:" || echo "(no answer)"
+            else
+              curl -s -o /dev/null -D - -m 15 "https://cybernetai.app$2" -H "Origin: capacitor://localhost" -H "X-CyberNet-Platform: ios" \
+                | grep -iE "^HTTP/|^access-control-allow-origin|^cf-mitigated|^server:" || echo "(no answer)"
+            fi
+          done
+          true
       - name: Keep the simulator app for the iPhone Duo check
         script: |
           cd build/sim/Build/Products/Debug-iphonesimulator && zip -qr "$CM_BUILD_DIR/build/App-sim.zip" App.app
@@ -108,6 +135,7 @@ workflows:
       - build/Package.resolved
       - build/screenshots/**/*.png
       - build/screenshots/**/*.jpg
+      - build/screenshots/**/*.log
       - build/screenshots/crash/*
       - build/videos/*.mp4
       - build/App-sim.zip

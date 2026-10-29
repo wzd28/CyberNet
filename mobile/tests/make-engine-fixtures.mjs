@@ -33,12 +33,13 @@ await import(pathToFileURL(path.join(root, "public", "cybernet-engine.js")).href
 const E = globalThis.CyberNetEngine;
 if (!E) throw new Error("public/cybernet-engine.js did not register CyberNetEngine");
 
-// The headline rule the app and the website show (script.js getDanger, ios.js verdictOf).
+// The headline rule the app shows (the iOS region of script.js getDanger, ios.js verdictOf, the Share
+// Extension's engine.html). The website says NOT A SCAM where the app says LOW RISK (risk D2).
 export function headline(result) {
   const score = Number(result?.score) || 0;
   if (score >= E.SCAM_THRESHOLD) return "SCAM";
   if (result?.kind === "link" && !result.officialBrand) return E.linkNeedsCaution(result) ? "CAN'T CONFIRM" : "LOW RISK";
-  return "NOT A SCAM";
+  return "LOW RISK";
 }
 
 const fixtures = cases.map(c => {
