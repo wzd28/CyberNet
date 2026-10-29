@@ -164,12 +164,18 @@ document.addEventListener("DOMContentLoaded", () => {
     },
     cybernetai: {
       title: "Analysis AI | CyberNet AI",
-      description: "Paste a message, link, or screenshot and get an automatic, expert-level cybersecurity analysis powered by CyberNet's managed AI or your own API key."
+      description: (
+        /*@web*/
+        "Paste a message, link, or screenshot and get an automatic, expert-level cybersecurity analysis powered by CyberNet's managed AI or your own API key."
+      )
+      /*@end-web*/
+      /*@ios "Paste a message, link, or screenshot and get a plain-language AI explanation of the risk." @end-ios*/
     },
     learn: {
       title: "Learn Cybersecurity | CyberNet AI",
       description: "Free, interactive cybersecurity lessons covering phishing, malware, passwords, authentication, safe browsing, and privacy — with real examples and warning signs."
     },
+    /*@web*/
     pricing: {
       title: "Pricing | CyberNet AI",
       description: "Compare CyberNet AI Free, Pro, and Business plans: daily AI analysis limits, saved history, downloadable reports, team seats, and Recovery features."
@@ -178,6 +184,7 @@ document.addEventListener("DOMContentLoaded", () => {
       title: "About | CyberNet AI",
       description: "CyberNet AI's mission is to protect people before threats become real damage, by making cybersecurity understandable and accessible."
     },
+    /*@end-web*/
     recovery: {
       title: "Recovery Mode | CyberNet AI",
       description: "Got scammed or hacked? Describe what happened and CyberNet AI builds a step-by-step recovery plan to secure your accounts, money and devices."
@@ -197,6 +204,7 @@ document.addEventListener("DOMContentLoaded", () => {
     learn: "/learn",
     pricing: "/pricing",
     about: "/about"
+    /*@end-web*/
   };
   const PATH_TO_PAGE = Object.fromEntries(Object.entries(PAGE_PATHS).map(([page, path]) => [path, page]));
   function pageForCurrentPath() {
@@ -423,7 +431,9 @@ document.addEventListener("DOMContentLoaded", () => {
     reset: "We couldn't send the reset email just now. Please try again in a minute.",
     resend: "We couldn't send the email just now. Please try again in a minute.",
     recovery: "We couldn't save your new password just now. Please try again in a moment.",
+    /*@web*/
     google: "Google sign-in isn't available right now. Please try again, or sign in with your email and password."
+    /*@end-web*/
   };
   function friendlyAuthError(error, mode = "login") {
     const raw = String((error == null ? void 0 : error.message) || "").trim();
@@ -432,7 +442,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const status = Number(error == null ? void 0 : error.status) || 0;
     const wait = authWaitSeconds(error);
     if (code === "invalid_credentials" || message.includes("invalid login credentials"))
-      return "That email and password don't match an account. Check them and try again. If you used Continue with Google before, choose it again. New to CyberNet AI? Choose Create Account.";
+      return (
+        /*@web*/
+        "That email and password don't match an account. Check them and try again. If you used Continue with Google before, choose it again. New to CyberNet AI? Choose Create Account."
+      );
     if (isUnconfirmedEmailError(error))
       return "Your email isn't confirmed yet. Open the link we emailed you, or choose Resend confirmation email below.";
     if (code === "user_already_exists" || code === "email_exists" || message.includes("user already registered") || message.includes("already been registered"))
@@ -455,9 +468,15 @@ document.addEventListener("DOMContentLoaded", () => {
     if (code === "email_address_not_authorized")
       return `We can't send email to that address right now. Use a different email, or contact ${SUPPORT_CONTACT}.`;
     if (code === "provider_disabled" || message.includes("provider is not enabled") || message.includes("unsupported provider"))
-      return "Google sign-in is turned off right now. Please sign in with your email and password instead.";
+      return (
+        /*@web*/
+        "Google sign-in is turned off right now. Please sign in with your email and password instead."
+      );
     if (code === "email_provider_disabled" || message.includes("email logins are disabled"))
-      return "Signing in with email is turned off right now. Try Continue with Google, or try again later.";
+      return (
+        /*@web*/
+        "Signing in with email is turned off right now. Try Continue with Google, or try again later."
+      );
     if (code === "signup_disabled" || message.includes("signups not allowed"))
       return "New accounts can't be created right now. Please try again later.";
     if (code === "session_not_found" || code === "session_expired" || message.includes("auth session missing") || message.includes("session from session_id"))
@@ -1217,7 +1236,10 @@ document.addEventListener("DOMContentLoaded", () => {
   if (supabaseConfigured) {
     try {
       appState.supabase = window.supabase.createClient(publicConfig.SUPABASE_URL, publicConfig.SUPABASE_ANON_KEY, {
+        /*@web*/
         auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+        /*@end-web*/
+        /*@ios auth:{storage:window.CNSecureStorage||undefined,persistSession:true,autoRefreshToken:true,detectSessionInUrl:false} @end-ios*/
       });
     } catch (error) {
       console.warn("CyberNet: the account service could not start", error);
@@ -1316,7 +1338,12 @@ document.addEventListener("DOMContentLoaded", () => {
       closeAuthModal();
     } catch (error) {
       const wrongCredentials = authErrorCode(error) === "invalid_credentials" || /invalid login credentials/i.test(String((error == null ? void 0 : error.message) || ""));
-      setAuthMessage(friendlyAuthError(error, "login"), "error", wrongCredentials && googleAuthBtn ? [{ label: "Continue with Google", run: () => googleAuthBtn.click() }] : []);
+      setAuthMessage(
+        friendlyAuthError(error, "login"),
+        "error",
+        wrongCredentials && googleAuthBtn ? [{ label: "Continue with Google", run: () => googleAuthBtn.click() }] : []
+        /*@end-web*/
+      );
       if (resendConfirmBtn && !coolingDown(resendConfirmBtn)) resendConfirmBtn.hidden = !isUnconfirmedEmailError(error);
     } finally {
       done();
@@ -1332,7 +1359,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const waitLabel = (left) => `Resend available in ${left}s`;
     try {
       const returnUrl = inviteReturnUrl();
-      const { error } = await appState.supabase.auth.resend(returnUrl ? { type: "signup", email, options: { emailRedirectTo: returnUrl } } : { type: "signup", email });
+      const { error } = await appState.supabase.auth.resend(
+        /*@web*/
+        returnUrl ? { type: "signup", email, options: { emailRedirectTo: returnUrl } } : { type: "signup", email }
+        /*@end-web*/
+        /*@ios {type:"signup",email,options:{emailRedirectTo:"https://cybernetai.app/app/confirmed.html"}} @end-ios*/
+      );
       if (error) throw error;
       clearAuthNotice();
       setAuthMessage(`We sent a new confirmation link to ${email}. It can take a minute to arrive, so check your spam folder too.`, "success");
@@ -1385,21 +1417,31 @@ document.addEventListener("DOMContentLoaded", () => {
         password,
         options: {
           data: { full_name: fullName, first_name: first, last_name: last },
+          /*@web*/
           emailRedirectTo: inviteReturnUrl() || `${window.location.origin}/`
+          /*@end-web*/
+          /*@ios emailRedirectTo:"https://cybernetai.app/app/confirmed.html" @end-ios*/
         }
       });
       if (error) throw error;
       if ((data == null ? void 0 : data.user) && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
         hidePasswords(signupForm);
-        setAuthMessage(`There's already a CyberNet AI account for ${email}. Sign in instead, or reset your password if you've forgotten it. If you used Continue with Google before, choose it again.`, "warning", [
-          { label: "Sign in instead", run: () => {
-            if (loginEmailEl) loginEmailEl.value = email;
-            setAuthView("login");
-            focusField(loginPasswordEl);
-          } },
-          { label: "Reset my password", run: () => openResetView(email) },
-          { label: "Continue with Google", run: () => googleAuthBtn == null ? void 0 : googleAuthBtn.click() }
-        ]);
+        setAuthMessage(
+          /*@web*/
+          `There's already a CyberNet AI account for ${email}. Sign in instead, or reset your password if you've forgotten it. If you used Continue with Google before, choose it again.`,
+          "warning",
+          [
+            { label: "Sign in instead", run: () => {
+              if (loginEmailEl) loginEmailEl.value = email;
+              setAuthView("login");
+              focusField(loginPasswordEl);
+            } },
+            { label: "Reset my password", run: () => openResetView(email) },
+            /*@web*/
+            { label: "Continue with Google", run: () => googleAuthBtn == null ? void 0 : googleAuthBtn.click() }
+            /*@end-web*/
+          ]
+        );
         return;
       }
       if (data == null ? void 0 : data.session) {
@@ -1439,7 +1481,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const email = resetEmailEl.value.trim();
     const done = setBusy(sendResetBtn, "Sending link…");
     try {
-      const { error } = await appState.supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/?reset=1` });
+      const { error } = await appState.supabase.auth.resetPasswordForEmail(
+        email,
+        /*@web*/
+        { redirectTo: `${window.location.origin}/?reset=1` }
+        /*@end-web*/
+        /*@ios {redirectTo:"https://cybernetai.app/app/reset.html"} @end-ios*/
+      );
       if (error) throw error;
       clearAuthNotice();
       setAuthMessage(`If an account exists for ${email}, a reset link is on its way. It can take a minute to arrive, so check your spam folder too. The link works once.`, "success");
@@ -1783,6 +1831,7 @@ document.addEventListener("DOMContentLoaded", () => {
             email: String(formData.get("email") || "").trim(),
             page: window.location.pathname.slice(0, 200),
             uiVersion,
+            /*@ios platform:"ios",appVersion:window.CN_APP_VERSION||"", @end-ios*/
             bot_field: String(formData.get("bot-field") || "")
           })
         });
@@ -1813,7 +1862,20 @@ document.addEventListener("DOMContentLoaded", () => {
       if (button) button.disabled = false;
     }
   });
-  window.CyberNetAccount = { appState, refreshAccountStatus, startCheckout, isPro, isSignedIn, openAuthModal, authHeaders, updateAccountUI, openFeedbackModal, openPasswordChange };
+  window.CyberNetAccount = {
+    appState,
+    refreshAccountStatus,
+    /*@web*/
+    startCheckout,
+    /*@end-web*/
+    isPro,
+    isSignedIn,
+    openAuthModal,
+    authHeaders,
+    updateAccountUI,
+    openFeedbackModal,
+    openPasswordChange
+  };
   const reduceCounterMotion = (_c = window.matchMedia) == null ? void 0 : _c.call(window, "(prefers-reduced-motion: reduce)").matches;
   function setCounterText(el, text) {
     const n = el.firstChild;
@@ -2304,7 +2366,10 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
       const result = isBareLink ? analyzeLinkRules(text) : analyzeTextRules(text);
-      const note = isBareLink ? "This looked like a link rather than a message, so CyberNet AI analyzed it with the link engine for a more accurate result. Use Link Detection directly next time for the same result." : "Local protection scan complete. Use Analysis AI for a deeper, AI-assisted check.";
+      const note = isBareLink ? (
+        /*@web*/
+        "This looked like a link rather than a message, so CyberNet AI analyzed it with the link engine for a more accurate result. Use Link Detection directly next time for the same result."
+      ) : "Local protection scan complete. Use Analysis AI for a deeper, AI-assisted check.";
       showReport(cyberTextResult, result.score, result.scamType, result.reasons, result.advice, { ...result, note, previewHtml: isBareLink ? renderLinkPreview(text, result) : renderLinksFound(result.links || []) });
       prependScan("textScanList", `“${text.slice(0, 42)}${text.length > 42 ? "…" : ""}”`, result);
       reportTeamActivity({ kind: "quick_scan", scanType: isBareLink ? "link" : "text", content: text, result: quickScanLogResult(result) });
@@ -2348,7 +2413,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (jsQRLoader) return jsQRLoader;
     jsQRLoader = new Promise((resolve, reject) => {
       const script = document.createElement("script");
-      script.src = "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js";
+      script.src = /*@web*/
+      "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js";
       script.async = true;
       script.onload = () => resolve(window.jsQR);
       script.onerror = () => {
@@ -2580,7 +2646,13 @@ document.addEventListener("DOMContentLoaded", () => {
       return false;
     }
     if (Number(appState.usage.remaining) <= 0) {
-      addChatBubble("ai", `<span class="warning">You have reached today's ${appState.usage.limit || 5}-analysis limit.</span><button class="report-download-btn" data-upgrade-now>View Pro options</button>`);
+      addChatBubble(
+        "ai",
+        /*@web*/
+        `<span class="warning">You have reached today's ${appState.usage.limit || 5}-analysis limit.</span><button class="report-download-btn" data-upgrade-now>View Pro options</button>`
+        /*@end-web*/
+        /*@ios `<span class="warning">You've used today's AI explanations. ${escapeHTML(aiResetText())}</span>` @end-ios*/
+      );
       return false;
     }
     return true;
@@ -2779,7 +2851,8 @@ document.addEventListener("DOMContentLoaded", () => {
       if (isPro()) await refreshAccountStatus();
     } catch (error) {
       if (stopDiagnostic) stopDiagnostic();
-      if (inner) inner.innerHTML = `<span class="warning">${escapeHTML(friendlyNetworkError(error) || error.message || "The analysis didn't finish. Please try again.")}</span>${error.code === "daily_limit_reached" ? '<button class="report-download-btn" data-upgrade-now>Upgrade to Pro</button>' : ""}`;
+      if (inner) inner.innerHTML = `<span class="warning">${escapeHTML(friendlyNetworkError(error) || error.message || "The analysis didn't finish. Please try again.")}</span>${/*@web*/
+      error.code === "daily_limit_reached" ? '<button class="report-download-btn" data-upgrade-now>Upgrade to Pro</button>' : ""}`;
     }
     if (chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
   }
@@ -3184,7 +3257,12 @@ document.addEventListener("DOMContentLoaded", () => {
         if (data.aiPending) watchForAiPlan(data.caseId, Number(data.caseVersion) || 1, "plan");
       } catch (error) {
         if (error.code === "daily_limit_reached") {
-          setIntakeMessage(`${error.message}${recoveryLimitSuffix(error.usage, "Upgrade to Pro for more Recovery cases per day.", "Recovery cases reset at 12:00 PM Gulf time.")}`, "warning");
+          setIntakeMessage(`${error.message}${recoveryLimitSuffix(
+            error.usage,
+            /*@web*/
+            "Upgrade to Pro for more Recovery cases per day.",
+            "Recovery cases reset at 12:00 PM Gulf time."
+          )}`, "warning");
           if (error.usage) {
             appState.recoveryUsage = { used: Number(error.usage.used) || 0, limit: Number((_b2 = error.usage.limit) != null ? _b2 : error.usage.daily_limit) || 1 };
             updateAccountUI();
@@ -3396,7 +3474,8 @@ document.addEventListener("DOMContentLoaded", () => {
           const hours = Math.ceil(seconds / 3600), minutes = Math.max(1, Math.ceil(seconds / 60));
           setUpdateMessage(seconds > 0 ? `You can send your next update in about ${seconds >= 3600 ? `${hours} hour${hours > 1 ? "s" : ""}` : `${minutes} minute${minutes > 1 ? "s" : ""}`}.` : error.message || "Please wait before submitting another update.", "warning");
         } else if (error.code === "daily_limit_reached") {
-          setUpdateMessage(`${error.message}${((_b2 = error.usage) == null ? void 0 : _b2.plan) === "free" || !((_c2 = error.usage) == null ? void 0 : _c2.plan) ? " Upgrade to Pro for more updates per day." : " Updates reset at 12:00 PM Gulf time."}`, "warning");
+          setUpdateMessage(`${error.message}${/*@web*/
+          ((_b2 = error.usage) == null ? void 0 : _b2.plan) === "free" || !((_c2 = error.usage) == null ? void 0 : _c2.plan) ? " Upgrade to Pro for more updates per day." : " Updates reset at 12:00 PM Gulf time."}`, "warning");
         } else {
           setUpdateMessage(friendlyNetworkError(error) || error.message || "Couldn't update this case right now. Please try again.", "warning");
         }

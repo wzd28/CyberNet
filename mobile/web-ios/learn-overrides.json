@@ -1,0 +1,59 @@
+{
+  "_": "iPhone wording for Learn guides (BUILD-PLAN §5.6). Each rule replaces text inside the guide with that id; a rule that no longer matches fails the build, so a changed guide is reviewed again. Gate hits in Learn are fixed here, never exempted. Owner to approve the wording.",
+  "learn-how-to-remove-malware": [
+    {
+      "find": "data-keywords=\"remove malware antivirus clean infected disconnect safe mode steps\"",
+      "replace": "data-keywords=\"remove malware clean infected disconnect update reset steps\""
+    },
+    {
+      "find": "<p>Step-by-step: disconnect, scan, remove, recover.</p>",
+      "replace": "<p>Step by step: disconnect, update, remove, recover.</p>"
+    },
+    {
+      "find": "<strong>Step 2:</strong> Boot into Safe Mode if your device supports it — this loads only essential system processes, which can prevent some malware from actively running and hiding itself.",
+      "replace": "<strong>Step 2:</strong> On an iPhone, update iOS (Settings &gt; General &gt; Software Update), delete apps you don't recognise, and remove unknown configuration or VPN profiles (Settings &gt; General &gt; VPN &amp; Device Management)."
+    },
+    {
+      "find": "<strong>Step 3:</strong> Run a full scan using trusted, reputable antivirus or anti-malware software.",
+      "replace": "<strong>Step 3:</strong> On a computer, use the security tools built into its operating system."
+    },
+    {
+      "find": "<strong>Step 4:</strong> Remove or quarantine everything the scan flags as suspicious.",
+      "replace": "<strong>Step 4:</strong> If problems continue, back up what you need and reset the device, or contact the maker's support (for an iPhone, Apple Support)."
+    }
+  ],
+  "learn-vpns-explained": [
+    {
+      "find": "<p>An encrypted tunnel that protects your internet traffic.</p>",
+      "replace": "<p>An encrypted tunnel for your internet traffic.</p>"
+    },
+    {
+      "find": "It's also not a replacement for antivirus software, since it doesn't scan for or remove malware.",
+      "replace": "It also does not check for or remove harmful software."
+    }
+  ],
+  "learn-what-is-cybersecurity": [
+    {
+      "find": "integrity (keeping information accurate and untampered)",
+      "replace": "integrity (keeping information correct and untampered)"
+    }
+  ],
+  "learn-the-cia-triad": [
+    {
+      "find": "can be trusted as accurate.",
+      "replace": "can be trusted as correct."
+    }
+  ],
+  "learn-ransomware": [
+    {
+      "find": "demands payment to unlock them.",
+      "replace": "demands payment to release them."
+    }
+  ],
+  "learn-investment-and-crypto-scams": [
+    {
+      "find": "\"unlocking payments\"",
+      "replace": "\"release payments\""
+    }
+  ]
+}
