@@ -521,6 +521,29 @@ function analyzeLinkServer(raw: string): LocalEvidence {
     addSignal(state, 97, "The value uses a script, data, local-file, or blob scheme rather than a normal web URL.", "dangerous_scheme", { type: "url_scheme", value: original.split(":")[0], riskReason: "Non-web URL schemes can execute code or access local content." });
   }
 
+  // App links (an iPhone install outside the App Store, an Android intent or
+  // store link) are not web addresses; the shared engine reads them.
+  if (/^(?:intent|market|itms-services|itms-apps):/i.test(original)) {
+    const shared = CyberNetEngine.analyzeLink(original);
+    const score = clamp(shared.score);
+    return {
+      score,
+      confidence: clamp(Number(shared.confidence) || 0),
+      verdict: verdictFromScore(score, Boolean(shared.uncertain)),
+      threatType: String(shared.scamType || "Link that opens an app"),
+      strong: Number(shared.strong) || 0,
+      signals: Array.isArray(shared.signals) ? shared.signals.slice(0, 20) : [],
+      kind: "link",
+      officialBrand: "",
+      evidence: uniqueStrings(shared.reasons || [], 14),
+      counterEvidence: [],
+      limitations,
+      entities: extractEntities(original),
+      indicators: [{ type: "url_scheme", value: original.split(":")[0], riskReason: "App links open an app instead of a web page." }],
+      observedFacts: [`The link uses the ${original.split(":")[0].toLowerCase()}: scheme, which opens an app rather than a web page.`],
+    } as LocalEvidence;
+  }
+
   const normalized = normalizeUrl(original);
   if (!normalized) {
     return {
@@ -543,7 +566,8 @@ function analyzeLinkServer(raw: string): LocalEvidence {
   const labels = host.split(".").filter(Boolean);
   const full = url.href.toLowerCase();
   const pathQuery = `${url.pathname}${url.search}${url.hash}`.toLowerCase();
-  const shorteners = new Set(["bit.ly", "tinyurl.com", "t.co", "goo.gl", "ow.ly", "is.gd", "buff.ly", "cutt.ly", "rebrand.ly", "tiny.one", "rb.gy", "shorturl.at"]);
+  // t.co and lnkd.in (X and LinkedIn wrappers) are a weaker sign, scored by the shared engine.
+  const shorteners = new Set(["bit.ly", "tinyurl.com", "goo.gl", "ow.ly", "is.gd", "buff.ly", "cutt.ly", "rebrand.ly", "tiny.one", "rb.gy", "shorturl.at"]);
   const riskyTlds = new Set(["xyz", "top", "click", "zip", "mov", "review", "country", "work", "support", "live", "cam", "gq", "tk", "ml", "cf", "buzz", "rest", "fit", "quest", "monster", "download"]);
   const brands: Record<string, string> = {
     paypal: "paypal.com", microsoft: "microsoft.com", apple: "apple.com", google: "google.com", amazon: "amazon.com",
@@ -1158,7 +1182,10 @@ function decideAiRoute(
   // screenshot: the rules only read its caption, so a confident read of the
   // caption says nothing about the picture, which only the model can see.
   const ambiguous = serverEvidence.verdict === "suspicious" || serverEvidence.verdict === "inconclusive";
-  if (!hasImage && !ambiguous && serverEvidence.confidence >= AI_CONFIDENCE_SKIP_THRESHOLD) {
+  // "Security guidance" that still talks about a code or a password gets a
+  // second read: a pasted warning is the cheapest cover for a code-relay scam.
+  const guidanceWithSecret = /^Security guidance/.test(String(serverEvidence.threatType || "")) && (((serverEvidence as any).signals || []) as any[]).some((s: any) => s?.id === "otp" || s?.category === "credentials");
+  if (!hasImage && !ambiguous && !guidanceWithSecret && serverEvidence.confidence >= AI_CONFIDENCE_SKIP_THRESHOLD) {
     return { call: false };
   }
 
@@ -1462,6 +1489,10 @@ export default async function handler(request: Request, context: any): Promise<R
   // (a request for a code, a lure link, an authority name on a commercial
   // domain) stays on the scam side of the line. Quick Scan runs the same
   // rules, so the two tools no longer contradict each other on one message.
+  // A follow-up answer ("what should I do now?") carries the earlier item's
+  // verdict and skips the floor, but only when there is a conversation to
+  // follow up on and the new text has no strong rule hit of its own.
+  if (analysis.isFollowUp && (chatContext.length === 0 || (Number((serverEvidence as any).strong) || 0) > 0)) analysis.isFollowUp = false;
   if (mode === "quick" && !analysis.isFollowUp) {
     const ruleScore = clamp(serverEvidence.score);
     const ruleStrong = Number((serverEvidence as any).strong) || 0;
