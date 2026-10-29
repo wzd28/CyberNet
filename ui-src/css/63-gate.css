@@ -361,6 +361,17 @@ html.cn.cn-gate-out .cn-gate-stage { opacity: 0; transform: translateY(-10px); t
 }
 @media (max-height: 700px) {
   html.cn.cn-gate-compact .cn-gate-brand { --cn-gm: 34px; --cn-gw: 20px; }
+  /* At 34 px (laptops near 1366x768) the gate's fine line is under 2 px at 1x and the keyhole blurs:
+     the mark takes the header's on-screen weight (about 2.2 px) and a solid lock (DESIGN.md "Brand mark") */
+  html.cn.cn-gate-compact .cn-gate-shield { stroke-width: 1.6; }
+  html.cn.cn-gate-compact .cn-gate-lock > path:first-child { stroke-width: 1.5; }
+  html.cn.cn-gate-compact .cn-gate-lock > path:last-child { fill-rule: nonzero; }
+}
+/* the line eases to that weight during the glide down, and the keyhole closes once the mark has landed */
+@media (max-height: 700px) and (prefers-reduced-motion: no-preference) {
+  html.cn.cn-gate-compact:not(.cn-still) .cn-gate-shield,
+  html.cn.cn-gate-compact:not(.cn-still) .cn-gate-lock > path:first-child { transition: stroke-width var(--cn-gate-glide) var(--cn-gate-ease); }
+  html.cn.cn-gate-compact:not(.cn-still) .cn-gate-lock > path:last-child { transition: fill-rule 0s var(--cn-gate-glide); transition-behavior: allow-discrete; }
 }
 
 /* ---------- 7. Reduced motion, Pause motion: the end frame, no movement ---------- */

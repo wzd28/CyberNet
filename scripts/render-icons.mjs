@@ -19,16 +19,18 @@
 //   favicon-192x192.png     192  transparent  standard  height 154, top 19
 //   favicon-512x512.png     512  transparent  standard  height 400, top 56 (favicon.png is the same file)
 //   apple-touch-icon.png    180  transparent  standard  height 144, top 18 (iOS fills it black)
-//   cybernetshield.png      96   transparent  standard  height 80, top 8 (legal pages, both Supabase
-//                                                       emails at 32 px, scripts/og-image)
+//   cybernetshield.png      96   transparent  small     height 78, top 9: both Supabase emails show it
+//                                                       at 32 px, so it is drawn as 3x of the site's
+//                                                       26 px small mark (top on whole rows at 1, 2, 3x)
 //   cybernet-shield.png     512  transparent  standard  height 466, top 23
 //   cybernet-mark.svg       the standard mark as a file (viewBox 0 0 24 26)
 //   With sharp installed (it comes with netlify-cli), the two old artworks get the new mark in place
 //   of the old one, everything else in them untouched:
 //   cybernet-logo.png       the round badge: the mark area (inside the black disc) is cleared to
-//                           black and the mark drawn there, height 194, top 89, centred at x 256
+//                           black and the mark drawn there, height 194, top 89, centred at x 256,
+//                           in the badge's own cyan #66F6FC (its "AI") with its soft glow
 //   cybernetlogo.png        the wordmark: the mark area is cleared and the mark drawn there,
-//                           height 568, top 1, centred at x 537.5
+//                           height 568, top 1, centred at x 537.5, in its own cyan #00EBFE (its "AI")
 //   Without sharp those two are skipped (with a note) and the PNGs are written as Edge encodes them.
 //
 // public/og-image.jpg is drawn by scripts/og-image/render.html, which loads /public/cybernet-mark.svg.
@@ -66,7 +68,7 @@ const ICONS = [
   { file: "favicon-192x192.png", weight: "standard", box: place("standard", 192, 192, 154, 19) },
   { file: "favicon-512x512.png", also: ["favicon.png"], weight: "standard", box: place("standard", 512, 512, 400, 56) },
   { file: "apple-touch-icon.png", weight: "standard", box: place("standard", 180, 180, 144, 18) },
-  { file: "cybernetshield.png", weight: "standard", box: place("standard", 96, 96, 80, 8) },
+  { file: "cybernetshield.png", weight: "small", box: place("small", 96, 96, 78, 9) },
   { file: "cybernet-shield.png", weight: "standard", box: place("standard", 512, 512, 466, 23) },
 ];
 const ICO = [
@@ -74,10 +76,14 @@ const ICO = [
   { size: 32, weight: "small", box: place("small", 32, 32, 30, 1) },
   { size: 48, weight: "small", box: place("small", 48, 48, 42, 3) },
 ];
-// the old artworks: the area to clear (x, y, w, h), what to clear it to, and where the mark goes
+// the old artworks: the area to clear (x, y, w, h), what to clear it to, and where the mark goes. Each
+// keeps its own cyan, the one its "AI" letters are drawn in, so an image never shows two cyans; the
+// badge also keeps its soft glow (measured on the old badge: about 9% at 2 px out, 1% at 8 px).
 const ARTWORK = [
-  { file: "cybernet-logo.png", clear: [160, 75, 192, 218], fill: { r: 0, g: 0, b: 0, alpha: 1 }, mark: { height: 194, top: 89, cx: 256 } },
-  { file: "cybernetlogo.png", clear: [290, 0, 496, 575], fill: { r: 0, g: 0, b: 0, alpha: 0 }, mark: { height: 568, top: 1, cx: 537.5 } },
+  { file: "cybernet-logo.png", clear: [160, 75, 192, 218], fill: { r: 0, g: 0, b: 0, alpha: 1 }, mark: { height: 194, top: 89, cx: 256 },
+    color: "#66F6FC", glow: { color: "#00F6FC", blur: 5, opacity: 0.26 } },
+  { file: "cybernetlogo.png", clear: [290, 0, 496, 575], fill: { r: 0, g: 0, b: 0, alpha: 0 }, mark: { height: 568, top: 1, cx: 537.5 },
+    color: "#00EBFE" },
 ];
 
 let sharp = null;
@@ -159,7 +165,7 @@ try {
       const meta = await sharp(src).metadata();
       const [cx0, cy0, cw, ch] = a.clear;
       const box = place("standard", cw, ch, a.mark.height, a.mark.top - cy0, a.mark.cx - cx0);
-      const mark = await sharp(await render(markSvg("standard", { box }), cw, ch)).ensureAlpha().raw().toBuffer();
+      const mark = await sharp(await render(markSvg("standard", { box, color: a.color, glow: a.glow }), cw, ch)).ensureAlpha().raw().toBuffer();
       // Pixel by pixel, so nothing outside the area changes by even one level: inside it, the old mark
       // is replaced by the fill and the new mark is laid over that (straight-alpha "over").
       const { data: px, info } = await sharp(src).ensureAlpha().raw().toBuffer({ resolveWithObject: true });

@@ -49,13 +49,22 @@ export function markInner(weight = "standard", color = CYAN) {
 }
 
 /** A standalone SVG document. `box` places the 24x26 viewBox inside a larger canvas: {w, h, x, y, s}
- *  (canvas size, top-left of the viewBox and its scale, in canvas units); `bg` paints the canvas. */
-export function markSvg(weight = "standard", { color = CYAN, box = null, bg = null } = {}) {
+ *  (canvas size, top-left of the viewBox and its scale, in canvas units); `bg` paints the canvas.
+ *  `glow` ({color, blur, opacity}, with a box only; blur in canvas px) lays a soft light of the mark's
+ *  own shape under it, the way the round badge artwork draws its mark. */
+export function markSvg(weight = "standard", { color = CYAN, box = null, bg = null, glow = null } = {}) {
   if (!box) return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 26" fill="none">${markInner(weight, color)}</svg>`;
   const { w, h, x, y, s } = box;
+  const mark = `<g transform="translate(${n(x)} ${n(y)}) scale(${n(s)})">${markInner(weight, color)}</g>`;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" fill="none">`
     + (bg ? `<rect width="${w}" height="${h}" fill="${bg}"/>` : "")
-    + `<g transform="translate(${n(x)} ${n(y)}) scale(${n(s)})">${markInner(weight, color)}</g></svg>`;
+    + (glow
+      ? `<filter id="cn-glow" filterUnits="userSpaceOnUse" x="0" y="0" width="${w}" height="${h}" color-interpolation-filters="sRGB">`
+        + `<feGaussianBlur in="SourceAlpha" stdDeviation="${glow.blur}" result="b"/><feFlood flood-color="${glow.color}" flood-opacity="${glow.opacity}"/>`
+        + `<feComposite in2="b" operator="in" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`
+        + `<g filter="url(#cn-glow)">${mark}</g>`
+      : mark)
+    + `</svg>`;
 }
 
 /** The CSS mask token (black on transparent, URL-encoded the way ui-src/css writes data URIs). */
