@@ -1,5 +1,8 @@
 import { json, verifyUser, getActiveTeamMembership, serviceFetch } from "../lib/supabase.mjs";
 import { reportError } from "../lib/report-error.mjs";
+// Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
+// management, admin): requests from the app get 403 (netlify/lib/cors.mjs).
+import { webOnly } from "../lib/cors.mjs";
 
 const EXPIRED_MESSAGE = "This invite has expired. Ask the team owner to send a new one.";
 
@@ -10,7 +13,7 @@ function inactiveInviteResponse(status: string) {
   return json({ error: "This invite has already been used." }, 410);
 }
 
-export default async (request: Request) => {
+export default webOnly(async (request: Request) => {
   if (request.method !== "POST") return json({ error: "Method not allowed." }, 405);
 
   try {
@@ -126,6 +129,6 @@ export default async (request: Request) => {
     reportError(error, { fn: "business-invite-accept", label: "Invite accept failed", status: error?.status });
     return json({ error: error.message || "Could not accept the invite." }, Number(error.status) || 500);
   }
-};
+});
 
 export const config = { path: "/api/business-invite-accept" };

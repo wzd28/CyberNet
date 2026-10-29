@@ -1,8 +1,10 @@
 import { json, verifyUser } from "../lib/supabase.mjs";
 import { reportError } from "../lib/report-error.mjs";
 import { fetchWithJwtRetry, RETRY_STANDARD } from "../lib/supabase-retry.mjs";
+import { withCors } from "../lib/cors.mjs";
 
-const CURRENT_VERSION = "2026-09-04";
+// Default only: the page sends its own versions (public/cybernet-legal-upgrade.js LEGAL_VERSION).
+const CURRENT_VERSION = "2026-10-29";
 const ALLOWED_TYPES = new Set(["signup", "checkout", "reaccept"]);
 
 function env(name) {
@@ -39,7 +41,7 @@ async function insertAcceptance(payload) {
   }
 }
 
-export default async request => {
+async function handler(request) {
   if (request.method !== "POST") return json({ error: "Method not allowed." }, 405);
   try {
     const { user } = await verifyUser(request);
@@ -71,6 +73,10 @@ export default async request => {
     }
     return json({ error: error?.message || "Legal acceptance could not be recorded." }, Number(error?.status) || 500);
   }
-};
+}
+
+// CORS for the iPhone app only (netlify/lib/cors.mjs); website requests pass
+// through unchanged.
+export default withCors(handler);
 
 export const config = { path: "/api/legal-acceptance" };

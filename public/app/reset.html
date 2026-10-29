@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="robots" content="noindex,nofollow" />
+  <meta name="referrer" content="no-referrer" />
+  <title>Choose a new password | CyberNet AI</title>
+  <!-- Opened from the password-reset email of the CyberNet AI iPhone app (BUILD-PLAN §8.8).
+       No site navigation and no links except support email, on purpose. supabase-js is the
+       same pinned version and SRI hash as index.html. -->
+  <link rel="icon" type="image/png" href="/cybernetshield.png?v=20260830-3" />
+  <link rel="stylesheet" href="/app/app-pages.css?v=20261029-1" />
+  <script src="/cybernet-compat.js?v=20261028-1" defer></script>
+  <script src="/cybernet-errors.js?v=20261021-1" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" defer></script>
+  <script src="/config.js?v=20260830-3" defer></script>
+  <script src="/app/reset.js?v=20261029-1" defer></script>
+</head>
+<body>
+  <main class="cn-app-card">
+    <img class="cn-app-logo" src="/cybernetshield.png?v=20260830-3" alt="" width="64" height="64" />
+    <p class="cn-app-brand">CyberNet AI</p>
+
+    <section id="cnResetChecking">
+      <h1>Choose a new password</h1>
+      <p class="cn-app-muted" role="status">Checking your link…</p>
+    </section>
+
+    <section id="cnResetFormView" hidden>
+      <h1>Choose a new password</h1>
+      <p class="cn-app-muted">Use at least 8 characters. Don't reuse a password from another site.</p>
+      <form id="cnResetForm" class="cn-app-form" novalidate>
+        <input id="cnResetUsername" class="cn-app-username" type="text" name="username" autocomplete="username" tabindex="-1" aria-hidden="true" readonly />
+        <label for="cnResetPassword">New password</label>
+        <input id="cnResetPassword" type="password" name="new-password" autocomplete="new-password" minlength="8" maxlength="72" required />
+        <label for="cnResetConfirm">Confirm new password</label>
+        <input id="cnResetConfirm" type="password" name="confirm-password" autocomplete="new-password" minlength="8" maxlength="72" required />
+        <button id="cnResetSave" class="cn-app-button" type="submit">Save</button>
+        <p id="cnResetStatus" class="cn-app-status" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section id="cnResetDone" hidden>
+      <h1>Password changed</h1>
+      <p>Go back to the CyberNet AI app and sign in with your new password.</p>
+      <p class="cn-app-muted">You can close this page.</p>
+    </section>
+
+    <section id="cnResetFailed" hidden>
+      <h1>This link didn't work</h1>
+      <p id="cnResetFailedText">It may have expired or already been used. Go back to the CyberNet AI app, choose <strong>Forgot your password?</strong> and ask for a new link.</p>
+    </section>
+
+    <p class="cn-app-footer">Need help? Email <a href="mailto:support@cybernetai.app">support@cybernetai.app</a></p>
+  </main>
+</body>
+</html>

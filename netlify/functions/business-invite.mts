@@ -1,5 +1,8 @@
 import { json, verifyUser, getActiveTeamMembership, serviceFetch, expireStaleInvites } from "../lib/supabase.mjs";
 import { reportError } from "../lib/report-error.mjs";
+// Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
+// management, admin): requests from the app get 403 (netlify/lib/cors.mjs).
+import { webOnly } from "../lib/cors.mjs";
 
 declare const Netlify: {
   env: {
@@ -96,7 +99,7 @@ async function sendInviteEmail(toEmail: string, inviterName: string, acceptUrl: 
   }
 }
 
-export default async (request: Request) => {
+export default webOnly(async (request: Request) => {
   if (request.method !== "POST") return json({ error: "Method not allowed." }, 405);
 
   try {
@@ -203,6 +206,6 @@ export default async (request: Request) => {
     if (!error?.status) reportError(error, { fn: "business-invite", label: "Invite send failed" });
     return json({ error: error.message || "Could not send the invite." }, Number(error.status) || 500);
   }
-};
+});
 
 export const config = { path: "/api/business-invite" };

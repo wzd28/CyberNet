@@ -1,6 +1,7 @@
 import { json, verifyUser, getActiveTeamMembership, serviceFetch } from "../lib/supabase.mjs";
 import { redactForTeamLog } from "../lib/team-log.mjs";
 import { reportError } from "../lib/report-error.mjs";
+import { withCors, isIOS } from "../lib/cors.mjs";
 
 // Quick Scan runs entirely in the visitor's browser, so the server never sees
 // it and it used to be missing from the team owner's activity log. A team
@@ -144,7 +145,7 @@ async function attachShownResult(userId: string, businessAccountId: string, body
   return json({ logged: patch.ok });
 }
 
-export default async (request: Request) => {
+async function handler(request: Request) {
   if (request.method !== "POST") return json({ error: "Method not allowed." }, 405);
 
   try {
@@ -156,6 +157,11 @@ export default async (request: Request) => {
     if (contentLength > 60_000) return json({ error: "Request too large." }, 413);
 
     const body = await request.json().catch(() => ({}));
+    // In the iPhone app, Quick Scan, QR and Share checks run on the phone and
+    // nothing they read leaves it, so they are never logged (owner answer 8:
+    // a member's AI results still reach the owner's log, through
+    // /api/analyze and the figures below).
+    if (body?.kind === "quick_scan" && isIOS(request)) return json({ logged: false, reason: "on_device_in_app" });
     if (body?.kind === "quick_scan") return await logQuickScan(user.id, team.businessAccountId, body);
     if (body?.kind === "analysis_shown") return await attachShownResult(user.id, team.businessAccountId, body);
     return json({ error: "Unknown activity kind." }, 400);
@@ -163,6 +169,10 @@ export default async (request: Request) => {
     reportError(error, { fn: "team-activity", label: "Team activity log failed", status: error?.status });
     return json({ error: error.message || "Could not record team activity." }, Number(error.status) || 500);
   }
-};
+}
+
+// CORS for the iPhone app only (netlify/lib/cors.mjs); website requests pass
+// through unchanged.
+export default withCors(handler);
 
 export const config = { path: "/api/team-activity" };

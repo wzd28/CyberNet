@@ -3,6 +3,9 @@ import {
   verifyUser
 } from "../lib/supabase.mjs";
 import { reportError } from "../lib/report-error.mjs";
+// Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
+// management, admin): requests from the app get 403 (netlify/lib/cors.mjs).
+import { webOnly } from "../lib/cors.mjs";
 
 const WINDOW_MS = 10 * 60 * 1000;
 const MAX_ATTEMPTS = 10;
@@ -60,7 +63,7 @@ function chooseModel(modelIds) {
   ) || "";
 }
 
-export default async request => {
+export default webOnly(async request => {
   if (request.method !== "POST") {
     return json({ error: "Method not allowed." }, 405);
   }
@@ -202,7 +205,7 @@ export default async request => {
       Number(error?.status) || 500
     );
   }
-};
+});
 
 export const config = {
   path: "/api/validate-openai-key"

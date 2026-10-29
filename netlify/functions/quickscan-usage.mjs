@@ -1,7 +1,10 @@
 import { json, verifyUser, serviceFetch, isAdminUser, getActiveTeamMembership } from "../lib/supabase.mjs";
 import { reportError } from "../lib/report-error.mjs";
+// Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
+// management, admin): requests from the app get 403 (netlify/lib/cors.mjs).
+import { webOnly } from "../lib/cors.mjs";
 
-export default async (request) => {
+export default webOnly(async (request) => {
   if (request.method !== "POST") {
     return json({ error: "Method not allowed." }, 405);
   }
@@ -59,7 +62,7 @@ export default async (request) => {
     reportError(error, { fn: "quickscan-usage", label: "Quick Scan usage check failed" });
     return json({ error: "Could not check Quick Scan usage right now. Please try again." }, 503);
   }
-};
+});
 
 export const config = {
   path: "/api/quickscan-usage"

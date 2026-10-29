@@ -26,6 +26,7 @@
 import { createHmac } from "node:crypto";
 import { reportError, scrubText, consumeQuota, CLIENT_FILE, CLIENT_UA } from "../lib/report-error.mjs";
 import { isIgnoredError, describeUserAgent, labelSupported } from "../lib/client-error-filters.mjs";
+import { withCors } from "../lib/cors.mjs";
 
 const MAX_BODY_BYTES = 8 * 1024;
 const PER_ADDRESS_PER_MINUTE = 10;
@@ -98,7 +99,8 @@ export function validateReport(body) {
   // Only a script on this site (/script.js, /ui/cybernet-ui.js): anything else
   // is dropped rather than passed on to the log and the alert email.
   const rawFile = str(body.file, 300);
-  let file = rawFile.split(/[?#]/)[0];
+  // The iPhone app serves its scripts from capacitor://localhost/...; keep the path.
+  let file = rawFile.split(/[?#]/)[0].replace(/^capacitor:\/\/localhost(?=\/)/, "");
   if (!CLIENT_FILE.test(file)) file = "";
   if (file && line !== undefined) file += `:${line}${col !== undefined ? `:${col}` : ""}`;
   let page = str(body.page, 400).split(/[?#]/)[0];
@@ -175,7 +177,7 @@ export function resetClientErrorMemory() {
   recent.clear();
 }
 
-export default async (request, context) => {
+async function handler(request, context) {
   if (request.method !== "POST") {
     return reply(405, { error: "Method not allowed. Send error reports with POST." }, { Allow: "POST" });
   }
@@ -237,7 +239,11 @@ export default async (request, context) => {
   reportError(error, meta);
 
   return accepted();
-};
+}
+
+// CORS for the iPhone app only (netlify/lib/cors.mjs); website requests pass
+// through unchanged.
+export default withCors(handler);
 
 export const config = {
   path: "/api/client-error"

@@ -50,6 +50,8 @@ export function uaSummary(ua) {
   ua = String(ua || "").slice(0, 512);
   if (!ua) return null;
   let m;
+  // The iPhone app's web view (capacitor.config appendUserAgent).
+  if ((m = /\bCyberNetAI-iOS\/(\d{1,4}(?:\.\d{1,4}){0,3})/.exec(ua))) return `CyberNet AI app ${m[1]} on iOS`.slice(0, 60);
   let b = "Other";
   if ((m = /Edg(?:e|A|iOS)?\/(\d+)/.exec(ua))) b = `Edge ${m[1]}`;
   else if ((m = /OPR\/(\d+)/.exec(ua))) b = `Opera ${m[1]}`;
@@ -62,16 +64,46 @@ export function uaSummary(ua) {
   return `${b} on ${os}`.slice(0, 60);
 }
 
+// "Report a problem with this result" in the iPhone app (BUILD-PLAN §7.9)
+// sends { kind, resultId, comment?, platform: "ios", appVersion }. The
+// feedback table has no columns for these, so they become the first line of
+// the stored message, and the app version goes in ui_version ("ios-1.0.0").
+// The user's scanned content is never attached; only what they type.
+export const RESULT_KINDS = Object.freeze({
+  quick_scan: "Quick Scan",
+  qr: "QR scan",
+  share: "Share sheet check",
+  analysis_ai: "Analysis AI",
+  recovery: "Recovery plan"
+});
+const RESULT_ID = /^[\w.:-]{1,64}$/;
+const APP_VERSION = /^\d{1,4}(?:\.\d{1,4}){0,3}$/;
+
+function resultReport(body) {
+  const kind = typeof body.kind === "string" && Object.hasOwn(RESULT_KINDS, body.kind) ? body.kind : "";
+  if (!kind) return null;
+  const resultId = typeof body.resultId === "string" && RESULT_ID.test(body.resultId) ? body.resultId : "";
+  return { kind, resultId };
+}
+
 // Shapes a submitted body into a row. Returns { error } or { row, honeypot }.
 export function validateFeedback(body) {
   if (!body || typeof body !== "object" || Array.isArray(body)) return { error: "The feedback could not be read." };
   if (typeof body.bot_field === "string" && body.bot_field.trim()) return { honeypot: true, error: "The feedback could not be sent." };
 
-  const message = typeof body.message === "string" ? cleanText(body.message).replace(/\r\n?/g, "\n").trim() : "";
+  const report = resultReport(body);
+  const typed = typeof body.message === "string" ? body.message : typeof body.comment === "string" ? body.comment : "";
+  let message = cleanText(typed).replace(/\r\n?/g, "\n").trim();
+  if (report) {
+    // A result report may come without a comment; the header line says what it is about.
+    const header = `[Result report] ${RESULT_KINDS[report.kind]}${report.resultId ? `, result ${report.resultId}` : ""}`;
+    if (message.length > MAX_MESSAGE_CHARS - header.length - 2) return { error: `Keep the message under ${MAX_MESSAGE_CHARS - header.length - 2} characters.` };
+    message = message ? `${header}\n\n${message}` : `${header}\n\n(no comment)`;
+  }
   if (!message) return { error: "Write a message before sending." };
   if (message.length > MAX_MESSAGE_CHARS) return { error: `Keep the message under ${MAX_MESSAGE_CHARS} characters.` };
 
-  const category = Object.hasOwn(CATEGORIES, body.category) ? body.category : "other";
+  const category = Object.hasOwn(CATEGORIES, body.category) ? body.category : report ? "bug" : "other";
 
   let email = typeof body.email === "string" ? body.email.trim() : "";
   if (email && (email.length > 254 || !EMAIL.test(email) || cleanText(email) !== email)) return { error: "Enter a valid contact email, or leave it empty." };
@@ -80,7 +112,8 @@ export function validateFeedback(body) {
   let page = typeof body.page === "string" ? body.page.slice(0, 400).split(/[?#]/)[0] : "";
   if (!/^\/(?!\/)[\w./%~-]{0,199}$/.test(page)) page = "";
 
-  const uiVersion = typeof body.uiVersion === "string" && UI_VERSION.test(body.uiVersion) ? body.uiVersion : "";
+  let uiVersion = typeof body.uiVersion === "string" && UI_VERSION.test(body.uiVersion) ? body.uiVersion : "";
+  if (body.platform === "ios" && typeof body.appVersion === "string" && APP_VERSION.test(body.appVersion)) uiVersion = `ios-${body.appVersion}`;
 
   return {
     row: {

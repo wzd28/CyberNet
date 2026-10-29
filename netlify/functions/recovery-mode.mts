@@ -2,6 +2,9 @@ import OpenAI from "openai";
 import { DEFAULT_MODEL, DEFAULT_MINI_MODEL, modelParams, createResponse, autoReplaceEnabled } from "../lib/ai-models.mjs";
 import { reportError } from "../lib/report-error.mjs";
 import { fetchWithJwtRetry, RETRY_STANDARD } from "../lib/supabase-retry.mjs";
+import { withCors, isIOS } from "../lib/cors.mjs";
+import { appTierFor, consumeRecoveryCaseApp, recoveryCaseLimitMessage } from "../lib/app-tier.mjs";
+import { aiConsentGate } from "../lib/ai-consent.mjs";
 
 declare const Netlify: {
   env: {
@@ -684,7 +687,7 @@ function serviceConfig() {
   };
 }
 
-async function verifySupabaseUser(request: Request): Promise<{ id: string; email?: string } | null> {
+async function verifySupabaseUser(request: Request): Promise<{ id: string; email?: string; email_confirmed_at?: string | null } | null> {
   const authorization = request.headers.get("authorization") || "";
   const { url, publicKey } = serviceConfig();
   if (!authorization.startsWith("Bearer ") || !url || !publicKey) return null;
@@ -694,8 +697,8 @@ async function verifySupabaseUser(request: Request): Promise<{ id: string; email
       signal: AbortSignal.timeout(5_000),
     });
     if (!response.ok) return null;
-    const data = (await response.json()) as { id?: string; email?: string };
-    return data.id ? { id: data.id, email: data.email } : null;
+    const data = (await response.json()) as { id?: string; email?: string; email_confirmed_at?: string | null };
+    return data.id ? { id: data.id, email: data.email, email_confirmed_at: data.email_confirmed_at || null } : null;
   } catch {
     return null;
   }
@@ -863,7 +866,10 @@ async function saveCase<T>(userId: string, classifier: ClassifierResult, plan: a
   return { caseId: caseRow.id as string, after: await afterPromise };
 }
 
-export default async function handler(request: Request, context: any): Promise<Response> {
+async function handler(request: Request, context: any): Promise<Response> {
+  // The iPhone app (BUILD-PLAN §8.2, §8.4): the person's recorded AI consent
+  // first, then the App-tier count; never the admin bypass or the team pool.
+  const ios = isIOS(request);
   if (request.method === "GET") {
     const aiEnabled = Boolean(env("OPENAI_API_KEY"));
     return json({ online: true, aiEnabled, model: aiEnabled ? MODEL : "Server deterministic engine" });
@@ -895,22 +901,32 @@ export default async function handler(request: Request, context: any): Promise<R
   const user = await verifySupabaseUser(request);
   if (!user) return json({ error: "Sign in or create a free account before starting Recovery Mode.", code: "sign_in_required" }, 401);
 
+  if (ios) {
+    const blocked = await aiConsentGate(serviceFetch, user.id);
+    if (blocked) return json(blocked.body, blocked.status);
+  }
+
   let usage;
   let team: { businessAccountId: string; recoveryPoolLimit: number; role: string } | null = null;
-  if (isAdminUser(user)) {
+  if (!ios && isAdminUser(user)) {
     usage = { allowed: true, used: 0, limit: 999999, plan: "business", resetAt: null };
   } else {
     try {
+      // In the app the team is read only so a member's case still reaches the
+      // team owner's log (owner answer 8); the count is the App tier's.
       team = await getActiveTeamMembership(user.id);
-      usage = team
-        ? await consumeRecoveryCaseBusiness(team.businessAccountId)
-        : await consumeRecoveryCase(user.id);
+      usage = ios
+        ? await consumeRecoveryCaseApp(serviceFetch, user.id, appTierFor(user).recoveryCasesPerDay)
+        : team
+          ? await consumeRecoveryCaseBusiness(team.businessAccountId)
+          : await consumeRecoveryCase(user.id);
     } catch (error) {
       console.error("CyberNet Recovery usage reservation failed", error);
       reportError(error, { fn: "recovery-mode", label: "Recovery usage reservation failed", context });
       return json({ error: "Recovery Mode couldn't check your daily allowance just now. Please try again in a minute.", code: "usage_service_unavailable" }, 503);
     }
     if (!usage.allowed) {
+      if (ios) return json({ error: recoveryCaseLimitMessage(usage.limit), code: "daily_limit_reached", usage }, 429);
       const planLabel = usage.plan === "business" ? "team" : usage.plan === "pro" ? "Pro" : "Free";
       return json({ error: `Daily ${planLabel} Recovery case limit reached.`, code: "daily_limit_reached", usage }, 429);
     }
@@ -1060,7 +1076,11 @@ async function triggerBackgroundJob(request: Request, context: any, job: Record<
 export { classifyIncident, runAiRecoveryPlan, sanitizePlan, serviceFetch, modelForRiskFloor, triggerBackgroundJob, verifyBackgroundSignature };
 export type { ClassifierResult };
 
+// CORS for the iPhone app only (netlify/lib/cors.mjs); website requests pass
+// through unchanged. OPTIONS is listed so the app's preflight reaches it.
+export default withCors(handler);
+
 export const config = {
   path: "/api/recovery-mode",
-  method: ["GET", "POST"],
+  method: ["GET", "POST", "OPTIONS"],
 };

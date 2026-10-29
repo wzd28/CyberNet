@@ -1,6 +1,9 @@
 import { json, verifyUser, getProfile, effectivePlan, getActiveTeamMembership, serviceFetch, isAdminUser } from "../lib/supabase.mjs";
 import { reportError } from "../lib/report-error.mjs";
 import { lookup as dnsLookup } from "node:dns/promises";
+// Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
+// management, admin): requests from the app get 403 (netlify/lib/cors.mjs).
+import { webOnly } from "../lib/cors.mjs";
 
 // Every preview spends a paid GetScreenshot credit (or the shared keyless
 // Microlink allowance), so each account gets a short-burst and a daily cap.
@@ -217,7 +220,7 @@ export async function buildPreview(safeUrl, { apiKey, deadline = previewDeps.now
   }
 }
 
-export default async (request) => {
+export default webOnly(async (request) => {
   if (request.method !== "POST") {
     return json({ error: "Method not allowed." }, 405);
   }
@@ -288,7 +291,7 @@ export default async (request) => {
   }
   const www = outcome.wwwFallback ? { wwwFallback: true, requestedHost: outcome.requestedHost, shownHost: outcome.shownHost } : {};
   return json({ screenshot: outcome.screenshot, url: outcome.url, provider: outcome.provider, ...www });
-};
+});
 
 async function isActiveTeamMember(userId) {
   try {

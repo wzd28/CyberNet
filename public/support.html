@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <meta name="description" content="Contact CyberNet AI support, delete your account, or download your data. Help for the CyberNet AI iPhone app and cybernetai.app." />
+  <title>Support | CyberNet AI</title>
+  <!-- The App Store Support URL (https://cybernetai.app/support, BUILD-PLAN §7.10).
+       App Store metadata rules apply to it: no site navigation, no prices, no plan or
+       upgrade links. Links only to the Privacy Policy, the Terms and the support email. -->
+  <link rel="canonical" href="https://cybernetai.app/support" />
+  <link rel="icon" type="image/png" href="/cybernetshield.png?v=20260830-3" />
+  <link rel="stylesheet" href="/app/app-pages.css?v=20261029-1" />
+  <link rel="stylesheet" href="/support.css?v=20261029-1" />
+  <script src="/cybernet-compat.js?v=20261028-1" defer></script>
+  <script src="/cybernet-errors.js?v=20261021-1" defer></script>
+  <script src="/support.js?v=20261029-1" defer></script>
+</head>
+<body class="cn-support">
+  <main class="cn-support-page">
+    <header class="cn-support-head">
+      <img class="cn-app-logo" src="/cybernetshield.png?v=20260830-3" alt="" width="56" height="56" />
+      <p class="cn-app-brand">CyberNet AI</p>
+      <h1>Support</h1>
+      <p>Help for the CyberNet AI iPhone app and the website cybernetai.app.</p>
+    </header>
+
+    <section class="cn-support-section" aria-labelledby="cnSupportContact">
+      <h2 id="cnSupportContact">Contact us</h2>
+      <p>Email <a href="mailto:support@cybernetai.app">support@cybernetai.app</a>, or send a message with the form below. We aim to reply within two working days.</p>
+      <p class="cn-app-muted">Please don't include passwords, one-time codes or card numbers in your message.</p>
+
+      <form class="cn-app-form cn-support-form" id="cnSupportForm" novalidate>
+        <label for="cnSupportEmail">Your email, so we can reply</label>
+        <input type="email" id="cnSupportEmail" name="email" autocomplete="email" maxlength="254" inputmode="email" />
+
+        <label for="cnSupportTopic">Topic</label>
+        <select id="cnSupportTopic" name="category">
+          <option value="other">A question</option>
+          <option value="bug">Something isn't working</option>
+          <option value="feature">An idea or suggestion</option>
+        </select>
+
+        <label for="cnSupportMessage">Message</label>
+        <textarea id="cnSupportMessage" name="message" rows="6" maxlength="4500" required></textarea>
+
+        <div class="cn-app-username" aria-hidden="true">
+          <label for="cnSupportWebsite">Leave this empty</label>
+          <input type="text" id="cnSupportWebsite" name="bot_field" tabindex="-1" autocomplete="off" />
+        </div>
+
+        <button type="submit" class="cn-app-button" id="cnSupportSend">Send message</button>
+        <p class="cn-app-status" id="cnSupportStatus" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="cn-support-section" aria-labelledby="cnSupportDelete">
+      <h2 id="cnSupportDelete">Delete your account</h2>
+      <p><strong>In the iPhone app:</strong> open <strong>Account</strong>, then <strong>Privacy &amp; data</strong>, tap <strong>Delete account</strong> and type DELETE to confirm.</p>
+      <p><strong>On the website:</strong> sign in at cybernetai.app, open your account, choose the <strong>Privacy &amp; data</strong> tab, then <strong>Delete account</strong>.</p>
+      <p>Deleting your account removes your profile, saved explanations, Recovery Mode cases and settings. If this account has a paid plan from our website, deleting the account cancels it immediately. If you signed in with Apple, the app also disconnects Sign in with Apple from your Apple Account.</p>
+      <p>If you can't sign in any more, email <a href="mailto:support@cybernetai.app">support@cybernetai.app</a> from the address on the account and we will delete it for you.</p>
+    </section>
+
+    <section class="cn-support-section" aria-labelledby="cnSupportData">
+      <h2 id="cnSupportData">Your data</h2>
+      <p>To download a copy of your data, use <strong>Export my data</strong> in <strong>Account</strong>, under <strong>Privacy &amp; data</strong>, in the app or on the website.</p>
+      <p>Quick Scan, QR scanning and the Share sheet check things on your iPhone. A message, link, screenshot or Recovery Mode description is sent for an AI explanation only after you choose <strong>Allow</strong> on the "Allow AI analysis?" screen. You can turn this off in Account, under Privacy &amp; data.</p>
+      <p>Read the <a href="/privacy.html">Privacy Policy</a> and the <a href="/terms.html">Terms of Service</a>.</p>
+    </section>
+
+    <section class="cn-support-section" aria-labelledby="cnSupportFaq">
+      <h2 id="cnSupportFaq">Common questions</h2>
+      <h3>CyberNet AI isn't in the share sheet</h3>
+      <p>In the share sheet, scroll the row of apps to the end, tap <strong>More</strong>, and turn on CyberNet AI.</p>
+      <h3>I didn't get the confirmation email</h3>
+      <p>Check your junk or spam folder. In the app, try to sign in again and choose to send a new link.</p>
+      <h3>Is CyberNet AI antivirus software?</h3>
+      <p>No. It is not antivirus software. It helps you judge whether a message, link or QR code looks like a scam, and what to do next.</p>
+    </section>
+
+    <footer class="cn-app-footer cn-support-foot">
+      <p>CyberNet AI is operated by Marks Events FZ LLE, registration number 20116/2025. The iPhone app is listed on the App Store under the name of its developer, Walid Zeineddine.</p>
+      <p><a href="/privacy.html">Privacy Policy</a> · <a href="/terms.html">Terms of Service</a> · <a href="mailto:support@cybernetai.app">support@cybernetai.app</a></p>
+    </footer>
+  </main>
+</body>
+</html>
