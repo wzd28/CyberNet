@@ -626,7 +626,7 @@ html.cn #about { --cn-support-mt: var(--cn-ab-sp); }
    (50-pricing.css is scoped to #pricing). The entity stays on one line (nowrap) and the sentence balances
    around it; no pill, border-box or fill, nothing that competes with the support box above. */
 html.cn #about > .cn-operator {
-  --cn-op-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 26' fill='none' stroke='%23000'%3E%3Cpath d='M12 2 21 6 20 15 12 24 4 15 3 6Z' stroke-width='1.8' stroke-linejoin='round'/%3E%3Cpath d='M9.6 12.5v-2.3a2.4 2.4 0 0 1 4.8 0v2.3' stroke-width='1.6' stroke-linecap='round'/%3E%3Cpath fill='%23000' stroke='none' fill-rule='evenodd' d='M9.5 12.5h5a1.2 1.2 0 0 1 1.2 1.2v3.8a1.2 1.2 0 0 1-1.2 1.2h-5a1.2 1.2 0 0 1-1.2-1.2v-3.8a1.2 1.2 0 0 1 1.2-1.2ZM12 14.2a1 1 0 0 1 .5 1.866V17.3h-1v-1.234A1 1 0 0 1 12 14.2Z'/%3E%3C/svg%3E");
+  --cn-op-mark: var(--cn-mark-xs);
   position: static;
   display: block;
   box-sizing: border-box;
@@ -651,10 +651,10 @@ html.cn #about > .cn-operator {
 html.cn #about > .cn-operator::before {
   content: "";
   display: inline-block;
-  inline-size: 14px;
-  block-size: 15px;
+  inline-size: 16px;
+  block-size: 17px;
   margin-inline-end: 8px;
-  vertical-align: -2px;
+  vertical-align: -3px;
   background: var(--cn-cyan);
   -webkit-mask: var(--cn-op-mark) center / contain no-repeat;
   mask: var(--cn-op-mark) center / contain no-repeat;

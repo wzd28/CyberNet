@@ -46,7 +46,7 @@ const server = createServer(async (req, res) => {
     if (req.url.startsWith("/public/")) {
       const target = normalize(join(ROOT, decodeURIComponent(req.url.split("?")[0])));
       if (!target.startsWith(join(ROOT, "public") + sep)) { res.writeHead(403).end(); return; }
-      res.writeHead(200, { "Content-Type": "image/png" });
+      res.writeHead(200, { "Content-Type": target.endsWith(".svg") ? "image/svg+xml" : "image/png" });
       res.end(await readFile(target));
       return;
     }

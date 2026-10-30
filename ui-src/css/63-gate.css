@@ -8,8 +8,8 @@
    (--cn-gate-glide, --cn-gate-ease), and each step starts once the one before it has landed
    (controller script in #authModal):
 
-     0.0 s   a soft light grows behind the mark while the shield draws itself and a scan line
-             passes down through it
+     0.0 s   a soft light grows behind the mark while the shield draws itself, from the bottom
+             point up and over the top and back down, and a scan line passes down through it
      1.25 s  the lock settles in, one ring of light leaves the mark, and CyberNet AI rises letter by
              letter out of a mask, sharpening as it lands
      2.1 s   the quote types itself under the wordmark, at an even pace
@@ -167,9 +167,14 @@ html.cn.cn-gate .cn-gate-mark::before {
   pointer-events: none;
   animation: cn-gate-glow 2.2s var(--cn-gate-arrive) .1s both;
 }
+/* The outline draws itself (pathLength="1"). Its path starts and ends at the BOTTOM point and has
+   round ends (index.html), so the top point is always a real rounded corner: the two line ends never
+   meet there, during the draw or after it (owner, 29 Oct 2026: "it doesn't look connected from the
+   top"). Before the draw the pattern starts just past the end of the path, so not even a round end
+   paints; on its last frame the dash is dropped (cn-gate-draw), leaving a plain closed outline. */
 html.cn.cn-gate .cn-gate-shield {
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
+  stroke-dasharray: 1 2;
+  stroke-dashoffset: 1.001;
   animation: cn-gate-draw 1.5s var(--cn-gate-ease) .2s forwards;
 }
 html.cn.cn-gate .cn-gate-lock {
@@ -356,6 +361,17 @@ html.cn.cn-gate-out .cn-gate-stage { opacity: 0; transform: translateY(-10px); t
 }
 @media (max-height: 700px) {
   html.cn.cn-gate-compact .cn-gate-brand { --cn-gm: 34px; --cn-gw: 20px; }
+  /* At 34 px (laptops near 1366x768) the gate's fine line is under 2 px at 1x and the keyhole blurs:
+     the mark takes the header's on-screen weight (about 2.2 px) and a solid lock (DESIGN.md "Brand mark") */
+  html.cn.cn-gate-compact .cn-gate-shield { stroke-width: 1.6; }
+  html.cn.cn-gate-compact .cn-gate-lock > path:first-child { stroke-width: 1.5; }
+  html.cn.cn-gate-compact .cn-gate-lock > path:last-child { fill-rule: nonzero; }
+}
+/* the line eases to that weight during the glide down, and the keyhole closes once the mark has landed */
+@media (max-height: 700px) and (prefers-reduced-motion: no-preference) {
+  html.cn.cn-gate-compact:not(.cn-still) .cn-gate-shield,
+  html.cn.cn-gate-compact:not(.cn-still) .cn-gate-lock > path:first-child { transition: stroke-width var(--cn-gate-glide) var(--cn-gate-ease); }
+  html.cn.cn-gate-compact:not(.cn-still) .cn-gate-lock > path:last-child { transition: fill-rule 0s var(--cn-gate-glide); transition-behavior: allow-discrete; }
 }
 
 /* ---------- 7. Reduced motion, Pause motion: the end frame, no movement ---------- */
@@ -372,7 +388,7 @@ html.cn.cn-gate-out .cn-gate-stage { opacity: 0; transform: translateY(-10px); t
   html.cn.cn-gate-enter #authModal .auth-tabs,
   html.cn.cn-gate-enter #authModal #googleAuthWrap,
   html.cn.cn-gate-enter #authModal .auth-form.active-auth-form { animation: none; }
-  html.cn.cn-gate .cn-gate-shield { stroke-dashoffset: 0; }
+  html.cn.cn-gate .cn-gate-shield { stroke-dasharray: none; stroke-dashoffset: 0; }
   html.cn.cn-gate .cn-gate-stage,
   html.cn.cn-gate .cn-gate-brand,
   html.cn.cn-gate .cn-gate-quote { transition: none; }
@@ -390,11 +406,12 @@ html.cn.cn-still.cn-gate-enter #authModal .auth-heading,
 html.cn.cn-still.cn-gate-enter #authModal .auth-tabs,
 html.cn.cn-still.cn-gate-enter #authModal #googleAuthWrap,
 html.cn.cn-still.cn-gate-enter #authModal .auth-form.active-auth-form { animation: none; }
-html.cn.cn-still.cn-gate .cn-gate-shield { stroke-dashoffset: 0; }
+html.cn.cn-still.cn-gate .cn-gate-shield { stroke-dasharray: none; stroke-dashoffset: 0; }
 
 @keyframes cn-gate-sweep { to { transform: translateX(100%); } }
 @keyframes cn-gate-glow { from { opacity: 0; transform: scale(.55); } }
-@keyframes cn-gate-draw { to { stroke-dashoffset: 0; } }
+/* the dash is dropped within the last 1.5 ms (a discrete swap lands halfway between the two frames) */
+@keyframes cn-gate-draw { 99.9% { stroke-dasharray: 1 2; stroke-dashoffset: 0; } to { stroke-dasharray: none; stroke-dashoffset: 0; } }
 @keyframes cn-gate-lock { from { opacity: 0; transform: translateY(8%) scale(.72); } }
 @keyframes cn-gate-ring { 0% { opacity: .85; transform: scale(.6); } 100% { opacity: 0; transform: scale(1.4); } }
 @keyframes cn-gate-scan { 0% { opacity: 0; transform: translateY(-12%); } 15% { opacity: 1; } 85% { opacity: 1; } 100% { opacity: 0; transform: translateY(calc(var(--cn-gm) * 26 / 24 + 12%)); } }

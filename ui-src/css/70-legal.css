@@ -31,8 +31,8 @@ html.cn body.cn-legal-page {
      enough for long reading (about 11:1 on --cn-bg). */
   --cn-legal-ink: var(--cn-text-2);
   --cn-legal-ink: color-mix(in oklab, var(--cn-text) 52%, var(--cn-text-2));
-  /* The site's vector mark (header .brand-mark-icon) as a mask. */
-  --cn-legal-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 26' fill='none' stroke='%23000'%3E%3Cpath d='M12 2 21 6 20 15 12 24 4 15 3 6Z' stroke-width='1.8' stroke-linejoin='round'/%3E%3Cpath d='M9.6 12.5v-2.3a2.4 2.4 0 0 1 4.8 0v2.3' stroke-width='1.6' stroke-linecap='round'/%3E%3Cpath fill='%23000' stroke='none' fill-rule='evenodd' d='M9.5 12.5h5a1.2 1.2 0 0 1 1.2 1.2v3.8a1.2 1.2 0 0 1-1.2 1.2h-5a1.2 1.2 0 0 1-1.2-1.2v-3.8a1.2 1.2 0 0 1 1.2-1.2ZM12 14.2a1 1 0 0 1 .5 1.866V17.3h-1v-1.234A1 1 0 0 1 12 14.2Z'/%3E%3C/svg%3E");
+  /* The brand mark as a mask: the small weight (00-tokens.css, DESIGN.md "Brand mark"). */
+  --cn-legal-mark: var(--cn-mark-sm);
   --cn-legal-back: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M13 8H3.5M7.5 3.5 3 8l4.5 4.5'/%3E%3C/svg%3E");
   min-height: 100vh;
   min-height: 100svh;
@@ -101,9 +101,9 @@ html.cn body.cn-legal-page .cn-legal-page-brand {
   border-radius: var(--cn-r-ctl);
   color: var(--cn-text);
 }
-/* The page's <img> is the old raster shield. The img content box collapses
-   to zero height so the PNG is never drawn, and the padding box shows the
-   token colour through the mark. The alt text stays. */
+/* The page's <img> is the raster shield (cybernetshield.png). The img content
+   box collapses to zero height so the PNG is never drawn, and the padding box
+   shows the token colour through the vector mark. The alt text stays. */
 html.cn body.cn-legal-page .cn-legal-page-brand img {
   flex: none;
   box-sizing: content-box;

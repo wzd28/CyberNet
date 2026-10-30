@@ -1162,6 +1162,14 @@ html.cn #accountDetailsModal .cn-account-title-icon {
   background: var(--cn-surface-2);
 }
 
+/* The icon's SVG is built by cybernet-account-api-upgrade.js in the standard weight; at 26x28 it
+   takes the small weight (DESIGN.md "Brand mark"): a heavier outline and shackle and a solid lock,
+   so the keyhole and the shackle's opening never read as an "8" on a 1x screen. */
+html.cn #accountDetailsModal .cn-account-title-icon > path:first-of-type { stroke-width: 2; stroke-linecap: round; }
+html.cn #accountDetailsModal .cn-account-title-icon > path:nth-of-type(2) { stroke-width: 1.8; }
+html.cn #accountDetailsModal .cn-account-title-icon > circle,
+html.cn #accountDetailsModal .cn-account-title-icon > path:nth-of-type(3) { display: none; }
+
 html.cn #accountDetailsModal .cybernet-account-head p,
 html.cn #cybernetHowToGetKeyModal .cybernet-account-head p {
   margin: 6px 0 0;
@@ -1786,9 +1794,19 @@ html.cn .cn-legal-modal .cn-legal-dialog-head {
   border-bottom: 1px solid var(--cn-line);
 }
 
+/* The dialog's <img> is the raster shield (built by cybernet-legal-upgrade.js). Its content box
+   collapses so the PNG is never drawn, and the vector mark (small weight, --cn-mark-sm) shows
+   through a mask, sharp at any screen density, as on the legal pages (70-legal.css). */
 html.cn .cn-legal-modal .cn-legal-brand img {
-  width: 36px;
-  height: 36px;
+  flex: none;
+  box-sizing: content-box;
+  width: 33px;
+  height: 0;
+  padding-top: 36px;
+  border-radius: 0;
+  background: var(--cn-cyan);
+  -webkit-mask: var(--cn-mark-sm) center / contain no-repeat;
+  mask: var(--cn-mark-sm) center / contain no-repeat;
   filter: none;
 }
 
@@ -2421,6 +2439,11 @@ html.cn :where(.cn-legal-modal .cn-legal-tab.active):is(.cn-legal-modal .cn-lega
 
 /* Windows high contrast: the drawn cross and the sheets keep an edge and a visible glyph */
 @media (forced-colors: active) {
+  html.cn .cn-legal-modal .cn-legal-brand img {
+    forced-color-adjust: none;
+    background: CanvasText;
+  }
+
   html.cn :where(.modal .close-modal):is(.modal .close-modal, #cybernetai .chat-attach-remove)::before,
   html.cn :where(.cn-legal-modal .cn-legal-close):is(.cn-legal-modal .cn-legal-close, #cybernetai .chat-attach-remove)::before,
   html.cn :is(#cybernetai .chat-attach-remove)::before {
