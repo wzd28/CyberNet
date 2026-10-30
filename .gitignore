@@ -12,3 +12,11 @@ node_modules/
 *.cnbk
 *.restore.sql
 cybernet-backup-*.json
+
+# iOS app (29 Oct 2026): the App Store dossier names review accounts; keep it local.
+docs/app-store/
+mobile/node_modules/
+mobile/www/
+mobile/ios/App/App/public/
+mobile/ios/App/ShareExtension/Resources/engine/
+mobile/ios/DerivedData/

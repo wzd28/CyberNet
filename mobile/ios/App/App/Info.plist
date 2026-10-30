@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>CAPACITOR_DEBUG</key>
+    <string>$(CAPACITOR_DEBUG)</string>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleDisplayName</key>
+    <string>CyberNet AI</string>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundleIdentifier</key>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>$(PRODUCT_NAME)</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>$(MARKETING_VERSION)</string>
+    <key>CFBundleVersion</key>
+    <string>$(CURRENT_PROJECT_VERSION)</string>
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
+    <key>LSRequiresIPhoneOS</key>
+    <true/>
+    <key>NSCameraUsageDescription</key>
+    <string>CyberNet AI uses the camera to scan QR codes, which are read on your iPhone, and to take a photo of a suspicious message if you choose. A photo is sent for an AI explanation only if you allow AI analysis.</string>
+    <key>NSUserTrackingUsageDescription</key>
+    <string>If you allow this, CyberNet AI uses Google Analytics to count how the app is used, such as which screens are opened. Google may combine this with data from other companies' apps and websites. The messages, links and pictures you check are not sent to Google Analytics. Every feature works if you choose not to allow it.</string>
+    <key>UIApplicationSceneManifest</key>
+    <dict>
+      <key>UIApplicationSupportsMultipleScenes</key>
+      <false/>
+      <key>UISceneConfigurations</key>
+      <dict>
+        <key>UIWindowSceneSessionRoleApplication</key>
+        <array>
+          <dict>
+            <key>UISceneConfigurationName</key>
+            <string>Default Configuration</string>
+            <key>UISceneDelegateClassName</key>
+            <string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
+            <key>UISceneStoryboardFile</key>
+            <string>Main</string>
+          </dict>
+        </array>
+      </dict>
+    </dict>
+    <key>UILaunchStoryboardName</key>
+    <string>LaunchScreen</string>
+    <key>UIMainStoryboardFile</key>
+    <string>Main</string>
+    <key>UIRequiredDeviceCapabilities</key>
+    <array>
+      <string>arm64</string>
+    </array>
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+      <string>UIInterfaceOrientationPortrait</string>
+    </array>
+    <key>UIViewControllerBasedStatusBarAppearance</key>
+    <true/>
+  </dict>
+</plist>

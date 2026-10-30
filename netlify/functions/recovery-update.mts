@@ -4,6 +4,9 @@ import { modelParams, createResponse, autoReplaceEnabled } from "../lib/ai-model
 import { rekeyPlan, planActions, buildTaskRows, supersededTaskKeys, taskKeyInList } from "../lib/recovery-tasks.mjs";
 import { reportError } from "../lib/report-error.mjs";
 import { fetchWithJwtRetry, RETRY_STANDARD } from "../lib/supabase-retry.mjs";
+import { withCors, isIOS } from "../lib/cors.mjs";
+import { appTierFor, consumeRecoveryUpdateApp, recoveryCooldownMessage, APP_MESSAGES } from "../lib/app-tier.mjs";
+import { aiConsentGate } from "../lib/ai-consent.mjs";
 
 declare const Netlify: {
   env: {
@@ -276,7 +279,7 @@ function serviceConfig() {
   };
 }
 
-async function verifySupabaseUser(request: Request): Promise<{ id: string; email?: string } | null> {
+async function verifySupabaseUser(request: Request): Promise<{ id: string; email?: string; email_confirmed_at?: string | null } | null> {
   const authorization = request.headers.get("authorization") || "";
   const { url, publicKey } = serviceConfig();
   if (!authorization.startsWith("Bearer ") || !url || !publicKey) return null;
@@ -286,8 +289,8 @@ async function verifySupabaseUser(request: Request): Promise<{ id: string; email
       signal: AbortSignal.timeout(5_000),
     });
     if (!response.ok) return null;
-    const data = (await response.json()) as { id?: string; email?: string };
-    return data.id ? { id: data.id, email: data.email } : null;
+    const data = (await response.json()) as { id?: string; email?: string; email_confirmed_at?: string | null };
+    return data.id ? { id: data.id, email: data.email, email_confirmed_at: data.email_confirmed_at || null } : null;
   } catch {
     return null;
   }
@@ -371,8 +374,12 @@ async function consumeRecoveryUpdateBusiness(userId: string) {
   };
 }
 
-export default async function handler(request: Request, context: any): Promise<Response> {
+async function handler(request: Request, context: any): Promise<Response> {
   if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
+  // The iPhone app (BUILD-PLAN §8.2, §8.4): the update text goes to the AI
+  // planner, so the recorded consent is checked first; then the App-tier
+  // count and cooldown, never the admin bypass or the Business tier.
+  const ios = isIOS(request);
   const contentLength = Number(request.headers.get("content-length") || 0);
   if (contentLength > 1_000_000) return json({ error: "Request is too large" }, 413);
 
@@ -397,10 +404,15 @@ export default async function handler(request: Request, context: any): Promise<R
   const user = await verifySupabaseUser(request);
   if (!user) return json({ error: "Sign in before updating a Recovery case.", code: "sign_in_required" }, 401);
 
-  const admin = isAdminUser(user);
+  if (ios) {
+    const blocked = await aiConsentGate(serviceFetch, user.id);
+    if (blocked) return json(blocked.body, blocked.status);
+  }
+
+  const admin = !ios && isAdminUser(user);
   // The case row and the team check do not depend on each other. A failed team
   // check is held until the usage step below, where it has always been reported.
-  const teamCheck = admin
+  const teamCheck = admin || ios
     ? Promise.resolve({ onTeam: false, error: null as unknown })
     : getActiveTeamMembership(user.id).then((onTeam) => ({ onTeam, error: null as unknown }), (error) => ({ onTeam: false, error }));
   const loadCaseRow = async () => {
@@ -433,9 +445,14 @@ export default async function handler(request: Request, context: any): Promise<R
   } else {
     try {
       if (team.error) throw team.error;
-      usage = team.onTeam
-        ? await consumeRecoveryUpdateBusiness(user.id)
-        : await consumeRecoveryUpdate(user.id);
+      if (ios) {
+        const tier = appTierFor(user);
+        usage = await consumeRecoveryUpdateApp(serviceFetch, user.id, tier.recoveryUpdatesPerDay, tier.recoveryUpdateCooldownSeconds);
+      } else {
+        usage = team.onTeam
+          ? await consumeRecoveryUpdateBusiness(user.id)
+          : await consumeRecoveryUpdate(user.id);
+      }
     } catch (error) {
       console.error("CyberNet Recovery update usage reservation failed", error);
       reportError(error, { fn: "recovery-update", label: "Recovery update usage reservation failed", context });
@@ -443,6 +460,9 @@ export default async function handler(request: Request, context: any): Promise<R
     }
     if (!usage.allowed) {
       const code = usage.cooldownSecondsRemaining > 0 ? "cooldown_active" : "daily_limit_reached";
+      if (ios) {
+        return json({ error: usage.cooldownSecondsRemaining > 0 ? recoveryCooldownMessage(usage.cooldownSecondsRemaining) : APP_MESSAGES.recoveryUpdateLimit, code, usage }, 429);
+      }
       const planLabel = usage.plan === "business" ? "team" : usage.plan === "pro" ? "Pro" : "Free";
       return json({ error: usage.cooldownSecondsRemaining > 0 ? "Please wait before submitting another Recovery update." : `Daily ${planLabel} update limit reached.`, code, usage }, 429);
     }
@@ -583,7 +603,11 @@ async function writeUpdatedVersion(args: { caseId: string; caseRow: any; updated
 
 export { runAiUpdate, sanitizeUpdate, progressFromTasks, writeUpdatedVersion, modelForRiskFloor };
 
+// CORS for the iPhone app only (netlify/lib/cors.mjs); website requests pass
+// through unchanged. OPTIONS is listed so the app's preflight reaches it.
+export default withCors(handler);
+
 export const config = {
   path: "/api/recovery-update",
-  method: ["POST"],
+  method: ["POST", "OPTIONS"],
 };

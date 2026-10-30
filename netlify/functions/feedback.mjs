@@ -19,6 +19,7 @@
 import { createHmac } from "node:crypto";
 import { verifyUser, bearerToken } from "../lib/supabase.mjs";
 import { consumeQuota } from "../lib/report-error.mjs";
+import { withCors } from "../lib/cors.mjs";
 import {
   env, validateFeedback, uaSummary, storeFeedback, notifyFeedback,
   limits as feedbackLimits, MAX_BODY_BYTES
@@ -75,7 +76,7 @@ export function resetFeedbackMemory() {
 const blocked = (quota) => Boolean(quota && !quota.allowed);
 const tooMany = () => reply(429, { error: "Too many messages from this connection. Try again later, or email support@cybernetai.app." });
 
-export default async (request, context) => {
+async function handler(request, context) {
   if (request.method !== "POST") {
     return reply(405, { error: "Send feedback with POST." }, { Allow: "POST" });
   }
@@ -149,7 +150,11 @@ export default async (request, context) => {
   else await mail;
 
   return reply(201, { ok: true, id: stored.id });
-};
+}
+
+// CORS for the iPhone app only (netlify/lib/cors.mjs); website requests pass
+// through unchanged.
+export default withCors(handler);
 
 export const config = {
   path: "/api/feedback"

@@ -1,0 +1,50 @@
+{
+  "_": "Copy changes for the in-app legal pages (legal/*.html), applied to the built page. Same rule format as web-ios/text-overrides.json. Each one keeps the meaning; owner to review.",
+  "privacy.html": [
+    {
+      "find": "<strong>Stripe:</strong> checkout, recurring billing",
+      "replace": "<strong>Stripe:</strong> payments on the website, recurring billing",
+      "min": 0,
+      "max": 1,
+      "why": "legal gate word (checkout); same meaning"
+    },
+    {
+      "find": "Stripe customer, checkout, subscription,",
+      "replace": "Stripe customer, payment session, subscription,",
+      "min": 0,
+      "max": 1,
+      "why": "legal gate word (checkout); same meaning"
+    },
+    {
+      "find": "needed to unlock, renew, cancel, refund",
+      "replace": "needed to provide, renew, cancel, refund",
+      "min": 0,
+      "max": 1,
+      "why": "legal gate word (unlock); same meaning"
+    }
+  ],
+  "terms.html": [
+    {
+      "find": "“Concept Preview”, “Coming Soon”, “In Development”",
+      "replace": "“Concept Preview”, “In Development”",
+      "min": 0,
+      "max": 1,
+      "why": "placeholder wording is not allowed in the app (D12); the clause keeps its meaning"
+    },
+    {
+      "find": "legal, pricing, or business changes",
+      "replace": "legal, commercial, or business changes",
+      "min": 0,
+      "max": 1,
+      "why": "legal gate word (pricing); same meaning"
+    },
+    {
+      "find": "or USD $100.</p>",
+      "replace": "or 100 US dollars.</p>",
+      "min": 0,
+      "max": 1,
+      "why": "legal gate ($ is reserved for prices); same amount"
+    }
+  ],
+  "acceptable-use.html": []
+}

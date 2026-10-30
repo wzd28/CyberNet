@@ -1,0 +1,77 @@
+/* Minimal pages that the iPhone app's emails open (sign-up confirmation and
+   password reset). No site navigation, no pricing: these are reached from the
+   app, so they must not lead anywhere else (App Review 3.1.1; BUILD-PLAN §8.8). */
+:root {
+  --cn-bg: #04141c;
+  --cn-card: #08152a;
+  --cn-line: rgba(34, 211, 238, 0.18);
+  --cn-text: #eaf6ff;
+  --cn-muted: #9db3c4;
+  --cn-accent: #22d3ee;
+  --cn-accent-ink: #04141c;
+  --cn-ok: #34d399;
+  --cn-bad: #fca5a5;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--cn-bg);
+  color: var(--cn-text);
+  font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  -webkit-text-size-adjust: 100%;
+}
+.cn-app-card {
+  width: 100%;
+  max-width: 440px;
+  background: var(--cn-card);
+  border: 1px solid var(--cn-line);
+  border-radius: 16px;
+  padding: 28px 22px;
+  text-align: center;
+}
+.cn-app-logo { width: 64px; height: 64px; display: block; margin: 0 auto 14px; }
+.cn-app-brand { margin: 0 0 18px; color: var(--cn-muted); font-size: 14px; letter-spacing: 0.06em; text-transform: uppercase; }
+h1 { margin: 0 0 12px; font-size: 22px; line-height: 1.3; }
+p { margin: 0 0 12px; color: var(--cn-text); }
+.cn-app-muted { color: var(--cn-muted); font-size: 14px; }
+.cn-app-form { text-align: left; margin-top: 18px; }
+.cn-app-form label { display: block; font-weight: 600; font-size: 15px; margin: 14px 0 6px; }
+.cn-app-form input[type="password"] {
+  width: 100%;
+  font-size: 16px; /* 16px or more, so iOS does not zoom */
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--cn-line);
+  background: #020812;
+  color: var(--cn-text);
+}
+.cn-app-form input:focus { outline: 2px solid var(--cn-accent); outline-offset: 1px; }
+.cn-app-hint { color: var(--cn-muted); font-size: 13px; margin: 6px 0 0; }
+.cn-app-button {
+  display: block;
+  width: 100%;
+  margin-top: 20px;
+  min-height: 48px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--cn-accent);
+  color: var(--cn-accent-ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.cn-app-button[disabled] { opacity: 0.6; cursor: default; }
+.cn-app-status { min-height: 1.5em; margin-top: 14px; font-size: 15px; }
+.cn-app-status.is-error { color: var(--cn-bad); }
+.cn-app-status.is-ok { color: var(--cn-ok); }
+.cn-app-footer { margin-top: 22px; color: var(--cn-muted); font-size: 13px; }
+.cn-app-footer a { color: var(--cn-accent); }
+.cn-app-username { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+[hidden] { display: none !important; }

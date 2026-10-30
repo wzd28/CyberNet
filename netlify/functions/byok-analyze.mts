@@ -9,8 +9,11 @@ import {
   getHistory,
   getActiveTeamMembership
 } from "../lib/supabase.mjs";
-import { modelParams } from "../lib/ai-models.mjs";
+import { modelParams, byokModel } from "../lib/ai-models.mjs";
 import { reportError } from "../lib/report-error.mjs";
+// Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
+// management, admin): requests from the app get 403 (netlify/lib/cors.mjs).
+import { webOnly } from "../lib/cors.mjs";
 
 const MAX_TEXT_CHARS = 16_000;
 const MAX_IMAGE_DATA_CHARS = 5_500_000;
@@ -91,14 +94,10 @@ function looksLikeOpenAIKey(value) {
   return /^sk-[A-Za-z0-9_-]{20,}$/.test(String(value || ""));
 }
 
+// The model the visitor's key was validated for (validate-openai-key.mts); a
+// removed model goes to its replacement (ai-models.mjs byokModel).
 function safeModel(value) {
-  const model = String(value || "gpt-5-mini").trim();
-
-  if (!/^[A-Za-z0-9._:-]{1,80}$/.test(model)) {
-    return "gpt-5-mini";
-  }
-
-  return model;
+  return byokModel(value);
 }
 
 function outputText(payload) {
@@ -333,7 +332,7 @@ async function callOpenAI({
   return normalize(parsed);
 }
 
-export default async request => {
+export default webOnly(async request => {
   if (request.method !== "POST") {
     return json({ error: "Method not allowed." }, 405);
   }
@@ -488,7 +487,7 @@ export default async request => {
       status
     );
   }
-};
+});
 
 export const config = {
   path: "/api/byok-analyze"

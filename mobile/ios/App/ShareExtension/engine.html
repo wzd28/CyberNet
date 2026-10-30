@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CyberNet AI engine</title>
+<!--
+  Loaded by EngineRunner.swift in a hidden WKWebView inside the Share Extension. No network: this
+  file and the engine are inside the extension bundle. engine/cybernet-engine.js is the website's
+  public/cybernet-engine.js copied unchanged at build time (BUILD-PLAN §5.1 step 5).
+  The bridge below only reads results; it adds no detection rules. Labels follow
+  the app's getDanger() in public/script.js: 32+ is SCAM; a link on a domain nobody vouched for
+  is CAN'T CONFIRM (linkNeedsCaution) or LOW RISK; everything else is LOW RISK too (the app never
+  says "not a scam": a low score is not proof, App Review 2.3.1(a), dossier risk D2).
+-->
+<script src="engine/cybernet-engine.js"></script>
+<script>
+(function (root) {
+  "use strict";
+
+  function label(engine, result) {
+    var score = Number(result && result.score) || 0;
+    if (score >= engine.SCAM_THRESHOLD) return { band: "scam", headline: "SCAM" };
+    if (result && result.kind === "link" && !result.officialBrand) {
+      var caution = engine.linkNeedsCaution(Object.assign({}, result, { score: score }));
+      return caution ? { band: "unverified", headline: "CAN'T CONFIRM" } : { band: "safe", headline: "LOW RISK" };
+    }
+    return { band: "safe", headline: "LOW RISK" };
+  }
+
+  function summarize(engine, result, subject) {
+    var verdict = label(engine, result);
+    var plain = engine.plainSummary(result) || {};
+    var points = Array.isArray(plain.points) ? plain.points.filter(Boolean).slice(0, 3) : [];
+    return {
+      band: verdict.band,
+      headline: verdict.headline,
+      score: Number(result && result.score) || 0,
+      lead: String(plain.lead || ""),
+      points: points.map(String),
+      action: String(plain.action || ""),
+      subject: String(subject || "").slice(0, 300)
+    };
+  }
+
+  function nothingFound(subject) {
+    return {
+      band: "none",
+      headline: "NOTHING TO CHECK",
+      score: 0,
+      lead: "We couldn't find any words, link or QR code to check in what you shared.",
+      points: [],
+      action: "Try sharing the link or the text itself, or paste it into Check in the app.",
+      subject: String(subject || "")
+    };
+  }
+
+  // kind: "url" { url } | "text" { text } | "image" { qr?, text? }. Returns a JSON string.
+  root.cnRun = function (kind, payload) {
+    var engine = root.CyberNetEngine;
+    if (!engine) throw new Error("engine-missing");
+    payload = payload || {};
+    var out;
+    if (kind === "url") {
+      out = payload.url ? summarize(engine, engine.analyzeLink(String(payload.url)), payload.url) : nothingFound("");
+    } else if (kind === "text") {
+      var text = String(payload.text || "").trim();
+      out = text ? summarize(engine, engine.analyzeText(text), text) : nothingFound("");
+    } else if (kind === "image") {
+      var candidates = [];
+      if (payload.qr) {
+        var qr = engine.analyzeQr(String(payload.qr));
+        if (qr && qr.result) candidates.push(summarize(engine, qr.result, String(payload.qr)));
+      }
+      var seen = String(payload.text || "").trim();
+      if (seen) candidates.push(summarize(engine, engine.analyzeText(seen), seen));
+      candidates.sort(function (a, b) { return b.score - a.score; });
+      out = candidates.length ? candidates[0] : nothingFound("");
+    } else {
+      throw new Error("unknown-kind");
+    }
+    return JSON.stringify(out);
+  };
+  root.cnEngineVersion = root.CyberNetEngine ? root.CyberNetEngine.VERSION : "";
+})(window);
+</script>
+</head>
+<body></body>
+</html>

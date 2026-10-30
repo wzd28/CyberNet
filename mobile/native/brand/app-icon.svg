@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- CyberNet AI app icon (DRAFT for the owner's approval). Vector redraw of public/cybernet-shield.png.
+       Full-bleed and opaque: iOS applies the rounded mask itself and App Store icons must have no alpha.
+       Colours: tokens cn-bg #060a14, cn-brand #22d3ee, cn-brand-2 #67e8f9 (ui-src/css/00-tokens.css).
+       Render: run mobile/scripts/add-share-extension.cjs with the icons flag (see its header). -->
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="44%" r="62%">
+      <stop offset="0" stop-color="#0f2a3a"/>
+      <stop offset="1" stop-color="#060a14"/>
+    </radialGradient>
+    <linearGradient id="mark" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#67e8f9"/>
+      <stop offset="1" stop-color="#22d3ee"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#glow)"/>
+  <path d="M512 176 C592 230 680 258 780 266 L780 518 C780 672 672 786 512 856 C352 786 244 672 244 518 L244 266 C344 258 432 230 512 176 Z"
+        fill="none" stroke="url(#mark)" stroke-width="48" stroke-linejoin="round"/>
+  <path d="M436 486 L436 428 A76 76 0 0 1 588 428 L588 486" fill="none" stroke="url(#mark)" stroke-width="40" stroke-linecap="round"/>
+  <rect x="384" y="472" width="256" height="196" rx="34" fill="url(#mark)"/>
+  <circle cx="512" cy="550" r="27" fill="#060a14"/>
+  <path d="M498 560 L526 560 L534 620 L490 620 Z" fill="#060a14"/>
+</svg>

@@ -1,0 +1,67 @@
+{
+  "_": "Copy changes for shared web files whose build markers belong to another area. Each rule: find (exact text) or pattern (a regular expression), replace, min/max matches (a rule outside its range fails the build), why. Better: /*@web*/ and /*@ios*/ regions in the file itself; then delete the rule here (it will stop matching and fail the build as a reminder).",
+  "cybernet-privacy-controls.js": [
+    {
+      "find": " To cancel a paid plan and keep your account, use Manage Billing on the Account Info tab.",
+      "replace": "",
+      "min": 0,
+      "max": 1,
+      "why": "the app has no billing screen (the website's Account panel text; not shown in the app)"
+    },
+    {
+      "find": "\"Open Manage Billing\"",
+      "replace": "\"Back to Account\"",
+      "min": 0,
+      "max": 1,
+      "why": "dead code in the app (no refusal asks for billing since 29 Oct), but the label must not name billing"
+    },
+    {
+      "find": "<li>Any paid plan (Pro, or a Business team you own): it is cancelled immediately</li>",
+      "replace": "<li>Any paid plan from our website: it is cancelled immediately</li>",
+      "min": 0,
+      "max": 1,
+      "why": "BUILD-PLAN 7.7: the deletion screen names no plan"
+    },
+    {
+      "find": "<p class=\"cn-privacy-note\"><strong>Paying for Pro or Business?</strong> Deleting your account cancels the plan immediately. Paid access ends now and there is no refund for the rest of the billing period. To keep it until the period ends, cancel in Manage Billing instead and delete your account after that date. Anything saved in this browser is cleared too.</p>",
+      "replace": "<p class=\"cn-privacy-note\"><strong>A paid plan from our website?</strong> If this account has a paid plan from our website, deleting the account cancels it immediately and there is no refund for the rest of the billing period. Anything CyberNet AI keeps on this iPhone is removed too.</p>",
+      "min": 0,
+      "max": 1,
+      "why": "owner answer 7 / BUILD-PLAN 7.7: warn without naming a plan, price or billing screen"
+    },
+    {
+      "find": "that Stripe must keep by law",
+      "replace": "that our payment provider must keep by law",
+      "min": 0,
+      "why": "the in-app Privacy Policy names the processor; app screens do not mention purchases"
+    },
+    {
+      "find": "<li>Your place in any Business team. A team you own closes; its members keep their own accounts.</li>",
+      "replace": "<li>Your place in any team. A team you own closes; its members keep their own accounts.</li>",
+      "min": 1,
+      "max": 1,
+      "why": "risk A1: the app's screens name no website plan (Business is a website plan)"
+    },
+    {
+      "find": "If you are on a Business team, your past scans also leave the team's activity log.",
+      "replace": "If you are a member of a team, your past AI explanations also leave the team's activity log.",
+      "min": 1,
+      "max": 1,
+      "why": "risk A1 (no plan name); clearing history removes scan_history rows, which in the app are AI explanations only"
+    },
+    {
+      "find": "Your Business team's plan changed while your account was being deleted",
+      "replace": "Your team's plan changed while your account was being deleted",
+      "min": 1,
+      "max": 1,
+      "why": "risk A1: no plan name on app screens"
+    },
+    {
+      "find": "Some of your Business team details were already removed",
+      "replace": "Some of your team details were already removed",
+      "min": 1,
+      "max": 1,
+      "why": "risk A1: no plan name on app screens"
+    }
+  ]
+}

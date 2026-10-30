@@ -1,0 +1,26 @@
+[
+  {
+    "file": "cybernet-errors.js",
+    "literal": "Chrome ",
+    "term": "chrome",
+    "reason": "browser family label in the anonymous error report (cybernet-errors.js browserFamily); never shown to anyone"
+  },
+  {
+    "file": "cybernet-errors.js",
+    "literal": "Android",
+    "term": "android",
+    "reason": "operating-system label in the anonymous error report; never shown"
+  },
+  {
+    "file": "cybernet-errors.js",
+    "literal": "ChromeOS",
+    "term": "chrome",
+    "reason": "operating-system label in the anonymous error report; never shown"
+  },
+  {
+    "file": "vendor/supabase.js",
+    "literal": "127.0.0.1",
+    "term": "127.0.0.1",
+    "reason": "supabase-js 2.117.2 (pinned, same file as the website): host list for its own trace headers; the app never connects to it"
+  }
+]

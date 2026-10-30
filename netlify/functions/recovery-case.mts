@@ -1,5 +1,6 @@
 import { reportError } from "../lib/report-error.mjs";
 import { fetchWithJwtRetry, RETRY_STANDARD } from "../lib/supabase-retry.mjs";
+import { withCors } from "../lib/cors.mjs";
 
 declare const Netlify: {
   env: {
@@ -57,7 +58,7 @@ async function serviceFetch(path: string, init: RequestInit = {}): Promise<Respo
   return fetchWithJwtRetry(`${url}${path}`, { ...init, headers, signal: init.signal || AbortSignal.timeout(7_000) }, { ...RETRY_STANDARD, label: "recovery-case" });
 }
 
-export default async function handler(request: Request): Promise<Response> {
+async function handler(request: Request): Promise<Response> {
   if (request.method !== "GET") return json({ error: "Method not allowed" }, 405);
 
   const user = await verifySupabaseUser(request);
@@ -128,7 +129,11 @@ export default async function handler(request: Request): Promise<Response> {
   }
 }
 
+// CORS for the iPhone app only (netlify/lib/cors.mjs); website requests pass
+// through unchanged. OPTIONS is listed so the app's preflight reaches it.
+export default withCors(handler);
+
 export const config = {
   path: "/api/recovery-case",
-  method: ["GET"],
+  method: ["GET", "OPTIONS"],
 };

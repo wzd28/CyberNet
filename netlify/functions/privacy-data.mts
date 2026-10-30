@@ -1,6 +1,9 @@
 import { json, verifyUser } from "../lib/supabase.mjs";
 import { reportError } from "../lib/report-error.mjs";
 import { fetchWithJwtRetry, RETRY_STANDARD } from "../lib/supabase-retry.mjs";
+import { withCors } from "../lib/cors.mjs";
+import { makeStripe, cancelOpenSubscriptions } from "../lib/billing-cancel.mjs";
+import { revokeAppleTokens, cleanAuthorizationCode, hasAppleIdentity, appleConfig, appleSubOf } from "../lib/apple-siwa.mjs";
 
 // Privacy controls for the signed-in user: export, clear-history and
 // delete-account. Every request is checked against the caller's own Supabase
@@ -9,6 +12,13 @@ import { fetchWithJwtRetry, RETRY_STANDARD } from "../lib/supabase-retry.mjs";
 //
 // Errors carry a machine `code` and a plain-language `error` message, so the
 // Account panel can show the right next step.
+//
+// Deletion is immediate (owner answer 7, 29 Oct 2026; App Review 5.1.1(v)):
+// an open paid plan no longer blocks it. Every open Stripe subscription the
+// account pays for (its own plan and any Business team it owns) is cancelled
+// at once, with no refund or credit for unused time, before anything is
+// deleted. If the plan cannot be cancelled, nothing is deleted. A Sign in with
+// Apple account's tokens are revoked afterwards (lib/apple-siwa.mjs).
 
 // Deny by default: only these Stripe statuses mean nobody can be billed any
 // more. Everything else (active, trialing, past_due, unpaid, incomplete,
@@ -20,13 +30,20 @@ const SUPPORT_EMAIL = "support@cybernetai.app";
 
 const MESSAGES = {
   NOT_CONFIGURED: `Privacy controls are not available right now. Please try again later, or email ${SUPPORT_EMAIL}.`,
-  SUBSCRIPTION_ACTIVE:
-    "You still have an active CyberNet AI plan. Cancel it in Manage Billing first. " +
-    "If you have already cancelled, the plan stays active until the end of the period you paid for, " +
-    "and you can delete your account after that date.",
+  BILLING_NOT_CONFIGURED:
+    "Your account has a paid plan, and we can't cancel it automatically right now, so your account has not been deleted " +
+    `and nothing was changed. Please try again later, or email ${SUPPORT_EMAIL} and we will cancel the plan and remove your account for you.`,
+  SUBSCRIPTION_CANCEL_FAILED:
+    "We couldn't cancel your paid plan with our payment provider, so your account has not been deleted. " +
+    `Please try again in a few minutes. If this keeps happening, email ${SUPPORT_EMAIL} and we will cancel the plan and remove your account for you.`,
+  // No plan was known to be open; only the check for a stray subscription
+  // at Stripe failed (an outage), so the message does not talk about a plan.
+  BILLING_CHECK_FAILED:
+    "We couldn't confirm with our payment provider that nothing is still charging this account, so your account has not been deleted. " +
+    `Please try again in a few minutes. If this keeps happening, email ${SUPPORT_EMAIL} and we will remove your account for you.`,
   TEAM_ACTIVE:
-    "Your CyberNet AI Business team still has an active plan. Cancel the team's plan in Manage Billing first. " +
-    "Once the plan has ended, you can delete your account here and the team closes with it.",
+    "Your Business team's plan changed while your account was being deleted, so the deletion stopped and your account " +
+    `and sign-in still work. Please press Delete again in a few minutes. If this keeps happening, email ${SUPPORT_EMAIL}.`,
   CONFIRMATION_REQUIRED: "Type DELETE in the box to confirm that you want to delete your account.",
   DELETE_FAILED:
     "We could not finish deleting your account, so it is still open. Please try again in a few minutes. " +
@@ -34,6 +51,10 @@ const MESSAGES = {
   PARTIAL_DELETE:
     "We could not finish deleting your account. Some of your Business team details were already removed " +
     "(your place in other teams, or a closed team you owned), but your account and sign-in still work. " +
+    "Please press Delete again in a few minutes to finish. " +
+    `If this keeps happening, email ${SUPPORT_EMAIL} and we will remove it for you.`,
+  PARTIAL_DELETE_BILLING:
+    "Your paid plan has been cancelled, but we could not finish deleting your account, so your account and sign-in still work. " +
     "Please press Delete again in a few minutes to finish. " +
     `If this keeps happening, email ${SUPPORT_EMAIL} and we will remove it for you.`,
   EXPORT_FAILED: "We could not prepare your data file. Please try again in a few minutes.",
@@ -210,37 +231,87 @@ async function removeCounted(path, code) {
   return match ? Number(match[1]) : 1;
 }
 
-async function deleteAccount(user) {
+// Cancels, in Stripe, every subscription that could still bill this account:
+// its own plan and the plans of the teams it owns. Runs before anything is
+// deleted; if it fails, nothing is deleted. Returns the subscriptions that
+// were open and are now cancelled.
+async function cancelBilling(profile, teams, personalOpen) {
+  const openTeams = teams.filter(team => isOpen(team.subscription_status));
+  const subscriptionIds = [
+    ...(personalOpen ? [profile?.stripe_subscription_id] : []),
+    ...openTeams.map(team => team.stripe_subscription_id)
+  ].filter(Boolean);
+  const customerIds = [profile?.stripe_customer_id, ...teams.map(team => team.stripe_customer_id)].filter(Boolean);
+  const secret = env("STRIPE_SECRET_KEY");
+  if (!secret) {
+    // Without the key nothing can be cancelled. A plan the database still
+    // shows as open, with a subscription behind it, must not keep billing a
+    // deleted account, so deletion stops. A paid-looking row with no
+    // subscription id (test fixtures, an old row) has nothing to cancel.
+    if (subscriptionIds.length) {
+      reportError("STRIPE_SECRET_KEY is not set; an account with a paid plan could not be deleted", { fn: "privacy-data", label: "Billing not configured" });
+      throw fail(503, "BILLING_NOT_CONFIGURED");
+    }
+    return [];
+  }
+  if (!subscriptionIds.length && !customerIds.length) return [];
+  try {
+    return await cancelOpenSubscriptions(makeStripe(secret), { subscriptionIds, customerIds });
+  } catch (error) {
+    console.error("CyberNet privacy-data Stripe cancel failed", error?.type || "", error?.code || "", error?.message || error);
+    reportError(error, { fn: "privacy-data", label: "Subscription cancel on delete failed" });
+    // Only the stray-subscription listing failed and no plan is known to be
+    // open: say that, not "your paid plan".
+    const checkOnly = error?.cnPhase === "list" && !subscriptionIds.length;
+    throw fail(502, checkOnly ? "BILLING_CHECK_FAILED" : "SUBSCRIPTION_CANCEL_FAILED");
+  }
+}
+
+async function deleteAccount(user, body = {}) {
   const uid = id(user.id);
 
-  // Gate 1: a personal Pro plan that Stripe still bills or may still bill.
   const profile = await getProfile(user.id, "PROFILE_LOOKUP_FAILED");
   // No profile row, or no status on it, means no plan was ever started.
   const personal = String(profile?.subscription_status ?? profile?.subscriptionStatus ?? "").trim();
-  if (personal && isOpen(personal)) {
-    return reply("SUBSCRIPTION_ACTIVE", 409);
-  }
-
-  // Gate 2: a Business team this user owns whose plan is still open.
-  const owned = await get(`business_accounts?owner_user_id=eq.${uid}&select=id,subscription_status`, "TEAM_LOOKUP_FAILED");
+  const personalOpen = Boolean(personal) && isOpen(personal);
+  const owned = await get(
+    `business_accounts?owner_user_id=eq.${uid}&select=id,subscription_status,stripe_subscription_id,stripe_customer_id`,
+    "TEAM_LOOKUP_FAILED"
+  );
   const teams = Array.isArray(owned) ? owned : [];
-  if (teams.some(team => isOpen(team.subscription_status))) {
-    return reply("TEAM_ACTIVE", 409);
-  }
 
-  // Rows with no link to auth.users, so nothing cascades to them: the
-  // checkout error log (it can hold Stripe's raw error text) and the
-  // rate-limit counters whose keys end in the user id (analyze:<mode>:<uid>,
-  // shot:min:<uid>, shot:day:<uid>). Done first: losing them changes nothing
-  // the user would notice if a later step fails.
-  await remove(`checkout_debug_log?user_id=eq.${uid}`, "CHECKOUT_LOG_CLEANUP_FAILED");
-  await remove(`api_rate_limits?rate_key=like.*${uid}`, "RATE_LIMIT_CLEANUP_FAILED");
+  // Step 1: billing. A paid plan no longer blocks deletion; it is cancelled
+  // now, with no refund for unused time (the deletion screen says so).
+  const cancelled = await cancelBilling(profile, teams, personalOpen);
+  const cancelledNow = cancelled.filter(item => !item.already).length;
+  const billingChanged = cancelled.length > 0;
 
-  // From here on, a failure can leave the account open with some of its team
-  // links gone; the reply then says so (PARTIAL_DELETE) instead of "nothing
-  // changed".
+  // From here on, a failure leaves the account open; the reply then says what
+  // already changed (PARTIAL_DELETE with the billing or the team wording)
+  // instead of "nothing changed".
   let changed = false;
   try {
+    // Rows with no link to auth.users, so nothing cascades to them: the
+    // checkout error log (it can hold Stripe's raw error text) and the
+    // rate-limit counters whose keys end in the user id (analyze:<mode>:<uid>,
+    // shot:min:<uid>, shot:day:<uid>). Done first: losing them changes nothing
+    // the user would notice if a later step fails.
+    await remove(`checkout_debug_log?user_id=eq.${uid}`, "CHECKOUT_LOG_CLEANUP_FAILED");
+    await remove(`api_rate_limits?rate_key=like.*${uid}`, "RATE_LIMIT_CLEANUP_FAILED");
+
+    // The database follows Stripe at once (the webhook says the same a moment
+    // later), so the team clean-up below, which only removes closed teams,
+    // can run, and no paid plan is shown if a later step fails.
+    const now = new Date().toISOString();
+    if (personalOpen) {
+      await patch(`profiles?id=eq.${uid}`, { plan: "free", subscription_status: "canceled", updated_at: now }, "PROFILE_UPDATE_FAILED");
+    }
+    for (const team of teams) {
+      if (!isOpen(team.subscription_status)) continue;
+      await patch(`business_accounts?id=eq.${id(team.id)}&owner_user_id=eq.${uid}`, { subscription_status: "canceled", updated_at: now }, "TEAM_UPDATE_FAILED");
+      changed = true;
+    }
+
     for (const team of teams) await closeTeam(team.id, user.id, () => { changed = true; });
 
     // This user's own links into other teams. They reference auth.users with
@@ -250,22 +321,41 @@ async function deleteAccount(user) {
     changed = (await removeCounted(`business_invites?invited_by_user_id=eq.${uid}`, "INVITE_CLEANUP_FAILED")) > 0 || changed;
 
     // Profile, usage, scan history, Recovery cases (with their versions and
-    // tasks) cascade from the auth user. Legal-acceptance rows are kept with the
-    // user link removed (ON DELETE SET NULL). Stripe keeps its billing records.
+    // tasks) and AI consents cascade from the auth user. Legal-acceptance rows
+    // are kept with the user link removed (ON DELETE SET NULL). Stripe keeps
+    // its billing records.
     await deleteAuthUser(user.id);
   } catch (error) {
-    if (changed && error?.code) {
-      throw fail(502, "PARTIAL_DELETE", MESSAGES.PARTIAL_DELETE);
-    }
+    if (billingChanged && error?.code) throw fail(502, "PARTIAL_DELETE_BILLING");
+    if (changed && error?.code) throw fail(502, "PARTIAL_DELETE", MESSAGES.PARTIAL_DELETE);
     throw error;
   }
-  return json({ deleted: true, closedTeams: teams.length });
+
+  // Last: Sign in with Apple (TN3194). The app sends a fresh authorization
+  // code with the request; a failure is logged, never fatal.
+  let appleTokensRevoked = null;
+  const appleCode = cleanAuthorizationCode(body?.appleAuthorizationCode);
+  if (hasAppleIdentity(user)) {
+    if (appleCode) {
+      const apple = await revokeAppleTokens(appleCode, appleConfig(), { expectedSub: appleSubOf(user) });
+      appleTokensRevoked = apple.revoked;
+      if (!apple.revoked) {
+        console.error("CyberNet privacy-data Apple token revocation failed", apple.reason);
+        reportError(`Apple token revocation failed (${apple.reason})`, { fn: "privacy-data", label: "Apple token revocation failed" });
+      }
+    } else {
+      appleTokensRevoked = false;
+      console.error("CyberNet privacy-data Apple account deleted without an authorization code");
+    }
+  }
+
+  return json({ deleted: true, closedTeams: teams.length, cancelledSubscriptions: cancelledNow, appleTokensRevoked });
 }
 
 async function exportData(user) {
   const uid = id(user.id);
   const code = "EXPORT_FAILED";
-  const [profile, usage, history, acceptances, recoveryCases, recoveryUsage, quickscanUsage, teamMemberships, ownedTeams, checkoutErrors, usageCounters, feedback] = await Promise.all([
+  const [profile, usage, history, acceptances, recoveryCases, recoveryUsage, quickscanUsage, teamMemberships, ownedTeams, checkoutErrors, usageCounters, feedback, aiConsents] = await Promise.all([
     getProfile(user.id, code),
     getRows("daily_usage", user.id, code),
     getRows("scan_history", user.id, code),
@@ -277,7 +367,8 @@ async function exportData(user) {
     get(`business_accounts?owner_user_id=eq.${uid}&select=id,seat_tier,subscription_status,billing_interval,created_at`, code),
     getRows("checkout_debug_log", user.id, code),
     get(`api_rate_limits?rate_key=like.*${uid}&select=rate_key,window_started_at,request_count,updated_at`, code),
-    rest(`feedback?user_id=eq.${uid}&select=created_at,category,message,email,page,status`, { method: "GET", code, optional: true })
+    rest(`feedback?user_id=eq.${uid}&select=created_at,category,message,email,page,status`, { method: "GET", code, optional: true }),
+    rest(`ai_consents?user_id=eq.${uid}&select=consent_version,platform,provider,granted_at,withdrawn_at,user_agent`, { method: "GET", code, optional: true })
   ]);
   const caseIds = (Array.isArray(recoveryCases) ? recoveryCases : []).map(c => c.id).filter(Boolean);
   const inList = caseIds.map(encodeURIComponent).join(",");
@@ -303,12 +394,13 @@ async function exportData(user) {
       ownedTeams: ownedTeams || [],
       checkoutErrors: checkoutErrors || [],
       usageCounters: usageCounters || [],
-      feedback: feedback || []
+      feedback: feedback || [],
+      aiConsents: aiConsents || []
     }
   });
 }
 
-export default async request => {
+async function handler(request) {
   if (request.method !== "POST") return reply("METHOD_NOT_ALLOWED", 405);
   try {
     let user;
@@ -338,7 +430,7 @@ export default async request => {
 
     if (action === "delete-account") {
       if (String(body?.confirmation || "") !== "DELETE") return reply("CONFIRMATION_REQUIRED", 400);
-      return await deleteAccount(user);
+      return await deleteAccount(user, body);
     }
 
     return reply("UNSUPPORTED_ACTION", 400);
@@ -355,6 +447,10 @@ export default async request => {
     const message = error?.code ? error.message : "Something went wrong on our side. Please try again in a few minutes.";
     return json({ error: message, code }, Number(error?.status) || 500);
   }
-};
+}
+
+// CORS for the iPhone app only (netlify/lib/cors.mjs); website requests pass
+// through unchanged.
+export default withCors(handler);
 
 export const config = { path: "/api/privacy-data" };

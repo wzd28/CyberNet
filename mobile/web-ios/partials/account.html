@@ -1,0 +1,67 @@
+<!-- The app's Account screen (BUILD-PLAN §7.7). Inserted into <main> by mobile/scripts/build-web.mjs;
+     ios.js fills and wires it. The buttons with cnPrivacy* ids are the ones cybernet-privacy-controls.js
+     marks busy while it exports, clears or deletes. -->
+<section id="account" class="page cn-ios-account" aria-labelledby="cnAccountTitle">
+  <div class="feature-page-header">
+    <p class="cn-edlabel">Your account</p>
+    <h1 id="cnAccountTitle">Account</h1>
+  </div>
+
+  <div class="cn-ios-group" data-ios-signed-out>
+    <p class="cn-ios-group-lead">Sign in to get AI explanations, keep your saved explanations and use Recovery. Check, Scan QR and the Share sheet work without an account.</p>
+    <button type="button" class="primary-btn full" data-ios-action="sign-in">Sign in</button>
+    <button type="button" class="secondary-btn full" data-ios-action="create">Create an account</button>
+  </div>
+
+  <div class="cn-ios-group" data-ios-signed-in hidden>
+    <div class="cn-ios-row cn-ios-row-stack"><strong id="cnAcctName">Your account</strong><span id="cnAcctEmail"></span></div>
+    <div class="cn-ios-row"><span>AI explanations today</span><strong id="cnAcctAi">&mdash;</strong></div>
+    <div class="cn-ios-row"><span>Recovery cases today</span><strong id="cnAcctRec">&mdash;</strong></div>
+    <p class="cn-ios-note" id="cnAcctTeam" hidden>You are a member of a team. Your AI explanations and Recovery activity are shown to your team&rsquo;s owner in their activity log. Check, Scan QR and the Share sheet stay on your iPhone and are never logged.</p>
+    <button type="button" class="secondary-btn full" data-ios-action="sign-out">Sign out</button>
+  </div>
+
+  <h2 class="cn-ios-group-title" data-ios-signed-in hidden>Privacy &amp; data</h2>
+  <div class="cn-ios-group" data-ios-signed-in hidden>
+    <div class="cn-ios-row cn-ios-switch-row">
+      <label for="cnAiConsentSwitch"><span>AI analysis</span><small>Lets CyberNet AI send what you choose to explain to OpenAI. Off means nothing is sent for an AI explanation.</small></label>
+      <input type="checkbox" role="switch" id="cnAiConsentSwitch">
+    </div>
+    <button type="button" class="cn-ios-row cn-ios-row-btn" id="cnPrivacyExportBtn" data-ios-action="export">Export my data</button>
+    <button type="button" class="cn-ios-row cn-ios-row-btn" id="cnPrivacyClearBtn" data-ios-action="clear">Clear saved history</button>
+    <button type="button" class="cn-ios-row cn-ios-row-btn cn-ios-danger" id="cnPrivacyDeleteBtn" data-ios-action="delete">Delete account</button>
+    <div id="cnPrivacyMessage" class="cn-privacy-message" role="status" aria-live="polite"></div>
+  </div>
+
+  <h2 class="cn-ios-group-title">Notifications</h2>
+  <div class="cn-ios-group">
+    <div class="cn-ios-row cn-ios-switch-row">
+      <label for="cnReminderSwitch"><span>Recovery reminders</span><small>A reminder on this iPhone in 1, 3 and 7 days to check your recovery plan. It never shows details of your case.</small></label>
+      <input type="checkbox" role="switch" id="cnReminderSwitch">
+    </div>
+    <button type="button" class="cn-ios-row cn-ios-row-btn" data-ios-action="test-reminder">Send a test reminder</button>
+  </div>
+
+  <h2 class="cn-ios-group-title">Usage statistics</h2>
+  <div class="cn-ios-group">
+    <div class="cn-ios-row"><span>App usage statistics</span><strong id="cnTrackingState">&mdash;</strong></div>
+    <p class="cn-ios-note">Shared only if you allowed tracking when CyberNet AI asked. They never include what you check. You can change this in the Settings app, under Privacy &amp; Security, then Tracking.</p>
+    <button type="button" class="cn-ios-row cn-ios-row-btn" data-ios-action="tracking-settings">Open Settings</button>
+  </div>
+
+  <h2 class="cn-ios-group-title">Help</h2>
+  <div class="cn-ios-group">
+    <button type="button" class="cn-ios-row cn-ios-row-btn" data-ios-action="support">Contact support</button>
+    <button type="button" class="cn-ios-row cn-ios-row-btn" data-ios-action="copy-support">Copy the support email: support@cybernetai.app</button>
+    <button type="button" class="cn-ios-row cn-ios-row-btn" data-ios-action="intro">Show the welcome tips again</button>
+  </div>
+
+  <h2 class="cn-ios-group-title">Legal</h2>
+  <div class="cn-ios-group">
+    <button type="button" class="cn-ios-row cn-ios-row-btn" data-ios-action="legal" data-doc="privacy">Privacy Policy</button>
+    <button type="button" class="cn-ios-row cn-ios-row-btn" data-ios-action="legal" data-doc="terms">Terms of Service</button>
+    <button type="button" class="cn-ios-row cn-ios-row-btn" data-ios-action="legal" data-doc="acceptable">Acceptable Use Policy</button>
+  </div>
+
+  <p class="cn-ios-operator">CyberNet AI is operated by Marks Events FZ LLE. Support: support@cybernetai.app. Version <span data-ios-version>__CN_APP_VERSION__</span>.</p>
+</section>

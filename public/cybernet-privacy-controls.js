@@ -19,7 +19,7 @@
    Test hook (screenshots and checks without an account; nothing is sent to the server):
      CNPrivacy.preview({ tab: true })                          the panel on the new tab
      CNPrivacy.preview({ dialog: "delete", typed: "DELETE" })   the delete dialog
-     CNPrivacy.preview({ dialog: "delete", typed: "DELETE", result: "SUBSCRIPTION_ACTIVE" })
+     CNPrivacy.preview({ dialog: "delete", typed: "DELETE", result: "SUBSCRIPTION_CANCEL_FAILED" })
        then CNPrivacy.confirmDelete()                           a refusal as the user sees it
      CNPrivacy.preview({ dialog: "clear" }), CNPrivacy.showDeletedNotice()
    Options: result (a server code, "ok", "NETWORK" or "TIMEOUT"), delay (ms, to see the busy
@@ -57,17 +57,32 @@
   };
   const EXPORT_FAILED_TEXT = "We could not prepare your data file.";
   const DELETE_COPY = {
-    SUBSCRIPTION_ACTIVE: {
-      tone: "warn",
-      title: "Cancel your plan first",
-      text: "You still have an active CyberNet AI plan, so your account cannot be deleted yet. Cancel the plan in Manage Billing. If you have already cancelled, the plan stays active until the end of the period you paid for, and you can delete your account after that date.",
-      billing: true
+    // Since 29 Oct 2026 a paid plan no longer blocks deletion: the server cancels it at once
+    // (netlify/functions/privacy-data.mts). These are the ways that can still stop.
+    BILLING_NOT_CONFIGURED: {
+      tone: "error",
+      title: "Your account is still open",
+      text: `Your account has a paid plan that we can't cancel automatically right now, so nothing was deleted. Please try again later, or email ${SUPPORT} and we will cancel the plan and remove your account for you.`
+    },
+    SUBSCRIPTION_CANCEL_FAILED: {
+      tone: "error",
+      title: "Your account is still open",
+      text: `We couldn't cancel your paid plan with our payment provider, so your account has not been deleted. Please try again in a few minutes. If this keeps happening, email ${SUPPORT} and we will cancel the plan and remove your account for you.`
+    },
+    BILLING_CHECK_FAILED: {
+      tone: "error",
+      title: "Your account is still open",
+      text: `We couldn't confirm with our payment provider that nothing is still charging this account, so your account has not been deleted. Please try again in a few minutes. If this keeps happening, email ${SUPPORT} and we will remove your account for you.`
     },
     TEAM_ACTIVE: {
       tone: "warn",
-      title: "Cancel your Business plan first",
-      text: "Your Business team still has an active plan. Cancel the team's plan in Manage Billing. Once the plan has ended, you can delete your account here, and the team closes with it.",
-      billing: true
+      title: "Your account is still open",
+      text: `Your Business team's plan changed while your account was being deleted, so we stopped. Press Delete my account again in a few minutes. If this keeps happening, email ${SUPPORT}.`
+    },
+    PARTIAL_DELETE_BILLING: {
+      tone: "warn",
+      title: "Your account is not fully deleted yet",
+      text: `Your paid plan has been cancelled, but we could not finish deleting your account, so your sign-in still works. Press Delete my account again in a few minutes to finish. If this keeps happening, email ${SUPPORT} and we will remove it for you.`
     },
     CONFIRMATION_REQUIRED: { tone: "error", text: "Type DELETE in the box to confirm." },
     AUTH_REQUIRED: { tone: "error", title: "Please sign in again", text: COMMON.AUTH_REQUIRED },
@@ -241,7 +256,7 @@
   const PANE_HTML = `
     <div class="cn-privacy-intro">
       <h3 id="cnPrivacyHeading">Privacy &amp; data</h3>
-      <p>Download a copy of your data, clear your scan history or delete your account. Cancelling a paid plan is separate: use Manage Billing on the Account Info tab.</p>
+      <p>Download a copy of your data, clear your scan history or delete your account. To cancel a paid plan and keep your account, use Manage Billing on the Account Info tab.</p>
     </div>
     <ul class="cn-privacy-list" aria-labelledby="cnPrivacyHeading">
       <li class="cn-privacy-row">
@@ -261,7 +276,7 @@
       <li class="cn-privacy-row cn-privacy-row--danger">
         <div class="cn-privacy-copy">
           <h4>Delete your account</h4>
-          <p>Permanently removes your account and everything saved in it. This cannot be undone.</p>
+          <p>Permanently removes your account and everything saved in it, and cancels any paid plan at once. This cannot be undone.</p>
         </div>
         <button type="button" class="cn-privacy-danger cn-privacy-action" id="cnPrivacyDeleteBtn" aria-haspopup="dialog">Delete account</button>
       </li>
@@ -594,6 +609,7 @@
           <li>Recovery cases and their plans</li>
           <li>Your settings and email preferences</li>
           <li>Your place in any Business team. A team you own closes; its members keep their own accounts.</li>
+          <li>Any paid plan (Pro, or a Business team you own): it is cancelled immediately</li>
         </ul>
       </section>
       <section class="cn-privacy-box cn-privacy-box--kept" aria-labelledby="cnDeleteKeptTitle">
@@ -604,7 +620,7 @@
         </ul>
       </section>
     </div>
-    <p class="cn-privacy-note">Paying for Pro or Business? Cancel your plan in Manage Billing first. Anything saved in this browser is cleared too.</p>
+    <p class="cn-privacy-note"><strong>Paying for Pro or Business?</strong> Deleting your account cancels the plan immediately. Paid access ends now and there is no refund for the rest of the billing period. To keep it until the period ends, cancel in Manage Billing instead and delete your account after that date. Anything saved in this browser is cleared too.</p>
     <form class="cn-privacy-confirm" novalidate>
       <label for="cnDeleteConfirmInput">Type <strong>DELETE</strong> to confirm</label>
       <input type="text" id="cnDeleteConfirmInput" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" aria-describedby="cnDeleteHint" data-autofocus />
@@ -776,7 +792,7 @@
       if (typeof options.respond === "function") return options.respond(action, body);
       if (result === "NETWORK" || result === "TIMEOUT") return { status: 0, data: { code: result } };
       if (result !== "ok") {
-        const status = { SUBSCRIPTION_ACTIVE: 409, TEAM_ACTIVE: 409, AUTH_REQUIRED: 401, NOT_CONFIGURED: 503, CONFIRMATION_REQUIRED: 400 }[result] || 502;
+        const status = { TEAM_ACTIVE: 409, AUTH_REQUIRED: 401, NOT_CONFIGURED: 503, BILLING_NOT_CONFIGURED: 503, CONFIRMATION_REQUIRED: 400 }[result] || 502;
         return { status, data: { code: result, error: "Preview refusal." } };
       }
       if (action === "export") return { status: 200, data: { data: { account: { id: "preview", email: "preview@example.com" } } } };

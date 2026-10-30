@@ -204,7 +204,7 @@ function safeLabel(value, max) {
 //         client-error-filters.mjs): "Instagram in-app (iOS 18)",
 //         "Android WebView 69 (Android 9)"
 export const CLIENT_FILE = /^\/(?!\/)[\w./-]{1,200}\.m?js(?::\d{1,7}){0,2}$/;
-export const CLIENT_UA = /^(?:(?:Edge|Opera|Samsung Internet|Chrome|Firefox|Safari|Other)(?: \d{1,4})? on (?:Windows|iOS|Android|ChromeOS|macOS|Linux|Other)|(?:Instagram|Facebook|TikTok|Snapchat|LinkedIn|WhatsApp|Google app|News app|Other) in-app \((?:iOS|Android)(?: \d{1,3})?\)|Android WebView(?: \d{1,4})? \(Android(?: \d{1,3})?\))$/;
+export const CLIENT_UA = /^(?:(?:Edge|Opera|Samsung Internet|Chrome|Firefox|Safari|Other)(?: \d{1,4})? on (?:Windows|iOS|Android|ChromeOS|macOS|Linux|Other)|(?:CyberNet AI|Instagram|Facebook|TikTok|Snapchat|LinkedIn|WhatsApp|Google app|News app|Other) in-app \((?:iOS|Android)(?: \d{1,3})?\)|Android WebView(?: \d{1,4})? \(Android(?: \d{1,3})?\))$/;
 const SKIP_ALERT = new Set(["ignored", "unsupported-browser"]);
 const CLIENT_VERSION = /^[\w-]{1,32}$/;
 

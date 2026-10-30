@@ -144,20 +144,20 @@ document.addEventListener("DOMContentLoaded",()=>{
     },
     cybernetai:{
       title:"Analysis AI | CyberNet AI",
-      description:"Paste a message, link, or screenshot and get an automatic, expert-level cybersecurity analysis powered by CyberNet's managed AI or your own API key."
+      description:/*@web*/"Paste a message, link, or screenshot and get an automatic, expert-level cybersecurity analysis powered by CyberNet's managed AI or your own API key."/*@end-web*//*@ios "Paste a message, link, or screenshot and get a plain-language AI explanation of the risk." @end-ios*/
     },
     learn:{
       title:"Learn Cybersecurity | CyberNet AI",
       description:"Free, interactive cybersecurity lessons covering phishing, malware, passwords, authentication, safe browsing, and privacy — with real examples and warning signs."
     },
-    pricing:{
+/*@web*/    pricing:{
       title:"Pricing | CyberNet AI",
       description:"Compare CyberNet AI Free, Pro, and Business plans: daily AI analysis limits, saved history, downloadable reports, team seats, and Recovery features."
     },
     about:{
       title:"About | CyberNet AI",
       description:"CyberNet AI's mission is to protect people before threats become real damage, by making cybersecurity understandable and accessible."
-    },
+    },/*@end-web*/
     recovery:{
       title:"Recovery Mode | CyberNet AI",
       description:"Got scammed or hacked? Describe what happened and CyberNet AI builds a step-by-step recovery plan to secure your accounts, money and devices."
@@ -176,9 +176,9 @@ document.addEventListener("DOMContentLoaded",()=>{
     cybernet:"/quick-scan",
     cybernetai:"/analysis-ai",
     recovery:"/recovery",
-    learn:"/learn",
+    learn:"/learn"/*@web*/,
     pricing:"/pricing",
-    about:"/about"
+    about:"/about"/*@end-web*/
   };
   const PATH_TO_PAGE=Object.fromEntries(Object.entries(PAGE_PATHS).map(([page,path])=>[path,page]));
   function pageForCurrentPath(){
@@ -224,7 +224,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   const initialRoutePage=pageForCurrentPath();
   if(initialRoutePage&&initialRoutePage!=="home"){
     switchPage(initialRoutePage,{skipUrlUpdate:true});
-  }
+  }/*@ios else{switchPage("cybernet",{skipUrlUpdate:true})} @end-ios*/
 
   /* ─── Support the browser's back/forward buttons ─── */
   window.addEventListener("popstate",()=>{
@@ -237,7 +237,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   const openAuth=document.getElementById("openAuth");
   const closeAuth=document.getElementById("closeAuth");
   const authTabs=document.querySelectorAll(".auth-tab");
-  const googleAuthWrap=document.getElementById("googleAuthWrap");
+/*@web*/  const googleAuthWrap=document.getElementById("googleAuthWrap");/*@end-web*//*@ios const googleAuthWrap=null; @end-ios*/
   const loginForm=document.getElementById("authLoginForm");
   const signupForm=document.getElementById("authSignupForm");
   const loginBtn=document.getElementById("loginBtn");
@@ -251,12 +251,12 @@ document.addEventListener("DOMContentLoaded",()=>{
   const accountSummary=document.getElementById("accountSummary");
   const navPlanBadge=document.getElementById("navPlanBadge");
   const authMessage=document.getElementById("authMessage");
-  const freePlanBtn=document.getElementById("freePlanBtn");
+/*@web*/  const freePlanBtn=document.getElementById("freePlanBtn");
   const proPlanBtn=document.getElementById("proPlanBtn");
   const businessPlanBtn=document.getElementById("businessPlanBtn");
   const pricingNotice=document.getElementById("pricingNotice");
   const aiUpgradeBtn=document.getElementById("aiUpgradeBtn");
-  const manageBillingBtn=document.getElementById("manageBillingBtn");
+  const manageBillingBtn=document.getElementById("manageBillingBtn");/*@end-web*//*@ios const freePlanBtn=null,proPlanBtn=null,businessPlanBtn=null,aiUpgradeBtn=null,manageBillingBtn=null; @end-ios*/
   const resetForm=document.getElementById("authResetForm");
   const newPasswordForm=document.getElementById("authNewPasswordForm");
   const sendResetBtn=document.getElementById("sendResetBtn");
@@ -395,7 +395,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     reset:"We couldn't send the reset email just now. Please try again in a minute.",
     resend:"We couldn't send the email just now. Please try again in a minute.",
     recovery:"We couldn't save your new password just now. Please try again in a moment.",
-    google:"Google sign-in isn't available right now. Please try again, or sign in with your email and password."
+/*@web*/    google:"Google sign-in isn't available right now. Please try again, or sign in with your email and password."/*@end-web*/
   };
   /* Supabase Auth errors in plain words, each with a next step. mode: login | signup | reset | resend | recovery | google.
      Unknown errors get a calm message for the mode; the raw text goes to the console only. */
@@ -406,7 +406,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     const status=Number(error?.status)||0;
     const wait=authWaitSeconds(error);
     if(code==="invalid_credentials"||message.includes("invalid login credentials"))
-      return "That email and password don't match an account. Check them and try again. If you used Continue with Google before, choose it again. New to CyberNet AI? Choose Create Account.";
+      return /*@web*/"That email and password don't match an account. Check them and try again. If you used Continue with Google before, choose it again. New to CyberNet AI? Choose Create Account."/*@end-web*//*@ios "That email and password don't match an account. Check them and try again. New to CyberNet AI? Choose Create Account." @end-ios*/;
     if(isUnconfirmedEmailError(error))
       return "Your email isn't confirmed yet. Open the link we emailed you, or choose Resend confirmation email below.";
     if(code==="user_already_exists"||code==="email_exists"||message.includes("user already registered")||message.includes("already been registered"))
@@ -429,9 +429,9 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(code==="email_address_not_authorized")
       return `We can't send email to that address right now. Use a different email, or contact ${SUPPORT_CONTACT}.`;
     if(code==="provider_disabled"||message.includes("provider is not enabled")||message.includes("unsupported provider"))
-      return "Google sign-in is turned off right now. Please sign in with your email and password instead.";
+      return /*@web*/"Google sign-in is turned off right now. Please sign in with your email and password instead."/*@end-web*//*@ios "This sign-in option is turned off right now. Please sign in with your email and password instead." @end-ios*/;
     if(code==="email_provider_disabled"||message.includes("email logins are disabled"))
-      return "Signing in with email is turned off right now. Try Continue with Google, or try again later.";
+      return /*@web*/"Signing in with email is turned off right now. Try Continue with Google, or try again later."/*@end-web*//*@ios "Signing in with email is turned off right now. Please try again later." @end-ios*/;
     if(code==="signup_disabled"||message.includes("signups not allowed"))
       return "New accounts can't be created right now. Please try again later.";
     if(code==="session_not_found"||code==="session_expired"||message.includes("auth session missing")||message.includes("session from session_id"))
@@ -584,7 +584,8 @@ document.addEventListener("DOMContentLoaded",()=>{
   /* ─── Dialog views: login | signup | reset (ask for a reset link) | recovery (choose a new password) ─── */
   const AUTH_HEADINGS={
     // Owner, 29 Oct 2026: the card itself carries the pitch and invites a free sign-up.
-    login:["Stay secure.","All in one place, designed for protection and recovery. Create your free account in seconds, or sign in."],
+/*@web*/    login:["Stay secure.","All in one place, designed for protection and recovery. Create your free account in seconds, or sign in."],/*@end-web*/
+    /*@ios login:["Stay secure.","Sign in to get AI explanations and Recovery plans. Check, Scan QR and Share work without an account."], @end-ios*/
     reset:["Reset your password","Enter the email you use for CyberNet AI. We'll send you a link to choose a new password."],
     recovery:["Choose a new password","Pick a new password for your CyberNet AI account. You'll stay signed in on this device."]
   };
@@ -604,11 +605,11 @@ document.addEventListener("DOMContentLoaded",()=>{
     });
     // Google works for both tabs (an existing Google account signs in, a new one is created), so only the
     // divider's wording follows the tab. The reset and new-password steps have no Google button.
-    if(googleAuthWrap){
+/*@web*/    if(googleAuthWrap){
       googleAuthWrap.hidden=!tabbed;
       const divider=document.getElementById("googleAuthDivider");
       if(divider&&tabbed)divider.textContent=view==="signup"?"or sign up with email":"or sign in with email";
-    }
+    }/*@end-web*/
     const [title,intro]=AUTH_HEADINGS[view]||AUTH_HEADINGS.login;
     if(authTitleEl&&authTitleEl.textContent!==title)authTitleEl.textContent=title;
     const introText=view==="recovery"&&recoveryEmail?`Pick a new password for ${recoveryEmail}. You'll stay signed in on this device.`:intro;
@@ -792,15 +793,15 @@ document.addEventListener("DOMContentLoaded",()=>{
       title:"This link has expired or was already used",
       text:"Email links work once and only for a limited time. If you've already confirmed your email, just sign in. If not, enter your email below and choose Resend confirmation email.",
       signedIn:"That email link has expired or was already used. You're still signed in."};
-    if(code==="provider_disabled"||/provider is not enabled|unsupported provider/.test(description))return{kind:"error",view:"login",tone:"info",
+/*@web*/    if(code==="provider_disabled"||/provider is not enabled|unsupported provider/.test(description))return{kind:"error",view:"login",tone:"info",
       title:"Google sign-in isn't available right now",
-      text:"Please sign in with your email and password instead."};
+      text:"Please sign in with your email and password instead."};/*@end-web*//*@ios if(code==="provider_disabled"||/provider is not enabled|unsupported provider/.test(description))return{kind:"error",view:"login",tone:"info",title:"This sign-in option isn't available right now",text:"Please sign in with your email and password instead."}; @end-ios*/
     if(code==="signup_disabled"||/signups? not allowed/.test(description))return{kind:"error",view:"login",tone:"info",
       title:"New accounts can't be created right now",
       text:"Please try again later. If you already have an account, you can sign in below."};
-    if(String(ret.error||"").toLowerCase()==="access_denied")return{kind:"sign-in-cancelled",view:"login",tone:"info",
+/*@web*/    if(String(ret.error||"").toLowerCase()==="access_denied")return{kind:"sign-in-cancelled",view:"login",tone:"info",
       title:"Google sign-in was cancelled",
-      text:"You're not signed in. You can choose Continue with Google again, or sign in with your email and password."};
+      text:"You're not signed in. You can choose Continue with Google again, or sign in with your email and password."};/*@end-web*//*@ios if(String(ret.error||"").toLowerCase()==="access_denied")return{kind:"sign-in-cancelled",view:"login",tone:"info",title:"Sign-in was cancelled",text:"You're not signed in. You can try again, or sign in with your email and password."}; @end-ios*/
     return{kind:"error",view:"login",tone:"warn",
       title:"Sign-in didn't finish",
       text:`Something went wrong on the way back to CyberNet AI. Please try again. If it keeps happening, email ${SUPPORT_CONTACT}.`};
@@ -865,7 +866,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 
   function planTier(){
     const plan=appState.profile?.plan;
-    return plan==="business"?"business":plan==="pro"?"pro":"free";
+/*@web*/    return plan==="business"?"business":plan==="pro"?"pro":"free";/*@end-web*//*@ios return plan?"app":"app"; @end-ios*/
   }
   function isPro(){return planTier()!=="free"}
   function isBusiness(){return planTier()==="business"}
@@ -878,6 +879,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   function isLoggedTeamMember(){return Boolean(appState.profile?.isTeamMember)&&appState.profile?.teamRole!=="owner"}
   function reportTeamActivity(payload){
     if(!isSignedIn()||!isLoggedTeamMember())return;
+    /*@ios if(payload?.kind==="quick_scan")return; @end-ios*/
     try{fetch("/api/team-activity",{method:"POST",headers:authHeaders({"Content-Type":"application/json"}),body:JSON.stringify(payload),keepalive:true}).catch(()=>{})}catch{}
   }
   function quickScanLogResult(result,extra={}){
@@ -888,11 +890,11 @@ document.addEventListener("DOMContentLoaded",()=>{
     return appState.session?.access_token?{...extra,Authorization:`Bearer ${appState.session.access_token}`}:{...extra};
   }
 
-  function showPricingNotice(message,tone=""){
+/*@web*/  function showPricingNotice(message,tone=""){
     if(!pricingNotice)return;
     pricingNotice.textContent=message;
     pricingNotice.className=`pricing-notice glass show ${tone}`.trim();
-  }
+  }/*@end-web*/
 
   function renderProHistory(){
     const list=document.getElementById("proHistoryList");
@@ -900,14 +902,14 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(!list)return;
     if(!isSignedIn()){
       if(label)label.textContent="Sign in required";
-      list.innerHTML="<p>Sign in to view your plan and AI access.</p>";
+/*@web*/      list.innerHTML="<p>Sign in to view your plan and AI access.</p>";/*@end-web*//*@ios list.innerHTML="<p>Sign in to see your saved explanations.</p>"; @end-ios*/
       return;
     }
-    if(!isPro()){
+/*@web*/    if(!isPro()){
       if(label)label.textContent="Pro feature";
       list.innerHTML="<p>Upgrade to Pro to save and revisit your AI scan history.</p>";
       return;
-    }
+    }/*@end-web*/
     if(label)label.textContent="Saved securely";
     if(!appState.history.length){
       list.innerHTML="<p>Your completed analyses will appear here.</p>";
@@ -921,7 +923,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     }).join("");
   }
 
-  function updatePlanBenefits(){
+/*@web*/  function updatePlanBenefits(){
     const list=document.getElementById("aiBenefitList");
     if(!list)return;
     if(isBusiness()){
@@ -1053,7 +1055,54 @@ document.addEventListener("DOMContentLoaded",()=>{
 
     updatePlanBenefits();
     renderProHistory();
+  }/*@end-web*//*@ios 
+  // App tier (BUILD-PLAN 8.2): every feature the app shows is open to every signed-in account; only
+  // the daily counts the server sends differ. No plan names, badges or buttons.
+  function aiResetText(){
+    const at=appState.usage?.resetDate?new Date(appState.usage.resetDate):null;
+    if(!at||Number.isNaN(at.getTime()))return "They reset tomorrow.";
+    return `They reset at ${at.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})}.`;
   }
+  function updateAccountUI(){
+    const signedIn=isSignedIn();
+    document.body.dataset.plan=signedIn?"app":"guest";
+    if(accountSummary)accountSummary.hidden=!signedIn;
+    if(openAuth){openAuth.hidden=signedIn;}
+    const authCheckingSkeleton=document.getElementById("authCheckingSkeleton");
+    if(authCheckingSkeleton)authCheckingSkeleton.hidden=true;
+    if(navGreeting)navGreeting.textContent=signedIn?`Hi ${firstName(appState.profile.fullName||appState.user?.user_metadata?.full_name||appState.user?.email)}`:"";
+    if(navPlanBadge)navPlanBadge.hidden=true;
+    const text=(id,value)=>{const el=document.getElementById(id);if(el&&el.textContent!==value)el.textContent=value};
+    const bar=(id,pct)=>{const el=document.getElementById(id);if(el)el.style.width=`${Math.max(0,Math.min(100,pct||0))}%`};
+    text("cyberTextBtn","Start the analysis");
+    text("cyberLinkBtn","Start the analysis");
+    const chatSendBtnEl=document.getElementById("chatSendBtn");
+    if(chatSendBtnEl){chatSendBtnEl.innerHTML="➤";chatSendBtnEl.classList.remove("send-btn-wide")}
+    const recoveryStartBtnEl=document.getElementById("recoveryStartBtn");
+    if(recoveryStartBtnEl&&!recoveryStartBtnEl.disabled)recoveryStartBtnEl.textContent="Start Recovery";
+    const used=Number(appState.usage.used)||0;
+    const limit=Number(appState.usage.limit)||3;
+    const remaining=Math.max(0,Number.isFinite(appState.usage.remaining)?Number(appState.usage.remaining):limit-used);
+    ["aiUsage","analysisAiHeaderUsage"].forEach(prefix=>{
+      text(prefix+"Text",signedIn?`${used} / ${limit}`:`— / ${limit}`);
+      bar(prefix+"Bar",signedIn?(used/Math.max(1,limit))*100:0);
+      text(prefix+"Reset",signedIn?aiResetText():"Resets daily");
+    });
+    const recUsed=Number(appState.recoveryUsage?.used)||0;
+    const recLimit=Number(appState.recoveryUsage?.limit)||1;
+    text("recoveryUsageCaseText",signedIn?`${recUsed} / ${recLimit}`:`— / ${recLimit}`);
+    bar("recoveryUsageCaseBar",signedIn?(recUsed/Math.max(1,recLimit))*100:0);
+    const status=document.getElementById("aiApiStatus");
+    if(status){
+      if(!supabaseConfigured)status.innerHTML=`<span class="warning">${escapeHTML(authSetupMessage())}</span>`;
+      else if(!signedIn)status.innerHTML='<span class="warning">Sign in to get AI explanations.</span>';
+      else if(remaining<=0)status.innerHTML=`<span class="warning">You've used today's AI explanations. ${escapeHTML(aiResetText())}</span>`;
+      else status.innerHTML=`<span class="safe">${remaining} of ${limit} AI ${limit===1?"explanation":"explanations"} left today.</span>`;
+    }
+    renderProHistory();
+    try{window.dispatchEvent(new CustomEvent("cybernet:account-ui",{detail:{signedIn}}))}catch{}
+  }
+ @end-ios*/
 
   // One request per access token at a time (getSession, INITIAL_SESSION and
   // the service check all ask on load). A response for a token that is no
@@ -1130,7 +1179,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   if(supabaseConfigured){
     try{
       appState.supabase=window.supabase.createClient(publicConfig.SUPABASE_URL,publicConfig.SUPABASE_ANON_KEY,{
-        auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
+/*@web*/        auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}/*@end-web*//*@ios auth:{storage:window.CNSecureStorage||undefined,persistSession:true,autoRefreshToken:true,detectSessionInUrl:false} @end-ios*/
       });
     }catch(error){
       console.warn("CyberNet: the account service could not start",error);
@@ -1156,7 +1205,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 
   /* Signing up or using Google from an invite link comes back to that invite, not the home page. */
   function inviteReturnUrl(){const token=new URLSearchParams(window.location.search).get("token")||"";return window.location.pathname.replace(/\/+$/,"")==="/accept-invite"&&/^[a-f0-9]{64}$/.test(token)?`${window.location.origin}/accept-invite?token=${encodeURIComponent(token)}`:""}
-  const googleAuthBtn=document.getElementById("googleAuthBtn");
+/*@web*/  const googleAuthBtn=document.getElementById("googleAuthBtn");
   let googleBusyDone=null,googleBusyTimer=0;
   function endGoogleBusy(){clearTimeout(googleBusyTimer);if(googleBusyDone){googleBusyDone();googleBusyDone=null}}
   /* Coming back from Google with the browser's Back button restores the page from cache with the button still busy. */
@@ -1185,7 +1234,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       setAuthMessage(friendlyAuthError(error,"google"),"error");
       endGoogleBusy();
     }
-  });
+  });/*@end-web*/
 
   /* Enter in any field submits its form: the forms have a submit button, so the old Enter-key handlers are gone. */
   if(loginForm)loginForm.addEventListener("submit",async event=>{
@@ -1207,7 +1256,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     }catch(error){
       // A wrong password, or an account that only ever used Google: offer Google as the next step.
       const wrongCredentials=authErrorCode(error)==="invalid_credentials"||/invalid login credentials/i.test(String(error?.message||""));
-      setAuthMessage(friendlyAuthError(error,"login"),"error",wrongCredentials&&googleAuthBtn?[{label:"Continue with Google",run:()=>googleAuthBtn.click()}]:[]);
+      setAuthMessage(friendlyAuthError(error,"login"),"error"/*@web*/,wrongCredentials&&googleAuthBtn?[{label:"Continue with Google",run:()=>googleAuthBtn.click()}]:[]/*@end-web*/);
       if(resendConfirmBtn&&!coolingDown(resendConfirmBtn))resendConfirmBtn.hidden=!isUnconfirmedEmailError(error);
     }finally{done()}
   });
@@ -1220,7 +1269,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     const waitLabel=left=>`Resend available in ${left}s`;
     try{
       const returnUrl=inviteReturnUrl();
-      const{error}=await appState.supabase.auth.resend(returnUrl?{type:"signup",email,options:{emailRedirectTo:returnUrl}}:{type:"signup",email});
+      const{error}=await appState.supabase.auth.resend(/*@web*/returnUrl?{type:"signup",email,options:{emailRedirectTo:returnUrl}}:{type:"signup",email}/*@end-web*//*@ios {type:"signup",email,options:{emailRedirectTo:"https://cybernetai.app/app/confirmed.html"}} @end-ios*/);
       if(error)throw error;
       clearAuthNotice();
       setAuthMessage(`We sent a new confirmation link to ${email}. It can take a minute to arrive, so check your spam folder too.`,"success");
@@ -1268,17 +1317,17 @@ document.addEventListener("DOMContentLoaded",()=>{
         email,password,
         options:{
           data:{full_name:fullName,first_name:first,last_name:last},
-          emailRedirectTo:inviteReturnUrl()||`${window.location.origin}/`
+          /*@web*/emailRedirectTo:inviteReturnUrl()||`${window.location.origin}/`/*@end-web*//*@ios emailRedirectTo:"https://cybernetai.app/app/confirmed.html" @end-ios*/
         }
       });
       if(error)throw error;
       // For an address that already has an account, Supabase answers with no identities and sends no email.
       if(data?.user&&Array.isArray(data.user.identities)&&data.user.identities.length===0){
         hidePasswords(signupForm);
-        setAuthMessage(`There's already a CyberNet AI account for ${email}. Sign in instead, or reset your password if you've forgotten it. If you used Continue with Google before, choose it again.`,"warning",[
+        setAuthMessage(/*@web*/`There's already a CyberNet AI account for ${email}. Sign in instead, or reset your password if you've forgotten it. If you used Continue with Google before, choose it again.`/*@end-web*//*@ios `There's already a CyberNet AI account for ${email}. Sign in instead, or reset your password if you've forgotten it.` @end-ios*/,"warning",[
           {label:"Sign in instead",run:()=>{if(loginEmailEl)loginEmailEl.value=email;setAuthView("login");focusField(loginPasswordEl)}},
           {label:"Reset my password",run:()=>openResetView(email)},
-          {label:"Continue with Google",run:()=>googleAuthBtn?.click()}
+          /*@web*/{label:"Continue with Google",run:()=>googleAuthBtn?.click()}/*@end-web*/
         ]);
         return;
       }
@@ -1290,7 +1339,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       }
       lastSignupEmail=email;
       hidePasswords(signupForm);
-      setAuthMessage(`Almost done. We sent a confirmation link to ${email}. Open it and you'll be signed in. If it isn't in your inbox in a minute or two, check your spam folder.`,"success");
+/*@web*/      setAuthMessage(`Almost done. We sent a confirmation link to ${email}. Open it and you'll be signed in. If it isn't in your inbox in a minute or two, check your spam folder.`,"success");/*@end-web*//*@ios setAuthMessage(`Almost done. We sent a confirmation link to ${email}. Open it, then come back to the app and tap I've confirmed, sign me in. If it isn't in your inbox in a minute or two, check your spam folder.`,"success",[{label:"I've confirmed, sign me in",run:async()=>{const{error}=await appState.supabase.auth.signInWithPassword({email,password});if(error){setAuthMessage(friendlyAuthError(error,"login"),"error");return}setAuthMessage("You're signed in.","success");closeAuthModal();showAuthToast("Email confirmed. You're signed in.")}}]); @end-ios*/
       if(signupResendBtn){signupResendBtn.hidden=false;startCooldown(signupResendBtn,60,left=>`Resend available in ${left}s`)}
     }catch(error){setAuthMessage(friendlyAuthError(error,"signup"),"error")}
     finally{done()}
@@ -1312,7 +1361,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     const email=resetEmailEl.value.trim();
     const done=setBusy(sendResetBtn,"Sending link…");
     try{
-      const {error}=await appState.supabase.auth.resetPasswordForEmail(email,{redirectTo:`${window.location.origin}/?reset=1`});
+      const {error}=await appState.supabase.auth.resetPasswordForEmail(email,/*@web*/{redirectTo:`${window.location.origin}/?reset=1`}/*@end-web*//*@ios {redirectTo:"https://cybernetai.app/app/reset.html"} @end-ios*/);
       if(error)throw error;
       clearAuthNotice();
       setAuthMessage(`If an account exists for ${email}, a reset link is on its way. It can take a minute to arrive, so check your spam folder too. The link works once.`,"success");
@@ -1364,7 +1413,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     window.location.replace("/");
   });
 
-  function selectedSeatTier(){
+/*@web*/  function selectedSeatTier(){
     const active=document.querySelector("#businessSeatPicker .cn-seat-option.is-active");
     const tier=Number(active?.dataset.seatTier)||5;
     return [5,10,20].includes(tier)?tier:5;
@@ -1433,7 +1482,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   }else if(checkoutState==="cancelled"){
     setTimeout(()=>{switchPage("pricing");showPricingNotice("Checkout was cancelled. No payment was taken.")},500);
     history.replaceState({},"",window.location.pathname);
-  }
+  }/*@end-web*/
 
 
   /* ─── CyberNet support and Netlify feedback survey ─── */
@@ -1576,11 +1625,11 @@ document.addEventListener("DOMContentLoaded",()=>{
         wireVideoControls(howtoVideoPlayer.querySelector("video"));
       }else{
         if(videoPlayerControls)videoPlayerControls.hidden=true;
-        howtoVideoPlayer.innerHTML=`
+/*@web*/        howtoVideoPlayer.innerHTML=`
           <div class="video-modal-placeholder">
             <svg viewBox="0 0 24 24" fill="none" width="46" height="46" aria-hidden="true"><circle cx="12" cy="12" r="11" stroke="currentColor" stroke-width="1.3"/><path d="M10 8.5l6 3.5-6 3.5v-7Z" fill="currentColor"/></svg>
             <p>Video coming soon.</p>
-          </div>`;
+          </div>`;/*@end-web*//*@ios howtoVideoPlayer.innerHTML=""; @end-ios*/
       }
     }
     howtoVideoTabs.forEach(tab=>tab.classList.toggle("active",tab.dataset.video===activeKey));
@@ -1639,7 +1688,7 @@ document.addEventListener("DOMContentLoaded",()=>{
             message:String(formData.get("message")||""),
             email:String(formData.get("email")||"").trim(),
             page:window.location.pathname.slice(0,200),
-            uiVersion,
+            uiVersion,/*@ios platform:"ios",appVersion:window.CN_APP_VERSION||"", @end-ios*/
             bot_field:String(formData.get("bot-field")||"")
           })
         });
@@ -1650,14 +1699,14 @@ document.addEventListener("DOMContentLoaded",()=>{
           return;
         }
       }catch(error){console.warn("CyberNet feedback endpoint unavailable",error)}
-      if(!saved){
+/*@web*/      if(!saved){
         const response=await fetch("/",{
           method:"POST",
           headers:{"Content-Type":"application/x-www-form-urlencoded"},
           body:new URLSearchParams(formData).toString()
         });
         if(!response.ok)throw new Error(`Submission failed with ${response.status}`);
-      }
+      }/*@end-web*//*@ios if(!saved)throw new Error("Feedback endpoint unavailable"); @end-ios*/
       feedbackForm.reset();
       prefillFeedback();
       setFeedbackMessage("Thank you. Your message reached CyberNet support. If you gave an email, we will reply there.","success");
@@ -1669,7 +1718,8 @@ document.addEventListener("DOMContentLoaded",()=>{
     }
   });
 
-  window.CyberNetAccount={appState,refreshAccountStatus,startCheckout,isPro,isSignedIn,openAuthModal,authHeaders,updateAccountUI,openFeedbackModal,openPasswordChange};
+  window.CyberNetAccount={appState,refreshAccountStatus,/*@web*/startCheckout,/*@end-web*/isPro,isSignedIn,openAuthModal,authHeaders,updateAccountUI,openFeedbackModal,openPasswordChange};
+  /*@ios window.CyberNetNav={switchPage,current:()=>currentPageId}; @end-ios*/
 
   /* ─── Stable counters (fixed-width + requestAnimationFrame) ─── */
   const reduceCounterMotion=window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -1715,7 +1765,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     }
     requestAnimationFrame(frame);
   }
-  async function initLiveHeroCounters(){
+/*@web*/  async function initLiveHeroCounters(){
     const els=document.querySelectorAll(".hero-live-stat strong[id]");
     const noteEl=document.getElementById("heroStatsNote");
     if(!els.length)return;
@@ -1733,7 +1783,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       els.forEach(el=>{el.textContent="—"});
       if(noteEl)noteEl.innerHTML=`<strong>Stats unavailable</strong> — could not reach CyberNet AI's usage data right now.`;
     }
-  }
+  }/*@end-web*/
 
   function animateHeroStats(scopeSelector){
     const scope=scopeSelector?document.querySelector(scopeSelector):document;
@@ -1747,7 +1797,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   setTimeout(()=>{
     animateWowCounters();
     animateHeroStats("#home");
-    initLiveHeroCounters();
+/*@web*/    initLiveHeroCounters();/*@end-web*/
   },650);
 
   /* ─── Ticker duplication for seamless loop ─── */
@@ -1830,7 +1880,10 @@ document.addEventListener("DOMContentLoaded",()=>{
     // one shared rule (CyberNetEngine.linkNeedsCaution). The AI's own
     // "inconclusive" verdict does not change the label: it follows the score.
     if(meta&&meta.kind==="link"&&!meta.officialBrand)return window.CyberNetEngine.linkNeedsCaution({...meta,score})?{label:"Can't Confirm",headline:"CAN'T CONFIRM",css:"uncertain"}:{label:"Low Risk",headline:"LOW RISK",css:"safe"};
-    return{label:"Not A Scam",headline:"NOT A SCAM",css:"safe"};
+    /*@web*/return{label:"Not A Scam",headline:"NOT A SCAM",css:"safe"};/*@end-web*/
+    // In the app a low score reads LOW RISK, never a certainty (App Review 2.3.1(a), 1.1.6; dossier risk D2).
+    // Same score and threshold; only the words differ (mobile/web-ios/ios.js verdictOf, engine.html).
+    /*@ios return{label:"Low Risk",headline:"LOW RISK",css:"safe"}; @end-ios*/
   }
 
   function showDeepScanPrompt(resultBox,advice){
@@ -1982,10 +2035,10 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(!root)return;
     root.querySelectorAll(".dest-shot[data-shot-url]").forEach(slot=>{
       const url=slot.getAttribute("data-shot-url");slot.removeAttribute("data-shot-url");
-      if(!isSignedIn()){slot.remove();return}
+/*@web*/      if(!isSignedIn()){slot.remove();return}
       if(!isPro()){slot.innerHTML=`<p class="dest-shot-note">Upgrade to Pro to see a live picture of this page before you decide.</p>`;return}
       slot.innerHTML=`<div class="screenshot-loading"><span class="btn-spinner"></span> Loading a picture of this page…</div>`;
-      loadScreenshotPreview(slot,url);
+      loadScreenshotPreview(slot,url);/*@end-web*//*@ios slot.remove(); @end-ios*/
     });
   }
 
@@ -2085,7 +2138,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     return{label:"Low Visible Risk",cls:"risk-tag-safe"};
   }
 
-  async function checkQuickScanQuota(){
+/*@web*/  async function checkQuickScanQuota(){
     try{
       const res=await fetch("/api/quickscan-usage",{method:"POST",headers:authHeaders()});
       const data=await res.json().catch(()=>({}));
@@ -2100,10 +2153,10 @@ document.addEventListener("DOMContentLoaded",()=>{
     }catch{
       return{allowed:false,message:"Could not check your Quick Scan usage right now. Please try again."};
     }
-  }
+  }/*@end-web*//*@ios async function checkQuickScanQuota(){return{allowed:true}} @end-ios*/
 
   if(cyberTextBtn&&cyberTextInput&&cyberTextResult)cyberTextBtn.addEventListener("click",async()=>{
-    if(!isSignedIn()){openAuthModal("signup");return}
+/*@web*/    if(!isSignedIn()){openAuthModal("signup");return}/*@end-web*/
     const text=cyberTextInput.value.trim();if(!text){cyberTextResult.innerHTML=`<span class="warning">Paste a suspicious message first.</span>`;return}
     cyberTextBtn.disabled=true;
     if(!await scanEngineReady()){cyberTextResult.innerHTML=`<span class="warning">${ENGINE_MISSING}</span>`;cyberTextBtn.disabled=false;return}
@@ -2126,7 +2179,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       }
       const result=isBareLink?analyzeLinkRules(text):analyzeTextRules(text);
       const note=isBareLink
-        ?"This looked like a link rather than a message, so CyberNet AI analyzed it with the link engine for a more accurate result. Use Link Detection directly next time for the same result."
+        ?/*@web*/"This looked like a link rather than a message, so CyberNet AI analyzed it with the link engine for a more accurate result. Use Link Detection directly next time for the same result."/*@end-web*//*@ios "This looked like a link rather than a message, so CyberNet AI checked it with the link engine, which reads web addresses more closely. Use Link Detection directly next time for the same result." @end-ios*/
         :"Local protection scan complete. Use Analysis AI for a deeper, AI-assisted check.";
       showReport(cyberTextResult,result.score,result.scamType,result.reasons,result.advice,{...result,note,previewHtml:isBareLink?renderLinkPreview(text,result):renderLinksFound(result.links||[])});
       prependScan("textScanList",`“${text.slice(0,42)}${text.length>42?"…":""}”`,result);
@@ -2139,7 +2192,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   /* ─── CyberNet Link ─── */
   const cyberLinkInput=document.getElementById("cyberLinkInput"),cyberLinkResult=document.getElementById("cyberLinkResult"),cyberLinkBtn=document.getElementById("cyberLinkBtn");
   if(cyberLinkBtn&&cyberLinkInput&&cyberLinkResult)cyberLinkBtn.addEventListener("click",async()=>{
-    if(!isSignedIn()){openAuthModal("signup");return}
+/*@web*/    if(!isSignedIn()){openAuthModal("signup");return}/*@end-web*/
     const link=cyberLinkInput.value.trim();if(!link){cyberLinkResult.innerHTML=`<span class="warning">Paste a suspicious link first.</span>`;return}
     cyberLinkBtn.disabled=true;
     const engineReady=await scanEngineReady();
@@ -2164,7 +2217,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(jsQRLoader)return jsQRLoader;
     // A failed load is forgotten so the next image tries again instead of
     // reusing the rejected promise for the rest of the visit.
-    jsQRLoader=new Promise((resolve,reject)=>{const script=document.createElement("script");script.src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js";script.async=true;script.onload=()=>resolve(window.jsQR);script.onerror=()=>{script.remove();jsQRLoader=null;reject(new Error("QR decoder failed to load"))};document.head.appendChild(script)});
+    jsQRLoader=new Promise((resolve,reject)=>{const script=document.createElement("script");script.src=/*@web*/"https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"/*@end-web*//*@ios "vendor/jsQR.js" @end-ios*/;script.async=true;script.onload=()=>resolve(window.jsQR);script.onerror=()=>{script.remove();jsQRLoader=null;reject(new Error("QR decoder failed to load"))};document.head.appendChild(script)});
     return jsQRLoader;
   }
   // Fetch the QR decoder as soon as someone heads for an image upload, so the
@@ -2232,12 +2285,12 @@ document.addEventListener("DOMContentLoaded",()=>{
     prependScan("imageScanList",file.name,result);
     reportTeamActivity({kind:"quick_scan",scanType:"image",content:"",fileName:file.name,qr:decoded.qrData?{kind:qrKind,data:decoded.qrData}:null,result:quickScanLogResult(result,{needsDeepScan:!decoded.qrData})});
   }
-  if(cyberDropZone)cyberDropZone.addEventListener("click",e=>{if(!isSignedIn()){e.preventDefault();openAuthModal("signup")}});
-  if(cyberImageInput)cyberImageInput.addEventListener("change",()=>{if(!isSignedIn()){cyberImageInput.value="";openAuthModal("signup");return}handleCyberImage(cyberImageInput.files[0])});
+/*@web*/  if(cyberDropZone)cyberDropZone.addEventListener("click",e=>{if(!isSignedIn()){e.preventDefault();openAuthModal("signup")}});/*@end-web*/
+  if(cyberImageInput)cyberImageInput.addEventListener("change",()=>{/*@web*/if(!isSignedIn()){cyberImageInput.value="";openAuthModal("signup");return}/*@end-web*/handleCyberImage(cyberImageInput.files[0])});
   if(cyberDropZone&&cyberImageInput){
     cyberDropZone.addEventListener("dragover",e=>{e.preventDefault();cyberDropZone.classList.add("drag-over")});
     cyberDropZone.addEventListener("dragleave",()=>cyberDropZone.classList.remove("drag-over"));
-    cyberDropZone.addEventListener("drop",e=>{e.preventDefault();cyberDropZone.classList.remove("drag-over");if(!isSignedIn()){openAuthModal("signup");return}const f=e.dataTransfer.files[0];if(f)handleCyberImage(f)});
+    cyberDropZone.addEventListener("drop",e=>{e.preventDefault();cyberDropZone.classList.remove("drag-over");/*@web*/if(!isSignedIn()){openAuthModal("signup");return}/*@end-web*/const f=e.dataTransfer.files[0];if(f)handleCyberImage(f)});
   }
 
   /* ─── Detect tabs (CyberNet Features page) ─── */
@@ -2301,7 +2354,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       return false;
     }
     if(Number(appState.usage.remaining)<=0){
-      addChatBubble("ai",`<span class="warning">You have reached today's ${appState.usage.limit||5}-analysis limit.</span><button class="report-download-btn" data-upgrade-now>View Pro options</button>`);
+      addChatBubble("ai",/*@web*/`<span class="warning">You have reached today's ${appState.usage.limit||5}-analysis limit.</span><button class="report-download-btn" data-upgrade-now>View Pro options</button>`/*@end-web*//*@ios `<span class="warning">You've used today's AI explanations. ${escapeHTML(aiResetText())}</span>` @end-ios*/);
       return false;
     }
     return true;
@@ -2430,7 +2483,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     hydratePreviews(resultBox);
   }
 
-  async function loadScreenshotPreview(container,url){
+/*@web*/  async function loadScreenshotPreview(container,url){
     if(!container)return;
     try{
       const res=await fetch("/api/screenshot-preview",{method:"POST",headers:authHeaders({"Content-Type":"application/json"}),body:JSON.stringify({url})});
@@ -2457,7 +2510,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     }catch{
       container.remove();
     }
-  }
+  }/*@end-web*/
 
 
 
@@ -2525,7 +2578,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       if(isPro())await refreshAccountStatus();
     }catch(error){
       if(stopDiagnostic)stopDiagnostic();
-      if(inner)inner.innerHTML=`<span class="warning">${escapeHTML(friendlyNetworkError(error)||error.message||"The analysis didn't finish. Please try again.")}</span>${error.code==="daily_limit_reached"?'<button class="report-download-btn" data-upgrade-now>Upgrade to Pro</button>':""}`;
+      if(inner)inner.innerHTML=`<span class="warning">${escapeHTML(friendlyNetworkError(error)||error.message||"The analysis didn't finish. Please try again.")}</span>${/*@web*/error.code==="daily_limit_reached"?'<button class="report-download-btn" data-upgrade-now>Upgrade to Pro</button>':""/*@end-web*//*@ios "" @end-ios*/}`;
     }
     if(chatMessages)chatMessages.scrollTop=chatMessages.scrollHeight;
   }
@@ -2571,7 +2624,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   }
   if(chatSendBtn)chatSendBtn.addEventListener("click",sendChatMessage);
   if(chatInput)chatInput.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();sendChatMessage()}});
-  if(chatMessages)chatMessages.addEventListener("click",event=>{if(event.target.closest("[data-upgrade-now]"))switchPage("pricing")});
+/*@web*/  if(chatMessages)chatMessages.addEventListener("click",event=>{if(event.target.closest("[data-upgrade-now]"))switchPage("pricing")});/*@end-web*/
   if(aiImageInput)aiImageInput.addEventListener("change",()=>{
     const file=aiImageInput.files[0];
     if(!file){return}
@@ -2685,7 +2738,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   })();
 
   /* ─── Pricing monthly/yearly toggle + Business seat-tier picker ─── */
-  (function initPricingToggle(){
+/*@web*/  (function initPricingToggle(){
     const toggle=document.getElementById("pricingToggle");
     const proButton=document.getElementById("proPlanBtn");
     const equivalent=document.getElementById("billingEquivalent");
@@ -2739,7 +2792,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 
     options.forEach(option=>option.addEventListener("click",()=>applyCycle(option.dataset.cycle)));
     applyCycle("monthly");
-  })();
+  })();/*@end-web*/
 
   /* ─── Home visual stability ─── */
   /* The previous scroll transform changed the entire hero while reveal animations
@@ -2824,9 +2877,9 @@ document.addEventListener("DOMContentLoaded",()=>{
     }
     // Plan-aware wording for Recovery limit messages: only Free is told to upgrade.
     function recoveryLimitSuffix(usage,freeText,paidText){
-      const plan=usage?.plan;
+/*@web*/      const plan=usage?.plan;
       if(plan==="free"||!plan)return ` ${freeText}`;
-      return plan==="business"?` Your team's shared ${paidText}`:` Your ${paidText}`;
+      return plan==="business"?` Your team's shared ${paidText}`:` Your ${paidText}`;/*@end-web*//*@ios return ` ${paidText}`; @end-ios*/
     }
     let currentCaseId=null;
     let currentPlan=null;
@@ -2907,7 +2960,7 @@ document.addEventListener("DOMContentLoaded",()=>{
         if(data.aiPending)watchForAiPlan(data.caseId,Number(data.caseVersion)||1,"plan");
       }catch(error){
         if(error.code==="daily_limit_reached"){
-          setIntakeMessage(`${error.message}${recoveryLimitSuffix(error.usage,"Upgrade to Pro for more Recovery cases per day.","Recovery cases reset at 12:00 PM Gulf time.")}`,"warning");
+          setIntakeMessage(`${error.message}${recoveryLimitSuffix(error.usage,/*@web*/"Upgrade to Pro for more Recovery cases per day."/*@end-web*//*@ios "" @end-ios*/,"Recovery cases reset at 12:00 PM Gulf time.")}`,"warning");
           if(error.usage){appState.recoveryUsage={used:Number(error.usage.used)||0,limit:Number(error.usage.limit??error.usage.daily_limit)||1};updateAccountUI()}
         }else{
           setIntakeMessage(friendlyNetworkError(error)||error.message||"Recovery Mode couldn't start right now. Please try again.","warning");
@@ -3053,10 +3106,10 @@ document.addEventListener("DOMContentLoaded",()=>{
 
     document.querySelectorAll(".recovery-timeline-tab").forEach(tab=>{
       tab.addEventListener("click",()=>{
-        if(!isPro()&&tab.dataset.timeline!=="first10Minutes"){
+/*@web*/        if(!isPro()&&tab.dataset.timeline!=="first10Minutes"){
           switchPage("pricing");
           return;
-        }
+        }/*@end-web*/
         document.querySelectorAll(".recovery-timeline-tab").forEach(t=>t.classList.remove("active"));
         tab.classList.add("active");
         activeTimelineTab=tab.dataset.timeline;
@@ -3127,7 +3180,7 @@ document.addEventListener("DOMContentLoaded",()=>{
           const hours=Math.ceil(seconds/3600),minutes=Math.max(1,Math.ceil(seconds/60));
           setUpdateMessage(seconds>0?`You can send your next update in about ${seconds>=3600?`${hours} hour${hours>1?"s":""}`:`${minutes} minute${minutes>1?"s":""}`}.`:(error.message||"Please wait before submitting another update."),"warning");
         }else if(error.code==="daily_limit_reached"){
-          setUpdateMessage(`${error.message}${error.usage?.plan==="free"||!error.usage?.plan?" Upgrade to Pro for more updates per day.":" Updates reset at 12:00 PM Gulf time."}`,"warning");
+          setUpdateMessage(`${error.message}${/*@web*/error.usage?.plan==="free"||!error.usage?.plan?" Upgrade to Pro for more updates per day.":" Updates reset at 12:00 PM Gulf time."/*@end-web*//*@ios " Updates reset at 12:00 PM Gulf time." @end-ios*/}`,"warning");
         }else{
           setUpdateMessage(friendlyNetworkError(error)||error.message||"Couldn't update this case right now. Please try again.","warning");
         }

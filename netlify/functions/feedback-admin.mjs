@@ -15,6 +15,9 @@
 
 import { verifyUser, isAdminUser, serviceFetch } from "../lib/supabase.mjs";
 import { STATUSES } from "../lib/feedback.mjs";
+// Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
+// management, admin): requests from the app get 403 (netlify/lib/cors.mjs).
+import { webOnly } from "../lib/cors.mjs";
 
 const COLUMNS = "id,created_at,user_id,email,category,message,page,ui_version,user_agent_summary,status,handled_at";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -41,7 +44,7 @@ async function databaseError(response) {
   return reply(502, { error: "The feedback inbox could not be loaded." });
 }
 
-export default async (request) => {
+export default webOnly(async (request) => {
   if (request.method !== "GET" && request.method !== "PATCH") {
     return reply(405, { error: "Method not allowed." }, { Allow: "GET, PATCH" });
   }
@@ -108,7 +111,7 @@ export default async (request) => {
     console.error(JSON.stringify({ tag: "cn_feedback", event: "admin_failed", detail: String(error?.message || error).slice(0, 200) }));
     return reply(error?.status === 503 ? 503 : 500, { error: "The feedback inbox could not be loaded." });
   }
-};
+});
 
 export const config = {
   path: "/api/feedback-admin"

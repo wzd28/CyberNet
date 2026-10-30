@@ -38,8 +38,8 @@
        switches to the routed page ~300 ms after DOMContentLoaded. Keep Home hidden until it stops
        being the active page (4 s fallback), so the Home hero does not flash first. Keep this above
        every stylesheet: an inline script after a stylesheet waits for that stylesheet to load. -->
-  <style>html.cn.cn-deep #home.active-page{visibility:hidden}</style>
-  <script>
+  <style data-web-only>html.cn.cn-deep #home.active-page{visibility:hidden}</style>
+  <script data-web-only>
   (function(){
     var d=document,r=d.documentElement;
     try{if(localStorage.getItem("cn-still-2")==="1")r.classList.add("cn-still")}catch(e){}
@@ -345,7 +345,7 @@
          aria-hidden; the dialog's own heading names it, and #cnGateStatus speaks the nudge and the
          welcome. Each typed line lists the texts it can show in data-alt, so its box is sized for the
          longest one from the start and nothing moves when the words change. -->
-    <div class="cn-gate-stage" id="cnGateStage" aria-hidden="true">
+    <div data-web-only class="cn-gate-stage" id="cnGateStage" aria-hidden="true">
       <div class="cn-gate-brand">
         <span class="cn-gate-mark"><svg viewBox="0 0 24 26" fill="none"><path class="cn-gate-shield" pathLength="1" d="M12 24 L4 15 L3 6 L12 2 L21 6 L20 15 Z" stroke="#22D3EE" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/><g class="cn-gate-lock"><path d="M9.6 12.5v-2.3a2.4 2.4 0 0 1 4.8 0v2.3" stroke="#22D3EE" stroke-width="1.3" stroke-linecap="round"/><path d="M9.5 12.5H14.5A1.2 1.2 0 0 1 15.7 13.7V17.5A1.2 1.2 0 0 1 14.5 18.7H9.5A1.2 1.2 0 0 1 8.3 17.5V13.7A1.2 1.2 0 0 1 9.5 12.5ZM11.5 16.066A1 1 0 1 1 12.5 16.066V17.3A.5 .5 0 0 1 11.5 17.3Z" fill="#22D3EE" fill-rule="evenodd"/></g></svg><i class="cn-gate-scan"></i></span>
         <span class="cn-gate-word"><span style="--i:0">C</span><span style="--i:1">y</span><span style="--i:2">b</span><span style="--i:3">e</span><span style="--i:4">r</span><b><span style="--i:5">N</span><span style="--i:6">e</span><span style="--i:7">t</span></b><small><span style="--i:8">A</span><span style="--i:9">I</span></small></span>
@@ -357,8 +357,8 @@
         <p class="cn-gate-head"><span class="cn-gate-t" data-alt="You’re in.">Not signed in yet. Sign in to unlock every tool.</span></p>
       </div>
     </div>
-    <p class="cn-gate-status" id="cnGateStatus" role="status"></p>
-    <script>
+    <p data-web-only class="cn-gate-status" id="cnGateStatus" role="status"></p>
+    <script data-web-only>
     /* Sign-in gate controller (63-gate.css). ES5 and inline, so the intro types from the first frames
        instead of waiting for the deferred scripts. It reaches script.js only through what script.js
        offers other scripts: window.CyberNetAccount.openAuthModal (or a click on #openAuth before it
@@ -595,7 +595,8 @@
       </div>
       <div class="auth-heading">
         <h2 id="authModalTitle">Stay secure.</h2>
-        <p id="authModalIntro">All in one place, designed for protection and recovery. Create your free account in seconds, or sign in.</p>
+        <p id="authModalIntro" data-web-only>All in one place, designed for protection and recovery. Create your free account in seconds, or sign in.</p>
+        <!--@ios <p id="authModalIntro">Sign in to get AI explanations and Recovery plans. Check, Scan QR and Share work without an account.</p> @end-ios-->
       </div>
       <!-- Notices about a link the visitor came back from (expired, already used, cancelled). script.js fills it; empty means hidden. -->
       <div id="authNotice" class="cn-auth-notice" role="status"></div>
@@ -603,7 +604,7 @@
         <button type="button" class="auth-tab active" data-auth="login">Sign In</button>
         <button type="button" class="auth-tab" data-auth="signup">Create Account</button>
       </div>
-      <div id="googleAuthWrap" class="google-auth-wrap">
+      <div data-web-only id="googleAuthWrap" class="google-auth-wrap">
         <button type="button" class="google-auth-btn" id="googleAuthBtn">
           <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="#4285F4" d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.47a5.53 5.53 0 0 1-2.4 3.63v3h3.87c2.27-2.09 3.58-5.17 3.58-8.82z"/><path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.94-2.91l-3.87-3c-1.08.72-2.45 1.15-4.07 1.15-3.13 0-5.78-2.11-6.73-4.96H1.28v3.11A12 12 0 0 0 12 24z"/><path fill="#FBBC05" d="M5.27 14.28A7.2 7.2 0 0 1 4.89 12c0-.79.14-1.56.38-2.28V6.61H1.28A12 12 0 0 0 0 12c0 1.94.46 3.77 1.28 5.39z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0A12 12 0 0 0 1.28 6.61l3.99 3.11C6.22 6.86 8.87 4.75 12 4.75z"/></svg>
             Continue with Google
@@ -684,11 +685,12 @@
       </form>
       <div id="authMessage" class="auth-message" aria-live="polite"></div>
       <div id="authMessageActions" class="cn-auth-actions" hidden></div>
-      <small>Secure account access powered by Supabase. New accounts start on CyberNet AI Free.</small>
+      <small data-web-only>Secure account access powered by Supabase. New accounts start on CyberNet AI Free.</small>
+      <!--@ios <small>Secure account access powered by Supabase. Accounts are free.</small> @end-ios-->
     </div>
   </div>
   <!-- HOW-TO VIDEO MODAL -->
-  <div id="howtoVideoModal" class="modal video-modal video-modal-fullscreen" aria-hidden="true">
+  <div data-web-only id="howtoVideoModal" class="modal video-modal video-modal-fullscreen" aria-hidden="true">
     <div class="video-player-shell" role="dialog" aria-modal="true" aria-labelledby="howtoVideoTitle">
       <div class="video-player-topbar">
         <h3 id="howtoVideoTitle">How to use Quick Scan</h3>
@@ -728,7 +730,8 @@
       <div class="feedback-heading">
         <span class="account-eyebrow">CyberNet support</span>
         <h2 id="feedbackTitle">Report a problem or send feedback</h2>
-        <p>Tell us what happened. Please never include passwords, OTP codes, API keys, card details, recovery phrases, or identity documents.</p>
+        <p data-web-only>Tell us what happened. Please never include passwords, OTP codes, API keys, card details, recovery phrases, or identity documents.</p>
+        <!--@ios <p>Tell us what happened. Please never include passwords, one-time codes, card details, recovery phrases or identity documents.</p> @end-ios-->
       </div>
 
       <form id="feedbackForm" name="cybernet-feedback" method="POST" data-netlify="true" netlify-honeypot="bot-field">
@@ -757,7 +760,7 @@
           <option value="">Choose one</option>
           <option value="bug">Something is broken or wrong (website, account, a scan result)</option>
           <option value="feature">Feature request</option>
-          <option value="billing">Billing or plan question</option>
+          <option data-web-only value="billing">Billing or plan question</option>
           <option value="other">Question or other feedback</option>
         </select>
 
@@ -806,18 +809,18 @@
 
     <nav class="nav-tabs">
       <span class="nav-indicator" id="navIndicator"></span>
-      <button class="nav-link active" data-page="home">Home</button>
+      <button data-web-only class="nav-link active" data-page="home">Home</button>
       <button class="nav-link" data-page="cybernet">Quick Scan</button>
       <button class="nav-link" data-page="cybernetai">Analysis AI</button>
       <button class="nav-link" data-page="recovery">Recovery</button>
       <button class="nav-link" data-page="learn">Learn</button>
-      <button class="nav-link" id="navManageBusinessBtn" type="button" aria-haspopup="dialog">Manage Business</button>
-      <button class="nav-link" data-page="pricing">Pricing</button>
-      <button class="nav-link" data-page="about">About</button>
+      <button data-web-only class="nav-link" id="navManageBusinessBtn" type="button" aria-haspopup="dialog">Manage Business</button>
+      <button data-web-only class="nav-link" data-page="pricing">Pricing</button>
+      <button data-web-only class="nav-link" data-page="about">About</button>
     </nav>
 
     <div class="nav-actions">
-      <div class="nav-social-links" aria-label="CyberNet AI on social media">
+      <div data-web-only class="nav-social-links" aria-label="CyberNet AI on social media">
         <a class="nav-social-btn" href="https://www.linkedin.com/company/cybernetai/" target="_blank" rel="noopener" aria-label="CyberNet AI on LinkedIn" title="LinkedIn">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M20.45 20.45h-3.55v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.36V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.45v6.29zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.11 20.45H3.56V9h3.55v11.45z"/></svg>
         </a>
@@ -842,7 +845,7 @@
   <main id="cnMain" tabindex="-1">
 
     <!-- ═══════════ HOME ═══════════ -->
-    <section id="home" class="page active-page">
+    <section data-web-only id="home" class="page active-page">
       <div class="hero" id="heroSection">
         <div class="cn-stage cn-hero4">
           <div class="cn-hero4-scene" aria-hidden="true">
@@ -1225,7 +1228,7 @@
         <p>Paste a message or link, or upload a QR code, and get an instant scam verdict.</p>
         <p class="feature-crosslink">Prefer a conversational back-and-forth instead of picking a tab? Try <button class="inline-link-btn" data-page="cybernetai" type="button">Analysis AI</button>.</p>
 
-        <div class="usage-meter-card" id="quickScanUsageCard">
+        <div data-web-only class="usage-meter-card" id="quickScanUsageCard">
           <div class="usage-meter-labels">
             <span>Daily Quick Scans</span>
             <strong id="quickScanUsageText">0 / 5</strong>
@@ -1517,7 +1520,8 @@
           <p class="cn-edlabel">AI diagnostic</p>
         </div>
         <h1>Analysis <b>AI</b></h1>
-        <p>A deeper AI check of messages, links and screenshots, explained in plain language. On Pro, see where a link or QR code leads before you open it.</p>
+        <p data-web-only>A deeper AI check of messages, links and screenshots, explained in plain language. On Pro, see where a link or QR code leads before you open it.</p>
+        <!--@ios <p>A deeper AI check of messages, links and screenshots, explained in plain language.</p> @end-ios-->
         <p class="feature-crosslink">Just want a fast, instant verdict without chatting? Try <button class="inline-link-btn" data-page="cybernet" type="button">Quick Scan</button>.</p>
 
         <!-- the AI chip in the glass globe, with the subtle glow (data-cn-glow, 27-core.css 6b) -->
@@ -1535,7 +1539,7 @@
 
       <div class="ai-layout reveal">
         <div class="ai-config glass account-access-panel">
-          <div class="account-access-head">
+          <div data-web-only class="account-access-head">
             <div>
               <span class="account-eyebrow">Your access</span>
               <h4 id="aiPlanTitle">CyberNet AI Free</h4>
@@ -1543,7 +1547,7 @@
             <span class="plan-badge plan-badge-free" id="aiPlanBadge">FREE</span>
           </div>
 
-          <p id="aiPlanDescription">Sign in to activate 3 accurate AI analyses per day across text, links, and images.</p>
+          <p data-web-only id="aiPlanDescription">Sign in to activate 3 accurate AI analyses per day across text, links, and images.</p>
 
           <div class="usage-meter-card">
             <div class="usage-meter-labels">
@@ -1554,20 +1558,20 @@
             <small id="aiUsageReset">Resets daily</small>
           </div>
 
-          <div class="plan-benefit-list" id="aiBenefitList">
+          <div data-web-only class="plan-benefit-list" id="aiBenefitList">
             <div><span>✓</span> Accurate Text, Link &amp; Image analysis</div>
             <div><span>✓</span> Basic threat explanations</div>
             <div class="benefit-locked"><span>×</span> Saved scan history</div>
             <div class="benefit-locked"><span>×</span> Downloadable reports</div>
           </div>
 
-          <button class="primary-btn full" id="aiUpgradeBtn" type="button">Upgrade to Pro</button>
-          <button class="secondary-btn full api-service-check" id="manageBillingBtn" type="button" hidden>Manage Billing</button>
-          <button class="secondary-btn full api-service-check" id="testApiKeyBtn" type="button">Refresh Account Status</button>
+          <button data-web-only class="primary-btn full" id="aiUpgradeBtn" type="button">Upgrade to Pro</button>
+          <button data-web-only class="secondary-btn full api-service-check" id="manageBillingBtn" type="button" hidden>Manage Billing</button>
+          <button data-web-only class="secondary-btn full api-service-check" id="testApiKeyBtn" type="button">Refresh Account Status</button>
 
           <div id="aiApiStatus" class="result-box">Sign in to use Analysis AI.</div>
 
-          <div class="ai-status-block">
+          <div data-web-only class="ai-status-block">
             <h5>Service status</h5>
 
             <div class="ai-status-row">
@@ -1588,11 +1592,13 @@
 
           <div class="pro-history-card" id="proHistoryCard">
             <div class="pro-history-head">
-              <h5>Scan history</h5>
-              <span id="historyPlanLabel">Pro feature</span>
+              <h5 data-web-only>Scan history</h5>
+              <!--@ios <h5>Saved explanations</h5> @end-ios-->
+              <span id="historyPlanLabel" data-web-only>Pro feature</span>
             </div>
             <div id="proHistoryList" class="pro-history-list">
-              <p>Upgrade to Pro to save and revisit your AI scan history.</p>
+              <p data-web-only>Upgrade to Pro to save and revisit your AI scan history.</p>
+              <!--@ios <p>Sign in to see your saved explanations.</p> @end-ios-->
             </div>
           </div>
         </div>
@@ -1604,7 +1610,8 @@
           </div>
 
           <div class="chat-messages" id="chatMessages">
-            <div class="chat-bubble chat-bubble-ai">
+            <!--@ios <div class="chat-bubble chat-bubble-ai"><div class="chat-bubble-inner">Sign in, then paste or drop anything suspicious below: a message, a link or a screenshot. Analysis AI works out what it is looking at and explains it in plain language.</div></div> @end-ios-->
+            <div class="chat-bubble chat-bubble-ai" data-web-only>
               <div class="chat-bubble-inner">
                 Sign in, then paste or drop anything suspicious below: a message, a link or a screenshot. Analysis AI works out what it is looking at and runs the right analysis. Free accounts receive 3 accurate AI analyses per day; Pro accounts receive 15 advanced analyses, saved history, and reports.
               </div>
@@ -1653,6 +1660,7 @@
         <p class="cn-edlabel cn-rec-label">Recovery</p>
         <h1>Take a breath. <span>Let’s <b>fix</b> <span class="cn-rec-keep">what happened.</span></span></h1>
         <p class="cn-rec-lead">CyberNet AI turns what happened into a clear recovery plan: what to do now, what to secure next, and what risks remain.</p>
+        <!--@ios <p class="cn-rec-lead cn-ios-rec-note" id="cnRecoveryNote">CyberNet AI gives guidance, not legal or financial advice. If you feel unsafe, contact your local emergency services.</p> @end-ios-->
 
         <div class="usage-meter-card" id="recoveryUsageCard">
           <div class="usage-meter-labels">
@@ -1821,7 +1829,7 @@
             <button class="recovery-timeline-tab" data-timeline="next7Days">Next 7 days</button>
           </div>
           <div id="recoveryTimelineActions" class="recovery-action-list"></div>
-          <div id="recoveryTimelineLocked" class="recovery-locked-note" hidden>
+          <div data-web-only id="recoveryTimelineLocked" class="recovery-locked-note" hidden>
             <p>Free covers your immediate actions and the first 10 minutes. <strong>Pro unlocks the full recovery timeline</strong>: the first hour, the first 24 hours and the next 7 days.</p>
             <button class="secondary-btn" data-page="pricing" type="button">See Pro Recovery</button>
           </div>
@@ -1832,7 +1840,7 @@
           <ul id="recoveryRemainingList"></ul>
         </div>
 
-        <div class="recovery-pro-upsell glass" id="recoveryProUpsell" hidden>
+        <div data-web-only class="recovery-pro-upsell glass" id="recoveryProUpsell" hidden>
           <div class="recovery-pro-upsell-icon"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" aria-hidden="true"><path d="M12 2 L21 6 L20 15 L12 22 L4 15 L3 6 Z" stroke="currentColor" stroke-width="1.7"/><path d="M9 12l2 2 4-4.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
           <div class="recovery-pro-upsell-body">
             <h4>You've addressed the immediate danger. Let's finish the job.</h4>
@@ -2720,7 +2728,7 @@
         </div>
       </div>
     </section>    <!-- ═══════════ PRICING ═══════════ -->
-    <section id="pricing" class="page">
+    <section data-web-only id="pricing" class="page">
       <p class="cn-operator">CyberNet AI is operated under <strong>Marks Events FZ LLE</strong></p>
       <div class="section-head reveal pricing-head">
         <div class="cn-edrow cn-pr-labels">
@@ -2892,7 +2900,7 @@
     </section>
 
     <!-- ═══════════ ABOUT ═══════════ -->
-    <section id="about" class="page">
+    <section data-web-only id="about" class="page">
       <div class="about-top reveal">
         <div class="cn-edrow cn-about-edrow">
           <p class="cn-edlabel">About CyberNet AI</p>
@@ -3046,7 +3054,7 @@
 
   </main>
 
-  <footer>
+  <footer data-web-only>
     <a class="cn-footer-brand" href="/" data-page="home" aria-label="CyberNet AI home">Cyber<span>Net</span> <small>AI</small></a>
     <p>&copy; 2026 CyberNet AI. Secure today. Safer tomorrow. &nbsp;·&nbsp; <a href="mailto:support@cybernetai.app">support@cybernetai.app</a> &nbsp;·&nbsp; <button type="button" class="cn-cookie-settings" data-cn-consent-open>Cookie settings</button></p>
     <button type="button" class="cn-motion-toggle" data-cn-motion title="Pause the moving background and animations on this site.">Pause motion</button>
@@ -3063,14 +3071,14 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" defer></script>
   <script src="/config.js?v=20260830-3" defer></script>
   <script src="/legacy/cybernet-engine.js?v=20261029-1" defer></script>
-  <script src="/legacy/script.js?v=20261029-2" defer></script>
+  <script src="/legacy/script.js?v=20261029-ios1" defer></script>
   <script src="/legacy/cybernet-account-api-upgrade.js?v=20261028-1" defer></script>
   <script src="/cybernet-howto.js?v=20261019-1" defer></script>
 <script src="/legacy/cybernet-business-team.js?v=20261028-1" defer></script>
   <script src="/legacy/cybernet-final-ui-fix.js?v=20261028-1" defer></script>
-      <script src="/legacy/cybernet-legal-upgrade.js?v=20261028-1" defer></script>
+      <script src="/legacy/cybernet-legal-upgrade.js?v=20261029-ios1" defer></script>
   <!-- After script.js, cybernet-account-api-upgrade.js and cybernet-final-ui-fix.js (account modal tabs). -->
-  <script src="/legacy/cybernet-privacy-controls.js?v=20261028-1" defer></script>
+  <script src="/legacy/cybernet-privacy-controls.js?v=20261029-ios1" defer></script>
   <!-- After script.js (cybernet:session event, appState). -->
   <script src="/legacy/cybernet-onboarding.js?v=20261028-1" defer></script>
   <!-- After script.js and cybernet-account-api-upgrade.js (CyberNetAccount, account modal); admin-only, gated on the server. -->

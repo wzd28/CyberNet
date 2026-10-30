@@ -107,6 +107,14 @@ async function upsertBusinessAccount(userId, subscription) {
     return null;
   }
 
+  if (!accountId && ["canceled", "incomplete_expired"].includes(status)) {
+    // A subscription that has already ended never creates a team. This is the
+    // customer.subscription.deleted that follows an account deletion
+    // (privacy-data.mts cancels the team's plan, then removes the team row):
+    // creating a fresh row for that owner would block the deletion.
+    return null;
+  }
+
   const patch = {
     seat_tier: seatTier,
     daily_pool_limit: pool.dailyPoolLimit,

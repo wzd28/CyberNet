@@ -1,6 +1,6 @@
 CYBERNET AI — PRE-LAUNCH CHECKLIST
 ===================================
-Last updated: 2026-08-20
+Last updated: 2026-10-29
 
 LEGAL (do this first — currently blocking real commercial launch)
 -------------------------------------------------------------------
@@ -14,6 +14,40 @@ LEGAL (do this first — currently blocking real commercial launch)
     Policy, pricing page, and Stripe configuration all agree with each other.
 [ ] Get liability / errors-and-omissions insurance appropriate for a product
     that gives cybersecurity risk assessments.
+
+IPHONE APP 1.0 (29 Oct 2026; written without a lawyer, owner answer 14)
+-------------------------------------------------------------------
+Terms, Privacy and Refunds are version 2026-10-29. Read these points before
+the one web deploy:
+[ ] Terms section 1 says the Terms are between the user and Marks Events FZ
+    LLE, while the App Store lists the app under Walid Zeineddine (Individual
+    enrolment) and Apple's standard EULA names the developer as licensor.
+[ ] Privacy section 6 says providers are bound to safeguards "at least equal"
+    to the Policy (Apple requires this); it relies on the Supabase, OpenAI,
+    Stripe, Resend, Netlify, Cloudflare and Google data-processing terms.
+[ ] "No refund when you delete the account" is qualified by "unless
+    applicable law provides otherwise" (EU consumers are included, answer 9).
+[ ] The app's "Allow AI analysis?" sheet says OpenAI does not use the content
+    to train its models. Confirm against OpenAI's current API data-usage
+    terms before submission; the Privacy Policy does not repeat the claim.
+[ ] Google Analytics in the app only after the iOS tracking prompt's
+    "Allow"; Privacy Policy, App Store privacy answers and the app's
+    PrivacyInfo.xcprivacy must keep saying the same thing.
+[ ] The Support page (/support) names the operator and explains deletion;
+    check the reply-time promise ("within two working days").
+[ ] Team members in the app (added 29 Oct 2026): Check, Scan QR and the
+    Share sheet are never sent or logged, also for team members; only Analysis
+    AI and Recovery results reach the team owner's log. The app's Privacy
+    section, the Account note and the "Allow AI analysis?" sheet now all say
+    this (the sheet adds one sentence for team members only). The website's
+    Privacy Policy keeps its Quick Scan logging text for the website.
+[ ] Privacy section 2 now says the AI-consent record keeps the app's
+    user-agent text (app version and iOS version), which the data export
+    now includes.
+[ ] App wording (29 Oct 2026): a low score reads "LOW RISK" in the app and
+    the Share Extension instead of "NOT A SCAM" (no certainty claim); the
+    Recovery screen says "guidance, not legal or financial advice" and to
+    contact local emergency services if unsafe. Owner to approve the wording.
 
 DATABASE / INFRASTRUCTURE
 -------------------------------------------------------------------
@@ -35,7 +69,9 @@ FUNCTIONAL VERIFICATION
     signup.
 [ ] Confirm Account -> Privacy & Data exports JSON.
 [ ] Confirm Clear saved history removes database and browser history.
-[ ] Confirm active Pro subscription blocks account deletion until cancelled.
+[ ] Confirm Delete account cancels an active paid plan immediately (no
+    refund) and then deletes the account (changed 29 Oct 2026; it used to
+    block deletion until the plan was cancelled).
 [ ] Test signup Terms acceptance on desktop and phone.
 [ ] Test checkout recurring-payment acceptance in Stripe test mode.
 [ ] Test a temporary restricted BYOK project key, then revoke it.

@@ -9,6 +9,9 @@ import {
   serviceFetch
 } from "../lib/supabase.mjs";
 import { reportError } from "../lib/report-error.mjs";
+// Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
+// management, admin): requests from the app get 403 (netlify/lib/cors.mjs).
+import { webOnly } from "../lib/cors.mjs";
 
 function env(name) {
   try {
@@ -53,7 +56,7 @@ async function getOrCreateCustomer(stripe, user, profile) {
   return customerId;
 }
 
-export default async (request) => {
+export default webOnly(async (request) => {
   if (request.method !== "POST") {
     return json({ error: "Method not allowed." }, 405);
   }
@@ -240,7 +243,7 @@ export default async (request) => {
       Number(error.statusCode || error.status) || 500
     );
   }
-};
+});
 
 export const config = {
   path: "/api/create-checkout-session"

@@ -3,6 +3,9 @@ import { redactForTeamLog } from "../lib/team-log.mjs";
 import { DEFAULT_MODEL, DEFAULT_MINI_MODEL, modelParams, createResponse, autoReplaceEnabled, retirementOf } from "../lib/ai-models.mjs";
 import { reportError } from "../lib/report-error.mjs";
 import { fetchWithJwtRetry, RETRY_TIGHT } from "../lib/supabase-retry.mjs";
+import { withCors, isIOS } from "../lib/cors.mjs";
+import { appTierFor, consumeAnalysisApp, APP_MESSAGES } from "../lib/app-tier.mjs";
+import { aiConsentGate } from "../lib/ai-consent.mjs";
 // The rule set Quick Scan runs in the browser. It registers itself on
 // globalThis, so the page, this function and the tests all read one copy.
 import "../../public/cybernet-engine.js";
@@ -815,7 +818,7 @@ function serviceConfig() {
   };
 }
 
-async function verifySupabaseUser(request: Request): Promise<{ id: string; email?: string; user_metadata?: Record<string, unknown> } | null> {
+async function verifySupabaseUser(request: Request): Promise<{ id: string; email?: string; email_confirmed_at?: string | null; user_metadata?: Record<string, unknown> } | null> {
   const authorization = request.headers.get("authorization") || "";
   const { url, publicKey } = serviceConfig();
   if (!authorization.startsWith("Bearer ") || !url || !publicKey) return null;
@@ -826,8 +829,8 @@ async function verifySupabaseUser(request: Request): Promise<{ id: string; email
       signal: AbortSignal.timeout(5_000),
     });
     if (!response.ok) return null;
-    const data = await response.json() as { id?: string; email?: string; user_metadata?: Record<string, unknown> };
-    return data.id ? { id: data.id, email: data.email, user_metadata: data.user_metadata || {} } : null;
+    const data = await response.json() as { id?: string; email?: string; email_confirmed_at?: string | null; user_metadata?: Record<string, unknown> };
+    return data.id ? { id: data.id, email: data.email, email_confirmed_at: data.email_confirmed_at || null, user_metadata: data.user_metadata || {} } : null;
   } catch {
     return null;
   }
@@ -851,7 +854,7 @@ type UsageReservation = {
   used: number;
   limit: number;
   remaining: number;
-  plan: "free" | "pro" | "business";
+  plan: "free" | "pro" | "business" | "app";
   resetDate: string;
 };
 
@@ -1332,7 +1335,11 @@ function buildServerEvidence(
   return serverEvidence;
 }
 
-export default async function handler(request: Request, context: any): Promise<Response> {
+async function handler(request: Request, context: any): Promise<Response> {
+  // The iPhone app (BUILD-PLAN §8.2-§8.4): App-tier counts for every account,
+  // no admin bypass, no team pool, no investigation mode, and nothing is
+  // forwarded to the AI provider without the person's recorded consent.
+  const ios = isIOS(request);
   if (request.method === "GET") {
     const aiEnabled = Boolean(env("OPENAI_API_KEY"));
     return json({
@@ -1359,6 +1366,7 @@ export default async function handler(request: Request, context: any): Promise<R
   }
 
   const mode: "quick" | "investigation" = body?.mode === "investigation" || body?.type === "investigation" ? "investigation" : "quick";
+  if (ios && mode === "investigation") return json({ error: APP_MESSAGES.investigationNotInApp, code: "NOT_AVAILABLE_IN_APP" }, 403);
   const allowedTypes = new Set(["text", "link", "image", "email_headers", "investigation"]);
   const type = allowedTypes.has(String(body?.type)) ? String(body.type) : mode === "investigation" ? "investigation" : "text";
   const content = String(body?.content || "").slice(0, MAX_TEXT_CHARS);
@@ -1376,11 +1384,21 @@ export default async function handler(request: Request, context: any): Promise<R
     return json({ error: "Too many requests from this connection. Please try again later.", code: "rate_limited" }, 429);
   }
 
+  // iPhone app: consent first, before any quota is reserved or any content is
+  // forwarded (428 makes the app show the consent sheet).
+  if (ios) {
+    const blocked = await aiConsentGate(serviceFetch, user.id);
+    if (blocked) return json(blocked.body, blocked.status);
+  }
+
   // Durable per-account limiter shared across function instances (the IP one
   // above lives in one warm instance only). Fails open if the RPC is down.
   // The team-membership read does not depend on it, so the two run together;
   // nothing is reserved until both have answered.
-  const admin = isAdminUser(user);
+  // In the app, an admin gets the App tier's raised counts instead of the
+  // bypass, and a team member uses their own App-tier counter (the team is
+  // still read, only so the owner's activity log gets the result).
+  const admin = !ios && isAdminUser(user);
   let usage: UsageReservation;
   let team: { businessAccountId: string; dailyPoolLimit: number; role: string } | null = null;
   let usagePromise: Promise<UsageReservation> | null = null;
@@ -1400,9 +1418,11 @@ export default async function handler(request: Request, context: any): Promise<R
     // is computed while it is in flight and only used once it has allowed.
     usagePromise = teamResult.error
       ? Promise.reject(teamResult.error)
-      : team
-        ? consumeAnalysisBusiness(team.businessAccountId)
-        : consumeAnalysis(user.id);
+      : ios
+        ? consumeAnalysisApp(serviceFetch, user.id, appTierFor(user).analysesPerDay)
+        : team
+          ? consumeAnalysisBusiness(team.businessAccountId)
+          : consumeAnalysis(user.id);
     usagePromise.catch(() => null); // awaited below; never left unhandled
   }
 
@@ -1419,6 +1439,7 @@ export default async function handler(request: Request, context: any): Promise<R
       return json({ error: "We couldn't check your daily allowance just now. Please try again in a minute. This attempt was not counted.", code: "usage_service_unavailable" }, 503);
     }
     if (!usage.allowed) {
+      if (ios) return json({ error: APP_MESSAGES.aiLimit, code: "daily_limit_reached", usage }, 429);
       const planLabel = usage.plan === "business" ? "team" : usage.plan === "pro" ? "Pro" : "Free";
       return json({ error: `Daily ${planLabel} limit reached.`, code: "daily_limit_reached", usage }, 429);
     }
@@ -1460,7 +1481,8 @@ export default async function handler(request: Request, context: any): Promise<R
   let answeredModel = "";
   let aiAttempted = false;
 
-  const aiRoute = decideAiRoute(serverEvidence, mode, usage.plan, type === "image" && imageData.startsWith("data:image/"));
+  // The App tier is routed like a Free account (the cheaper model).
+  const aiRoute = decideAiRoute(serverEvidence, mode, ios ? "free" : usage.plan, type === "image" && imageData.startsWith("data:image/"));
 
   try {
     if (aiRoute.call && aiRoute.model) {
@@ -1512,7 +1534,7 @@ export default async function handler(request: Request, context: any): Promise<R
   // alongside the history write and is awaited before the response.
   let refundPromise: Promise<void> | null = null;
   if (!aiUsed && !admin && !(mode === "investigation" && aiAttempted)) {
-    refundPromise = team ? refundAnalysisBusiness(team.businessAccountId) : refundAnalysis(user.id);
+    refundPromise = team && !ios ? refundAnalysisBusiness(team.businessAccountId) : refundAnalysis(user.id);
     usage.used = Math.max(0, usage.used - 1);
     usage.remaining = Math.max(0, usage.limit - usage.used);
   }
@@ -1534,7 +1556,9 @@ export default async function handler(request: Request, context: any): Promise<R
   const isTeamMember = Boolean(team && team.role !== "owner");
   let history: any[] = [];
   let teamLogId: number | null = null;
-  if (mode === "quick" && (isTeamMember || (aiUsed && (usage.plan === "pro" || usage.plan === "business")))) {
+  // Saved history is part of the App tier, so every app account keeps its AI
+  // explanations (on the web it stays a Pro/Business feature).
+  if (mode === "quick" && (isTeamMember || (aiUsed && (usage.plan === "pro" || usage.plan === "business" || ios)))) {
     // Keeping a record must never cost the person their result.
     try {
       const savedId = await saveHistory(
@@ -1569,7 +1593,11 @@ export default async function handler(request: Request, context: any): Promise<R
 
 export { analyzeTextServer, analyzeLinkServer, verdictFromScore };
 
+// CORS for the iPhone app only (netlify/lib/cors.mjs); website requests pass
+// through unchanged. OPTIONS is listed so the app's preflight reaches it.
+export default withCors(handler);
+
 export const config = {
   path: "/api/analyze",
-  method: ["GET", "POST"],
+  method: ["GET", "POST", "OPTIONS"],
 };

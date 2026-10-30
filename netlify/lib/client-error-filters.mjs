@@ -37,6 +37,8 @@ export function isIgnoredError(message) {
 export const MIN_BROWSER = { chromium: 90, firefox: 90, safari: 14, ios: 14 };
 
 const IN_APP = [
+  // Our own iPhone app (capacitor.config appendUserAgent "CyberNetAI-iOS/<version>").
+  ["CyberNet AI", /\bCyberNetAI-iOS\//],
   ["Instagram", /\bInstagram\b/],
   ["Facebook", /\bFB(?:AN|AV)\//],
   ["TikTok", /musical_ly|BytedanceWebview/i],

@@ -3,6 +3,9 @@ import {
   verifyUser
 } from "../lib/supabase.mjs";
 import { reportError } from "../lib/report-error.mjs";
+// Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
+// management, admin): requests from the app get 403 (netlify/lib/cors.mjs).
+import { webOnly } from "../lib/cors.mjs";
 
 const WINDOW_MS = 10 * 60 * 1000;
 const MAX_ATTEMPTS = 10;
@@ -39,7 +42,11 @@ function looksLikeOpenAIKey(value) {
 function chooseModel(modelIds) {
   const available = new Set(modelIds);
 
+  // gpt-6-luna first: the cheapest current model, billed to the visitor's own
+  // key (docs/app-store/MODEL-CHOICE.md). gpt-5 and gpt-5-mini are removed on
+  // 2026-12-11; after that OpenAI no longer lists them for the key.
   const preferred = [
+    "gpt-6-luna",
     "gpt-5.6",
     "gpt-5.4",
     "gpt-5.2",
@@ -55,12 +62,12 @@ function chooseModel(modelIds) {
   // Never a pro, codex, cyber or deep-research variant: those cost far more
   // per call and are billed to the visitor's own key.
   return modelIds.find(model =>
-    /^(gpt-5|gpt-4\.1|gpt-4o)(?:[.-]|$)/i.test(model) &&
+    /^(gpt-6|gpt-5|gpt-4\.1|gpt-4o)(?:[.-]|$)/i.test(model) &&
     !/(audio|realtime|search|transcribe|tts|embedding|image|pro|codex|cyber|deep-research|chat-latest)/i.test(model)
   ) || "";
 }
 
-export default async request => {
+export default webOnly(async request => {
   if (request.method !== "POST") {
     return json({ error: "Method not allowed." }, 405);
   }
@@ -202,7 +209,7 @@ export default async request => {
       Number(error?.status) || 500
     );
   }
-};
+});
 
 export const config = {
   path: "/api/validate-openai-key"

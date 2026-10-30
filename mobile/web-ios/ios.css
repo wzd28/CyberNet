@@ -1,0 +1,385 @@
+/* CyberNet AI iPhone app: app-only styles (BUILD-PLAN §9). Loaded after the website's stylesheets, only
+   in the app. Uses the UI layer's tokens (ui-src/css/00-tokens.css); the app is dark, like the site. */
+
+:root {
+  --cn-native-tabbar-h: 0px;
+  --cn-tabbar-h: var(--cn-native-tabbar-h);
+  --cn-ios-sheet-bg: var(--cn-surface, #0b1220);
+  --cn-ios-row-bg: var(--cn-surface-2, rgba(255, 255, 255, .04));
+  --cn-ios-line: var(--cn-line, rgba(148, 163, 184, .18));
+  --cn-ios-text: var(--cn-text, #eaf6ff);
+  --cn-ios-text-2: var(--cn-text-2, #b8c7da);
+  --cn-ios-accent: var(--cn-cyan, #22d3ee);
+}
+html.cn-ios.cn-web-tabs { --cn-tabbar-h: calc(56px + env(safe-area-inset-bottom, 0px)); }
+
+/* ---------- the app shell ---------- */
+html.cn-ios {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  color-scheme: dark;
+}
+html.cn-ios body {
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  padding-bottom: calc(var(--cn-tabbar-h) + 12px);
+}
+html.cn-ios.cn-kb-open body { padding-bottom: 12px; }
+/* Navigation lives in the tab bar: the website's tabs, menu button and header account controls are not
+   used in the app. The header keeps the wordmark. */
+html.cn-ios .navbar .nav-tabs,
+html.cn-ios .navbar .mobile-menu,
+html.cn-ios .navbar .nav-actions,
+html.cn-ios .nav-indicator { display: none !important; }
+html.cn-ios .navbar .brand { pointer-events: none; }
+/* Background canvases and the old particle layer are off in the app (battery, App Review 2.4.2). */
+html.cn-ios #particleCanvas { display: none !important; }
+
+/* Text fields at 16 px or more, so iOS never zooms into them. */
+html.cn-ios input,
+html.cn-ios textarea,
+html.cn-ios select { font-size: max(16px, 1rem) !important; }
+html.cn-ios button,
+html.cn-ios a,
+html.cn-ios [role="button"],
+html.cn-ios label { touch-action: manipulation; }
+html.cn-ios button,
+html.cn-ios .nav-link,
+html.cn-ios .detect-tab,
+html.cn-ios .auth-tab,
+html.cn-ios .recovery-timeline-tab,
+html.cn-ios .cn-ios-tab { -webkit-user-select: none; user-select: none; }
+/* Results, reasons and plans stay selectable (people copy them). */
+html.cn-ios .result-box,
+html.cn-ios .chat-bubble-inner,
+html.cn-ios .recovery-dashboard { -webkit-user-select: text; user-select: text; }
+/* Hover effects only where there is a pointer that hovers. */
+@media (hover: none) {
+  html.cn-ios .tilt-card { transform: none !important; }
+}
+/* 44 x 44 pt touch targets for the small controls the website has. */
+html.cn-ios .close-modal,
+html.cn-ios .cn-pw-toggle,
+html.cn-ios .input-clear-btn,
+html.cn-ios .details-toggle,
+html.cn-ios .auth-text-btn,
+html.cn-ios .cn-legal-link-btn,
+html.cn-ios .chat-attach-btn,
+html.cn-ios .send-btn { min-height: 44px; min-width: 44px; }
+html.cn-ios :focus-visible { outline: 2px solid var(--cn-ios-accent); outline-offset: 2px; }
+
+/* The Check screen's "not antivirus" line. */
+.cn-ios-disclaimer {
+  margin: 14px 0 0;
+  font-size: .9rem;
+  line-height: 1.5;
+  color: var(--cn-ios-text-2);
+}
+.cn-ios-disclaimer-small { margin: 12px 0 0; font-size: .82rem; color: var(--cn-ios-text-2); }
+
+/* ---------- the web tab bar (only without the native one) ---------- */
+.cn-ios-tabbar {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 900;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  padding: 4px max(8px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(8px, env(safe-area-inset-left, 0px));
+  background: rgba(6, 10, 20, .86);
+  -webkit-backdrop-filter: saturate(160%) blur(18px);
+  backdrop-filter: saturate(160%) blur(18px);
+  border-top: 1px solid var(--cn-ios-line);
+}
+html.cn-kb-open .cn-ios-tabbar { display: none; }
+.cn-ios-tab {
+  appearance: none;
+  border: 0;
+  background: none;
+  color: var(--cn-ios-text-2);
+  min-height: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font: 600 11px/1.1 var(--cn-font, -apple-system, system-ui, sans-serif);
+  letter-spacing: .01em;
+}
+.cn-ios-tab.is-active { color: var(--cn-ios-accent); }
+.cn-ios-tab svg { display: block; }
+
+/* ---------- sheets ---------- */
+.cn-ios-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(2, 6, 14, 0);
+  transition: background .2s ease;
+}
+.cn-ios-sheet-backdrop.is-open { background: rgba(2, 6, 14, .62); }
+.cn-ios-sheet {
+  width: 100%;
+  max-width: 560px;
+  max-height: calc(100% - env(safe-area-inset-top, 0px) - 24px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  box-sizing: border-box;
+  padding: 22px 20px calc(18px + env(safe-area-inset-bottom, 0px));
+  border-radius: 22px 22px 0 0;
+  background: var(--cn-ios-sheet-bg);
+  color: var(--cn-ios-text);
+  border: 1px solid var(--cn-ios-line);
+  border-bottom: 0;
+  box-shadow: 0 -18px 50px rgba(0, 0, 0, .45);
+  transform: translateY(100%);
+  transition: transform .26s cubic-bezier(.2, .8, .2, 1);
+  outline: none;
+}
+.cn-ios-sheet-backdrop.is-open .cn-ios-sheet { transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .cn-ios-sheet, .cn-ios-sheet-backdrop, .cn-ios-legal-sheet { transition: none !important; }
+}
+.cn-ios-sheet-title { margin: 0 0 12px; font-size: 1.3rem; line-height: 1.25; }
+.cn-ios-sheet-kicker { margin: 0 0 8px; font-size: .8rem; letter-spacing: .04em; text-transform: uppercase; color: var(--cn-ios-text-2); }
+.cn-ios-sheet-body p { margin: 0 0 10px; line-height: 1.55; color: var(--cn-ios-text); }
+.cn-ios-sheet-body label { display: block; margin: 0 0 6px; font-weight: 600; }
+.cn-ios-sheet-body textarea { width: 100%; box-sizing: border-box; min-height: 96px; }
+.cn-ios-sheet-error { color: var(--cn-danger, #ff8a8a); }
+.cn-ios-sheet-actions { display: grid; gap: 10px; margin-top: 16px; }
+.cn-ios-sheet-actions .primary-btn,
+.cn-ios-sheet-actions .secondary-btn { min-height: 48px; }
+.cn-ios-link-btn {
+  appearance: none;
+  border: 0;
+  background: none;
+  color: var(--cn-ios-accent);
+  font: inherit;
+  font-weight: 600;
+  min-height: 44px;
+  padding: 8px 4px;
+  cursor: pointer;
+}
+.cn-ios-note { margin: 8px 0; font-size: .88rem; line-height: 1.5; color: var(--cn-ios-text-2); }
+
+/* QR / shared item verdict */
+.cn-ios-qr-target {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--cn-ios-row-bg);
+  border: 1px solid var(--cn-ios-line);
+  font-family: var(--cn-font-mono, ui-monospace, monospace);
+  font-size: .88rem;
+  word-break: break-all;
+  color: var(--cn-ios-text-2);
+}
+.cn-ios-qr-target strong { color: var(--cn-ios-text); font-weight: 700; }
+.cn-ios-qr-raw { white-space: pre-wrap; word-break: break-word; max-height: 160px; overflow: auto; font-size: .85rem; }
+.cn-ios-sheet .verdict-headline { margin: 0 0 12px; }
+.cn-ios-inbox-thumb { display: block; max-width: 100%; max-height: 220px; margin: 0 auto 12px; border-radius: 12px; }
+.cn-ios-inbox-text { padding: 10px 12px; border-radius: 12px; background: var(--cn-ios-row-bg); word-break: break-word; }
+
+/* first-run intro */
+.cn-ios-intro { text-align: center; padding: 8px 4px 0; }
+.cn-ios-intro-step { margin: 0 0 6px; font-size: .8rem; color: var(--cn-ios-text-2); }
+.cn-ios-intro-text { margin: 0 auto; max-width: 30em; line-height: 1.6; color: var(--cn-ios-text-2); }
+.cn-ios-intro-dots { display: flex; justify-content: center; gap: 6px; margin-top: 16px; }
+.cn-ios-intro-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--cn-ios-line); }
+.cn-ios-intro-dots i.is-on { background: var(--cn-ios-accent); }
+
+/* in-app legal pages (an iframe of legal/*.html) */
+.cn-ios-legal-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 2100;
+  display: flex;
+  flex-direction: column;
+  background: var(--cn-bg, #060a14);
+  transform: translateY(100%);
+  transition: transform .26s cubic-bezier(.2, .8, .2, 1);
+}
+.cn-ios-legal-sheet.is-open { transform: none; }
+.cn-ios-legal-head {
+  display: flex;
+  justify-content: flex-end;
+  padding: calc(6px + env(safe-area-inset-top, 0px)) 12px 6px;
+  border-bottom: 1px solid var(--cn-ios-line);
+}
+.cn-ios-legal-frame { flex: 1; width: 100%; border: 0; background: var(--cn-bg, #060a14); }
+
+/* the legal pages themselves */
+html.cn-ios-legal body { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.cn-ios-legal-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: calc(6px + env(safe-area-inset-top, 0px)) 12px 6px;
+  background: rgba(6, 10, 20, .9);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--cn-ios-line);
+}
+html.cn-ios-embedded .cn-ios-legal-bar { display: none; }
+.cn-ios-legal-back {
+  appearance: none;
+  border: 0;
+  background: none;
+  color: var(--cn-ios-accent);
+  font: 600 17px/1 -apple-system, system-ui, sans-serif;
+  min-height: 44px;
+  padding: 0 6px;
+}
+.cn-ios-legal-brand { font-weight: 700; color: var(--cn-ios-text); }
+.cn-ios-unlinked { color: inherit; }
+
+/* ---------- Account screen ---------- */
+.cn-ios-account { padding-bottom: 24px; }
+.cn-ios-account .feature-page-header h1 { margin-bottom: 4px; }
+.cn-ios-group {
+  margin: 0 auto 18px;
+  max-width: 640px;
+  padding: 6px 14px;
+  border-radius: 16px;
+  background: var(--cn-ios-row-bg);
+  border: 1px solid var(--cn-ios-line);
+}
+.cn-ios-group .primary-btn,
+.cn-ios-group .secondary-btn { margin: 10px 0; min-height: 48px; }
+.cn-ios-group-lead { margin: 10px 0; line-height: 1.55; color: var(--cn-ios-text-2); }
+.cn-ios-group-title {
+  max-width: 640px;
+  margin: 24px auto 8px;
+  padding: 0 16px;
+  font-size: .8rem;
+  font-weight: 600;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--cn-ios-text-2);
+}
+.cn-ios-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--cn-ios-line);
+  color: var(--cn-ios-text);
+}
+.cn-ios-group > .cn-ios-row:last-of-type { border-bottom: 0; }
+.cn-ios-row-stack { flex-direction: column; align-items: flex-start; gap: 2px; }
+.cn-ios-row-stack span { color: var(--cn-ios-text-2); word-break: break-all; }
+.cn-ios-row-btn {
+  appearance: none;
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--cn-ios-line);
+  background: none;
+  font: inherit;
+  text-align: left;
+  color: var(--cn-ios-accent);
+  cursor: pointer;
+}
+.cn-ios-row-btn[disabled] { opacity: .55; }
+.cn-ios-danger { color: var(--cn-danger, #ff8a8a); }
+.cn-ios-switch-row label { display: flex; flex-direction: column; gap: 3px; }
+.cn-ios-switch-row small { color: var(--cn-ios-text-2); font-size: .82rem; line-height: 1.45; }
+.cn-ios-switch-row input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: 0 0 auto;
+  position: relative;
+  width: 51px;
+  height: 31px;
+  margin: 0;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, .32);
+  transition: background .2s ease;
+  cursor: pointer;
+}
+.cn-ios-switch-row input[type="checkbox"]::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 27px;
+  height: 27px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .3);
+  transition: transform .2s ease;
+}
+.cn-ios-switch-row input[type="checkbox"]:checked { background: #34c759; }
+.cn-ios-switch-row input[type="checkbox"]:checked::after { transform: translateX(20px); }
+.cn-ios-switch-row input[type="checkbox"]:disabled { opacity: .5; }
+.cn-ios-operator { max-width: 640px; margin: 18px auto 0; padding: 0 16px; font-size: .82rem; line-height: 1.5; color: var(--cn-ios-text-2); }
+html.cn-ios #cnPrivacyMessage:empty { display: none; }
+
+/* ---------- Sign in with Apple (Apple's black/white button style, same size as the email button) ---------- */
+.cn-ios-apple { margin: 14px 0 4px; }
+.cn-ios-apple-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 48px;
+  border-radius: 999px;
+  border: 1px solid #fff;
+  background: #fff;
+  color: #000;
+  font: 600 17px/1 -apple-system, system-ui, sans-serif;
+  cursor: pointer;
+}
+.cn-ios-apple-btn[disabled] { opacity: .6; }
+.cn-ios-apple-note { margin: 8px 0 0; font-size: .8rem; line-height: 1.45; color: var(--cn-ios-text-2); text-align: center; }
+
+/* ---------- results, offline, toast ---------- */
+.cn-ios-report-btn { display: block; margin: 8px 0 0; font-size: .88rem; }
+.cn-ios-remind { margin-top: 12px; }
+.cn-ios-offline {
+  position: fixed;
+  left: 12px; right: 12px;
+  top: calc(env(safe-area-inset-top, 0px) + 8px);
+  z-index: 1900;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--cn-warn-tint, #3a2a05);
+  color: var(--cn-ios-text);
+  border: 1px solid var(--cn-warn, #f5b740);
+  font-size: .9rem;
+  text-align: center;
+}
+.cn-ios-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--cn-tabbar-h) + 18px);
+  z-index: 2200;
+  max-width: min(92vw, 440px);
+  padding: 11px 16px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, .96);
+  color: var(--cn-ios-text);
+  border: 1px solid var(--cn-ios-line);
+  font-size: .92rem;
+  line-height: 1.4;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 12px);
+  transition: opacity .2s ease, transform .2s ease;
+}
+.cn-ios-toast.is-shown { opacity: 1; transform: translate(-50%, 0); }
+
+/* The privacy dialogs and sign-in card sit above the tab bar. */
+html.cn-ios .modal { z-index: 1500; }
+html.cn-ios .modal .modal-card { max-height: calc(100% - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 24px); overflow-y: auto; }
