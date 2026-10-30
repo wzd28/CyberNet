@@ -116,8 +116,7 @@ const PUBLIC = ["93.184.216.34"];
   reset({ dns: { "down.example": PUBLIC } });
   microlink = () => Response.json({ status: "success", statusCode: null, data: { screenshot: { url: "https://img.microlink.test/chrome-error.png" } } });
   const { status, body } = await post("down.example");
-  check("statusCode null: no screenshot, unreachable (load)", status === 200 && !body.screenshot && body.unreachable === true && body.reason === "load", { status, body });
-  check("statusCode null: error-page image never downloaded", !calls.some((c) => c.host.startsWith("img.")), calls);
+  check("statusCode null (Microlink no longer reports it): the screenshot is shown", status === 200 && Boolean(body.screenshot) && !body.unreachable, { status, body });
 }
 {
   reset({ dns: { "gone.example": PUBLIC } });
@@ -129,7 +128,7 @@ const PUBLIC = ["93.184.216.34"];
   reset({ dns: { "plain.example": PUBLIC } });
   microlink = () => Response.json({ status: "success", data: { screenshot: { url: "https://img.microlink.test/x.png" } } });
   const { body } = await post("plain.example");
-  check("statusCode missing: treated like null", !body.screenshot && body.unreachable === true, body);
+  check("statusCode missing: treated like null (shown)", Boolean(body.screenshot) && !body.unreachable, body);
 }
 {
   reset({ dns: { "busy.example": PUBLIC } });
@@ -206,8 +205,8 @@ for (const bad of ["http://localhost/", "http://127.0.0.1/", "http://[::1]/", "h
     await load(box, "https://totalpadel.com/");
     return box;
   };
-  const MESSAGE = "We couldn't load this website.";
-  const DETAIL = "The address may not exist or the site may be down. Double-check the spelling — scam links often use addresses that look almost right.";
+  const MESSAGE = "Preview not available.";
+  const DETAIL = "We couldn't open this page to show a picture of it. This doesn't change the verdict above.";
   const down = await run(200, { unreachable: true, reason: "dns", url: "https://totalpadel.com/" });
   check("UI unreachable: calm message, no image", !down.removed && down.innerHTML.includes(MESSAGE) && down.innerHTML.includes(DETAIL) && !/<img/.test(down.innerHTML), down.innerHTML);
   const www = await run(200, { screenshot: "data:image/png;base64,AAAA", url: "https://www.totalpadel.com/", wwwFallback: true, requestedHost: "totalpadel.com", shownHost: "www.totalpadel.com" });

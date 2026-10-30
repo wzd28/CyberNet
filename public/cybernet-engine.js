@@ -1312,7 +1312,7 @@ function isPrivateHost(host){
 function registrableDomain(host){
   if(/^\d{1,3}(\.\d{1,3}){3}$/.test(host)||host.includes(":"))return host;
   const labels=host.split(".").filter(Boolean);if(labels.length<=2)return host;
-  const compound=new Set(["co.uk","org.uk","gov.uk","com.au","net.au","co.nz","com.br","com.tr","com.lb","com.cy","co.jp","co.in","com.sg","com.cn","com.hk","com.mx","gov.ae","ac.ae","co.ae","net.ae","org.ae","sch.ae","com.sa","gov.sa","edu.sa","org.sa","net.sa","com.qa","gov.qa","edu.qa","com.kw","gov.kw","edu.kw","com.bh","gov.bh","com.om","gov.om","com.eg","gov.eg","com.jo","gov.jo","co.za","com.pk","gov.in","gov.cy","gouv.fr","gov.gr","gov.tr","gov.lb","gov.il","gov.it","gov.pl","gov.pt","gov.ie","gov.my","gov.sg","gov.ph","gov.ng","gov.za","gov.br","gov.au","govt.nz","go.jp","go.kr","gc.ca"]);
+  const compound=new Set(["co.uk","org.uk","gov.uk","com.au","net.au","co.nz","com.br","com.tr","com.lb","com.cy","ac.cy","org.cy","net.cy","gov.cy","co.jp","co.in","com.sg","com.cn","com.hk","com.mx","gov.ae","ac.ae","co.ae","net.ae","org.ae","sch.ae","com.sa","gov.sa","edu.sa","org.sa","net.sa","com.qa","gov.qa","edu.qa","com.kw","gov.kw","edu.kw","com.bh","gov.bh","com.om","gov.om","com.eg","gov.eg","com.jo","gov.jo","co.za","com.pk","gov.in","gov.cy","gouv.fr","gov.gr","gov.tr","gov.lb","gov.il","gov.it","gov.pl","gov.pt","gov.ie","gov.my","gov.sg","gov.ph","gov.ng","gov.za","gov.br","gov.au","govt.nz","go.jp","go.kr","gc.ca"]);
   const tail2=labels.slice(-2).join(".");return compound.has(tail2)?labels.slice(-3).join("."):tail2;
 }
 
