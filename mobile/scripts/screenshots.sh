@@ -14,9 +14,12 @@
 # Each launch runs with `simctl launch --console-pty` (as engine-parity.sh does) and keeps the app's
 # console in <screen>.log. A demo screen counts only when debug.js printed "CN_DEMO_READY <screen>";
 # otherwise the step fails on a required device (a capture of a half-drawn or covered screen is not
-# a pass). debug.js also skips the first-run intro and answers the tracking prompt with "denied" in
-# demo runs, so neither covers the screenshots; the plain launch (00-launch) keeps the real first-run
-# intro on purpose.
+# a pass; debug.js also reports CN_DEMO_FAILED while the sign-in card is still open). debug.js also skips the
+# first-run intro and answers the tracking prompt with "denied" in demo runs, so neither covers the
+# screenshots; the plain launch (00-launch) keeps the real first-run intro on purpose. A fresh simulator is
+# signed out, so the app opens with its sign-in card (a later launch shows it after a short stage): debug.js
+# taps "Continue without an account" for the screens that work without one and plants a fictional signed-in
+# person (requests never leave the device) for consent, analysis and recovery, which need an account.
 #
 # The Share Extension over the share sheet (screenshot #3) cannot be captured here; the owner takes it
 # during the TestFlight pass (APP-STORE-CONNECT-METADATA §9).

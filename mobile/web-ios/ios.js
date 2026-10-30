@@ -4,11 +4,12 @@
    Sections:
      1  helpers                 8  legal pages (in-app) and the sign-up acceptance record
      2  tab bar, Check switch   9  Sign in with Apple
-     3  Account screen         10  QR scanner and its verdict sheet
-     4  AI consent sheet       11  items shared from other apps (Share Extension hand-off)
-     5  fetch layer             12  Recovery reminders (local notifications)
-     6  downloads              13  offline, "Report a problem", haptics, small iOS touches
-     7  first-run intro        14  App Tracking Transparency and analytics, app lifecycle
+        and guest mode         10  QR scanner and its verdict sheet
+     3  Account screen         11  items shared from other apps (Share Extension hand-off)
+     4  AI consent sheet       12  Recovery reminders (local notifications)
+     5  fetch layer            13  offline, "Report a problem", haptics, small iOS touches
+     6  downloads              14  App Tracking Transparency and analytics, app lifecycle
+     7  first-run intro, the sign-in card and what each launch shows
 
    Native plugins are optional at every step (window.CNPlugin returns null when one is missing), so the
    bundle also runs in a desktop browser for development, where the web tab bar replaces the native one. */
@@ -134,7 +135,45 @@
 
   let modeWanted = null; // the Check switch's pending tap (see openCheckPage)
   let lastCheckPage = "cybernet"; // which of the Check tab's two pages was open last (syncTabs)
+
+  // Guest mode (owner, 30 Oct 2026): Quick Scan, QR, Share results and Learn work without an account
+  // (App Review 5.1.1(v)); these pages need one. A guest who asks for either gets the sign-in card at once,
+  // before anything is typed (section 7c); cancelling leaves them where they were.
+  const ACCOUNT_PAGES = { cybernetai: "Analysis AI", recovery: "Recovery" };
+  const needsAccount = page => Object.prototype.hasOwnProperty.call(ACCOUNT_PAGES, page) && !signedIn();
+  // Called once the card ended in a sign-in: opens the page that was asked for (Analysis AI with its message box focused).
+  function arrive(page) {
+    if (page === "cybernetai") {
+      pickCheckMode(page);
+      later(() => { try { $("#chatInput")?.focus({ preventScroll: true }); } catch { /* ignore */ } }, 450);
+    } else navigate(page);
+  }
+  // true when the card was opened (the caller stops); false when the person is signed in (the caller goes on).
+  // `then` replaces arrive() when something else should happen after sign-in (a shared item for Analysis AI);
+  // `from` is where to go back to if the page had already changed when the guest was noticed.
+  function requireAccount(page, then = null, from = "") {
+    if (signedIn()) return false;
+    if (cardOpen) return true;
+    syncTabs(); // the native bar already highlights the tab that was tapped: put the highlight back where the page is
+    signInCard({ page }).then(choice => {
+      if (choice === "signed-in") { if (then) then(); else arrive(page); }
+      else if (from) navigate(from);
+    }).catch(error => report(error, "sign-in card"));
+    return true;
+  }
+
+  // A reminder that starts the app asks for Recovery before script.js has recorded the Keychain session, when signedIn() is
+  // still false for a signed-in person. The session is asked first so the card opens only for a guest: for someone signed
+  // in, the page opens as soon as script.js has recorded the session (a few milliseconds; 1.5 s at most).
+  async function openRecoveryFromReminder() {
+    if (needsAccount("recovery") && (await sessionKnown(600)) === true) {
+      for (let i = 0; i < 30 && !signedIn(); i++) await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    navigate("recovery");
+  }
+
   function navigate(page) {
+    if (needsAccount(page)) { requireAccount(page); return; }
     modeWanted = null; // any other navigation overrides a pending switch tap
     if (w.CyberNetNav?.switchPage) { w.CyberNetNav.switchPage(page); return; }
     $(`.nav-tabs .nav-link[data-page="${page}"]`)?.click();
@@ -187,8 +226,13 @@
     const mo = new MutationObserver(() => {
       const now = activePage();
       if (now === last) return;
+      const from = last;
       last = now;
       syncTabs();
+      // Safety net: the tab bar and the Check switch ask before they navigate, but the website's own in-page
+      // buttons (data-page) switch pages directly. A guest who lands on a page that needs an account gets the
+      // card; cancelling goes back to where they came from.
+      if (needsAccount(now)) requireAccount(now, null, needsAccount(from) ? "cybernet" : from);
       if (now === "account") renderAccount();
       if (now === "recovery") later(addReminderButton, 400);
     });
@@ -200,10 +244,13 @@
   // A segmented control (UISegmentedControl look) switches between them. It sits above the pages, not
   // inside them, so its thumb slides while the page below swaps; syncTabs() repaints it after every
   // navigation (tab bar, share hand-off, deep link), so it always shows the page that is open.
+  // Analysis AI needs an account: a guest tapping its segment gets the sign-in card (requireAccount), so the
+  // guest's hint says so; a signed-in person only reads what it does.
   const CHECK_MODES = [
     { page: "cybernet", label: "Quick Scan", hint: "Checks on your iPhone. No account, no AI." },
-    { page: "cybernetai", label: "Analysis AI", hint: "AI explains it in detail. Sign in required." } // sending needs an account (sendChatMessage)
+    { page: "cybernetai", label: "Analysis AI", hint: "AI explains it in detail.", guestHint: "Sign in to use Analysis AI." }
   ];
+  const hintOf = (mode, member) => (!member && mode.guestHint) || mode.hint;
   const isCheckPage = page => CHECK_MODES.some(m => m.page === page);
   function buildCheckSwitch() {
     const main = $("#cnMain");
@@ -213,7 +260,7 @@
         <span class="cn-ios-seg-thumb" aria-hidden="true"></span>${CHECK_MODES.map((m, i) => `
         <button type="button" role="tab" class="cn-ios-seg-btn" id="cnIosSegTab${i}" data-seg-page="${m.page}" aria-selected="false" aria-controls="${m.page}" aria-describedby="cnIosSegHint${i}" tabindex="-1">${esc(m.label)}</button>`).join("")}
       </div>
-      <p class="cn-ios-seg-hint">${CHECK_MODES.map((m, i) => `<span id="cnIosSegHint${i}" data-seg-hint="${m.page}" hidden>${esc(m.hint)}</span>`).join("")}</p>
+      <p class="cn-ios-seg-hint">${CHECK_MODES.map((m, i) => `<span id="cnIosSegHint${i}" data-seg-hint="${m.page}" hidden>${esc(m.hint)}</span>`).join(" ")}</p>
     </div>`);
     CHECK_MODES.forEach((m, i) => {
       const panel = $(`#${m.page}`);
@@ -245,7 +292,14 @@
       b.setAttribute("aria-selected", String(on));
       b.tabIndex = on ? 0 : -1;
     });
-    $$("[data-seg-hint]", seg.parentNode).forEach(s => { s.hidden = s.getAttribute("data-seg-hint") !== page; });
+    // The hint of the open page shows. A guest also reads, on the same line, which part needs an account.
+    const member = signedIn();
+    $$("[data-seg-hint]", seg.parentNode).forEach(s => {
+      const mode = CHECK_MODES.find(m => m.page === s.getAttribute("data-seg-hint"));
+      if (!mode) return;
+      s.textContent = hintOf(mode, member);
+      s.hidden = !(mode.page === page || (!member && mode.guestHint));
+    });
   }
   // Called from syncTabs(): shown on both Check pages, hidden on every other tab.
   function syncCheckSwitch(page) {
@@ -258,6 +312,7 @@
   function pickCheckMode(page, focusTab = false) {
     const seg = $("#cnIosSeg");
     if (!seg || !isCheckPage(page)) return;
+    if (needsAccount(page)) { requireAccount(page); return; } // a guest: the card first, before the thumb or the focus moves
     if (focusTab) $(`[data-seg-page="${page}"]`, seg)?.focus({ preventScroll: true });
     if (seg.dataset.active === page && activePage() === page) return;
     if (seg.dataset.active !== page) tick();
@@ -336,9 +391,7 @@
       if (!t) return;
       const action = t.getAttribute("data-ios-action");
       try {
-        if (action === "sign-in") account()?.openAuthModal?.("login");
-        else if (action === "create") account()?.openAuthModal?.("signup");
-        else if (action === "sign-out") await signOut();
+        if (action === "sign-out") await signOut();
         else if (action === "export") w.CNPrivacy?.exportData?.();
         else if (action === "clear") w.CNPrivacy?.openClear?.();
         else if (action === "delete") w.CNPrivacy?.openDelete?.();
@@ -353,11 +406,18 @@
     $("#cnAiConsentSwitch")?.addEventListener("change", e => toggleConsent(e.target));
     $("#cnReminderSwitch")?.addEventListener("change", e => toggleReminders(e.target));
     $$("[data-ios-version]").forEach(n => { n.textContent = VERSION; });
+    // A guest sees the same three ways in as on the sign-in card (section 7c).
+    const entry = $("#cnAcctSignIn");
+    if (entry) { entry.innerHTML = signInChoicesHtml("cnAcct"); wireSignIn(entry); }
     let lastUser = null;
     w.addEventListener("cybernet:session", e => {
       const user = e.detail?.userId || null;
       if (user !== consent.userId) consent.forget();
       renderAccount();
+      syncCheckSwitch(activePage()); // the Analysis AI hint follows the account
+      if (user) signedInNow();
+      // the session ended while a page that needs an account was open (an expired refresh token): the card, then Check
+      else if (needsAccount(activePage())) requireAccount(activePage(), null, "cybernet");
       if (user) later(flushAcceptance, 50);
       else if (lastUser) later(cancelReminders, 0); // signed out on this device: the reminders go too
       lastUser = user;
@@ -580,13 +640,20 @@
     }
   }
 
-  /* ================================================================ 7. first-run intro */
-  // Two parts. 7a: the motion intro on a first launch (and when "Show the welcome tips again" replays it):
+  /* ================================================================ 7. first-run intro and sign-in gate */
+  // Four parts. 7a: the motion intro on a first launch (and when "Show the welcome tips again" replays it):
   // the website's sign-in gate in the app's words, one move at a time. 7b: the three steps, a bottom sheet
-  // that rises over the same stage. Returning users meet neither: showIntro() answers at once.
+  // that rises over the same stage. 7c: the sign-in card, the website's gate card in the app: Sign in with
+  // Apple, email, Create account, and a small "Continue without an account". 7d: what each launch shows.
+  //
+  // Owner, 30 Oct 2026: the app opens like the website, with the motion and then a sign-in card, so people
+  // sign in before they use it. Apple guideline 5.1.1(v) forbids forcing a sign-in for features that are not
+  // account-based, so the card always has the guest way out, and that way out unlocks exactly the on-device
+  // features (Quick Scan, QR, Share results, Learn). Analysis AI and Recovery need an account.
   const INTRO_KEY = "cn-ios-intro-1";
   const INTRO = [
-    { title: "Check a text or link", text: "Paste a message or a link into Check. CyberNet AI reads it on your iPhone and shows the warning signs. No account needed." },
+    // `guest` is added for someone who is not signed in: it would read oddly right after the sign-in card
+    { title: "Check a text or link", text: "Paste a message or a link into Check. CyberNet AI reads it on your iPhone and shows the warning signs.", guest: " No account needed." },
     { title: "Scan a QR code before you open it", text: "Scan QR shows where a code really goes. Nothing opens until you choose." },
     { title: "Share to CyberNet AI", text: "In Safari, Mail or Photos, tap Share and choose CyberNet AI. If you don't see it, scroll the app row to More and turn on CyberNet AI. For a text message, copy it and paste it into Check." }
   ];
@@ -614,6 +681,15 @@
     pitch: 740,   // from the glide starting to the pitch rising in: the wordmark has glided past the pitch's place by then (0.73 s of the 1 s glide on the tallest screen)
     show: 2060,   // from the pitch starting to the steps (the pitch lands in 1.45 s)
     calm: 2200    // reduced motion: how long the end frame is shown before the steps
+  };
+  // The short gate (7d), for a launch after the first: the finished mark is already there (it is the launch
+  // screen's mark), it glides up, the pitch rises, and the card follows. About 1.4 s in all; under reduced motion
+  // the end frame fades in and the card comes after 0.45 s.
+  const IXS = {
+    glide: 200,  // the mark and the wordmark glide up (0.55 s, ios.css .is-short)
+    pitch: 650,  // the pitch rises, once the wordmark has passed its place
+    card: 850,   // the card starts to rise (0.6 s)
+    calm: 450    // reduced motion: how long the end frame fades in before the card
   };
   function typingDelays(lines) {
     const out = [];
@@ -671,12 +747,13 @@
   // Puts the stage up and starts its clock. Returns { ready, toSteps, leave }: ready resolves when the
   // beats are over or skipped (a tap anywhere, the Skip button, Escape / Return / Space); toSteps() hands the
   // screen to the steps; leave() dissolves the stage and gives the native tab bar back.
-  function mountStage(fadeIn) {
+  function mountStage(fadeIn, { short = false } = {}) {
     $("#cnIntroStage")?.remove();
     const calm = motionOff();
     const node = el(introStageHtml());
     if (calm) node.classList.add("is-calm", "is-glide", "is-pitch"); // no drawing, typing or sliding: the end frame, faded in
     else node.classList.add("is-run");
+    if (short) node.classList.add("is-short"); // 7d: no drawing or typing, no Skip button
     if (fadeIn) node.classList.add("is-fade");
     const chars = $$(".cn-ix-c", node);
     const delays = typingDelays(IX_QUOTE);
@@ -696,7 +773,7 @@
       timers.forEach(clearTimeout);
       timers = [];
       d.removeEventListener("keydown", onKey, true);
-      if (skipped) node.classList.add("is-end", "is-glide", "is-quick"); // every move finishes at once; the mark hurries up
+      if (skipped) node.classList.add("is-end", "is-glide", "is-pitch", "is-quick"); // every move finishes at once; the mark hurries up; the pitch is there for the card (is-end stops its entry animation)
       go();
     };
     node.addEventListener("click", () => end(true)); // the whole stage is the target; the tap is used up, never passed on to the steps
@@ -705,9 +782,12 @@
     if (nativeTabs) { tabsHidden = true; nativeTabs.setHidden({ hidden: true }).catch(() => {}); }
     d.body.appendChild(node);
     try { d.fonts?.load?.('700 34px "JetBrains Mono"'); d.fonts?.load?.('700 44px "Mona Sans"'); } catch { /* the fallback faces are fine */ }
-    try { $(".cn-ix-skip", node).focus({ preventScroll: true }); } catch { /* ignore */ }
+    try { (short ? node : $(".cn-ix-skip", node)).focus({ preventScroll: true }); } catch { /* ignore */ }
 
-    if (calm) wait(() => end(false), IX.calm);
+    if (short) {
+      const beats = calm ? [[IXS.calm, () => end(false)]] : [[IXS.glide, () => node.classList.add("is-glide")], [IXS.pitch, () => node.classList.add("is-pitch")], [IXS.card, () => end(false)]];
+      beats.forEach(([ms, fn]) => wait(fn, ms));
+    } else if (calm) wait(() => end(false), IX.calm);
     else {
       let at = 0;
       const t0 = performance.now();
@@ -742,6 +822,25 @@
     };
   }
 
+  // A sheet that rises over the stage (the card, the steps) takes the bright stage's colour instead of dimming it, and
+  // the pitch stays above it only as far as it fits: all of it, or just the two lines, or none. Measured, not guessed
+  // from the screen's height: the card is taller than the steps, and Dynamic Type, the offline note and a message
+  // line make it taller still. Called again when the card's height changes (wireSignIn).
+  const PITCH_GAP = 10; // px of air between the pitch and the sheet's top edge
+  function fitPitch(panel) {
+    const stage = $("#cnIntroStage");
+    const pitch = stage && $(".cn-ix-pitch", stage);
+    const second = pitch && $(".cn-ix-line-2", pitch);
+    if (!second) return;
+    const top = panel.parentNode.clientHeight - panel.offsetHeight - PITCH_GAP; // where the sheet's top edge will be, less the air
+    stage.classList.toggle("has-lines", pitch.offsetTop + second.offsetTop + second.offsetHeight <= top);
+    stage.classList.toggle("has-room", pitch.offsetTop + pitch.offsetHeight <= top);
+  }
+  function riseOverStage(panel) {
+    panel.parentNode.classList.add("cn-ix-over");
+    fitPitch(panel);
+  }
+
   // Did something already bring the person here: a link that opened the app, or an item shared to it
   // (section 11)? Then they are not here to watch an introduction: the steps come as a plain sheet, as before.
   function launchTarget() {
@@ -760,9 +859,8 @@
   let introStage = null;   // the stage prepareIntro() put up under the launch screen
   let introPlain = false;  // first launch with a link or a shared item: no motion
   let introRun = null;
-  // Called at start. A returning user leaves here at once and nothing waits for it. On a first launch the
-  // stage goes up before the launch screen hides (start() waits for this, 450 ms at most), so the stage's
-  // first frame is the launch screen.
+  // Called at start on a first launch (a later launch goes to prepareGate, 7d). The stage goes up before the
+  // launch screen hides (start() waits for this, 450 ms at most), so the stage's first frame is the launch screen.
   async function prepareIntro() {
     if (store.get(INTRO_KEY)) return;
     const target = await Promise.race([launchTarget(), new Promise(resolve => setTimeout(() => resolve(false), 450))]);
@@ -788,11 +886,11 @@
           <button type="button" class="cn-ios-link-btn" data-sheet-value="skip">Skip</button>
         </div>`,
       onOpen(panel, done) {
-        if (overStage) panel.parentNode.classList.add("cn-ix-over"); // rises slowly over the bright stage instead of dimming it
+        if (overStage) riseOverStage(panel); // rises slowly over the bright stage instead of dimming it
         const paint = () => {
           panel.querySelector(".cn-ios-intro-step").textContent = `${step + 1} of ${INTRO.length}`;
           panel.querySelector("#cnIntroTitle").textContent = INTRO[step].title;
-          panel.querySelector(".cn-ios-intro-text").textContent = INTRO[step].text;
+          panel.querySelector(".cn-ios-intro-text").textContent = INTRO[step].text + (signedIn() ? "" : INTRO[step].guest || "");
           panel.querySelectorAll(".cn-ios-intro-dots i").forEach((dot, i) => dot.classList.toggle("is-on", i === step));
           panel.querySelector('[data-intro="next"]').textContent = step === INTRO.length - 1 ? "Get started" : "Next";
         };
@@ -813,10 +911,13 @@
       try { stage = force ? mountStage(true) : introStage || mountStage(false); } catch (error) { report(error, "intro stage"); }
     }
     introStage = null;
+    // Asked now, answered long before the motion ends (a replay from Account never meets the card)
+    const gate = force ? Promise.resolve("none") : sessionKnown().then(session => launchGate(true, session, introPlain));
     introRun = (async () => {
       try {
-        if (stage) await stage.ready; // the motion plays; the steps come when it ends or is skipped
+        if (stage) await stage.ready; // the motion plays; the card or the steps come when it ends or is skipped
         stage?.toSteps();
+        if ((await gate) === "first") await signInCard({ launch: true, overStage: !!stage }); // either answer goes on to the steps
         return await introSheet(!!stage);
       } finally {
         if (stage) await stage.leave();
@@ -825,6 +926,239 @@
     const clear = () => { introRun = null; };
     introRun.then(clear, clear);
     return introRun;
+  }
+
+  /* ---- 7c. the sign-in card ---- */
+  // One card for every place that asks for an account: the launch gate, a guest who taps Analysis AI or
+  // Recovery, and (as a block) the Account tab. Sign in with Apple comes first and is as large as the other
+  // two (App Review 4.8). "Sign in with email" and "Create account" open the email forms in the sign-in dialog
+  // (#authModal), which keeps its own rules: first and last name, the legal consent box, password reset and
+  // email confirmation. The Apple button runs signInWithApple() (section 9), the only place that calls the plugin.
+  const GATE_LEAD = "Sign in to get AI explanations and Recovery plans."; // the sign-in dialog's approved line
+  const GUEST_LABEL = "Continue without an account";
+  const GUEST_NOTE = "Quick Scan, QR, Share and Learn work without one.";
+  // a guest's card (Analysis AI, Recovery) names what the page does instead of repeating its heading
+  const ACCOUNT_LEADS = { cybernetai: "Analysis AI explains the warning signs in plain words.", recovery: "Recovery gives you a plan, step by step." };
+  // offline: signing in needs the internet, the guest way does not (the launch card's link is under the note; the others are already guests)
+  const OFFLINE_GATE = "You're offline. Connect to the internet to sign in."; // the guest link sits right under it
+  const OFFLINE_SIGNIN = "You're offline. Connect to the internet to sign in. Quick Scan, QR and Learn still work.";
+
+  const SIGNIN_MSG = '<p class="cn-signin-msg" role="alert" data-signin-msg hidden></p>';
+  // msg: the message line after the note. The card puts it above the buttons instead (signInCardHtml): the card is
+  // anchored to the screen's bottom edge and grows upward, so a line added under the buttons would push them up
+  // under the finger that has just tapped one; above them, only the heading moves.
+  function signInChoicesHtml(prefix, { msg = true } = {}) {
+    return `<div class="cn-signin-choices">
+        <button type="button" class="cn-ios-apple-btn" id="${prefix}Apple" data-signin="apple" data-autofocus>${APPLE_LOGO}<span>Sign in with Apple</span></button>
+        <button type="button" class="primary-btn full" data-signin="email">Sign in with email</button>
+        <button type="button" class="secondary-btn full" data-signin="create">Create account</button>
+      </div>
+      <p class="cn-ios-apple-note">By continuing with Apple you agree to the <button type="button" class="cn-legal-link-btn" data-open-legal="terms">Terms of Service</button> and the <button type="button" class="cn-legal-link-btn" data-open-legal="privacy">Privacy Policy</button>.</p>
+      ${msg ? SIGNIN_MSG : ""}`;
+  }
+  // launch: the gate (the guest way out is the link under the card); otherwise a guest's card, which simply closes
+  function signInCardHtml({ title, launch, lead }) {
+    return `<div class="cn-ios-gate">
+        <h2 class="cn-ios-sheet-title" id="cnSignInTitle">${esc(title)}</h2>
+        <p class="cn-ios-gate-lead">${esc(lead)}</p>
+        ${SIGNIN_MSG}
+        ${signInChoicesHtml("cnGate", { msg: false })}
+        <div class="cn-ios-gate-foot">${launch
+          ? `<button type="button" class="cn-ios-link-btn" data-gate="guest">${esc(GUEST_LABEL)}</button><p class="cn-ios-gate-note">${esc(GUEST_NOTE)}</p>`
+          : '<button type="button" class="cn-ios-link-btn" data-gate="cancel">Not now</button>'}</div>
+      </div>`;
+  }
+  // Wires the three choices inside `scope` (the card, or the Account block). Errors and the offline note go
+  // to the scope's own message line: the sign-in dialog's message line is not on screen behind the card.
+  function wireSignIn(scope, { launch = false, onSay = null } = {}) {
+    const offlineText = launch ? OFFLINE_GATE : OFFLINE_SIGNIN;
+    const line = $("[data-signin-msg]", scope);
+    const say = (text, tone = "error") => {
+      if (!line) return;
+      line.textContent = text || "";
+      line.dataset.tone = tone;
+      line.hidden = !text;
+      onSay?.();
+    };
+    scope.addEventListener("click", async e => {
+      const b = e.target.closest?.("[data-signin]");
+      if (!b || !scope.contains(b)) return;
+      const what = b.getAttribute("data-signin");
+      say("");
+      try {
+        if (what === "apple") {
+          if (offline) { say(offlineText, "info"); return; } // Apple's sheet would open and the sign-in could not finish
+          if (await signInWithApple(b, { view: "login", say })) signedInNow();
+        } else account()?.openAuthModal?.(what === "create" ? "signup" : "login"); // offline, the form answers with its own message
+      } catch (error) { report(error, `sign in ${what}`); say("Something went wrong. Please try again."); }
+    });
+    if (offline) say(offlineText, "info");
+  }
+
+  // Who is waiting for a sign-in: the open card. signedInNow() is called when Apple finishes, when Supabase
+  // reports a sign-in and when script.js has recorded the session; the waiters run once, and only once
+  // signedIn() is true (script.js records the session in a timer of its own).
+  const signInWaiters = new Set();
+  function whenSignedIn(fn) { signInWaiters.add(fn); return () => signInWaiters.delete(fn); }
+  function signedInNow(tries = 0) {
+    if (!signInWaiters.size) return;
+    if (!signedIn()) { if (tries < 20) later(() => signedInNow(tries + 1), 50); return; }
+    for (const fn of [...signInWaiters]) {
+      signInWaiters.delete(fn);
+      try { fn(); } catch (error) { report(error, "signed in"); }
+    }
+  }
+  function watchSignIn() {
+    try {
+      supabase()?.auth.onAuthStateChange?.((event, session) => {
+        // a timer: the client waits for its listeners, and script.js records the session in one of its own
+        later(() => { syncCheckSwitch(activePage()); if (session?.access_token) signedInNow(); }, 30);
+      });
+    } catch (error) { report(error, "watch sign-in"); }
+  }
+
+  // The card is a modal: the page behind it is inert (and hidden from VoiceOver) until a choice is made, and the
+  // native tab bar steps aside (it would cover the card's foot). The email forms open above the card
+  // (ios.css: html.cn-ios-gated #authModal).
+  const BEHIND = ["#cnMain", ".navbar", "#cnIosSegWrap", "#cnIosTabbar", ".cn-skip"];
+  let behindHolds = 0;
+  function inertBehind(on) {
+    behindHolds = Math.max(0, behindHolds + (on ? 1 : -1));
+    for (const sel of BEHIND) $$(sel).forEach(n => { n.inert = behindHolds > 0; });
+  }
+  let barByCard = false;
+  function holdBar(on) {
+    barByCard = on;
+    if (!nativeTabs) return;
+    if (on) nativeTabs.setHidden({ hidden: true }).catch(() => {});
+    else if (!$("#cnIntroStage")) nativeTabs.setHidden({ hidden: false }).catch(() => {}); // under the stage, the stage gives it back
+  }
+  // One Escape closes the email form (script.js) and must not also answer the card beneath it
+  let authClosedAt = -1e9;
+  function watchAuthModal() {
+    const modal = $("#authModal");
+    if (!modal) return;
+    let shown = modal.classList.contains("show");
+    new MutationObserver(() => {
+      const now = modal.classList.contains("show");
+      if (shown && !now) authClosedAt = performance.now();
+      shown = now;
+    }).observe(modal, { attributes: true, attributeFilter: ["class"] });
+  }
+
+  let cardOpen = null;   // the open card's promise: only one at a time
+  let gateOpen = false;  // the launch card is up: a shared item waits until it is answered (launch ends with checkInbox)
+  // Resolves "signed-in", "guest" (the launch card's link, or Escape on it) or "cancel" (a guest's card).
+  // launch: the gate (sticky: only its choices close it). overStage: it rises over the motion stage.
+  function signInCard({ page = null, launch = false, overStage = false } = {}) {
+    if (cardOpen) return cardOpen;
+    const title = page ? `Sign in to use ${ACCOUNT_PAGES[page]}` : "Sign in to CyberNet AI";
+    const lead = (page && ACCOUNT_LEADS[page]) || GATE_LEAD;
+    cardOpen = sheet({
+      id: "cnSignIn",
+      label: title,
+      sticky: true, // closed only through finish() below
+      html: signInCardHtml({ title, launch, lead }),
+      onOpen(panel, done) {
+        const node = panel.parentNode;
+        let off = () => {}, closed = false;
+        const finish = value => {
+          if (closed) return;
+          closed = true;
+          d.removeEventListener("keydown", onKey, true);
+          off();
+          gateOpen = false;
+          root.classList.remove("cn-ios-gated");
+          inertBehind(false); // before done(): the sheet hands focus back to what had it
+          holdBar(false);
+          done(value);
+        };
+        // Escape never traps: on the launch card it is the guest way out, on a guest's card it is Cancel.
+        // It does nothing while the email form or a legal page is open above (they close first).
+        const onKey = e => {
+          if (e.key !== "Escape" && e.key !== "Esc") return;
+          if ($("#authModal.show") || $("#cnLegalSheet") || performance.now() - authClosedAt < 150) return;
+          e.stopImmediatePropagation();
+          finish(launch ? "guest" : "cancel");
+        };
+        d.addEventListener("keydown", onKey, true);
+        if (overStage) riseOverStage(panel); // rises slowly over the bright stage, as the steps do
+        gateOpen = launch;
+        root.classList.add("cn-ios-gated");
+        inertBehind(true);
+        holdBar(true);
+        node.addEventListener("click", e => { if (e.target === node && !launch) finish("cancel"); });
+        panel.addEventListener("click", e => {
+          const b = e.target.closest("[data-gate]");
+          if (b) finish(b.getAttribute("data-gate"));
+        });
+        wireSignIn(panel, { launch, onSay: overStage ? () => fitPitch(panel) : null }); // a message changes the card's height
+        off = whenSignedIn(() => finish("signed-in"));
+      }
+    }).then(value => { cardOpen = null; return value; });
+    return cardOpen;
+  }
+
+  /* ---- 7d. what each launch shows ---- */
+  // The decision, in one place (owner, 30 Oct 2026):
+  //   signed in .......................................... Check at once, no gate (the first launch still plays the intro)
+  //   no answer from the session check in time ........... the same: the app is usable, and the gate is not a wall
+  //   opened by a link or a shared item .................. no gate; a guest may handle what was shared
+  //   signed out, first launch ........................... the motion, then the card, then the three steps
+  //   signed out, a later launch (sign out and a deleted account come back here too) ... the short gate
+  // Where the person lands is Check (Quick Scan) in every case, including right after signing in on the card. Someone who
+  // is signed in reaches the Analysis AI message box through the Quick Scan | Analysis AI switch with no prompt, or straight
+  // away when a guest asked for Analysis AI and then signed in (arrive). Opening on Analysis AI at launch is a decision
+  // for the owner (review of 30 Oct 2026); it would change the launch of every signed-in person.
+  function launchGate(first, session, direct) {
+    if (session !== false || direct) return "none";
+    return first ? "first" : "short";
+  }
+  // script.js builds the account (window.CyberNetAccount) when the page's DOMContentLoaded fires, which is after this
+  // deferred file first runs: at start() there is no account yet, so the launch waits for it (a few milliseconds).
+  function accountReady(ms) {
+    return new Promise(resolve => {
+      const t0 = Date.now();
+      const look = () => { if (account() || Date.now() - t0 >= ms) resolve(!!account()); else setTimeout(look, 15); };
+      look();
+    });
+  }
+  // true: a session is saved; false: there is none; null: no answer in time. The Supabase client reads the
+  // Keychain (and refreshes an expired token) before it answers, so nothing flashes for someone who is signed in.
+  const SESSION_WAIT = 1200;
+  function sessionKnown(ms = SESSION_WAIT) {
+    const answer = (async () => {
+      await accountReady(ms);
+      if (signedIn()) return true;
+      const auth = supabase()?.auth;
+      if (!auth?.getSession) return null;
+      try { return !!(await auth.getSession()).data?.session?.access_token; } catch { return null; }
+    })();
+    return Promise.race([answer, new Promise(resolve => setTimeout(() => resolve(null), ms))]);
+  }
+  let gateStage = null;    // the short gate's stage, put up under the launch screen
+  let gateWanted = false;
+  // Called at start on a later launch. Signed in (or no answer in time): nothing to do and the launch screen hides
+  // at once. Signed out: unless a link or a shared item opened the app, the short gate's stage goes up before the
+  // launch screen hides, so its first frame is the launch screen.
+  async function prepareGate() {
+    if ((await sessionKnown()) !== false) return;
+    const direct = await Promise.race([launchTarget(), new Promise(resolve => setTimeout(() => resolve(false), 450))]);
+    if (launchGate(false, false, direct) !== "short") return;
+    gateWanted = true;
+    try { gateStage = mountStage(false, { short: true }); } catch (error) { report(error, "gate stage"); } // without a stage the card comes over the app
+  }
+  async function showGate() {
+    if (!gateWanted) return;
+    gateWanted = false;
+    const stage = gateStage;
+    gateStage = null;
+    try {
+      if (stage) { await stage.ready; stage.toSteps(); }
+      await signInCard({ launch: true, overStage: !!stage });
+    } finally {
+      if (stage) await stage.leave();
+    }
   }
 
   /* ================================================================ 8. legal pages and the sign-up acceptance */
@@ -1005,11 +1339,12 @@
     w.crypto.getRandomValues(b);
     return [...b].map(x => x.toString(16).padStart(2, "0")).join("");
   }
-  async function signInWithApple(button) {
+  // Called from the sign-in dialog (its own view and message line) and from the sign-in card and the Account
+  // block (view "login", their own message line). true once Supabase has the session.
+  async function signInWithApple(button, { view = $("#authModal")?.dataset.authView || "login", say = authMessage } = {}) {
     const apple = P("AppleSignIn"), sb = supabase();
-    if (!apple || !sb) { authMessage("Sign in with Apple is not available right now. Please use your email and password."); return; }
-    const view = $("#authModal")?.dataset.authView || "login";
-    if (view === "signup" && !legalAccepted()) { legalError(); return; }
+    if (!apple || !sb) { say("Sign in with Apple is not available right now. Please use your email and password."); return false; }
+    if (view === "signup" && !legalAccepted()) { legalError(); return false; }
     if (view === "signup") storeAcceptance("");
     else {
       // A new Apple account agrees through the note under the button; the record has no email, so it is
@@ -1019,7 +1354,7 @@
       if (!keep) storeAcceptance("");
     }
     button.disabled = true;
-    authMessage("", "");
+    say("", "");
     try {
       const raw = randomNonce();
       const res = await apple.signIn({ scopes: ["email", "fullName"], nonce: await sha256Hex(raw) });
@@ -1029,13 +1364,15 @@
       if (error) throw error;
       const given = res?.givenName || res?.response?.givenName || "", family = res?.familyName || res?.response?.familyName || "";
       if (given || family) await sb.auth.updateUser({ data: { full_name: `${given} ${family}`.trim(), first_name: given, last_name: family } }).catch(() => {});
-      authMessage("You're signed in.", "success");
+      say("You're signed in.", "success");
       $("#closeAuth")?.click();
       toast("You're signed in with Apple.");
+      return true;
     } catch (error) {
       const text = String(error?.message || error?.code || "");
-      if (/cancel|1001/i.test(text)) authMessage("", "");
-      else { report(error, "apple sign-in"); authMessage("Sign in with Apple didn't finish. Please try again, or use your email and password."); }
+      if (/cancel|1001/i.test(text)) say("", "");
+      else { report(error, "apple sign-in"); say("Sign in with Apple didn't finish. Please try again, or use your email and password."); }
+      return false;
     } finally { button.disabled = false; }
   }
 
@@ -1154,7 +1491,7 @@
   }
   // Put something into Analysis AI; the person still taps Send (and sees the consent sheet first).
   function askAi(text, file) {
-    if (!signedIn()) { toast("Sign in to get an AI explanation."); account()?.openAuthModal?.("login"); pendingAi = { text, file }; return; }
+    if (requireAccount("cybernetai", () => askAi(text, file))) return; // a guest: the card first; the item is put in once they are in
     navigate("cybernetai");
     later(() => {
       if (file) {
@@ -1172,8 +1509,6 @@
       toast("Check what will be sent, then tap Send.");
     }, 380);
   }
-  let pendingAi = null;
-  w.addEventListener("cybernet:session", e => { if (e.detail?.userId && pendingAi) { const p = pendingAi; pendingAi = null; later(() => askAi(p.text, p.file), 500); } });
 
   /* ================================================================ 11. shared items (Share Extension) */
   // SharedInbox plugin: read() -> { items: [{ id, kind: "text"|"url"|"image", text?, url?, imageDataUrl?,
@@ -1182,7 +1517,7 @@
   let inboxBusy = false;
   async function checkInbox() {
     const inbox = P("SharedInbox");
-    if (!inbox || inboxBusy || $("#cnInboxSheet")) return;
+    if (!inbox || inboxBusy || gateOpen || $("#cnInboxSheet")) return; // while the launch card is up, launch ends with checkInbox()
     inboxBusy = true;
     try {
       const { items = [] } = (await inbox.read()) || {};
@@ -1385,6 +1720,19 @@
     });
   }
 
+  // Analysis AI's page opens with the website's "Sign in, then paste ..." lines. In the app a guest never sees the
+  // page (the sign-in card comes first) and a signed-in person is already in, so none of it may ask for a sign-in;
+  // script.js writes the real state over the two status lines as soon as the account answers.
+  const AI_GREETING = "Paste or drop anything suspicious below: a message, a link or a screenshot. Analysis AI works out what it is looking at and explains it in plain language.";
+  function tidyAnalysisAi() {
+    const bubble = $("#chatMessages .chat-bubble-ai .chat-bubble-inner");
+    if (bubble && /^Sign in/.test(bubble.textContent.trim())) bubble.textContent = AI_GREETING;
+    const status = $("#aiApiStatus");
+    if (status && /^Sign in/.test(status.textContent.trim())) status.textContent = "Checking your daily AI analyses.";
+    const saved = $("#proHistoryList > p");
+    if (saved && /^Sign in/.test(saved.textContent.trim())) saved.textContent = "Your saved explanations appear here.";
+  }
+
   // The "not antivirus" line on the Check screen (B2), and press feedback / tab states that the
   // website's 65-press.js gives (not in the app's UI build).
   function addCheckDisclaimer() {
@@ -1447,6 +1795,9 @@
       renderAccount();
       setupSignupConsent();
       setupApple();
+      watchAuthModal();
+      accountReady(5000).then(watchSignIn); // needs the Supabase client, which script.js builds after this file first runs
+      tidyAnalysisAi();
       addCheckDisclaimer();
       pressStates();
       dynamicType();
@@ -1462,7 +1813,7 @@
         if (/^(https?:|mailto:|tel:|sms:)/i.test(href)) { e.preventDefault(); openExternal(a.href); }
       });
       const ln = P("LocalNotifications");
-      ln?.addListener("localNotificationActionPerformed", ev => { if (ev?.notification?.extra?.open === "recovery") navigate("recovery"); });
+      ln?.addListener("localNotificationActionPerformed", ev => { if (ev?.notification?.extra?.open === "recovery") openRecoveryFromReminder().catch(error => report(error, "reminder")); });
       const app = P("App");
       app?.addListener("appStateChange", ({ isActive }) => {
         const auth = supabase()?.auth;
@@ -1471,18 +1822,19 @@
       });
       const kb = P("Keyboard");
       kb?.addListener("keyboardWillShow", () => { root.classList.add("cn-kb-open"); nativeTabs?.setHidden({ hidden: true }).catch(() => {}); });
-      kb?.addListener("keyboardWillHide", () => { root.classList.remove("cn-kb-open"); nativeTabs?.setHidden({ hidden: false }).catch(() => {}); });
+      kb?.addListener("keyboardWillHide", () => { root.classList.remove("cn-kb-open"); nativeTabs?.setHidden({ hidden: barByCard || !!$("#cnIntroStage") }).catch(() => {}); });
       P("StatusBar")?.setStyle({ style: "DARK" }).catch(() => {});
-      // First launch: the motion intro's stage goes up under the launch screen, which then hides onto it
-      // (section 7). Anyone else: the launch screen hides as it always did, with no wait.
-      const prepared = prepareIntro().catch(error => report(error, "intro"));
+      // The launch (section 7d). The stage of the first launch's motion, or of the short gate for a signed-out
+      // person on a later launch, goes up under the launch screen, which then hides onto it. Everyone else sees
+      // the launch screen hide as soon as the session check has answered (the Keychain: milliseconds; 1.2 s at most).
+      const first = !store.get(INTRO_KEY);
+      const prepared = (first ? prepareIntro() : prepareGate()).catch(error => report(error, first ? "intro" : "gate"));
       const hideSplash = () => requestAnimationFrame(() => requestAnimationFrame(() => P("SplashScreen")?.hide().catch(() => {})));
-      if (store.get(INTRO_KEY)) hideSplash(); else prepared.then(hideSplash);
+      prepared.then(hideSplash);
       later(() => P("SplashScreen")?.hide().catch(() => {}), 3000);
       later(async () => {
-        const first = !store.get(INTRO_KEY);
         await prepared;
-        if (first) await showIntro();
+        if (first) await showIntro(); else await showGate();
         await startTracking(true);
         checkInbox();
       }, 600);

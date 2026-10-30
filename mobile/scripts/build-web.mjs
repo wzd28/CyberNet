@@ -526,7 +526,9 @@ async function buildIndex(source, versions, appVersion) {
     if (!mapScript(n)) detach(n);
   }
   const lastScript = findAll(body, n => n.tagName === "script" && hasAttr(n, "src")).pop();
-  const tail = [...IOS_TAIL_SCRIPTS, ...(DEBUG ? ["ios/debug.js"] : [])].map(src => elt(`<script src="${src}" defer></script>`));
+  // A debug bundle runs ios/debug.js BEFORE ios.js: ios.js starts as soon as it runs (a deferred script sees readyState
+  // "interactive", not "loading") and reads the first-run key then, so debug.js must have set it for demo runs by that point.
+  const tail = [...(DEBUG ? ["ios/debug.js"] : []), ...IOS_TAIL_SCRIPTS].map(src => elt(`<script src="${src}" defer></script>`));
   if (lastScript) insertAt(lastScript.parentNode, lastScript.parentNode.childNodes.indexOf(lastScript) + 1, tail);
   else appendNodes(body, tail);
 

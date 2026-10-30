@@ -226,6 +226,7 @@ html.cn-kb-open .cn-ios-tabbar { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .cn-ios-sheet, .cn-ios-sheet-backdrop, .cn-ios-legal-sheet { transition: none !important; }
 }
+html.cn-still .cn-ios-sheet, html.cn-still .cn-ios-sheet-backdrop, html.cn-still .cn-ios-legal-sheet { transition: none !important; }
 .cn-ios-sheet-title { margin: 0 0 12px; font-size: 1.3rem; line-height: 1.25; }
 .cn-ios-sheet-kicker { margin: 0 0 8px; font-size: .8rem; letter-spacing: .04em; text-transform: uppercase; color: var(--cn-ios-text-2); }
 .cn-ios-sheet-body p { margin: 0 0 10px; line-height: 1.55; color: var(--cn-ios-text); }
@@ -322,6 +323,21 @@ html.cn-kb-open .cn-ios-tabbar { display: none; }
   transition: transform 1s var(--ix-ease);
 }
 .cn-ix.is-glide .cn-ix-mark { transform: scale(var(--ix-s)); }
+/* The short gate (ios.js 7d), for a launch after the first: the finished mark is already in place, the way the launch
+   screen shows it, so nothing is drawn or typed. A ring of light settles it, it glides up (0.55 s), the wordmark
+   fades in on the way, the pitch rises and the card follows. About 1.4 s. No Skip button: it would be gone before
+   it could be used (a tap anywhere still finishes it). */
+.cn-ix.is-short :is(.cn-ix-base, .cn-ix-trace, .cn-ix-lock, .cn-ix-scan, .cn-ix-word span) { animation: none; }
+.cn-ix.is-short .cn-ix-halo { animation-duration: .8s; animation-delay: 0s; }
+.cn-ix.is-short .cn-ix-ring { animation-duration: 1s; animation-delay: .1s; }
+.cn-ix.is-short :is(.cn-ix-quote, .cn-ix-skip) { display: none; }
+.cn-ix.is-short :is(.cn-ix-lockup, .cn-ix-mark, .cn-ix-word) { transition-duration: .55s; }
+.cn-ix.is-short .cn-ix-word { opacity: 0; transition-property: transform, opacity; }
+.cn-ix.is-short.is-glide .cn-ix-word { opacity: 1; }
+.cn-ix.is-short.is-pitch :is(.cn-ix-line, .cn-ix-rule, .cn-ix-kicker) { animation-duration: .5s; }
+.cn-ix.is-short.is-pitch .cn-ix-line-2 { animation-delay: .1s; }
+.cn-ix.is-short.is-pitch .cn-ix-rule { animation-delay: .25s; }
+.cn-ix.is-short.is-pitch .cn-ix-kicker { animation-delay: .3s; }
 .cn-ix.is-quick :is(.cn-ix-lockup, .cn-ix-mark, .cn-ix-word) { transition-duration: .45s; }
 .cn-ix-svg { position: relative; z-index: 1; display: block; width: 100%; height: 100%; overflow: visible; }
 /* a soft light grows behind the mark as it is drawn, and stays */
@@ -430,10 +446,12 @@ html.cn-kb-open .cn-ios-tabbar { display: none; }
 }
 .cn-ix:not(.is-pitch) .cn-ix-pitch { visibility: hidden; }
 .cn-ix.is-steps .cn-ix-pitch { opacity: 0; transform: translateY(-8px); }
-/* on a tall screen the steps' sheet stops well below the pitch (its top near y 490 against the pitch's foot at
-   340 on 390 x 844), so the pitch stays above it, the way the website's card keeps its heading; a short
-   screen has no room for both */
-@media (min-height: 760px) { .cn-ix.is-steps .cn-ix-pitch { opacity: 1; transform: none; } }
+/* The pitch stays above the sheet that rises over the stage (the card, the steps), the way the website's card keeps its
+   heading, as far as it fits: ios.js fitPitch() measures the sheet against the pitch and sets has-room (all of it) or
+   has-lines (the two lines, without the rule and the kicker); with neither, the pitch steps aside. */
+.cn-ix.is-steps:is(.has-lines, .has-room) .cn-ix-pitch { opacity: 1; transform: none; }
+.cn-ix-rule, .cn-ix-kicker { transition: opacity .4s var(--ix-ease); }
+.cn-ix.is-steps.has-lines:not(.has-room) :is(.cn-ix-rule, .cn-ix-kicker) { opacity: 0; }
 .cn-ix-line { margin: 0; font-weight: 700; font-size: clamp(34px, 10.4vw, 46px); line-height: 1.1; letter-spacing: -.025em; color: #f5f7fa; }
 .cn-ix-line-2 { color: var(--cn-ios-accent, #22d3ee); }
 .cn-ix-rule { display: block; width: 36px; height: 2px; margin: 18px auto 0; border-radius: 1px; background: #22d3ee; }
@@ -479,6 +497,7 @@ html.cn-kb-open .cn-ios-tabbar { display: none; }
 .cn-ix-sr { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 /* Skipped, or reduced motion: no entry animation runs, so every part shows its rest value, the end frame */
 .cn-ix:is(.is-end, .is-calm) :is(.cn-ix-halo, .cn-ix-base, .cn-ix-trace, .cn-ix-lock, .cn-ix-ring, .cn-ix-scan, .cn-ix-word span, .cn-ix-line, .cn-ix-rule, .cn-ix-kicker, .cn-ix-skip) { animation: none; }
+.cn-ix.is-short:is(.is-end, .is-calm) .cn-ix-word { opacity: 1; }
 .cn-ix.is-calm :is(.cn-ix-lockup, .cn-ix-mark, .cn-ix-word, .cn-ix-quote, .cn-ix-pitch, .cn-ix-skip) { transition: none; }
 /* reduced motion: the end frame fades in (the cover, the same colour as the stage, fades out) instead of moving */
 .cn-ix.is-calm::after { content: ""; position: absolute; inset: 0; z-index: 5; background: #060a14; pointer-events: none; animation: cn-ix-uncover .6s ease both; }
@@ -490,6 +509,29 @@ html.cn-still .cn-ix *, html.cn-still .cn-ix *::before, html.cn-still .cn-ix *::
 /* the steps rise slowly over the bright stage (the page's usual dimming and quick slide are for other sheets) */
 .cn-ios-sheet-backdrop.cn-ix-over.is-open { background: rgba(2, 6, 14, 0); }
 .cn-ios-sheet-backdrop.cn-ix-over.is-open .cn-ios-sheet { transition-duration: .6s; transition-timing-function: cubic-bezier(.22, 1, .36, 1); }
+/* ---------- the sign-in card (ios.js, section 7c) ----------
+   The website gate's card in the app: a sheet with the three ways in, Sign in with Apple first and as large as the
+   others (App Review 4.8), and under it the small guest link. The email forms (the sign-in dialog) open above it. */
+html.cn-ios.cn-ios-gated #authModal { z-index: 2050; } /* the website's rule is #authModal { z-index: 1600 }; sheets are 2000, the in-app legal pages 2100, toasts 2200 */
+.cn-ios-gate { text-align: center; padding-top: 2px; }
+.cn-ios-gate .cn-ios-sheet-title { margin-bottom: 6px; }
+.cn-ios-gate-lead { margin: 0 auto; max-width: 30em; font-size: .95rem; line-height: 1.5; color: var(--cn-ios-text-2); }
+.cn-signin-choices { display: grid; gap: 10px; margin: 16px 0 0; }
+html.cn-ios .cn-signin-choices > :is(.cn-ios-apple-btn, .primary-btn, .secondary-btn) { width: 100%; min-height: 50px; margin: 0; box-sizing: border-box; }
+/* the two legal links run inside the sentence; the 44 pt touch area comes from a pseudo-element (14 px above and below the
+   text), so the line gap stays closed. The note's margins are as large as that reach, so the touch areas end where the
+   buttons above and the guest link below begin and never take a tap from them. */
+.cn-signin-choices + .cn-ios-apple-note { margin: 14px 0 0; }
+html.cn-ios .cn-signin-choices + .cn-ios-apple-note .cn-legal-link-btn { position: relative; min-width: 0; min-height: 0; padding: 0 2px; margin: 0; font: inherit; font-weight: 600; color: var(--cn-ios-accent); text-decoration: underline; text-underline-offset: 2px; }
+html.cn-ios .cn-signin-choices + .cn-ios-apple-note .cn-legal-link-btn::after { content: ""; position: absolute; inset: -14px -6px; }
+.cn-signin-msg { margin: 10px 0 0; font-size: .9rem; line-height: 1.45; text-align: center; }
+.cn-signin-msg[data-tone="error"] { color: var(--cn-danger, #ff8a8a); }
+.cn-signin-msg:not([data-tone="error"]) { color: var(--cn-ios-text-2); }
+.cn-ios-gate-foot { display: grid; justify-items: center; gap: 0; margin-top: 14px; }
+.cn-ios-gate-note { margin: 0; font-size: .84rem; line-height: 1.45; color: var(--cn-ios-text-2); }
+/* the Account tab's block: the same three choices inside the grouped list */
+.cn-ios-group .cn-signin-choices { margin: 12px 0 0; }
+.cn-ios-group .cn-signin-choices + .cn-ios-apple-note { margin-bottom: 14px; }
 @keyframes cn-ix-in { from { opacity: 0; } }
 @keyframes cn-ix-uncover { to { opacity: 0; } }
 @keyframes cn-ix-appear { from { opacity: 0; } }
