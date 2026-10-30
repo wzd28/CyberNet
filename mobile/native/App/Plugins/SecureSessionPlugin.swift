@@ -28,12 +28,24 @@ public final class SecureSessionPlugin: CAPPlugin, CAPBridgedPlugin {
     private static let installMarker = "cn.secureSession.installed"
     private static let maxKeyLength = 256
 
+    #if targetEnvironment(simulator)
+    // Unsigned simulator builds (the CI screenshot runs) have no keychain entitlement, so the
+    // keychain answers errSecMissingEntitlement (-34018). There, and only there, the session
+    // lives in a private defaults suite instead. Device and TestFlight builds always use the
+    // keychain; none of this code is compiled into them.
+    private static let simulatorSuite = "app.cybernetai.session.simulator"
+    private static let simulatorStore = UserDefaults(suiteName: simulatorSuite)!
+    #endif
+
     override public func load() {
         // Keychain items survive deleting the app. A fresh install must start signed out,
         // so the first launch removes anything an earlier install left behind.
         let defaults = UserDefaults.standard
         if !defaults.bool(forKey: Self.installMarker) {
             _ = Self.deleteAll()
+            #if targetEnvironment(simulator)
+            Self.simulatorStore.removePersistentDomain(forName: Self.simulatorSuite)
+            #endif
             defaults.set(true, forKey: Self.installMarker)
         }
     }
@@ -56,6 +68,16 @@ public final class SecureSessionPlugin: CAPPlugin, CAPBridgedPlugin {
         case errSecItemNotFound:
             call.resolve(["value": NSNull()])
         default:
+            #if targetEnvironment(simulator)
+            if status == errSecMissingEntitlement {
+                if let value = Self.simulatorStore.string(forKey: key) {
+                    call.resolve(["value": value])
+                } else {
+                    call.resolve(["value": NSNull()])
+                }
+                return
+            }
+            #endif
             call.reject("The saved sign-in could not be read (\(status)).", "KEYCHAIN_ERROR")
         }
     }
@@ -76,6 +98,13 @@ public final class SecureSessionPlugin: CAPPlugin, CAPBridgedPlugin {
             item.merge(attributes) { _, new in new }
             status = SecItemAdd(item as CFDictionary, nil)
         }
+        #if targetEnvironment(simulator)
+        if status == errSecMissingEntitlement {
+            Self.simulatorStore.set(value, forKey: key)
+            call.resolve()
+            return
+        }
+        #endif
         if status == errSecSuccess {
             call.resolve()
         } else {
@@ -86,6 +115,13 @@ public final class SecureSessionPlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func remove(_ call: CAPPluginCall) {
         guard let key = Self.key(from: call) else { return }
         let status = SecItemDelete(Self.query(for: key) as CFDictionary)
+        #if targetEnvironment(simulator)
+        if status == errSecMissingEntitlement {
+            Self.simulatorStore.removeObject(forKey: key)
+            call.resolve()
+            return
+        }
+        #endif
         if status == errSecSuccess || status == errSecItemNotFound {
             call.resolve()
         } else {
@@ -95,6 +131,13 @@ public final class SecureSessionPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func clear(_ call: CAPPluginCall) {
         let status = Self.deleteAll()
+        #if targetEnvironment(simulator)
+        if status == errSecMissingEntitlement {
+            Self.simulatorStore.removePersistentDomain(forName: Self.simulatorSuite)
+            call.resolve()
+            return
+        }
+        #endif
         if status == errSecSuccess || status == errSecItemNotFound {
             call.resolve()
         } else {
