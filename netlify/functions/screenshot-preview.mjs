@@ -342,14 +342,18 @@ async function microlinkScreenshot(safeUrl, remaining) {
   endpoint.searchParams.set("meta", "false");
   endpoint.searchParams.set("viewport.width", "1280");
   endpoint.searchParams.set("viewport.height", "800");
+  endpoint.searchParams.set("viewport.deviceScaleFactor", "1");
+  endpoint.searchParams.set("screenshot.type", "jpeg");
   const response = await fetch(endpoint, { signal: AbortSignal.timeout(Math.min(18_000, remaining())) });
   const data = await response.json().catch(() => ({}));
   const imageUrl = data?.data?.screenshot?.url;
   if (!response.ok || data?.status !== "success" || !imageUrl) throw new Error(data?.message || data?.code || "Microlink returned an error.");
-  // statusCode is the site's own answer. null means the page never loaded and
-  // the picture is the browser's error page; 400 and up is an error page too.
+  // statusCode is the site's own answer when Microlink reports it; 400 and up is an
+  // error page. Since 30 Oct 2026 Microlink answers null even for pages that loaded
+  // fine, so null no longer means "did not load" (no-such-address is caught by the
+  // DNS check before any provider is called).
   const status = typeof data.statusCode === "number" ? data.statusCode : null;
-  if (status === null || status >= 400) throw targetFailure(status);
+  if (status !== null && status >= 400) throw targetFailure(status);
   return imageToDataUrl(imageUrl, remaining);
 }
 
