@@ -519,9 +519,8 @@ document.addEventListener("DOMContentLoaded",()=>{
         if(value.length>254||!EMAIL_PATTERN.test(value))return "Enter a full email address, like name@example.com.";
         return "";
       case "current-password":return raw?"":"Enter your password.";
-/*@web*/      case "first-name":return value?"":"Enter your first name.";
-      case "last-name":return value?"":"Enter your last name.";/*@end-web*/
-      /*@ios case "first-name":case "last-name":return ""; @end-ios*/
+      case "first-name":return value?"":"Enter your first name.";
+      case "last-name":return value?"":"Enter your last name.";
       case "new-password":
         if(!raw)return field.id==="authNewPassword"?"Enter a new password.":"Choose a password.";
         if(raw.length<MIN_PASSWORD)return `Use at least ${MIN_PASSWORD} characters. This one has ${raw.length}.`;
@@ -1317,8 +1316,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       const {data,error}=await appState.supabase.auth.signUp({
         email,password,
         options:{
-          /*@web*/data:{full_name:fullName,first_name:first,last_name:last},/*@end-web*/
-          /*@ios data:{...(fullName?{full_name:fullName}:{}),...(first?{first_name:first}:{}),...(last?{last_name:last}:{})}, @end-ios*/
+          data:{full_name:fullName,first_name:first,last_name:last},
           /*@web*/emailRedirectTo:inviteReturnUrl()||`${window.location.origin}/`/*@end-web*//*@ios emailRedirectTo:"https://cybernetai.app/app/confirmed.html" @end-ios*/
         }
       });

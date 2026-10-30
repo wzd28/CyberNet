@@ -81,22 +81,22 @@ try {
     const fnNamed = name => find(n => n.type === "FunctionDeclaration" && n.id?.name === name);
     const constNamed = name => find(n => n.type === "VariableDeclaration" && n.declarations.some(d => d.id?.name === name));
 
-    // Guideline 5.1.1: a name may be asked for only if giving it is optional (owner: website keeps it).
+    // Owner, 30 Oct 2026: first and last name are required at email sign-up in the app, as on the
+    // website (Sign in with Apple takes the name Apple shares and never asks again).
     let fieldProblem = null;
     try { fieldProblem = new Function("newPasswordEl", [constNamed("EMAIL_PATTERN"), constNamed("MIN_PASSWORD"), constNamed("FIELD_RULES"), fnNamed("fieldProblem")].map(src).join(";\n") + ";\nreturn fieldProblem;")(null); } catch (error) { check("sign-up validator can be run", false, error.message); }
     if (fieldProblem) {
-      check("sign-up: empty first and last name pass the app's checks", fieldProblem({ id: "signupFirstName", value: "" }) === "" && fieldProblem({ id: "signupLastName", value: "   " }) === "");
+      check("sign-up: an empty first or last name is refused", fieldProblem({ id: "signupFirstName", value: "" }) !== "" && fieldProblem({ id: "signupLastName", value: "" }) !== "" && fieldProblem({ id: "signupFirstName", value: "Ana" }) === "");
       check("sign-up: email and password are still checked", fieldProblem({ id: "signupEmail", value: "" }) !== "" && fieldProblem({ id: "signupPassword", value: "short" }) !== "" && fieldProblem({ id: "signupPassword", value: "long enough" }) === "");
     }
     const metadata = find(n => n.type === "Property" && n.key?.name === "data" && n.value?.type === "ObjectExpression" && /full_name/.test(src(n.value)));
     let names = null;
     try { names = new Function("fullName", "first", "last", `return (${src(metadata?.value)});`); } catch (error) { check("sign-up metadata can be run", false, error.message); }
     if (names) {
-      check("sign-up with no name sends no name fields to signUp", JSON.stringify(names("", "", "")) === "{}");
-      check("sign-up with a name still sends it", JSON.stringify(names("Ana Lima", "Ana", "Lima")) === JSON.stringify({ full_name: "Ana Lima", first_name: "Ana", last_name: "Lima" }));
+      check("sign-up sends the name", JSON.stringify(names("Ana Lima", "Ana", "Lima")) === JSON.stringify({ full_name: "Ana Lima", first_name: "Ana", last_name: "Lima" }));
     }
     const nameInputs = [...html.matchAll(/<input [^>]*id="signup(First|Last)Name"[^>]*>/g)].map(m => m[0]);
-    check("sign-up name inputs are not required and say optional", nameInputs.length === 2 && nameInputs.every(i => !/\brequired\b/.test(i)) && /<label for="signupFirstName">First name \(optional\)<\/label>/.test(html) && /<label for="signupLastName">Last name \(optional\)<\/label>/.test(html), nameInputs);
+    check("sign-up name inputs are in the app and required", nameInputs.length === 2 && nameInputs.every(i => /\brequired\b/.test(i)) && /<label for="signupFirstName">First name<\/label>/.test(html) && /<label for="signupLastName">Last name<\/label>/.test(html), nameInputs);
 
     // Quick Scan, Scan QR and Share stay on the iPhone, also for team members; AI results still go to the
     // team owner's log (owner answer 8).

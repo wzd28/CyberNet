@@ -632,7 +632,7 @@
         </div>
       </form>
       <form id="authSignupForm" class="auth-form" method="post" action="/" novalidate>
-        <div class="auth-name-grid" data-web-only>
+        <div class="auth-name-grid">
           <div>
             <label for="signupFirstName">First name</label>
             <input type="text" id="signupFirstName" name="given-name" autocomplete="given-name" maxlength="60" placeholder="First name" required aria-describedby="signupFirstNameError" />
@@ -644,18 +644,6 @@
             <p class="cn-field-error" id="signupLastNameError" hidden></p>
           </div>
         </div>
-        <!--@ios <div class="auth-name-grid">
-          <div>
-            <label for="signupFirstName">First name (optional)</label>
-            <input type="text" id="signupFirstName" name="given-name" autocomplete="given-name" maxlength="60" placeholder="Optional" aria-describedby="signupFirstNameError" />
-            <p class="cn-field-error" id="signupFirstNameError" hidden></p>
-          </div>
-          <div>
-            <label for="signupLastName">Last name (optional)</label>
-            <input type="text" id="signupLastName" name="family-name" autocomplete="family-name" maxlength="60" placeholder="Optional" aria-describedby="signupLastNameError" />
-            <p class="cn-field-error" id="signupLastNameError" hidden></p>
-          </div>
-        </div> @end-ios-->
         <label for="signupEmail">Email</label>
         <input type="email" id="signupEmail" name="email" autocomplete="email" autocapitalize="off" spellcheck="false" maxlength="254" placeholder="you@example.com" required aria-describedby="signupEmailError" />
         <p class="cn-field-error" id="signupEmailError" hidden></p>
