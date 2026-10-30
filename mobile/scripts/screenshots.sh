@@ -84,6 +84,11 @@ print(pick[-1]["identifier"] if pick else "")' "$1"
 }
 
 app_running() { # $1 udid
+  # Simulator apps are ordinary host processes whose path contains the device's UDID, so pgrep
+  # answers directly. The launchctl listing is only a fallback: on the Xcode 26 images it
+  # intermittently came back without the app while it was running (build #4: CN_DEMO_READY was
+  # logged, yet every iPhone 17 Pro Max launch was reported "not running").
+  pgrep -f "Devices/$1/data/Containers/Bundle/Application/.*/App\.app/App" >/dev/null 2>&1 && return 0
   xcrun simctl spawn "$1" launchctl list 2>/dev/null | grep -q "UIKitApplication:${BUNDLE_ID}"
 }
 

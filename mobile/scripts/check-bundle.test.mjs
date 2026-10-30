@@ -76,6 +76,12 @@ const PLANTED = [
   ["demo hook in a release bundle", { "script.js": CLEAN["script.js"] + `if(window.CN_DEMO_SCREEN){}` }, "debug"],
   ["forbidden identifier", { "script.js": CLEAN["script.js"] + `function startCheckout(){}` }, "identifier", "startCheckout"],
   ["Google sign-in call", { "script.js": CLEAN["script.js"] + `sb.auth.signInWithOAuth({provider:"google"});` }, "identifier", "signInWithOAuth"],
+  // Sign in with Google is allowed in ios/ios.js only (owner, 30 Oct 2026): everywhere else it is still refused
+  ["Google word in another script", { "script.js": CLEAN["script.js"] + `const t="Sign in with Google";` }, "word", "google"],
+  ["Google word in the page", { "index.html": CLEAN["index.html"].replace("<h1>Quick Scan</h1>", "<h1>Quick Scan</h1><button>Continue with Google</button>") }, "word", "google"],
+  ["the website's Google button in ios.js", { "ios/ios.js": `const googleAuthBtn=document.getElementById("googleAuthBtn");` }, "identifier", "googleAuthBtn"],
+  ["a Google address in ios.js", { "ios/ios.js": `fetch("https://accounts.google.com/o/oauth2/v2/auth");` }, "remote-host", "accounts.google.com"],
+  ["a purchase word next to Google in ios.js", { "ios/ios.js": `const t="Upgrade with Google";` }, "word", "upgrade"],
   ["Stripe in app copy", { "script.js": CLEAN["script.js"] + `const t="Opening secure Stripe Checkout";` }, "word", "stripe"],
   ["placeholder copy", { "index.html": CLEAN["index.html"].replace("<h1>Quick Scan</h1>", "<h1>Quick Scan</h1><p>Video coming soon.</p>") }, "word", "coming soon"],
   ["antivirus outside the allowed sentence", { "script.js": CLEAN["script.js"] + `const a="Run your antivirus now";` }, "word", "antivirus"],
@@ -108,7 +114,15 @@ for (const [name, changes, rule, term] of PLANTED) {
   await writeFile(ex, JSON.stringify([{ file: "script.js", literal: "Upgrade to Pro", term: "upgrade", reason: "no" }]));
   const forbidden = await gate({ "script.js": CLEAN["script.js"] + `const u="Upgrade to Pro";` }, { exemptionsFile: ex });
   check("a purchase term can never be exempted", has(forbidden, "exemption") && has(forbidden, "word", "upgrade"), forbidden.hits);
+  // a Google term still cannot be exempted: the one place for it is ios/ios.js, in the gate's own code
+  await writeFile(ex, JSON.stringify([{ file: "script.js", literal: "Sign in with Google", term: "google", reason: "no" }]));
+  const googleEx = await gate({ "script.js": CLEAN["script.js"] + `const t="Sign in with Google";` }, { exemptionsFile: ex });
+  check("a Google term can never be exempted", has(googleEx, "exemption") && has(googleEx, "word", "google"), googleEx.hits);
   await rm(ex, { force: true });
+
+  // Sign in with Google (owner, 30 Oct 2026): ios/ios.js, the app's own layer, may use the call and the words
+  const signIn = await gate({ "ios/ios.js": `async function go(sb){const r=await sb.auth.signInWithOAuth({provider:"google",options:{redirectTo:"app.cybernetai://auth-callback",skipBrowserRedirect:true}});return r}const label="Sign in with Google";const callback="app.cybernetai://auth-callback";` });
+  check("ios/ios.js may carry Sign in with Google (the call, the provider name, the button words, the return address)", signIn.hits.length === 0, signIn.hits);
 }
 
 /* ---------- words ---------- */
@@ -120,6 +134,7 @@ check("allowed sentence: not antivirus", wordHits("It is not antivirus software,
 check("capacitor origin is allowed", wordHits("capacitor://localhost").length === 0);
 check("localhost with a port is not", wordHits("http://localhost:8888").includes("localhost:"));
 check("Pro is case-sensitive", wordHits("protect your accounts").length === 0 && wordHits("Go Pro").includes("Pro"));
+check("Google words are allowed for ios/ios.js alone", wordHits("Sign in with Google", { file: "ios/ios.js" }).length === 0 && wordHits("signInWithOAuth", { file: "ios/ios.js" }).length === 0 && wordHits("Sign in with Google").includes("google") && wordHits("Sign in with Google", { file: "script.js" }).includes("google") && wordHits("Sign in with Google", { file: "ios/cn-ios-boot.js" }).includes("google") && wordHits("Upgrade with Google", { file: "ios/ios.js" }).includes("upgrade"));
 
 /* ---------- build regions ---------- */
 {

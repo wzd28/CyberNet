@@ -32,6 +32,7 @@
 		358297005BF740BB8A242263 /* engine in Resources */ = {isa = PBXBuildFile; fileRef = 3966A7BB32EE4D7E8FE2195A /* engine */; };
 		C9AC6DE65F8D4ED6A293A5F0 /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 7406086BF3D84991B47D18F0 /* ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		FC90333921CC4FB1B33D853B /* TabBarPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C8E7C7AAF924F35B53A1F73 /* TabBarPlugin.swift */; };
+		52AC371727904343ABEB3252 /* WebAuthPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC4FE986E8E74315A7694AA1 /* WebAuthPlugin.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -88,6 +89,7 @@
 		50A33E7C1A37431285C1962C /* engine.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = engine.html; sourceTree = "<group>"; };
 		3966A7BB32EE4D7E8FE2195A /* engine */ = {isa = PBXFileReference; lastKnownFileType = folder; name = engine; path = Resources/engine; sourceTree = "<group>"; };
 		9C8E7C7AAF924F35B53A1F73 /* TabBarPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabBarPlugin.swift; sourceTree = "<group>"; };
+		DC4FE986E8E74315A7694AA1 /* WebAuthPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebAuthPlugin.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -157,6 +159,7 @@
 				4327A335981B43189829E3CC /* SharedInboxPlugin.swift */,
 				8AEA9984654346B9823FE8BC /* TrackingPlugin.swift */,
 				9C8E7C7AAF924F35B53A1F73 /* TabBarPlugin.swift */,
+				DC4FE986E8E74315A7694AA1 /* WebAuthPlugin.swift */,
 			);
 			path = Plugins;
 			sourceTree = "<group>";
@@ -308,6 +311,7 @@
 				57735C21F3D44105A685F66C /* TrackingPlugin.swift in Sources */,
 				80168F5498BB4AFEBBFD8F1E /* SharedInboxStore.swift in Sources */,
 				FC90333921CC4FB1B33D853B /* TabBarPlugin.swift in Sources */,
+				52AC371727904343ABEB3252 /* WebAuthPlugin.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

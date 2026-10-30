@@ -510,14 +510,16 @@ html.cn-still .cn-ix *, html.cn-still .cn-ix *::before, html.cn-still .cn-ix *::
 .cn-ios-sheet-backdrop.cn-ix-over.is-open { background: rgba(2, 6, 14, 0); }
 .cn-ios-sheet-backdrop.cn-ix-over.is-open .cn-ios-sheet { transition-duration: .6s; transition-timing-function: cubic-bezier(.22, 1, .36, 1); }
 /* ---------- the sign-in card (ios.js, section 7c) ----------
-   The website gate's card in the app: a sheet with the three ways in, Sign in with Apple first and as large as the
-   others (App Review 4.8), and under it the small guest link. The email forms (the sign-in dialog) open above it. */
+   The website gate's card in the app: a sheet with the four ways in, Sign in with Apple first and as large as the
+   others (App Review 4.8), then Sign in with Google, and under them the small guest link. The email forms (the sign-in dialog) open above it. */
 html.cn-ios.cn-ios-gated #authModal { z-index: 2050; } /* the website's rule is #authModal { z-index: 1600 }; sheets are 2000, the in-app legal pages 2100, toasts 2200 */
 .cn-ios-gate { text-align: center; padding-top: 2px; }
 .cn-ios-gate .cn-ios-sheet-title { margin-bottom: 6px; }
 .cn-ios-gate-lead { margin: 0 auto; max-width: 30em; font-size: .95rem; line-height: 1.5; color: var(--cn-ios-text-2); }
-.cn-signin-choices { display: grid; gap: 10px; margin: 16px 0 0; }
-html.cn-ios .cn-signin-choices > :is(.cn-ios-apple-btn, .primary-btn, .secondary-btn) { width: 100%; min-height: 50px; margin: 0; box-sizing: border-box; }
+/* Four choices, 8 px apart and 14 px under the lead (it was three, 10 px apart and 16 px under): with the home-indicator area the card
+   is 496 px on a 390 x 844 iPhone, so the first launch's pitch keeps its two lines above it (fitPitch measures, this keeps the room) */
+.cn-signin-choices { display: grid; gap: 8px; margin: 14px 0 0; }
+html.cn-ios .cn-signin-choices > :is(.cn-ios-apple-btn, .cn-ios-google-btn, .primary-btn, .secondary-btn) { width: 100%; min-height: 50px; margin: 0; box-sizing: border-box; }
 /* the two legal links run inside the sentence; the 44 pt touch area comes from a pseudo-element (14 px above and below the
    text), so the line gap stays closed. The note's margins are as large as that reach, so the touch areas end where the
    buttons above and the guest link below begin and never take a tap from them. */
@@ -529,7 +531,7 @@ html.cn-ios .cn-signin-choices + .cn-ios-apple-note .cn-legal-link-btn::after { 
 .cn-signin-msg:not([data-tone="error"]) { color: var(--cn-ios-text-2); }
 .cn-ios-gate-foot { display: grid; justify-items: center; gap: 0; margin-top: 14px; }
 .cn-ios-gate-note { margin: 0; font-size: .84rem; line-height: 1.45; color: var(--cn-ios-text-2); }
-/* the Account tab's block: the same three choices inside the grouped list */
+/* the Account tab's block: the same four choices inside the grouped list */
 .cn-ios-group .cn-signin-choices { margin: 12px 0 0; }
 .cn-ios-group .cn-signin-choices + .cn-ios-apple-note { margin-bottom: 14px; }
 @keyframes cn-ix-in { from { opacity: 0; } }
@@ -698,6 +700,25 @@ html.cn-ios #cnPrivacyMessage:empty { display: none; }
   cursor: pointer;
 }
 .cn-ios-apple-btn[disabled] { opacity: .6; }
+
+/* ---------- Sign in with Google (Google's dark-theme button: #131314 fill, 1 px #8e918f outline, #e3e3e3 text, the four-colour G
+   as it is). Same shape and size as Apple's, but outlined instead of solid white, so Apple's stays the stronger button. ---------- */
+.cn-ios-google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  border-radius: 999px;
+  border: 1px solid #8e918f;
+  background: #131314;
+  color: #e3e3e3;
+  font: 600 17px/1 -apple-system, system-ui, sans-serif;
+  cursor: pointer;
+}
+.cn-ios-google-btn svg { flex: none; }
+.cn-ios-google-btn[disabled] { opacity: .6; }
 .cn-ios-apple-note { margin: 8px 0 0; font-size: .8rem; line-height: 1.45; color: var(--cn-ios-text-2); text-align: center; }
 
 /* ---------- results, offline, toast ---------- */

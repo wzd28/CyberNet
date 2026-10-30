@@ -358,9 +358,9 @@ try {
       const claimWords = /protect|antivirus|real-?time|\bblocks?\b|monitor|accurate|100%|99%/i; // REJECTION-RISKS B2 (guideline 2.3.1(a))
       const { wordHits } = await import(pathToFileURL(path.join(mobile, "scripts", "check-bundle.mjs")).href);
 
-      // ---- the card: Sign in with Apple first and as large as the others, then email and Create account, then the guest link
+      // ---- the card: Sign in with Apple first and as large as the others, then Google (30 Oct 2026), email and Create account, then the guest link
       let card = null;
-      try { card = run(["GATE_LEAD", "GUEST_LABEL", "GUEST_NOTE", "ACCOUNT_LEADS", "APPLE_LOGO", "SIGNIN_MSG", "signInChoicesHtml", "signInCardHtml"], ["esc"], "{ GATE_LEAD, GUEST_LABEL, GUEST_NOTE, ACCOUNT_LEADS, signInChoicesHtml, signInCardHtml }", esc); } catch (error) { check("Sign-in card: its markup can be run", false, error.message); }
+      try { card = run(["GATE_LEAD", "GUEST_LABEL", "GUEST_NOTE", "ACCOUNT_LEADS", "APPLE_LOGO", "GOOGLE_LOGO", "SIGNIN_MSG", "signInChoicesHtml", "signInCardHtml"], ["esc"], "{ GATE_LEAD, GUEST_LABEL, GUEST_NOTE, ACCOUNT_LEADS, signInChoicesHtml, signInCardHtml }", esc); } catch (error) { check("Sign-in card: its markup can be run", false, error.message); }
       let pages = null;
       try { pages = run(["ACCOUNT_PAGES"], [], "ACCOUNT_PAGES"); } catch (error) { check("ACCOUNT_PAGES can be run", false, error.message); }
       if (card) {
@@ -369,15 +369,15 @@ try {
         const buttons = all => all.filter(n => n.tagName === "button");
         const choices = all => all.filter(n => attr(n, "data-signin"));
         const apple = choices(launch)[0];
-        check("Sign-in card: Sign in with Apple is the first button, first in focus order and the card's autofocus", choices(launch).map(n => attr(n, "data-signin")).join("|") === "apple|email|create" && buttons(launch)[0] === apple && attr(apple, "id") === "cnGateApple" && attr(apple, "data-autofocus") !== undefined && textOf(apple).trim() === "Sign in with Apple", buttons(launch).map(textOf));
-        check("Sign-in card: Sign in with email and Create account follow, all real buttons", choices(launch).map(n => textOf(n).trim()).join("|") === "Sign in with Apple|Sign in with email|Create account" && choices(launch).every(n => n.tagName === "button" && attr(n, "type") === "button"));
+        check("Sign-in card: Sign in with Apple is the first button, first in focus order and the card's autofocus", choices(launch).map(n => attr(n, "data-signin")).join("|") === "apple|google|email|create" && buttons(launch)[0] === apple && attr(apple, "id") === "cnGateApple" && attr(apple, "data-autofocus") !== undefined && textOf(apple).trim() === "Sign in with Apple", buttons(launch).map(textOf));
+        check("Sign-in card: Sign in with Google, Sign in with email and Create account follow, all real buttons", choices(launch).map(n => textOf(n).trim()).join("|") === "Sign in with Apple|Sign in with Google|Sign in with email|Create account" && choices(launch).every(n => n.tagName === "button" && attr(n, "type") === "button"));
         check("Sign-in card: the heading and the approved sign-in line", launch.find(n => n.tagName === "h2" && attr(n, "id") === "cnSignInTitle") && textOf(launch.find(n => n.tagName === "h2")) === "Sign in to CyberNet AI" && textOf(launch.find(n => /gate-lead/.test(attr(n, "class") || ""))) === card.GATE_LEAD && html.includes(`<p id="authModalIntro">${card.GATE_LEAD}`), card.GATE_LEAD);
         const guestLink = launch.find(n => attr(n, "data-gate") === "guest");
         const note = launch.find(n => /gate-note/.test(attr(n, "class") || ""));
-        check("Sign-in card: under it a small text link Continue without an account, and the one-line note", guestLink?.tagName === "button" && /\bcn-ios-link-btn\b/.test(attr(guestLink, "class")) && textOf(guestLink) === "Continue without an account" && textOf(note) === "Quick Scan, QR, Share and Learn work without one." && buttons(launch).indexOf(guestLink) > buttons(launch).indexOf(choices(launch)[2]), [textOf(guestLink || {}), textOf(note || {})]);
+        check("Sign-in card: under it a small text link Continue without an account, and the one-line note", guestLink?.tagName === "button" && /\bcn-ios-link-btn\b/.test(attr(guestLink, "class")) && textOf(guestLink) === "Continue without an account" && textOf(note) === "Quick Scan, QR, Share and Learn work without one." && buttons(launch).indexOf(guestLink) > buttons(launch).indexOf(choices(launch)[3]), [textOf(guestLink || {}), textOf(note || {})]);
         check("Sign-in card: a guest's card (Analysis AI, Recovery) has Not now instead, and no guest link", !guest.some(n => attr(n, "data-gate") === "guest") && textOf(guest.find(n => attr(n, "data-gate") === "cancel")) === "Not now" && textOf(guest.find(n => n.tagName === "h2")) === "Sign in to use Analysis AI");
         check("Sign-in card: the page names are Analysis AI and Recovery, and the card is titled with them", pages && Object.keys(pages).join("|") === "cybernetai|recovery" && pages.cybernetai === "Analysis AI" && pages.recovery === "Recovery" && /Signintouse\$\{ACCOUNT_PAGES\[page\]\}/.test(fnText("signInCard")), pages);
-        check("Sign-in card: a new Apple account agrees to the Terms and Privacy Policy through the note under the buttons", launch.filter(n => /^(terms|privacy)$/.test(attr(n, "data-open-legal") || "")).length === 2 && /By continuing with Apple you agree to the/.test(textOf(launch.find(n => /apple-note/.test(attr(n, "class") || "")))));
+        check("Sign-in card: a new Apple or Google account agrees to the Terms and Privacy Policy through the note under the buttons", launch.filter(n => /^(terms|privacy)$/.test(attr(n, "data-open-legal") || "")).length === 2 && /By continuing with Apple or Google you agree to the/.test(textOf(launch.find(n => /apple-note/.test(attr(n, "class") || "")))));
         check("Sign-in card: a message line (role alert, hidden until used) for errors and the offline note", launch.some(n => attr(n, "data-signin-msg") !== undefined && attr(n, "role") === "alert" && attr(n, "hidden") !== undefined));
         // 30 Oct 2026 (review): the card sits on the screen's bottom edge and grows upward, so a message line under the buttons pushed them up under the finger that had just tapped one. On the card the line is above the buttons (only the heading moves); on the Account tab, where the page grows downward, it stays under them.
         const order = nodes => nodes.filter(n => attr(n, "data-signin-msg") !== undefined || attr(n, "data-signin") === "apple").map(n => (attr(n, "data-signin-msg") !== undefined ? "msg" : "apple")).join("|");
@@ -390,7 +390,7 @@ try {
         const strings = [card.GATE_LEAD, card.GUEST_LABEL, card.GUEST_NOTE, "Sign in to CyberNet AI", "Sign in to use Analysis AI", "Sign in to use Recovery", "Not now", ...launch.concat(guest).map(n => n.childNodes.filter(c => c.nodeName === "#text").map(c => c.value).join(" ")),
           ...Object.values(card.ACCOUNT_LEADS), ...run(["INTRO"], [], "INTRO.flatMap(s => [s.text, s.guest || ''])"),
           ...run(["OFFLINE_GATE", "OFFLINE_SIGNIN"], [], "[OFFLINE_GATE, OFFLINE_SIGNIN]"), ...run(["AI_GREETING"], [], "[AI_GREETING]"), ...run(["CHECK_MODES"], [], "CHECK_MODES.flatMap(m => [m.hint, m.guestHint || ''])")].filter(Boolean);
-        check("Sign-in card: no protection claim and no word the gate refuses, in the card, the hints, the offline notes or the Analysis AI greeting", strings.every(s => !claimWords.test(s) && wordHits(s).length === 0), strings.filter(s => claimWords.test(s) || wordHits(s).length));
+        check("Sign-in card: no protection claim and no word the gate refuses, in the card, the hints, the offline notes or the Analysis AI greeting", strings.every(s => !claimWords.test(s) && wordHits(s, { file: "ios/ios.js" }).length === 0), strings.filter(s => claimWords.test(s) || wordHits(s, { file: "ios/ios.js" }).length)); // worded as ios.js is gated: Sign in with Google is the one Google term allowed, and only in this file
       }
       check("Sign in with Apple: the native call exists once (scopes email, fullName); the sign-in dialog, the card and the Account block all go through signInWithApple()", (squash(iosJs).match(/apple\.signIn\(\{scopes:\["email","fullName"\]/g) || []).length === 1 && /signInWithApple\(b,\{view:"login",say\}\)/.test(fnText("wireSignIn")) && squash(iosJs).includes('signInWithApple($("#cnAppleBtn"))') && /asyncfunctionsignInWithApple\(button,\{view=\$\("#authModal"\)\?\.dataset\.authView\|\|"login",say=authMessage\}=\{\}\)/.test(fnText("signInWithApple")));
       check("Sign in with Apple: the card and the Account block say \"login\", so a leftover Create Account view in the dialog never blocks them", /view:"login"/.test(fnText("wireSignIn")) && !/legalError\(\)/.test(fnText("wireSignIn")));
@@ -550,43 +550,169 @@ try {
         const z = sel => Number(new RegExp(`${sel.replace(/[.]/g, "\\.")}\\{[^}]*z-index:(\\d+)`).exec(css)?.[1]);
         const authZ = Number(/html\.cn-ios\.cn-ios-gated#authModal\{z-index:(\d+)/.exec(css)?.[1]);
         check("Card CSS: the email form (#authModal, the website's rule is an id at 1600) opens above the card (2000) and below the in-app legal pages (2100)", authZ > z(".cn-ios-sheet-backdrop") && authZ < z(".cn-ios-legal-sheet"), [authZ, z(".cn-ios-sheet-backdrop"), z(".cn-ios-legal-sheet")]);
-        const choicesRule = (css.match(/\.cn-signin-choices>:is\(\.cn-ios-apple-btn,\.primary-btn,\.secondary-btn\)\{([^}]*)\}/) || [])[1] || "";
-        check("Card CSS: the three choices share one rule: full width and at least 48 pt tall, Apple's button included (so it is never smaller than the others)", /width:100%/.test(choicesRule) && /min-height:50px/.test(choicesRule), choicesRule);
+        const choicesRule = (css.match(/\.cn-signin-choices>:is\(\.cn-ios-apple-btn,\.cn-ios-google-btn,\.primary-btn,\.secondary-btn\)\{([^}]*)\}/) || [])[1] || "";
+        check("Card CSS: the four choices share one rule: full width and at least 48 pt tall, Apple's button included (so it is never smaller than the others)", /width:100%/.test(choicesRule) && /min-height:50px/.test(choicesRule), choicesRule);
         check("Card CSS: the legal links get a 44 pt touch area (a pseudo-element reaching 14 px above and below a 17 px line, so the sentence keeps its line gap) and the guest link keeps the 44 pt link button", /\.cn-legal-link-btn:after\{[^}]*content:""[^}]*inset:-14px-6px/.test(css) && /\.cn-ios-link-btn\{[^}]*min-height:44px/.test(css), css.match(/cn-legal-link-btn:after\{[^}]*\}/)?.[0]);
         check("Card CSS: Pause motion stills the sheets as reduced motion does", /html\.cn-still\.cn-ios-sheet,html\.cn-still\.cn-ios-sheet-backdrop,html\.cn-still\.cn-ios-legal-sheet\{transition:none!important\}/.test(css));
       }
 
-      // ---- the three choices: Apple, email, Create account; offline; errors
+      // ---- the four choices: Apple, Google, email, Create account; offline; errors
       {
-        const mkWire = ({ offline, appleOk = true }) => {
+        const mkWire = ({ offline, appleOk = true, googleOk = true }) => {
           const log = [];
           const line = { hidden: true, textContent: "", dataset: {} };
           let handler = null;
           const scope = { addEventListener: (type, fn) => { if (type === "click") handler = fn; }, contains: () => true };
-          run(["OFFLINE_GATE", "OFFLINE_SIGNIN", "wireSignIn"], ["$", "offline", "account", "signInWithApple", "signedInNow", "report"], "wireSignIn",
-            () => line, offline, () => ({ openAuthModal: mode => log.push(`modal ${mode}`) }), async (b, o) => { log.push(`apple ${o.view}`); return appleOk; }, () => log.push("signedInNow"), () => {})(scope, { launch: true });
+          run(["OFFLINE_GATE", "OFFLINE_SIGNIN", "wireSignIn"], ["$", "offline", "account", "signInWithApple", "signInWithGoogle", "signedInNow", "report"], "wireSignIn",
+            () => line, offline, () => ({ openAuthModal: mode => log.push(`modal ${mode}`) }), async (b, o) => { log.push(`apple ${o.view}`); return appleOk; }, async () => { log.push("google"); return googleOk; }, () => log.push("signedInNow"), () => {})(scope, { launch: true });
           const tap = async what => { await handler({ target: { closest: () => ({ getAttribute: () => what }) } }); };
           return { log, line, tap };
         };
         const on = mkWire({ offline: false });
         await on.tap("apple");
+        await on.tap("google");
         await on.tap("email");
         await on.tap("create");
         const off = mkWire({ offline: true });
         const shownAtOpen = off.line.textContent;
         await off.tap("apple");
         const afterApple = off.line.textContent;
+        await off.tap("google");
+        const afterGoogle = off.line.textContent;
         await off.tap("email");
         const failed = mkWire({ offline: false, appleOk: false });
         await failed.tap("apple");
-        check("Choices: Apple runs the one Apple sign-in (view login) and, once it succeeds, tells the card; email and Create account open the existing email forms (login and signup)", on.log.join(" | ") === "apple login | signedInNow | modal login | modal signup", on.log);
-        check("Choices: offline, the card says so when it opens and when Apple is tapped (Apple's sheet is not opened), the email forms still open with their own messages, and a failed Apple sign-in does not tell the card", shownAtOpen === run(["OFFLINE_GATE"], [], "OFFLINE_GATE") && afterApple === shownAtOpen && off.log.join(" | ") === "modal login" && failed.log.join(" | ") === "apple login", [shownAtOpen, afterApple, off.log, failed.log]);
+        const failedGoogle = mkWire({ offline: false, googleOk: false });
+        await failedGoogle.tap("google");
+        // Changed 30 Oct 2026: Sign in with Google joined the card (Apple, Google, email, Create account), wired the same way as Apple
+        check("Choices: Apple and Google each run their one sign-in and, once it succeeds, tell the card; email and Create account open the existing email forms (login and signup)", on.log.join(" | ") === "apple login | signedInNow | google | signedInNow | modal login | modal signup", on.log);
+        check("Choices: offline, the card says so when it opens and when Apple or Google is tapped (their sheets are not opened), the email forms still open with their own messages, and a failed Apple or Google sign-in does not tell the card", shownAtOpen === run(["OFFLINE_GATE"], [], "OFFLINE_GATE") && afterApple === shownAtOpen && afterGoogle === shownAtOpen && off.log.join(" | ") === "modal login" && failed.log.join(" | ") === "apple login" && failedGoogle.log.join(" | ") === "google", [shownAtOpen, afterApple, afterGoogle, off.log, failed.log, failedGoogle.log]);
         const gateText = run(["OFFLINE_GATE", "OFFLINE_SIGNIN"], [], "[OFFLINE_GATE, OFFLINE_SIGNIN]");
         // 30 Oct 2026 (review): the launch card's link "Continue without an account" is right under the note, so the note no longer repeats it
         check("Choices: the offline notes: the launch card's note is short (its guest link sits right under it), the other cards name what still works", gateText[0] === "You're offline. Connect to the internet to sign in." && !/continue without/i.test(gateText[0]) && gateText[1] === "You're offline. Connect to the internet to sign in. Quick Scan, QR and Learn still work.");
-        check("Offline: Continue without an account needs no network (the card's handler only resolves the card), and Apple's sign-in is the only choice that checks the connection", !/offline|fetch|navigator\.onLine/.test(fnText("signInCard")) && /if\(offline\)\{say\(offlineText,"info"\);return\}/.test(fnText("wireSignIn")));
+        check("Offline: Continue without an account needs no network (the card's handler only resolves the card), and only the Apple and Google sign-ins check the connection", !/offline|fetch|navigator\.onLine/.test(fnText("signInCard")) && (fnText("wireSignIn").match(/if\(offline\)\{say\(offlineText,"info"\);return\}/g) || []).length === 2);
         check("Choices: nothing is a dead end: an unexpected problem shows \"Something went wrong\" on the card's own message line", /catch\(error\)\{report\(error,`signin\$\{what\}`\);say\("Somethingwentwrong\.Pleasetryagain\."\)\}/.test(fnText("wireSignIn")));
         check("Choices: a failed Apple sign-in says so, with the email way out, on the line it came from (the existing words); a cancelled one says nothing", squash(iosJs).includes(squash(`say("Sign in with Apple didn't finish. Please try again, or use your email and password.")`)) && /if\(\/cancel\|1001\/i\.test\(text\)\)say\("",""\)/.test(fnText("signInWithApple")));
+      }
+
+      // ---- Sign in with Google (owner, 30 Oct 2026): the system's secure sign-in sheet (CNWebAuth), PKCE, a quiet cancel.
+      // signInWithGoogle() is cut out of the built ios.js and run against the REAL vendored supabase-js (the bundle's
+      // vendor/supabase.js) with a fake network and a fake sheet, so the sign-in address, the PKCE exchange and the
+      // hand-over to the app's own client are the library's own behaviour, not a guess. (The real Google flow, and the
+      // Swift plugin's compile, can only be tried on a device or in CI.)
+      {
+        const vmMod = await import("node:vm");
+        const supaCode = await read("vendor/supabase.js");
+        const HOST = "https://ndtcxippbufqzwcxkyjd.supabase.co";
+        const b64 = o => Buffer.from(JSON.stringify(o)).toString("base64url");
+        const exp = Math.floor(Date.now() / 1000) + 3600;
+        const granted = { access_token: `${b64({ alg: "HS256", typ: "JWT" })}.${b64({ sub: "u1", exp })}.sig`, token_type: "bearer", expires_in: 3600, expires_at: exp, refresh_token: "refresh-1", user: { id: "u1", aud: "authenticated", email: "ana@example.com", app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() } };
+        const reply = (status, body) => () => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+        const CODE = "fake-auth-code"; // stands in for the sign-in code: it must never reach an error report
+        const quiet = { log() {}, warn() {}, error() {}, debug() {}, info() {} };
+        const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+        const challengeOf = verifier => createHash("sha256").update(verifier).digest("base64url");
+        const GOOGLE_NAMES = ["GOOGLE_CALLBACK", "GOOGLE_SCHEME", "GOOGLE_UNAVAILABLE", "GOOGLE_FAILED", "googleReturn", "googleBusy", "googleClient", "signInWithGoogle"];
+        const [FAILED, UNAVAILABLE] = run(["GOOGLE_FAILED", "GOOGLE_UNAVAILABLE"], [], "[GOOGLE_FAILED, GOOGLE_UNAVAILABLE]");
+        const attempt = async ({ back, sheet, network = reply(200, granted), config, withPlugin = true, withMain = true, twice = false, again = false }) => {
+          const requests = [], said = [], sets = [], toasts = [], reports = [], starts = [], warns = [];
+          let created = 0;
+          const listened = []; // what the library asks the page to listen to (a browser has a window and a document; supabase-js behaves differently without them)
+          const ctx = vmMod.createContext({ window: { addEventListener: type => listened.push(type), removeEventListener() {} }, document: { visibilityState: "visible" }, console: { ...quiet, warn: text => warns.push(String(text)) }, URL, URLSearchParams, TextEncoder, TextDecoder, crypto: globalThis.crypto, setTimeout, clearTimeout, setInterval, clearInterval, atob, btoa, AbortController, Headers, Request, Response, queueMicrotask, WebSocket: class {},
+            fetch: async (url, init) => { requests.push({ url: String(url), body: init?.body ? JSON.parse(init.body) : null }); return network(); } });
+          vmMod.runInContext(supaCode, ctx);
+          const web = withPlugin ? { start: async opts => { starts.push(opts); return sheet ? sheet(opts) : { url: back }; } } : null;
+          const main = withMain ? { auth: { setSession: async s => { sets.push(s); return { data: {}, error: null }; } } } : null;
+          const fn = run(GOOGLE_NAMES, ["P", "supabase", "w", "authMessage", "rememberLoginAcceptance", "report", "$", "toast"], "signInWithGoogle",
+            n => (n === "CNWebAuth" ? web : null), () => main, { CYBERNET_CONFIG: config || { SUPABASE_URL: HOST, SUPABASE_ANON_KEY: "publishable-key-for-the-harness" }, supabase: { createClient: (...args) => { created++; return ctx.supabase.createClient(...args); } } },
+            () => {}, () => {}, (error, where) => reports.push({ error, where }), () => null, text => toasts.push(text));
+          const button = { value: false, history: [], set disabled(v) { this.value = v; this.history.push(v); }, get disabled() { return this.value; } };
+          const say = (text, tone) => said.push([text, tone]);
+          const results = again ? [await fn(button, { say }), await fn(button, { say })] : await Promise.all(Array.from({ length: twice ? 2 : 1 }, () => fn(button, { say })));
+          return { results, requests, said, sets, toasts, reports, starts, button, created, warns, listened };
+        };
+        const exchanges = r => r.requests.filter(q => /\/auth\/v1\/token\?grant_type=pkce$/.test(q.url));
+        const quietEnd = r => r.results[0] === false && r.said.every(([text]) => text === "") && r.sets.length === 0 && r.reports.length === 0 && r.toasts.length === 0 && r.button.history.join() === "true,false";
+        const failedEnd = r => r.results[0] === false && r.said.at(-1)?.[0] === FAILED && r.sets.length === 0 && r.button.history.join() === "true,false";
+        const callback = "app.cybernetai://auth-callback";
+
+        // a code comes back: PKCE
+        const good = await attempt({ back: `${callback}?code=${CODE}` });
+        const u = good.starts[0] && new URL(good.starts[0].url);
+        check("Google: the sheet gets this project's sign-in address for Google with the exact return address app.cybernetai://auth-callback and a PKCE S256 challenge, and only the scheme app.cybernetai",
+          good.starts.length === 1 && u.protocol === "https:" && u.host === "ndtcxippbufqzwcxkyjd.supabase.co" && u.pathname === "/auth/v1/authorize" && u.searchParams.get("provider") === "google" && u.searchParams.get("redirect_to") === callback && u.searchParams.get("code_challenge_method") === "s256" && !!u.searchParams.get("code_challenge") && !u.searchParams.has("skip_http_redirect") && good.starts[0].callbackScheme === "app.cybernetai", good.starts);
+        const ex = exchanges(good)[0];
+        check("Google: the code is traded once, at /token?grant_type=pkce, with the verifier whose S256 is the challenge that went out; the app's own client then takes the session (both tokens); nothing else is called (no sign-out)",
+          exchanges(good).length === 1 && ex.body.auth_code === CODE && ex.body.code_verifier?.length >= 43 && challengeOf(ex.body.code_verifier) === u.searchParams.get("code_challenge") && good.requests.length === 1 && good.sets.length === 1 && good.sets[0].access_token === granted.access_token && good.sets[0].refresh_token === "refresh-1", [good.requests, good.sets]);
+        check("Google: success is like Apple's: true, \"You're signed in.\" on the line, the toast, the button back", good.results[0] === true && good.said.at(-1)?.join("|") === "You're signed in.|success" && good.toasts.join() === "You're signed in with Google." && good.button.history.join() === "true,false", [good.said, good.toasts, good.button.history]);
+
+        // a second sign-in in the same page (after a cancel or a sign-out): the one extra client is reused. supabase-js never
+        // lets go of a client (a visibilitychange listener stays on the page) and warns about a second one under the same storage key
+        const second = await attempt({ back: `${callback}?code=${CODE}`, again: true });
+        const secondEx = exchanges(second), secondChallenges = second.starts.map(s => new URL(s.url).searchParams.get("code_challenge"));
+        check("Google: a second sign-in in the same page reuses the one extra client (made once, no 'Multiple GoTrueClient instances' warning), and each trade uses the verifier of its own sheet",
+          second.created === 1 && second.warns.length === 0 && good.listened.includes("visibilitychange") && second.listened.length === good.listened.length && second.results.join() === "true,true" && second.starts.length === 2 && secondEx.length === 2 && second.sets.length === 2 && secondChallenges[0] !== secondChallenges[1] && secondEx.every((q, i) => challengeOf(q.body.code_verifier) === secondChallenges[i]), [second.created, second.warns, second.listened, second.results]);
+        check("Google: one sign-in makes exactly one extra client", good.created === 1 && good.warns.length === 0, [good.created, good.warns]);
+
+        // cancel, refusal and errors
+        const cancelled = await attempt({ sheet: async () => { throw Object.assign(new Error("Sign in was cancelled."), { code: "CANCELED" }); } });
+        check("Google: closing the sheet (CANCELED) is quiet: nothing is shown, reported or called, and the button comes back", quietEnd(cancelled) && cancelled.requests.length === 0, [cancelled.said, cancelled.reports]);
+        const denied = await attempt({ back: `${callback}?error=access_denied&error_code=access_denied&error_description=${encodeURIComponent("Access denied")}` });
+        check("Google: saying no on Google's page (access_denied) is quiet too, and nothing is traded", quietEnd(denied) && denied.requests.length === 0, [denied.said, denied.reports]);
+        const refusedByServer = await attempt({ back: `${callback}?error=server_error&error_description=${encodeURIComponent(`Unable to exchange external code: ${CODE}`)}` });
+        check("Google: any other error in the return says it did not finish (with the email way out), is reported without its text, and signs nobody in", failedEnd(refusedByServer) && refusedByServer.requests.length === 0 && refusedByServer.reports.length === 1 && !String(refusedByServer.reports[0].error.message).includes(CODE), [refusedByServer.said, refusedByServer.reports.map(r => r.error.message)]);
+        const refusedExchange = await attempt({ back: `${callback}?code=${CODE}`, network: reply(400, { code: 400, error_code: "validation_failed", msg: `bad code ${CODE}` }) });
+        check("Google: a code Supabase refuses says it did not finish, is reported by name only (the provider's text can carry the code), and signs nobody in", failedEnd(refusedExchange) && exchanges(refusedExchange).length === 1 && refusedExchange.reports.length === 1 && !String(refusedExchange.reports[0].error.message).includes(CODE), [refusedExchange.said, refusedExchange.reports.map(r => r.error.message)]);
+        const tokens = await attempt({ back: `${callback}#access_token=AT&refresh_token=RT&token_type=bearer` });
+        check("Google: tokens in the return address (the implicit form) are taken with setSession, no code trade", tokens.results[0] === true && exchanges(tokens).length === 0 && tokens.sets.length === 1 && tokens.sets[0].access_token === "AT" && tokens.sets[0].refresh_token === "RT", tokens.sets);
+        const wrong = await Promise.all([`https://evil.example/auth-callback?code=${CODE}`, `app.cybernetai://elsewhere?code=${CODE}`, callback, "not a url"].map(back => attempt({ back })));
+        check("Google: a return to any other address, or with neither a code nor tokens, signs nobody in and trades nothing", wrong.every(r => failedEnd(r) && exchanges(r).length === 0), wrong.map(r => r.said));
+        const doubled = await attempt({ back: `${callback}?code=${CODE}`, sheet: async () => { await sleep(40); return { url: `${callback}?code=${CODE}` }; }, twice: true });
+        check("Google: a double tap opens one sheet and signs in once", doubled.starts.length === 1 && doubled.sets.length === 1 && doubled.results.slice().sort().join() === "false,true", [doubled.starts.length, doubled.results]);
+        const missing = await Promise.all([attempt({ back: callback, withPlugin: false }), attempt({ back: callback, withMain: false }), attempt({ back: callback, config: { SUPABASE_URL: HOST } })]);
+        check("Google: without the plugin (a desktop preview), the app's Supabase client or the public config it says so and does nothing else", missing.every(r => r.results[0] === false && r.said.at(-1)?.[0] === UNAVAILABLE && r.starts.length === 0 && r.requests.length === 0), missing.map(r => r.said));
+
+        // the source: the plugin's name, the two clients, no secret
+        const googleText = fnText("signInWithGoogle");
+        check("Google: the sheet is the CNWebAuth plugin; the extra client is PKCE and in memory only and never signs out; the app's own client keeps the default flow (the password-reset page reads tokens, never a PKCE code)",
+          squash(iosJs).includes('P("CNWebAuth")') && /web\.start\(\{url:signInUrl\.toString\(\),callbackScheme:GOOGLE_SCHEME\}\)/.test(googleText) && /flowType:"pkce",persistSession:false,autoRefreshToken:false,detectSessionInUrl:false/.test(googleText) && /oauth\.auth\.signInWithOAuth\(\{provider:"google",options:\{redirectTo:GOOGLE_CALLBACK,skipBrowserRedirect:true\}\}\)/.test(googleText) && !/signOut/.test(googleText) && !/flowType/.test(script) && /flowType: "implicit"/.test(await readFile(path.join(root, "public", "app", "reset.js"), "utf8")));
+        const [cbValue, schemeValue] = run(["GOOGLE_CALLBACK", "GOOGLE_SCHEME"], [], "[GOOGLE_CALLBACK, GOOGLE_SCHEME]");
+        check("Google: the return address is exactly app.cybernetai://auth-callback, with the scheme app.cybernetai (what Supabase's redirect list must contain)", cbValue === "app.cybernetai://auth-callback" && schemeValue === "app.cybernetai" && cbValue.startsWith(`${schemeValue}://`));
+        check("Google: no key or secret in ios.js (the public config is read at run time), and no Google address", !/sb_(?:publishable|secret)_|eyJ[\w-]{10,}|service_role|accounts\.google|googleapis/i.test(iosJs) && /w\.CYBERNET_CONFIG/.test(googleText));
+        check("Google: a new Google account agrees through the same note as Apple, kept by one shared helper (Apple's behaviour is unchanged)", /rememberLoginAcceptance\(\)/.test(googleText) && /elserememberLoginAcceptance\(\)/.test(fnText("signInWithApple")));
+        const remember = existing => { const stored = []; run(["rememberLoginAcceptance"], ["readAcceptance", "LEGAL", "ACCEPTANCE_MAX_AGE", "storeAcceptance"], "rememberLoginAcceptance", () => existing, { version: "v1", privacy: "p1" }, 30 * 24 * 3600e3, email => stored.push(email))(); return stored.length; };
+        const current = { version: "v1", privacyVersion: "p1", acceptedAt: new Date().toISOString(), attempts: 0 };
+        check("Google and Apple: the acceptance record is kept while an unsent current one exists, and renewed when there is none, it was sent, it is stale or it is for an older text", remember(null) === 1 && remember(current) === 0 && remember({ ...current, serverRecorded: true }) === 1 && remember({ ...current, version: "v0" }) === 1 && remember({ ...current, attempts: 3 }) === 1 && remember({ ...current, acceptedAt: new Date(Date.now() - 40 * 24 * 3600e3).toISOString() }) === 1);
+
+        // the buttons: the Account block, Google's mark and colours, Apple stays the stronger button
+        const launchNodes = card ? parse(card.signInCardHtml({ title: "Sign in to CyberNet AI", launch: true, lead: card.GATE_LEAD })) : [];
+        const acctChoices = card ? parse(card.signInChoicesHtml("cnAcct")).filter(n => attr(n, "data-signin")) : [];
+        check("Account (guest): the same four choices in the same order as the card (Apple, Google, email, Create account)", acctChoices.map(n => attr(n, "data-signin")).join("|") === "apple|google|email|create" && attr(acctChoices[1], "id") === "cnAcctGoogle" && acctChoices.every(n => n.tagName === "button" && attr(n, "type") === "button"));
+        const googleButton = launchNodes.find(n => attr(n, "data-signin") === "google");
+        const markPaths = (function paths(node, out = []) { for (const c of node?.childNodes || []) { if (c.tagName === "path") out.push(attr(c, "fill")); paths(c, out); } return out; })(googleButton);
+        check("Google button: Google's four-colour G as an inline SVG (hidden from VoiceOver, no remote file) and the words Sign in with Google; only Apple's button takes the card's focus",
+          markPaths.join("|") === "#EA4335|#4285F4|#FBBC05|#34A853" && googleButton.childNodes.some(c => c.tagName === "svg" && attr(c, "aria-hidden") === "true") && textOf(googleButton).trim() === "Sign in with Google" && launchNodes.filter(n => attr(n, "data-autofocus") !== undefined).length === 1, markPaths);
+        const googleRule = rule(".cn-ios-google-btn"), appleRule = rule(".cn-ios-apple-btn");
+        check("Google button CSS: Google's dark-theme button (#131314, 1 px #8e918f outline, #e3e3e3 text, pill shape like Apple's), while Apple's stays the solid white one (guideline 4.8: Apple is never the weaker choice)",
+          /background:#131314/.test(googleRule) && /border:1pxsolid#8e918f/.test(googleRule) && /color:#e3e3e3/.test(googleRule) && /border-radius:999px/.test(googleRule) && /background:#fff/.test(appleRule) && /color:#000/.test(appleRule), [googleRule, appleRule]);
+        check("Sign-in card CSS: the four choices are 8 px apart and 14 px under the lead, so the card stays under 500 px on a 390 x 844 iPhone and the first launch's pitch keeps its two lines (measured 464 px plus the 34 px home-indicator area; see fitPitch)", /\.cn-signin-choices\{display:grid;gap:8px;margin:14px00\}/.test(css), rule(".cn-signin-choices"));
+        const privacyPage = await read("legal/privacy.html");
+        check("Privacy (iPhone section): it describes Sign in with Google and no longer says the app has no Google sign-in", /<h3>Sign in with Google<\/h3>/.test(privacyPage) && !/no Google sign-in/i.test(privacyPage));
+
+        // native side (Swift cannot be compiled here; CI builds it): one plugin, registered, locked to the project's host and the app's scheme, no Info.plist URL type, no entitlement
+        const pluginsDir = path.join(mobile, "native", "App", "Plugins");
+        const swiftFiles = (await import("node:fs")).readdirSync(pluginsDir).filter(n => n.endsWith(".swift"));
+        const swift = Object.fromEntries(await Promise.all(swiftFiles.map(async n => [n, await readFile(path.join(pluginsDir, n), "utf8")])));
+        const mainController = await readFile(path.join(mobile, "native", "App", "MainViewController.swift"), "utf8");
+        const web = swift["WebAuthPlugin.swift"] || "";
+        const classes = Object.values(swift).map(t => /@objc\((\w+)\)\s*public final class (\w+): CAPPlugin, CAPBridgedPlugin/.exec(t));
+        check("Native plugins: every plugin file declares its class once under its own name and is registered in MainViewController, and the JS names are unique", classes.every((m, i) => m && m[1] === m[2] && new RegExp(`identifier = "${m[2]}"`).test(Object.values(swift)[i]) && mainController.includes(`bridge?.registerPluginInstance(${m[2]}())`)) && new Set(Object.values(swift).map(t => /jsName = "(\w+)"/.exec(t)?.[1])).size === swiftFiles.length, swiftFiles);
+        const configHost = new URL(/SUPABASE_URL:\s*"([^"]+)"/.exec(await readFile(path.join(root, "public", "config.js"), "utf8"))?.[1] || "https://invalid.invalid").host;
+        check("WebAuthPlugin: JS name CNWebAuth with start(), the system sheet shared with Safari (not ephemeral), CANCELED for a closed sheet, and only https on the project's Supabase host with the scheme app.cybernetai",
+          /jsName = "CNWebAuth"/.test(web) && /CAPPluginMethod\(name: "start", returnType: CAPPluginReturnPromise\)/.test(web) && /ASWebAuthenticationSession\(url: url, callbackURLScheme: callbackScheme\)/.test(web) && /prefersEphemeralWebBrowserSession = false/.test(web) && /\.canceledLogin/.test(web) && /"CANCELED"/.test(web) && web.includes(`allowedHost = "${configHost}"`) && /allowedScheme = "app\.cybernetai"/.test(web) && /scheme\?\.lowercased\(\) == "https"/.test(web) && schemeValue === "app.cybernetai", configHost);
+        const infoPlist = await readFile(path.join(mobile, "ios", "App", "App", "Info.plist"), "utf8");
+        check("Native: no Info.plist URL type, no associated domains, no push and no new permission text for the sheet (the Codemagic release check allows only the camera and tracking texts)", !/CFBundleURLTypes/.test(infoPlist) && !/associated-domains|aps-environment/.test(await readFile(path.join(mobile, "native", "App", "App.entitlements"), "utf8")) && [...infoPlist.matchAll(/NS\w+UsageDescription/g)].map(m => m[0]).sort().join() === "NSCameraUsageDescription,NSUserTrackingUsageDescription");
+        check("WebAuthPlugin: no key or secret", !/sb_(?:publishable|secret)_|eyJ[\w-]{10,}|service_role|apikey/i.test(web));
       }
 
       // ---- review of 30 Oct 2026: the sticky pitch, the message line, the legal links, a reminder at cold start, the Account tab, the tips, the demo runs
@@ -736,6 +862,9 @@ try {
     check("Terms: plans/pricing/payments/cancellation/refunds replaced", !/id="(subscriptions|payments|cancellation|refunds)"/.test(terms) && /no paid plans and no purchases/.test(terms));
     check("Terms and Privacy carry the iPhone app section", /id="iphone-app"/.test(terms) && /id="iphone-app"/.test(privacy));
     check("Privacy names the operator", /Marks Events FZ LLE/.test(privacy) && /support@cybernetai\.app/.test(privacy));
+    // the sign-in card links here: the Terms and the Privacy Policy must not say the app has Sign in with Apple only (30 Oct 2026)
+    check("Terms: the sign-in clause names Sign in with Google in the iPhone app and what Google shares, and no longer says Google is on the website only", /Sign in with Google/.test(terms) && /Google confirms who you are and shares your name, email address, and profile picture/.test(terms) && !/Continue with Google on the website, or with Sign in with Apple in the iPhone app\./.test(terms));
+    check("Privacy: the iPhone section and the list of other companies name Sign in with Google next to Apple's", /<p><strong>Sign in with Google\.<\/strong>/.test(privacy) && /Sign in with Google in the iPhone app;/.test(privacy));
     check("Privacy explains analytics only after Allow", /App Tracking Transparency/.test(privacy) && /Google Analytics/.test(privacy));
     check("legal pages have the Back bar and no site header", /cn-ios-legal-bar/.test(terms) && !/cn-legal-page-top/.test(terms));
     check("no cookie-settings button in the app", !/data-cn-consent-open/.test(privacy + html));

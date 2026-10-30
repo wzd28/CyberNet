@@ -3,7 +3,7 @@
 
    Sections:
      1  helpers                 8  legal pages (in-app) and the sign-up acceptance record
-     2  tab bar, Check switch   9  Sign in with Apple
+     2  tab bar, Check switch   9  Sign in with Apple and Google
         and guest mode         10  QR scanner and its verdict sheet
      3  Account screen         11  items shared from other apps (Share Extension hand-off)
      4  AI consent sheet       12  Recovery reminders (local notifications)
@@ -930,10 +930,11 @@
 
   /* ---- 7c. the sign-in card ---- */
   // One card for every place that asks for an account: the launch gate, a guest who taps Analysis AI or
-  // Recovery, and (as a block) the Account tab. Sign in with Apple comes first and is as large as the other
-  // two (App Review 4.8). "Sign in with email" and "Create account" open the email forms in the sign-in dialog
-  // (#authModal), which keeps its own rules: first and last name, the legal consent box, password reset and
-  // email confirmation. The Apple button runs signInWithApple() (section 9), the only place that calls the plugin.
+  // Recovery, and (as a block) the Account tab. Sign in with Apple comes first and is as large as the others
+  // (App Review 4.8); Sign in with Google follows it (owner, 30 Oct 2026). "Sign in with email" and "Create
+  // account" open the email forms in the sign-in dialog (#authModal), which keeps its own rules: first and last
+  // name, the legal consent box, password reset and email confirmation. The Apple button runs signInWithApple()
+  // and the Google button signInWithGoogle() (both in section 9, the only places that call their plugins).
   const GATE_LEAD = "Sign in to get AI explanations and Recovery plans."; // the sign-in dialog's approved line
   const GUEST_LABEL = "Continue without an account";
   const GUEST_NOTE = "Quick Scan, QR, Share and Learn work without one.";
@@ -950,10 +951,11 @@
   function signInChoicesHtml(prefix, { msg = true } = {}) {
     return `<div class="cn-signin-choices">
         <button type="button" class="cn-ios-apple-btn" id="${prefix}Apple" data-signin="apple" data-autofocus>${APPLE_LOGO}<span>Sign in with Apple</span></button>
+        <button type="button" class="cn-ios-google-btn" id="${prefix}Google" data-signin="google">${GOOGLE_LOGO}<span>Sign in with Google</span></button>
         <button type="button" class="primary-btn full" data-signin="email">Sign in with email</button>
         <button type="button" class="secondary-btn full" data-signin="create">Create account</button>
       </div>
-      <p class="cn-ios-apple-note">By continuing with Apple you agree to the <button type="button" class="cn-legal-link-btn" data-open-legal="terms">Terms of Service</button> and the <button type="button" class="cn-legal-link-btn" data-open-legal="privacy">Privacy Policy</button>.</p>
+      <p class="cn-ios-apple-note">By continuing with Apple or Google you agree to the <button type="button" class="cn-legal-link-btn" data-open-legal="terms">Terms of Service</button> and the <button type="button" class="cn-legal-link-btn" data-open-legal="privacy">Privacy Policy</button>.</p>
       ${msg ? SIGNIN_MSG : ""}`;
   }
   // launch: the gate (the guest way out is the link under the card); otherwise a guest's card, which simply closes
@@ -968,7 +970,7 @@
           : '<button type="button" class="cn-ios-link-btn" data-gate="cancel">Not now</button>'}</div>
       </div>`;
   }
-  // Wires the three choices inside `scope` (the card, or the Account block). Errors and the offline note go
+  // Wires the four choices inside `scope` (the card, or the Account block). Errors and the offline note go
   // to the scope's own message line: the sign-in dialog's message line is not on screen behind the card.
   function wireSignIn(scope, { launch = false, onSay = null } = {}) {
     const offlineText = launch ? OFFLINE_GATE : OFFLINE_SIGNIN;
@@ -989,13 +991,16 @@
         if (what === "apple") {
           if (offline) { say(offlineText, "info"); return; } // Apple's sheet would open and the sign-in could not finish
           if (await signInWithApple(b, { view: "login", say })) signedInNow();
+        } else if (what === "google") {
+          if (offline) { say(offlineText, "info"); return; } // the sheet would open and the sign-in could not finish
+          if (await signInWithGoogle(b, { say })) signedInNow();
         } else account()?.openAuthModal?.(what === "create" ? "signup" : "login"); // offline, the form answers with its own message
       } catch (error) { report(error, `sign in ${what}`); say("Something went wrong. Please try again."); }
     });
     if (offline) say(offlineText, "info");
   }
 
-  // Who is waiting for a sign-in: the open card. signedInNow() is called when Apple finishes, when Supabase
+  // Who is waiting for a sign-in: the open card. signedInNow() is called when Apple or Google finishes, when Supabase
   // reports a sign-in and when script.js has recorded the session; the waiters run once, and only once
   // signedIn() is true (script.js records the session in a timer of its own).
   const signInWaiters = new Set();
@@ -1268,8 +1273,10 @@
     storeAcceptance(String($("#signupEmail")?.value || "").trim().toLowerCase());
   }, true);
 
-  /* ================================================================ 9. Sign in with Apple */
+  /* ================================================================ 9. Sign in with Apple and Google */
   const APPLE_LOGO = '<svg viewBox="0 0 17 20" width="15" height="18" aria-hidden="true" fill="currentColor"><path d="M14.1 10.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9-1.7 0-3.3 1-4.2 2.6-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8 1.6 0 2 .8 3.4.8 1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9 0 0-2.7-1-2.7-4.1zM11.6 3.1c.7-.9 1.2-2 1.1-3.1-1 0-2.2.7-2.9 1.6-.6.7-1.2 1.9-1 3 1.1.1 2.2-.6 2.8-1.5z"/></svg>';
+  // Google's standard four-colour "G" (Google sign-in branding): never recoloured, so the button around it is Google's neutral dark one
+  const GOOGLE_LOGO = '<svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>';
   function setupApple() {
     if (!P("AppleSignIn")) return;
     const modal = $("#authModal .modal-card");
@@ -1339,6 +1346,13 @@
     w.crypto.getRandomValues(b);
     return [...b].map(x => x.toString(16).padStart(2, "0")).join("");
   }
+  // A new Apple or Google account agrees through the note under the buttons; the record has no email, so it is
+  // only sent if the account turns out to be new (created around now). Keep an unsent current one.
+  function rememberLoginAcceptance() {
+    const existing = readAcceptance();
+    const keep = existing && !existing.serverRecorded && existing.version === LEGAL.version && existing.privacyVersion === LEGAL.privacy && (Number(existing.attempts) || 0) < 3 && Date.now() - Date.parse(existing.acceptedAt || "") <= ACCEPTANCE_MAX_AGE;
+    if (!keep) storeAcceptance("");
+  }
   // Called from the sign-in dialog (its own view and message line) and from the sign-in card and the Account
   // block (view "login", their own message line). true once Supabase has the session.
   async function signInWithApple(button, { view = $("#authModal")?.dataset.authView || "login", say = authMessage } = {}) {
@@ -1346,13 +1360,7 @@
     if (!apple || !sb) { say("Sign in with Apple is not available right now. Please use your email and password."); return false; }
     if (view === "signup" && !legalAccepted()) { legalError(); return false; }
     if (view === "signup") storeAcceptance("");
-    else {
-      // A new Apple account agrees through the note under the button; the record has no email, so it is
-      // only sent if the account turns out to be new (created around now). Keep an unsent current one.
-      const existing = readAcceptance();
-      const keep = existing && !existing.serverRecorded && existing.version === LEGAL.version && existing.privacyVersion === LEGAL.privacy && (Number(existing.attempts) || 0) < 3 && Date.now() - Date.parse(existing.acceptedAt || "") <= ACCEPTANCE_MAX_AGE;
-      if (!keep) storeAcceptance("");
-    }
+    else rememberLoginAcceptance();
     button.disabled = true;
     say("", "");
     try {
@@ -1374,6 +1382,79 @@
       else { report(error, "apple sign-in"); say("Sign in with Apple didn't finish. Please try again, or use your email and password."); }
       return false;
     } finally { button.disabled = false; }
+  }
+
+  // ---- Sign in with Google (owner, 30 Oct 2026) ----
+  // Google refuses to sign anyone in inside an embedded web view, so the page never opens Google itself: the
+  // system's secure sign-in sheet does (CNWebAuth, ASWebAuthenticationSession; WebAuthPlugin.swift opens only this
+  // project's Supabase address and comes back only to GOOGLE_SCHEME). The sheet returns the address
+  // app.cybernetai://auth-callback?code=...; the app trades the code for the session (PKCE).
+  // A client of its own does that, and the app's own client stays as it is. That one uses supabase-js's default
+  // (implicit) flow on purpose: the password-reset page (public/app/reset.js) can read tokens in the address, but
+  // never a PKCE code, so changing its flowType would break the reset emails. The extra client keeps its session
+  // in memory only (the PKCE secret never leaves the web view, so a code that leaks cannot be used) and the app's
+  // client takes the session over with setSession. The extra client is made once, on the first tap, and reused:
+  // supabase-js never lets go of a client (it listens to the page's visibility for as long as the page lives), and
+  // a second one under the same storage key logs a "Multiple GoTrueClient instances" warning. It cannot refresh
+  // (autoRefreshToken is off), so its copy of the session just sits idle until the page reloads; it never presents
+  // the old refresh token. Never call signOut on it: that would end the session the app's client now holds.
+  const GOOGLE_CALLBACK = "app.cybernetai://auth-callback"; // must be in Supabase's redirect allow-list (Authentication > URL Configuration)
+  const GOOGLE_SCHEME = "app.cybernetai";                   // the only scheme WebAuthPlugin.swift accepts
+  const GOOGLE_UNAVAILABLE = "Sign in with Google is not available right now. Please use your email and password.";
+  const GOOGLE_FAILED = "Sign in with Google didn't finish. Please try again, or use your email and password.";
+  // What the sheet came back with: a code (PKCE), tokens in the #hash (the implicit form, if Supabase answers that
+  // way) or an error in either place. Only the app's own return address counts.
+  function googleReturn(address) {
+    let url;
+    try { url = new URL(String(address)); } catch { return { error: "bad_return" }; }
+    if (url.protocol !== `${GOOGLE_SCHEME}:` || url.host !== "auth-callback") return { error: "bad_return" };
+    const query = url.searchParams, hash = new URLSearchParams(url.hash.replace(/^#/, ""));
+    const pick = key => hash.get(key) || query.get(key) || "";
+    return { code: query.get("code") || "", access: hash.get("access_token") || "", refresh: hash.get("refresh_token") || "", error: pick("error") };
+  }
+  let googleBusy = false; // a sheet is up, or its answer is being taken: another tap starts nothing
+  let googleClient = null; // the extra PKCE client, made on the first tap
+  // Called from the sign-in card and the Account block (their own message line). true once the app's Supabase
+  // client has the session; false when it was cancelled (quietly) or did not finish (a message on the line).
+  async function signInWithGoogle(button, { say = authMessage } = {}) {
+    const web = P("CNWebAuth"), sb = supabase(), cfg = w.CYBERNET_CONFIG || {};
+    if (!web || !sb || typeof w.supabase?.createClient !== "function" || !cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY) { say(GOOGLE_UNAVAILABLE); return false; }
+    if (googleBusy) return false;
+    googleBusy = true;
+    button.disabled = true;
+    say("", "");
+    try {
+      rememberLoginAcceptance();
+      const oauth = googleClient ||= w.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY, {
+        auth: { flowType: "pkce", persistSession: false, autoRefreshToken: false, detectSessionInUrl: false, storageKey: "cn-google-oauth" }
+      });
+      const { data, error } = await oauth.auth.signInWithOAuth({ provider: "google", options: { redirectTo: GOOGLE_CALLBACK, skipBrowserRedirect: true } });
+      if (error || !data?.url) throw error || new Error("Supabase gave no sign-in address.");
+      // supabase-js 2.117.2 does not add skip_http_redirect; it is for a caller that fetches the address itself, and the sheet needs the redirect
+      const signInUrl = new URL(data.url);
+      signInUrl.searchParams.delete("skip_http_redirect");
+      const back = googleReturn((await web.start({ url: signInUrl.toString(), callbackScheme: GOOGLE_SCHEME }))?.url);
+      if (back.error === "access_denied") { say("", ""); return false; } // the person said no on Google's or Supabase's page
+      if (back.error) throw new Error(`Google sign-in came back with ${back.error}.`);
+      let tokens = null;
+      if (back.code) {
+        const res = await oauth.auth.exchangeCodeForSession(back.code, data.flowId ? { flowId: data.flowId } : undefined);
+        if (res.error) throw res.error;
+        tokens = res.data?.session;
+      } else if (back.access && back.refresh) tokens = { access_token: back.access, refresh_token: back.refresh };
+      if (!tokens?.access_token || !tokens?.refresh_token) throw new Error("Google sign-in came back without a session.");
+      const { error: setError } = await sb.auth.setSession({ access_token: tokens.access_token, refresh_token: tokens.refresh_token });
+      if (setError) throw setError;
+      say("You're signed in.", "success");
+      $("#closeAuth")?.click();
+      toast("You're signed in with Google.");
+      return true;
+    } catch (error) {
+      if (error?.code === "CANCELED" || /cancel/i.test(String(error?.message || ""))) say("", "");
+      // reported by name and code only: a provider error can carry the sign-in code in its text
+      else { report(new Error(`google sign-in ${error?.name || "Error"} ${error?.code || error?.status || ""}`.trim()), "google sign-in"); say(GOOGLE_FAILED); }
+      return false;
+    } finally { googleBusy = false; button.disabled = false; }
   }
 
   /* ================================================================ 10. QR scanner */

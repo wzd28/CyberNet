@@ -1,6 +1,6 @@
 // The gate for the iPhone app's web bundle (BUILD-PLAN §5.4). It fails when mobile/www contains anything
-// App Review must not find: purchase or plan calls to action, Google sign-in, other platforms, remote code,
-// IP literals, placeholder copy, build markers that should have been processed, or debug hooks.
+// App Review must not find: purchase or plan calls to action, the website's Google sign-in, other platforms, remote
+// code, IP literals, placeholder copy, build markers that should have been processed, or debug hooks.
 //
 //   node mobile/scripts/check-bundle.mjs                 check mobile/www as a release bundle
 //   node mobile/scripts/check-bundle.mjs --debug         a --debug bundle (allows ios/debug.js and its hooks)
@@ -15,6 +15,10 @@
 // brands and is never a call to action; owner rule: no detection changes) and so are the vendored
 // libraries, but both are still checked for remote code and IP literals. The legal pages use a shorter
 // list: a privacy policy must name its processors, but nothing there may sell, price or link out.
+//
+// Sign in with Google (owner approval, 30 Oct 2026) is allowed in one file only: ios/ios.js, the app's own layer, where
+// it opens the system's secure sign-in sheet (see GOOGLE_SIGNIN below). The website's button and call (googleAuthBtn,
+// and signInWithOAuth anywhere else) stay refused, and gate-exemptions.json still cannot exempt a Google term.
 //
 // Exceptions live only in mobile/scripts/gate-exemptions.json: each one is a file, the exact string
 // literal and the term it contains, with a reason. An exemption may not cover a purchase, plan, Google or
@@ -71,6 +75,11 @@ const DEBUG_FILES = [/^ios\/debug\.js$/, /^ios\/engine-fixtures\.json$/];
 const ENGINE = "cybernet-engine.js";
 const VENDOR = /^vendor\//;
 const ANALYTICS = "ios/cn-analytics.js";
+// Sign in with Google: ios/ios.js alone may use these words and the signInWithOAuth call (googleAuthBtn is the website's
+// button and stays forbidden everywhere). Hosts are not widened: no Google address may appear in any file.
+const GOOGLE_SIGNIN = "ios/ios.js";
+const GOOGLE_SIGNIN_WORDS = ["google", "signinwithoauth"];
+const GOOGLE_SIGNIN_IDENTIFIERS = ["signInWithOAuth"];
 // Hosts a string literal may name. Google Analytics only in ios/cn-analytics.js (loaded after the App
 // Tracking Transparency answer is "authorized"; owner, 29 Oct 2026).
 const HOSTS = ["cybernetai.app", "ndtcxippbufqzwcxkyjd.supabase.co", "www.w3.org"];
@@ -104,6 +113,7 @@ export function wordHits(text, { file = "", legal = false, debug = false } = {})
   for (const [w, re] of legal ? LEGAL_RES : WORD_RES) {
     if (!re.test(t)) continue;
     if (file === ANALYTICS && ANALYTICS_WORDS.includes(w)) continue;
+    if (file === GOOGLE_SIGNIN && GOOGLE_SIGNIN_WORDS.includes(w)) continue;
     if (debug && file === "ios/debug.js" && DEBUG_WORDS.includes(w)) continue;
     out.push(w);
   }
@@ -185,7 +195,7 @@ export async function checkBundle({ dir = path.join(mobile, "www"), debug = fals
       const tok = tokens[k];
       const line = offsetLine + tok.loc.start.line;
       const label = tok.type.label;
-      if (label === "name" && !engine && !vendor && FORBIDDEN_IDENTIFIERS.includes(tok.value)) add({ file: rel, line, rule: "identifier", term: tok.value, literal: tok.value, detail: `identifier ${tok.value} must not exist in the app` });
+      if (label === "name" && !engine && !vendor && FORBIDDEN_IDENTIFIERS.includes(tok.value) && !(rel === GOOGLE_SIGNIN && GOOGLE_SIGNIN_IDENTIFIERS.includes(tok.value))) add({ file: rel, line, rule: "identifier", term: tok.value, literal: tok.value, detail: `identifier ${tok.value} must not exist in the app` });
       if (label === "import" && tokens[k + 1]?.type.label === "(" && !vendor) add({ file: rel, line, rule: "remote-code", term: "import()", literal: "", detail: "dynamic import()" });
       if (label !== "string" && label !== "template") continue;
       const value = String(tok.value ?? "");

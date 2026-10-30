@@ -21,9 +21,30 @@
       "min": 0,
       "max": 1,
       "why": "legal gate word (unlock); same meaning"
+    },
+    {
+      "find": "only if you choose Continue with Google;",
+      "replace": "only if you choose Continue with Google on the website or Sign in with Google in the iPhone app;",
+      "min": 0,
+      "max": 1,
+      "why": "the app has Sign in with Google (30 Oct 2026); the website text names only its own button. min 0: harmless once public/privacy.html says it itself"
+    },
+    {
+      "find": "CyberNet asks Apple to revoke the app’s Sign in with Apple access.</p>",
+      "replace": "CyberNet asks Apple to revoke the app’s Sign in with Apple access.</p>\n<p><strong>Sign in with Google.</strong> If you choose it, Google confirms who you are and shares with CyberNet your name, email address, and profile picture. CyberNet does not receive your Google password.</p>",
+      "min": 0,
+      "max": 1,
+      "why": "the iPhone section named only Sign in with Apple; the app now has Sign in with Google too (see also privacy-iphone.html). min 0: harmless once public/privacy.html says it itself"
     }
   ],
   "terms.html": [
+    {
+      "find": "with Continue with Google on the website, or with Sign in with Apple in the iPhone app. If you use Sign in with Apple, Apple confirms who you are and may give CyberNet a private relay email address instead of your own; CyberNet uses that address to contact you.",
+      "replace": "with Continue with Google on the website, or with Sign in with Apple or Sign in with Google in the iPhone app. If you use Sign in with Apple, Apple confirms who you are and may give CyberNet a private relay email address instead of your own; CyberNet uses that address to contact you. If you use Google, Google confirms who you are and shares your name, email address, and profile picture with CyberNet.",
+      "min": 0,
+      "max": 1,
+      "why": "the clause said Google sign-in is on the website only; the app now has Sign in with Google and its sign-in card points here (30 Oct 2026). min 0: harmless once public/terms.html says it itself"
+    },
     {
       "find": "“Concept Preview”, “Coming Soon”, “In Development”",
       "replace": "“Concept Preview”, “In Development”",

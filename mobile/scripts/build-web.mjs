@@ -12,8 +12,8 @@
 //  1. public/ui must be current (`node scripts/build-ui.mjs --check`).
 //  2. Shared web JS is copied from public/ (the sources, never public/legacy) with the build regions
 //     applied: every /*@web*/ ... /*@end-web*/ region is DELETED and every /*@ios ... @end-ios*/
-//     comment is UNWRAPPED (App Review 2.5.19: web-only purchase, Google sign-in and CDN code is not in
-//     the app at all, not switched off at runtime). Unbalanced or nested markers, or a "*/" inside an
+//     comment is UNWRAPPED (App Review 2.5.19: web-only purchase, the website's Google button and CDN code
+//     are not in the app at all, not switched off at runtime; the app's own Sign in with Google is ios.js). Unbalanced or nested markers, or a "*/" inside an
 //     @ios region (it would end the comment early and break the WEBSITE file), fail the build. Then
 //     esbuild strips comments and whitespace (no renaming, no obfuscation) and acorn re-parses it.
 //     mobile/web-ios/text-overrides.json can replace copy in shared files this build does not own

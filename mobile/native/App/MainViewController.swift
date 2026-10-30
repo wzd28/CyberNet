@@ -54,6 +54,7 @@ final class MainViewController: CAPBridgeViewController, UITabBarDelegate {
         bridge?.registerPluginInstance(SharedInboxPlugin())
         bridge?.registerPluginInstance(TrackingPlugin())
         bridge?.registerPluginInstance(AppleSignInPlugin())
+        bridge?.registerPluginInstance(WebAuthPlugin())
         bridge?.registerPluginInstance(TabBarPlugin())
 
         #if DEBUG
