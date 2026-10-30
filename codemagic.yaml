@@ -24,6 +24,12 @@ workflows:
                            # compatibility mode. Never latest/edge (BUILD-PLAN §1, §3).
       node: 22
     scripts:
+      - name: Site build tools (esbuild + acorn at the root lockfile versions, without the 1,188-package netlify-cli tree)
+        script: |
+          set -euo pipefail
+          mkdir -p /tmp/rootdeps && cd /tmp/rootdeps && npm init -y >/dev/null
+          npm install --no-audit --no-fund esbuild@0.28.1 acorn@8.18.0
+          mkdir -p "$CM_BUILD_DIR/node_modules" && cp -R /tmp/rootdeps/node_modules/. "$CM_BUILD_DIR/node_modules/"
       - name: Install
         working_directory: mobile
         script: npm ci
@@ -158,6 +164,12 @@ workflows:
         SHARE_BUNDLE_ID: app.cybernetai.share
         APP_STORE_APPLE_ID: 6828596086   # App Store Connect > App Information (not secret)
     scripts:
+      - name: Site build tools (esbuild + acorn at the root lockfile versions, without the 1,188-package netlify-cli tree)
+        script: |
+          set -euo pipefail
+          mkdir -p /tmp/rootdeps && cd /tmp/rootdeps && npm init -y >/dev/null
+          npm install --no-audit --no-fund esbuild@0.28.1 acorn@8.18.0
+          mkdir -p "$CM_BUILD_DIR/node_modules" && cp -R /tmp/rootdeps/node_modules/. "$CM_BUILD_DIR/node_modules/"
       - name: Install, release bundle, gate, sync, native check
         working_directory: mobile
         script: |
