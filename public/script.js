@@ -2493,8 +2493,8 @@ document.addEventListener("DOMContentLoaded",()=>{
       if(res.ok&&data.unreachable){
         container.innerHTML=`
           <div class="dest-shot-unreachable" role="status">
-            <strong>We couldn't load this website.</strong>
-            <p class="dest-shot-note">The address may not exist or the site may be down. Double-check the spelling — scam links often use addresses that look almost right.</p>
+            <strong>Preview not available.</strong>
+            <p class="dest-shot-note">We couldn't open this page to show a picture of it. This doesn't change the verdict above.</p>
           </div>
         `;
         return;
