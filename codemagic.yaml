@@ -1,6 +1,7 @@
 # Codemagic CI for the CyberNet AI iPhone app (BUILD-PLAN §10).
 #
-# No triggers: a build starts only when the owner presses "Start new build" in Codemagic (the free
+# A build starts only when the owner presses "Start new build" in Codemagic, or when a release tag
+# is pushed on purpose (ios-sim-* or ios-testflight-*). Ordinary pushes never start one (the free
 # plan has 500 macOS minutes a month). Netlify never reads this file.
 #
 # This repository is PUBLIC. Nothing secret is written here. Signing uses what the owner set up in
@@ -19,6 +20,11 @@ workflows:
     name: iOS simulator build, smoke run and screenshots
     instance_type: mac_mini_m2
     max_build_duration: 60
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: 'ios-sim-*'
     environment:
       xcode: "26.6"        # pinned (iOS 26 SDK): "Xcode 26 or later", and iPhone Duo runs the app in
                            # compatibility mode. Never latest/edge (BUILD-PLAN §1, §3).
@@ -146,6 +152,11 @@ workflows:
     name: iOS TestFlight (signed release build)
     instance_type: mac_mini_m2
     max_build_duration: 60
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: 'ios-testflight-*'
     integrations:
       app_store_connect: CyberNet ASC   # Codemagic Developer Portal integration (key name, not the key)
     environment:

@@ -79,6 +79,87 @@ html.cn-ios :focus-visible { outline: 2px solid var(--cn-ios-accent); outline-of
 }
 .cn-ios-disclaimer-small { margin: 12px 0 0; font-size: .82rem; color: var(--cn-ios-text-2); }
 
+/* ---------- Check screen: the Quick Scan | Analysis AI switch (a UISegmentedControl look) ----------
+   It sits above both pages (ios.js, section 2), so the website's own "try the other tool" link in the page
+   headers would only repeat it: it is hidden here. */
+html.cn-ios :is(#cybernet, #cybernetai) > .feature-page-header > .feature-crosslink { display: none !important; }
+.cn-ios-seg-wrap {
+  box-sizing: border-box;
+  width: min(var(--cn-max, 1200px), calc(100% - var(--cn-gutter-l, 16px) - var(--cn-gutter-r, 16px))); /* the pages' column */
+  margin: 14px auto 0;
+}
+.cn-ios-seg-wrap[hidden] { display: none; }
+/* the pages' own top padding is generous because nothing sits above them; the switch is that something */
+.cn-ios-seg-wrap:not([hidden]) ~ #cnMain > :is(#cybernet, #cybernetai) { padding-block-start: 26px; }
+/* Analysis AI's header is tall (label, title, two lines, the usage meter) and its message box sits at the foot
+   of the chat card: with the switch above it the box fell behind the tab bar on a 390 x 844 screen. The
+   header gives the switch's room back (about 64 px) so the box is on the first screen. */
+.cn-ios-seg-wrap:not([hidden]) ~ #cnMain > #cybernetai { padding-block-start: 8px; }
+.cn-ios-seg-wrap:not([hidden]) ~ #cnMain > #cybernetai .feature-page-header { margin-bottom: 12px; }
+.cn-ios-seg-wrap:not([hidden]) ~ #cnMain > #cybernetai .cn-edrow { margin-bottom: 8px; }
+.cn-ios-seg-wrap:not([hidden]) ~ #cnMain > #cybernetai .feature-page-header h1 { margin-bottom: 6px; }
+.cn-ios-seg-wrap:not([hidden]) ~ #cnMain > #cybernetai .usage-meter-card { margin-top: 12px; }
+.cn-ios-seg {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)); /* equal halves, so the thumb always sits on one */
+  box-sizing: border-box;
+  max-width: 440px;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(118, 130, 150, .16);
+  border: 1px solid var(--cn-ios-line);
+}
+.cn-ios-seg-thumb {
+  position: absolute;
+  z-index: 0;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc((100% - 6px) / 2);
+  border-radius: 999px;
+  background: var(--cn-ios-accent);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .35);
+  transition: transform .28s cubic-bezier(.22, 1, .36, 1);
+}
+.cn-ios-seg[data-active="cybernetai"] .cn-ios-seg-thumb { transform: translateX(100%); }
+.cn-ios-seg-btn {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  z-index: 1;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--cn-ios-text-2);
+  font: 600 .96rem/1.1 var(--cn-font, -apple-system, system-ui, sans-serif);
+  letter-spacing: -.005em;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: color .16s ease .06s; /* the label turns as the thumb reaches it */
+}
+.cn-ios-seg-btn[aria-selected="true"] { color: var(--cn-bg, #060a14); }
+.cn-ios-seg-btn[aria-selected="false"]:active { color: var(--cn-ios-text); }
+.cn-ios-seg-hint {
+  box-sizing: border-box;
+  max-width: 440px;
+  margin: 6px 0 0;
+  padding: 0 14px;
+  font-size: .86rem;
+  line-height: 1.4;
+  color: var(--cn-ios-text-2);
+}
+@media (prefers-reduced-motion: reduce) {
+  .cn-ios-seg-thumb, .cn-ios-seg-btn { transition: none !important; }
+}
+html.cn-still .cn-ios-seg-thumb, html.cn-still .cn-ios-seg-btn { transition: none !important; }
+
 /* ---------- the web tab bar (only without the native one) ---------- */
 .cn-ios-tabbar {
   position: fixed;
@@ -192,6 +273,240 @@ html.cn-kb-open .cn-ios-tabbar { display: none; }
 .cn-ios-intro-dots { display: flex; justify-content: center; gap: 6px; margin-top: 16px; }
 .cn-ios-intro-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--cn-ios-line); }
 .cn-ios-intro-dots i.is-on { background: var(--cn-ios-accent); }
+
+/* ---------- first-run motion intro (ios.js, section 7a) ----------
+   The stage covers the screen from its first frame in the launch screen's colour, with the launch screen's
+   shield in the same place and size (--ix-u is one unit of native/brand/splash.svg: its 1024-unit mark at .62
+   on a square as long as the screen's long side), so the launch screen hands over without a jump. Then one
+   move at a time, on the website gate's calm eases: the outline dims and a light draws it again, the lock
+   settles with one ring of light, CyberNet AI rises letter by letter, the quote is typed, the mark glides up
+   and gets smaller, the pitch rises in, and the three steps (a sheet) rise over it.
+   Timing (ms from the first frame): draw 400-1900, lock 1550-2300, wordmark 1500-2700, typing from 2000 (ios.js
+   sets the rest: the quote leaves near 4100, the glide follows at 4200 and takes 1000, the pitch rises in near
+   4900 once the wordmark has passed it, the steps come near 7000). Only transform, opacity and
+   stroke-dashoffset move: no blur, no filter. Every rest value is the END frame and each entry animation
+   fills "backwards", so dropping the animation (Skip, reduced motion) leaves the finished layout. */
+.cn-ix {
+  --ix-u: calc(max(100vw, 100vh) * .62 / 2732);
+  --ix-mw: calc(var(--ix-u) * 584);   /* the shield with its stroke: 584 x 732 units, centred on the screen */
+  --ix-mh: calc(var(--ix-u) * 732);
+  --ix-s: .55;                        /* the mark's size once it has glided up */
+  --ix-top: calc(env(safe-area-inset-top, 0px) + 22px);
+  --ix-ease: cubic-bezier(.65, 0, .35, 1);   /* moves start and end gently (the website gate's ease) */
+  --ix-arrive: cubic-bezier(.22, 1, .36, 1); /* arrivals settle softly */
+  position: fixed;
+  inset: 0;
+  z-index: 1950; /* above the tab bar and the page, below the steps (2000) */
+  overflow: hidden;
+  background: #060a14; /* the launch screen's colour */
+  color: #f5f7fa;
+  font-family: var(--cn-font, ui-sans-serif, system-ui, -apple-system, sans-serif);
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity .5s var(--ix-ease);
+}
+.cn-ix.is-out { opacity: 0; pointer-events: none; }
+.cn-ix.is-calm.is-out { transition-duration: .2s; }
+.cn-ix.is-fade { animation: cn-ix-in .4s ease backwards; } /* a replay fades in over the app; a first launch must not (it is the launch screen) */
+.cn-ix-lockup { position: absolute; inset: 0; transition: transform 1s var(--ix-ease); }
+.cn-ix.is-glide .cn-ix-lockup { transform: translateY(calc(var(--ix-top) + var(--ix-mh) * var(--ix-s) / 2 - 50%)); }
+.cn-ix-mark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--ix-mw);
+  height: var(--ix-mh);
+  margin: calc(var(--ix-mh) / -2) 0 0 calc(var(--ix-mw) / -2);
+  transition: transform 1s var(--ix-ease);
+}
+.cn-ix.is-glide .cn-ix-mark { transform: scale(var(--ix-s)); }
+.cn-ix.is-quick :is(.cn-ix-lockup, .cn-ix-mark, .cn-ix-word) { transition-duration: .45s; }
+.cn-ix-svg { position: relative; z-index: 1; display: block; width: 100%; height: 100%; overflow: visible; }
+/* a soft light grows behind the mark as it is drawn, and stays */
+.cn-ix-halo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--ix-mh) * 2.6);
+  height: calc(var(--ix-mh) * 2.6);
+  margin: calc(var(--ix-mh) * -1.3) 0 0 calc(var(--ix-mh) * -1.3);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(34, 211, 238, .16), rgba(34, 211, 238, .05) 55%, transparent);
+  pointer-events: none;
+  animation: cn-ix-halo 2s var(--ix-arrive) .1s backwards;
+}
+/* The launch screen's outline stays as a faint line and a light traces it again, from the bottom point up the
+   left side, over the top and back down (stroke-dashoffset; pathLength 1). The path starts and ends at the
+   bottom point and has round ends, so the top is always a real corner. */
+.cn-ix-base { opacity: .16; animation: cn-ix-dim .35s ease-out .12s backwards; }
+.cn-ix-trace { stroke-dasharray: 1 2; stroke-dashoffset: 0; animation: cn-ix-draw 1.5s var(--ix-ease) .4s backwards; }
+/* the lock dims with the outline, then settles back with one ring of light as the outline closes */
+.cn-ix-lock { transform-box: fill-box; transform-origin: 50% 60%; animation: cn-ix-lock 2.3s linear backwards; }
+.cn-ix-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 1;
+  width: var(--ix-mh);
+  height: var(--ix-mh);
+  margin: calc(var(--ix-mh) / -2) 0 0 calc(var(--ix-mh) / -2);
+  border: 1px solid rgba(34, 211, 238, .5);
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  animation: cn-ix-ring 1.5s var(--ix-arrive) 1.85s;
+}
+/* the scan line runs down through the mark while it is drawn */
+.cn-ix-scan {
+  position: absolute;
+  top: 0;
+  right: -30%;
+  left: -30%;
+  z-index: 2;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(34, 211, 238, .9) 50%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  animation: cn-ix-scan 1.3s var(--ix-ease) .35s;
+}
+.cn-ix-word {
+  position: absolute;
+  right: 0;
+  left: 0;
+  top: calc(50% + var(--ix-mh) / 2 + 22px);
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  margin: 0;
+  font-family: var(--cn-font-mono, ui-monospace, "SF Mono", Menlo, monospace);
+  font-weight: 700;
+  font-size: clamp(26px, 8vw, 34px);
+  line-height: 1.1;
+  letter-spacing: -.02em;
+  white-space: nowrap;
+  transition: transform 1s var(--ix-ease);
+}
+.cn-ix.is-glide .cn-ix-word { transform: translateY(calc(var(--ix-mh) * (var(--ix-s) - 1) / 2)); } /* follows the mark's bottom edge up */
+.cn-ix-word b { color: #22d3ee; font-weight: 700; }
+.cn-ix-word small { margin-left: .32em; font-size: .46em; font-weight: 600; letter-spacing: .08em; color: #b3bccb; }
+.cn-ix-word span { display: inline-block; animation: cn-ix-letter .8s var(--ix-arrive) calc(1.5s + var(--i) * 45ms) backwards; }
+/* the typed quote: every character is already in place (nothing reflows), and appears as it is typed */
+.cn-ix-quote {
+  position: absolute;
+  right: 0;
+  left: 0;
+  top: calc(50% + var(--ix-mh) / 2 + 90px);
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0 28px;
+  text-align: center;
+  font-weight: 300;
+  font-size: clamp(17px, 5vw, 21px);
+  line-height: 1.45;
+  letter-spacing: -.005em;
+  color: #c9d2df;
+  transition: opacity .45s var(--ix-ease), transform .45s var(--ix-ease);
+}
+.cn-ix.is-read .cn-ix-quote, .cn-ix.is-end .cn-ix-quote { opacity: 0; transform: translateY(-10px); }
+.cn-ix.is-end .cn-ix-quote { transition: none; }
+.cn-ix-q-line { display: block; }
+.cn-ix-w { display: inline-block; white-space: nowrap; }
+.cn-ix-c { position: relative; opacity: 0; }
+.cn-ix-c.is-on { opacity: 1; }
+.cn-ix-c.is-cur::after { content: ""; position: absolute; top: .14em; bottom: .08em; right: -5px; width: 2px; border-radius: 1px; background: #22d3ee; }
+.cn-ix.is-typed .cn-ix-c.is-cur::after { animation: cn-ix-caret .5s ease-in-out; }
+/* the pitch, which rises in line by line once the mark has started up (it is gone when the steps come) */
+.cn-ix-pitch {
+  position: absolute;
+  right: 0;
+  left: 0;
+  top: calc(var(--ix-top) + var(--ix-mh) * var(--ix-s) + 96px);
+  box-sizing: border-box;
+  padding: 0 24px;
+  text-align: center;
+  transition: opacity .4s var(--ix-ease), transform .4s var(--ix-ease);
+}
+.cn-ix:not(.is-pitch) .cn-ix-pitch { visibility: hidden; }
+.cn-ix.is-steps .cn-ix-pitch { opacity: 0; transform: translateY(-8px); }
+/* on a tall screen the steps' sheet stops well below the pitch (its top near y 490 against the pitch's foot at
+   340 on 390 x 844), so the pitch stays above it, the way the website's card keeps its heading; a short
+   screen has no room for both */
+@media (min-height: 760px) { .cn-ix.is-steps .cn-ix-pitch { opacity: 1; transform: none; } }
+.cn-ix-line { margin: 0; font-weight: 700; font-size: clamp(34px, 10.4vw, 46px); line-height: 1.1; letter-spacing: -.025em; color: #f5f7fa; }
+.cn-ix-line-2 { color: var(--cn-ios-accent, #22d3ee); }
+.cn-ix-rule { display: block; width: 36px; height: 2px; margin: 18px auto 0; border-radius: 1px; background: #22d3ee; }
+.cn-ix-kicker {
+  margin: 14px 0 0;
+  font-family: var(--cn-font-mono, ui-monospace, "SF Mono", Menlo, monospace);
+  font-weight: 500;
+  font-size: clamp(10px, 2.9vw, 12px);
+  line-height: 1.7;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: #9fb2c6;
+  text-wrap: balance;
+}
+.cn-ix.is-pitch .cn-ix-line { animation: cn-ix-rise .8s var(--ix-arrive) backwards; }
+.cn-ix.is-pitch .cn-ix-line-2 { animation-delay: .25s; }
+.cn-ix.is-pitch .cn-ix-rule { animation: cn-ix-rule .7s var(--ix-arrive) .55s backwards; }
+.cn-ix.is-pitch .cn-ix-kicker { animation: cn-ix-rise .8s var(--ix-arrive) .65s backwards; }
+/* Skip: 44 x 44 pt at least, top right below the status bar; the stage as a whole is tappable too */
+.cn-ix-skip {
+  -webkit-appearance: none;
+  appearance: none;
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 6px);
+  right: max(10px, env(safe-area-inset-right, 0px));
+  z-index: 6;
+  box-sizing: border-box;
+  min-width: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 22px;
+  background: transparent;
+  color: var(--cn-ios-accent, #22d3ee);
+  font: 600 1.02rem/1 var(--cn-font, ui-sans-serif, system-ui, -apple-system, sans-serif);
+  cursor: pointer;
+  animation: cn-ix-appear .5s ease .7s backwards;
+  transition: opacity .3s ease, background-color .15s ease;
+}
+.cn-ix-skip:active { background-color: rgba(34, 211, 238, .14); }
+.cn-ix.is-steps .cn-ix-skip { opacity: 0; pointer-events: none; }
+.cn-ix-sr { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* Skipped, or reduced motion: no entry animation runs, so every part shows its rest value, the end frame */
+.cn-ix:is(.is-end, .is-calm) :is(.cn-ix-halo, .cn-ix-base, .cn-ix-trace, .cn-ix-lock, .cn-ix-ring, .cn-ix-scan, .cn-ix-word span, .cn-ix-line, .cn-ix-rule, .cn-ix-kicker, .cn-ix-skip) { animation: none; }
+.cn-ix.is-calm :is(.cn-ix-lockup, .cn-ix-mark, .cn-ix-word, .cn-ix-quote, .cn-ix-pitch, .cn-ix-skip) { transition: none; }
+/* reduced motion: the end frame fades in (the cover, the same colour as the stage, fades out) instead of moving */
+.cn-ix.is-calm::after { content: ""; position: absolute; inset: 0; z-index: 5; background: #060a14; pointer-events: none; animation: cn-ix-uncover .6s ease both; }
+@media (prefers-reduced-motion: reduce) {
+  .cn-ix *, .cn-ix *::before, .cn-ix *::after { animation: none !important; transition: none !important; }
+  .cn-ix.is-fade { animation: none; }
+}
+html.cn-still .cn-ix *, html.cn-still .cn-ix *::before, html.cn-still .cn-ix *::after { animation: none !important; transition: none !important; }
+/* the steps rise slowly over the bright stage (the page's usual dimming and quick slide are for other sheets) */
+.cn-ios-sheet-backdrop.cn-ix-over.is-open { background: rgba(2, 6, 14, 0); }
+.cn-ios-sheet-backdrop.cn-ix-over.is-open .cn-ios-sheet { transition-duration: .6s; transition-timing-function: cubic-bezier(.22, 1, .36, 1); }
+@keyframes cn-ix-in { from { opacity: 0; } }
+@keyframes cn-ix-uncover { to { opacity: 0; } }
+@keyframes cn-ix-appear { from { opacity: 0; } }
+@keyframes cn-ix-halo { from { opacity: 0; transform: scale(.55); } }
+@keyframes cn-ix-dim { from { opacity: 1; } }
+@keyframes cn-ix-draw { from { stroke-dashoffset: 1.001; } }
+@keyframes cn-ix-lock {
+  0%, 5% { opacity: 1; transform: none; animation-timing-function: cubic-bezier(.65, 0, .35, 1); }
+  19%, 67% { opacity: .3; transform: translateY(4%) scale(.9); animation-timing-function: cubic-bezier(.22, 1, .36, 1); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes cn-ix-ring { 0% { opacity: .85; transform: scale(.6); } 100% { opacity: 0; transform: scale(1.5); } }
+@keyframes cn-ix-scan { 0% { opacity: 0; transform: translateY(calc(var(--ix-mh) * -.04)); } 15%, 85% { opacity: 1; } 100% { opacity: 0; transform: translateY(calc(var(--ix-mh) * 1.04)); } }
+@keyframes cn-ix-letter { from { opacity: 0; transform: translateY(60%); } }
+@keyframes cn-ix-caret { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+@keyframes cn-ix-rise { from { opacity: 0; transform: translateY(14px); } }
+@keyframes cn-ix-rule { from { opacity: 0; transform: scaleX(0); } }
 
 /* in-app legal pages (an iframe of legal/*.html) */
 .cn-ios-legal-sheet {

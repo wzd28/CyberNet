@@ -3,12 +3,12 @@
 
    Sections:
      1  helpers                 8  legal pages (in-app) and the sign-up acceptance record
-     2  navigation / tab bar    9  Sign in with Apple
+     2  tab bar, Check switch   9  Sign in with Apple
      3  Account screen         10  QR scanner and its verdict sheet
      4  AI consent sheet       11  items shared from other apps (Share Extension hand-off)
      5  fetch layer             12  Recovery reminders (local notifications)
      6  downloads              13  offline, "Report a problem", haptics, small iOS touches
-     7  first-run intro         14  App Tracking Transparency and analytics, app lifecycle
+     7  first-run intro        14  App Tracking Transparency and analytics, app lifecycle
 
    Native plugins are optional at every step (window.CNPlugin returns null when one is missing), so the
    bundle also runs in a desktop browser for development, where the web tab bar replaces the native one. */
@@ -114,6 +114,10 @@
     if (!h) return;
     h.notification({ type }).catch(() => {});
   }
+  // A light tick when a selection changes (the Check switch); like haptic(), a no-op without the plugin.
+  function tick() {
+    try { P("Haptics")?.impact({ style: "LIGHT" })?.catch?.(() => {}); } catch { /* ignore */ }
+  }
 
   /* ================================================================ 2. navigation / tab bar */
   // Native UITabBar (CNTabBar plugin, BUILD-PLAN §6.6) or, without it, a web tab bar with the same tabs.
@@ -128,14 +132,25 @@
   const PAGE_NAMES = { cybernet: "Check", cybernetai: "Analysis AI", recovery: "Recovery", learn: "Learn", account: "Account" };
   const nativeTabs = P("CNTabBar");
 
+  let modeWanted = null; // the Check switch's pending tap (see openCheckPage)
+  let lastCheckPage = "cybernet"; // which of the Check tab's two pages was open last (syncTabs)
   function navigate(page) {
+    modeWanted = null; // any other navigation overrides a pending switch tap
     if (w.CyberNetNav?.switchPage) { w.CyberNetNav.switchPage(page); return; }
     $(`.nav-tabs .nav-link[data-page="${page}"]`)?.click();
   }
+  function scrollToTop() { w.scrollTo({ top: 0, behavior: motionOff() ? "auto" : "smooth" }); }
   function goTab(id) {
     const tab = TABS.find(t => t.id === id);
     if (!tab) return;
     if (id === "scan") { startQrScan(); return; }
+    if (id === "check") {
+      // like a native tab: tapping it again keeps the open page (Quick Scan or Analysis AI) and scrolls it
+      // to the top; coming from another tab returns to the page the Check tab was left on
+      if (isCheckPage(activePage())) { scrollToTop(); return; }
+      navigate(lastCheckPage);
+      return;
+    }
     navigate(tab.page);
   }
   function activePage() { return $(".page.active-page")?.id || "cybernet"; }
@@ -157,12 +172,14 @@
   function syncTabs() {
     const page = activePage();
     const tab = PAGE_TAB[page] || "check";
+    if (isCheckPage(page)) lastCheckPage = page;
     $$("#cnIosTabbar [data-ios-tab]").forEach(b => {
       const on = b.getAttribute("data-ios-tab") === tab;
       b.classList.toggle("is-active", on);
       if (on) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
     });
     nativeTabs?.select({ tab }).catch(() => {});
+    syncCheckSwitch(page);
     if (w.CNAnalytics?.page) w.CNAnalytics.page(page, PAGE_NAMES[page] || page);
   }
   function watchPages() {
@@ -177,6 +194,87 @@
     });
     $$(".page").forEach(p => mo.observe(p, { attributes: true, attributeFilter: ["class"] }));
     syncTabs();
+  }
+
+  // The Check tab holds two pages: Quick Scan ("cybernet", on the iPhone) and Analysis AI ("cybernetai").
+  // A segmented control (UISegmentedControl look) switches between them. It sits above the pages, not
+  // inside them, so its thumb slides while the page below swaps; syncTabs() repaints it after every
+  // navigation (tab bar, share hand-off, deep link), so it always shows the page that is open.
+  const CHECK_MODES = [
+    { page: "cybernet", label: "Quick Scan", hint: "Checks on your iPhone. No account, no AI." },
+    { page: "cybernetai", label: "Analysis AI", hint: "AI explains it in detail. Sign in required." } // sending needs an account (sendChatMessage)
+  ];
+  const isCheckPage = page => CHECK_MODES.some(m => m.page === page);
+  function buildCheckSwitch() {
+    const main = $("#cnMain");
+    if (!main || $("#cnIosSeg")) return;
+    const wrap = el(`<div class="cn-ios-seg-wrap" id="cnIosSegWrap" hidden>
+      <div class="cn-ios-seg" id="cnIosSeg" role="tablist" aria-label="Check mode" data-active="${CHECK_MODES[0].page}">
+        <span class="cn-ios-seg-thumb" aria-hidden="true"></span>${CHECK_MODES.map((m, i) => `
+        <button type="button" role="tab" class="cn-ios-seg-btn" id="cnIosSegTab${i}" data-seg-page="${m.page}" aria-selected="false" aria-controls="${m.page}" aria-describedby="cnIosSegHint${i}" tabindex="-1">${esc(m.label)}</button>`).join("")}
+      </div>
+      <p class="cn-ios-seg-hint">${CHECK_MODES.map((m, i) => `<span id="cnIosSegHint${i}" data-seg-hint="${m.page}" hidden>${esc(m.hint)}</span>`).join("")}</p>
+    </div>`);
+    CHECK_MODES.forEach((m, i) => {
+      const panel = $(`#${m.page}`);
+      panel?.setAttribute("role", "tabpanel");
+      panel?.setAttribute("aria-labelledby", `cnIosSegTab${i}`);
+    });
+    const seg = $("#cnIosSeg", wrap);
+    wrap.addEventListener("click", e => {
+      const b = e.target.closest?.("[data-seg-page]");
+      if (b) pickCheckMode(b.getAttribute("data-seg-page"));
+    });
+    // arrow keys move the selection (and focus) like a native segmented control; Home / End jump to the ends
+    seg.addEventListener("keydown", e => {
+      if (e.altKey || e.ctrlKey || e.metaKey) return;
+      const at = CHECK_MODES.findIndex(m => m.page === seg.dataset.active);
+      const to = { ArrowLeft: at - 1, ArrowRight: at + 1, Home: 0, End: CHECK_MODES.length - 1 }[e.key];
+      if (to === undefined) return;
+      e.preventDefault();
+      pickCheckMode(CHECK_MODES[(to + CHECK_MODES.length) % CHECK_MODES.length].page, true);
+    });
+    main.before(wrap);
+  }
+  function paintCheckSwitch(page) {
+    const seg = $("#cnIosSeg");
+    if (!seg) return;
+    seg.dataset.active = page;
+    $$("[data-seg-page]", seg).forEach(b => {
+      const on = b.getAttribute("data-seg-page") === page;
+      b.setAttribute("aria-selected", String(on));
+      b.tabIndex = on ? 0 : -1;
+    });
+    $$("[data-seg-hint]", seg.parentNode).forEach(s => { s.hidden = s.getAttribute("data-seg-hint") !== page; });
+  }
+  // Called from syncTabs(): shown on both Check pages, hidden on every other tab.
+  function syncCheckSwitch(page) {
+    const wrap = $("#cnIosSegWrap");
+    if (!wrap) return;
+    const on = isCheckPage(page);
+    wrap.hidden = !on;
+    if (on) paintCheckSwitch(modeWanted && isCheckPage(modeWanted) ? modeWanted : page); // a tap in flight keeps the thumb where it was sent
+  }
+  function pickCheckMode(page, focusTab = false) {
+    const seg = $("#cnIosSeg");
+    if (!seg || !isCheckPage(page)) return;
+    if (focusTab) $(`[data-seg-page="${page}"]`, seg)?.focus({ preventScroll: true });
+    if (seg.dataset.active === page && activePage() === page) return;
+    if (seg.dataset.active !== page) tick();
+    paintCheckSwitch(page); // the thumb moves at once; the page follows in switchPage's 300 ms swap
+    openCheckPage(page, 0);
+  }
+  function openCheckPage(page, tries) {
+    if (activePage() !== page) navigate(page);
+    modeWanted = page; // after navigate(), which clears it
+    // switchPage() ignores a request made while the previous swap is still running (a quick second tap):
+    // ask again once it has settled, then show whichever page really is open.
+    later(() => {
+      if (modeWanted !== page) return;
+      if (activePage() !== page && tries < 2) { openCheckPage(page, tries + 1); return; }
+      modeWanted = null;
+      syncCheckSwitch(activePage());
+    }, 380);
   }
   // Native tab taps: bridge.triggerWindowJSEvent("cnTab", {"tab":"check"}) (Capacitor copies the data
   // onto the event), and the bar's overlap with the page for the bottom padding.
@@ -483,14 +581,197 @@
   }
 
   /* ================================================================ 7. first-run intro */
+  // Two parts. 7a: the motion intro on a first launch (and when "Show the welcome tips again" replays it):
+  // the website's sign-in gate in the app's words, one move at a time. 7b: the three steps, a bottom sheet
+  // that rises over the same stage. Returning users meet neither: showIntro() answers at once.
   const INTRO_KEY = "cn-ios-intro-1";
   const INTRO = [
     { title: "Check a text or link", text: "Paste a message or a link into Check. CyberNet AI reads it on your iPhone and shows the warning signs. No account needed." },
     { title: "Scan a QR code before you open it", text: "Scan QR shows where a code really goes. Nothing opens until you choose." },
     { title: "Share to CyberNet AI", text: "In Safari, Mail or Photos, tap Share and choose CyberNet AI. If you don't see it, scroll the app row to More and turn on CyberNet AI. For a text message, copy it and paste it into Check." }
   ];
-  function showIntro(force = false) {
-    if (!force && store.get(INTRO_KEY)) return Promise.resolve(false);
+
+  /* ---- 7a. the motion intro ---- */
+  // The mark is the launch screen's shield, in the same place and size (native/brand/splash.svg), so the
+  // launch screen hands over without a jump. The shield path starts at its bottom point: a dashed draw
+  // then never leaves a notch at the top (the website's gate does the same, DESIGN.md "The gate draw").
+  const IX_SHIELD = "M512 856 C352 786 244 672 244 518 L244 266 C344 258 432 230 512 176 C592 230 680 258 780 266 L780 518 C780 672 672 786 512 856 Z";
+  const IX_QUOTE = ["That message looks real.", "That’s the point."]; // the website's typed line, split where it breathes
+  // The kicker says what the app does, in the words of the sign-in sheet; "protection" claims are not used
+  // in the iOS build (App Review, guideline 2.3.1(a)).
+  const IX_PITCH = { lines: ["Stay secure.", "All in one place."], kicker: "Check, scan and recover" };
+  // Beats in ms. CSS runs the first ones on its own from the stage's first frame (ios.css, .cn-ix: the draw to
+  // 1.9 s, the lock, the wordmark to 2.7 s); these set the typing and the three moves after it (ixTimes). The
+  // glide and the pitch delays in ios.css are written for them.
+  const IX = {
+    type: 2000,   // the quote starts typing
+    char: 36,     // one character, evenly
+    word: 14,     // a breath at the end of a word
+    stop: 130,    // after a full stop
+    line: 200,    // between the two lines
+    hold: 400,    // the quote is read before it leaves
+    glide: 100,   // from the quote leaving to the mark gliding up
+    pitch: 740,   // from the glide starting to the pitch rising in: the wordmark has glided past the pitch's place by then (0.73 s of the 1 s glide on the tallest screen)
+    show: 2060,   // from the pitch starting to the steps (the pitch lands in 1.45 s)
+    calm: 2200    // reduced motion: how long the end frame is shown before the steps
+  };
+  function typingDelays(lines) {
+    const out = [];
+    lines.forEach((line, li) => [...line].forEach((ch, i) => {
+      if (ch === " ") return; // spaces are not typed: they are already there
+      out.push(IX.char + (ch === "." ? IX.stop : 0) + (line[i + 1] === " " ? IX.word : 0) + (i === line.length - 1 && li < lines.length - 1 ? IX.line : 0));
+    }));
+    return out;
+  }
+  function ixTimes() {
+    const typed = IX.type + typingDelays(IX_QUOTE).slice(0, -1).reduce((a, b) => a + b, 0);
+    const read = typed + IX.hold;
+    const glide = read + IX.glide, pitch = glide + IX.pitch;
+    return { type: IX.type, typed, read, glide, pitch, steps: pitch + IX.show };
+  }
+  // prefers-reduced-motion, or the visitor's own "pause motion" choice (cn-ios-boot.js sets html.cn-still)
+  const motionOff = () => root.classList.contains("cn-still") || !!w.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+
+  function introStageHtml() {
+    const letters = (text, from) => [...text].map((c, i) => `<span style="--i:${from + i}">${c}</span>`).join("");
+    const typed = IX_QUOTE.map(line => `<span class="cn-ix-q-line">${line.split(" ").map(word => `<span class="cn-ix-w">${[...word].map(c => `<span class="cn-ix-c">${esc(c)}</span>`).join("")}</span>`).join(" ")}</span>`).join("");
+    const spoken = `CyberNet AI. ${IX_PITCH.lines.join(" ")} ${IX_PITCH.kicker}.`;
+    return `<div class="cn-ix" id="cnIntroStage" role="dialog" aria-modal="true" aria-label="Welcome to CyberNet AI" tabindex="-1">
+      <div class="cn-ix-lockup" aria-hidden="true">
+        <div class="cn-ix-mark">
+          <span class="cn-ix-halo"></span>
+          <svg class="cn-ix-svg" viewBox="220 150 584 732" focusable="false">
+            <defs><linearGradient id="cnIxMark" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#67e8f9"/><stop offset="1" stop-color="#22d3ee"/></linearGradient></defs>
+            <path class="cn-ix-base" d="${IX_SHIELD}" fill="none" stroke="url(#cnIxMark)" stroke-width="48" stroke-linejoin="round"/>
+            <path class="cn-ix-trace" pathLength="1" d="${IX_SHIELD}" fill="none" stroke="url(#cnIxMark)" stroke-width="48" stroke-linejoin="round" stroke-linecap="round"/>
+            <g class="cn-ix-lock">
+              <path d="M436 486 L436 428 A76 76 0 0 1 588 428 L588 486" fill="none" stroke="url(#cnIxMark)" stroke-width="40" stroke-linecap="round"/>
+              <rect x="384" y="472" width="256" height="196" rx="34" fill="url(#cnIxMark)"/>
+              <circle cx="512" cy="550" r="27" fill="#060a14"/>
+              <path d="M498 560 L526 560 L534 620 L490 620 Z" fill="#060a14"/>
+            </g>
+          </svg>
+          <span class="cn-ix-ring"></span>
+          <span class="cn-ix-scan"></span>
+        </div>
+        <p class="cn-ix-word">${letters("Cyber", 0)}<b>${letters("Net", 5)}</b><small>${letters("AI", 8)}</small></p>
+        <p class="cn-ix-quote">${typed}</p>
+      </div>
+      <div class="cn-ix-pitch" aria-hidden="true">
+        <p class="cn-ix-line">${esc(IX_PITCH.lines[0])}</p>
+        <p class="cn-ix-line cn-ix-line-2">${esc(IX_PITCH.lines[1])}</p>
+        <i class="cn-ix-rule"></i>
+        <p class="cn-ix-kicker">${esc(IX_PITCH.kicker)}</p>
+      </div>
+      <p class="cn-ix-sr">${esc(spoken)}</p>
+      <button type="button" class="cn-ix-skip">Skip intro</button>
+    </div>`;
+  }
+
+  // Puts the stage up and starts its clock. Returns { ready, toSteps, leave }: ready resolves when the
+  // beats are over or skipped (a tap anywhere, the Skip button, Escape / Return / Space); toSteps() hands the
+  // screen to the steps; leave() dissolves the stage and gives the native tab bar back.
+  function mountStage(fadeIn) {
+    $("#cnIntroStage")?.remove();
+    const calm = motionOff();
+    const node = el(introStageHtml());
+    if (calm) node.classList.add("is-calm", "is-glide", "is-pitch"); // no drawing, typing or sliding: the end frame, faded in
+    else node.classList.add("is-run");
+    if (fadeIn) node.classList.add("is-fade");
+    const chars = $$(".cn-ix-c", node);
+    const delays = typingDelays(IX_QUOTE);
+    const times = ixTimes();
+    let timers = [], over = false, tabsHidden = false;
+    let go;
+    const ready = new Promise(resolve => { go = resolve; });
+    const wait = (fn, ms) => { timers.push(later(fn, ms)); };
+    const showTabs = () => { if (tabsHidden) { tabsHidden = false; nativeTabs?.setHidden({ hidden: false }).catch(() => {}); } };
+    // what had focus before the stage took it (the Account row, on a replay): the sheet can only hand focus back to the stage's Skip
+    const back = d.activeElement;
+    const refocus = () => { try { if (back?.isConnected && back !== d.body) back.focus({ preventScroll: true }); } catch { /* ignore */ } };
+    const onKey = e => { if (e.key === "Escape" || e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopImmediatePropagation(); end(true); } };
+    const end = skipped => {
+      if (over) return;
+      over = true;
+      timers.forEach(clearTimeout);
+      timers = [];
+      d.removeEventListener("keydown", onKey, true);
+      if (skipped) node.classList.add("is-end", "is-glide", "is-quick"); // every move finishes at once; the mark hurries up
+      go();
+    };
+    node.addEventListener("click", () => end(true)); // the whole stage is the target; the tap is used up, never passed on to the steps
+    d.addEventListener("keydown", onKey, true);
+    // the bar is a native view above the page: hide it so the stage is the whole screen (leave() gives it back)
+    if (nativeTabs) { tabsHidden = true; nativeTabs.setHidden({ hidden: true }).catch(() => {}); }
+    d.body.appendChild(node);
+    try { d.fonts?.load?.('700 34px "JetBrains Mono"'); d.fonts?.load?.('700 44px "Mona Sans"'); } catch { /* the fallback faces are fine */ }
+    try { $(".cn-ix-skip", node).focus({ preventScroll: true }); } catch { /* ignore */ }
+
+    if (calm) wait(() => end(false), IX.calm);
+    else {
+      let at = 0;
+      const t0 = performance.now();
+      const marks = []; // when each character appears, from the stage's first frame
+      delays.reduce((sum, ms) => { marks.push(sum); return sum + ms; }, times.type);
+      // each step aims at its own mark, so the small lateness of chained timers never adds up
+      const typeNext = () => {
+        chars[at - 1]?.classList.remove("is-cur");
+        chars[at].classList.add("is-on", "is-cur");
+        if (++at < chars.length) wait(typeNext, Math.max(0, t0 + marks[at] - performance.now())); else node.classList.add("is-typed");
+      };
+      wait(typeNext, times.type);
+      wait(() => { node.classList.add("is-read"); chars[at - 1]?.classList.remove("is-cur"); }, times.read); // the quote has been read: it leaves
+      wait(() => node.classList.add("is-glide"), times.glide); // the mark and the wordmark glide up, the mark gets smaller
+      wait(() => node.classList.add("is-pitch"), times.pitch); // the pitch rises in, line by line (delays in ios.css)
+      wait(() => end(false), times.steps);
+    }
+    return {
+      ready,
+      toSteps() {
+        node.classList.add("is-steps"); // the pitch and Skip step aside; the sheet is the dialog now
+        node.setAttribute("aria-hidden", "true");
+        node.inert = true;
+      },
+      leave() {
+        end(true); // a no-op once over; makes sure no timer outlives the stage
+        return new Promise(resolve => {
+          node.classList.add("is-out");
+          later(() => { node.remove(); showTabs(); refocus(); resolve(); }, calm ? 220 : 520);
+        });
+      }
+    };
+  }
+
+  // Did something already bring the person here: a link that opened the app, or an item shared to it
+  // (section 11)? Then they are not here to watch an introduction: the steps come as a plain sheet, as before.
+  function launchTarget() {
+    const link = async () => (await P("App")?.getLaunchUrl?.())?.url;
+    const shared = async () => {
+      const { items = [] } = (await P("SharedInbox")?.read?.()) || {};
+      return items.some(i => Date.now() - Date.parse(i.createdAt || 0) < 24 * 3600e3);
+    };
+    // both are asked at once, and a yes from either settles it: one plugin that never answers hides nothing
+    return new Promise(resolve => {
+      let left = 2;
+      const settle = yes => { if (yes) resolve(true); else if (--left === 0) resolve(false); };
+      for (const ask of [link, shared]) ask().then(settle, () => settle(false));
+    });
+  }
+  let introStage = null;   // the stage prepareIntro() put up under the launch screen
+  let introPlain = false;  // first launch with a link or a shared item: no motion
+  let introRun = null;
+  // Called at start. A returning user leaves here at once and nothing waits for it. On a first launch the
+  // stage goes up before the launch screen hides (start() waits for this, 450 ms at most), so the stage's
+  // first frame is the launch screen.
+  async function prepareIntro() {
+    if (store.get(INTRO_KEY)) return;
+    const target = await Promise.race([launchTarget(), new Promise(resolve => setTimeout(() => resolve(false), 450))]);
+    if (target) { introPlain = true; return; }
+    try { introStage = mountStage(false); } catch (error) { report(error, "intro stage"); introPlain = true; }
+  }
+
+  /* ---- 7b. the three steps ---- */
+  function introSheet(overStage) {
     let step = 0;
     return sheet({
       id: "cnIntro",
@@ -507,6 +788,7 @@
           <button type="button" class="cn-ios-link-btn" data-sheet-value="skip">Skip</button>
         </div>`,
       onOpen(panel, done) {
+        if (overStage) panel.parentNode.classList.add("cn-ix-over"); // rises slowly over the bright stage instead of dimming it
         const paint = () => {
           panel.querySelector(".cn-ios-intro-step").textContent = `${step + 1} of ${INTRO.length}`;
           panel.querySelector("#cnIntroTitle").textContent = INTRO[step].title;
@@ -520,7 +802,29 @@
           if (step < INTRO.length - 1) { step++; paint(); } else done("done");
         });
       }
-    }).then(value => { store.set(INTRO_KEY, String(Date.now())); return value; });
+    });
+  }
+
+  function showIntro(force = false) {
+    if (introRun) return introRun;
+    if (!force && store.get(INTRO_KEY)) return Promise.resolve(false);
+    let stage = null;
+    if (force || !introPlain) {
+      try { stage = force ? mountStage(true) : introStage || mountStage(false); } catch (error) { report(error, "intro stage"); }
+    }
+    introStage = null;
+    introRun = (async () => {
+      try {
+        if (stage) await stage.ready; // the motion plays; the steps come when it ends or is skipped
+        stage?.toSteps();
+        return await introSheet(!!stage);
+      } finally {
+        if (stage) await stage.leave();
+      }
+    })().then(value => { store.set(INTRO_KEY, String(Date.now())); return value; });
+    const clear = () => { introRun = null; };
+    introRun.then(clear, clear);
+    return introRun;
   }
 
   /* ================================================================ 8. legal pages and the sign-up acceptance */
@@ -1137,6 +1441,7 @@
   function start() {
     try {
       buildWebTabbar();
+      buildCheckSwitch();
       watchPages();
       bindAccount();
       renderAccount();
@@ -1168,10 +1473,15 @@
       kb?.addListener("keyboardWillShow", () => { root.classList.add("cn-kb-open"); nativeTabs?.setHidden({ hidden: true }).catch(() => {}); });
       kb?.addListener("keyboardWillHide", () => { root.classList.remove("cn-kb-open"); nativeTabs?.setHidden({ hidden: false }).catch(() => {}); });
       P("StatusBar")?.setStyle({ style: "DARK" }).catch(() => {});
-      requestAnimationFrame(() => requestAnimationFrame(() => P("SplashScreen")?.hide().catch(() => {})));
+      // First launch: the motion intro's stage goes up under the launch screen, which then hides onto it
+      // (section 7). Anyone else: the launch screen hides as it always did, with no wait.
+      const prepared = prepareIntro().catch(error => report(error, "intro"));
+      const hideSplash = () => requestAnimationFrame(() => requestAnimationFrame(() => P("SplashScreen")?.hide().catch(() => {})));
+      if (store.get(INTRO_KEY)) hideSplash(); else prepared.then(hideSplash);
       later(() => P("SplashScreen")?.hide().catch(() => {}), 3000);
       later(async () => {
         const first = !store.get(INTRO_KEY);
+        await prepared;
         if (first) await showIntro();
         await startTracking(true);
         checkInbox();
