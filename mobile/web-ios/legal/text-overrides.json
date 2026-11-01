@@ -2,6 +2,228 @@
   "_": "Copy changes for the in-app legal pages (legal/*.html), applied to the built page. Same rule format as web-ios/text-overrides.json. Each one keeps the meaning; owner to review.",
   "privacy.html": [
     {
+      "find": "How CyberNet handles account data, submitted evidence, AI processing, connected API keys, browser storage, billing records, legal acceptance, retention, export, and deletion rights.",
+      "replace": "How CyberNet handles account data, submitted evidence, AI processing, browser storage, legal acceptance, retention, export, and deletion rights.",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. page subtitle"
+    },
+    {
+      "find": "submit content for analysis, connect an API key, purchase or manage a subscription, save reports,",
+      "replace": "submit content for analysis, save reports,",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. section 1"
+    },
+    {
+      "find": "<li>plan, subscription status, billing interval, daily usage, feature access, and account preferences.</li>",
+      "replace": "<li>whether the account has a paid plan from our website, daily usage, feature access, and account preferences.</li>",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. section 2: no plan names or billing details"
+    },
+    {
+      "find": "feature interactions, selected plan, analyses used,",
+      "replace": "feature interactions, analyses used,",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. section 2"
+    },
+    {
+      "find": "page URL, billing cycle when relevant, and limited user-agent information.",
+      "replace": "page URL, and limited user-agent information.",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. section 2: no billing in the app"
+    },
+    {
+      "find": "<h3>Billing and support information</h3>",
+      "replace": "<h3>Support information and website payments</h3>",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. section 2"
+    },
+    {
+      "find": "<li>Stripe customer, checkout, subscription, invoice, payment status, refund, cancellation, and dispute identifiers; CyberNet does not intentionally store complete card numbers;</li>",
+      "replace": "<li>for an account with a paid plan from our website: Stripe customer, subscription, invoice, payment status, refund, cancellation, and dispute identifiers; CyberNet does not intentionally store complete card numbers;</li>",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. section 2: payments exist only for website plans"
+    },
+    {
+      "pattern": "<h3>Link and QR-code previews</h3>\\s*<p>[\\s\\S]*?</p>\\s*",
+      "flags": "g",
+      "replace": "",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. link previews (a Pro and Business website feature, with its two providers) are not in the app"
+    },
+    {
+      "find": "Pro AI history, Recovery Mode cases, and account information may be stored in Supabase.",
+      "replace": "Saved AI explanations, Recovery Mode cases, and account information may be stored in Supabase.",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. section 3: no Pro"
+    },
+    {
+      "pattern": "<h3>User-provided OpenAI API keys</h3>\\s*<p>[\\s\\S]*?</p>\\s*",
+      "flags": "g",
+      "replace": "",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. BYOK is a website feature, not in the app"
+    },
+    {
+      "find": "<h3>Business team accounts — your activity is visible to your team owner</h3>",
+      "replace": "<h3>Team accounts — your activity is visible to your team owner</h3>",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. section 3: no plan name; the disclosure itself stays"
+    },
+    {
+      "find": "<strong>If you join a CyberNet AI Business team, the team owner can see what you do on that team.</strong>",
+      "replace": "<strong>If you join a CyberNet AI team, the team owner can see what you do on that team.</strong>",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. section 3: no plan name"
+    },
+    {
+      "find": "This applies only to members of a Business team. The team owner’s own activity is not shown to anyone and its submitted content is not stored, and submissions from personal Free and Pro accounts are not added to saved history.",
+      "replace": "This applies only to members of a team. The team owner’s own activity is not shown to anyone and its submitted content is not stored for the team log, and what you submit from an account that is not in a team is not shown to anyone else.",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. section 3: no plan names"
+    },
+    {
+      "find": "<p><strong>Business team members.</strong> If your account belongs to a Business team,",
+      "replace": "<p><strong>Team members.</strong> If your account belongs to a team joined on our website,",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. section 3, iPhone paragraph: no plan name"
+    },
+    {
+      "pattern": "<h3>Payments</h3>\\s*<p>Stripe processes payment details[\\s\\S]*?</p>",
+      "flags": "g",
+      "replace": "<h3>Payments on the website</h3>\n<p>The app has no purchases. If your account has a paid plan from our website, Stripe processes the payments and returns customer, subscription, invoice, and status information for that plan, and deleting your account cancels the plan (section 12). For a team plan, billing information belongs to the team owner’s account; members do not have access to it.</p>",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. section 3: no plan names, no unlocking"
+    },
+    {
+      "find": "<li>enforce Free and Pro limits, save eligible history, and provide downloads;</li>",
+      "replace": "<li>enforce daily limits, save eligible history, and provide downloads;</li>",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. section 4"
+    },
+    {
+      "find": "<li>validate and route optional BYOK requests;</li>\n",
+      "replace": "",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. section 4: no BYOK in the app"
+    },
+    {
+      "find": "<li>process subscriptions, invoices, renewals, cancellations, refunds, and payment failures;</li>",
+      "replace": "<li>cancel a paid plan from our website when you delete your account;</li>",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. section 4"
+    },
+    {
+      "find": "record legal acceptance and demonstrate payment authorisation or compliance;",
+      "replace": "record legal acceptance and demonstrate compliance;",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. section 4"
+    },
+    {
+      "find": "to provide accounts, analyses, reports, subscriptions, billing, and requested support;",
+      "replace": "to provide accounts, analyses, reports, and requested support;",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. section 5"
+    },
+    {
+      "find": "<li><strong>Stripe:</strong> checkout, recurring billing, invoices, payment methods, refunds, disputes, fraud prevention, and billing portal services;</li>",
+      "replace": "<li><strong>Stripe:</strong> payments for a plan bought on the website, and cancelling that plan when an account is deleted;</li>",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. section 6: Stripe stays named, because deleting an account cancels a website plan with it"
+    },
+    {
+      "find": "AI analysis requested by CyberNet or by a user through BYOK; from the iPhone app, only after you allow AI analysis.",
+      "replace": "AI explanations, only after you allow AI analysis in the iPhone app.",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. section 6: no BYOK in the app"
+    },
+    {
+      "find": "such as Business team invitations,",
+      "replace": "such as team invitations,",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. section 6"
+    },
+    {
+      "pattern": "<li><strong>GetScreenshot \\(Rasterwise\\) and Microlink:</strong>[\\s\\S]*?</li>\\s*",
+      "flags": "g",
+      "replace": "",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. section 6: the two link-preview providers are not used by the app"
+    },
+    {
+      "find": "<tr><td>Business team activity (",
+      "replace": "<tr><td>Team activity (",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. section 8: no plan name"
+    },
+    {
+      "find": "<tr><td>Pro saved history and reports</td>",
+      "replace": "<tr><td>Saved explanations and history</td>",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. section 8: no Pro"
+    },
+    {
+      "pattern": "<tr><td>BYOK API key</td>[\\s\\S]*?</tr>\\s*",
+      "flags": "g",
+      "replace": "",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. section 8: no BYOK in the app"
+    },
+    {
+      "find": "<tr><td>Billing, tax, invoice, refund, and dispute records</td>",
+      "replace": "<tr><td>Payment records for a plan bought on the website (billing, tax, invoice, refund, and dispute records)</td>",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. section 8"
+    },
+    {
+      "find": "for authentication, navigation, preferences, plan state, legal acceptance, temporary API-key handling, saved browser reports, and security.",
+      "replace": "for authentication, navigation, preferences, legal acceptance, saved reports, and security.",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. section 9: no plan state, no API-key handling"
+    },
+    {
+      "find": "If the account has a paid plan, including a Business team you own, the deletion cancels it with Stripe",
+      "replace": "If the account has a paid plan from our website, including a team you own, the deletion cancels it with Stripe",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. section 12: a website plan is named only because deleting an account cancels it"
+    },
+    {
+      "find": "no refund is given for the unused part of the billing period unless the Refund and Cancellation Policy or applicable law provides otherwise",
+      "replace": "no refund is given for the unused part of the paid period unless applicable law provides otherwise",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. section 12: the Refund and Cancellation Policy is a website document that the app does not carry, so the sentence no longer names it or a billing period"
+    },
+    {
       "find": "<strong>Stripe:</strong> checkout, recurring billing",
       "replace": "<strong>Stripe:</strong> payments on the website, recurring billing",
       "min": 0,
@@ -30,14 +252,149 @@
       "why": "the app has Sign in with Google (30 Oct 2026); the website text names only its own button. min 0: harmless once public/privacy.html says it itself"
     },
     {
-      "find": "CyberNet asks Apple to revoke the app’s Sign in with Apple access.</p>",
+      "pattern": "CyberNet asks Apple to revoke the app’s Sign in with Apple access\\.</p>(?!\\s*<p><strong>Sign in with Google)",
+      "flags": "g",
       "replace": "CyberNet asks Apple to revoke the app’s Sign in with Apple access.</p>\n<p><strong>Sign in with Google.</strong> If you choose it, Google confirms who you are and shares with CyberNet your name, email address, and profile picture. CyberNet does not receive your Google password.</p>",
       "min": 0,
       "max": 1,
-      "why": "the iPhone section named only Sign in with Apple; the app now has Sign in with Google too (see also privacy-iphone.html). min 0: harmless once public/privacy.html says it itself"
+      "why": "the iPhone section named only Sign in with Apple; the app now has Sign in with Google too (see also privacy-iphone.html). min 0: since 30 Oct 2026 public/privacy.html says it itself, and this pattern then no longer matches (it would otherwise add the paragraph a second time)"
     }
   ],
   "terms.html": [
+    {
+      "find": "Formal terms governing CyberNet accounts, automated analysis, connected API keys, reports, subscriptions, payments, privacy controls, liability, and lawful use.",
+      "replace": "Formal terms governing CyberNet accounts, automated analysis, reports, privacy controls, liability, and lawful use.",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. no API keys, subscriptions or payments in the app (page subtitle)"
+    },
+    {
+      "find": "reports, subscriptions, and related services",
+      "replace": "reports, and related services",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. no subscriptions in the app (section 1)"
+    },
+    {
+      "find": "creating an account, submitting content, connecting an API key, or purchasing a subscription,",
+      "replace": "creating an account, or submitting content,",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. no API key or purchase in the app (section 1)"
+    },
+    {
+      "find": ", the <span class=\"cn-ios-unlinked\">Refund and Cancellation Policy</span>",
+      "replace": "",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. the refund policy is for website purchases (section 1)"
+    },
+    {
+      "find": "Legal notices, billing questions and formal contact:",
+      "replace": "Legal notices and formal contact:",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. no billing in the app (section 1)"
+    },
+    {
+      "find": "to demonstrate the contract, payment authorisation, legal compliance, or resolution of disputes.",
+      "replace": "to demonstrate the contract, legal compliance, or resolution of disputes.",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. no payments in the app (section 1)"
+    },
+    {
+      "find": " Paid subscriptions may only be purchased by a person with legal capacity or with permission from the payment-method holder.",
+      "replace": "",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. no purchases in the app (section 2)"
+    },
+    {
+      "find": "before allowing sensitive account, billing, export, or deletion actions.",
+      "replace": "before allowing sensitive account, export, or deletion actions.",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. no billing in the app (section 3)"
+    },
+    {
+      "find": "Depending on availability and plan, CyberNet may provide:",
+      "replace": "Depending on availability, CyberNet may provide:",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. no plans in the app (section 4)"
+    },
+    {
+      "find": "<li><strong>Quick Scan:</strong> rule-based and AI-assisted analysis of suspicious text, messages, links, images, screenshots, QR codes, email headers, and multi-artifact investigations.</li>",
+      "replace": "<li><strong>Quick Scan:</strong> rule-based analysis, on your iPhone, of suspicious text, messages, links, QR codes, and pictures that contain a QR code.</li>",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. Quick Scan in the app runs on the iPhone; email headers and investigations are website features (section 4)"
+    },
+    {
+      "find": "recommended defensive actions, and optional use of a user-provided OpenAI API key.</li>",
+      "replace": "and recommended defensive actions.</li>",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. no API keys in the app (section 4)"
+    },
+    {
+      "find": "<li><strong>Account and Pro features:</strong> usage limits, saved reports, downloadable reports, billing controls, history, support, and legal or privacy controls.</li>",
+      "replace": "<li><strong>Account features:</strong> daily usage limits, saved explanations, downloadable reports, support, and legal or privacy controls.</li>",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. no Pro or billing in the app (section 4)"
+    },
+    {
+      "pattern": "(<section class=\"cn-legal-section\" id=\"byok\">\\s*)<h2>8\\. User-provided API keys</h2>[\\s\\S]*?(\\s*</section>)",
+      "flags": "g",
+      "replace": "$1<h2>8. API keys</h2>\n      <p>The iPhone app does not let you connect an API key of your own. AI explanations in the app are written through CyberNet AI&rsquo;s own service, as described in the Privacy Policy.</p>$2",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. BYOK is a website feature; the section keeps its number (and its #byok anchor) so the numbering does not move, but its heading no longer names a user-provided key feature"
+    },
+    {
+      "find": "<a href=\"#byok\">8. User-provided API keys</a>",
+      "replace": "<a href=\"#byok\">8. API keys</a>",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the contents entry follows the section 8 heading above"
+    },
+    {
+      "find": "any paid plan is cancelled as described in section 13.",
+      "replace": "any paid plan from our website is cancelled immediately.",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. section 13 is replaced in the app; the deletion rule itself is in the iPhone app section"
+    },
+    {
+      "find": "Submitted Content, connected API keys, provider charges, third-party services,",
+      "replace": "Submitted Content, third-party services,",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. no API keys in the app (liability)"
+    },
+    {
+      "find": "Submitted Content, connected API keys, infringement of third-party rights,",
+      "replace": "Submitted Content, infringement of third-party rights,",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. no API keys in the app (indemnity)"
+    },
+    {
+      "find": "essential account, security, legal, payment, renewal, cancellation, verification, or service messages.",
+      "replace": "essential account, security, legal, verification, or service messages.",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. no payments or renewals in the app (notices)"
+    },
+    {
+      "find": "Questions, legal notices, billing concerns, cancellation requests, and privacy requests",
+      "replace": "Questions, legal notices, and privacy requests",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. no billing in the app (contact)"
+    },
     {
       "find": "with Continue with Google on the website, or with Sign in with Apple in the iPhone app. If you use Sign in with Apple, Apple confirms who you are and may give CyberNet a private relay email address instead of your own; CyberNet uses that address to contact you.",
       "replace": "with Continue with Google on the website, or with Sign in with Apple or Sign in with Google in the iPhone app. If you use Sign in with Apple, Apple confirms who you are and may give CyberNet a private relay email address instead of your own; CyberNet uses that address to contact you. If you use Google, Google confirms who you are and shares your name, email address, and profile picture with CyberNet.",
@@ -67,5 +424,56 @@
       "why": "legal gate ($ is reserved for prices); same amount"
     }
   ],
-  "acceptable-use.html": []
+  "acceptable-use.html": [
+    {
+      "find": "Rules requiring defensive, authorised, lawful use of Quick Scan, Analysis AI, Recovery Mode, reports, and connected API keys.",
+      "replace": "Rules requiring defensive, authorised, lawful use of Quick Scan, Analysis AI, Recovery Mode, and reports.",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. page subtitle"
+    },
+    {
+      "find": "applies to accounts, submissions, API-key use, Quick Scan analyses,",
+      "replace": "applies to accounts, submissions, Quick Scan analyses,",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. section 1"
+    },
+    {
+      "find": "rate limits, paywalls, security controls,",
+      "replace": "rate limits, security controls,",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. section 3: no paywall in the app"
+    },
+    {
+      "find": "<p>You must own or be authorised to use any connected API key, comply with provider terms, protect it from disclosure, and pay provider charges. Do not use stolen, leaked, shared, trial, educational, or restricted keys in violation of provider rules.</p>",
+      "replace": "<p>The iPhone app does not accept API keys. Do not use another person’s accounts, keys or credentials without their permission.</p>",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. section 5: BYOK is a website feature; the section keeps its number so the numbering does not move"
+    },
+    {
+      "find": "<h2>5. API keys and third-party accounts</h2>",
+      "replace": "<h2>5. Accounts and credentials</h2>",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the section 5 heading no longer names API keys, which the app does not have; the #api anchor and the number stay"
+    },
+    {
+      "find": "<a href=\"#api\">5. API keys and third-party accounts</a>",
+      "replace": "<a href=\"#api\">5. Accounts and credentials</a>",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the contents entry follows the section 5 heading above"
+    },
+    {
+      "pattern": "<p><strong>Giving several people access\\.</strong>[\\s\\S]*?</p>",
+      "flags": "g",
+      "replace": "<p><strong>One person, one account.</strong> Sharing one set of login credentials is prohibited. If more than one person needs access, each person must use their own account.</p>",
+      "min": 1,
+      "max": 1,
+      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. section 6: the paragraph sent readers to buying team seats"
+    }
+  ]
 }

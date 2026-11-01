@@ -446,7 +446,7 @@ check("app tier: frozen (no runtime switches)", Object.isFrozen(tier.APP_TIER) &
 check("app tier: real Recovery reset is 12:00 PM Gulf time (08:00 UTC)", tier.recoveryNextReset(new Date("2026-10-29T07:59:00Z")) === "2026-10-29T08:00:00.000Z" && tier.recoveryNextReset(new Date("2026-10-29T08:00:00Z")) === "2026-10-30T08:00:00.000Z" && tier.nextUtcMidnight(new Date("2026-10-29T23:59:00Z")) === "2026-10-30T00:00:00.000Z");
 
 // ══════════ 5. account-status ══════════
-for (const [token, limit] of [["t-free", 3], ["t-pro", 3], ["t-member", 3], ["t-owner", 3], ["t-admin", 50]]) {
+for (const [token, limit] of [["t-free", 3], ["t-pro", 3], ["t-member", 3], ["t-owner", 3], ["t-admin", 50], ["t-review", 50]]) {
   reset();
   const r = await run(fn["account-status"], req("/api/account-status?includeHistory=1", { method: "GET", token, ios: true, origin: APP }));
   const p = r.data?.profile || {};
@@ -456,7 +456,29 @@ for (const [token, limit] of [["t-free", 3], ["t-pro", 3], ["t-member", 3], ["t-
   check(`account-status app ${token}: Recovery usage read with the database's window key`, r.data.recoveryUsage?.casesUsed === 1 && r.data.recoveryUsage?.casesLimit === (limit === 50 ? 10 : 1) && restCalls("GET", "/rest/v1/recovery_usage")[0]?.path.includes("window_start=eq.2026-10-29T16:00:00+00:00"), { ru: r.data.recoveryUsage, q: restCalls("GET", "/rest/v1/recovery_usage")[0]?.path });
   check(`account-status app ${token}: AI consent state`, r.data.aiConsent?.granted === true && r.data.aiConsent?.version === consentLib.AI_CONSENT_VERSION, r.data.aiConsent);
   check(`account-status app ${token}: team notice flag only for members`, p.isTeamMember === (token === "t-member") && (token === "t-owner" ? p.teamRole === "owner" : true), p);
-  check(`account-status app ${token}: no plan words anywhere`, !/"(pro|business|free)"/i.test(JSON.stringify(r.data)), JSON.stringify(r.data).slice(0, 300));
+  // Owner request, 30 Oct 2026: profile.webPlan ("pro" or "business", only while that plan is active on the website) is the one plan word the app is told;
+  // it is how the app can say, in plain text, that a web subscriber's limits apply on the website. Free, an admin and every other field stay free of plan words.
+  const WEB_PLAN = { "t-pro": "pro", "t-member": "business", "t-owner": "business" }[token];
+  check(`account-status app ${token}: profile.webPlan is ${WEB_PLAN ? `"${WEB_PLAN}"` : "absent"} (the website's own plan; absent for Free, for an admin and for the App Review account, which must never see the notice)`, WEB_PLAN ? p.webPlan === WEB_PLAN : !("webPlan" in p), p);
+  const { webPlan: _web, ...otherProfile } = p;
+  check(`account-status app ${token}: no other plan words anywhere`, !/"(pro|business|free)"/i.test(JSON.stringify({ ...r.data, profile: otherProfile })), JSON.stringify(r.data).slice(0, 300));
+}
+{
+  // webPlan follows the website's own rule: only an ACTIVE or trialing plan counts; a cancelled, unpaid or inactive Pro account is told nothing
+  const proId = USERS["t-pro"].id;
+  const saved = PROFILE[proId];
+  const got = {};
+  for (const status of ["active", "trialing", "past_due", "canceled", "inactive"]) {
+    PROFILE[proId] = { ...saved, subscription_status: status };
+    reset();
+    const r = await run(fn["account-status"], req("/api/account-status", { method: "GET", token: "t-pro", ios: true, origin: APP }));
+    got[status] = r.data?.profile?.webPlan ?? null;
+  }
+  PROFILE[proId] = { ...saved, plan: "business", subscription_status: "active" };
+  reset();
+  got.businessOnProfile = (await run(fn["account-status"], req("/api/account-status", { method: "GET", token: "t-pro", ios: true, origin: APP }))).data?.profile?.webPlan ?? null;
+  PROFILE[proId] = saved;
+  check("account-status app: webPlan only while the plan is active or trialing (active, trialing: pro; past_due, canceled, inactive: absent); a Business plan on the profile is business", JSON.stringify(got) === JSON.stringify({ active: "pro", trialing: "pro", past_due: null, canceled: null, inactive: null, businessOnProfile: "business" }), got);
 }
 {
   reset({ consent: 500 });

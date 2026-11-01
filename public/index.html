@@ -1320,7 +1320,8 @@
         <div class="detect-panel-grid reveal">
           <div class="detect-main glass">
             <h3>Link detection</h3>
-            <p>Check URLs for phishing, malware, and other malicious activity.</p>
+            <p data-web-only>Check URLs for phishing, malware, and other malicious activity.</p>
+            <!--@ios <p>Check links for scam and phishing warning signs.</p> @end-ios-->
             <input id="cyberLinkInput" type="text" aria-label="Link to scan" placeholder="Enter URL to analyze..."/>
             <div class="input-tools"><button type="button" class="input-clear-btn" data-clear="cyberLinkInput" hidden>Clear</button></div>
             <button class="primary-btn full" id="cyberLinkBtn">Start the analysis</button>
@@ -1374,13 +1375,20 @@
             </div>
           </div>
 
-          <div class="wwc-item glass">
+          <div class="wwc-item glass" data-web-only>
             <span class="wwc-icon" aria-hidden="true">🦠</span>
             <div>
               <h4>Malware clues</h4>
               <p>Detect malicious-download and unsafe-link indicators.</p>
             </div>
           </div>
+          <!--@ios <div class="wwc-item glass">
+            <span class="wwc-icon" aria-hidden="true">🦠</span>
+            <div>
+              <h4>Download and unsafe-link clues</h4>
+              <p>Spot warning signs in download links and unsafe-looking addresses.</p>
+            </div>
+          </div> @end-ios-->
 
           <div class="wwc-item glass">
             <span class="wwc-icon" aria-hidden="true">🔒</span>
@@ -1449,10 +1457,14 @@
               <span>QR codes</span>
             </div>
 
-            <div class="wwc-item-sm">
+            <div class="wwc-item-sm" data-web-only>
               <span class="wwc-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
               <span>File checks</span>
             </div>
+            <!--@ios <div class="wwc-item-sm">
+              <span class="wwc-icon"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
+              <span>Picture and QR checks</span>
+            </div> @end-ios-->
 
             <div class="hiw-steps-stacked">
               <div class="hiw-step-sm glass">
@@ -3071,12 +3083,12 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" defer></script>
   <script src="/config.js?v=20260830-3" defer></script>
   <script src="/legacy/cybernet-engine.js?v=20261030-d1" defer></script>
-  <script src="/legacy/script.js?v=20261030-d1" defer></script>
+  <script src="/legacy/script.js?v=20261030-d2" defer></script>
   <script src="/legacy/cybernet-account-api-upgrade.js?v=20261028-1" defer></script>
   <script src="/cybernet-howto.js?v=20261019-1" defer></script>
 <script src="/legacy/cybernet-business-team.js?v=20261028-1" defer></script>
   <script src="/legacy/cybernet-final-ui-fix.js?v=20261028-1" defer></script>
-      <script src="/legacy/cybernet-legal-upgrade.js?v=20261029-ios1" defer></script>
+      <script src="/legacy/cybernet-legal-upgrade.js?v=20261030-ios1" defer></script>
   <!-- After script.js, cybernet-account-api-upgrade.js and cybernet-final-ui-fix.js (account modal tabs). -->
   <script src="/legacy/cybernet-privacy-controls.js?v=20261029-ios1" defer></script>
   <!-- After script.js (cybernet:session event, appState). -->

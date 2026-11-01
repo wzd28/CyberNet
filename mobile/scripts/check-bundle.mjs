@@ -16,6 +16,9 @@
 // libraries, but both are still checked for remote code and IP literals. The legal pages use a shorter
 // list: a privacy policy must name its processors, but nothing there may sell, price or link out.
 //
+// The web-subscriber notice (owner request, 30 Oct 2026) may use Pro and Business in four exact sentences, in ios/ios.js only
+// (PLAN_NOTICE_STRINGS below); prices and purchase words stay forbidden next to them.
+//
 // Sign in with Google (owner approval, 30 Oct 2026) is allowed in one file only: ios/ios.js, the app's own layer, where
 // it opens the system's secure sign-in sheet (see GOOGLE_SIGNIN below). The website's button and call (googleAuthBtn,
 // and signInWithOAuth anywhere else) stay refused, and gate-exemptions.json still cannot exempt a Google term.
@@ -41,6 +44,9 @@ export const WORDS = [
   "openai key", "api key", "investigation", "screenshot-preview", "public-stats", "three@", "jsdelivr", "unpkg",
   "googletagmanager", "gtag", "coming soon", "lorem", "todo", "tbd", "localhost:", "accurate", "protects your",
   "real-time protection", "99%", "antivirus", "100% safe", "cn_demo_screen", "cn_engine_selftest",
+  // App Review 2.3.1(a): the Check screen makes no malware-detection or protection claim (the website's wording for these is
+  // replaced in public/index.html and public/script.js by <!--@ios--> and /*@ios*/ variants). Learn still teaches about malware.
+  "malware clues", "file checks", "protection scan", "scan for malware", "detect malware", "malicious activity", "malicious-download",
   'webcontentsdebuggingenabled":true',
   // plan names: the app has one tier for every account (BUILD-PLAN §8.2, §11.4 step 9)
   "cybernet ai free", "free plan", "analysis ai free", "team plan"
@@ -53,7 +59,19 @@ export const ALLOWED_PHRASES = [
 ];
 // Legal pages: they name Stripe, Google and OpenAI as processors of the WEBSITE, which a privacy policy
 // must do, but nothing in them may price, sell or send the reader anywhere else.
-export const LEGAL_WORDS = ["$", "per month", "/month", "per year", "9.99", "95.90", "upgrade", "pricing", "checkout", "free trial", "unlock", "coming soon", "lorem", "todo", "tbd"];
+// android, chrome and play store: the app is for iPhone only, so its legal pages name no other platform (not even in an example).
+export const LEGAL_WORDS = ["$", "per month", "/month", "per year", "9.99", "95.90", "upgrade", "pricing", "checkout", "free trial", "unlock", "coming soon", "lorem", "todo", "tbd", "android", "chrome", "play store"];
+// The web-subscriber notice (owner request, 30 Oct 2026): an account that pays for Pro or Business on the website is told, in plain
+// text, that its limits apply on the website and that both plans are coming to the app. Pro and Business are otherwise forbidden
+// words, so these four sentences are allowed in ios/ios.js alone, as whole string literals and word for word (a longer string that
+// merely contains one is not allowed). Prices, upgrade, purchase and checkout words stay forbidden everywhere, also next to them.
+export const PLAN_NOTICE_FILE = "ios/ios.js";
+export const PLAN_NOTICE_STRINGS = [
+  "You have CyberNet AI Pro.",
+  "You have CyberNet AI Business.",
+  "For now, your Pro limits and features apply on cybernetai.app. Pro and Business are coming to the app in an update soon.",
+  "For now, your Business limits and features apply on cybernetai.app. Pro and Business are coming to the app in an update soon."
+];
 export const FORBIDDEN_IDENTIFIERS = ["startCheckout", "openBillingPortal", "showPricingNotice", "initPricingToggle", "signInWithOAuth", "googleAuthBtn", "byokAnalyze"];
 // Terms no exemption may ever cover.
 const NEVER_EXEMPT = ["stripe", "checkout", "customer-portal", "create-checkout-session", "manage billing", "billing portal", "upgrade", "pricing", "data-upgrade-now", "view pro", "pro plan", "business plan", "per month", "/month", "per year", "$9.99", "95.90", "$40", "subscription", "free trial", "google", "signinwithoauth", "jsdelivr", "unpkg", "three@", "googletagmanager", "gtag", "Pro"];
@@ -107,6 +125,7 @@ const PRO = /\b(?:Pro|PRO)\b/;
 
 const DEBUG_WORDS = ["cn_demo_screen", "cn_engine_selftest"];
 export function wordHits(text, { file = "", legal = false, debug = false } = {}) {
+  if (!legal && file === PLAN_NOTICE_FILE && PLAN_NOTICE_STRINGS.includes(String(text))) return [];
   let t = String(text);
   for (const re of ALLOWED_PHRASES) t = t.replace(re, " ");
   const out = [];

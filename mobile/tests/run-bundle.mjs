@@ -316,9 +316,9 @@ try {
         check("Launch: a plugin that never answers hides nothing (a shared item still counts) and the wait is capped at 450 ms", (await timeout(lt(plug({ App: { getLaunchUrl: never }, SharedInbox: { read: async () => ({ items: [{ createdAt: hours(1) }] }) } }))())) === true && (await timeout(lt(plug({ App: { getLaunchUrl: never } }))(), 80)) === "timeout" && /Promise\.race\(\[launchTarget\(\),newPromise\(resolve=>setTimeout\(\(\)=>resolve\(false\),450\)\)\]\)/.test(fnText("prepareIntro")));
         const startText = fnText("start");
         // Changed 30 Oct 2026: a returning user's launch screen now waits for the session check (prepareGate, section 7d), because a signed-out person gets the short gate and nothing may flash first. The wait is the Keychain read: milliseconds, 1.2 s at most.
-        check("Launch: a returning user's launch screen hides as soon as the session check has answered (1.2 s at most, usually milliseconds); no gate for someone signed in", /^asyncfunctionprepareGate\(\)\{if\(awaitsessionKnown\(\)!==false\)return;/.test(fnText("prepareGate")) && /constprepared=\(first\?prepareIntro\(\):prepareGate\(\)\)/.test(startText) && /prepared\.then\(hideSplash\)/.test(startText) && /requestAnimationFrame\(\(\)=>requestAnimationFrame\(\(\)=>P\("SplashScreen"\)/.test(startText) && /later\(\(\)=>P\("SplashScreen"\)\?\.hide\(\)\.catch\(\(\)=>\{\}\),3e3\)/.test(startText) && /^asyncfunctionprepareIntro\(\)\{if\(store\.get\(INTRO_KEY\)\)return;/.test(fnText("prepareIntro")), startText.slice(0, 300));
+        check("Launch: a returning user's launch screen hides as soon as the session check has answered (1.2 s at most, usually milliseconds); no gate for someone signed in", /^asyncfunctionprepareGate\(\)\{if\(guestRemembered\(\)\)return;if\(awaitsessionKnown\(\)!==false\)return;/.test(fnText("prepareGate")) && /constprepared=\(first\?prepareIntro\(\):prepareGate\(\)\)/.test(startText) && /prepared\.then\(hideSplash\)/.test(startText) && /requestAnimationFrame\(\(\)=>requestAnimationFrame\(\(\)=>P\("SplashScreen"\)/.test(startText) && /later\(\(\)=>P\("SplashScreen"\)\?\.hide\(\)\.catch\(\(\)=>\{\}\),3e3\)/.test(startText) && /^asyncfunctionprepareIntro\(\)\{if\(store\.get\(INTRO_KEY\)\)return;/.test(fnText("prepareIntro")), startText.slice(0, 300));
         check("Launch: with a link or a shared item the steps come as a plain sheet, and a replay always gets the motion", /if\(target\)\{introPlain=true;return\}/.test(fnText("prepareIntro")) && /if\(force\|\|!introPlain\)/.test(fnText("showIntro")) && /introSheet\(!!stage\)/.test(fnText("showIntro")));
-        check("Launch: after the intro (or the short gate) the app goes on as before (tracking prompt, then the shared-item sheet)", squash(iosJs).includes("awaitprepared;if(first)awaitshowIntro();elseawaitshowGate();awaitstartTracking(true);checkInbox()"));
+        check("Launch: after the intro (or the short gate) the app goes on as before (tracking prompt, then the shared-item sheet), and a step that fails no longer skips them (30 Oct 2026, below)", squash(iosJs).includes('awaitprepared;if(first)awaitshowIntro();elseawaitshowGate()}catch(error){report(error,"launch")}finally{try{awaitstartTracking(true)}catch(error){report(error,"tracking")}'));
         check("Launch: the intro key is unchanged", /INTRO_KEY\s*=\s*"cn-ios-intro-1"/.test(iosJs));
         let steps = null;
         try { steps = new Function(`${iosSrc(declOf("INTRO"))};\nreturn INTRO;`)(); } catch (error) { check("INTRO can be run", false, error.message); }
@@ -412,11 +412,11 @@ try {
       check("Launch: a session check that never answers is capped (1.2 s by default) and counts as no answer: the app opens, the gate is not a wall", (await mkKnown({ auth: { getSession: never } }, 60)) === null && /constSESSION_WAIT=1200/.test(squash(iosJs)));
 
       const realGate = gate;
-      const mkPrepare = ({ session: s, target, mount }) => {
-        const calls = { mounted: [], reported: [] };
+      const mkPrepare = ({ session: s, target, mount, guest = false }) => {
+        const calls = { mounted: [], reported: [], asked: 0 };
         const stage = { stage: true };
-        const api = run(["gateStage", "gateWanted", "prepareGate"], ["sessionKnown", "launchTarget", "launchGate", "mountStage", "report"], "{ prepareGate, state: () => ({ gateStage, gateWanted }) }",
-          async () => s, target, realGate, (...a) => { calls.mounted.push(a); if (mount === "throw") throw new Error("no stage"); return stage; }, (e, where) => calls.reported.push(where));
+        const api = run(["gateStage", "gateWanted", "prepareGate"], ["sessionKnown", "launchTarget", "launchGate", "mountStage", "report", "guestRemembered"], "{ prepareGate, state: () => ({ gateStage, gateWanted }) }",
+          async () => { calls.asked++; return s; }, target, realGate, (...a) => { calls.mounted.push(a); if (mount === "throw") throw new Error("no stage"); return stage; }, (e, where) => calls.reported.push(where), () => guest);
         return { api, calls, stage };
       };
       {
@@ -447,7 +447,7 @@ try {
         await a.showGate();
         check("Short gate: the card rises over the stage once its beats are over (steps aside, card, stage leaves); with no stage the card comes over the app; with no gate nothing happens", log.join(" | ") === 'toSteps | card {"launch":true,"overStage":true} | leave | card {"launch":true,"overStage":false}', log);
       }
-      check("Short gate: it is the first thing a later launch does (before the launch screen hides) and the launch goes on to the tracking prompt and the shared item as before", /constfirst=!store\.get\(INTRO_KEY\);constprepared=\(first\?prepareIntro\(\):prepareGate\(\)\)\.catch\(/.test(fnText("start")) && /prepared\.then\(hideSplash\)/.test(fnText("start")) && /awaitprepared;if\(first\)awaitshowIntro\(\);elseawaitshowGate\(\);awaitstartTracking\(true\);checkInbox\(\)/.test(fnText("start")));
+      check("Short gate: it is the first thing a later launch does (before the launch screen hides) and the launch goes on to the tracking prompt and the shared item as before", /constfirst=!store\.get\(INTRO_KEY\);constprepared=\(first\?prepareIntro\(\):prepareGate\(\)\)\.catch\(/.test(fnText("start")) && /prepared\.then\(hideSplash\)/.test(fnText("start")) && /awaitprepared;if\(first\)awaitshowIntro\(\);elseawaitshowGate\(\)\}catch\(error\)\{report\(error,"launch"\)\}finally\{try\{awaitstartTracking\(true\)\}catch\(error\)\{report\(error,"tracking"\)\}try\{if\(appleLeft\)awaitshowAppleLeftover\(\)\}catch\(error\)\{report\(error,"appleleftover"\)\}checkInbox\(\)\}/.test(fnText("start")));
       {
         const t = run(["IXS"], [], "IXS");
         check("Short gate timing: the beats come in order and the card is up in 1.0 to 1.5 s (about 1.4 s with its 0.6 s rise); reduced motion fades the end frame in for about 0.45 s", t.glide < t.pitch && t.pitch < t.card && t.card + 600 >= 1000 && t.card + 600 <= 1500 && t.calm >= 300 && t.calm <= 600, t);
@@ -855,6 +855,303 @@ try {
       check("Share Extension: the review QR sample reads SCAM", qr.headline === "SCAM", qr);
     }
 
+    // ---------------------------------------------------------------------------------------------------------------------------------
+    // 30 Oct 2026, the App Review audit: (1) no malware or protection claim on Check, (2) one Sign in with Apple title and the real logo at
+    // Apple's size, (3) a guest is remembered for 7 days, (6) polish, (7) the web subscriber's notice. The functions are cut out of the
+    // built ios.js with acorn and run with stubs, as above; the legal pages (4, 5) are checked at the end.
+    {
+      const iosAst = acorn.parse(iosJs, { ecmaVersion: "latest", sourceType: "script" });
+      const iosSrc = node => (node ? iosJs.slice(node.start, node.end) : "");
+      const squash = text => String(text).replace(/\s+/g, "");
+      const declOf = name => find(n => n.type === "VariableDeclaration" && n.declarations.some(d => d.id?.name === name), iosAst);
+      const fnOf = name => find(n => n.type === "FunctionDeclaration" && n.id?.name === name, iosAst);
+      const fnText = name => squash(iosSrc(fnOf(name)));
+      const run = (names, params, ret, ...stubs) => new Function(...params, `${names.map(n => iosSrc(declOf(n) || fnOf(n))).join(";\n")};\nreturn ${ret};`)(...stubs);
+      const esc = v => String(v).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+      const P5 = await import(pathToFileURL(createRequire(path.join(mobile, "package.json")).resolve("parse5")).href);
+      const parse = markup => { const all = []; (function walk(n) { for (const c of n.childNodes || []) { if (c.tagName) all.push(c); walk(c); } })(P5.parseFragment(markup)); return all; };
+      const attr = (n, name) => n.attrs.find(a => a.name === name)?.value;
+      const textOf = n => (n.childNodes || []).map(c => c.value ?? textOf(c)).join("");
+      const cssRaw = await read("ios/ios.css");
+      const css = squash(cssRaw);
+      const rawRule = sel => (cssRaw.match(new RegExp(`(?:^|[};])${sel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\{([^}]*)\\}`)) || [])[1] || "";
+      const gateMod = await import(pathToFileURL(path.join(mobile, "scripts", "check-bundle.mjs")).href);
+      const pubIndex = await readFile(path.join(root, "public", "index.html"), "utf8");
+      const pubScript = await readFile(path.join(root, "public", "script.js"), "utf8");
+      const attrI = (n, name) => n.attrs.find(a => a.name.toLowerCase() === name.toLowerCase())?.value;
+      const realGate = run(["launchGate"], [], "launchGate");
+      const mkPrepare = ({ session: s, target, guest = false }) => {
+        const calls = { mounted: [], asked: 0 };
+        const api = run(["gateStage", "gateWanted", "prepareGate"], ["sessionKnown", "launchTarget", "launchGate", "mountStage", "report", "guestRemembered"], "{ prepareGate, state: () => ({ gateStage, gateWanted }) }",
+          async () => { calls.asked++; return s; }, target, realGate, (...a) => { calls.mounted.push(a); return { stage: true }; }, () => {}, () => guest);
+        return { api, calls };
+      };
+
+      // ---- 1. the Check screen makes no malware-detection or protection claim (guideline 2.3.1(a))
+      check("Check screen: calm wording in the app (links: scam and phishing warning signs; Download and unsafe-link clues; Picture and QR checks; Check on your iPhone complete)",
+        html.includes("<p>Check links for scam and phishing warning signs.</p>") && html.includes("<h4>Download and unsafe-link clues</h4>") && html.includes("<span>Picture and QR checks</span>") &&
+        script.includes("Check on your iPhone complete. Use Analysis AI for a deeper, AI-assisted check."));
+      check("Check screen: the old claims are not in the app at all (Malware clues, File checks, malicious activity, protection scan, QR and file checks)",
+        !/Malware clues|File checks|malicious activity|malicious-download|protection scan|QR and file checks/i.test(html + script + iosJs));
+      check("Check screen: the website keeps its own words (data-web-only and /*@web*/ variants in the sources)",
+        pubIndex.includes('<p data-web-only>Check URLs for phishing, malware, and other malicious activity.</p>') && /<div class="wwc-item glass" data-web-only>\s*<span class="wwc-icon" aria-hidden="true">🦠<\/span>\s*<div>\s*<h4>Malware clues<\/h4>/.test(pubIndex) && /<div class="wwc-item-sm" data-web-only>[\s\S]*?<span>File checks<\/span>/.test(pubIndex) &&
+        pubScript.includes('/*@web*/"Local protection scan complete. Use Analysis AI for a deeper, AI-assisted check."/*@end-web*/') && pubScript.includes('/*@web*/"Local QR and file checks complete. Use Analysis AI for a deeper, AI-assisted check."/*@end-web*/'));
+      check("Check screen: the gate refuses the old claims, and passes the new wording",
+        ["Malware clues", "File checks", "Check URLs for phishing, malware, and other malicious activity.", "Detect malicious-download and unsafe-link indicators.", "Local protection scan complete.", "Local QR and file checks complete."].every(t => gateMod.wordHits(t, { file: "script.js" }).length > 0) &&
+        ["Check links for scam and phishing warning signs.", "Download and unsafe-link clues", "Spot warning signs in download links and unsafe-looking addresses.", "Picture and QR checks", "Check on your iPhone complete. Use Analysis AI for a deeper, AI-assisted check."].every(t => gateMod.wordHits(t, { file: "script.js" }).length === 0));
+
+      // ---- 2. Sign in with Apple: one title, the Apple logo, a title at 43% of the button's height (HIG)
+      const wrapTemplate = find(n => n.type === "TemplateLiteral" && /cnAppleWrap/.test(iosSrc(n)), iosAst);
+      const APPLE_LOGO = run(["APPLE_LOGO"], [], "APPLE_LOGO");
+      const dialogMarkup = new Function("APPLE_LOGO", `return ${iosSrc(wrapTemplate)};`)(APPLE_LOGO);
+      const dialogApple = parse(dialogMarkup).find(n => attr(n, "id") === "cnAppleBtn");
+      const choiceNodes = parse(run(["APPLE_LOGO", "GOOGLE_LOGO", "SIGNIN_MSG", "signInChoicesHtml"], ["esc"], "signInChoicesHtml('cnAcct')", esc));
+      const cardApple = choiceNodes.find(n => attr(n, "data-signin") === "apple"), cardGoogle = choiceNodes.find(n => attr(n, "data-signin") === "google");
+      check("Sign in with Apple: one title everywhere (the card, the Account block and the email dialog say Sign in with Apple; Continue with Apple is gone)",
+        textOf(dialogApple).trim() === "Sign in with Apple" && textOf(cardApple).trim() === "Sign in with Apple" && !/Continue with Apple/.test(iosJs + html + script), [textOf(dialogApple), textOf(cardApple)]);
+      const logo = parse(APPLE_LOGO)[0];
+      const [, , vbW, vbH] = String(attrI(logo, "viewBox")).split(/\s+/).map(Number);
+      const logoPath = parse(APPLE_LOGO).find(n => n.tagName === "path");
+      const drawn = Number(attr(logo, "width")) / Number(attr(logo, "height"));
+      check("Apple logo: the standard Apple logo path (the apple with its bite, and the leaf), cropped to the glyph (19.6 x 24 units) and drawn at the same proportions (18 x 22 px), hidden from VoiceOver",
+        logo.tagName === "svg" && /^M12\.152 6\.896c/.test(attr(logoPath, "d")) && (attr(logoPath, "d").match(/M/g) || []).length === 2 && Math.abs(vbW / vbH - 19.6 / 24) < 0.005 && Math.abs(vbW / vbH - drawn) / (vbW / vbH) < 0.02 && attr(logo, "aria-hidden") === "true" && attr(logoPath, "fill") === undefined && attr(logo, "fill") === "currentColor", [attrI(logo, "viewBox"), attr(logo, "width"), attr(logo, "height")]);
+      const sizes = sel => ({ font: Number(/font:\s*\d+\s+(\d+(?:\.\d+)?)px/.exec(rawRule(sel))?.[1]), height: Number(/min-height:\s*(\d+)px/.exec(rawRule(sel))?.[1]) });
+      const appleSize = sizes(".cn-ios-apple-btn"), googleSize = sizes(".cn-ios-google-btn");
+      const cardHeight = Number(/min-height:\s*(\d+)px/.exec((cssRaw.match(/\.cn-signin-choices>:is\([^)]*\)\{([^}]*)\}/) || [])[1] || "")?.[1]);
+      check("Apple button: the title is 43% of the button's height (21 px on the 50 pt button, 0.40 to 0.45), also in the email dialog (50 pt there too), and Google's title and height match Apple's",
+        appleSize.height === 50 && appleSize.font === 21 && appleSize.font / appleSize.height >= 0.40 && appleSize.font / appleSize.height <= 0.45 && cardHeight === 50 && googleSize.font === appleSize.font && googleSize.height === appleSize.height, [appleSize, googleSize, cardHeight]);
+      check("Apple button: Apple stays first and is solid white (never weaker than Google's dark outlined one)", choiceNodes.filter(n => attr(n, "data-signin")).map(n => attr(n, "data-signin")).join("|") === "apple|google|email|create" && /background:#fff/.test(rawRule(".cn-ios-apple-btn").replace(/\s+/g, "")) && /background:#131314/.test(rawRule(".cn-ios-google-btn").replace(/\s+/g, "")) && cardGoogle);
+
+      // ---- 3. the guest choice is remembered for 7 days (guideline 5.1.1(v))
+      const T = Date.parse("2026-11-02T10:00:00Z"), DAY = 24 * 3600e3;
+      const remembered = (stored) => run(["GUEST_KEY", "GUEST_MEMORY", "guestRemembered"], ["store", "Date"], "guestRemembered", { get: () => stored }, { now: () => T })();
+      check("Guest memory: 7 days exactly", run(["GUEST_MEMORY"], [], "GUEST_MEMORY") === 7 * DAY && run(["GUEST_KEY"], [], "GUEST_KEY") === "cn-ios-guest-1");
+      check("Guest memory: a choice made now, or 6 days ago, is remembered; 7 days and later is not; no choice, a bad value, or a time in the future (a clock set back) is not",
+        remembered(String(T)) === true && remembered(String(T - 6 * DAY)) === true && remembered(String(T - 7 * DAY + 1000)) === true && remembered(String(T - 7 * DAY)) === false && remembered(String(T - 8 * DAY)) === false &&
+        remembered(null) === false && remembered("") === false && remembered("abc") === false && remembered(String(T + 3600e3)) === false);
+      {
+        const t = mkPrepare({ session: false, target: async () => false, guest: true });
+        await t.api.prepareGate();
+        const normal = mkPrepare({ session: false, target: async () => false, guest: false });
+        await normal.api.prepareGate();
+        check("Guest memory: a later launch within 7 days of the choice puts up no short gate (the session is not even asked), and the launch screen hides at once; after that the gate comes back", t.calls.mounted.length === 0 && t.calls.asked === 0 && !t.api.state().gateWanted && normal.calls.mounted.length === 1 && normal.api.state().gateWanted);
+      }
+      {
+        // the launch card, run with stubs: the guest link stores the time; a sign-in, Not now and the other choices do not
+        const mkCard = async (launch, how) => {
+          const stored = {}, handlers = [];
+          const waiters = [];
+          const panel = { parentNode: { addEventListener() {} }, addEventListener: (type, fn) => handlers.push(fn) };
+          const api = run(["GUEST_KEY", "ACCOUNT_PAGES", "GATE_LEAD", "ACCOUNT_LEADS", "cardOpen", "gateOpen", "authClosedAt", "signInCard"],
+            ["sheet", "signInCardHtml", "d", "root", "inertBehind", "holdBar", "riseOverStage", "wireSignIn", "whenSignedIn", "store", "$", "performance"], "signInCard",
+            opts => new Promise(resolve => opts.onOpen(panel, resolve)), () => "", { addEventListener() {}, removeEventListener() {} }, { classList: { add() {}, remove() {} } },
+            () => {}, () => {}, () => {}, () => {}, fn => { waiters.push(fn); return () => {}; }, { set: (k, v) => { stored[k] = v; } }, () => null, performance);
+          const done = api({ launch });
+          if (how === "signed-in") waiters[0]();
+          else handlers[0]({ target: { closest: () => ({ getAttribute: () => how }) } });
+          return { value: await done, stored };
+        };
+        const guest = await mkCard(true, "guest"), signed = await mkCard(true, "signed-in"), notNow = await mkCard(false, "cancel");
+        check("Guest memory: tapping Continue without an account stores the time (once, as milliseconds) and the card answers guest; a sign-in on the card, or Not now on a guest's card, stores nothing",
+          guest.value === "guest" && Math.abs(Number(guest.stored["cn-ios-guest-1"]) - Date.now()) < 5000 && signed.value === "signed-in" && !("cn-ios-guest-1" in signed.stored) && notNow.value === "cancel" && !("cn-ios-guest-1" in notNow.stored), [guest, signed, notNow]);
+      }
+      check("Guest memory: any sign-in forgets it (so a later sign-out meets the short gate again), and Analysis AI and Recovery still ask first, Account still offers the sign-in choices",
+        /if\(user\)store\.del\(GUEST_KEY\)/.test(fnText("bindAccount")) && /function needsAccount|const needsAccount/.test(iosJs) && /id="cnAcctSignIn"/.test(html) && /entry\.innerHTML=signInChoicesHtml\("cnAcct"\)/.test(fnText("bindAccount")));
+
+      // ---- 6a. the QR scanner closing puts the tab bar's highlight back
+      {
+        const mkScan = (scanBarcode, hasScanner = true) => {
+          const log = [];
+          const go = run(["startQrScan"], ["P", "showCameraHelp", "showQrVerdict", "syncTabs", "report"], "startQrScan",
+            () => (hasScanner ? { scanBarcode } : null), (...a) => log.push(`help:${a[0].slice(0, 22)}${a[1] ? ":settings" : ""}`), (...a) => log.push(`verdict:${a.join(",")}`), () => log.push("sync"), (e, where) => log.push(`report:${where}`));
+          return { go, log };
+        };
+        const cancel = mkScan(async () => { throw Object.assign(new Error("scan cancelled"), { code: "OS-PLUG-BARC-0006" }); });
+        await cancel.go();
+        const empty = mkScan(async () => ({ ScanResult: " " }));
+        await empty.go();
+        const scanned = mkScan(async () => ({ ScanResult: "https://parcel-redeliver-help.invalid/pay" }));
+        await scanned.go();
+        const denied = mkScan(async () => { throw Object.assign(new Error("camera access denied"), { code: "OS-PLUG-BARC-0007" }); });
+        await denied.go();
+        const broken = mkScan(async () => { throw new Error("boom"); });
+        await broken.go();
+        const none = mkScan(null, false);
+        await none.go();
+        check("QR scanner closed: cancelled and an empty result sync the tab bar at once; a result, a refusal and an error open a sheet (which syncs when it is closed)",
+          cancel.log.join("|") === "sync" && empty.log.join("|") === "sync" && scanned.log.join("|") === "verdict:https://parcel-redeliver-help.invalid/pay,qr" && denied.log.join("|").startsWith("help:CyberNet AI doesn't ha") && !denied.log.includes("sync") && broken.log.join("|").startsWith("report:qr scan|help:The scanner couldn't") && none.log.join("|").startsWith("help:The camera scanner is"), [cancel.log, empty.log, scanned.log, denied.log, broken.log, none.log]);
+        check("QR scanner closed: the result sheet and the camera help sheet sync the tab bar when they close, and a code that cannot be checked syncs too",
+          /\}\)\.then\(\(\)=>syncTabs\(\)\);?\}$/.test(fnText("showQrVerdict")) && /\.then\(choice=>\{syncTabs\(\);/.test(fnText("showCameraHelp")) && /Thiscodecouldnotbechecked\."\);syncTabs\(\);return/.test(fnText("showQrVerdict")) && /couldnotload\.Pleaserestarttheapp\."\);syncTabs\(\);return/.test(fnText("showQrVerdict")));
+        check("Tab bar: a page view is counted when the page changes, not each time the highlight is put back", /page!==lastPageViewed\)\{lastPageViewed=page;w\.CNAnalytics\.page\(/.test(fnText("syncTabs")));
+      }
+
+      // ---- 6b. hidden Apple relay addresses
+      {
+        const label = run(["APPLE_RELAY", "userEmailLabel"], [], "userEmailLabel");
+        check("Account: privaterelay.appleid.com and private.icloud.com addresses are shown as hidden; other addresses (also icloud.com and look-alikes) are shown as they are",
+          label({ email: "abc123@privaterelay.appleid.com" }) === "Apple ID (hidden email)" && label({ email: "abc123@private.icloud.com" }) === "Apple ID (hidden email)" && label({ email: " Abc@PrivateRelay.AppleID.com " }) === "Apple ID (hidden email)" &&
+          label({ email: "me@icloud.com" }) === "me@icloud.com" && label({ email: "me@mail.private.icloud.com" }) === "me@mail.private.icloud.com" && label({ email: "me@privaterelay.appleid.com.example.org" }) === "me@privaterelay.appleid.com.example.org" && label({}) === "Signed in");
+      }
+
+      // ---- 6c. the launch sequence: a failing step is reported and tracking and the shared item still run
+      {
+        const arrow = find(n => n.type === "CallExpression" && n.callee?.name === "later" && n.arguments?.[1]?.value === 600 && n.arguments[0]?.type === "ArrowFunctionExpression", iosAst);
+        const launch = async ({ first, intro, gate, tracking, left, apple }) => {
+          const log = [];
+          const step = (name, how) => async (...a) => { log.push(name + (a.length ? `(${a.join()})` : "")); if (how === "reject") throw new Error(name); };
+          const fn = new Function("prepared", "first", "showIntro", "showGate", "startTracking", "appleLeft", "showAppleLeftover", "checkInbox", "report",
+            `return (${iosSrc(arrow.arguments[0])});`)(Promise.resolve(), first, step("intro", intro), step("gate", gate), step("tracking", tracking), left, step("apple", apple), () => log.push("inbox"), (e, where) => log.push(`report:${where}`));
+          await fn();
+          return log.join(" ");
+        };
+        check("Launch (first): the intro, then tracking, then the shared item", (await launch({ first: true })) === "intro tracking(true) inbox");
+        check("Launch (later): the gate, then tracking, then the shared item", (await launch({ first: false })) === "gate tracking(true) inbox");
+        check("Launch: an intro or a gate that rejects is reported, and the tracking question and the shared item still come", (await launch({ first: true, intro: "reject" })) === "intro report:launch tracking(true) inbox" && (await launch({ first: false, gate: "reject" })) === "gate report:launch tracking(true) inbox");
+        check("Launch: a tracking question that fails is reported and the shared item still comes", (await launch({ first: true, tracking: "reject" })) === "intro tracking(true) report:tracking inbox");
+        check("Launch: after a deletion Apple could not finish, its notice comes after the tracking question and before the shared item; if it fails the shared item still comes", (await launch({ first: false, left: true })) === "gate tracking(true) apple inbox" && (await launch({ first: false, left: true, apple: "reject" })) === "gate tracking(true) apple report:apple leftover inbox");
+      }
+
+      // ---- 6d. Account > Help: Turn on Share to CyberNet AI (guests too)
+      {
+        const doc = P5.parse(html);
+        let btn = null;
+        (function walk(n) { if (n.tagName === "button" && attr(n, "data-ios-action") === "share-help") btn = n; (n.childNodes || []).forEach(walk); })(doc);
+        let hiddenForGuests = false;
+        for (let n = btn; n; n = n.parentNode) if (n.attrs && n.attrs.some(a => a.name === "data-ios-signed-in")) hiddenForGuests = true;
+        const group = btn?.parentNode;
+        const rows = group ? group.childNodes.filter(c => c.tagName === "button").map(c => textOf(c)) : [];
+        check("Account > Help: a row Turn on Share to CyberNet AI, in the Help group with Contact support, visible to guests too (not in a signed-in group)", btn && textOf(btn) === "Turn on Share to CyberNet AI" && !hiddenForGuests && rows[0] === "Contact support" && rows.includes("Show the welcome tips again"), rows);
+        let captured = null;
+        run(["showShareHelp"], ["sheet"], "showShareHelp", opts => { captured = opts; return Promise.resolve(); })();
+        const nodes = captured ? parse(captured.html) : [];
+        const items = nodes.filter(n => n.tagName === "li").map(textOf);
+        check("Share help: a short sheet with the three steps (Share, scroll the app row to More, turn on CyberNet AI), the text-message tip, and Done", captured?.label === "Turn on Share to CyberNet AI" && nodes.filter(n => n.tagName === "ol").length === 1 && items.length === 3 && /tap Share\./.test(items[0]) && /Scroll the row of apps to the end and tap More\./.test(items[1]) && items[2] === "Turn on CyberNet AI." &&
+          nodes.some(n => n.tagName === "p" && textOf(n) === "For a text message, copy it and paste it into Check.") && nodes.some(n => n.tagName === "button" && textOf(n) === "Done" && attr(n, "data-autofocus") !== undefined) && !nodes.some(n => n.tagName === "a"), items);
+        check("Share help: the row opens it", /action==="share-help"\)showShareHelp\(\)/.test(squash(iosJs)));
+      }
+
+      // ---- 6e. after a deletion Apple could not finish: one calm notice
+      {
+        const mkLeft = () => {
+          const kept = {};
+          const store = { get: k => kept[k] ?? null, set: (k, v) => { kept[k] = v; }, del: k => { delete kept[k]; } };
+          const api = run(["APPLE_LEFT_KEY", "APPLE_LEFT_TEXT", "noteAppleLeftover", "appleLeftoverDue", "showAppleLeftover"], ["store", "w", "sheet", "esc"], "{ noteAppleLeftover, appleLeftoverDue, showAppleLeftover, text: APPLE_LEFT_TEXT, key: APPLE_LEFT_KEY }", store, { CN_ACCOUNT_DELETED: true }, opts => { kept.__sheet = opts; return Promise.resolve("ok"); }, esc);
+          return { kept, api };
+        };
+        const reply = (data, status = 200) => new Response(JSON.stringify(data), { status });
+        const body = action => ({ method: "POST", body: JSON.stringify({ action }) });
+        const cases = {};
+        for (const [name, init, res] of [["revoke refused", body("delete-account"), reply({ deleted: true, appleTokensRevoked: false })], ["revoked", body("delete-account"), reply({ deleted: true, appleTokensRevoked: true })], ["not an Apple account", body("delete-account"), reply({ deleted: true, appleTokensRevoked: null })], ["other action", body("export"), reply({ appleTokensRevoked: false })], ["failed request", body("delete-account"), reply({ appleTokensRevoked: false }, 500)], ["no body", { method: "POST" }, reply({ appleTokensRevoked: false })]]) {
+          const t = mkLeft();
+          await t.api.noteAppleLeftover(init, res);
+          cases[name] = t.api.key in t.kept;
+        }
+        check("Apple deletion: the mark is set only when a Sign in with Apple deletion came back with appleTokensRevoked false (not for revoked, null, another action, a failed request)", JSON.stringify(cases) === JSON.stringify({ "revoke refused": true, revoked: false, "not an Apple account": false, "other action": false, "failed request": false, "no body": false }), cases);
+        const due = (age, deleted = true) => { const t = mkLeft(); if (age !== null) t.kept[t.api.key] = String(Date.now() - age); const w = { CN_ACCOUNT_DELETED: deleted }; return { t, w }; };
+        const dueRun = (age, deleted) => { const x = due(age, deleted); const fn = run(["APPLE_LEFT_KEY", "appleLeftoverDue"], ["store", "w"], "appleLeftoverDue", { get: k => x.t.kept[k] ?? null, del: k => { delete x.t.kept[k]; } }, x.w); return { value: fn(), left: x.t.api.key in x.t.kept }; };
+        const fresh = dueRun(5000), stale = dueRun(11 * 60e3), noMark = dueRun(null), notDeleted = dueRun(5000, false);
+        check("Apple deletion: after the reload the notice is due once (for 10 minutes, and only after a deletion); the mark never outlives the launch", fresh.value === true && !fresh.left && stale.value === false && !stale.left && noMark.value === false && notDeleted.value === false && !notDeleted.left, [fresh, stale, noMark, notDeleted]);
+        const t = mkLeft();
+        await t.api.showAppleLeftover();
+        const sheetNodes = parse(t.kept.__sheet.html);
+        check("Apple deletion: the notice says exactly: To finish, open Settings > your name > Sign in with Apple > CyberNet AI > Stop Using Apple Account. (one OK button, no link)", t.api.text === "To finish, open Settings > your name > Sign in with Apple > CyberNet AI > Stop Using Apple Account." && sheetNodes.some(n => n.tagName === "p" && textOf(n) === t.api.text) && sheetNodes.filter(n => n.tagName === "button").length === 1 && !sheetNodes.some(n => n.tagName === "a"), t.kept.__sheet?.html);
+      }
+
+      // ---- 7. a web subscriber's notice
+      {
+        const NOTICE = run(["PLAN_NOTICE"], [], "PLAN_NOTICE");
+        check("Subscriber notice: the exact words for Pro and for Business",
+          NOTICE.pro.title === "You have CyberNet AI Pro." && NOTICE.pro.body === "For now, your Pro limits and features apply on cybernetai.app. Pro and Business are coming to the app in an update soon." &&
+          NOTICE.business.title === "You have CyberNet AI Business." && NOTICE.business.body === "For now, your Business limits and features apply on cybernetai.app. Pro and Business are coming to the app in an update soon." && Object.keys(NOTICE).join() === "pro,business", NOTICE);
+        check("Subscriber notice: the gate lets these four sentences through in ios/ios.js and nowhere else, and nothing wider", gateMod.PLAN_NOTICE_STRINGS.length === 4 && gateMod.PLAN_NOTICE_STRINGS.every(s => s === NOTICE.pro.title || s === NOTICE.pro.body || s === NOTICE.business.title || s === NOTICE.business.body));
+
+        const planFor = run(["PLAN_NOTICE", "planNoticeFor"], [], "planNoticeFor");
+        check("Subscriber notice: shown only for the signed-in account the active Pro or Business answer is for; never for Free, a guest, a signed-out app, another account, or an unknown word",
+          JSON.stringify(planFor("u1", true, { userId: "u1", plan: "pro" })) === JSON.stringify(NOTICE.pro) && JSON.stringify(planFor("u1", true, { userId: "u1", plan: "business" })) === JSON.stringify(NOTICE.business) &&
+          planFor("u1", true, { userId: "u1", plan: null }) === null && planFor("u1", false, { userId: "u1", plan: "pro" }) === null && planFor(null, true, { userId: null, plan: "pro" }) === null &&
+          planFor("u2", true, { userId: "u1", plan: "pro" }) === null && planFor("u1", true, { userId: "u1", plan: "constructor" }) === null && planFor("u1", true, { userId: "u1", plan: "admin" }) === null);
+
+        // what the account-status reply says, through the fetch layer (cut out of ios.js and run with stubs)
+        const wrapperNode = find(n => n.type === "AssignmentExpression" && n.left?.type === "MemberExpression" && n.left.object?.name === "w" && n.left.property?.name === "fetch", iosAst);
+        const mkLayer = (answer) => {
+          const session = { token: "t1", user: { id: "u1" } };
+          const stored = {};
+          const dom = run(["PLAN_NOTICE", "webPlan", "noteWebPlan"], ["state"], "{ noteWebPlan, get: () => webPlan }", () => ({ session: { access_token: session.token }, user: session.user }));
+          const layer = new Function("AI_ENDPOINT", "appFetch", "state", "noteWebPlan", "withAppleCode", "noteAppleLeftover", `return (${iosSrc(wrapperNode.right)});`)(
+            /^\/api\/(analyze|recovery-mode|recovery-update)(?:[?#]|$)/, async () => { if (answer.swap) session.token = "t2"; return new Response(JSON.stringify(answer.data), { status: answer.status || 200 }); },
+            () => ({ session: { access_token: session.token }, user: session.user }), dom.noteWebPlan, async init => init, async (init, res) => { stored.deleted = JSON.parse(init.body).action; stored.revoked = (await res.clone().json()).appleTokensRevoked; });
+          return { layer, dom, session, stored };
+        };
+        const ask = async (answer) => { const t = mkLayer(answer); const res = await t.layer("/api/account-status?includeHistory=1", { headers: {} }); return { t, res }; };
+        const pro = await ask({ data: { profile: { plan: "app", webPlan: "pro" }, recoveryUsage: { casesLimit: 1, casesUsed: 0 } } });
+        const biz = await ask({ data: { profile: { plan: "app", webPlan: "business" } } });
+        const free = await ask({ data: { profile: { plan: "app" } } });
+        const odd = await ask({ data: { profile: { plan: "app", webPlan: "admin" } } });
+        const failed = await ask({ data: { error: "no" }, status: 500 });
+        const gone = await ask({ data: { profile: { webPlan: "pro" } }, swap: true });
+        check("Subscriber notice: the account-status reply's profile.webPlan is noted for the account and session it was asked for (pro, business); Free, an unknown word, a failed reply, and an answer for a session that has ended note nothing; the caller still gets the reply",
+          JSON.stringify(pro.t.dom.get()) === '{"userId":"u1","plan":"pro"}' && JSON.stringify(biz.t.dom.get()) === '{"userId":"u1","plan":"business"}' && pro.t.dom.get().plan === "pro" && free.t.dom.get().plan === null && odd.t.dom.get().plan === null &&
+          failed.t.dom.get().userId === null && gone.t.dom.get().userId === null && (await pro.res.json()).profile.webPlan === "pro", [pro.t.dom.get(), free.t.dom.get(), odd.t.dom.get(), failed.t.dom.get(), gone.t.dom.get()]);
+        const del = mkLayer({ data: { deleted: true, appleTokensRevoked: false } });
+        await del.layer("/api/privacy-data", { method: "POST", body: JSON.stringify({ action: "delete-account" }) });
+        check("Apple deletion: the fetch layer reads the deletion reply (after the Apple code is added) so the notice can be carried over the reload", del.stored.deleted === "delete-account" && del.stored.revoked === false, del.stored);
+
+        // the card and the Account line, run with a small fake page
+        const mkPage = (userId, signed, answer) => {
+          const kept = {};
+          const dom = { card: null, note: { hidden: true, textContent: "" }, page: { prepend(c) { dom.card = c; } }, head: { tabIndex: 0, focused: 0, focus() { dom.head.focused++; } } };
+          const cardNode = () => ({ remove() { dom.card = null; }, title: { textContent: "" }, body: { textContent: "" }, x: { addEventListener(type, fn) { dom.click = fn; } } });
+          const who = { id: userId, signed };
+          const api = run(["PLAN_NOTICE", "PLAN_NOTICE_SEEN", "webPlan", "planNoticeFor", "planNoticeHtml", "renderPlanNotice", "closePlanNotice"], ["state", "signedIn", "store", "$", "el", "pageDom"],
+            "{ renderPlanNotice, set: v => { webPlan = v; }, dom: () => pageDom }", () => ({ user: who.id ? { id: who.id } : null }), () => who.signed, { get: k => kept[k] ?? null, set: (k, v) => { kept[k] = v; }, del: k => { delete kept[k]; } },
+            (sel, scope) => ({ "#cnAcctPlan": dom.note, "#cnPlanNotice": dom.card, "[data-plan-notice-close]": scope?.x, "#cnPlanNoticeTitle": scope?.title, "#cnPlanNoticeBody": scope?.body, "#cybernet": dom.page, "#cybernet .feature-page-header h1": dom.head })[sel] || null, cardNode, dom);
+          api.set(answer);
+          return { api, dom, kept, who };
+        };
+        const show = (t) => { t.api.renderPlanNotice(); return t.api.dom(); };
+        const p1 = mkPage("u1", true, { userId: "u1", plan: "pro" });
+        let d1 = show(p1);
+        check("Subscriber notice (Pro): a card at the top of Check with the title and the body, and the same body as a line on the Account tab", d1.card?.title.textContent === NOTICE.pro.title && d1.card?.body.textContent === NOTICE.pro.body && d1.note.hidden === false && d1.note.textContent === NOTICE.pro.body, [d1.card?.title, d1.note]);
+        d1.click();
+        d1 = p1.api.dom();
+        check("Subscriber notice: the X removes the card, remembers it for that account (key with the user id), moves focus to the page heading, and the Account line stays", d1.card === null && p1.kept["cn-ios-plan-notice-u1"] === "1" && d1.head.focused === 1 && d1.head.tabIndex === -1 && d1.note.hidden === false, p1.kept);
+        p1.api.renderPlanNotice();
+        check("Subscriber notice: once closed it never returns for that account (every render, every launch), while the Account line stays", p1.api.dom().card === null && p1.api.dom().note.textContent === NOTICE.pro.body);
+        const p2 = mkPage("u2", true, { userId: "u2", plan: "business" });
+        p2.kept["cn-ios-plan-notice-u1"] = "1";
+        const d2 = show(p2);
+        check("Subscriber notice (Business): shown with its own words, and another account's X does not hide it", d2.card?.title.textContent === NOTICE.business.title && d2.card?.body.textContent === NOTICE.business.body);
+        const free2 = show(mkPage("u3", true, { userId: "u3", plan: null }));
+        const guest = show(mkPage(null, false, { userId: null, plan: "pro" }));
+        const out = show(mkPage("u1", false, { userId: "u1", plan: "pro" }));
+        const other = show(mkPage("u1", true, { userId: "u9", plan: "pro" }));
+        check("Subscriber notice: never shown to a free account, a guest, a signed-out app, or while the answer belongs to another account; the Account line stays hidden then too",
+          [free2, guest, out, other].every(x => x.card === null && x.note.hidden === true && x.note.textContent === ""), [free2, guest, out, other]);
+        const gone2 = mkPage("u1", true, { userId: "u1", plan: "pro" });
+        show(gone2);
+        gone2.who.signed = false;
+        gone2.api.renderPlanNotice();
+        check("Subscriber notice: signing out takes the card away", gone2.api.dom().card === null && gone2.api.dom().note.hidden === true);
+
+        const cardNodes = parse(run(["planNoticeHtml"], [], "planNoticeHtml")());
+        const region = cardNodes.find(n => n.tagName === "section");
+        const closeBtn = cardNodes.find(n => n.tagName === "button");
+        const ids = cardNodes.map(n => attr(n, "id")).filter(Boolean);
+        check("Subscriber notice: accessible (a labelled and described region, a real button named Close for VoiceOver with an icon hidden from it) and plain text only (no link, no other button, no form)",
+          attr(region, "role") === "region" && ids.includes(attr(region, "aria-labelledby")) && ids.includes(attr(region, "aria-describedby")) && cardNodes.filter(n => n.tagName === "button").length === 1 && attr(closeBtn, "type") === "button" && attr(closeBtn, "aria-label") === "Close" && attr(closeBtn, "data-plan-notice-close") !== undefined &&
+          closeBtn.childNodes.some(c => c.tagName === "svg" && attr(c, "aria-hidden") === "true") && !cardNodes.some(n => ["a", "form", "input", "iframe", "img"].includes(n.tagName) || n.attrs.some(a => /^(href|src|onclick)$/.test(a.name))), cardNodes.map(n => n.tagName).join());
+        check("Subscriber notice CSS: the X is 44 x 44 pt and has the page's focus ring", /\.cn-ios-plan-notice-x\{[^}]*width:44px[^}]*height:44px/.test(css) && /html\.cn-ios:focus-visible\{outline:2pxsolid/.test(css));
+        const accountPartial = P5.parseFragment(await readFile(path.join(mobile, "web-ios", "partials", "account.html"), "utf8"));
+        let planLine = null;
+        (function walk(n) { if (n.attrs && attr(n, "id") === "cnAcctPlan") planLine = n; (n.childNodes || []).forEach(walk); })(accountPartial);
+        const planGroup = planLine?.parentNode;
+        check("Account tab: a quiet note (empty and hidden until ios.js fills it) inside the signed-in group, so a guest never sees it", planLine?.tagName === "p" && /\bcn-ios-note\b/.test(attr(planLine, "class")) && attr(planLine, "hidden") !== undefined && textOf(planLine) === "" && planGroup && attr(planGroup, "data-ios-signed-in") !== undefined);
+        check("Subscriber notice: no price, upgrade, purchase or link words anywhere near it (the gate's own word list over the markup and both texts, with the four sentences allowed in ios/ios.js alone)",
+          !/\$|upgrade|subscribe|purchase|buy|checkout|price|per month|\/month|billing/i.test([...Object.values(NOTICE).flatMap(c => [c.title, c.body]), run(["planNoticeHtml"], [], "planNoticeHtml")()].join(" ")) &&
+          Object.values(NOTICE).flatMap(c => [c.title, c.body]).every(s => gateMod.wordHits(s, { file: "ios/ios.js" }).length === 0 && gateMod.wordHits(s, { file: "script.js" }).includes("Pro") === /\bPro\b/.test(s)));
+      }
+    }
+
     // legal pages
     for (const page of ["terms", "privacy", "acceptable-use"]) check(`legal/${page}.html exists`, existsSync(path.join(out, "legal", `${page}.html`)));
     const terms = await read("legal/terms.html");
@@ -868,6 +1165,42 @@ try {
     check("Privacy explains analytics only after Allow", /App Tracking Transparency/.test(privacy) && /Google Analytics/.test(privacy));
     check("legal pages have the Back bar and no site header", /cn-ios-legal-bar/.test(terms) && !/cn-legal-page-top/.test(terms));
     check("no cookie-settings button in the app", !/data-cn-consent-open/.test(privacy + html));
+
+    // 30 Oct 2026 (App Review audit, 3.1.1 / 3.1.3(b) / 2.3.1): the iPhone copies of the legal pages describe only what the free app does:
+    // no BYOK, no Pro or Business plan wording, no link previews or their two providers, no "buying the seats", no other platform.
+    {
+      const acceptable = await read("legal/acceptable-use.html");
+      const gate = await import(pathToFileURL(path.join(mobile, "scripts", "check-bundle.mjs")).href);
+      const plain = markup => markup.replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&rsquo;/g, "’").replace(/\s+/g, " ");
+      const pages = { terms: plain(terms), privacy: plain(privacy), "acceptable-use": plain(acceptable) };
+      const offenders = (re) => Object.entries(pages).filter(([, text]) => re.test(text)).map(([name]) => name);
+      check("iPhone legal pages: no BYOK, no own OpenAI key, no connected API keys offered", offenders(/\bBYOK\b|bring your own|your own OpenAI|user-provided OpenAI|connect an API key,|connected API key|connecting an API key|Forget Key|API-key/i).length === 0, offenders(/\bBYOK\b|bring your own|your own OpenAI|user-provided OpenAI|connect an API key,|connected API key|connecting an API key|Forget Key|API-key/i));
+      check("iPhone legal pages: no Pro or Business plan wording (Pro, Free and Pro, Business team, plan or subscription, seats, seat tiers)", offenders(/\bPro\b|Free and Pro|Business (?:team|plan|subscription|account|seat|allowance)|\bseat/i).length === 0, offenders(/\bPro\b|Free and Pro|Business (?:team|plan|subscription|account|seat|allowance)|\bseat/i));
+      check("iPhone legal pages: no link previews and neither of their providers", offenders(/Link and QR-code previews|GetScreenshot|Rasterwise|Microlink/).length === 0 && /no link previews/.test(pages.privacy), offenders(/Link and QR-code previews|GetScreenshot|Rasterwise|Microlink/));
+      check("iPhone legal pages: no 'buying the seats', no price, no Chrome, Android or Play Store", offenders(/buying the seats|\$|per month|per year|Chrome|Android|Play Store/i).length === 0, offenders(/buying the seats|\$|per month|per year|Chrome|Android|Play Store/i));
+      check("iPhone legal pages: the sections that were about the website's keys and plans say so plainly and stay in place (Terms 8, Acceptable Use 5: same numbers, short text)", /<h2>8\. API keys<\/h2>\s*<p>The iPhone app does not let you connect an API key of your own\./.test(terms) && /<h2>5\. Accounts and credentials<\/h2>\s*<p>The iPhone app does not accept API keys\./.test(acceptable) && /<h2>10–14\. No purchases in the app<\/h2>/.test(terms) && /One person, one account\./.test(acceptable) && /Payments on the website<\/h3>\s*<p>The app has no purchases\./.test(privacy));
+      check("iPhone legal pages: the headings and contents entries no longer name plans, billing or a user-provided key feature (Terms 8 and 10-14, Acceptable Use 5); the numbers and the #byok, #plans and #api anchors stay", ["User-provided API keys", "Plans, payments and billing", "API keys and third-party accounts", "Free, Pro, and Business"].every(w => !terms.includes(w) && !acceptable.includes(w)) && [[terms, "byok", "8. API keys"], [terms, "plans", "10–14. No purchases in the app"], [acceptable, "api", "5. Accounts and credentials"]].every(([page, id, label]) => page.includes(`<a href="#${id}">${label}</a>`) && page.includes(`id="${id}"`)), [terms.includes("User-provided API keys"), terms.includes("Plans, payments and billing"), acceptable.includes("API keys and third-party accounts")]);
+      check("iPhone Privacy 12: deleting an account names no Refund and Cancellation Policy and no billing period (that policy is not in the app)", !/Refund and Cancellation|billing period/.test(privacy) && /no refund is given for the unused part of the paid period unless applicable law provides otherwise/.test(privacy));
+      check("iPhone legal pages: the team disclosure stays (the owner's log), without the plan name; Stripe stays named because deleting an account cancels a website plan with it", /If you join a CyberNet AI team, the team owner can see what you do on that team\./.test(pages.privacy) && /<li><strong>Stripe:<\/strong> payments for a plan bought on the website, and cancelling that plan when an account is deleted;<\/li>/.test(privacy));
+      check("Gate: android, chrome and play store are refused in the legal pages", ["android", "chrome", "play store"].every(w => gate.LEGAL_WORDS.includes(w)) && gate.wordHits("for example, Chrome 141 on Android", { legal: true }).join() === "android,chrome" && gate.wordHits("the Google Play Store", { legal: true }).includes("play store") && gate.wordHits("for example, Safari 26 on iOS", { legal: true }).length === 0);
+
+      // the website pages (they deploy to the live site too) and the Legal Center copy inside cybernet-legal-upgrade.js say the same
+      const pubTerms = await readFile(path.join(root, "public", "terms.html"), "utf8");
+      const pubPrivacy = await readFile(path.join(root, "public", "privacy.html"), "utf8");
+      const upgradeJs = await readFile(path.join(root, "public", "cybernet-legal-upgrade.js"), "utf8");
+      const embedded = JSON.parse((upgradeJs.split("\n").find(l => l.startsWith("  const LEGAL_CONTENT = Object.freeze(")) || "").slice("  const LEGAL_CONTENT = Object.freeze(".length, -2));
+      const OPENAI = "OpenAI processes submissions under its API terms, does not use them to train its models, and may keep them for up to 30 days to monitor for abuse (longer where the law requires, or where reasonably necessary to protect against harm)";
+      const GOOGLE_APP = "Google confirms who you are and shares your name, email address, and profile picture with CyberNet; CyberNet does not receive your Google password.";
+      const GOOGLE_PARA = "<p><strong>Sign in with Google.</strong> If you choose it, Google confirms who you are and shares with CyberNet your name, email address, and profile picture. CyberNet does not receive your Google password.</p>";
+      const both = (text, needle) => text.includes(needle);
+      check("Website Terms 3: Sign in with Google is available in the iPhone app too, with what Google shares and no Google password (page and Legal Center copy)", [pubTerms, embedded.terms].every(t => both(t, "or with Sign in with Apple or Sign in with Google in the iPhone app.") && both(t, GOOGLE_APP)));
+      check("Website Privacy, The CyberNet AI iPhone app: a Sign in with Google paragraph after Sign in with Apple, and the list of companies says the iPhone app too (page and Legal Center copy)", [pubPrivacy, embedded.privacy].every(t => both(t, GOOGLE_PARA) && t.indexOf(GOOGLE_PARA) > t.indexOf("<strong>Sign in with Apple.</strong>") && both(t, "only if you choose Continue with Google on the website or Sign in with Google in the iPhone app;")));
+      check("Website Privacy 6: the OpenAI line says submissions are processed under OpenAI's API terms, not used to train its models, and kept up to 30 days for abuse monitoring (page, Legal Center copy, and the iPhone copy)", [pubPrivacy, embedded.privacy].every(t => both(t, OPENAI)) && both(privacy, OPENAI));
+      check("Website Privacy: the diagnostics example is Safari 26 on iOS, not Chrome on Android (page, Legal Center copy)", [pubPrivacy, embedded.privacy].every(t => both(t, "(for example, Safari 26 on iOS)") && !/Chrome 141|on Android/.test(t)));
+      check("iPhone Terms and Privacy: Google's sentences appear exactly once each, so the existing overrides for them did not add a second copy", terms.split(GOOGLE_APP.slice(0, 80)).length === 2 && privacy.split("<p><strong>Sign in with Google.</strong>").length === 2 && privacy.split("only if you choose Continue with Google on the website or Sign in with Google in the iPhone app;").length === 2);
+      const rules = JSON.parse(await readFile(path.join(mobile, "web-ios", "legal", "text-overrides.json"), "utf8"));
+      check("Legal overrides: every rule has min and max (the new ones exactly 1..1, so a changed website sentence fails the build); the old Google rules stay at 0..1", Object.entries(rules).filter(([k]) => k !== "_").every(([, list]) => list.every(r => Number.isInteger(r.min) && (Number.isInteger(r.max)) && r.min >= 0 && r.max <= 1 && r.why)) && Object.values(rules).filter(Array.isArray).flat().filter(r => r.min === 1).length >= 40, Object.values(rules).filter(Array.isArray).flat().filter(r => r.min !== 1 || r.max !== 1).map(r => r.find || r.pattern));
+    }
   }
 } finally {
   await rm(out, { recursive: true, force: true });

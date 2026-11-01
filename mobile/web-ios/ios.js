@@ -135,6 +135,7 @@
 
   let modeWanted = null; // the Check switch's pending tap (see openCheckPage)
   let lastCheckPage = "cybernet"; // which of the Check tab's two pages was open last (syncTabs)
+  let lastPageViewed = "";        // the page syncTabs() last counted for analytics
 
   // Guest mode (owner, 30 Oct 2026): Quick Scan, QR, Share results and Learn work without an account
   // (App Review 5.1.1(v)); these pages need one. A guest who asks for either gets the sign-in card at once,
@@ -219,7 +220,8 @@
     });
     nativeTabs?.select({ tab }).catch(() => {});
     syncCheckSwitch(page);
-    if (w.CNAnalytics?.page) w.CNAnalytics.page(page, PAGE_NAMES[page] || page);
+    // a page view is counted when the page changes: syncTabs() is also called to put the highlight back (QR scanner, sign-in card)
+    if (w.CNAnalytics?.page && page !== lastPageViewed) { lastPageViewed = page; w.CNAnalytics.page(page, PAGE_NAMES[page] || page); }
   }
   function watchPages() {
     let last = activePage();
@@ -343,9 +345,11 @@
 
   /* ================================================================ 3. Account screen */
   // Markup: mobile/web-ios/partials/account.html (inserted into <main> at build time).
+  // Apple's hidden-email relays: Sign in with Apple's (privaterelay.appleid.com) and iCloud's Hide My Email (private.icloud.com)
+  const APPLE_RELAY = /@(?:privaterelay\.appleid|private\.icloud)\.com$/i;
   function userEmailLabel(user) {
-    const email = String(user?.email || "");
-    if (/@privaterelay\.appleid\.com$/i.test(email)) return "Apple ID (hidden email)";
+    const email = String(user?.email || "").trim();
+    if (APPLE_RELAY.test(email)) return "Apple ID (hidden email)";
     return email || "Signed in";
   }
   function isAppleUser(user) {
@@ -379,8 +383,81 @@
       $("#cnAcctTeam").hidden = !isTeamMember();
       refreshConsentSwitch();
     }
+    renderPlanNotice();
     refreshReminderSwitch();
     refreshTrackingRow();
+  }
+
+  /* ---- 3b. a web subscriber's notice ---- */
+  // 1.0 has no purchases, so an account that pays for Pro or Business on the website gets the app's limits here. The server says
+  // which web plan is active (account-status, profile.webPlan: "pro" or "business", only while it is active, never for Free or a
+  // guest) and the app tells the person once: a card at the top of Check that stays until its X is tapped (remembered for that
+  // account, so it never returns), and a quiet line on the Account tab. Plain text only: no link, no button, no price. These four
+  // sentences are the only place the gate lets Pro and Business appear (check-bundle.mjs PLAN_NOTICE_STRINGS): change both together.
+  const PLAN_NOTICE = {
+    pro: { title: "You have CyberNet AI Pro.", body: "For now, your Pro limits and features apply on cybernetai.app. Pro and Business are coming to the app in an update soon." },
+    business: { title: "You have CyberNet AI Business.", body: "For now, your Business limits and features apply on cybernetai.app. Pro and Business are coming to the app in an update soon." }
+  };
+  const PLAN_NOTICE_SEEN = "cn-ios-plan-notice-"; // + the account's id: its X was tapped
+  let webPlan = { userId: null, plan: null };     // the last account-status answer, for the account it was asked for
+  // Called by the fetch layer with the reply's profile.webPlan; `token` is the session the request was made with.
+  function noteWebPlan(value, token) {
+    const s = state();
+    if (!s?.user?.id || s.session?.access_token !== token) return; // the answer is for a session that is gone
+    webPlan = { userId: s.user.id, plan: value === "pro" || value === "business" ? value : null };
+  }
+  // The copy for the account that is signed in now, or null: nothing for a guest, a signed-out app, a Free account, or an answer that
+  // was given for another account.
+  function planNoticeFor(userId, signed, answer) {
+    if (!signed || !userId || answer.userId !== userId) return null;
+    return Object.prototype.hasOwnProperty.call(PLAN_NOTICE, answer.plan) ? PLAN_NOTICE[answer.plan] : null;
+  }
+  function planNoticeHtml() {
+    return `<section class="cn-ios-plan-notice" id="cnPlanNotice" role="region" aria-labelledby="cnPlanNoticeTitle" aria-describedby="cnPlanNoticeBody">
+        <div class="cn-ios-plan-notice-text"><p class="cn-ios-plan-notice-title" id="cnPlanNoticeTitle"></p><p class="cn-ios-plan-notice-body" id="cnPlanNoticeBody"></p></div>
+        <button type="button" class="cn-ios-plan-notice-x" data-plan-notice-close aria-label="Close"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      </section>`;
+  }
+  function renderPlanNotice() {
+    const uid = state()?.user?.id || null;
+    const copy = planNoticeFor(uid, signedIn(), webPlan);
+    const note = $("#cnAcctPlan"); // the Account tab's line shows for every subscriber, X or not
+    if (note) { note.hidden = !copy; note.textContent = copy ? copy.body : ""; }
+    let card = $("#cnPlanNotice");
+    if (!copy || store.get(PLAN_NOTICE_SEEN + uid)) { card?.remove(); return; }
+    if (!card) {
+      card = el(planNoticeHtml());
+      $("[data-plan-notice-close]", card).addEventListener("click", closePlanNotice);
+      ($("#cybernet") || $("#cnMain"))?.prepend(card);
+    }
+    $("#cnPlanNoticeTitle", card).textContent = copy.title;
+    $("#cnPlanNoticeBody", card).textContent = copy.body;
+  }
+  function closePlanNotice() {
+    const uid = state()?.user?.id;
+    if (uid) store.set(PLAN_NOTICE_SEEN + uid, "1");
+    $("#cnPlanNotice")?.remove();
+    // the X had the focus: give it to the page's heading, so the keyboard and VoiceOver do not start again from the top
+    const head = $("#cybernet .feature-page-header h1");
+    if (head) { head.tabIndex = -1; try { head.focus({ preventScroll: true }); } catch { /* ignore */ } }
+  }
+
+  // Account > Help: the Share sheet entry for CyberNet AI is off until the person turns it on (the welcome tips say so too).
+  function showShareHelp() {
+    sheet({
+      id: "cnShareHelp",
+      label: "Turn on Share to CyberNet AI",
+      html: `<h2 class="cn-ios-sheet-title">Turn on Share to CyberNet AI</h2>
+        <div class="cn-ios-sheet-body">
+          <ol class="cn-ios-steps">
+            <li>In Safari, Mail, Photos or another app, tap Share.</li>
+            <li>Scroll the row of apps to the end and tap More.</li>
+            <li>Turn on CyberNet AI.</li>
+          </ol>
+          <p>For a text message, copy it and paste it into Check.</p>
+        </div>
+        <div class="cn-ios-sheet-actions"><button type="button" class="primary-btn full" data-sheet-value="done" data-autofocus>Done</button></div>`
+    });
   }
 
   function bindAccount() {
@@ -399,6 +476,7 @@
         else if (action === "copy-support") copyText(SUPPORT);
         else if (action === "legal") openLegal(t.getAttribute("data-doc") || "privacy");
         else if (action === "intro") showIntro(true);
+        else if (action === "share-help") showShareHelp();
         else if (action === "test-reminder") testReminder();
         else if (action === "tracking-settings") openExternal("app-settings:");
       } catch (error) { report(error, `account ${action}`); toast("Something went wrong. Please try again."); }
@@ -420,9 +498,10 @@
       else if (needsAccount(activePage())) requireAccount(activePage(), null, "cybernet");
       if (user) later(flushAcceptance, 50);
       else if (lastUser) later(cancelReminders, 0); // signed out on this device: the reminders go too
+      if (user) store.del(GUEST_KEY); // an account is signed in: there is no guest choice left to remember (a later sign-out meets the short gate again)
       lastUser = user;
     });
-    w.addEventListener("cybernet:account-ui", () => { if (activePage() === "account") renderAccount(); });
+    w.addEventListener("cybernet:account-ui", () => { if (activePage() === "account") renderAccount(); else renderPlanNotice(); });
   }
 
   async function signOut() {
@@ -572,17 +651,26 @@
       // script.js keeps appState.recoveryUsage as { used, limit } but only fills it from Recovery replies.
       // The app's account-status (App tier) sends today's Recovery counts too, so copy them before
       // script.js reads the reply; the Account screen and the Recovery meter then show them at once.
+      // It also carries profile.webPlan for an account that pays on the website (section 3b); the token says whose answer it is.
+      const token = state()?.session?.access_token;
       const res = await appFetch(input, init);
       if (res.ok) {
         try {
-          const r = (await res.clone().json())?.recoveryUsage;
+          const data = await res.clone().json();
+          const r = data?.recoveryUsage;
           const s = state();
           if (s && r && Number(r.casesLimit) > 0) s.recoveryUsage = { used: Number(r.casesUsed) || 0, limit: Number(r.casesLimit) };
+          noteWebPlan(data?.profile?.webPlan, token);
         } catch { /* not JSON: script.js reports it */ }
       }
       return res;
     }
-    if (method === "POST" && /^\/api\/privacy-data(?:[?#]|$)/.test(url)) init = await withAppleCode(init);
+    if (method === "POST" && /^\/api\/privacy-data(?:[?#]|$)/.test(url)) {
+      init = await withAppleCode(init);
+      const res = await appFetch(input, init);
+      await noteAppleLeftover(init, res);
+      return res;
+    }
     if (/^\/api\/recovery-case\?/.test(url)) { const m = /[?&]caseId=([^&#]+)/.exec(url); if (m) lastCaseId = decodeURIComponent(m[1]); }
     return appFetch(input, init);
   };
@@ -603,6 +691,33 @@
       if (code) body.appleAuthorizationCode = code;
     } catch (error) { report(error, "apple code for deletion"); /* deletion goes ahead; revocation is best effort */ }
     return { ...init, body: JSON.stringify(body) };
+  }
+  // After a deletion the server says whether Apple took the app's access back (appleTokensRevoked: true, false, or null for an
+  // account without Sign in with Apple). On false the person has one step left in Settings. The page reloads at once after a
+  // deletion, so the notice is carried over in storage and shown once the launch is over (appleLeftoverDue, showAppleLeftover).
+  const APPLE_LEFT_KEY = "cn-ios-apple-leftover";
+  const APPLE_LEFT_TEXT = "To finish, open Settings > your name > Sign in with Apple > CyberNet AI > Stop Using Apple Account.";
+  async function noteAppleLeftover(init, res) {
+    try {
+      if (!res.ok || JSON.parse(init?.body || "{}")?.action !== "delete-account") return;
+      if ((await res.clone().json())?.appleTokensRevoked === false) store.set(APPLE_LEFT_KEY, String(Date.now()));
+    } catch { /* the deletion itself is never held up by this */ }
+  }
+  // Read once at start, whatever the answer (the mark never outlives a launch): true only on the launch that follows a deletion.
+  function appleLeftoverDue() {
+    const at = Number(store.get(APPLE_LEFT_KEY));
+    store.del(APPLE_LEFT_KEY);
+    const age = Date.now() - at;
+    return !!w.CN_ACCOUNT_DELETED && Number.isFinite(age) && age >= 0 && age < 10 * 60e3;
+  }
+  function showAppleLeftover() {
+    return sheet({
+      id: "cnAppleLeftover",
+      label: "Finish disconnecting Apple",
+      html: `<h2 class="cn-ios-sheet-title">Finish disconnecting Apple</h2>
+        <div class="cn-ios-sheet-body"><p>${esc(APPLE_LEFT_TEXT)}</p></div>
+        <div class="cn-ios-sheet-actions"><button type="button" class="primary-btn full" data-sheet-value="ok" data-autofocus>OK</button></div>`
+    });
   }
 
   /* ================================================================ 6. downloads */
@@ -651,6 +766,15 @@
   // account-based, so the card always has the guest way out, and that way out unlocks exactly the on-device
   // features (Quick Scan, QR, Share results, Learn). Analysis AI and Recovery need an account.
   const INTRO_KEY = "cn-ios-intro-1";
+  // Guideline 5.1.1(v): someone who chose "Continue without an account" is not asked again at every launch. The time of the choice
+  // is kept, and for 7 days the short gate is skipped (7d). Signing in clears it. Analysis AI and Recovery still ask first, and
+  // Account still has the sign-in choices.
+  const GUEST_KEY = "cn-ios-guest-1";
+  const GUEST_MEMORY = 7 * 24 * 3600e3;
+  function guestRemembered() {
+    const age = Date.now() - Number(store.get(GUEST_KEY)); // no key: Number(null) is 0, an age of 56 years
+    return Number.isFinite(age) && age >= 0 && age < GUEST_MEMORY;
+  }
   const INTRO = [
     // `guest` is added for someone who is not signed in: it would read oddly right after the sign-in card
     { title: "Check a text or link", text: "Paste a message or a link into Check. CyberNet AI reads it on your iPhone and shows the warning signs.", guest: " No account needed." },
@@ -1073,6 +1197,7 @@
           d.removeEventListener("keydown", onKey, true);
           off();
           gateOpen = false;
+          if (launch && value === "guest") store.set(GUEST_KEY, String(Date.now())); // 5.1.1(v): remembered for a week
           root.classList.remove("cn-ios-gated");
           inertBehind(false); // before done(): the sheet hands focus back to what had it
           holdBar(false);
@@ -1110,7 +1235,8 @@
   //   no answer from the session check in time ........... the same: the app is usable, and the gate is not a wall
   //   opened by a link or a shared item .................. no gate; a guest may handle what was shared
   //   signed out, first launch ........................... the motion, then the card, then the three steps
-  //   signed out, a later launch (sign out and a deleted account come back here too) ... the short gate
+  //   signed out, a later launch (sign out and a deleted account come back here too) ... the short gate, unless the person chose
+  //                                                                                       "Continue without an account" in the last 7 days
   // Where the person lands is Check (Quick Scan) in every case, including right after signing in on the card. Someone who
   // is signed in reaches the Analysis AI message box through the Quick Scan | Analysis AI switch with no prompt, or straight
   // away when a guest asked for Analysis AI and then signed in (arrive). Opening on Analysis AI at launch is a decision
@@ -1147,6 +1273,7 @@
   // at once. Signed out: unless a link or a shared item opened the app, the short gate's stage goes up before the
   // launch screen hides, so its first frame is the launch screen.
   async function prepareGate() {
+    if (guestRemembered()) return; // chose "Continue without an account" in the last 7 days: straight to Check
     if ((await sessionKnown()) !== false) return;
     const direct = await Promise.race([launchTarget(), new Promise(resolve => setTimeout(() => resolve(false), 450))]);
     if (launchGate(false, false, direct) !== "short") return;
@@ -1274,16 +1401,18 @@
   }, true);
 
   /* ================================================================ 9. Sign in with Apple and Google */
-  const APPLE_LOGO = '<svg viewBox="0 0 17 20" width="15" height="18" aria-hidden="true" fill="currentColor"><path d="M14.1 10.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9-1.7 0-3.3 1-4.2 2.6-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8 1.6 0 2 .8 3.4.8 1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9 0 0-2.7-1-2.7-4.1zM11.6 3.1c.7-.9 1.2-2 1.1-3.1-1 0-2.2.7-2.9 1.6-.6.7-1.2 1.9-1 3 1.1.1 2.2-.6 2.8-1.5z"/></svg>';
+  // The Apple logo (Simple Icons "apple", 24-unit grid, cropped to the glyph: 19.6 x 24, so its proportions are Apple's). It is 22 px tall beside
+  // the 21 px title, as the logo and the title sit in Apple's own buttons (HIG: the title is about 43% of the button's height, 21 px on the 50 pt button).
+  const APPLE_LOGO = '<svg viewBox="2.2 0 19.6 24" width="18" height="22" aria-hidden="true" focusable="false" fill="currentColor"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>';
   // Google's standard four-colour "G" (Google sign-in branding): never recoloured, so the button around it is Google's neutral dark one
-  const GOOGLE_LOGO = '<svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>';
+  const GOOGLE_LOGO = '<svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>';
   function setupApple() {
     if (!P("AppleSignIn")) return;
     const modal = $("#authModal .modal-card");
     const tabs = $("#authModal .auth-tabs");
     if (!modal || !tabs || $("#cnAppleWrap")) return;
     const wrap = el(`<div class="cn-ios-apple" id="cnAppleWrap">
-        <button type="button" class="cn-ios-apple-btn" id="cnAppleBtn">${APPLE_LOGO}<span>Continue with Apple</span></button>
+        <button type="button" class="cn-ios-apple-btn" id="cnAppleBtn">${APPLE_LOGO}<span>Sign in with Apple</span></button>
         <p class="cn-ios-apple-note" id="cnAppleNote">By continuing with Apple you agree to the <button type="button" class="cn-legal-link-btn" data-open-legal="terms">Terms of Service</button> and the <button type="button" class="cn-legal-link-btn" data-open-legal="privacy">Privacy Policy</button>.</p>
         <div class="auth-divider"><span>or use your email</span></div>
       </div>`);
@@ -1458,6 +1587,8 @@
   }
 
   /* ================================================================ 10. QR scanner */
+  // The scanner is not a page: when it closes (cancelled, failed, or its result sheet closed) syncTabs() puts the tab bar's highlight
+  // back on the page that is open, where the native bar would otherwise stay on Scan QR.
   async function startQrScan() {
     const scanner = P("CapacitorBarcodeScanner");
     if (!scanner) { showCameraHelp("The camera scanner is part of the CyberNet AI app. You can choose a photo of a QR code instead."); return; }
@@ -1467,10 +1598,11 @@
         cameraDirection: 1, scanOrientation: 1, cancelButtonAccessibilityLabel: "Cancel"
       });
       const value = String(result?.ScanResult || "").trim();
-      if (value) showQrVerdict(value, "qr");
+      if (value) showQrVerdict(value, "qr"); // its sheet puts the tab bar back when it is closed
+      else syncTabs();
     } catch (error) {
       const text = `${error?.code || ""} ${error?.message || ""}`;
-      if (/0006\b|cancel/i.test(text)) return;
+      if (/0006\b|cancel/i.test(text)) { syncTabs(); return; } // the native bar is still on Scan QR: back to the page that is open
       if (/0007\b|camera access|permission/i.test(text)) { showCameraHelp("CyberNet AI doesn't have access to the camera. You can allow it in Settings, or choose a photo of the QR code instead.", true); return; }
       report(error, "qr scan");
       showCameraHelp("The scanner couldn't start. You can choose a photo of the QR code instead.");
@@ -1488,6 +1620,7 @@
           <button type="button" class="cn-ios-link-btn" data-sheet-value="close">Close</button>
         </div>`
     }).then(choice => {
+      syncTabs();
       if (choice === "settings") openExternal("app-settings:");
       if (choice === "photo") {
         navigate("cybernet");
@@ -1512,9 +1645,9 @@
   }
   function showQrVerdict(value, kind = "qr", opts = {}) {
     const E = w.CyberNetEngine;
-    if (!E) { toast("The checker could not load. Please restart the app."); return; }
+    if (!E) { toast("The checker could not load. Please restart the app."); syncTabs(); return; }
     let analysed;
-    try { analysed = E.analyzeQr(value); } catch (error) { report(error, "analyzeQr"); toast("This code could not be checked."); return; }
+    try { analysed = E.analyzeQr(value); } catch (error) { report(error, "analyzeQr"); toast("This code could not be checked."); syncTabs(); return; }
     const result = analysed.result || { score: 0, reasons: ["The code holds plain text."], advice: [] };
     const v = verdictOf(result);
     const plain = E.plainSummary ? E.plainSummary(result, { fallbackText: "" }) : { lead: "", points: (result.reasons || []).slice(0, 3), action: "" };
@@ -1559,7 +1692,7 @@
           if (what === "report") reportProblem(kind, "");
         });
       }
-    });
+    }).then(() => syncTabs());
   }
   function confirmSheet(title, text, yes, no) {
     return sheet({
@@ -1913,11 +2046,19 @@
       const hideSplash = () => requestAnimationFrame(() => requestAnimationFrame(() => P("SplashScreen")?.hide().catch(() => {})));
       prepared.then(hideSplash);
       later(() => P("SplashScreen")?.hide().catch(() => {}), 3000);
+      // A launch step that fails (an intro or a gate that rejects) is reported and the launch goes on: the tracking question and the
+      // shared item (in finally) are never skipped because of it. After a deletion that Apple could not complete, its one step is last.
+      const appleLeft = appleLeftoverDue();
       later(async () => {
-        await prepared;
-        if (first) await showIntro(); else await showGate();
-        await startTracking(true);
-        checkInbox();
+        try {
+          await prepared;
+          if (first) await showIntro(); else await showGate();
+        } catch (error) { report(error, "launch"); }
+        finally {
+          try { await startTracking(true); } catch (error) { report(error, "tracking"); }
+          try { if (appleLeft) await showAppleLeftover(); } catch (error) { report(error, "apple leftover"); }
+          checkInbox();
+        }
       }, 600);
     } catch (error) { report(error, "start"); }
   }

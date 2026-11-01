@@ -2180,7 +2180,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       const result=isBareLink?analyzeLinkRules(text):analyzeTextRules(text);
       const note=isBareLink
         ?/*@web*/"This looked like a link rather than a message, so CyberNet AI analyzed it with the link engine for a more accurate result. Use Link Detection directly next time for the same result."/*@end-web*//*@ios "This looked like a link rather than a message, so CyberNet AI checked it with the link engine, which reads web addresses more closely. Use Link Detection directly next time for the same result." @end-ios*/
-        :"Local protection scan complete. Use Analysis AI for a deeper, AI-assisted check.";
+        :/*@web*/"Local protection scan complete. Use Analysis AI for a deeper, AI-assisted check."/*@end-web*//*@ios "Check on your iPhone complete. Use Analysis AI for a deeper, AI-assisted check." @end-ios*/;
       showReport(cyberTextResult,result.score,result.scamType,result.reasons,result.advice,{...result,note,previewHtml:isBareLink?renderLinkPreview(text,result):renderLinksFound(result.links||[])});
       prependScan("textScanList",`“${text.slice(0,42)}${text.length>42?"…":""}”`,result);
       reportTeamActivity({kind:"quick_scan",scanType:isBareLink?"link":"text",content:text,result:quickScanLogResult(result)});
@@ -2281,7 +2281,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     // read, so hand it to Analysis AI rather than showing a verdict built from
     // the filename alone. Opted in here, not inside analyzeImageRules, because
     // the Analysis AI page reuses that function for its own pre-analysis.
-    showReport(cyberImageResult,result.score,result.scamType,result.reasons,result.advice,{...result,needsDeepScan:!decoded.qrData,note:"Local QR and file checks complete. Use Analysis AI for a deeper, AI-assisted check.",previewHtml:decoded.qrData?renderQrPreview(decoded.qrData,qrKind,qrResult):""});
+    showReport(cyberImageResult,result.score,result.scamType,result.reasons,result.advice,{...result,needsDeepScan:!decoded.qrData,note:/*@web*/"Local QR and file checks complete. Use Analysis AI for a deeper, AI-assisted check."/*@end-web*//*@ios "Check on your iPhone complete. Use Analysis AI for a deeper, AI-assisted check." @end-ios*/,previewHtml:decoded.qrData?renderQrPreview(decoded.qrData,qrKind,qrResult):""});
     prependScan("imageScanList",file.name,result);
     reportTeamActivity({kind:"quick_scan",scanType:"image",content:"",fileName:file.name,qr:decoded.qrData?{kind:qrKind,data:decoded.qrData}:null,result:quickScanLogResult(result,{needsDeepScan:!decoded.qrData})});
   }

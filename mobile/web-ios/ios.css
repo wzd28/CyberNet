@@ -248,6 +248,38 @@ html.cn-still .cn-ios-sheet, html.cn-still .cn-ios-sheet-backdrop, html.cn-still
   cursor: pointer;
 }
 .cn-ios-note { margin: 8px 0; font-size: .88rem; line-height: 1.5; color: var(--cn-ios-text-2); }
+/* the numbered steps in a sheet (Account > Help > Turn on Share to CyberNet AI) */
+.cn-ios-steps { margin: 0 0 12px; padding-left: 1.4em; display: grid; gap: 6px; line-height: 1.5; color: var(--cn-ios-text); }
+/* a web subscriber's card at the top of Check (ios.js, section 3b): quiet, with a 44 pt X at its right edge */
+.cn-ios-plan-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  margin: 0 auto 14px;
+  max-width: 640px;
+  padding: 10px 4px 10px 16px;
+  border-radius: 16px;
+  background: var(--cn-ios-row-bg);
+  border: 1px solid var(--cn-ios-line);
+}
+.cn-ios-plan-notice-text { flex: 1 1 auto; min-width: 0; padding: 4px 0; }
+.cn-ios-plan-notice-title { margin: 0 0 4px; font-weight: 700; color: var(--cn-ios-text); }
+.cn-ios-plan-notice-body { margin: 0; font-size: .88rem; line-height: 1.5; color: var(--cn-ios-text-2); }
+.cn-ios-plan-notice-x {
+  appearance: none;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin: -4px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--cn-ios-text-2);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
 
 /* QR / shared item verdict */
 .cn-ios-qr-target {
@@ -683,7 +715,8 @@ html.cn-ios-embedded .cn-ios-legal-bar { display: none; }
 .cn-ios-operator { max-width: 640px; margin: 18px auto 0; padding: 0 16px; font-size: .82rem; line-height: 1.5; color: var(--cn-ios-text-2); }
 html.cn-ios #cnPrivacyMessage:empty { display: none; }
 
-/* ---------- Sign in with Apple (Apple's black/white button style, same size as the email button) ---------- */
+/* ---------- Sign in with Apple (Apple's black/white button style, same size as the email button) ----------
+   One button size everywhere: 50 pt tall, title 21 px = 43% of the height (Apple HIG, "Sign in with Apple" buttons). Google's matches. */
 .cn-ios-apple { margin: 14px 0 4px; }
 .cn-ios-apple-btn {
   display: flex;
@@ -691,14 +724,15 @@ html.cn-ios #cnPrivacyMessage:empty { display: none; }
   justify-content: center;
   gap: 8px;
   width: 100%;
-  min-height: 48px;
+  min-height: 50px;
   border-radius: 999px;
   border: 1px solid #fff;
   background: #fff;
   color: #000;
-  font: 600 17px/1 -apple-system, system-ui, sans-serif;
+  font: 600 21px/1 -apple-system, system-ui, sans-serif;
   cursor: pointer;
 }
+.cn-ios-apple-btn svg { flex: none; }
 .cn-ios-apple-btn[disabled] { opacity: .6; }
 
 /* ---------- Sign in with Google (Google's dark-theme button: #131314 fill, 1 px #8e918f outline, #e3e3e3 text, the four-colour G
@@ -709,12 +743,12 @@ html.cn-ios #cnPrivacyMessage:empty { display: none; }
   justify-content: center;
   gap: 10px;
   width: 100%;
-  min-height: 48px;
+  min-height: 50px;
   border-radius: 999px;
   border: 1px solid #8e918f;
   background: #131314;
   color: #e3e3e3;
-  font: 600 17px/1 -apple-system, system-ui, sans-serif;
+  font: 600 21px/1 -apple-system, system-ui, sans-serif;
   cursor: pointer;
 }
 .cn-ios-google-btn svg { flex: none; }

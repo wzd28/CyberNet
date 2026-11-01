@@ -682,7 +682,7 @@ async function buildLegal(versions) {
         if (id && !byId(doc, id)) { const next = a.nextSibling; detach(a); if (next && next.nodeName === "#text" && !next.value.trim()) detach(next); }
       }
       const plans = file === "terms.html" ? first(toc, n => n.tagName === "a" && attrOf(n, "href") === "#plans") : null;
-      if (plans) setText(plans, "10–14. Plans, payments and billing");
+      if (plans) setText(plans, "10–14. No purchases in the app");
       if (byId(doc, "iphone-app")) appendNodes(toc, fragment('<a href="#iphone-app">The iPhone app</a>'));
     }
     // links: only #anchors, the support mailbox and the other legal pages survive

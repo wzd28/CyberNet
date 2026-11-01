@@ -35,10 +35,18 @@ async function getTeamUsage(businessAccountId, dailyPoolLimit) {
   };
 }
 
-// The iPhone app (BUILD-PLAN §8.2): the App tier for every account. No plan
-// name, billing state or admin flag reaches the app; team membership is only
-// returned so the app can say that a team owner sees the member's AI results
-// (owner answer 8). History is returned for every account (App tier).
+// The iPhone app (BUILD-PLAN §8.2): the App tier for every account. No billing
+// state or admin flag reaches the app; team membership is returned so the app can
+// say that a team owner sees the member's AI results (owner answer 8). History is
+// returned for every account (App tier).
+//
+// One exception, by owner request (30 Oct 2026): profile.webPlan says "pro" or
+// "business" while the account has that plan ACTIVE on the website (a paid Pro
+// plan, a Business team the account owns or belongs to; the same rule as the
+// website's own plan). The app 1.0 does not give those limits, so it only tells
+// the person, in plain text, that they apply on the website (ios.js section 3b).
+// The field is absent for Free, so the app can never show it to a free account.
+// Admin access is not a plan and is never reported.
 async function appStatus(request, user, profile) {
   const tier = appTierFor(user);
   const today = new Date().toISOString().slice(0, 10);
@@ -65,6 +73,7 @@ async function appStatus(request, user, profile) {
   ]);
 
   const used = Number(analysisRows?.[0]?.analysis_count) || 0;
+  const webPlan = team ? "business" : effectivePlan(profile);
   const recovery = Array.isArray(recoveryRows) ? recoveryRows[0] || {} : {};
   const lastUpdate = Date.parse(recovery.last_update_at || "");
   const cooldownEnds = Number.isFinite(lastUpdate) ? lastUpdate + tier.recoveryUpdateCooldownSeconds * 1000 : 0;
@@ -78,6 +87,7 @@ async function appStatus(request, user, profile) {
     profile: {
       fullName: profile.full_name || user.user_metadata?.full_name || "",
       plan: "app",
+      ...(webPlan === "free" ? {} : { webPlan }),
       isTeamMember: Boolean(team && team.role !== "owner"),
       teamRole: team?.role || null
     },

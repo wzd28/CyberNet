@@ -9,6 +9,7 @@ import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
 import { checkBundle, wordHits, checkMetadata } from "./check-bundle.mjs";
+import * as gatePlan from "./check-bundle.mjs";
 import { applyRegions, pruneCss, applyTextOverrides } from "./build-web.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -89,6 +90,24 @@ const PLANTED = [
   ["remote CSS import", { "style.css": `@import url("https://fonts.googleapis.com/css2?family=X");` + CLEAN["style.css"] }, "remote-code"],
   ["legal page links out", { "legal/privacy.html": CLEAN["legal/privacy.html"].replace("</main>", `<a href="https://example.com/x">x</a></main>`) }, "legal-link"],
   ["legal page shows a price", { "legal/terms.html": CLEAN["legal/terms.html"].replace("</p>", " Pro costs $9.99 per month.</p>") }, "legal-word"],
+  // App Review 2.3.1(a): the Check screen's old marketing claims (the website keeps them; the app has calm variants)
+  ["claim: Malware clues", { "index.html": CLEAN["index.html"].replace("<h1>Quick Scan</h1>", "<h1>Quick Scan</h1><h4>Malware clues</h4>") }, "word", "malware clues"],
+  ["claim: File checks", { "index.html": CLEAN["index.html"].replace("<h1>Quick Scan</h1>", "<h1>Quick Scan</h1><span>File checks</span>") }, "word", "file checks"],
+  ["claim: Local protection scan complete", { "script.js": CLEAN["script.js"] + `const n="Local protection scan complete. Use Analysis AI for a deeper check.";` }, "word", "protection scan"],
+  ["claim: Local QR and file checks complete", { "script.js": CLEAN["script.js"] + `const n="Local QR and file checks complete.";` }, "word", "file checks"],
+  ["claim: Check URLs for phishing, malware, and other malicious activity", { "index.html": CLEAN["index.html"].replace("<h1>Quick Scan</h1>", "<h1>Quick Scan</h1><p>Check URLs for phishing, malware, and other malicious activity.</p>") }, "word", "malicious activity"],
+  ["claim: Detect malicious-download indicators", { "index.html": CLEAN["index.html"].replace("<h1>Quick Scan</h1>", "<h1>Quick Scan</h1><p>Detect malicious-download and unsafe-link indicators.</p>") }, "word", "malicious-download"],
+  // the legal pages name no other platform (not even in an example)
+  ["legal page names Chrome on Android", { "legal/privacy.html": CLEAN["legal/privacy.html"].replace("</main>", "<p>for example, Chrome 141 on Android</p></main>") }, "legal-word", "chrome"],
+  ["legal page names Android", { "legal/privacy.html": CLEAN["legal/privacy.html"].replace("</main>", "<p>for example, Safari on Android</p></main>") }, "legal-word", "android"],
+  ["legal page names the Play Store", { "legal/terms.html": CLEAN["legal/terms.html"].replace("</p>", " Also on the Play Store.</p>") }, "legal-word", "play store"],
+  // the web subscriber's notice: the four exact sentences in ios/ios.js alone; prices and purchase words stay forbidden next to them
+  ["plan notice sentence in another script", { "script.js": CLEAN["script.js"] + `const t="You have CyberNet AI Pro.";` }, "word", "Pro"],
+  ["plan notice body in the page", { "index.html": CLEAN["index.html"].replace("<h1>Quick Scan</h1>", "<h1>Quick Scan</h1><p>For now, your Business limits and features apply on cybernetai.app. Pro and Business are coming to the app in an update soon.</p>") }, "word", "Pro"],
+  ["Pro alone in ios.js", { "ios/ios.js": `const t="Pro";` }, "word", "Pro"],
+  ["the notice with a price added, in ios.js", { "ios/ios.js": `const t="You have CyberNet AI Pro for $9.99 per month.";` }, "word", "$9.99"],
+  ["the notice with an upgrade link, in ios.js", { "ios/ios.js": `const t="For now, your Pro limits and features apply on cybernetai.app. Pro and Business are coming to the app in an update soon. Upgrade now.";` }, "word", "upgrade"],
+  ["an upgrade sentence for Pro, in ios.js", { "ios/ios.js": `const t="Upgrade to Pro";` }, "word", "upgrade"],
   ["missing local file", { "index.html": CLEAN["index.html"].replace("</head>", `<link rel="stylesheet" href="nothere.css"></head>`) }, "missing-file"]
 ];
 for (const [name, changes, rule, term] of PLANTED) {
@@ -135,6 +154,21 @@ check("capacitor origin is allowed", wordHits("capacitor://localhost").length ==
 check("localhost with a port is not", wordHits("http://localhost:8888").includes("localhost:"));
 check("Pro is case-sensitive", wordHits("protect your accounts").length === 0 && wordHits("Go Pro").includes("Pro"));
 check("Google words are allowed for ios/ios.js alone", wordHits("Sign in with Google", { file: "ios/ios.js" }).length === 0 && wordHits("signInWithOAuth", { file: "ios/ios.js" }).length === 0 && wordHits("Sign in with Google").includes("google") && wordHits("Sign in with Google", { file: "script.js" }).includes("google") && wordHits("Sign in with Google", { file: "ios/cn-ios-boot.js" }).includes("google") && wordHits("Upgrade with Google", { file: "ios/ios.js" }).includes("upgrade"));
+
+/* ---------- the web subscriber's notice (owner request, 30 Oct 2026) ---------- */
+{
+  const NOTICE = [
+    "You have CyberNet AI Pro.",
+    "You have CyberNet AI Business.",
+    "For now, your Pro limits and features apply on cybernetai.app. Pro and Business are coming to the app in an update soon.",
+    "For now, your Business limits and features apply on cybernetai.app. Pro and Business are coming to the app in an update soon."
+  ];
+  check("plan notice: the four exact sentences pass in ios/ios.js", NOTICE.every(t => wordHits(t, { file: "ios/ios.js" }).length === 0), NOTICE.map(t => wordHits(t, { file: "ios/ios.js" })));
+  check("plan notice: the same sentences are refused in every other file (Pro, and nothing else widened)", [NOTICE[0], NOTICE[2], NOTICE[3]].every(t => wordHits(t, { file: "script.js" }).includes("Pro") && wordHits(t, { file: "index.html" }).includes("Pro") && wordHits(t, { file: "ios/cn-analytics.js" }).includes("Pro") && wordHits(t, { file: "ios/ios.css" }).includes("Pro")));
+  check("plan notice: not one character more or less (a longer or edited sentence, trailing text; Business alone was never a forbidden word, so its title needs no allowance)", [NOTICE[0] + " ", NOTICE[0].replace("Pro.", "Pro"), NOTICE[0] + " Upgrade.", "x " + NOTICE[2], NOTICE[2].replace("soon.", "soon"), NOTICE[3] + " Pro.", NOTICE[0].replace("You have", "You had")].every(t => wordHits(t, { file: "ios/ios.js" }).length > 0), [NOTICE[0] + " ", NOTICE[0].replace("Pro.", "Pro")].map(t => wordHits(t, { file: "ios/ios.js" })));
+  check("plan notice: prices, upgrade, purchase and checkout words stay forbidden in ios/ios.js, next to Pro or alone", ["$9.99", "per month", "Upgrade", "upgrade", "Buy Pro now", "Checkout", "Stripe", "subscription", "free trial", "pricing", "Pro plan", "Business plan"].every(t => wordHits(t, { file: "ios/ios.js" }).length > 0), ["$9.99", "per month", "Upgrade", "Stripe", "subscription", "Pro plan"].map(t => [t, wordHits(t, { file: "ios/ios.js" })]));
+  check("plan notice: the allowance is one list of four, exported, and Pro can never be exempted", gatePlan.PLAN_NOTICE_STRINGS.length === 4 && gatePlan.PLAN_NOTICE_FILE === "ios/ios.js");
+}
 
 /* ---------- build regions ---------- */
 {
