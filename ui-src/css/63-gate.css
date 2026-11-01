@@ -187,7 +187,8 @@ html.cn.cn-gate .cn-gate-lock {
 /* The padlock arrives OPEN (the shackle lifted and swung out on its right leg) and snaps shut once
    the wordmark is up (owner, 1 Nov 2026: "the lock was already open, it closes"): the shackle swings
    back over the body, drops in, seats with a small overshoot, and the body gives under it. The rest
-   value is the closed lock, so a skipped or reduced-motion gate shows it closed. The same geometry,
+   value is the closed lock: a skipped gate (html.cn-gate-shut), the short form (cn-gate-quick) and
+   reduced motion show it closed, never opening beside the card. The same geometry,
    scaled, is the app's (mobile/web-ios/ios.css cn-ix-shut). */
 html.cn.cn-gate .cn-gate-shackle {
   transform-box: fill-box;
@@ -199,6 +200,10 @@ html.cn.cn-gate .cn-gate-body {
   transform-origin: 50% 100%;
   animation: cn-gate-click .36s var(--cn-gate-arrive) 2.33s;
 }
+html.cn.cn-gate-quick .cn-gate-shackle,
+html.cn.cn-gate-quick .cn-gate-body,
+html.cn.cn-gate-shut .cn-gate-shackle,
+html.cn.cn-gate-shut .cn-gate-body { animation: none; }
 /* one ring of light leaves the mark as the lock settles */
 html.cn.cn-gate .cn-gate-mark::after {
   content: "";

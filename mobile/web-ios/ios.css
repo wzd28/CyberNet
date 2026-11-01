@@ -363,11 +363,12 @@ html.cn-still .cn-ios-sheet, html.cn-still .cn-ios-sheet-backdrop, html.cn-still
 .cn-ix.is-glide .cn-ix-mark { transform: scale(var(--ix-s)); }
 .cn-ix.is-quick :is(.cn-ix-lockup, .cn-ix-mark, .cn-ix-word, .cn-ix-pitch) { transition-duration: .45s; }
 /* Onto the app (.is-app, ios.js leave()): the lockup comes forward a little and the lines lift away while the stage
-   fades, and the page comes up under it (html.cn-ix-opening). About 0.6 s. */
-.cn-ix.is-app.is-out { transition: opacity .6s var(--ix-open); }
-.cn-ix.is-app .cn-ix-lockup { transition: transform .65s var(--ix-open); }
-.cn-ix.is-app.is-out .cn-ix-lockup { transform: scale(1.07); }
-.cn-ix.is-app.is-out .cn-ix-pitch { opacity: 0; transform: translateY(-10px) var(--ix-pre); transition: opacity .35s ease, transform .5s var(--ix-open); }
+   fades, and the page comes up under it (html.cn-ix-opening). About 0.6 s.
+   Reduced motion keeps the calm path's plain 0.2 s fade (none of these apply under .is-calm). */
+.cn-ix.is-app:not(.is-calm).is-out { transition: opacity .6s var(--ix-open); }
+.cn-ix.is-app:not(.is-calm) .cn-ix-lockup { transition: transform .65s var(--ix-open); }
+.cn-ix.is-app:not(.is-calm).is-out .cn-ix-lockup { transform: scale(1.07); }
+.cn-ix.is-app:not(.is-calm).is-out .cn-ix-pitch { opacity: 0; transform: translateY(-10px) var(--ix-pre); transition: opacity .35s ease, transform .5s var(--ix-open); }
 html.cn-ix-opening :is(#cnMain, .navbar) { animation: cn-ix-in .6s cubic-bezier(.22, 1, .36, 1) backwards; }
 .cn-ix-svg { position: relative; z-index: 1; display: block; width: 100%; height: 100%; overflow: visible; }
 /* a soft light grows behind the mark, and flares once as the lock seats */

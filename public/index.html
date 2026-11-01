@@ -96,7 +96,7 @@
   <link rel="stylesheet" href="/cybernet-howto.css?v=20260905-1" />
   <link id="cybernetBusinessTeamStylesheet" rel="stylesheet" href="/cybernet-business-team.css?v=20260927-2" />
   <link rel="stylesheet" href="/cybernet-consent.css?v=20260927-2" />
-  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261101-lock" />
+  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261101-lock2" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=20261029-m1">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=20261029-m1">
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=20261029-m1">
@@ -478,8 +478,11 @@
           later(showCard, GLIDE - 350);
         }, 650);
       }
-      /* the padlock has snapped shut (63-gate.css, 1.95-2.45 s): the line rises word by word, is read, then leaves */
+      /* the padlock has snapped shut (63-gate.css, 1.95-2.45 s): the line rises word by word, is read, then leaves.
+         The clock starts on the first frame, with the CSS animations (a page opened in a background tab runs
+         timers but no animations until it is shown) */
       function full() {
+        if (phase !== 0) return;
         phase = 1;
         later(function () { r.classList.add("cn-gate-said"); later(compact, 2100); }, 2650);
       }
@@ -494,7 +497,7 @@
         if (!gated() || cardShown || phase === 3) return;
         if (e && (e.type === "pointerdown" || e.type === "touchstart")) eatClick = Date.now();
         skipping = true; clear(); phase = 3;
-        r.classList.remove("cn-gate-leaving"); r.classList.add("cn-gate-compact"); finishAll();
+        r.classList.remove("cn-gate-leaving"); r.classList.add("cn-gate-compact", "cn-gate-shut"); finishAll();
         skipping = false;
         if (ready) showCard(); else wantCard = true;
       }
@@ -507,7 +510,7 @@
       }
       function reset() {
         for (var j = 0; j < lines.length; j++) { lines[j].cnRun++; lines[j].cnText = lines[j].cnOrig; lines[j].cnNode.data = ""; lines[j].className = "cn-gate-t is-ready"; }
-        r.classList.remove("cn-gate-card", "cn-gate-compact", "cn-gate-quick", "cn-gate-nudge", "cn-gate-welcome", "cn-gate-enter", "cn-gate-leaving", "cn-gate-said");
+        r.classList.remove("cn-gate-card", "cn-gate-compact", "cn-gate-quick", "cn-gate-nudge", "cn-gate-welcome", "cn-gate-enter", "cn-gate-leaving", "cn-gate-said", "cn-gate-shut");
         cardShown = false; wantCard = false; phase = 0; stage.style.transform = ""; say("");
       }
       function unlock() {
@@ -587,6 +590,7 @@
       if (reduced) { phase = 3; r.classList.add("cn-gate-compact"); finishAll(); wantCard = true; }
       /* a visitor who came to sign in (/login, /signup and the 404 page send ?auth=) gets the short form */
       else if (seen || /[?&]auth=/.test(location.search)) quick();
+      else if (w.requestAnimationFrame) w.requestAnimationFrame(full);
       else full();
     })(window, document);
     </script>
