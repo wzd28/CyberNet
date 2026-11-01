@@ -4,7 +4,7 @@ import { DEFAULT_MODEL, DEFAULT_MINI_MODEL, modelParams, createResponse, autoRep
 import { reportError } from "../lib/report-error.mjs";
 import { fetchWithJwtRetry, RETRY_TIGHT } from "../lib/supabase-retry.mjs";
 import { withCors, isIOS } from "../lib/cors.mjs";
-import { appTierFor, consumeAnalysisApp, APP_MESSAGES } from "../lib/app-tier.mjs";
+import { appAllowanceFor, consumeAnalysisApp, APP_MESSAGES } from "../lib/app-tier.mjs";
 import { aiConsentGate } from "../lib/ai-consent.mjs";
 // The rule set Quick Scan runs in the browser. It registers itself on
 // globalThis, so the page, this function and the tests all read one copy.
@@ -1336,9 +1336,11 @@ function buildServerEvidence(
 }
 
 async function handler(request: Request, context: any): Promise<Response> {
-  // The iPhone app (BUILD-PLAN §8.2-§8.4): App-tier counts for every account,
-  // no admin bypass, no team pool, no investigation mode, and nothing is
-  // forwarded to the AI provider without the person's recorded consent.
+  // The iPhone app: the same plans, limits and team pools as the website
+  // (Free / Pro / Business, bought with Apple In-App Purchase or on the
+  // website), but no admin bypass, no investigation mode, and nothing is
+  // forwarded to the AI provider without the person's recorded consent. Only the
+  // disclosed review / admin accounts get raised counts instead of their plan's.
   const ios = isIOS(request);
   if (request.method === "GET") {
     const aiEnabled = Boolean(env("OPENAI_API_KEY"));
@@ -1395,10 +1397,10 @@ async function handler(request: Request, context: any): Promise<Response> {
   // above lives in one warm instance only). Fails open if the RPC is down.
   // The team-membership read does not depend on it, so the two run together;
   // nothing is reserved until both have answered.
-  // In the app, an admin gets the App tier's raised counts instead of the
-  // bypass, and a team member uses their own App-tier counter (the team is
-  // still read, only so the owner's activity log gets the result).
+  // In the app, an admin gets the allowance's raised counts instead of the
+  // bypass (netlify/lib/app-tier.mjs); everyone else uses their plan.
   const admin = !ios && isAdminUser(user);
+  const allowance = ios ? appAllowanceFor(user) : null;
   let usage: UsageReservation;
   let team: { businessAccountId: string; dailyPoolLimit: number; role: string } | null = null;
   let usagePromise: Promise<UsageReservation> | null = null;
@@ -1418,8 +1420,8 @@ async function handler(request: Request, context: any): Promise<Response> {
     // is computed while it is in flight and only used once it has allowed.
     usagePromise = teamResult.error
       ? Promise.reject(teamResult.error)
-      : ios
-        ? consumeAnalysisApp(serviceFetch, user.id, appTierFor(user).analysesPerDay)
+      : allowance
+        ? consumeAnalysisApp(serviceFetch, user.id, allowance.analysesPerDay)
         : team
           ? consumeAnalysisBusiness(team.businessAccountId)
           : consumeAnalysis(user.id);
@@ -1439,7 +1441,7 @@ async function handler(request: Request, context: any): Promise<Response> {
       return json({ error: "We couldn't check your daily allowance just now. Please try again in a minute. This attempt was not counted.", code: "usage_service_unavailable" }, 503);
     }
     if (!usage.allowed) {
-      if (ios) return json({ error: APP_MESSAGES.aiLimit, code: "daily_limit_reached", usage }, 429);
+      if (allowance) return json({ error: APP_MESSAGES.aiLimit, code: "daily_limit_reached", usage }, 429);
       const planLabel = usage.plan === "business" ? "team" : usage.plan === "pro" ? "Pro" : "Free";
       return json({ error: `Daily ${planLabel} limit reached.`, code: "daily_limit_reached", usage }, 429);
     }
@@ -1481,8 +1483,9 @@ async function handler(request: Request, context: any): Promise<Response> {
   let answeredModel = "";
   let aiAttempted = false;
 
-  // The App tier is routed like a Free account (the cheaper model).
-  const aiRoute = decideAiRoute(serverEvidence, mode, ios ? "free" : usage.plan, type === "image" && imageData.startsWith("data:image/"));
+  // Routed by plan, in the app as on the website. The allowance accounts are a
+  // Free plan with raised counts, so they get Free's cheaper model.
+  const aiRoute = decideAiRoute(serverEvidence, mode, usage.plan === "app" ? "free" : usage.plan, type === "image" && imageData.startsWith("data:image/"));
 
   try {
     if (aiRoute.call && aiRoute.model) {
@@ -1534,7 +1537,9 @@ async function handler(request: Request, context: any): Promise<Response> {
   // alongside the history write and is awaited before the response.
   let refundPromise: Promise<void> | null = null;
   if (!aiUsed && !admin && !(mode === "investigation" && aiAttempted)) {
-    refundPromise = team && !ios ? refundAnalysisBusiness(team.businessAccountId) : refundAnalysis(user.id);
+    // Refund the counter that was charged: the team pool, or the person's own
+    // (which is also what the allowance accounts use).
+    refundPromise = team && !allowance ? refundAnalysisBusiness(team.businessAccountId) : refundAnalysis(user.id);
     usage.used = Math.max(0, usage.used - 1);
     usage.remaining = Math.max(0, usage.limit - usage.used);
   }
@@ -1556,9 +1561,8 @@ async function handler(request: Request, context: any): Promise<Response> {
   const isTeamMember = Boolean(team && team.role !== "owner");
   let history: any[] = [];
   let teamLogId: number | null = null;
-  // Saved history is part of the App tier, so every app account keeps its AI
-  // explanations (on the web it stays a Pro/Business feature).
-  if (mode === "quick" && (isTeamMember || (aiUsed && (usage.plan === "pro" || usage.plan === "business" || ios)))) {
+  // Saved history is a Pro / Business feature, in the app as on the website.
+  if (mode === "quick" && (isTeamMember || (aiUsed && (usage.plan === "pro" || usage.plan === "business")))) {
     // Keeping a record must never cost the person their result.
     try {
       const savedId = await saveHistory(

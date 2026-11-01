@@ -275,6 +275,10 @@
                   id="accountSignOutBtn">Sign Out</button>
         </div>
 
+        <p id="accountAppleBillingNote"
+           class="cybernet-account-message"
+           hidden>This plan is billed by Apple. Manage it in Settings &gt; your name &gt; Subscriptions on your iPhone.</p>
+
         <div id="accountDetailsMessage"
              class="cybernet-account-message"
              aria-live="polite"></div>
@@ -824,7 +828,11 @@
       // Billing belongs to whoever pays: a Business team member (not the owner)
       // has no subscription of their own to manage.
       const teamMemberOnly = Boolean(profile.isTeamMember) && profile.teamRole !== "owner";
-      if (manageButton) manageButton.hidden = !details.pro || teamMemberOnly;
+      // A plan bought in the iPhone app is billed by Apple: there is no billing portal for it, only Apple's Subscriptions screen.
+      const billedByApple = profile.billing?.source === "apple" && !teamMemberOnly;
+      if (manageButton) manageButton.hidden = !details.pro || teamMemberOnly || billedByApple;
+      const appleNote = document.getElementById("accountAppleBillingNote");
+      if (appleNote) appleNote.hidden = !billedByApple;
       if (upgradeButton) {
         upgradeButton.hidden = details.pro;
         upgradeButton.textContent = "View Pro Plans";

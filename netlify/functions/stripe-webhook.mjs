@@ -7,6 +7,7 @@ import {
   serviceFetch
 } from "../lib/supabase.mjs";
 import { reportError } from "../lib/report-error.mjs";
+import { SEAT_POOL_LIMITS } from "../lib/business-seats.mjs";
 
 function env(name) {
   try {
@@ -61,11 +62,37 @@ async function userIdForSubscription(subscription) {
 // database level (a CHECK constraint enforces this — a pre-existing
 // constraint that predates this feature and would reject any attempt to
 // write plan:'business' onto an individual profile).
-const SEAT_POOL_LIMITS = {
-  5: { dailyPoolLimit: 50, recoveryPoolLimit: 20 },
-  10: { dailyPoolLimit: 90, recoveryPoolLimit: 36 },
-  20: { dailyPoolLimit: 160, recoveryPoolLimit: 64 }
-};
+// (SEAT_POOL_LIMITS, the pools each seat count gets, lives in
+// netlify/lib/business-seats.mjs: Apple-billed teams use the same table.)
+
+// A Business team can also be billed by Apple (In-App Purchase, see
+// supabase/migrations/20261030120000_apple_iap.sql). A Stripe event that arrives
+// late for an OLD Stripe plan (typically customer.subscription.deleted) must not
+// close or change a team Apple now pays for. Returns what the team row says, or
+// { known: false } when the billing_source column is not there yet (the
+// migration has not been applied): then Stripe behaves exactly as before.
+async function billingOf(accountId) {
+  try {
+    const response = await serviceFetch(
+      `/rest/v1/business_accounts?id=eq.${encodeURIComponent(accountId)}&select=billing_source,subscription_status`
+    );
+    const rows = await response.json().catch(() => []);
+    if (!response.ok || !Array.isArray(rows) || !rows[0]) return { known: false, apple: false, status: "" };
+    return { known: true, apple: rows[0].billing_source === "apple", status: String(rows[0].subscription_status || "") };
+  } catch {
+    return { known: false, apple: false, status: "" };
+  }
+}
+
+// Apple pays for this team right now: leave it alone. A team in Apple's billing
+// retry (past_due) is left alone too, unless the Stripe subscription in the
+// event is a live one (the owner has since started paying on the website).
+function appleOwnsTeam(billing, stripeStatus) {
+  if (!billing.apple) return false;
+  if (["active", "trialing"].includes(billing.status)) return true;
+  if (billing.status === "past_due") return !["active", "trialing"].includes(String(stripeStatus || ""));
+  return false;
+}
 
 function isBusinessLookupKey(lookupKey) {
   return String(lookupKey || "").includes("business");
@@ -115,6 +142,14 @@ async function upsertBusinessAccount(userId, subscription) {
     return null;
   }
 
+  // Billed by Apple: a Stripe event for an old plan changes nothing.
+  let billingKnown = false;
+  if (accountId) {
+    const billing = await billingOf(accountId);
+    if (appleOwnsTeam(billing, status)) return accountId;
+    billingKnown = billing.known;
+  }
+
   const patch = {
     seat_tier: seatTier,
     daily_pool_limit: pool.dailyPoolLimit,
@@ -123,7 +158,10 @@ async function upsertBusinessAccount(userId, subscription) {
     stripe_subscription_id: subscriptionId,
     subscription_status: status,
     billing_interval: billingInterval,
-    updated_at: new Date().toISOString()
+    updated_at: new Date().toISOString(),
+    // Stripe is billing this team now (it may have been Apple's before). Only
+    // sent once the column is known to exist; a new row gets the default 'stripe'.
+    ...(accountId && billingKnown ? { billing_source: "stripe" } : {})
   };
 
   if (accountId) {
@@ -311,10 +349,13 @@ export default async (request) => {
       const businessAccount = await getBusinessAccountByStripeCustomer(customerId);
 
       if (businessAccount) {
-        await serviceFetch(`/rest/v1/business_accounts?id=eq.${businessAccount.id}`, {
-          method: "PATCH",
-          body: JSON.stringify({ subscription_status: "past_due", updated_at: new Date().toISOString() })
-        });
+        // A failed Stripe invoice for an old plan does not touch an Apple-billed team.
+        if (!appleOwnsTeam(await billingOf(businessAccount.id), "past_due")) {
+          await serviceFetch(`/rest/v1/business_accounts?id=eq.${businessAccount.id}`, {
+            method: "PATCH",
+            body: JSON.stringify({ subscription_status: "past_due", updated_at: new Date().toISOString() })
+          });
+        }
       } else {
         const profile =
           await getProfileByStripeCustomer(customerId);

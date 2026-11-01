@@ -1,6 +1,10 @@
 // The gate for the iPhone app's web bundle (BUILD-PLAN §5.4). It fails when mobile/www contains anything
-// App Review must not find: purchase or plan calls to action, the website's Google sign-in, other platforms, remote
-// code, IP literals, placeholder copy, build markers that should have been processed, or debug hooks.
+// App Review must not find: a way to pay that is not Apple In-App Purchase (Stripe, checkout, billing pages, price
+// literals typed into the page), protection claims, the website's Google sign-in, other platforms, remote code, IP
+// literals, placeholder copy, build markers that should have been processed, or debug hooks. Since the owner's decision of
+// 30 Oct 2026 (Free, Pro and Business in the app, sold with In-App Purchase) plan names, upgrade buttons and the plans page
+// are allowed; the gate instead insists that the plans page carries what guideline 3.1.2 requires (iap-required) and
+// that it links nowhere (iap-external-link).
 //
 //   node mobile/scripts/check-bundle.mjs                 check mobile/www as a release bundle
 //   node mobile/scripts/check-bundle.mjs --debug         a --debug bundle (allows ios/debug.js and its hooks)
@@ -34,16 +38,19 @@ const mobile = path.resolve(here, "..");
 const root = path.resolve(mobile, "..");
 
 export const WORDS = [
-  "stripe", "checkout", "customer-portal", "create-checkout-session", "manage billing", "billing portal",
-  "upgrade", "unlock", "pricing", 'switchpage("pricing")', "data-upgrade-now", "view pro", "pro feature",
-  "pro plan", "business plan", "per month", "/month", "per year", "$9.99", "95.90", "$40", "subscription",
-  "free trial", "google", "signinwithoauth", "android", "play store", "chrome", "install app", "pwa", "byok",
-  "openai key", "api key", "investigation", "screenshot-preview", "public-stats", "three@", "jsdelivr", "unpkg",
-  "googletagmanager", "gtag", "coming soon", "lorem", "todo", "tbd", "localhost:", "accurate", "protects your",
-  "real-time protection", "99%", "antivirus", "100% safe", "cn_demo_screen", "cn_engine_selftest",
-  'webcontentsdebuggingenabled":true',
-  // plan names: the app has one tier for every account (BUILD-PLAN §8.2, §11.4 step 9)
-  "cybernet ai free", "free plan", "analysis ai free", "team plan"
+  // another way to pay: the app sells with Apple In-App Purchase only (App Review 3.1.1)
+  "stripe", "checkout", "customer-portal", "create-checkout-session", "manage billing", "billing portal", "free trial",
+  // other platforms, remote code, bring-your-own-key and admin tools, the website's Google button
+  "google", "signinwithoauth", "android", "play store", "chrome", "install app", "pwa", "byok",
+  "openai key", "api key", "investigation", "screenshot-preview", "three@", "jsdelivr", "unpkg",
+  "googletagmanager", "gtag", "coming soon", "lorem", "todo", "tbd", "localhost:",
+  // claims App Review reads as promises (2.3.1)
+  "accurate", "protects your", "real-time protection", "99%", "antivirus", "100% safe",
+  "top-level protection", "everyday protection", "protection that fits",
+  // a price typed into the page: every price in the app is Apple's own text from StoreKit, never a literal
+  "$9.99", "95.90", "95.99", "$7.99", "$40", "$80", "$160", "$384", "$768", "1,536",
+  // debug hooks
+  "cn_demo_screen", "cn_engine_selftest", 'webcontentsdebuggingenabled":true'
 ];
 // The only places a listed word may appear: these exact phrases are removed before matching.
 export const ALLOWED_PHRASES = [
@@ -53,18 +60,18 @@ export const ALLOWED_PHRASES = [
 ];
 // Legal pages: they name Stripe, Google and OpenAI as processors of the WEBSITE, which a privacy policy
 // must do, but nothing in them may price, sell or send the reader anywhere else.
-export const LEGAL_WORDS = ["$", "per month", "/month", "per year", "9.99", "95.90", "upgrade", "pricing", "checkout", "free trial", "unlock", "coming soon", "lorem", "todo", "tbd"];
+export const LEGAL_WORDS = ["$", "9.99", "95.90", "95.99", "checkout", "free trial", "coming soon", "lorem", "todo", "tbd"];
 export const FORBIDDEN_IDENTIFIERS = ["startCheckout", "openBillingPortal", "showPricingNotice", "initPricingToggle", "signInWithOAuth", "googleAuthBtn", "byokAnalyze"];
 // Terms no exemption may ever cover.
-const NEVER_EXEMPT = ["stripe", "checkout", "customer-portal", "create-checkout-session", "manage billing", "billing portal", "upgrade", "pricing", "data-upgrade-now", "view pro", "pro plan", "business plan", "per month", "/month", "per year", "$9.99", "95.90", "$40", "subscription", "free trial", "google", "signinwithoauth", "jsdelivr", "unpkg", "three@", "googletagmanager", "gtag", "Pro"];
+const NEVER_EXEMPT = ["stripe", "checkout", "customer-portal", "create-checkout-session", "manage billing", "billing portal", "free trial", "$9.99", "95.90", "95.99", "$7.99", "$40", "$80", "$160", "$384", "$768", "1,536", "google", "signinwithoauth", "jsdelivr", "unpkg", "three@", "googletagmanager", "gtag"];
 const DEBUG_MARKERS = ["CN_DEMO_SCREEN", "CN_ENGINE_SELFTEST", "cn-debug-errors"];
 
 // Files that may exist in the bundle at all.
 export const ALLOWED_FILES = [
   /^index\.html$/, /^offline\.html$/, /^legal\/(terms|privacy|acceptable-use)\.html$/,
-  /^(style|cybernet-legal)\.css$/,
-  /^(config|cybernet-engine|cybernet-errors|cybernet-compat|script|cybernet-privacy-controls)\.js$/,
-  /^ios\/(cn-ios-boot|ios|cn-analytics|legal-page)\.js$/, /^ios\/ios\.css$/,
+  /^(style|cybernet-legal|cybernet-business-team)\.css$/,
+  /^(config|cybernet-engine|cybernet-errors|cybernet-compat|script|cybernet-privacy-controls|cybernet-business-team)\.js$/,
+  /^ios\/(cn-ios-boot|ios|store|cn-analytics|legal-page)\.js$/, /^ios\/ios\.css$/,
   /^vendor\/(supabase|jsQR|capacitor)\.js$/,
   /^ui\/cybernet-ui\.(css|js)$/, /^ui\/cybernet-ui-legal\.css$/,
   /^ui\/fonts\/[\w.-]+\.woff2$/, /^ui\/fonts\/OFL\.txt$/,
@@ -75,6 +82,14 @@ const DEBUG_FILES = [/^ios\/debug\.js$/, /^ios\/engine-fixtures\.json$/];
 const ENGINE = "cybernet-engine.js";
 const VENDOR = /^vendor\//;
 const ANALYTICS = "ios/cn-analytics.js";
+// In-App Purchase (App Review 3.1.1, 3.1.2): the plans page and the purchase code. Nothing in them may point outside the app.
+const STORE_JS = "ios/store.js";
+// What the plans page must carry for guideline 3.1.2(a) (checked over index.html and ios/store.js together, case-sensitive).
+export const IAP_REQUIRED = [
+  "Restore Purchases", "Manage subscription", "Terms of Use", "Privacy Policy",
+  "cancel it at least 24 hours before the end of the current period",
+  "Payment is charged to your Apple ID at confirmation of purchase"
+];
 // Sign in with Google: ios/ios.js alone may use these words and the signInWithOAuth call (googleAuthBtn is the website's
 // button and stays forbidden everywhere). Hosts are not widened: no Google address may appear in any file.
 const GOOGLE_SIGNIN = "ios/ios.js";
@@ -103,7 +118,6 @@ function wordRegex(word) {
 }
 const WORD_RES = WORDS.map(w => [w, wordRegex(w)]);
 const LEGAL_RES = LEGAL_WORDS.map(w => [w, wordRegex(w)]);
-const PRO = /\b(?:Pro|PRO)\b/;
 
 const DEBUG_WORDS = ["cn_demo_screen", "cn_engine_selftest"];
 export function wordHits(text, { file = "", legal = false, debug = false } = {}) {
@@ -117,7 +131,6 @@ export function wordHits(text, { file = "", legal = false, debug = false } = {})
     if (debug && file === "ios/debug.js" && DEBUG_WORDS.includes(w)) continue;
     out.push(w);
   }
-  if (!legal && PRO.test(t)) out.push("Pro");
   return out;
 }
 
@@ -152,6 +165,7 @@ export async function checkBundle({ dir = path.join(mobile, "www"), debug = fals
 
   const files = await listFiles(dir);
   const present = new Set(files);
+  let indexText = "", storeText = "";
   for (const rel of files) {
     const allowed = ALLOWED_FILES.some(re => re.test(rel)) || (debug && DEBUG_FILES.some(re => re.test(rel)));
     if (!allowed) add({ file: rel, line: 0, rule: "allow-list", term: "", literal: "", detail: "file is not on the bundle allow-list" });
@@ -176,9 +190,18 @@ export async function checkBundle({ dir = path.join(mobile, "www"), debug = fals
       }
       if (/webContentsDebuggingEnabled"?\s*:\s*true/i.test(text)) add({ file: rel, line: 0, rule: "debug", term: "webContentsDebuggingEnabled", literal: "", detail: "web inspector enabled in a release bundle" });
     }
+    if (rel === "index.html") indexText = text;
+    if (rel === STORE_JS) storeText = text;
     if (rel.endsWith(".js")) checkJs(text, rel, { engine, vendor });
     else if (rel.endsWith(".html")) checkHtml(text, rel, { legal });
     else if (rel.endsWith(".css")) checkCss(text, rel);
+  }
+
+  // The plans page must say what Apple requires, wherever the words live (the markup or the code that paints it).
+  if (indexText) {
+    for (const phrase of IAP_REQUIRED) {
+      if (!indexText.includes(phrase) && !storeText.includes(phrase)) hits.push({ file: "index.html", line: 0, rule: "iap-required", term: phrase, detail: `the plans page must carry "${phrase}" (App Review 3.1.2); it is in neither index.html nor ios/store.js` });
+    }
   }
 
   for (const [i, e] of exemptions.entries()) {
@@ -200,6 +223,7 @@ export async function checkBundle({ dir = path.join(mobile, "www"), debug = fals
       if (label !== "string" && label !== "template") continue;
       const value = String(tok.value ?? "");
       if (!value) continue;
+      if (rel === STORE_JS && /\bhttps?:\/\//i.test(value)) add({ file: rel, line, rule: "iap-external-link", term: "link", literal: value, detail: `ios/store.js names a web address (${value.slice(0, 80)}); the purchase code may not send anyone outside the app (App Review 3.1.1)` });
       // remote code: a URL to a script/stylesheet or a CDN, anywhere
       for (const m of value.matchAll(/\bhttps?:\/\/[^\s"'`<>)]+/gi)) {
         const url = m[0];
@@ -218,6 +242,22 @@ export async function checkBundle({ dir = path.join(mobile, "www"), debug = fals
   function checkHtml(html, rel, { legal }) {
     const doc = P5.parse(html, { sourceCodeLocationInfo: true });
     const dirOf = path.posix.dirname(rel) === "." ? "" : path.posix.dirname(rel);
+    // the plans page (#pricing) may not link to anything outside the app: no way to buy, manage or read about a plan on the web
+    for (const page of [...walk(doc)].filter(n => typeof n.tagName === "string" && (n.attrs || []).some(a => a.name === "id" && a.value === "pricing"))) {
+      for (const n of walk(page)) {
+        if (n.nodeName === "#text") {
+          const m = /\b(?:https?:\/\/|www\.)\S+/i.exec(n.value);
+          if (m) add({ file: rel, line: n.sourceCodeLocation?.startLine || 0, rule: "iap-external-link", term: "link", literal: m[0], detail: `the plans page names a web address (${m[0].slice(0, 80)})` });
+          continue;
+        }
+        if (typeof n.tagName !== "string") continue;
+        for (const a of n.attrs || []) {
+          if (["href", "src", "action", "formaction", "data-href", "data-url"].includes(a.name) && /^(https?:)?\/\//i.test(String(a.value).trim())) {
+            add({ file: rel, line: n.sourceCodeLocation?.startLine || 0, rule: "iap-external-link", term: "link", literal: a.value, detail: `the plans page links to ${String(a.value).slice(0, 80)}; nothing on it may leave the app (App Review 3.1.1)` });
+          }
+        }
+      }
+    }
     for (const n of walk(doc)) {
       const line = n.sourceCodeLocation?.startLine || 0;
       if (n.nodeName === "#comment") continue;
@@ -245,7 +285,7 @@ export async function checkBundle({ dir = path.join(mobile, "www"), debug = fals
         if (codeLink && /^(https?:)?\/\//i.test(url)) add({ file: rel, line, rule: "remote-code", term: url, literal: url, detail: `<${tag}> loads ${url}` });
       }
       if ("data-web-only" in attrs) add({ file: rel, line, rule: "marker", term: "data-web-only", literal: "", detail: "a data-web-only element survived" });
-      if (/^(pricing|about)$/.test(attrs["data-page"] || "")) add({ file: rel, line, rule: "marker", term: `data-page="${attrs["data-page"]}"`, literal: "", detail: "a link to a web-only page survived" });
+      if (attrs["data-page"] === "about") add({ file: rel, line, rule: "marker", term: `data-page="about"`, literal: "", detail: "a link to a web-only page survived" });
       // local references must exist in the bundle
       for (const key of ["src", "href"]) {
         const v = attrs[key];

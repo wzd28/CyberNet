@@ -82,6 +82,8 @@ function fixtureTables() {
   t.api_rate_limits = [{ rate_key: "ip:1.2.3.4", count: 3, window_start: "2026-10-18T00:00:00+00:00" }];
   t.checkout_debug_log = [];
   t.feedback = [];
+  t.apple_subscriptions = [{ original_transaction_id: "2000000111111111", user_id: uid(2), product_id: "app.cybernetai.pro.monthly", plan: "pro", status: "active", expires_at: "2026-11-30T10:00:00+00:00" }];
+  t.apple_notifications = [{ notification_uuid: "7d6f5f3e-0c3b-4f64-9d0e-2f6a1d9c8b11", notification_type: "DID_RENEW", outcome: "applied", received_at: "2026-10-17T08:00:00+00:00" }];
   t.client_errors = [{ id: 2, message: "extra table row" }, { id: 1, message: "first" }];
   return t;
 }
@@ -236,7 +238,7 @@ try {
   // ── Config of the two functions ──
   check("weekly-schedule", weekly.config?.schedule === "@weekly" && !("path" in weekly.config), weekly.config);
   check("now-path", now.config?.path === "/api/backup-now" && !("schedule" in now.config), now.config);
-  check("table-list", lib.TABLES.length === 16 && new Set(lib.TABLES.map((t) => t.name)).size === 16 && lib.TABLES.every((t) => t.key.length), lib.TABLES.map((t) => t.name));
+  check("table-list", lib.TABLES.length === 18 && new Set(lib.TABLES.map((t) => t.name)).size === 18 && lib.TABLES.some((t) => t.name === "apple_subscriptions" && t.key[0] === "original_transaction_id") && lib.TABLES.some((t) => t.name === "apple_notifications" && t.key[0] === "notification_uuid") && lib.TABLES.findIndex((t) => t.name === "apple_subscriptions") > lib.TABLES.findIndex((t) => t.name === "business_accounts") && lib.TABLES.every((t) => t.key.length), lib.TABLES.map((t) => t.name));
   check("rate-limits-excluded", JSON.stringify(lib.EXCLUDED_TABLES) === '["api_rate_limits"]' && !lib.TABLES.some((t) => t.name === "api_rate_limits"), lib.EXCLUDED_TABLES);
   check("restore-order-fk", ["business_accounts", "business_members", "recovery_cases", "recovery_versions", "recovery_tasks"].map((n) => lib.TABLES.findIndex((t) => t.name === n)).every((v, i, a) => !i || v > a[i - 1]), lib.TABLES.map((t) => t.name));
 

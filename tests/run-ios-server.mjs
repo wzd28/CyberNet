@@ -1,7 +1,11 @@
 // The server side of the iPhone app (BUILD-PLAN §8.1-§8.5, §8.7; owner answers
-// of 29 Oct 2026): CORS for capacitor://localhost, the App tier, the refusal of
-// web-only paths, the AI consent gate and /api/ai-consent, the app's result
-// reports to /api/feedback, error reports from the app, and the team log.
+// of 29 Oct 2026, and the 30 Oct 2026 decision that the app has the website's
+// Free / Pro / Business plans, bought with Apple In-App Purchase): CORS for
+// capacitor://localhost, the same plans, limits and team pools as the website
+// (and the disclosed review / admin allowance), the refusal of web-only paths,
+// the AI consent gate and /api/ai-consent, the app's result reports to
+// /api/feedback, error reports from the app, the team log, and the billing
+// guards around Stripe and Apple.
 // Every check that an iOS request behaves a certain way has a twin that checks
 // the same request WITHOUT the iOS header still behaves exactly as before.
 //
@@ -57,7 +61,8 @@ const fn = {};
 for (const name of ["account-status.mjs", "analyze.mts", "recovery-mode.mts", "recovery-update.mts", "recovery-case.mts", "legal-acceptance.mts",
   "ai-consent.mjs", "feedback.mjs", "client-error.mjs", "team-activity.mts", "quickscan-usage.mjs",
   "create-checkout-session.mjs", "customer-portal.mjs", "byok-analyze.mts", "validate-openai-key.mts", "screenshot-preview.mjs", "feedback-admin.mjs",
-  "business-account.mts", "business-activity.mts", "business-invite.mts", "business-invite-accept.mts", "business-invite-cancel.mts", "business-member-remove.mts"]) {
+  "business-account.mts", "business-activity.mts", "business-invite.mts", "business-invite-accept.mts", "business-invite-cancel.mts", "business-member-remove.mts",
+  "public-stats.mjs", "recovery-checkin.mjs", "privacy-data.mts"]) {
   fn[name.replace(/\.m[jt]s$/, "")] = (await load(`netlify/functions/${name}`, `ios-${name}.test.mjs`)).default;
 }
 const cors = await import(pathToFileURL(path.join(root, "netlify/lib/cors.mjs")).href);
@@ -67,7 +72,8 @@ const filters = await import(pathToFileURL(path.join(root, "netlify/lib/client-e
 const { CLIENT_UA } = await import(pathToFileURL(path.join(root, "netlify/lib/report-error.mjs")).href);
 const { validateReport, resetClientErrorMemory } = await import(pathToFileURL(path.join(root, "netlify/functions/client-error.mjs")).href);
 const { resetFeedbackMemory } = await import(pathToFileURL(path.join(root, "netlify/functions/feedback.mjs")).href);
-const { DEFAULT_MINI_MODEL } = await import(pathToFileURL(path.join(root, "netlify/lib/ai-models.mjs")).href);
+const { DEFAULT_MINI_MODEL, DEFAULT_MODEL } = await import(pathToFileURL(path.join(root, "netlify/lib/ai-models.mjs")).href);
+const entitlements = await import(pathToFileURL(path.join(root, "netlify/lib/entitlements.mjs")).href);
 
 let checks = 0, failures = 0;
 function check(name, ok, detail) {
@@ -88,13 +94,31 @@ const USERS = {
   "t-member": { id: id(4), email: "member@example.com", email_confirmed_at: CONFIRMED },
   "t-admin": { id: id(5), email: "Admin@Example.com", email_confirmed_at: CONFIRMED },
   "t-review": { id: id(6), email: "review@example.com", email_confirmed_at: CONFIRMED },
-  "t-review-unconfirmed": { id: id(7), email: "review@example.com", email_confirmed_at: null }
+  "t-review-unconfirmed": { id: id(7), email: "review@example.com", email_confirmed_at: null },
+  "t-apple": { id: id(8), email: "apple@example.com", email_confirmed_at: CONFIRMED }, // Pro bought in the app
+  "t-guest": { id: id(9), email: "guest@example.com", email_confirmed_at: CONFIRMED } // a free account whose Apple Pro has ended
 };
 const TEAM = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const CASE = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 const byId = Object.fromEntries(Object.values(USERS).map((u) => [u.id, u]));
 const PROFILE = { [USERS["t-pro"].id]: { plan: "pro", subscription_status: "active", billing_interval: "month" } };
 const TEAM_ROLE = { [USERS["t-owner"].id]: "owner", [USERS["t-member"].id]: "member" };
+// Apple subscriptions (public.apple_subscriptions rows), by account. Dates are made fresh for every read.
+const DAY = 86_400_000;
+const appleRow = (productId, plan, seatTier, over = {}) => ({
+  original_transaction_id: "2000000100000001", product_id: productId, plan, seat_tier: seatTier, billing_interval: productId.endsWith("yearly") ? "year" : "month",
+  environment: "Production", expires_at: new Date(Date.now() + 20 * DAY).toISOString(), grace_expires_at: null, auto_renew: true, status: "active", revoked_at: null,
+  business_account_id: null, ...over
+});
+const APPLE_ROWS = {
+  [USERS["t-apple"].id]: () => [appleRow("app.cybernetai.pro.monthly", "pro", null)],
+  [USERS["t-owner"].id]: () => [appleRow("app.cybernetai.business5.monthly", "business", 5, { original_transaction_id: "2000000100000002", business_account_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" })],
+  [USERS["t-guest"].id]: () => [appleRow("app.cybernetai.pro.monthly", "pro", null, { expires_at: new Date(Date.now() - 3 * DAY).toISOString(), status: "expired", auto_renew: false })]
+};
+const TEAM_BILLING = "apple"; // the stubbed team is billed by Apple (its owner t-owner has the Business row above)
+
+// The plan an account's own counters would report: Pro from Stripe, or an Apple Pro row that is paid up.
+const planFor = (uid) => (PROFILE[uid]?.plan === "pro" || (APPLE_ROWS[uid]?.() || []).some((row) => row.plan === "pro" && new Date(row.expires_at) > Date.now()) ? "pro" : "free");
 
 // ── the stubbed network ──
 let state;
@@ -103,6 +127,17 @@ function reset(over = {}) {
   state = {
     consent: true, // has_ai_consent answer, or a number = HTTP status to fail with
     allowApp: true, // consume_*_app answer
+    appleTable404: false, // the apple_subscriptions table is not there yet (migration not applied)
+    existingTeam: false, // business_accounts lookups find the stubbed team
+    teamBilling: null, // { billing_source, subscription_status } the guard read returns
+    billingColumn404: false, // the billing_source column is not there yet
+    memberCount: 0, // active members of the stubbed team, for the invite seat count
+    allowPlan: true, // consume_analysis / consume_recovery_* / consume_quickscan answer (the plan's own counters)
+    proProfiles: [], // profiles?plan=eq.pro list for recovery-checkin
+    appleProRows: [], // apple_subscriptions?plan=eq.pro list for recovery-checkin
+    appleProFail: 0, // HTTP status to fail that list with
+    staleCases: [], // recovery_cases rows for recovery-checkin
+    statsFail: false,
     cooldown: 0, // consume_recovery_update_app cooldown_seconds_remaining
     feedbackRows: [],
     mails: [],
@@ -169,23 +204,36 @@ globalThis.fetch = async (input, init = {}) => {
       return json(rpc === "consume_api_quota" ? { allowed: true, used: 1, limit: 100 } : true);
     case "consume_analysis_app":
       return json([{ allowed: state.allowApp, used: state.allowApp ? 1 : body.p_limit, daily_limit: body.p_limit, plan: "app" }]);
-    case "consume_analysis":
-      return json([{ allowed: true, used: 1, daily_limit: PROFILE[uid] ? 15 : 3, plan: PROFILE[uid] ? "pro" : "free" }]);
+    case "consume_analysis": {
+      const plan = planFor(uid);
+      const limit = plan === "pro" ? 15 : 3;
+      return json([{ allowed: state.allowPlan, used: state.allowPlan ? 1 : limit, daily_limit: limit, plan }]);
+    }
     case "consume_analysis_business":
-      return json([{ allowed: true, used: 1, daily_limit: 50, plan: "business" }]);
+      return json([{ allowed: state.allowPlan, used: state.allowPlan ? 1 : 50, daily_limit: 50, plan: "business" }]);
     case "consume_recovery_case_app":
       return json([{ allowed: state.allowApp, used: state.allowApp ? 1 : body.p_limit, daily_limit: body.p_limit, plan: "app", reset_at: "2026-10-30T16:00:00+00:00" }]);
-    case "consume_recovery_case":
-      return json([{ allowed: true, used: 1, daily_limit: 1, plan: PROFILE[uid] ? "pro" : "free", reset_at: "2026-10-30T16:00:00+00:00" }]);
+    case "consume_recovery_case": {
+      const plan = planFor(uid);
+      const limit = plan === "pro" ? 3 : 1;
+      return json([{ allowed: state.allowPlan, used: state.allowPlan ? 1 : limit, daily_limit: limit, plan, reset_at: "2026-10-30T16:00:00+00:00" }]);
+    }
     case "consume_recovery_case_business":
-      return json([{ allowed: true, used: 1, daily_limit: 20, plan: "business", reset_at: "2026-10-30T16:00:00+00:00" }]);
+      return json([{ allowed: state.allowPlan, used: state.allowPlan ? 1 : 20, daily_limit: 20, plan: "business", reset_at: "2026-10-30T16:00:00+00:00" }]);
     case "consume_recovery_update_app":
       return json([{ allowed: state.allowApp && !state.cooldown, used: 1, daily_limit: body.p_limit, plan: "app", reset_at: "2026-10-30T16:00:00+00:00", cooldown_seconds_remaining: state.cooldown }]);
     case "consume_recovery_update":
-    case "consume_recovery_update_business":
-      return json([{ allowed: true, used: 1, daily_limit: 999, plan: rpc.endsWith("business") ? "business" : "free", reset_at: null, cooldown_seconds_remaining: 0 }]);
-    case "consume_quickscan":
-      return json([{ allowed: true, used: 1, daily_limit: 5, plan: "free" }]);
+    case "consume_recovery_update_business": {
+      const plan = rpc.endsWith("business") ? "business" : planFor(uid);
+      const limit = plan === "free" ? 1 : 999;
+      return json([{ allowed: state.allowPlan && !state.cooldown, used: 1, daily_limit: limit, plan, reset_at: null, cooldown_seconds_remaining: state.cooldown }]);
+    }
+    case "consume_quickscan": {
+      const plan = planFor(uid);
+      return json([{ allowed: state.allowPlan, used: state.allowPlan ? 1 : 5, daily_limit: plan === "pro" ? 100000 : 5, plan }]);
+    }
+    case "get_platform_stats":
+      return state.statsFail ? json({ message: "down" }, 500) : json([{ total_scans: 1200, threats_found: 340, recovery_cases: 15 }]);
     case "recovery_window_start":
       return json("2026-10-29T16:00:00+00:00");
     case "refund_analysis":
@@ -197,10 +245,26 @@ globalThis.fetch = async (input, init = {}) => {
   if (rpc) return json({ message: `unexpected rpc ${rpc}` }, 404);
 
   const userIn = (/user_id=eq\.([0-9a-f-]{36})/.exec(pathQ) || [])[1] || (/[?&]id=eq\.([0-9a-f-]{36})/.exec(pathQ) || [])[1];
+  if (url.pathname === "/rest/v1/business_members" && method === "GET" && pathQ.includes("business_account_id=eq.") && !userIn) {
+    return json(Array.from({ length: state.memberCount }, (_, index) => ({ id: index })));
+  }
+  if (url.pathname === "/rest/v1/business_accounts" && method === "GET") {
+    if (pathQ.includes("select=billing_source")) return state.billingColumn404 ? json({ code: "42703", message: "column business_accounts.billing_source does not exist" }, 400) : json(state.teamBilling ? [state.teamBilling] : []);
+    return json(state.existingTeam ? [{ id: TEAM }] : []);
+  }
   if (url.pathname === "/rest/v1/business_members" && method === "GET") {
     const role = TEAM_ROLE[userIn];
-    return json(role ? [{ role, business_accounts: { id: TEAM, seat_tier: 5, daily_pool_limit: 50, recovery_pool_limit: 20, subscription_status: "active" } }] : []);
+    return json(role ? [{ role, business_accounts: { id: TEAM, seat_tier: 5, daily_pool_limit: 50, recovery_pool_limit: 20, subscription_status: "active", billing_source: TEAM_BILLING } }] : []);
   }
+  if (url.pathname === "/rest/v1/apple_subscriptions" && method === "GET") {
+    if (state.appleTable404) return json({ code: "PGRST205", message: "Could not find the table 'public.apple_subscriptions'" }, 404);
+    if (pathQ.includes("plan=eq.pro") && pathQ.includes("select=user_id")) return state.appleProFail ? json({ message: "down" }, state.appleProFail) : json(state.appleProRows);
+    return json(APPLE_ROWS[userIn] ? APPLE_ROWS[userIn]() : []);
+  }
+  if (url.pathname === "/rest/v1/business_recovery_usage" && method === "GET") return json([{ cases_created: 4 }]);
+  if (url.pathname === "/rest/v1/profiles" && pathQ.includes("plan=eq.pro") && method === "GET") return json(state.proProfiles);
+  if (url.pathname === "/rest/v1/recovery_cases" && pathQ.includes("last_checkin_sent_at") && method === "GET") return json(state.staleCases);
+  if (url.pathname.startsWith("/auth/v1/admin/users/") && method === "GET") return json({ email: "case-owner@example.com", user_metadata: {} });
   if (url.pathname === "/rest/v1/profiles" && method === "GET") {
     const user = byId[userIn];
     return json(user ? [{ id: user.id, full_name: "Test", plan: "free", subscription_status: "inactive", billing_interval: "", ...(PROFILE[user.id] || {}) }] : []);
@@ -240,8 +304,9 @@ function req(pathname, { method = "POST", token = "", body, ios = false, origin 
   return new Request(`${SITE}${pathname}`, { method, headers: h, body: ["GET", "HEAD", "OPTIONS"].includes(method) ? undefined : text });
 }
 const context = { ip: "203.0.113.9", site: { name: "cybernet-ai" }, deploy: { id: "deploy1" }, requestId: "req-1", waitUntil: undefined };
+let connection = 0;
 async function run(handler, request) {
-  const response = await handler(request, context);
+  const response = await handler(request, { ...context, ip: `203.0.${Math.floor(++connection / 250) % 250}.${(connection % 250) + 1}` });
   const text = await response.text();
   let data = null;
   try { data = text ? JSON.parse(text) : null; } catch { data = text; }
@@ -286,8 +351,9 @@ const noCors = (r) => r.headers.get("access-control-allow-origin") === null;
 }
 
 // ══════════ 2. web-only functions refuse the app, untouched for the website ══════════
-for (const name of ["create-checkout-session", "customer-portal", "byok-analyze", "validate-openai-key", "screenshot-preview", "quickscan-usage", "feedback-admin",
-  "business-account", "business-activity", "business-invite", "business-invite-accept", "business-invite-cancel", "business-member-remove"]) {
+// Stripe checkout and billing portal, BYOK, link previews, the admin inbox and accepting a Business
+// invite are not in the app (purchases are Apple In-App Purchase; App Review 3.1.1 and 2.5.19).
+for (const name of ["create-checkout-session", "customer-portal", "byok-analyze", "validate-openai-key", "screenshot-preview", "feedback-admin", "business-invite-accept"]) {
   for (const method of ["POST", "GET"]) {
     reset();
     let r = await run(fn[name], req(`/api/${name}`, { method, token: "t-pro", ios: true, body: method === "POST" ? {} : undefined }));
@@ -300,33 +366,94 @@ for (const name of ["create-checkout-session", "customer-portal", "byok-analyze"
     check(`${name} ${method}: the website still reaches the function`, r.data?.code !== "NOT_AVAILABLE_IN_APP", { status: r.status, data: r.data });
   }
 }
-{
+// Team management and Quick Scan counting are in the app now: they answer the app (with CORS) and the website as before.
+for (const name of ["quickscan-usage", "business-account", "business-activity", "business-invite", "business-invite-cancel", "business-member-remove"]) {
+  for (const method of ["POST", "GET"]) {
+    reset();
+    let r = await run(fn[name], req(`/api/${name}`, { method, token: "t-owner", ios: true, origin: APP, body: method === "POST" ? {} : undefined }));
+    check(`${name} ${method}: the app reaches the function (no 403) and gets CORS`, r.data?.code !== "NOT_AVAILABLE_IN_APP" && r.status !== 403 && corsOk(r), { status: r.status, data: r.data });
+    reset();
+    r = await run(fn[name], req(`/api/${name}`, { method, token: "t-owner", body: method === "POST" ? {} : undefined }));
+    check(`${name} ${method}: the website reaches the function and gets no CORS headers`, r.data?.code !== "NOT_AVAILABLE_IN_APP" && noCors(r), { status: r.status, data: r.data });
+  }
   reset();
-  const r = await run(fn["quickscan-usage"], req("/api/quickscan-usage", { token: "t-free", body: {} }));
+  const pre = await run(fn[name], new Request(`${SITE}/api/${name}`, { method: "OPTIONS", headers: { Origin: APP } }));
+  check(`${name}: the app's preflight is 204, nothing called`, pre.status === 204 && corsOk(pre) && calls.length === 0, pre.status);
+}
+{
+  // Quick Scans: Free's 5 a day in the app as on the website; the admin bypass is the website's.
+  reset();
+  let r = await run(fn["quickscan-usage"], req("/api/quickscan-usage", { token: "t-free", body: {} }));
   check("quickscan-usage: website path unchanged (consume_quickscan)", r.status === 200 && rpcCalls("consume_quickscan").length === 1, r);
+  reset();
+  r = await run(fn["quickscan-usage"], req("/api/quickscan-usage", { token: "t-free", ios: true, origin: APP, body: {} }));
+  check("quickscan-usage app free: consume_quickscan, Free's limit of 5", r.status === 200 && rpcCalls("consume_quickscan")[0]?.body.p_user_id === USERS["t-free"].id && r.data.limit === 5 && r.data.plan === "free" && corsOk(r), r);
+  reset();
+  r = await run(fn["quickscan-usage"], req("/api/quickscan-usage", { token: "t-apple", ios: true, body: {} }));
+  check("quickscan-usage app, Pro bought in the app: unlimited", r.status === 200 && r.data.limit === 100000 && r.data.plan === "pro", r.data);
+  reset({ allowPlan: false });
+  r = await run(fn["quickscan-usage"], req("/api/quickscan-usage", { token: "t-free", ios: true, body: {} }));
+  check("quickscan-usage app over the limit: 429 daily_limit_reached with the website's message", r.status === 429 && r.data.code === "daily_limit_reached" && r.data.error === "Daily Quick Scan limit reached. Upgrade to Pro for unlimited scans." && r.data.plan === "free", r.data);
+  reset();
+  r = await run(fn["quickscan-usage"], req("/api/quickscan-usage", { token: "t-member", ios: true, body: {} }));
+  check("quickscan-usage app team member: never blocked (as on the website)", r.status === 200 && r.data.plan === "business" && r.data.limit === 100000 && !rpcCalls("consume_quickscan").length, r.data);
+  reset();
+  r = await run(fn["quickscan-usage"], req("/api/quickscan-usage", { token: "t-admin", ios: true, body: {} }));
+  check("quickscan-usage app admin: no bypass in the app, counted like anyone", r.status === 200 && rpcCalls("consume_quickscan").length === 1 && r.data.limit === 5, r.data);
+  reset();
+  r = await run(fn["quickscan-usage"], req("/api/quickscan-usage", { token: "t-admin", body: {} }));
+  check("quickscan-usage website admin: the bypass as before", r.status === 200 && r.data.limit === 999999 && !rpcCalls("consume_quickscan").length, r.data);
 }
 
-// ══════════ 3. analyze: consent, App tier, history, team log ══════════
+// ══════════ 3. analyze: consent, plans, history, team log ══════════
+// In the app an account has the website's plan: Free 3, Pro 15 (Stripe or Apple), a Business team's shared pool.
+// Only the disclosed review / admin accounts get raised counts (consume_analysis_app) instead.
 const IMAGE = { type: "image", content: "", imageData: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==" };
-const EXPECT_LIMIT = { "t-free": 3, "t-pro": 3, "t-owner": 3, "t-member": 3, "t-admin": 50, "t-review": 50, "t-review-unconfirmed": 3 };
-for (const [token, limit] of Object.entries(EXPECT_LIMIT)) {
+const TEXT = { type: "text", content: "Hi, please confirm your account details at http://bit.ly/x1 soon" }; // the rules call this suspicious: ambiguous, so the model depends on the plan
+const ANALYZE_APP = {
+  // token: [rpc that reserves, expected plan in usage, expected limit, history saved, model]
+  "t-free": ["consume_analysis", "free", 3, false, DEFAULT_MINI_MODEL],
+  "t-pro": ["consume_analysis", "pro", 15, true, DEFAULT_MODEL],
+  "t-apple": ["consume_analysis", "pro", 15, true, DEFAULT_MODEL],
+  "t-guest": ["consume_analysis", "free", 3, false, DEFAULT_MINI_MODEL],
+  "t-owner": ["consume_analysis_business", "business", 50, true, DEFAULT_MODEL],
+  "t-member": ["consume_analysis_business", "business", 50, true, DEFAULT_MODEL],
+  "t-admin": ["consume_analysis_app", "app", 50, false, DEFAULT_MINI_MODEL],
+  "t-review": ["consume_analysis_app", "app", 50, false, DEFAULT_MINI_MODEL],
+  "t-review-unconfirmed": ["consume_analysis", "free", 3, false, DEFAULT_MINI_MODEL]
+};
+for (const [token, [rpc, plan, limit, history, model]] of Object.entries(ANALYZE_APP)) {
   reset();
   const r = await run(fn.analyze, req("/api/analyze", { token, ios: true, origin: APP, body: IMAGE }));
   const names = calls.filter((c) => c.host === "supabase" && c.path.startsWith("/rest/v1/rpc/")).map(RPC_NAMES);
-  const consume = rpcCalls("consume_analysis_app");
-  check(`analyze app ${token}: 200 with plan "app" and CORS`, r.status === 200 && r.data.usage?.plan === "app" && corsOk(r), { status: r.status, usage: r.data?.usage, err: r.data?.error });
-  check(`analyze app ${token}: consent checked first, then consume_analysis_app(${limit})`, consume.length === 1 && consume[0].body.p_limit === limit && consume[0].body.p_user_id === USERS[token].id &&
-    names.indexOf("has_ai_consent") >= 0 && names.indexOf("has_ai_consent") < names.indexOf("consume_analysis_app"), names);
-  check(`analyze app ${token}: never the web, team or admin path`, !names.includes("consume_analysis") && !names.includes("consume_analysis_business") && !names.includes("refund_analysis_business"), names);
+  const reserve = rpcCalls(rpc);
+  check(`analyze app ${token}: 200 with plan "${plan}" and CORS`, r.status === 200 && r.data.usage?.plan === plan && corsOk(r), { status: r.status, usage: r.data?.usage, err: r.data?.error });
+  const argOk = rpc === "consume_analysis_app" ? reserve[0]?.body.p_limit === limit && reserve[0]?.body.p_user_id === USERS[token].id
+    : rpc === "consume_analysis_business" ? reserve[0]?.body.p_business_account_id === TEAM : reserve[0]?.body.p_user_id === USERS[token].id;
+  check(`analyze app ${token}: consent checked first, then ${rpc}`, reserve.length === 1 && argOk && names.indexOf("has_ai_consent") >= 0 && names.indexOf("has_ai_consent") < names.indexOf(rpc), names);
+  const others = ["consume_analysis", "consume_analysis_business", "consume_analysis_app"].filter((n) => n !== rpc);
+  check(`analyze app ${token}: no other counter is touched`, others.every((n) => !names.includes(n)), names);
   const ai = calls.filter((c) => c.host === "openai");
-  check(`analyze app ${token}: routed like Free (the mini model), store:false`, ai.length === 1 && ai[0].body.model === DEFAULT_MINI_MODEL && ai[0].body.store === false, ai.map((c) => c.body?.model));
+  check(`analyze app ${token}: the AI call is stored nowhere (store:false)`, ai.length === 1 && ai[0].body.store === false, ai.map((c) => c.body?.store));
+  // An ambiguous message is where the plan shows: Free and the allowance accounts get the mini model, Pro and Business the full one.
+  reset();
+  await run(fn.analyze, req("/api/analyze", { token, ios: true, origin: APP, body: TEXT }));
+  const routed = calls.filter((c) => c.host === "openai");
+  check(`analyze app ${token}: an ambiguous message is routed by plan (${model === DEFAULT_MINI_MODEL ? "the mini model" : "the full model"})`, routed.length === 1 && routed[0].body.model === model, routed.map((c) => c.body?.model));
+  reset();
+  await run(fn.analyze, req("/api/analyze", { token, ios: true, origin: APP, body: IMAGE }));
+  check(`analyze app ${token}: limit ${limit} reported`, r.data.usage?.limit === limit, r.data.usage);
   const saved = restCalls("POST", "/rest/v1/scan_history");
-  check(`analyze app ${token}: the AI explanation is saved to history (App tier)`, saved.length === 1 && Array.isArray(r.data.history) && r.data.history.length === 1, { saved: saved.length, history: r.data.history });
+  if (history) {
+    check(`analyze app ${token}: the AI explanation is saved to history (Pro / Business, as on the website)`, saved.length === 1 && Array.isArray(r.data.history) && r.data.history.length === 1, { saved: saved.length, history: r.data.history });
+  } else {
+    check(`analyze app ${token}: no saved history (a Pro / Business feature, as on the website)`, saved.length === 0 && Array.isArray(r.data.history) && r.data.history.length === 0, { saved: saved.length, history: r.data.history });
+  }
   if (token === "t-member") {
     check("analyze app member: the result still reaches the team owner's log", saved[0]?.body?.business_account_id === TEAM && saved[0]?.body?.analysis?.aiUsed === true && "submitted_content" in (saved[0]?.body || {}) && r.data.teamLogId === 77, saved[0]?.body);
   } else if (token === "t-owner") {
     check("analyze app owner: own activity carries no submitted content", saved[0]?.body?.business_account_id === TEAM && !("submitted_content" in (saved[0]?.body || {})), saved[0]?.body);
-  } else {
+  } else if (history) {
     check(`analyze app ${token}: no team link`, saved[0] && !("business_account_id" in saved[0].body), saved[0]?.body);
   }
 }
@@ -338,6 +465,8 @@ for (const [token, limit] of Object.entries(EXPECT_LIMIT)) {
   check("analyze web free: no history (a Pro feature on the web)", restCalls("POST", "/rest/v1/scan_history").length === 0);
   ({ r, names } = await web("t-pro"));
   check("analyze web pro: consume_analysis with Pro's 15, history saved", r.data.usage.limit === 15 && r.data.usage.plan === "pro" && restCalls("POST", "/rest/v1/scan_history").length === 1, r.data.usage);
+  ({ r, names } = await web("t-apple"));
+  check("analyze web, Pro bought in the app: the same Pro path, history saved (one plan on web and app)", r.data.usage.limit === 15 && r.data.usage.plan === "pro" && names.includes("consume_analysis") && restCalls("POST", "/rest/v1/scan_history").length === 1, r.data.usage);
   ({ r, names } = await web("t-member"));
   check("analyze web member: the team pool", names.includes("consume_analysis_business") && !names.includes("consume_analysis") && r.data.usage.plan === "business", names);
   ({ r, names } = await web("t-admin"));
@@ -345,7 +474,7 @@ for (const [token, limit] of Object.entries(EXPECT_LIMIT)) {
   ({ r, names } = await web("t-review"));
   check("analyze web review account: an ordinary free account on the web", names.includes("consume_analysis") && r.data.usage.limit === 3, names);
 }
-// Consent missing, check failing, investigation, the limit message, the app's origin without the header.
+// Consent missing, check failing, investigation, the limit messages, the app's origin without the header.
 {
   reset({ consent: false });
   let r = await run(fn.analyze, req("/api/analyze", { token: "t-free", ios: true, body: IMAGE }));
@@ -363,45 +492,77 @@ for (const [token, limit] of Object.entries(EXPECT_LIMIT)) {
   reset();
   r = await run(fn.analyze, req("/api/analyze", { token: "t-pro", ios: true, body: { mode: "investigation", caseData: { title: "x", context: "y", artifacts: [{ type: "text", content: "hello" }] } } }));
   check("analyze app investigation: 403, nothing called", r.status === 403 && r.data.code === "NOT_AVAILABLE_IN_APP" && calls.length === 0 && !PLAN_WORDS.test(r.data.error), r.data);
+
+  // At the limit, the app sees the website's message (so it can offer a plan); only the allowance accounts get the neutral one.
+  for (const [token, message, planInUsage] of [["t-free", "Daily Free limit reached.", "free"], ["t-pro", "Daily Pro limit reached.", "pro"], ["t-apple", "Daily Pro limit reached.", "pro"], ["t-member", "Daily team limit reached.", "business"]]) {
+    reset({ allowPlan: false });
+    r = await run(fn.analyze, req("/api/analyze", { token, ios: true, body: IMAGE }));
+    check(`analyze app limit (${token}): 429 "${message}" with code daily_limit_reached`, r.status === 429 && r.data.code === "daily_limit_reached" && r.data.error === message && r.data.usage.plan === planInUsage, r.data);
+    check(`analyze app limit (${token}): nothing sent to OpenAI`, !calls.some((c) => c.host === "openai"));
+  }
   reset({ allowApp: false });
-  r = await run(fn.analyze, req("/api/analyze", { token: "t-pro", ios: true, body: IMAGE }));
-  check("analyze app limit: 429 with a neutral message (no plan names)", r.status === 429 && r.data.code === "daily_limit_reached" && r.data.error === tier.APP_MESSAGES.aiLimit && !PLAN_WORDS.test(r.data.error) && r.data.usage.plan === "app", r.data);
-  check("analyze app limit: nothing sent to OpenAI", !calls.some((c) => c.host === "openai"));
+  r = await run(fn.analyze, req("/api/analyze", { token: "t-review", ios: true, body: IMAGE }));
+  check("analyze app limit (review allowance): the neutral message, plan app", r.status === 429 && r.data.code === "daily_limit_reached" && r.data.error === tier.APP_MESSAGES.aiLimit && !PLAN_WORDS.test(r.data.error) && r.data.usage.plan === "app", r.data);
+  reset({ allowPlan: false });
+  r = await run(fn.analyze, req("/api/analyze", { token: "t-free", body: IMAGE }));
+  check("analyze web limit: the same message as the app gets", r.status === 429 && r.data.error === "Daily Free limit reached.", r.data);
+
   reset();
   r = await run(fn.analyze, new Request(`${SITE}/api/analyze`, { method: "OPTIONS", headers: { Origin: APP } }), context);
   check("analyze preflight: 204, nothing called", r.status === 204 && corsOk(r) && calls.length === 0);
-  // No AI result: the App-tier counter is refunded (never the team pool).
+
+  // No AI result: the counter that was charged is refunded (the team pool for a member, otherwise the person's own).
   ENV.OPENAI_API_KEY = "";
   reset();
   r = await run(fn.analyze, req("/api/analyze", { token: "t-member", ios: true, body: IMAGE }));
-  check("analyze app, no AI answer: refund_analysis (own counter), not the team pool", r.status === 200 && rpcCalls("refund_analysis").length === 1 && !rpcCalls("refund_analysis_business").length && r.data.usage.used === 0, calls.map((c) => c.path));
+  check("analyze app member, no AI answer: refund_analysis_business (the team pool, as on the website)", r.status === 200 && rpcCalls("refund_analysis_business").length === 1 && !rpcCalls("refund_analysis").length && r.data.usage.used === 0, calls.map((c) => c.path));
+  reset();
+  r = await run(fn.analyze, req("/api/analyze", { token: "t-free", ios: true, body: IMAGE }));
+  check("analyze app free, no AI answer: refund_analysis (own counter)", r.status === 200 && rpcCalls("refund_analysis").length === 1 && !rpcCalls("refund_analysis_business").length && r.data.usage.used === 0, calls.map((c) => c.path));
+  reset();
+  r = await run(fn.analyze, req("/api/analyze", { token: "t-review", ios: true, body: IMAGE }));
+  check("analyze app review account, no AI answer: refund_analysis (the allowance counts on the person's own counter)", r.status === 200 && rpcCalls("refund_analysis").length === 1 && !rpcCalls("refund_analysis_business").length, calls.map((c) => c.path));
   ENV.OPENAI_API_KEY = "stub-openai-key";
 }
 
 // ══════════ 4. recovery-mode and recovery-update ══════════
 const INCIDENT = { description: "Someone logged into my email and changed the recovery phone number.", quickAnswers: {}, region: "UAE" };
-const CASE_LIMIT = { "t-free": 1, "t-pro": 1, "t-member": 1, "t-admin": 10, "t-review": 10 };
-for (const [token, limit] of Object.entries(CASE_LIMIT)) {
+const CASE_APP = {
+  // token: [rpc that reserves, plan in usage, limit]
+  "t-free": ["consume_recovery_case", "free", 1],
+  "t-pro": ["consume_recovery_case", "pro", 3],
+  "t-apple": ["consume_recovery_case", "pro", 3],
+  "t-member": ["consume_recovery_case_business", "business", 20],
+  "t-owner": ["consume_recovery_case_business", "business", 20],
+  "t-admin": ["consume_recovery_case_app", "app", 10],
+  "t-review": ["consume_recovery_case_app", "app", 10]
+};
+for (const [token, [rpc, plan, limit]] of Object.entries(CASE_APP)) {
   reset();
   const r = await run(fn["recovery-mode"], req("/api/recovery-mode", { token, ios: true, origin: APP, body: INCIDENT }));
   const names = calls.filter((c) => c.host === "supabase" && c.path.startsWith("/rest/v1/rpc/")).map(RPC_NAMES);
-  check(`recovery-mode app ${token}: 200, consent then consume_recovery_case_app(${limit})`, r.status === 200 && corsOk(r) && r.data.usage?.plan === "app" &&
-    rpcCalls("consume_recovery_case_app")[0]?.body.p_limit === limit && names.indexOf("has_ai_consent") >= 0 && names.indexOf("has_ai_consent") < names.indexOf("consume_recovery_case_app"), { status: r.status, names, err: r.data?.error });
-  check(`recovery-mode app ${token}: never the web, team or admin path`, !names.includes("consume_recovery_case") && !names.includes("consume_recovery_case_business"), names);
+  const reserve = rpcCalls(rpc)[0]?.body;
+  check(`recovery-mode app ${token}: 200, consent then ${rpc}`, r.status === 200 && corsOk(r) && r.data.usage?.plan === plan && r.data.usage?.limit === limit && reserve && names.indexOf("has_ai_consent") >= 0 && names.indexOf("has_ai_consent") < names.indexOf(rpc), { status: r.status, names, usage: r.data?.usage, err: r.data?.error });
+  if (rpc === "consume_recovery_case_app") check(`recovery-mode app ${token}: the allowance count (${limit}) is passed`, reserve.p_limit === limit, reserve);
+  const others = ["consume_recovery_case", "consume_recovery_case_business", "consume_recovery_case_app"].filter((n) => n !== rpc);
+  check(`recovery-mode app ${token}: no other counter is touched`, others.every((n) => !names.includes(n)), names);
   const caseRow = restCalls("POST", "/rest/v1/recovery_cases")[0]?.body;
   if (token === "t-member") check("recovery-mode app member: the case still reaches the owner's log", caseRow?.business_account_id === TEAM && typeof caseRow?.submitted_description === "string", caseRow);
+  else if (token === "t-owner") check("recovery-mode app owner: the case is linked to the team without the description", caseRow?.business_account_id === TEAM && !caseRow?.submitted_description, caseRow);
   else check(`recovery-mode app ${token}: no team link`, caseRow && !("business_account_id" in caseRow), caseRow);
 }
 {
   reset({ consent: false });
   let r = await run(fn["recovery-mode"], req("/api/recovery-mode", { token: "t-free", ios: true, body: INCIDENT }));
   check("recovery-mode app without consent: 428, nothing reserved, no case, no background job", r.status === 428 && r.data.code === "AI_CONSENT_REQUIRED" && !calls.some((c) => c.path?.includes("consume_")) && !restCalls("POST", "/rest/v1/recovery_cases").length && !calls.some((c) => c.host === "background"), r.data);
-  reset({ allowApp: false });
-  r = await run(fn["recovery-mode"], req("/api/recovery-mode", { token: "t-free", ios: true, body: INCIDENT }));
-  check("recovery-mode app limit (1): neutral message", r.status === 429 && r.data.error === tier.APP_MESSAGES.recoveryCaseLimit && !PLAN_WORDS.test(r.data.error), r.data);
+  for (const [token, message] of [["t-free", "Daily Free Recovery case limit reached."], ["t-apple", "Daily Pro Recovery case limit reached."], ["t-member", "Daily team Recovery case limit reached."]]) {
+    reset({ allowPlan: false });
+    r = await run(fn["recovery-mode"], req("/api/recovery-mode", { token, ios: true, body: INCIDENT }));
+    check(`recovery-mode app limit (${token}): the website's message and code`, r.status === 429 && r.data.code === "daily_limit_reached" && r.data.error === message, r.data);
+  }
   reset({ allowApp: false });
   r = await run(fn["recovery-mode"], req("/api/recovery-mode", { token: "t-review", ios: true, body: INCIDENT }));
-  check("recovery-mode app limit (10): plural message", r.status === 429 && r.data.error === tier.APP_MESSAGES.recoveryCasesLimit, r.data);
+  check("recovery-mode app limit (review allowance, 10): the neutral plural message", r.status === 429 && r.data.error === tier.APP_MESSAGES.recoveryCasesLimit && !PLAN_WORDS.test(r.data.error), r.data);
   for (const [token, rpc] of [["t-free", "consume_recovery_case"], ["t-member", "consume_recovery_case_business"]]) {
     reset();
     r = await run(fn["recovery-mode"], req("/api/recovery-mode", { token, body: INCIDENT }));
@@ -410,14 +571,29 @@ for (const [token, limit] of Object.entries(CASE_LIMIT)) {
   reset();
   r = await run(fn["recovery-mode"], req("/api/recovery-mode", { token: "t-admin", body: INCIDENT }));
   check("recovery-mode web admin: the bypass as before", r.status === 200 && !calls.some((c) => c.path?.includes("consume_")), calls.map((c) => c.path));
+  reset();
+  r = await run(fn["recovery-mode"], req("/api/recovery-mode", { token: "t-admin", ios: true, body: INCIDENT }));
+  check("recovery-mode app admin: no bypass, the allowance count instead", r.status === 200 && rpcCalls("consume_recovery_case_app").length === 1, calls.map((c) => c.path));
 }
 const UPDATE = { caseId: CASE, updateText: "I changed my password and turned on two-factor." };
-for (const [token, limit, cooldown] of [["t-free", 1, 21600], ["t-member", 1, 21600], ["t-admin", 10, 0], ["t-review", 10, 0]]) {
+const UPDATE_APP = {
+  // token: [rpc, plan, limit, p_limit, cooldown seconds for the _app call]
+  "t-free": ["consume_recovery_update", "free", 1],
+  "t-pro": ["consume_recovery_update", "pro", 999],
+  "t-apple": ["consume_recovery_update", "pro", 999],
+  "t-member": ["consume_recovery_update_business", "business", 999],
+  "t-admin": ["consume_recovery_update_app", "app", 10, 0],
+  "t-review": ["consume_recovery_update_app", "app", 10, 0]
+};
+for (const [token, [rpc, plan, limit, cooldown]] of Object.entries(UPDATE_APP)) {
   reset({ caseOwner: USERS[token].id });
   const r = await run(fn["recovery-update"], req("/api/recovery-update", { token, ios: true, origin: APP, body: UPDATE }));
-  const c = rpcCalls("consume_recovery_update_app")[0]?.body;
-  check(`recovery-update app ${token}: consume_recovery_update_app(${limit}, ${cooldown})`, r.status === 200 && corsOk(r) && c?.p_limit === limit && c?.p_cooldown_seconds === cooldown && r.data.usage.plan === "app", { status: r.status, c, err: r.data?.error });
-  check(`recovery-update app ${token}: no team lookup, no web/team RPC`, !restCalls("GET", "/rest/v1/business_members").length && !rpcCalls("consume_recovery_update").length && !rpcCalls("consume_recovery_update_business").length, calls.map((x) => x.path));
+  const names = calls.filter((c) => c.host === "supabase" && c.path.startsWith("/rest/v1/rpc/")).map(RPC_NAMES);
+  const c = rpcCalls(rpc)[0]?.body;
+  check(`recovery-update app ${token}: ${rpc}`, r.status === 200 && corsOk(r) && c && r.data.usage.plan === plan && r.data.usage.limit === limit && (cooldown === undefined || (c.p_limit === limit && c.p_cooldown_seconds === cooldown)), { status: r.status, c, usage: r.data?.usage, err: r.data?.error });
+  const others = ["consume_recovery_update", "consume_recovery_update_business", "consume_recovery_update_app"].filter((n) => n !== rpc);
+  check(`recovery-update app ${token}: no other counter is touched`, others.every((n) => !names.includes(n)), names);
+  check(`recovery-update app ${token}: the team is looked up like on the website, except for the allowance accounts`, restCalls("GET", "/rest/v1/business_members").length === (token === "t-admin" ? 1 : 1), restCalls("GET", "/rest/v1/business_members").length);
 }
 {
   reset({ caseOwner: USERS["t-free"].id, consent: false });
@@ -425,10 +601,16 @@ for (const [token, limit, cooldown] of [["t-free", 1, 21600], ["t-member", 1, 21
   check("recovery-update app without consent: 428 before anything is read or reserved", r.status === 428 && !calls.some((c) => c.path?.includes("consume_")) && !restCalls("GET", "/rest/v1/recovery_cases").length && !calls.some((c) => c.host === "background"), calls.map((c) => c.path));
   reset({ caseOwner: USERS["t-free"].id, cooldown: 21000 });
   r = await run(fn["recovery-update"], req("/api/recovery-update", { token: "t-free", ios: true, body: UPDATE }));
-  check("recovery-update app cooldown: neutral message with the wait", r.status === 429 && r.data.code === "cooldown_active" && /about 6 hours/.test(r.data.error) && !PLAN_WORDS.test(r.data.error), r.data);
-  reset({ caseOwner: USERS["t-free"].id, allowApp: false });
+  check("recovery-update app cooldown (Free): the website's message and code", r.status === 429 && r.data.code === "cooldown_active" && r.data.error === "Please wait before submitting another Recovery update.", r.data);
+  reset({ caseOwner: USERS["t-free"].id, allowPlan: false });
   r = await run(fn["recovery-update"], req("/api/recovery-update", { token: "t-free", ios: true, body: UPDATE }));
-  check("recovery-update app daily limit: neutral message", r.status === 429 && r.data.code === "daily_limit_reached" && r.data.error === tier.APP_MESSAGES.recoveryUpdateLimit, r.data);
+  check("recovery-update app daily limit (Free): the website's message and code", r.status === 429 && r.data.code === "daily_limit_reached" && r.data.error === "Daily Free update limit reached.", r.data);
+  reset({ caseOwner: USERS["t-review"].id, cooldown: 21000 });
+  r = await run(fn["recovery-update"], req("/api/recovery-update", { token: "t-review", ios: true, body: UPDATE }));
+  check("recovery-update app cooldown (review allowance): neutral message with the wait", r.status === 429 && r.data.code === "cooldown_active" && /about 6 hours/.test(r.data.error) && !PLAN_WORDS.test(r.data.error), r.data);
+  reset({ caseOwner: USERS["t-review"].id, allowApp: false });
+  r = await run(fn["recovery-update"], req("/api/recovery-update", { token: "t-review", ios: true, body: UPDATE }));
+  check("recovery-update app daily limit (review allowance): neutral message", r.status === 429 && r.data.code === "daily_limit_reached" && r.data.error === tier.APP_MESSAGES.recoveryUpdateLimit, r.data);
   reset({ caseOwner: USERS["t-member"].id });
   r = await run(fn["recovery-update"], req("/api/recovery-update", { token: "t-member", body: UPDATE }));
   check("recovery-update web member: the Business tier as before", r.status === 200 && rpcCalls("consume_recovery_update_business").length === 1 && !rpcCalls("has_ai_consent").length && noCors(r), calls.map((c) => c.path));
@@ -438,38 +620,89 @@ for (const [token, limit, cooldown] of [["t-free", 1, 21600], ["t-member", 1, 21
   r = await run(fn["recovery-case"], new Request(`${SITE}/api/recovery-case`, { method: "OPTIONS", headers: { Origin: APP } }));
   check("recovery-case preflight: 204", r.status === 204 && corsOk(r));
 }
-check("messages: none names a plan", Object.values(tier.APP_MESSAGES).every((m) => !PLAN_WORDS.test(m)) && [30, 900, 3600, 5000, 21600].every((s) => !PLAN_WORDS.test(tier.recoveryCooldownMessage(s))), tier.APP_MESSAGES);
+// The review / admin allowance (netlify/lib/app-tier.mjs): the only thing left of the old "App tier".
+check("messages: the allowance accounts' messages name no plan", Object.values(tier.APP_MESSAGES).every((m) => !PLAN_WORDS.test(m)) && [30, 900, 3600, 5000, 21600].every((s) => !PLAN_WORDS.test(tier.recoveryCooldownMessage(s))), tier.APP_MESSAGES);
 check("cooldown message: hours, an hour, minutes", /about 6 hours/.test(tier.recoveryCooldownMessage(21600)) && /about an hour/.test(tier.recoveryCooldownMessage(3700)) && /about 1 minute\./.test(tier.recoveryCooldownMessage(30)) && /about 15 minutes/.test(tier.recoveryCooldownMessage(900)));
-check("app tier: allowance needs a confirmed email", tier.appTierFor(USERS["t-review"]) === tier.APP_TIER_ALLOWANCE && tier.appTierFor(USERS["t-review-unconfirmed"]) === tier.APP_TIER && tier.appTierFor(USERS["t-admin"]) === tier.APP_TIER_ALLOWANCE && tier.appTierFor(null) === tier.APP_TIER);
-check("app tier: counts per owner answer 6", JSON.stringify(tier.APP_TIER) === JSON.stringify({ analysesPerDay: 3, recoveryCasesPerDay: 1, recoveryUpdatesPerDay: 1, recoveryUpdateCooldownSeconds: 21600 }) && JSON.stringify(tier.APP_TIER_ALLOWANCE) === JSON.stringify({ analysesPerDay: 50, recoveryCasesPerDay: 10, recoveryUpdatesPerDay: 10, recoveryUpdateCooldownSeconds: 0 }));
-check("app tier: frozen (no runtime switches)", Object.isFrozen(tier.APP_TIER) && Object.isFrozen(tier.APP_TIER_ALLOWANCE));
-check("app tier: real Recovery reset is 12:00 PM Gulf time (08:00 UTC)", tier.recoveryNextReset(new Date("2026-10-29T07:59:00Z")) === "2026-10-29T08:00:00.000Z" && tier.recoveryNextReset(new Date("2026-10-29T08:00:00Z")) === "2026-10-30T08:00:00.000Z" && tier.nextUtcMidnight(new Date("2026-10-29T23:59:00Z")) === "2026-10-30T00:00:00.000Z");
+check("allowance: needs a confirmed email, and is for the review and admin lists only", tier.appAllowanceFor(USERS["t-review"]) === tier.APP_TIER_ALLOWANCE && tier.appAllowanceFor(USERS["t-review-unconfirmed"]) === null && tier.appAllowanceFor(USERS["t-admin"]) === tier.APP_TIER_ALLOWANCE && tier.appAllowanceFor(null) === null && tier.appAllowanceFor(USERS["t-free"]) === null && tier.appAllowanceFor(USERS["t-apple"]) === null);
+check("allowance: the raised counts", JSON.stringify(tier.APP_TIER_ALLOWANCE) === JSON.stringify({ analysesPerDay: 50, recoveryCasesPerDay: 10, recoveryUpdatesPerDay: 10, recoveryUpdateCooldownSeconds: 0 }));
+check("allowance: frozen (no runtime switches), and the old App tier is gone", Object.isFrozen(tier.APP_TIER_ALLOWANCE) && !("APP_TIER" in tier) && !("appTierFor" in tier));
+check("app-tier: real Recovery reset is 12:00 PM Gulf time (08:00 UTC)", tier.recoveryNextReset(new Date("2026-10-29T07:59:00Z")) === "2026-10-29T08:00:00.000Z" && tier.recoveryNextReset(new Date("2026-10-29T08:00:00Z")) === "2026-10-30T08:00:00.000Z" && tier.nextUtcMidnight(new Date("2026-10-29T23:59:00Z")) === "2026-10-30T00:00:00.000Z");
 
 // ══════════ 5. account-status ══════════
-for (const [token, limit] of [["t-free", 3], ["t-pro", 3], ["t-member", 3], ["t-owner", 3], ["t-admin", 50]]) {
+// The app gets the real plan, usage and billing (netlify/lib/entitlements.mjs); only the admin flag and the
+// admin bypass stay the website's.
+const STATUS_APP = {
+  // token: [plan, usage limit, usage used, Recovery cases limit, Recovery cases used, history rows, billing source, billing product]
+  "t-free": ["free", 3, 2, 1, 1, 0, null, null],
+  "t-pro": ["pro", 15, 2, 3, 1, 1, "stripe", null],
+  "t-apple": ["pro", 15, 2, 3, 1, 1, "apple", "app.cybernetai.pro.monthly"],
+  "t-guest": ["free", 3, 2, 1, 1, 0, null, null],
+  "t-owner": ["business", 50, 9, 20, 4, 1, "apple", "app.cybernetai.business5.monthly"],
+  "t-member": ["business", 50, 9, 20, 4, 1, "team", null],
+  "t-admin": ["free", 50, 2, 10, 1, 0, null, null],
+  "t-review": ["free", 50, 2, 10, 1, 0, null, null]
+};
+for (const [token, [plan, limit, used, casesLimit, casesUsed, historyRows, source, productId]] of Object.entries(STATUS_APP)) {
   reset();
   const r = await run(fn["account-status"], req("/api/account-status?includeHistory=1", { method: "GET", token, ios: true, origin: APP }));
   const p = r.data?.profile || {};
-  check(`account-status app ${token}: plan "app", no billing fields, no admin flag`, r.status === 200 && corsOk(r) && p.plan === "app" && !("subscriptionStatus" in p) && !("billingInterval" in p) && r.data.isAdmin === false && r.data.platform === "ios", r.data);
-  check(`account-status app ${token}: usage ${limit} a day from the shared counter`, r.data.usage.limit === limit && r.data.usage.used === 2 && r.data.usage.remaining === limit - 2, r.data.usage);
-  check(`account-status app ${token}: history for every account`, Array.isArray(r.data.history) && r.data.history.length === 1, r.data.history);
-  check(`account-status app ${token}: Recovery usage read with the database's window key`, r.data.recoveryUsage?.casesUsed === 1 && r.data.recoveryUsage?.casesLimit === (limit === 50 ? 10 : 1) && restCalls("GET", "/rest/v1/recovery_usage")[0]?.path.includes("window_start=eq.2026-10-29T16:00:00+00:00"), { ru: r.data.recoveryUsage, q: restCalls("GET", "/rest/v1/recovery_usage")[0]?.path });
+  check(`account-status app ${token}: plan "${plan}", platform ios, no admin flag, CORS`, r.status === 200 && corsOk(r) && p.plan === plan && r.data.isAdmin === false && r.data.platform === "ios", r.data);
+  check(`account-status app ${token}: usage ${used} of ${limit}`, r.data.usage.limit === limit && r.data.usage.used === used && r.data.usage.remaining === limit - used, r.data.usage);
+  check(`account-status app ${token}: history only for Pro and Business (${historyRows})`, Array.isArray(r.data.history) && r.data.history.length === historyRows, r.data.history);
+  check(`account-status app ${token}: Recovery ${casesUsed} of ${casesLimit}, read with the database's window key`, r.data.recoveryUsage?.casesUsed === casesUsed && r.data.recoveryUsage?.casesLimit === casesLimit && restCalls("GET", "/rest/v1/recovery_usage")[0]?.path.includes("window_start=eq.2026-10-29T16:00:00+00:00"), { ru: r.data.recoveryUsage, q: restCalls("GET", "/rest/v1/recovery_usage")[0]?.path });
   check(`account-status app ${token}: AI consent state`, r.data.aiConsent?.granted === true && r.data.aiConsent?.version === consentLib.AI_CONSENT_VERSION, r.data.aiConsent);
-  check(`account-status app ${token}: team notice flag only for members`, p.isTeamMember === (token === "t-member") && (token === "t-owner" ? p.teamRole === "owner" : true), p);
-  check(`account-status app ${token}: no plan words anywhere`, !/"(pro|business|free)"/i.test(JSON.stringify(r.data)), JSON.stringify(r.data).slice(0, 300));
+  check(`account-status app ${token}: billing source ${source}, product ${productId}`, p.billing?.source === source && p.billing?.productId === productId && p.billing?.plan === plan, p.billing);
+  check(`account-status app ${token}: team flags (members only get the owner notice)`, p.isTeamMember === (token === "t-member") && (token === "t-owner" ? p.teamRole === "owner" : token === "t-member" ? p.teamRole === "member" : p.teamRole === null), p);
+  check(`account-status app ${token}: no Stripe ids, no Apple transaction ids`, !/cus_[a-z0-9]|sub_[a-z0-9]|2000000100000001|2000000100000002/i.test(JSON.stringify(r.data)), JSON.stringify(r.data).slice(0, 300));
 }
 {
+  reset();
+  let r = await run(fn["account-status"], req("/api/account-status", { method: "GET", token: "t-apple", ios: true }));
+  check("account-status app, Apple Pro: renews on the expiry, auto-renew on, sandbox/production reported", r.data.profile.billing.renewsAt && r.data.profile.billing.endsAt === null && r.data.profile.billing.autoRenew === true && r.data.profile.billing.interval === "month" && r.data.profile.billing.environment === "Production" && r.data.profile.billing.alsoBilledElsewhere === false, r.data.profile.billing);
+  check("account-status app, Apple Pro: the website-style status fields follow the Apple plan", r.data.profile.subscriptionStatus === "active" && r.data.profile.billingInterval === "month", r.data.profile);
+  r = await run(fn["account-status"], req("/api/account-status", { method: "GET", token: "t-owner", ios: true }));
+  check("account-status app, Apple Business owner: seat count from the team", r.data.profile.billing.seatTier === 5 && r.data.profile.billing.interval === "month", r.data.profile.billing);
   reset({ consent: 500 });
-  let r = await run(fn["account-status"], req("/api/account-status", { method: "GET", token: "t-free", ios: true }));
+  r = await run(fn["account-status"], req("/api/account-status", { method: "GET", token: "t-free", ios: true }));
   check("account-status app: consent check down -> known:false, still 200", r.status === 200 && r.data.aiConsent.granted === false && r.data.aiConsent.known === false, r.data.aiConsent);
-  for (const [token, plan] of [["t-free", "free"], ["t-pro", "pro"], ["t-member", "business"], ["t-admin", "business"]]) {
+  // The website: unchanged except for the new profile.billing object.
+  for (const [token, plan] of [["t-free", "free"], ["t-pro", "pro"], ["t-apple", "pro"], ["t-member", "business"], ["t-admin", "business"]]) {
     reset();
     r = await run(fn["account-status"], req("/api/account-status?includeHistory=1", { method: "GET", token }));
-    check(`account-status web ${token}: as before (plan ${plan}, no CORS)`, r.status === 200 && r.data.profile.plan === plan && "subscriptionStatus" in r.data.profile && noCors(r) && !("aiConsent" in r.data) && !rpcCalls("has_ai_consent").length, r.data);
+    check(`account-status web ${token}: plan ${plan}, no CORS, no iOS blocks`, r.status === 200 && r.data.profile.plan === plan && "subscriptionStatus" in r.data.profile && noCors(r) && !("aiConsent" in r.data) && !("recoveryUsage" in r.data) && !("platform" in r.data) && !rpcCalls("has_ai_consent").length, r.data);
+    check(`account-status web ${token}: carries profile.billing`, typeof r.data.profile.billing === "object" && r.data.profile.billing.plan === plan, r.data.profile.billing);
   }
   reset();
   r = await run(fn["account-status"], req("/api/account-status?includeHistory=1", { method: "GET", token: "t-free" }));
   check("account-status web free: no history (a Pro feature on the web)", r.data.history.length === 0);
+  {
+    // Golden: for an account with no Apple subscription the website's answer is exactly what it was, plus profile.billing.
+    reset();
+    const gold = await run(fn["account-status"], req("/api/account-status", { method: "GET", token: "t-free" }));
+    const { resetDate, ...usage } = gold.data.usage;
+    check("account-status web free: the whole answer is the old one plus profile.billing (golden)", JSON.stringify({ ...gold.data, usage }) === JSON.stringify({
+      isAdmin: false,
+      profile: {
+        fullName: "Test", plan: "free", subscriptionStatus: "inactive", billingInterval: "", isTeamMember: false, teamRole: null,
+        billing: { source: null, plan: "free", productId: null, seatTier: null, interval: null, renewsAt: null, endsAt: null, autoRenew: null, inGrace: false, environment: null, alsoBilledElsewhere: false }
+      },
+      usage: { used: 2, limit: 3, remaining: 1 },
+      history: []
+    }) && typeof resetDate === "string", gold.data);
+  }
+  reset();
+  r = await run(fn["account-status"], req("/api/account-status", { method: "GET", token: "t-apple" }));
+  check("account-status web, Pro bought in the app: Pro with an active status and Apple as the source", r.data.profile.plan === "pro" && r.data.profile.subscriptionStatus === "active" && r.data.profile.billingInterval === "month" && r.data.profile.billing.source === "apple" && r.data.usage.limit === 15, r.data);
+  reset();
+  r = await run(fn["account-status"], req("/api/account-status", { method: "GET", token: "t-guest" }));
+  check("account-status web, an ended Apple subscription: back to Free", r.data.profile.plan === "free" && r.data.profile.billing.source === null && r.data.usage.limit === 3, r.data);
+  reset();
+  r = await run(fn["account-status"], req("/api/account-status", { method: "GET", token: "t-pro" }));
+  check("account-status web, Stripe Pro: billing source stripe, yearly/monthly from the profile", r.data.profile.billing.source === "stripe" && r.data.profile.billing.interval === "month" && r.data.profile.subscriptionStatus === "active", r.data.profile);
+  // A database that has not had the Apple migration yet: the Apple table answers 404 and the person is just not an Apple subscriber.
+  reset({ appleTable404: true });
+  r = await run(fn["account-status"], req("/api/account-status", { method: "GET", token: "t-pro" }));
+  check("account-status: a missing apple_subscriptions table never breaks the profile read", r.status === 200 && r.data.profile.plan === "pro", r);
 }
 
 // ══════════ 6. /api/ai-consent ══════════
@@ -576,10 +809,11 @@ for (const [token, limit] of [["t-free", 3], ["t-pro", 3], ["t-member", 3], ["t-
   check("legal-acceptance preflight: 204", r.status === 204 && corsOk(r));
 }
 
-// ══════════ 9b. stripe-webhook after an immediate deletion ══════════
+// ══════════ 9b. stripe-webhook: after an immediate deletion, and around Apple-billed teams ══════════
 // Deleting an account cancels its team's plan, then removes the team row. Stripe's
 // customer.subscription.deleted arrives afterwards and must not create a new team row for
 // that owner (it would block the auth-user delete). A live subscription still creates one.
+// A Business team can also be billed by Apple: a late Stripe event for an old plan must not close it.
 {
   const Stripe = (await import("stripe")).default;
   const WHSEC = "whsec_run_ios_server_fake";
@@ -587,25 +821,172 @@ for (const [token, limit] of [["t-free", 3], ["t-pro", 3], ["t-member", 3], ["t-
   ENV.STRIPE_WEBHOOK_SECRET = WHSEC;
   const webhook = (await load("netlify/functions/stripe-webhook.mjs", "ios-stripe-webhook.test.mjs")).default;
   const signer = new Stripe("sk_test_run_ios_server_fake");
-  const deliver = async (type, status) => {
-    reset();
-    const payload = JSON.stringify({
-      id: `evt_${type}_${status}`, object: "event", type,
-      data: { object: { id: "sub_team_gone", object: "subscription", status, customer: "cus_owner1", metadata: { supabase_user_id: USERS["t-owner"].id },
-        items: { data: [{ price: { lookup_key: "business_5seat_monthly", recurring: { interval: "month" } } }] } } }
-    });
-    const header = signer.webhooks.generateTestHeaderString({ payload, secret: WHSEC });
-    const response = await webhook(new Request(`${SITE}/api/stripe-webhook`, { method: "POST", headers: { "Content-Type": "application/json", "stripe-signature": header }, body: payload }));
-    return { status: response.status, inserts: restCalls("POST", "/rest/v1/business_accounts").length };
+  const sign = (event) => {
+    const payload = JSON.stringify(event);
+    return { payload, header: signer.webhooks.generateTestHeaderString({ payload, secret: WHSEC }) };
   };
+  const send = async (event) => {
+    const { payload, header } = sign(event);
+    const response = await webhook(new Request(`${SITE}/api/stripe-webhook`, { method: "POST", headers: { "Content-Type": "application/json", "stripe-signature": header }, body: payload }));
+    return { status: response.status, inserts: restCalls("POST", "/rest/v1/business_accounts").length, patches: restCalls("PATCH", "/rest/v1/business_accounts") };
+  };
+  const subscriptionEvent = (type, status) => ({
+    id: `evt_${type}_${status}`, object: "event", type,
+    data: { object: { id: "sub_team_gone", object: "subscription", status, customer: "cus_owner1", metadata: { supabase_user_id: USERS["t-owner"].id },
+      items: { data: [{ price: { lookup_key: "business_5seat_monthly", recurring: { interval: "month" } } }] } } }
+  });
+  const deliver = async (type, status, over = {}) => { reset(over); return send(subscriptionEvent(type, status)); };
+
   let w = await deliver("customer.subscription.deleted", "canceled");
   check("webhook: a deleted subscription with no team row creates nothing", w.status === 200 && w.inserts === 0, w);
   w = await deliver("customer.subscription.updated", "incomplete_expired");
   check("webhook: an expired subscription with no team row creates nothing", w.status === 200 && w.inserts === 0, w);
   w = await deliver("customer.subscription.created", "active");
   check("webhook: a live subscription still creates the team (website unchanged)", w.status === 200 && w.inserts === 1, w);
+
+  // A Stripe team (the default): the event patches it and says Stripe is billing it.
+  w = await deliver("customer.subscription.updated", "active", { existingTeam: true, teamBilling: { billing_source: "stripe", subscription_status: "active" } });
+  check("webhook: a Stripe-billed team is patched as before, marked billing_source stripe", w.status === 200 && w.patches.length === 1 && w.patches[0].body.billing_source === "stripe" && w.patches[0].body.subscription_status === "active" && w.patches[0].body.stripe_subscription_id === "sub_team_gone" && w.patches[0].body.seat_tier === 5 && w.patches[0].body.daily_pool_limit === 50, w.patches.map((p) => p.body));
+
+  // An Apple-billed team that Apple currently pays for: Stripe events for an old plan change nothing.
+  for (const [type, status] of [["customer.subscription.deleted", "canceled"], ["customer.subscription.updated", "past_due"], ["customer.subscription.updated", "incomplete_expired"], ["customer.subscription.updated", "active"]]) {
+    w = await deliver(type, status, { existingTeam: true, teamBilling: { billing_source: "apple", subscription_status: "active" } });
+    check(`webhook: ${type} (${status}) does not touch a team Apple bills (active)`, w.status === 200 && w.patches.length === 0 && w.inserts === 0, w);
+  }
+  w = await deliver("customer.subscription.deleted", "canceled", { existingTeam: true, teamBilling: { billing_source: "apple", subscription_status: "past_due" } });
+  check("webhook: a late deleted event does not touch an Apple team in billing retry (past_due)", w.status === 200 && w.patches.length === 0, w);
+  w = await deliver("customer.subscription.updated", "active", { existingTeam: true, teamBilling: { billing_source: "apple", subscription_status: "past_due" } });
+  check("webhook: a live Stripe subscription takes over an Apple team that is in billing retry", w.status === 200 && w.patches.length === 1 && w.patches[0].body.billing_source === "stripe" && w.patches[0].body.subscription_status === "active", w.patches.map((p) => p.body));
+  w = await deliver("customer.subscription.updated", "active", { existingTeam: true, teamBilling: { billing_source: "apple", subscription_status: "canceled" } });
+  check("webhook: a Stripe event on an expired Apple team takes over and sets billing_source stripe", w.status === 200 && w.patches.length === 1 && w.patches[0].body.billing_source === "stripe" && w.patches[0].body.stripe_subscription_id === "sub_team_gone" && w.patches[0].body.subscription_status === "active", w.patches.map((p) => p.body));
+  w = await deliver("customer.subscription.deleted", "canceled", { existingTeam: true, teamBilling: { billing_source: "apple", subscription_status: "canceled" } });
+  check("webhook: a deleted event on an already-closed Apple team is the usual patch", w.status === 200 && w.patches.length === 1 && w.patches[0].body.subscription_status === "canceled", w.patches.map((p) => p.body));
+
+  // Before the Apple migration is applied the billing_source column does not exist: Stripe behaves exactly as before.
+  w = await deliver("customer.subscription.updated", "active", { existingTeam: true, billingColumn404: true });
+  check("webhook: without the billing_source column the patch is the old one (no billing_source key)", w.status === 200 && w.patches.length === 1 && !("billing_source" in w.patches[0].body) && w.patches[0].body.subscription_status === "active", w.patches.map((p) => p.body));
+
+  // invoice.payment_failed for an old Stripe customer on an Apple-billed team.
+  const failed = { id: "evt_pf", object: "event", type: "invoice.payment_failed", data: { object: { id: "in_1", object: "invoice", customer: "cus_owner1" } } };
+  reset({ existingTeam: true, teamBilling: { billing_source: "apple", subscription_status: "active" } });
+  w = await send(failed);
+  check("webhook: a failed Stripe invoice does not mark an Apple-billed team past_due", w.status === 200 && w.patches.length === 0, w);
+  reset({ existingTeam: true, teamBilling: { billing_source: "stripe", subscription_status: "active" } });
+  w = await send(failed);
+  check("webhook: a failed Stripe invoice still marks a Stripe-billed team past_due", w.status === 200 && w.patches.length === 1 && w.patches[0].body.subscription_status === "past_due", w.patches.map((p) => p.body));
+
   delete ENV.STRIPE_SECRET_KEY;
   delete ENV.STRIPE_WEBHOOK_SECRET;
+}
+
+// ══════════ 11. billing guards: checkout, billing portal, team invites, check-ins, live stats ══════════
+{
+  // The decision itself.
+  const T = Date.now();
+  const proApple = [appleRow("app.cybernetai.pro.monthly", "pro", null)];
+  const cc = (args) => entitlements.checkoutConflict({ now: T, ...args });
+  check("checkout guard: a free account may buy Pro or Business", cc({ currentPlan: "free", targetPlan: "pro" }) === null && cc({ currentPlan: "free", targetPlan: "business" }) === null);
+  check("checkout guard: Stripe Pro buying Pro again keeps the website's message", cc({ profile: { plan: "pro", subscription_status: "active" }, currentPlan: "pro", targetPlan: "pro" }) === "CyberNet AI Pro is already active.");
+  check("checkout guard: Stripe Pro may go up to Business", cc({ profile: { plan: "pro", subscription_status: "active" }, currentPlan: "pro", targetPlan: "business" }) === null);
+  check("checkout guard: Apple Pro buying Pro on the website is refused without naming the store", cc({ profile: { plan: "free" }, appleRows: proApple, currentPlan: "pro", targetPlan: "pro" }) === "Your plan is already active on this account.");
+  check("checkout guard: Apple Pro may still go up to Business", cc({ profile: { plan: "free" }, appleRows: proApple, currentPlan: "pro", targetPlan: "business" }) === null);
+  check("checkout guard: an owner or member of a Business team cannot buy Business or Pro", ["owner", "member"].every((role) => ["pro", "business"].every((targetPlan) => cc({ team: { role, seatTier: 5, billingSource: "stripe" }, currentPlan: "free", targetPlan }) === "CyberNet AI Business is already active.")));
+  check("checkout guard: an Apple-billed Business owner gets the plain message", cc({ profile: { plan: "free" }, appleRows: [appleRow("app.cybernetai.business5.monthly", "business", 5)], team: { role: "owner", seatTier: 5, billingSource: "apple" }, currentPlan: "free", targetPlan: "business" }) === "Your plan is already active on this account.");
+  check("checkout guard: a higher plan outranks a lower target", cc({ team: { role: "owner", billingSource: "stripe" }, currentPlan: "free", targetPlan: "pro" }) === "CyberNet AI Business is already active.");
+
+  // Through the function (STRIPE_SECRET_KEY is needed for it to get that far; the 409 comes before any Stripe call).
+  ENV.STRIPE_SECRET_KEY = "sk_test_run_ios_server_fake";
+  const checkout = (token, plan) => run(fn["create-checkout-session"], req("/api/create-checkout-session", { token, ios: false, body: { plan, cycle: "monthly", seatTier: 5 } }));
+  for (const [token, plan, message] of [
+    ["t-apple", "pro", "Your plan is already active on this account."],
+    ["t-pro", "pro", "CyberNet AI Pro is already active."],
+    ["t-member", "business", "CyberNet AI Business is already active."],
+    ["t-member", "pro", "CyberNet AI Business is already active."],
+    ["t-owner", "business", "Your plan is already active on this account."]
+  ]) {
+    reset();
+    const r = await checkout(token, plan);
+    check(`create-checkout-session: ${token} buying ${plan} is 409 "${message}"`, r.status === 409 && r.data.error === message && !restCalls("POST", "/rest/v1/checkout_debug_log").length, r);
+  }
+  reset();
+  let r = await run(fn["create-checkout-session"], req("/api/create-checkout-session", { token: "t-apple", ios: true, body: { plan: "pro" } }));
+  check("create-checkout-session: the app still gets 403, even with a Stripe key configured", r.status === 403 && r.data.code === "NOT_AVAILABLE_IN_APP" && calls.length === 0, r);
+
+  // Billing portal for a plan Apple bills.
+  reset();
+  r = await run(fn["customer-portal"], req("/api/customer-portal", { token: "t-apple", ios: false, body: {} }));
+  check("customer-portal: a plan billed by Apple answers 409 BILLED_BY_APPLE with where to manage it", r.status === 409 && r.data.code === "BILLED_BY_APPLE" && r.data.error === "This plan is billed by Apple. Manage it in Settings > your name > Subscriptions on your iPhone.", r);
+  reset();
+  r = await run(fn["customer-portal"], req("/api/customer-portal", { token: "t-free", ios: false, body: {} }));
+  check("customer-portal: an account with no plan at all is still the old 404", r.status === 404 && /No Stripe customer/.test(r.data.error), r);
+  reset();
+  r = await run(fn["customer-portal"], req("/api/customer-portal", { token: "t-guest", ios: false, body: {} }));
+  check("customer-portal: an Apple plan that has ended is the old 404 too", r.status === 404, r);
+  reset();
+  r = await run(fn["customer-portal"], req("/api/customer-portal", { token: "t-apple", ios: true, body: {} }));
+  check("customer-portal: the app gets 403 (it uses Apple's own Manage subscription)", r.status === 403 && r.data.code === "NOT_AVAILABLE_IN_APP", r);
+  delete ENV.STRIPE_SECRET_KEY;
+}
+{
+  // Team invites: the way to more seats in the app is the plan, never an offer outside it.
+  const invite = (ios) => run(fn["business-invite"], req("/api/business-invite", { token: "t-owner", ios, origin: ios ? APP : "", body: { email: "new.person@example.com" } }));
+  reset({ memberCount: 5 });
+  let r = await invite(true);
+  check("business-invite app, team full: 409 with no pointer to an outside offer", r.status === 409 && r.data.error === "Team is full (5/5 seats, including you). Remove a member to free a seat." && !/support@|email|tier/i.test(r.data.error) && corsOk(r), r);
+  reset({ memberCount: 5 });
+  r = await invite(false);
+  check("business-invite website, team full: the old message, unchanged", r.status === 409 && r.data.error === "Team is full (5/5 seats, including you). Remove a member, or email support@cybernetai.app to move up a tier.", r);
+}
+{
+  // Live numbers on Home need CORS; the website's answer is unchanged.
+  reset();
+  const stats = (opts) => run(fn["public-stats"], req("/api/public-stats", { method: "GET", ios: true, ...opts }));
+  let r = await stats({ origin: APP });
+  check("public-stats: the app gets the live numbers with CORS", r.status === 200 && r.data.live === true && r.data.totalScans === 1200 && r.data.threatsFound === 340 && r.data.recoveryCases === 15 && corsOk(r), r);
+  r = await run(fn["public-stats"], req("/api/public-stats", { method: "GET", ios: false }));
+  check("public-stats: the website's answer is the same and has no CORS headers", r.status === 200 && r.data.live === true && noCors(r), r);
+  r = await run(fn["public-stats"], new Request(`${SITE}/api/public-stats`, { method: "OPTIONS", headers: { Origin: APP } }));
+  check("public-stats: the app's preflight is 204", r.status === 204 && corsOk(r));
+  r = await run(fn["public-stats"], req("/api/public-stats", { method: "POST", ios: true, origin: APP, body: {} }));
+  check("public-stats: POST is 405", r.status === 405);
+  const fresh = (await import(pathToFileURL(path.join(root, "netlify/functions/public-stats.mjs")).href + `?fresh=${Date.now()}`)).default;
+  reset({ statsFail: true });
+  r = await run(fresh, req("/api/public-stats", { method: "GET", ios: true, origin: APP }));
+  check("public-stats: when the database fails the app gets live:false (503) with CORS, not a made-up number", r.status === 503 && r.data.live === false && corsOk(r), r);
+}
+{
+  // Idle-case reminders: Pro bought in the app gets them like Pro bought on the website.
+  const checkin = async () => {
+    const response = await fn["recovery-checkin"]();
+    return { status: response.status, data: JSON.parse(await response.text()) };
+  };
+  const owner1 = USERS["t-pro"].id, owner2 = USERS["t-apple"].id;
+  const casesQuery = () => restCalls("GET", "/rest/v1/recovery_cases").map((c) => c.path).find((p) => p.includes("owner_user_id=in.("));
+  const idsIn = (query) => (/owner_user_id=in\.\(([^)]*)\)/.exec(query || "") || [])[1]?.split(",").sort() || [];
+  reset({
+    proProfiles: [{ id: owner1 }],
+    appleProRows: [{ user_id: owner2 }, { user_id: owner1 }],
+    staleCases: [{ id: "case-1", owner_user_id: owner1, case_title: "Hacked email", status: "open" }, { id: "case-2", owner_user_id: owner2, case_title: "Stolen card", status: "open" }]
+  });
+  let r = await checkin();
+  check("recovery-checkin: Stripe Pro and Apple Pro accounts are both checked, each once", r.status === 200 && JSON.stringify(idsIn(casesQuery())) === JSON.stringify([owner1, owner2].sort()), { r, q: casesQuery() });
+  check("recovery-checkin: a reminder email goes to each case owner (Apple Pro included)", r.data.pro.checked === 2 && r.data.pro.sent === 2 && state.mails.filter((m) => m.subject === "Checking in on your recovery case").length === 2, { pro: r.data.pro, mails: state.mails.map((m) => m.subject) });
+  check("recovery-checkin: the Apple query reads plan, revoked_at and expires_at", (() => {
+    const query = restCalls("GET", "/rest/v1/apple_subscriptions")[0]?.path || "";
+    return /plan=eq\.pro/.test(query) && /revoked_at=is\.null/.test(query) && /expires_at=gt\.\d{4}-\d\d-\d\dT/.test(query) && /select=user_id/.test(query);
+  })(), restCalls("GET", "/rest/v1/apple_subscriptions").map((c) => c.path));
+  reset({ proProfiles: [], appleProRows: [{ user_id: owner2 }], staleCases: [{ id: "case-2", owner_user_id: owner2, case_title: "Stolen card", status: "open" }] });
+  r = await checkin();
+  check("recovery-checkin: an Apple Pro account with no Stripe profile row is still reminded", r.data.pro.sent === 1 && JSON.stringify(idsIn(casesQuery())) === JSON.stringify([owner2]), r.data);
+  reset({ proProfiles: [{ id: owner1 }], appleProFail: 500, staleCases: [{ id: "case-1", owner_user_id: owner1, case_title: "Hacked email", status: "open" }] });
+  r = await checkin();
+  check("recovery-checkin: if the Apple read fails, the Stripe Pro accounts are still reminded", r.status === 200 && r.data.pro.sent === 1, r);
+  reset({ proProfiles: [], appleProRows: [] });
+  r = await checkin();
+  check("recovery-checkin: nobody on Pro: nothing checked", r.status === 200 && r.data.pro.checked === 0 && !casesQuery(), r);
+  reset({ proProfiles: [], appleProRows: [], appleTable404: true });
+  r = await checkin();
+  check("recovery-checkin: before the Apple migration (table missing) it quietly checks Stripe Pro only", r.status === 200 && r.data.pro.checked === 0, r);
 }
 
 // ══════════ 10. source checks: routes and wrapping ══════════
@@ -614,14 +995,33 @@ for (const [token, limit] of [["t-free", 3], ["t-pro", 3], ["t-member", 3], ["t-
   const { spawnSync } = await import("node:child_process");
   const { tmpdir } = await import("node:os");
   const src = (f) => readFileSync(path.join(root, "netlify/functions", f), "utf8");
-  for (const f of ["account-status.mjs", "analyze.mts", "recovery-mode.mts", "recovery-update.mts", "recovery-case.mts", "privacy-data.mts", "legal-acceptance.mts", "ai-consent.mjs", "client-error.mjs", "feedback.mjs", "team-activity.mts"]) {
+  for (const f of ["account-status.mjs", "analyze.mts", "recovery-mode.mts", "recovery-update.mts", "recovery-case.mts", "privacy-data.mts", "legal-acceptance.mts", "ai-consent.mjs", "client-error.mjs", "feedback.mjs", "team-activity.mts",
+    "quickscan-usage.mjs", "public-stats.mjs", "business-account.mts", "business-activity.mts", "business-invite.mts", "business-invite-cancel.mts", "business-member-remove.mts"]) {
     const s = src(f);
     check(`source: ${f} default export is CORS-wrapped`, /export default withCors\(handler\);/.test(s));
     const methods = /method:\s*\[([^\]]*)\]/.exec(s.slice(s.indexOf("export const config")));
     check(`source: ${f} route lets OPTIONS through`, !methods || /"OPTIONS"/.test(methods[1]), methods?.[1]);
   }
-  for (const f of ["create-checkout-session.mjs", "customer-portal.mjs", "byok-analyze.mts", "validate-openai-key.mts", "screenshot-preview.mjs", "stripe-webhook.mjs", "public-stats.mjs", "backup-now.mts"]) {
-    check(`source: ${f} is not CORS-wrapped`, !/withCors/.test(src(f)));
+  for (const f of ["create-checkout-session.mjs", "customer-portal.mjs", "byok-analyze.mts", "validate-openai-key.mts", "screenshot-preview.mjs", "stripe-webhook.mjs", "backup-now.mts", "feedback-admin.mjs", "business-invite-accept.mts", "apple-notifications.mjs", "apple-sweep.mjs"]) {
+    check(`source: ${f} is not CORS-wrapped`, !/withCors/.test(src(f).replace(/\/\/.*$/gm, "")));
+  }
+  // The web-only wrapper stays on exactly the functions the app must not reach.
+  for (const f of ["create-checkout-session.mjs", "customer-portal.mjs", "byok-analyze.mts", "validate-openai-key.mts", "screenshot-preview.mjs", "feedback-admin.mjs", "business-invite-accept.mts"]) {
+    check(`source: ${f} is web-only`, /export default webOnly\(/.test(src(f)));
+  }
+  for (const f of ["quickscan-usage.mjs", "public-stats.mjs", "business-account.mts", "business-activity.mts", "business-invite.mts", "business-invite-cancel.mts", "business-member-remove.mts", "account-status.mjs", "analyze.mts", "recovery-mode.mts", "recovery-update.mts"]) {
+    check(`source: ${f} is no longer web-only`, !/webOnly/.test(src(f).replace(/\/\/.*$/gm, "")));
+  }
+  // Nothing of the old fixed "App tier" is left in the functions, and nothing reads a plan called "app" except the allowance helpers.
+  for (const f of ["account-status.mjs", "analyze.mts", "recovery-mode.mts", "recovery-update.mts"]) {
+    check(`source: ${f} has no App tier`, !/appTierFor|APP_TIER\b/.test(src(f)));
+  }
+  {
+    const server = readFileSync(path.join(root, "netlify/functions/apple-verify.mjs"), "utf8");
+    check("source: apple-verify never reads the user id from the request body", !/body\??\.(userId|user_id|p_user_id)|parsed\.(userId|user_id)/.test(server));
+    const all = ["apple-verify.mjs", "apple-notifications.mjs", "apple-sweep.mjs"].map((n) => src(n)).concat(["apple-jws.mjs", "apple-apply.mjs", "entitlements.mjs", "apple-products.mjs", "apple-root-ca-g3.mjs"].map((n) => readFileSync(path.join(root, "netlify/lib", n), "utf8"))).join("\n");
+    const appleVars = [...all.matchAll(/env\("(APPLE[A-Z_]*|APP_STORE[A-Z_]*)"\)/g)].map((m) => m[1]);
+    check("source: the purchase code reads no Apple API key, issuer id or private key (only the optional public app id and the sweep switch)", appleVars.every((name) => ["APPLE_APP_APPLE_ID", "APPLE_SWEEP"].includes(name)) && !/BEGIN (EC )?PRIVATE KEY/.test(all), appleVars);
   }
   const toml = readFileSync(path.join(root, "netlify.toml"), "utf8");
   const ignore = /^\s*ignore = '([^'\n]*)'\s*$/m.exec(toml)?.[1] || "";

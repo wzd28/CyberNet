@@ -8,6 +8,11 @@
 // window is longer than 30 days (consume_api_quota refuses longer ones), so a
 // deleted row could never have blocked anyone again.
 //
+// The same run also deletes rows of public.apple_notifications (App Store Server
+// Notifications already processed, kept only for idempotency and audit) that are
+// older than 90 days. That table arrived with the Apple In-App Purchase
+// migration; before it is applied the second DELETE answers 404 and is skipped.
+//
 // "@daily" runs at 00:00 UTC. Like every Netlify scheduled function it runs
 // only on the published production deploy and stops after 30 seconds. One
 // DELETE through the service-role REST API, using the updated_at index. Set
@@ -31,6 +36,30 @@ function deletedCount(response) {
   return match ? Number(match[1]) : null;
 }
 
+// Notifications older than the cutoff. Never changes the main result: a failure
+// is logged and reported, and a missing table is simply skipped.
+async function cleanupAppleNotifications(cutoff, timeoutMs) {
+  try {
+    const response = await serviceFetch(`/rest/v1/apple_notifications?received_at=lt.${encodeURIComponent(cutoff)}`, {
+      method: "DELETE",
+      headers: { Prefer: "return=minimal, count=exact" },
+      signal: AbortSignal.timeout(timeoutMs)
+    });
+    if (response.status === 404) return { status: "skipped" };
+    if (!response.ok) {
+      const detail = (await response.text().catch(() => "")).slice(0, 300);
+      console.error("CyberNet apple_notifications cleanup failed", response.status, detail);
+      reportError(`Apple notifications cleanup failed (HTTP ${response.status})`, { fn: "rate-limit-cleanup", label: "Old Apple notification rows were not deleted" });
+      return { status: "failed", httpStatus: response.status };
+    }
+    return { status: "done", deleted: deletedCount(response) };
+  } catch (error) {
+    console.error("CyberNet apple_notifications cleanup failed", error?.message || error);
+    reportError(error, { fn: "rate-limit-cleanup", label: "Old Apple notification rows were not deleted" });
+    return { status: "failed" };
+  }
+}
+
 export async function cleanupRateLimits({ now = Date.now(), timeoutMs = 20_000 } = {}) {
   if (env("RATE_LIMIT_CLEANUP").toLowerCase() === "off") return { status: "disabled" };
   const cutoff = new Date(now - KEEP_DAYS * 24 * 60 * 60 * 1000).toISOString();
@@ -47,8 +76,9 @@ export async function cleanupRateLimits({ now = Date.now(), timeoutMs = 20_000 }
       return { status: "failed", httpStatus: response.status, cutoff };
     }
     const deleted = deletedCount(response);
-    console.log("CyberNet rate-limit cleanup", JSON.stringify({ cutoff, deleted }));
-    return { status: "done", deleted, cutoff };
+    const appleNotifications = await cleanupAppleNotifications(cutoff, timeoutMs);
+    console.log("CyberNet rate-limit cleanup", JSON.stringify({ cutoff, deleted, appleNotifications: appleNotifications.deleted ?? appleNotifications.status }));
+    return { status: "done", deleted, cutoff, appleNotifications };
   } catch (error) {
     console.error("CyberNet rate-limit cleanup failed", error?.message || error);
     reportError(error, { fn: "rate-limit-cleanup", label: "Old rate-limit rows were not deleted" });

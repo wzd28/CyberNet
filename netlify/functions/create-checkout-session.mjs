@@ -6,8 +6,10 @@ import {
   getProfile,
   updateProfile,
   effectivePlan,
+  getActiveTeamMembership,
   serviceFetch
 } from "../lib/supabase.mjs";
+import { checkoutConflict } from "../lib/entitlements.mjs";
 import { reportError } from "../lib/report-error.mjs";
 // Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
 // management, admin): requests from the app get 403 (netlify/lib/cors.mjs).
@@ -90,12 +92,13 @@ export default webOnly(async (request) => {
     debugCycle = cycle;
     debugTargetPlan = targetPlan;
 
-    if (currentPlan === targetPlan) {
-      return json(
-        { error: `CyberNet AI ${targetPlan === "business" ? "Business" : "Pro"} is already active.` },
-        409
-      );
-    }
+    // Never charge twice for what the person already has, whoever bills it:
+    // Stripe, an Apple subscription bought in the iPhone app, or a Business
+    // team they own or belong to. (Apple's own plan is not named here: the
+    // website does not manage it.)
+    const team = await getActiveTeamMembership(user.id).catch(() => null);
+    const conflict = checkoutConflict({ profile, team, currentPlan, targetPlan, appleRows: profile.apple });
+    if (conflict) return json({ error: conflict }, 409);
 
     const seatTier = targetPlan === "business" ? (Number(body.seatTier) || 5) : null;
     if (targetPlan === "business" && ![5, 10, 20].includes(seatTier)) {

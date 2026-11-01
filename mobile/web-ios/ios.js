@@ -6,10 +6,15 @@
      2  tab bar, Check switch   9  Sign in with Apple and Google
         and guest mode         10  QR scanner and its verdict sheet
      3  Account screen         11  items shared from other apps (Share Extension hand-off)
-     4  AI consent sheet       12  Recovery reminders (local notifications)
-     5  fetch layer            13  offline, "Report a problem", haptics, small iOS touches
-     6  downloads              14  App Tracking Transparency and analytics, app lifecycle
+        (with the Plan group)  12  Recovery reminders (local notifications)
+     4  AI consent sheet       13  offline, "Report a problem", haptics, small iOS touches
+     5  fetch layer            14  App Tracking Transparency and analytics, app lifecycle
+     6  downloads
      7  first-run intro, the sign-in card and what each launch shows
+
+   Plans are bought with Apple In-App Purchase (owner decision, 30 Oct 2026). ios/store.js, loaded right after this file,
+   owns the plans page (#pricing), the purchase, restore and manage flows; this file gives it the helpers it needs
+   (window.CNIos) and paints the Plan group of the Account screen.
 
    Native plugins are optional at every step (window.CNPlugin returns null when one is missing), so the
    bundle also runs in a desktop browser for development, where the web tab bar replaces the native one. */
@@ -123,14 +128,16 @@
   /* ================================================================ 2. navigation / tab bar */
   // Native UITabBar (CNTabBar plugin, BUILD-PLAN §6.6) or, without it, a web tab bar with the same tabs.
   const TABS = [
+    { id: "home", page: "home", label: "Home", icon: '<path d="M4 11.2 12 4l8 7.2V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z"/>' },
     { id: "check", page: "cybernet", label: "Check", icon: '<path d="M12 2.8 20 6v5.8c0 4.7-3.1 7.7-8 9.4-4.9-1.7-8-4.7-8-9.4V6l8-3.2Z"/><path d="m8.6 12 2.3 2.3 4.6-4.7"/>' },
     { id: "scan", page: null, label: "Scan QR", icon: '<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M8 8h3v3H8zM13 13h3v3h-3zM13 8h3M8 13v3"/>' },
     { id: "recovery", page: "recovery", label: "Recovery", icon: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.5"/><path d="m6 6 3.5 3.5M18 6l-3.5 3.5M6 18l3.5-3.5M18 18l-3.5-3.5"/>' },
     { id: "learn", page: "learn", label: "Learn", icon: '<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5zM20 5.5A1.5 1.5 0 0 0 18.5 4H13v16h5.5a1.5 1.5 0 0 0 1.5-1.5z"/>' },
     { id: "account", page: "account", label: "Account", icon: '<circle cx="12" cy="9" r="3.6"/><path d="M5.5 19.2c1.3-3 3.7-4.4 6.5-4.4s5.2 1.4 6.5 4.4"/><circle cx="12" cy="12" r="9"/>' }
   ];
-  const PAGE_TAB = { cybernet: "check", cybernetai: "check", recovery: "recovery", learn: "learn", account: "account" };
-  const PAGE_NAMES = { cybernet: "Check", cybernetai: "Analysis AI", recovery: "Recovery", learn: "Learn", account: "Account" };
+  // The plans page (#pricing) is a page, not a tab: the Account tab stays lit while it is open, and Done goes back to where it was opened from.
+  const PAGE_TAB = { home: "home", cybernet: "check", cybernetai: "check", recovery: "recovery", learn: "learn", account: "account", pricing: "account" };
+  const PAGE_NAMES = { home: "Home", cybernet: "Check", cybernetai: "Analysis AI", recovery: "Recovery", learn: "Learn", account: "Account", pricing: "Plans" };
   const nativeTabs = P("CNTabBar");
 
   let modeWanted = null; // the Check switch's pending tap (see openCheckPage)
@@ -183,6 +190,11 @@
     const tab = TABS.find(t => t.id === id);
     if (!tab) return;
     if (id === "scan") { startQrScan(); return; }
+    if (id === "home") {
+      if (activePage() === "home") { scrollToTop(); return; }
+      navigate("home");
+      return;
+    }
     if (id === "check") {
       // like a native tab: tapping it again keeps the open page (Quick Scan or Analysis AI) and scrolls it
       // to the top; coming from another tab returns to the page the Check tab was left on
@@ -192,7 +204,11 @@
     }
     navigate(tab.page);
   }
-  function activePage() { return $(".page.active-page")?.id || "cybernet"; }
+  function activePage() { return $(".page.active-page")?.id || "home"; }
+  // Where the plans page was opened from (Done goes back there), and who wants to hear about page changes (store.js).
+  let plansFrom = "account";
+  const pageListeners = new Set();
+  function onPage(fn) { pageListeners.add(fn); return () => pageListeners.delete(fn); }
 
   function buildWebTabbar() {
     if (nativeTabs || $("#cnIosTabbar")) return;
@@ -228,7 +244,9 @@
       if (now === last) return;
       const from = last;
       last = now;
+      if (now === "pricing" && from !== "pricing") plansFrom = from;
       syncTabs();
+      pageListeners.forEach(fn => { try { fn(now, from); } catch (error) { report(error, "page listener"); } });
       // Safety net: the tab bar and the Check switch ask before they navigate, but the website's own in-page
       // buttons (data-page) switch pages directly. A guest who lands on a page that needs an account gets the
       // card; cancelling goes back to where they came from.
@@ -358,6 +376,50 @@
     const s = state();
     return Boolean(s?.profile?.isTeamMember) && s?.profile?.teamRole !== "owner";
   }
+  // The Plan group of the Account screen. The plan and how it is billed come from /api/account-status (profile.plan and
+  // profile.billing); nothing here decides who has a plan. A plan that Apple bills can be managed here; a plan started
+  // outside the app is shown as active, with no link and no way to buy it again (App Review 3.1.1, 3.1.3(b)).
+  const PLAN_NAMES = { free: "CyberNet AI Free", pro: "CyberNet AI Pro", business: "CyberNet AI Business" };
+  const planOf = profile => (profile?.plan === "business" ? "business" : profile?.plan === "pro" ? "pro" : "free");
+  function longDate(value) {
+    const at = new Date(value);
+    if (!value || Number.isNaN(at.getTime())) return "";
+    try { return at.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }); } catch { return at.toDateString(); }
+  }
+  function renderPlan() {
+    const row = $("#cnAcctPlan");
+    if (!row) return;
+    const profile = state()?.profile || {};
+    const plan = planOf(profile);
+    const billing = profile.billing || null;
+    row.textContent = PLAN_NAMES[plan];
+    // the date: Renews on / Ends on (a plan that will not renew, or has an end date)
+    const when = longDate(billing?.endsAt || billing?.renewsAt);
+    const ending = Boolean(billing?.endsAt) || billing?.autoRenew === false;
+    const dateRow = $("#cnAcctPlanDateRow");
+    if (dateRow) {
+      dateRow.hidden = !when;
+      $("#cnAcctPlanDateLabel").textContent = ending ? "Ends on" : "Renews on";
+      $("#cnAcctPlanDate").textContent = when;
+    }
+    // one calm line when there is something to know
+    let note = "";
+    if (billing?.alsoBilledElsewhere) note = "This account has another subscription that is no longer needed. Cancel it where you started it.";
+    else if (billing?.inGrace) note = "Apple could not renew this plan yet. Check your payment method in Settings, under your name, then Subscriptions. Your plan stays on for now.";
+    else if (billing?.source === "team" || (plan === "business" && isTeamMember())) note = "Your Business plan comes with your team.";
+    else if (billing?.source && billing.source !== "apple") note = "This plan was started outside the app. To change or cancel it, use the same place you started it."; // the source is never named: it is not Apple's
+    const noteEl = $("#cnAcctPlanNote");
+    if (noteEl) { noteEl.textContent = note; noteEl.hidden = !note; }
+    const manage = $("#cnAcctManageSub");
+    if (manage) manage.hidden = billing?.source !== "apple";
+    const team = $("#cnAcctTeamBtn");
+    if (team) {
+      const owner = profile.teamRole === "owner" || (plan === "business" && !profile.isTeamMember);
+      team.hidden = !(plan === "business" || profile.isTeamMember);
+      team.textContent = owner ? "Manage Business" : "My Business team";
+    }
+  }
+
   function renderAccount() {
     const page = $("#account");
     if (!page) return;
@@ -377,6 +439,7 @@
       const r = s?.recoveryUsage || {};
       $("#cnAcctRec").textContent = Number(r.limit) ? `${Math.max(0, Number(r.limit) - (Number(r.used) || 0))} of ${Number(r.limit)} left` : "—";
       $("#cnAcctTeam").hidden = !isTeamMember();
+      renderPlan();
       refreshConsentSwitch();
     }
     refreshReminderSwitch();
@@ -401,6 +464,10 @@
         else if (action === "intro") showIntro(true);
         else if (action === "test-reminder") testReminder();
         else if (action === "tracking-settings") openExternal("app-settings:");
+        else if (action === "plans") navigate("pricing");
+        else if (action === "restore-purchases") await (w.CNStore?.restore?.() ?? toast("Purchases work in the CyberNet AI app."));
+        else if (action === "manage-subscription") await (w.CNStore?.manage?.() ?? toast("Managing a subscription works in the CyberNet AI app."));
+        else if (action === "team") { if (w.CNBusinessTeam?.open) w.CNBusinessTeam.open(); else toast("Please try again in a moment."); }
       } catch (error) { report(error, `account ${action}`); toast("Something went wrong. Please try again."); }
     });
     $("#cnAiConsentSwitch")?.addEventListener("change", e => toggleConsent(e.target));
@@ -415,7 +482,7 @@
       if (user !== consent.userId) consent.forget();
       renderAccount();
       syncCheckSwitch(activePage()); // the Analysis AI hint follows the account
-      if (user) signedInNow();
+      if (user) { signedInNow(); later(() => w.CNStore?.sync?.("launch"), 600); } // a plan bought on another device, or a purchase that was not confirmed yet
       // the session ended while a page that needs an account was open (an expired refresh token): the card, then Check
       else if (needsAccount(activePage())) requireAccount(activePage(), null, "cybernet");
       if (user) later(flushAcceptance, 50);
@@ -423,6 +490,7 @@
       lastUser = user;
     });
     w.addEventListener("cybernet:account-ui", () => { if (activePage() === "account") renderAccount(); });
+    onPage(page => { if (page === "account") renderPlan(); });
   }
 
   async function signOut() {
@@ -570,7 +638,7 @@
     }
     if (method === "GET" && /^\/api\/account-status(?:[?#]|$)/.test(url)) {
       // script.js keeps appState.recoveryUsage as { used, limit } but only fills it from Recovery replies.
-      // The app's account-status (App tier) sends today's Recovery counts too, so copy them before
+      // The app's account-status (plan, billing and limits for the person's real plan) sends today's Recovery counts too, so copy them before
       // script.js reads the reply; the Account screen and the Recovery meter then show them at once.
       const res = await appFetch(input, init);
       if (res.ok) {
@@ -1055,10 +1123,10 @@
   let gateOpen = false;  // the launch card is up: a shared item waits until it is answered (launch ends with checkInbox)
   // Resolves "signed-in", "guest" (the launch card's link, or Escape on it) or "cancel" (a guest's card).
   // launch: the gate (sticky: only its choices close it). overStage: it rises over the motion stage.
-  function signInCard({ page = null, launch = false, overStage = false } = {}) {
+  function signInCard({ page = null, launch = false, overStage = false, title: asked = "", lead: askedLead = "" } = {}) {
     if (cardOpen) return cardOpen;
-    const title = page ? `Sign in to use ${ACCOUNT_PAGES[page]}` : "Sign in to CyberNet AI";
-    const lead = (page && ACCOUNT_LEADS[page]) || GATE_LEAD;
+    const title = asked || (page ? `Sign in to use ${ACCOUNT_PAGES[page]}` : "Sign in to CyberNet AI");
+    const lead = askedLead || (page && ACCOUNT_LEADS[page]) || GATE_LEAD;
     cardOpen = sheet({
       id: "cnSignIn",
       label: title,
@@ -1111,10 +1179,10 @@
   //   opened by a link or a shared item .................. no gate; a guest may handle what was shared
   //   signed out, first launch ........................... the motion, then the card, then the three steps
   //   signed out, a later launch (sign out and a deleted account come back here too) ... the short gate
-  // Where the person lands is Check (Quick Scan) in every case, including right after signing in on the card. Someone who
-  // is signed in reaches the Analysis AI message box through the Quick Scan | Analysis AI switch with no prompt, or straight
-  // away when a guest asked for Analysis AI and then signed in (arrive). Opening on Analysis AI at launch is a decision
-  // for the owner (review of 30 Oct 2026); it would change the launch of every signed-in person.
+  // Where the person lands is Home in every case (owner decision, 30 Oct 2026: the website's home page is the first tab),
+  // including right after signing in on the card. Someone who is signed in reaches the Analysis AI message box through the
+  // Check tab's Quick Scan | Analysis AI switch with no prompt, or straight away when a guest asked for Analysis AI and
+  // then signed in (arrive).
   function launchGate(first, session, direct) {
     if (session !== false || direct) return "none";
     return first ? "first" : "short";
@@ -1804,14 +1872,15 @@
   // Analysis AI's page opens with the website's "Sign in, then paste ..." lines. In the app a guest never sees the
   // page (the sign-in card comes first) and a signed-in person is already in, so none of it may ask for a sign-in;
   // script.js writes the real state over the two status lines as soon as the account answers.
-  const AI_GREETING = "Paste or drop anything suspicious below: a message, a link or a screenshot. Analysis AI works out what it is looking at and explains it in plain language.";
+  const AI_GREETING = "Paste or drop anything suspicious below: a message, a link or a screenshot. Analysis AI works out what it is looking at and runs the right analysis. Free accounts receive 3 AI analyses per day; Pro accounts receive 15 advanced analyses, saved history, and reports.";
   function tidyAnalysisAi() {
     const bubble = $("#chatMessages .chat-bubble-ai .chat-bubble-inner");
     if (bubble && /^Sign in/.test(bubble.textContent.trim())) bubble.textContent = AI_GREETING;
     const status = $("#aiApiStatus");
     if (status && /^Sign in/.test(status.textContent.trim())) status.textContent = "Checking your daily AI analyses.";
+    // Saved explanations are a Pro and Business feature; Free sees the lock that script.js writes
     const saved = $("#proHistoryList > p");
-    if (saved && /^Sign in/.test(saved.textContent.trim())) saved.textContent = "Your saved explanations appear here.";
+    if (saved && /^Sign in/.test(saved.textContent.trim()) && planOf(state()?.profile) !== "free") saved.textContent = "Your saved explanations appear here.";
   }
 
   // The "not antivirus" line on the Check screen (B2), and press feedback / tab states that the
@@ -1922,6 +1991,11 @@
     } catch (error) { report(error, "start"); }
   }
 
-  w.CNIos = Object.freeze({ version: VERSION, openLegal, startQrScan, showQrVerdict, askConsent, showIntro, checkInbox, reportProblem, navigate });
+  // What ios/store.js (the plans page and the purchase flows) and the debug bundle use.
+  w.CNIos = Object.freeze({
+    version: VERSION, openLegal, startQrScan, showQrVerdict, askConsent, showIntro, checkInbox, reportProblem, navigate,
+    sheet, toast, signInCard, requireAccount, esc, state, signedIn, authHeaders, store, report, P, motionOff,
+    activePage, plansFrom: () => plansFrom, onPage
+  });
   onReady(start);
 })();

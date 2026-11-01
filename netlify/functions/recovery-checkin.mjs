@@ -87,6 +87,29 @@ async function sendCheckinEmail(email, caseTitle, caseId, siteUrl) {
   }
 }
 
+// Pro bought in the iPhone app lives in apple_subscriptions, not in profiles,
+// so those accounts get the same idle-case reminder (it is part of Pro). A
+// failed read only costs the Apple accounts this round; it never stops the rest.
+async function appleProUserIds() {
+  try {
+    const response = await serviceFetch(
+      `/rest/v1/apple_subscriptions?select=user_id&plan=eq.pro&revoked_at=is.null&expires_at=gt.${encodeURIComponent(new Date().toISOString())}&limit=1000`,
+      {},
+      RETRY
+    );
+    if (!response.ok) {
+      // 404 = the table is not there yet (migration not applied): nothing to do.
+      if (response.status !== 404) console.error("CyberNet recovery-checkin Apple Pro query failed", response.status);
+      return [];
+    }
+    const rows = await response.json();
+    return (Array.isArray(rows) ? rows : []).map((row) => row.user_id).filter(Boolean);
+  } catch (error) {
+    console.error("CyberNet recovery-checkin Apple Pro query failed", error?.message || error);
+    return [];
+  }
+}
+
 async function checkinForPlan(plan, thresholdMinutes, siteUrl) {
   const cutoff = new Date(Date.now() - thresholdMinutes * 60 * 1000).toISOString();
 
@@ -101,7 +124,8 @@ async function checkinForPlan(plan, thresholdMinutes, siteUrl) {
     return { checked: 0, sent: 0, skipped: 0 };
   }
   const users = await profilesRes.json();
-  const userIds = users.map((p) => p.id).filter(Boolean);
+  let userIds = users.map((p) => p.id).filter(Boolean);
+  if (plan === "pro") userIds = [...new Set([...userIds, ...(await appleProUserIds())])];
   if (!userIds.length) return { checked: 0, sent: 0, skipped: 0 };
 
   const idList = userIds.join(",");

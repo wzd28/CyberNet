@@ -33,6 +33,7 @@
 		C9AC6DE65F8D4ED6A293A5F0 /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 7406086BF3D84991B47D18F0 /* ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		FC90333921CC4FB1B33D853B /* TabBarPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C8E7C7AAF924F35B53A1F73 /* TabBarPlugin.swift */; };
 		52AC371727904343ABEB3252 /* WebAuthPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC4FE986E8E74315A7694AA1 /* WebAuthPlugin.swift */; };
+		BE7ADEFB6B374F77A2987733 /* StoreKitPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32AF518D1A0748C6A57486BD /* StoreKitPlugin.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -90,6 +91,7 @@
 		3966A7BB32EE4D7E8FE2195A /* engine */ = {isa = PBXFileReference; lastKnownFileType = folder; name = engine; path = Resources/engine; sourceTree = "<group>"; };
 		9C8E7C7AAF924F35B53A1F73 /* TabBarPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabBarPlugin.swift; sourceTree = "<group>"; };
 		DC4FE986E8E74315A7694AA1 /* WebAuthPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebAuthPlugin.swift; sourceTree = "<group>"; };
+		32AF518D1A0748C6A57486BD /* StoreKitPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreKitPlugin.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -160,6 +162,7 @@
 				8AEA9984654346B9823FE8BC /* TrackingPlugin.swift */,
 				9C8E7C7AAF924F35B53A1F73 /* TabBarPlugin.swift */,
 				DC4FE986E8E74315A7694AA1 /* WebAuthPlugin.swift */,
+				32AF518D1A0748C6A57486BD /* StoreKitPlugin.swift */,
 			);
 			path = Plugins;
 			sourceTree = "<group>";
@@ -312,6 +315,7 @@
 				80168F5498BB4AFEBBFD8F1E /* SharedInboxStore.swift in Sources */,
 				FC90333921CC4FB1B33D853B /* TabBarPlugin.swift in Sources */,
 				52AC371727904343ABEB3252 /* WebAuthPlugin.swift in Sources */,
+				BE7ADEFB6B374F77A2987733 /* StoreKitPlugin.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

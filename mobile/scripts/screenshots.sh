@@ -19,7 +19,9 @@
 # screenshots; the plain launch (00-launch) keeps the real first-run intro on purpose. A fresh simulator is
 # signed out, so the app opens with its sign-in card (a later launch shows it after a short stage): debug.js
 # taps "Continue without an account" for the screens that work without one and plants a fictional signed-in
-# person (requests never leave the device) for consent, analysis and recovery, which need an account.
+# person (requests never leave the device) for the screens that need an account: consent, analysis, recovery and its
+# Free-plan locks, the plans page (paywall, paywall-business: the screenshots App Store Connect asks for with each
+# In-App Purchase, with a stand-in for StoreKit and fictional prices) and the Account screen of a Pro plan (account-pro).
 #
 # The Share Extension over the share sheet (screenshot #3) cannot be captured here; the owner takes it
 # during the TestFlight pass (APP-STORE-CONNECT-METADATA §9).
@@ -39,7 +41,7 @@ BUNDLE_ID="app.cybernetai"
 OUT_DIR="${OUT_DIR:-build/screenshots}"
 VIDEO_DIR="${VIDEO_DIR:-build/videos}"
 WAIT_SECONDS="${WAIT_SECONDS:-6}"
-CN_SCREENS="${CN_SCREENS:-check check-verdict scan-verdict consent analysis recovery learn account}"
+CN_SCREENS="${CN_SCREENS:-home check check-verdict scan-verdict consent analysis recovery recovery-locked learn account account-pro paywall paywall-business}"
 
 # name | required or optional | expected screenshot size (App Store class), empty = no check
 DEVICES=(

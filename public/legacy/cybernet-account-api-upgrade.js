@@ -219,6 +219,10 @@
                   id="accountSignOutBtn">Sign Out</button>
         </div>
 
+        <p id="accountAppleBillingNote"
+           class="cybernet-account-message"
+           hidden>This plan is billed by Apple. Manage it in Settings &gt; your name &gt; Subscriptions on your iPhone.</p>
+
         <div id="accountDetailsMessage"
              class="cybernet-account-message"
              aria-live="polite"></div>
@@ -622,7 +626,7 @@
       };
     }
     function renderAccount(session, account) {
-      var _a2, _b2, _c2, _d, _e, _f, _g, _h, _i;
+      var _a2, _b2, _c2, _d, _e, _f, _g, _h, _i, _j;
       const profile = (account == null ? void 0 : account.profile) || {};
       const usage = (account == null ? void 0 : account.usage) || {};
       const details = planDetails(account);
@@ -658,7 +662,10 @@
       }
       if (usageBar) usageBar.style.transform = `scaleX(${percent / 100})`;
       const teamMemberOnly = Boolean(profile.isTeamMember) && profile.teamRole !== "owner";
-      if (manageButton) manageButton.hidden = !details.pro || teamMemberOnly;
+      const billedByApple = ((_j = profile.billing) == null ? void 0 : _j.source) === "apple" && !teamMemberOnly;
+      if (manageButton) manageButton.hidden = !details.pro || teamMemberOnly || billedByApple;
+      const appleNote = document.getElementById("accountAppleBillingNote");
+      if (appleNote) appleNote.hidden = !billedByApple;
       if (upgradeButton) {
         upgradeButton.hidden = details.pro;
         upgradeButton.textContent = "View Pro Plans";

@@ -11,8 +11,10 @@ import {
 } from "../lib/supabase.mjs";
 import { reportError } from "../lib/report-error.mjs";
 import { withCors, isIOS } from "../lib/cors.mjs";
-import { appTierFor, nextUtcMidnight, recoveryNextReset } from "../lib/app-tier.mjs";
+import { appAllowanceFor, nextUtcMidnight, recoveryNextReset } from "../lib/app-tier.mjs";
 import { hasAiConsent, AI_CONSENT_VERSION } from "../lib/ai-consent.mjs";
+import { describeBilling, legacyBillingFields } from "../lib/entitlements.mjs";
+import { limitsFor } from "../lib/plans.mjs";
 
 async function getTeamUsage(businessAccountId, dailyPoolLimit) {
   const today = new Date().toISOString().slice(0, 10);
@@ -35,69 +37,50 @@ async function getTeamUsage(businessAccountId, dailyPoolLimit) {
   };
 }
 
-// The iPhone app (BUILD-PLAN §8.2): the App tier for every account. No plan
-// name, billing state or admin flag reaches the app; team membership is only
-// returned so the app can say that a team owner sees the member's AI results
-// (owner answer 8). History is returned for every account (App tier).
-async function appStatus(request, user, profile) {
-  const tier = appTierFor(user);
-  const today = new Date().toISOString().slice(0, 10);
-  const [analysisRows, recoveryRows, team, consent] = await Promise.all([
-    serviceFetch(
-      `/rest/v1/daily_usage?user_id=eq.${encodeURIComponent(user.id)}&usage_date=eq.${today}&select=analysis_count`
-    ).then(async (response) => {
-      const rows = await response.json().catch(() => []);
-      if (!response.ok) throw new Error(rows?.message || "Could not load daily usage.");
-      return rows;
-    }),
-    // The Recovery counter's key comes from the database's own window function,
-    // exactly as the consume_recovery_*_app functions use it.
-    serviceFetch("/rest/v1/rpc/recovery_window_start", { method: "POST", body: "{}" })
-      .then(async (response) => (response.ok ? response.json() : null))
-      .then((windowStart) => (typeof windowStart === "string" && windowStart
-        ? serviceFetch(
-          `/rest/v1/recovery_usage?user_id=eq.${encodeURIComponent(user.id)}&window_start=eq.${encodeURIComponent(windowStart)}&select=cases_created,updates_used,last_update_at`
-        ).then(async (response) => (response.ok ? response.json().catch(() => []) : []))
-        : []))
-      .catch(() => []),
-    getActiveTeamMembership(user.id).catch(() => null),
+// The iPhone app's extra blocks: the AI-consent state and the Recovery counters.
+// The Recovery counter's key comes from the database's own window function,
+// exactly as the consume_recovery_* functions use it. Limits come from the
+// plan (netlify/lib/plans.mjs; the database is what actually enforces them),
+// or from the disclosed allowance of the review / admin accounts.
+async function iosExtras(user, plan, team, allowance) {
+  const windowStart = await serviceFetch("/rest/v1/rpc/recovery_window_start", { method: "POST", body: "{}" })
+    .then(async (response) => (response.ok ? response.json() : null))
+    .catch(() => null);
+  const hasWindow = typeof windowStart === "string" && Boolean(windowStart);
+  const pooled = Boolean(team) && !allowance;
+
+  const [userRows, teamRows, consent] = await Promise.all([
+    hasWindow
+      ? serviceFetch(
+        `/rest/v1/recovery_usage?user_id=eq.${encodeURIComponent(user.id)}&window_start=eq.${encodeURIComponent(windowStart)}&select=cases_created,updates_used,last_update_at`
+      ).then(async (response) => (response.ok ? response.json().catch(() => []) : [])).catch(() => [])
+      : [],
+    // A team's Recovery cases come from the team's shared pool.
+    hasWindow && pooled
+      ? serviceFetch(
+        `/rest/v1/business_recovery_usage?business_account_id=eq.${encodeURIComponent(team.businessAccountId)}&window_start=eq.${encodeURIComponent(windowStart)}&select=cases_created`
+      ).then(async (response) => (response.ok ? response.json().catch(() => []) : [])).catch(() => [])
+      : [],
     hasAiConsent(serviceFetch, user.id, "ios").catch(() => null)
   ]);
 
-  const used = Number(analysisRows?.[0]?.analysis_count) || 0;
-  const recovery = Array.isArray(recoveryRows) ? recoveryRows[0] || {} : {};
-  const lastUpdate = Date.parse(recovery.last_update_at || "");
-  const cooldownEnds = Number.isFinite(lastUpdate) ? lastUpdate + tier.recoveryUpdateCooldownSeconds * 1000 : 0;
+  const mine = Array.isArray(userRows) ? userRows[0] || {} : {};
+  const pool = Array.isArray(teamRows) ? teamRows[0] || {} : {};
+  const limits = allowance || limitsFor(plan, team);
+  const lastUpdate = Date.parse(mine.last_update_at || "");
+  const cooldownEnds = Number.isFinite(lastUpdate) ? lastUpdate + limits.recoveryUpdateCooldownSeconds * 1000 : 0;
 
-  const includeHistory = new URL(request.url).searchParams.get("includeHistory") === "1";
-  const history = includeHistory ? await getHistory(user.id, 8) : [];
-
-  return json({
-    isAdmin: false,
-    platform: "ios",
-    profile: {
-      fullName: profile.full_name || user.user_metadata?.full_name || "",
-      plan: "app",
-      isTeamMember: Boolean(team && team.role !== "owner"),
-      teamRole: team?.role || null
-    },
-    usage: {
-      used,
-      limit: tier.analysesPerDay,
-      remaining: Math.max(0, tier.analysesPerDay - used),
-      resetDate: nextUtcMidnight()
-    },
+  return {
     recoveryUsage: {
-      casesUsed: Number(recovery.cases_created) || 0,
-      casesLimit: tier.recoveryCasesPerDay,
-      updatesUsed: Number(recovery.updates_used) || 0,
-      updatesLimit: tier.recoveryUpdatesPerDay,
+      casesUsed: Number(pooled ? pool.cases_created : mine.cases_created) || 0,
+      casesLimit: limits.recoveryCasesPerDay,
+      updatesUsed: Number(mine.updates_used) || 0,
+      updatesLimit: limits.recoveryUpdatesPerDay,
       updateCooldownSecondsRemaining: Math.max(0, Math.ceil((cooldownEnds - Date.now()) / 1000)),
       resetAt: recoveryNextReset()
     },
-    aiConsent: { granted: consent === true, known: consent !== null, version: AI_CONSENT_VERSION },
-    history
-  });
+    aiConsent: { granted: consent === true, known: consent !== null, version: AI_CONSENT_VERSION }
+  };
 }
 
 async function handler(request) {
@@ -108,16 +91,30 @@ async function handler(request) {
   try {
     const { user } = await verifyUser(request);
     const profile = await getProfile(user);
-    if (isIOS(request)) return await appStatus(request, user, profile);
-    const isAdmin = isAdminUser(user);
+    const ios = isIOS(request);
+    // The admin bypass is the website's. In the app an admin only gets the
+    // review accounts' raised counts (netlify/lib/app-tier.mjs).
+    const isAdmin = !ios && isAdminUser(user);
+    const allowance = ios ? appAllowanceFor(user) : null;
     const team = isAdmin ? null : await getActiveTeamMembership(user.id);
 
     const plan = isAdmin ? "business" : team ? "business" : effectivePlan(profile);
-    const usage = isAdmin
-      ? { used: 0, limit: 999999, remaining: 999999, resetDate: null }
-      : team
-        ? await getTeamUsage(team.businessAccountId, team.dailyPoolLimit)
-        : await getUsage(user.id, profile);
+    let usage;
+    if (isAdmin) {
+      usage = { used: 0, limit: 999999, remaining: 999999, resetDate: null };
+    } else if (allowance) {
+      const own = await getUsage(user.id, profile);
+      usage = {
+        used: own.used,
+        limit: allowance.analysesPerDay,
+        remaining: Math.max(0, allowance.analysesPerDay - own.used),
+        resetDate: nextUtcMidnight()
+      };
+    } else if (team) {
+      usage = await getTeamUsage(team.businessAccountId, team.dailyPoolLimit);
+    } else {
+      usage = await getUsage(user.id, profile);
+    }
 
     const includeHistory =
       new URL(request.url).searchParams.get("includeHistory") === "1";
@@ -127,7 +124,10 @@ async function handler(request) {
         ? await getHistory(user.id, 8)
         : [];
 
-    return json({
+    const billing = describeBilling({ profile, team, appleRows: profile.apple });
+    const legacy = legacyBillingFields(profile, billing);
+
+    const body = {
       isAdmin,
       profile: {
         fullName:
@@ -135,16 +135,24 @@ async function handler(request) {
           user.user_metadata?.full_name ||
           "",
         plan: isAdmin ? "business" : plan,
-        subscriptionStatus:
-          profile.subscription_status || "inactive",
-        billingInterval:
-          profile.billing_interval || "",
-        isTeamMember: Boolean(team),
-        teamRole: team?.role || null
+        subscriptionStatus: legacy.subscriptionStatus,
+        billingInterval: legacy.billingInterval,
+        // On the iPhone the flag drives the notice "your team owner sees your
+        // AI results", which only members get; the website has always used it
+        // for any team membership.
+        isTeamMember: ios ? Boolean(team && team.role !== "owner") : Boolean(team),
+        teamRole: team?.role || null,
+        // Who pays and when it renews (netlify/lib/entitlements.mjs).
+        billing: { ...billing, plan: isAdmin ? "business" : billing.plan }
       },
       usage,
       history
-    });
+    };
+
+    if (ios) {
+      return json({ ...body, platform: "ios", ...(await iosExtras(user, plan, team, allowance)) });
+    }
+    return json(body);
   } catch (error) {
     // Expected answers (401 signed out) carry a 4xx status and are skipped.
     reportError(error, { fn: "account-status", label: "Account status failed", status: error?.status });

@@ -1,8 +1,8 @@
 import { json, verifyUser, getActiveTeamMembership, serviceFetch, expireStaleInvites } from "../lib/supabase.mjs";
 import { reportError } from "../lib/report-error.mjs";
-// Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
-// management, admin): requests from the app get 403 (netlify/lib/cors.mjs).
-import { webOnly } from "../lib/cors.mjs";
+// Business team management is available in the iPhone app (the team's owner
+// and members), so the app's origin gets CORS (netlify/lib/cors.mjs).
+import { withCors, isIOS } from "../lib/cors.mjs";
 
 declare const Netlify: {
   env: {
@@ -99,7 +99,7 @@ async function sendInviteEmail(toEmail: string, inviterName: string, acceptUrl: 
   }
 }
 
-export default webOnly(async (request: Request) => {
+async function handler(request: Request): Promise<Response> {
   if (request.method !== "POST") return json({ error: "Method not allowed." }, 405);
 
   try {
@@ -152,8 +152,13 @@ export default webOnly(async (request: Request) => {
     const seatCap = { 5: 5, 10: 10, 20: 20 }[team.seatTier as 5 | 10 | 20] || 5;
 
     if (seatsTaken >= seatCap) {
+      // In the app the way to more seats is the plan itself (Apple In-App
+      // Purchase); it must not point to an offer outside it (App Review 3.1.1).
+      const hint = isIOS(request)
+        ? "Remove a member to free a seat."
+        : "Remove a member, or email support@cybernetai.app to move up a tier.";
       return json(
-        { error: `Team is full (${seatsTaken}/${seatCap} seats, including you). Remove a member, or email support@cybernetai.app to move up a tier.` },
+        { error: `Team is full (${seatsTaken}/${seatCap} seats, including you). ${hint}` },
         409
       );
     }
@@ -206,6 +211,8 @@ export default webOnly(async (request: Request) => {
     if (!error?.status) reportError(error, { fn: "business-invite", label: "Invite send failed" });
     return json({ error: error.message || "Could not send the invite." }, Number(error.status) || 500);
   }
-});
+}
+
+export default withCors(handler);
 
 export const config = { path: "/api/business-invite" };

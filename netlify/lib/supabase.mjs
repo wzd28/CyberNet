@@ -1,4 +1,7 @@
 import { fetchWithJwtRetry, RETRY_STANDARD } from "./supabase-retry.mjs";
+// entitlements.mjs imports serviceFetch from this file; both only use the
+// other's functions inside function bodies, so the cycle is harmless.
+import { loadAppleSubscriptions, appleProActive } from "./entitlements.mjs";
 
 function env(name) {
   try {
@@ -105,13 +108,17 @@ export async function serviceFetch(path, options = {}, retry = RETRY_STANDARD) {
   }, retry);
 }
 
+// The person's own plan: the highest of what Stripe set on the profile and an
+// Apple Pro subscription that is paid up (profile.apple, loaded by getProfile).
+// A Business team membership is separate (getActiveTeamMembership).
 export function effectivePlan(profile = {}) {
   const active = ["active", "trialing"].includes(
     String(profile.subscription_status || "")
   );
 
   if (profile.plan === "business" && active) return "business";
-  return profile.plan === "pro" && active ? "pro" : "free";
+  if (profile.plan === "pro" && active) return "pro";
+  return appleProActive(profile.apple) ? "pro" : "free";
 }
 
 export function dailyLimit(profile = {}) {
@@ -125,11 +132,18 @@ export function dailyLimit(profile = {}) {
 // A team member's own `profiles` row is never modified when they join a
 // team — their Business-tier access is derived here, not stored on them.
 export async function getActiveTeamMembership(userId) {
-  const response = await serviceFetch(
+  const query = (columns) => serviceFetch(
     `/rest/v1/business_members?user_id=eq.${encodeURIComponent(userId)}` +
     "&status=eq.active" +
-    "&select=role,business_accounts(id,seat_tier,daily_pool_limit,recovery_pool_limit,subscription_status)"
+    `&select=role,business_accounts(${columns})`
   );
+  const teamColumns = "id,seat_tier,daily_pool_limit,recovery_pool_limit,subscription_status";
+
+  // billing_source arrived with supabase/migrations/20261030120000_apple_iap.sql.
+  // Until that has been applied the column does not exist (HTTP 400), and the
+  // team must keep working: ask again without it.
+  let response = await query(`${teamColumns},billing_source`);
+  if (response.status === 400) response = await query(teamColumns);
 
   const rows = await response.json().catch(() => []);
 
@@ -148,7 +162,9 @@ export async function getActiveTeamMembership(userId) {
     role: row.role,
     seatTier: row.business_accounts.seat_tier,
     dailyPoolLimit: row.business_accounts.daily_pool_limit,
-    recoveryPoolLimit: row.business_accounts.recovery_pool_limit
+    recoveryPoolLimit: row.business_accounts.recovery_pool_limit,
+    // 'stripe' (the website) or 'apple' (In-App Purchase); older rows have none.
+    billingSource: row.business_accounts.billing_source === "apple" ? "apple" : "stripe"
   };
 }
 
@@ -171,6 +187,14 @@ export async function getProfile(user) {
   const select =
     "id,full_name,plan,subscription_status,billing_interval," +
     "stripe_customer_id,stripe_subscription_id,created_at,updated_at";
+
+  // The Apple subscriptions load alongside the profile. They never make the
+  // profile read fail: before the migration the table does not exist, and a
+  // person is then simply treated as having no Apple subscription.
+  const applePromise = loadAppleSubscriptions(user.id).catch((error) => {
+    console.warn("CyberNet apple_subscriptions unavailable", error?.message || error);
+    return [];
+  });
 
   let response = await serviceFetch(
     `/rest/v1/profiles?id=eq.${encodeURIComponent(user.id)}&select=${select}`
@@ -212,7 +236,9 @@ export async function getProfile(user) {
     }
   }
 
-  return rows[0];
+  const profile = rows[0];
+  profile.apple = await applePromise;
+  return profile;
 }
 
 function nextUtcReset() {

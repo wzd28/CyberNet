@@ -9,8 +9,9 @@
 //
 // isIOS(): the app's fetch shim adds `X-CyberNet-Platform: ios` to every /api
 // call (BUILD-PLAN §5.5). A request from the app's origin counts as iOS even
-// if a call slips past the shim, so the app can never reach the web paths
-// (plans, billing, admin bypass) by accident.
+// if a call slips past the shim, so the app can never reach the web-only paths
+// (Stripe checkout and billing portal, BYOK, link previews, the admin inbox) by
+// accident.
 
 export const APP_ORIGIN = "capacitor://localhost";
 const ALLOWED = new Set([APP_ORIGIN]);
@@ -67,15 +68,32 @@ export function withCors(handler) {
   };
 }
 
-// Functions the iPhone app must never use: purchases, billing, BYOK, link
-// previews, Business team management and the admin inbox (App Review 3.1.1
-// and 2.5.19). An iOS request gets a plain 403 and the function never runs.
+// Functions the iPhone app must never use: Stripe checkout and billing portal
+// (purchases in the app are Apple In-App Purchase only, App Review 3.1.1), BYOK,
+// link previews, accepting a Business invite, and the admin inbox (2.5.19). An
+// iOS request gets a plain 403 and the function never runs.
 export const NOT_IN_APP_MESSAGE = "This isn't available in the CyberNet AI app.";
 
 export function webOnly(handler) {
   return async function webOnlyWrapped(request, context) {
     if (isIOS(request)) {
       return new Response(JSON.stringify({ error: NOT_IN_APP_MESSAGE, code: "NOT_AVAILABLE_IN_APP" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" }
+      });
+    }
+    return handler(request, context);
+  };
+}
+
+// The opposite: functions only the iPhone app calls (Apple In-App Purchase
+// verification). The website gets the same plain 403 and the function never runs.
+export const ONLY_IN_APP_MESSAGE = "This is only available in the CyberNet AI app.";
+
+export function iosOnly(handler) {
+  return async function iosOnlyWrapped(request, context) {
+    if (!isIOS(request)) {
+      return new Response(JSON.stringify({ error: ONLY_IN_APP_MESSAGE, code: "ONLY_AVAILABLE_IN_APP" }), {
         status: 403,
         headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" }
       });

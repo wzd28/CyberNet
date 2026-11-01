@@ -185,6 +185,10 @@ document.addEventListener("DOMContentLoaded", () => {
       description: "CyberNet AI's mission is to protect people before threats become real damage, by making cybersecurity understandable and accessible."
     },
     /*@end-web*/
+    /*@ios    pricing:{
+      title:"Plans | CyberNet AI",
+      description:"Compare the Free, Pro and Business plans: daily limits, saved history, downloadable reports, team seats and Recovery features."
+    }, @end-ios*/
     recovery: {
       title: "Recovery Mode | CyberNet AI",
       description: "Got scammed or hacked? Describe what happened and CyberNet AI builds a step-by-step recovery plan to secure your accounts, money and devices."
@@ -205,6 +209,8 @@ document.addEventListener("DOMContentLoaded", () => {
     pricing: "/pricing",
     about: "/about"
     /*@end-web*/
+    /*@ios ,
+    pricing:"/pricing" @end-ios*/
   };
   const PATH_TO_PAGE = Object.fromEntries(Object.entries(PAGE_PATHS).map(([page, path]) => [path, page]));
   function pageForCurrentPath() {
@@ -1042,14 +1048,14 @@ document.addEventListener("DOMContentLoaded", () => {
         <div><span>✓</span> Downloadable security reports</div>`;
     } else {
       list.innerHTML = `
-        <div><span>✓</span> Accurate Text, Link &amp; Image analysis</div>
+        <div><span>✓</span> Text, Link &amp; Image analysis</div>
         <div><span>✓</span> Basic threat explanations</div>
         <div class="benefit-locked"><span>×</span> Saved scan history</div>
         <div class="benefit-locked"><span>×</span> Downloadable reports</div>`;
     }
   }
   function updateAccountUI() {
-    var _a2, _b2, _c2, _d2, _e2, _f2, _g;
+    var _a2, _b2, _c2, _d2, _e2, _f2, _g, _h, _i;
     const signedIn = isSignedIn();
     const pro = isPro();
     const plan = signedIn ? pro ? "pro" : "free" : "guest";
@@ -1112,7 +1118,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const aiReqLeft2 = document.getElementById("aiReqLeft");
     const aiApiStatus2 = document.getElementById("aiApiStatus");
     if (aiPlanTitle) aiPlanTitle.textContent = isBusiness() ? "Analysis AI Business" : pro ? "Analysis AI Pro" : "Analysis AI Free";
-    if (aiPlanDescription) aiPlanDescription.textContent = !signedIn ? "Sign in to activate 3 accurate AI analyses per day across text, links, and images." : pro ? "Top-level Analysis AI protection with advanced analysis, history, and reports." : "Accurate everyday AI protection with 3 shared analyses per day.";
+    if (aiPlanDescription) aiPlanDescription.textContent = !signedIn ? (
+      /*@web*/
+      "Sign in to activate 3 accurate AI analyses per day across text, links, and images."
+    ) : pro ? (
+      /*@web*/
+      "Top-level Analysis AI protection with advanced analysis, history, and reports."
+    ) : (
+      /*@web*/
+      "Accurate everyday AI protection with 3 shared analyses per day."
+    );
     if (aiUsageText) aiUsageText.textContent = signedIn ? `${used} / ${limit}` : `0 / 3`;
     if (aiUsageBar) aiUsageBar.style.width = `${signedIn ? Math.min(100, used / Math.max(1, limit) * 100) : 0}%`;
     if (aiUsageReset) aiUsageReset.textContent = appState.usage.resetDate ? `Resets ${new Date(appState.usage.resetDate).toLocaleDateString()}` : "Resets daily";
@@ -1137,7 +1152,8 @@ document.addEventListener("DOMContentLoaded", () => {
       aiUpgradeBtn.hidden = pro;
       aiUpgradeBtn.textContent = signedIn ? "Upgrade to Pro" : "View Pro Plan";
     }
-    if (manageBillingBtn) manageBillingBtn.hidden = !pro;
+    if (manageBillingBtn) manageBillingBtn.hidden = /*@web*/
+    !pro || ((_i = (_h = appState.profile) == null ? void 0 : _h.billing) == null ? void 0 : _i.source) === "apple";
     const tier = planTier();
     if (freePlanBtn) {
       freePlanBtn.textContent = !signedIn ? "Start Free" : tier === "free" ? "Current Plan" : `Included with ${tier === "business" ? "Business" : "Pro"}`;
@@ -1171,7 +1187,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (accountStatusInflight && accountStatusToken === token) return accountStatusInflight;
     accountStatusToken = token;
     const request = (async () => {
-      var _a3, _b2, _c2, _d2, _e2, _f2, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q, _r;
+      var _a3, _b2, _c2, _d2, _e2, _f2, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q, _r, _s;
       try {
         const response = await fetch("/api/account-status?includeHistory=1", { headers: authHeaders({ Accept: "application/json" }), cache: "no-store" });
         const data = await response.json().catch(() => ({}));
@@ -1184,26 +1200,27 @@ document.addEventListener("DOMContentLoaded", () => {
           subscriptionStatus: ((_f2 = data.profile) == null ? void 0 : _f2.subscriptionStatus) || "inactive",
           billingInterval: ((_g = data.profile) == null ? void 0 : _g.billingInterval) || "",
           isTeamMember: Boolean((_h = data.profile) == null ? void 0 : _h.isTeamMember),
-          teamRole: ((_i = data.profile) == null ? void 0 : _i.teamRole) || null
+          teamRole: ((_i = data.profile) == null ? void 0 : _i.teamRole) || null,
+          billing: ((_j = data.profile) == null ? void 0 : _j.billing) || null
         };
         appState.usage = {
-          used: Number((_j = data.usage) == null ? void 0 : _j.used) || 0,
-          limit: Number((_k = data.usage) == null ? void 0 : _k.limit) || 5,
-          remaining: Number((_l = data.usage) == null ? void 0 : _l.remaining),
-          resetDate: ((_m = data.usage) == null ? void 0 : _m.resetDate) || ""
+          used: Number((_k = data.usage) == null ? void 0 : _k.used) || 0,
+          limit: Number((_l = data.usage) == null ? void 0 : _l.limit) || 5,
+          remaining: Number((_m = data.usage) == null ? void 0 : _m.remaining),
+          resetDate: ((_n = data.usage) == null ? void 0 : _n.resetDate) || ""
         };
         appState.history = Array.isArray(data.history) ? data.history : [];
-        appState.accountUserId = ((_n = appState.user) == null ? void 0 : _n.id) || null;
+        appState.accountUserId = ((_o = appState.user) == null ? void 0 : _o.id) || null;
         appState.accountStatusError = false;
         accountStatusRetried = false;
       } catch (error) {
-        if (((_o = appState.session) == null ? void 0 : _o.access_token) !== token) return appState;
-        if (appState.accountReady && appState.accountUserId && appState.accountUserId === ((_p = appState.user) == null ? void 0 : _p.id)) {
+        if (((_p = appState.session) == null ? void 0 : _p.access_token) !== token) return appState;
+        if (appState.accountReady && appState.accountUserId && appState.accountUserId === ((_q = appState.user) == null ? void 0 : _q.id)) {
           console.warn(error);
           return appState;
         }
         appState.isAdmin = false;
-        appState.profile = { plan: "free", fullName: ((_r = (_q = appState.user) == null ? void 0 : _q.user_metadata) == null ? void 0 : _r.full_name) || "", subscriptionStatus: "inactive", billingInterval: "" };
+        appState.profile = { plan: "free", fullName: ((_s = (_r = appState.user) == null ? void 0 : _r.user_metadata) == null ? void 0 : _s.full_name) || "", subscriptionStatus: "inactive", billingInterval: "" };
         appState.usage = { used: 0, limit: 5, remaining: 5, resetDate: "" };
         appState.history = [];
         appState.accountStatusError = true;
@@ -1611,7 +1628,13 @@ document.addEventListener("DOMContentLoaded", () => {
     return planTier();
   }
   async function openBillingPortal() {
+    var _a2, _b2;
     if (!isSignedIn()) return openAuthModal("login");
+    if (((_b2 = (_a2 = appState.profile) == null ? void 0 : _a2.billing) == null ? void 0 : _b2.source) === "apple") {
+      showPricingNotice("This plan is billed by Apple. Manage it in Settings > your name > Subscriptions on your iPhone.", "");
+      switchPage("pricing");
+      return;
+    }
     try {
       const response = await fetch("/api/customer-portal", { method: "POST", headers: authHeaders({ "Content-Type": "application/json" }) });
       const data = await response.json().catch(() => ({}));
@@ -2372,7 +2395,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const note = isBareLink ? (
         /*@web*/
         "This looked like a link rather than a message, so CyberNet AI analyzed it with the link engine for a more accurate result. Use Link Detection directly next time for the same result."
-      ) : "Local protection scan complete. Use Analysis AI for a deeper, AI-assisted check.";
+      ) : (
+        /*@web*/
+        "Local protection scan complete. Use Analysis AI for a deeper, AI-assisted check."
+      );
       showReport(cyberTextResult, result.score, result.scamType, result.reasons, result.advice, { ...result, note, previewHtml: isBareLink ? renderLinkPreview(text, result) : renderLinksFound(result.links || []) });
       prependScan("textScanList", `“${text.slice(0, 42)}${text.length > 42 ? "…" : ""}”`, result);
       reportTeamActivity({ kind: "quick_scan", scanType: isBareLink ? "link" : "text", content: text, result: quickScanLogResult(result) });
@@ -2649,13 +2675,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return false;
     }
     if (Number(appState.usage.remaining) <= 0) {
-      addChatBubble(
-        "ai",
-        /*@web*/
-        `<span class="warning">You have reached today's ${appState.usage.limit || 5}-analysis limit.</span><button class="report-download-btn" data-upgrade-now>View Pro options</button>`
-        /*@end-web*/
-        /*@ios `<span class="warning">You've used today's AI explanations. ${escapeHTML(aiResetText())}</span>` @end-ios*/
-      );
+      addChatBubble("ai", `<span class="warning">You have reached today's ${appState.usage.limit || 5}-analysis limit.</span><button class="report-download-btn" data-upgrade-now>View Pro options</button>`);
       return false;
     }
     return true;
@@ -2854,8 +2874,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (isPro()) await refreshAccountStatus();
     } catch (error) {
       if (stopDiagnostic) stopDiagnostic();
-      if (inner) inner.innerHTML = `<span class="warning">${escapeHTML(friendlyNetworkError(error) || error.message || "The analysis didn't finish. Please try again.")}</span>${/*@web*/
-      error.code === "daily_limit_reached" ? '<button class="report-download-btn" data-upgrade-now>Upgrade to Pro</button>' : ""}`;
+      if (inner) inner.innerHTML = `<span class="warning">${escapeHTML(friendlyNetworkError(error) || error.message || "The analysis didn't finish. Please try again.")}</span>${error.code === "daily_limit_reached" ? '<button class="report-download-btn" data-upgrade-now>Upgrade to Pro</button>' : ""}`;
     }
     if (chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
   }
@@ -3260,12 +3279,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (data.aiPending) watchForAiPlan(data.caseId, Number(data.caseVersion) || 1, "plan");
       } catch (error) {
         if (error.code === "daily_limit_reached") {
-          setIntakeMessage(`${error.message}${recoveryLimitSuffix(
-            error.usage,
-            /*@web*/
-            "Upgrade to Pro for more Recovery cases per day.",
-            "Recovery cases reset at 12:00 PM Gulf time."
-          )}`, "warning");
+          setIntakeMessage(`${error.message}${recoveryLimitSuffix(error.usage, "Upgrade to Pro for more Recovery cases per day.", "Recovery cases reset at 12:00 PM Gulf time.")}`, "warning");
           if (error.usage) {
             appState.recoveryUsage = { used: Number(error.usage.used) || 0, limit: Number((_b2 = error.usage.limit) != null ? _b2 : error.usage.daily_limit) || 1 };
             updateAccountUI();
@@ -3477,8 +3491,7 @@ document.addEventListener("DOMContentLoaded", () => {
           const hours = Math.ceil(seconds / 3600), minutes = Math.max(1, Math.ceil(seconds / 60));
           setUpdateMessage(seconds > 0 ? `You can send your next update in about ${seconds >= 3600 ? `${hours} hour${hours > 1 ? "s" : ""}` : `${minutes} minute${minutes > 1 ? "s" : ""}`}.` : error.message || "Please wait before submitting another update.", "warning");
         } else if (error.code === "daily_limit_reached") {
-          setUpdateMessage(`${error.message}${/*@web*/
-          ((_b2 = error.usage) == null ? void 0 : _b2.plan) === "free" || !((_c2 = error.usage) == null ? void 0 : _c2.plan) ? " Upgrade to Pro for more updates per day." : " Updates reset at 12:00 PM Gulf time."}`, "warning");
+          setUpdateMessage(`${error.message}${((_b2 = error.usage) == null ? void 0 : _b2.plan) === "free" || !((_c2 = error.usage) == null ? void 0 : _c2.plan) ? " Upgrade to Pro for more updates per day." : " Updates reset at 12:00 PM Gulf time."}`, "warning");
         } else {
           setUpdateMessage(friendlyNetworkError(error) || error.message || "Couldn't update this case right now. Please try again.", "warning");
         }

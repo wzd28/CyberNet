@@ -4,7 +4,7 @@
    - window.CN_PLATFORM = "ios"   iOS-only behaviour checks this (the website never sets it).
    - API calls: the website calls "/api/..." on its own origin. Inside the app the page lives at
      capacitor://localhost, so every "/api/..." fetch and beacon is sent to https://cybernetai.app with
-     the X-CyberNet-Platform / X-CyberNet-App-Version headers (the server's App tier, CORS and AI consent
+     the X-CyberNet-Platform / X-CyberNet-App-Version headers (the server's CORS, purchase and AI consent rules
      depend on them) and a 30 s timeout when the caller set none (§7.11). The submitted build always
      talks to production.
    - cybernet-errors.js sends error reports with navigator.sendBeacon("/api/client-error") first. A

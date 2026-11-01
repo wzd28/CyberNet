@@ -116,7 +116,14 @@ const MUST = {
     "operated by Marks Events FZ LLE, and these Terms are between you and Marks Events FZ LLE",
     "Apple is not a party to these Terms",
     "10.2 The iPhone app",
-    "only after you allow it on the app’s “Allow AI analysis?” screen"
+    "only after you allow it on the app’s “Allow AI analysis?” screen",
+    // 30 Oct 2026: Free, Pro and Business are sold in the app with Apple In-App Purchase
+    "The iPhone app offers the same Free, Pro and Business plans.",
+    "Plans bought in the app are billed by Apple; a plan on your account applies on the website and in the app.",
+    "Plans can be bought in the app with In-App Purchase.",
+    "A plan bought in the iPhone app is an auto-renewable subscription sold by Apple through In-App Purchase.",
+    "Deleting your CyberNet account does not cancel an App Store subscription: cancel it first, or Apple keeps charging you.",
+    "Purchases made in the iPhone app are billed and refunded by Apple under Apple’s terms."
   ],
   privacy: [
     "Marks Events FZ LLE operates the app and is the data controller for it too",
@@ -130,11 +137,16 @@ const MUST = {
     "the deletion cancels it with Stripe at the same time",
     "CyberNet also asks Apple to revoke the app’s access",
     "safeguards at least equal to those described in this Policy",
-    "AI analysis permission (iPhone app)"
+    "AI analysis permission (iPhone app)",
+    "Purchases are made with Apple In-App Purchase: Apple handles your payment and CyberNet does not receive your card details.",
+    "CyberNet receives signed transaction details from Apple (product, dates, status and a purchase token that matches your account) to give you your plan.",
+    "A subscription bought in the iPhone app is billed by Apple, and CyberNet cannot cancel it for you"
   ],
   refunds: [
     "Deleting your account cancels your subscription immediately.",
-    "The CyberNet AI iPhone app has no purchases"
+    "Plans bought in the CyberNet AI iPhone app are billed and refunded by Apple under Apple’s terms; this policy covers plans bought on the website.",
+    "Plans bought in the iPhone app are billed by Apple and are cancelled in the iPhone’s Settings app",
+    "Refunds for purchases made in the iPhone app are decided by Apple under Apple’s terms"
   ]
 };
 const GONE = [
@@ -143,7 +155,13 @@ const GONE = [
   "Deleting your CyberNet account does not by itself cancel",
   "CyberNet may prevent account deletion",
   "Subscription cancellation is separate from account deletion",
-  "Data Not Used to Track"
+  "Data Not Used to Track",
+  // the app sells plans since 30 Oct 2026
+  "The CyberNet AI iPhone app has no purchases",
+  "The app has no paid plans and sells nothing",
+  "The iPhone app has no paid plans and no purchases",
+  "The app has no purchases and shows no advertising",
+  "No purchases or advertising"
 ];
 for (const [key, [page, embedded]] of Object.entries(docs)) {
   for (const phrase of MUST[key] || []) {

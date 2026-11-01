@@ -1,10 +1,10 @@
 import { json, verifyUser, getActiveTeamMembership, serviceFetch, expireStaleInvites } from "../lib/supabase.mjs";
 import { reportError } from "../lib/report-error.mjs";
-// Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
-// management, admin): requests from the app get 403 (netlify/lib/cors.mjs).
-import { webOnly } from "../lib/cors.mjs";
+// Business team management is available in the iPhone app (the team's owner
+// and members), so the app's origin gets CORS (netlify/lib/cors.mjs).
+import { withCors } from "../lib/cors.mjs";
 
-export default webOnly(async (request: Request) => {
+async function handler(request: Request): Promise<Response> {
   if (request.method !== "GET") return json({ error: "Method not allowed." }, 405);
 
   try {
@@ -116,6 +116,8 @@ export default webOnly(async (request: Request) => {
     reportError(error, { fn: "business-account", label: "Team info failed", status: error?.status });
     return json({ error: error.message || "Could not load team info." }, Number(error.status) || 500);
   }
-});
+}
+
+export default withCors(handler);
 
 export const config = { path: "/api/business-account" };

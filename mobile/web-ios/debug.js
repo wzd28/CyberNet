@@ -9,9 +9,14 @@
      ios/engine-fixtures.json runs through the bundled engine in this WebKit and the result is compared
      with the Node results. The summary is logged as one line "CN_ENGINE_SELFTEST_RESULT {json}" and
      handed to the CNDebug plugin (writeResult) when it exists.
-   - Screenshot helper: window.CN_DEMO_SCREEN = "check" | "check-verdict" | "scan-verdict" | "consent" |
-     "analysis" | "recovery" | "learn" | "account" (aliases "qr", "ai") fills that screen with a fictional
-     example (".invalid" addresses only). The names match CN_SCREENS in mobile/scripts/screenshots.sh.
+   - Screenshot helper: window.CN_DEMO_SCREEN = "home" | "check" | "check-verdict" | "scan-verdict" | "consent" |
+     "analysis" | "recovery" | "recovery-locked" | "learn" | "account" | "account-pro" | "paywall" |
+     "paywall-business" (aliases "qr", "ai") fills that screen with a fictional example (".invalid" addresses only).
+     The names match CN_SCREENS in mobile/scripts/screenshots.sh. "paywall" and "paywall-business" are the screenshots
+     App Store Connect asks for with each In-App Purchase.
+   - A stand-in for the StoreKit plugin (CNStore) in a browser, and for the plans screens in a demo run: five fictional
+     products whose prices are formatted here, a purchase that always succeeds, and answers to /api/apple-verify and
+     /api/account-status that never leave the device (the fictional person's token, below). The release bundle has none of this.
      A fresh simulator is signed out, so the app opens with its sign-in card (ios.js, section 7d). Before a demo screen
      is filled the card is answered here: "Continue without an account" for the screens that work without one (check,
      check-verdict, scan-verdict, learn, account), and a fictional signed-in person for the ones that need an account
@@ -28,7 +33,7 @@
   // readyState "interactive", so its onReady() does not wait) and reads the key then. build-web.mjs puts
   // debug.js ahead of ios.js in a debug bundle for that reason; cn-ios-boot.js has already defined CNNative.
   // A plain launch (no demo, no self-test) keeps the real first-run flow.
-  if (w.CN_DEMO_SCREEN || w.CN_ENGINE_SELFTEST) {
+  if (w.CN_DEMO_SCREEN || w.CN_ENGINE_SELFTEST || /[?&]demo=/.test(location.search)) {
     try { w.localStorage.setItem("cn-ios-intro-1", "demo"); } catch (e) { /* storage blocked */ }
     if (w.CNNative) w.CNNative.requestTracking = function () { return Promise.resolve("denied"); };
   }
@@ -93,7 +98,93 @@
   // in script.js's account state the way a real sign-in leaves it. Its token is only a marker: every request that
   // carries it is answered here with an empty reply and never leaves the device.
   var DEMO_TOKEN = "cn-demo-session";
-  var NEEDS_ACCOUNT = { consent: 1, analysis: 1, ai: 1, recovery: 1 };
+  var NEEDS_ACCOUNT = { consent: 1, analysis: 1, ai: 1, recovery: 1, "recovery-locked": 1, paywall: 1, "paywall-business": 1, "account-pro": 1 };
+  function demoName() { return w.CN_DEMO_SCREEN || (/[?&]demo=([\w-]+)/.exec(location.search) || [])[1] || ""; }
+
+  // The fictional plan of the fictional person: Free, Pro (bought with Apple) or Business (bought with Apple, 5 seats). A purchase in
+  // the stand-in store changes it, so the plans page can be walked through: Upgrade, the plan is active, Current Plan.
+  var demoPlan = demoName() === "account-pro" ? "pro" : "free";
+  var demoSeats = 0;
+  var PRODUCTS = [
+    { id: "app.cybernetai.pro.monthly", name: "CyberNet AI Pro", amount: 9.99, unit: "month" },
+    { id: "app.cybernetai.pro.yearly", name: "CyberNet AI Pro (yearly)", amount: 95.99, unit: "year" },
+    { id: "app.cybernetai.business5.monthly", name: "CyberNet AI Business, 5 seats", amount: 40, unit: "month" },
+    { id: "app.cybernetai.business10.monthly", name: "CyberNet AI Business, 10 seats", amount: 80, unit: "month" },
+    { id: "app.cybernetai.business20.monthly", name: "CyberNet AI Business, 20 seats", amount: 160, unit: "month" }
+  ];
+  function money(amount) { return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount); }
+  function planOfProduct(id) { return /business/.test(id) ? "business" : "pro"; }
+  function demoBilling() {
+    if (demoPlan === "free") return null;
+    var business = demoPlan === "business";
+    return {
+      source: "apple", plan: demoPlan, productId: business ? "app.cybernetai.business" + demoSeats + ".monthly" : "app.cybernetai.pro.monthly",
+      seatTier: business ? demoSeats : null, interval: "month", renewsAt: new Date(Date.now() + 30 * 24 * 3600e3).toISOString(), endsAt: null,
+      autoRenew: true, inGrace: false, environment: "Sandbox", alsoBilledElsewhere: false
+    };
+  }
+  function demoProfile() {
+    var paid = demoPlan !== "free";
+    return {
+      plan: demoPlan, fullName: "Alex Example", subscriptionStatus: paid ? "active" : "inactive", billingInterval: paid ? "month" : "",
+      isTeamMember: demoPlan === "business", teamRole: demoPlan === "business" ? "owner" : null, billing: demoBilling()
+    };
+  }
+  function demoStatus() {
+    var limit = demoPlan === "business" ? 50 : demoPlan === "pro" ? 15 : 3;
+    return { profile: demoProfile(), usage: { used: 1, limit: limit, remaining: limit - 1 }, history: [], recoveryUsage: { casesUsed: 0, casesLimit: demoPlan === "business" ? 20 : demoPlan === "pro" ? 3 : 1 } };
+  }
+  // Answers /api/apple-verify for the stand-in store: every transaction is "applied" and sets the fictional plan.
+  function demoVerify(init) {
+    var results = [];
+    try {
+      JSON.parse(String((init && init.body) || "{}")).transactions.forEach(function (t) {
+        var made = JSON.parse(atob(String(t.jws).split(".")[1]));
+        demoPlan = planOfProduct(made.productId);
+        demoSeats = demoPlan === "business" ? Number(/business(\d+)/.exec(made.productId)[1]) : 0;
+        results.push({ transactionId: made.transactionId, originalTransactionId: made.transactionId, productId: made.productId, status: "applied", finish: true });
+      });
+    } catch (e) { results = []; }
+    return { results: results, plan: demoPlan, billing: demoBilling() };
+  }
+  function fakeStore() {
+    var counter = 9000, asked = 0, down = /[?&]store=down/.test(location.search); // read now: the address loses its query when the page changes
+    var none = function () { return Promise.resolve({ transactions: [] }); };
+    return {
+      products: function () {
+        // ?store=down in the address: the first two requests fail (opening the plans page asks twice; it then shows its Retry box) and Retry works
+        asked += 1;
+        if (asked <= 2 && down) return Promise.reject(Object.assign(new Error("The plans can't be loaded right now."), { code: "NOT_AVAILABLE" }));
+        return Promise.resolve({
+          missing: [],
+          products: PRODUCTS.map(function (p) {
+            return { id: p.id, displayName: p.name, description: "", displayPrice: money(p.amount), price: String(p.amount), currencyCode: "USD", periodUnit: p.unit, periodCount: 1, familyShareable: false };
+          })
+        });
+      },
+      purchase: function (options) {
+        counter += 1;
+        var made = { productId: options.productId, transactionId: String(counter) };
+        return Promise.resolve({ status: "success", jws: "stand-in." + btoa(JSON.stringify(made)) + ".signature", renewalInfoJws: null, transactionId: made.transactionId, originalTransactionId: made.transactionId, productId: made.productId, expires: Date.now() + 30 * 24 * 3600e3 });
+      },
+      currentEntitlements: none, unfinished: none, restore: none,
+      finish: function () { return Promise.resolve({}); },
+      manageSubscriptions: function () { console.log("CN_DEBUG manage subscriptions opened"); return Promise.resolve({}); },
+      addListener: function () { return Promise.resolve({ remove: function () {} }); }
+    };
+  }
+  // Before ios.js and store.js run: in a browser (no plugin) and for the plans screens of a demo run, the stand-in answers for CNStore.
+  (function () {
+    var real = w.CNPlugin;
+    if (typeof real !== "function") return;
+    var stand = null;
+    w.CNPlugin = function (name) {
+      var found = real.apply(this, arguments);
+      if (name === "CNStore" && (!found || /^(paywall|paywall-business|account-pro)$/.test(demoName()))) return stand || (stand = fakeStore());
+      return found;
+    };
+  })();
+
   function keepOnDevice() {
     var real = w.fetch;
     w.fetch = function (input, init) {
@@ -102,7 +193,8 @@
       if (String(auth || "").indexOf(DEMO_TOKEN) < 0) return real.apply(this, arguments);
       var url = typeof input === "string" ? input : (input && input.url) || "";
       var body = url.indexOf("/api/recovery-case") >= 0 ? { cases: [] }
-        : url.indexOf("/api/account-status") >= 0 ? { profile: { plan: "free" }, usage: { used: 1, limit: 5, remaining: 4 }, history: [] } : {};
+        : url.indexOf("/api/account-status") >= 0 ? demoStatus()
+        : url.indexOf("/api/apple-verify") >= 0 ? demoVerify(init) : {};
       return Promise.resolve(new Response(JSON.stringify(body), { status: 200, headers: { "Content-Type": "application/json" } }));
     };
   }
@@ -114,8 +206,9 @@
     keepOnDevice();
     s.session = { access_token: DEMO_TOKEN, user: user };
     s.user = user;
-    s.profile = { plan: "free", fullName: "Alex Example", subscriptionStatus: "inactive", billingInterval: "" };
-    s.usage = { used: 1, limit: 5, remaining: 4, resetDate: "" };
+    s.profile = demoProfile();
+    s.usage = { used: 1, limit: demoStatus().usage.limit, remaining: demoStatus().usage.remaining, resetDate: "" };
+    s.recoveryUsage = { used: 0, limit: demoStatus().recoveryUsage.casesLimit };
     s.accountUserId = user.id;
     s.accountReady = true;
     try { if (A.updateAccountUI) A.updateAccountUI(); } catch (e) { /* the screen still fills */ }
@@ -140,15 +233,42 @@
     })();
   }
   // Names match CN_SCREENS in mobile/scripts/screenshots.sh (the CI passes them as CN_DEMO_SCREEN).
+  // The Recovery screen with a Free plan's locks showing (the timeline note and the Pro offer under it): a fictional case, shown
+  // without calling the server.
+  function showRecoveryLocks() {
+    if (!w.CNIos) return;
+    w.CNIos.navigate("recovery");
+    setTimeout(function () {
+      var dash = d.getElementById("recoveryDashboard");
+      if (dash) dash.hidden = false;
+      var list = d.getElementById("recoveryTimelineActions");
+      if (list && !list.children.length) {
+        [["Freeze your card in your banking app", "Open your banking app and freeze the card you used.", "high", 5], ["Call your bank on the number on your card", "Tell them about the payment and ask them to stop it.", "high", 10]].forEach(function (a) {
+          var item = d.createElement("div");
+          item.className = "recovery-action-item";
+          item.innerHTML = "<label class=\"recovery-action-check\"><input type=\"checkbox\" aria-label=\"Mark done: " + a[0] + "\"/></label><div class=\"recovery-action-body\"><div class=\"recovery-action-title-row\"><strong>" + a[0] + "</strong><span class=\"recovery-priority-pill recovery-priority-" + a[2] + "\">" + a[2] + "</span><span class=\"recovery-priority-pill recovery-priority-normal\">" + a[3] + " min</span></div><p class=\"recovery-action-instruction\">" + a[1] + "</p></div>";
+          list.appendChild(item);
+        });
+      }
+      ["recoveryTimelineLocked", "recoveryProUpsell"].forEach(function (id) { var el = d.getElementById(id); if (el) el.hidden = false; });
+      var card = list && list.closest(".recovery-timeline-card");
+      if (card && card.scrollIntoView) card.scrollIntoView({ block: "start" });
+    }, 700);
+  }
   var DEMO = {
+    home: function () { if (w.CNIos) w.CNIos.navigate("home"); },
     check: function () { if (w.CNIos) w.CNIos.navigate("cybernet"); },
     "check-verdict": typeAndCheck,
     "scan-verdict": function () { if (w.CNIos) w.CNIos.showQrVerdict("https://bank-login-verify.invalid/secure", "qr"); },
     consent: function () { if (w.CNIos) { w.CNIos.navigate("cybernetai"); w.CNIos.askConsent(); } },
     analysis: function () { if (w.CNIos) w.CNIos.navigate("cybernetai"); },
     recovery: function () { if (w.CNIos) w.CNIos.navigate("recovery"); },
+    "recovery-locked": showRecoveryLocks,
     learn: function () { if (w.CNIos) w.CNIos.navigate("learn"); },
-    account: function () { if (w.CNIos) w.CNIos.navigate("account"); }
+    account: function () { if (w.CNIos) w.CNIos.navigate("account"); },
+    "account-pro": function () { if (w.CNIos) w.CNIos.navigate("account"); },
+    paywall: function () { if (w.CNStore) w.CNStore.openPaywall(); else if (w.CNIos) w.CNIos.navigate("pricing"); },
+    "paywall-business": function () { if (w.CNStore) w.CNStore.openPaywall({ focus: "business" }); else if (w.CNIos) w.CNIos.navigate("pricing"); }
   };
   DEMO.qr = DEMO["scan-verdict"];
   DEMO.ai = DEMO.analysis;
@@ -156,7 +276,7 @@
   function on(value) { return value === true || value === 1 || /^(1|true|yes)$/i.test(String(value || "")); }
   function start() {
     if (on(w.CN_ENGINE_SELFTEST) || /[?&]selftest=1/.test(location.search)) setTimeout(selfTest, 800);
-    var demo = w.CN_DEMO_SCREEN || (/[?&]demo=([\w-]+)/.exec(location.search) || [])[1];
+    var demo = demoName();
     if (demo && Object.prototype.hasOwnProperty.call(DEMO, demo)) setTimeout(function () {
       clearGate(demo, function () {
         try { DEMO[demo](); } catch (e) { add("demo " + demo + ": " + e); console.log("CN_DEMO_FAILED " + demo + " " + e); return; }

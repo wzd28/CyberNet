@@ -19,6 +19,12 @@ import { revokeAppleTokens, cleanAuthorizationCode, hasAppleIdentity, appleConfi
 // at once, with no refund or credit for unused time, before anything is
 // deleted. If the plan cannot be cancelled, nothing is deleted. A Sign in with
 // Apple account's tokens are revoked afterwards (lib/apple-siwa.mjs).
+//
+// A subscription bought in the iPhone app (Apple In-App Purchase) cannot be
+// cancelled from here: only the person can, in Settings > Subscriptions. The
+// deletion goes ahead anyway (its team is closed, its rows go with the account)
+// and the reply says `appleSubscriptionOpen: true` so the app can warn that
+// Apple keeps charging until they cancel.
 
 // Deny by default: only these Stripe statuses mean nobody can be billed any
 // more. Everything else (active, trialing, past_due, unpaid, incomplete,
@@ -267,8 +273,26 @@ async function cancelBilling(profile, teams, personalOpen) {
   }
 }
 
+// True while Apple may still charge this account: a subscription that is not
+// revoked or expired and has not been switched to "do not renew". Only
+// informational (it never blocks a deletion), so a failed read counts as "no".
+async function appleSubscriptionOpen(uid) {
+  try {
+    const rows = await rest(
+      `apple_subscriptions?user_id=eq.${uid}&select=status,auto_renew,revoked_at`,
+      { method: "GET", code: "APPLE_LOOKUP_FAILED", optional: true }
+    );
+    return (Array.isArray(rows) ? rows : []).some(row =>
+      !row?.revoked_at && ["active", "grace", "billing_retry"].includes(String(row?.status || "")) && row?.auto_renew !== false
+    );
+  } catch {
+    return false;
+  }
+}
+
 async function deleteAccount(user, body = {}) {
   const uid = id(user.id);
+  const appleOpen = await appleSubscriptionOpen(uid);
 
   const profile = await getProfile(user.id, "PROFILE_LOOKUP_FAILED");
   // No profile row, or no status on it, means no plan was ever started.
@@ -349,13 +373,19 @@ async function deleteAccount(user, body = {}) {
     }
   }
 
-  return json({ deleted: true, closedTeams: teams.length, cancelledSubscriptions: cancelledNow, appleTokensRevoked });
+  return json({
+    deleted: true,
+    closedTeams: teams.length,
+    cancelledSubscriptions: cancelledNow,
+    appleTokensRevoked,
+    ...(appleOpen ? { appleSubscriptionOpen: true } : {})
+  });
 }
 
 async function exportData(user) {
   const uid = id(user.id);
   const code = "EXPORT_FAILED";
-  const [profile, usage, history, acceptances, recoveryCases, recoveryUsage, quickscanUsage, teamMemberships, ownedTeams, checkoutErrors, usageCounters, feedback, aiConsents] = await Promise.all([
+  const [profile, usage, history, acceptances, recoveryCases, recoveryUsage, quickscanUsage, teamMemberships, ownedTeams, checkoutErrors, usageCounters, feedback, aiConsents, appleSubscriptions] = await Promise.all([
     getProfile(user.id, code),
     getRows("daily_usage", user.id, code),
     getRows("scan_history", user.id, code),
@@ -368,7 +398,8 @@ async function exportData(user) {
     getRows("checkout_debug_log", user.id, code),
     get(`api_rate_limits?rate_key=like.*${uid}&select=rate_key,window_started_at,request_count,updated_at`, code),
     rest(`feedback?user_id=eq.${uid}&select=created_at,category,message,email,page,status`, { method: "GET", code, optional: true }),
-    rest(`ai_consents?user_id=eq.${uid}&select=consent_version,platform,provider,granted_at,withdrawn_at,user_agent`, { method: "GET", code, optional: true })
+    rest(`ai_consents?user_id=eq.${uid}&select=consent_version,platform,provider,granted_at,withdrawn_at,user_agent`, { method: "GET", code, optional: true }),
+    rest(`apple_subscriptions?user_id=eq.${uid}&select=product_id,plan,seat_tier,billing_interval,environment,purchase_date,expires_at,grace_expires_at,auto_renew,status,revoked_at,created_at`, { method: "GET", code, optional: true })
   ]);
   const caseIds = (Array.isArray(recoveryCases) ? recoveryCases : []).map(c => c.id).filter(Boolean);
   const inList = caseIds.map(encodeURIComponent).join(",");
@@ -395,7 +426,8 @@ async function exportData(user) {
       checkoutErrors: checkoutErrors || [],
       usageCounters: usageCounters || [],
       feedback: feedback || [],
-      aiConsents: aiConsents || []
+      aiConsents: aiConsents || [],
+      appleSubscriptions: appleSubscriptions || []
     }
   });
 }

@@ -512,6 +512,9 @@
   // From a refusal: close the dialog and take the user to Manage Billing on Account Info.
   function openBilling(modal) {
     closeDialog(modal, { force: true });
+    /*@ios
+    if (window.CNStore?.manage) { window.CNStore.manage(); return; }
+    @end-ios*/
     byId(IDS.infoTab)?.click();
     const manage = byId("accountManageBillingBtn");
     if (manage && !manage.hidden && !preview) {
@@ -679,6 +682,17 @@
     }
     clearAlert(modal);
     syncConfirm(modal);
+    /*@ios
+    // An App Store subscription keeps renewing after the account is deleted: say so, and give the way to Apple's sheet.
+    const manageSub = modal.querySelector("[data-privacy-manage-sub]");
+    if (manageSub) {
+      manageSub.hidden = window.CyberNetAccount?.appState?.profile?.billing?.source !== "apple";
+      if (!manageSub.dataset.wired) {
+        manageSub.dataset.wired = "1";
+        manageSub.addEventListener("click", () => { window.CNStore?.manage?.(); });
+      }
+    }
+    @end-ios*/
     openDialog(modal, opener || byId("cnPrivacyDeleteBtn"));
   }
 

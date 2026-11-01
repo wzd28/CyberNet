@@ -1,35 +1,30 @@
-// The App tier: what every signed-in account gets in the iPhone app
-// (BUILD-PLAN §8.2, owner answers 6 and 18, 29 Oct 2026).
+// The disclosed allowance for the App Review demo account and the admins in
+// the iPhone app.
 //
-// Every request from the app (isIOS in ./cors.mjs) gets these counts, whatever
-// profiles.plan says, whether the account belongs to a Business team, and
-// whether it is an admin. Nothing bought on the website changes anything in
-// the app (App Review 3.1.3(b)); the app has no purchases at all in 1.0.
+// Since 30 Oct 2026 the app has the website's Free / Pro / Business plans, sold
+// with Apple In-App Purchase, and every account gets what its plan gives (see
+// netlify/lib/plans.mjs and netlify/lib/entitlements.mjs). The earlier "App
+// tier" (the same Free-sized counts for everyone, plan name "app") is gone.
 //
-// The counts are constants in code, not environment variables, so the app's
-// behaviour cannot be switched remotely (2.5.19). The only exception is the
-// disclosed allowance below for the App Review demo account and the admins,
-// which raises counts and nothing else.
+// What remains is one exception, disclosed in the App Review notes: the review
+// demo account (REVIEW_ACCOUNT_EMAILS) and the admins (ADMIN_EMAILS) get raised
+// daily counts so a reviewer can exercise the app without running out. They
+// stay a Free plan (the reviewer can still buy a plan with a sandbox Apple ID),
+// and an admin gets no admin bypass in the app, only these counts. The counts
+// are constants in code, not environment variables, so behaviour cannot be
+// switched remotely (2.5.19).
 //
 // Environment (set by the owner in Netlify; names only, never values here):
 //   REVIEW_ACCOUNT_EMAILS  comma-separated; the App Review demo account(s).
-//                          Disclosed in the App Review notes.
 //   ADMIN_EMAILS           the existing admin list; in the app it only raises
-//                          the counts like the review account (no admin bypass).
+//                          the counts like the review account.
 //
 // The counters are the same rows the website uses (daily_usage and
 // recovery_usage), so one account has one daily total across web and app.
 // The SQL functions *_app (supabase/migrations/20261029120000_ios_app_1_0.sql)
-// take the limit from here and always report plan "app".
+// take the limit from here and report plan "app".
 
 import { serviceFetch as defaultServiceFetch } from "./supabase.mjs";
-
-export const APP_TIER = Object.freeze({
-  analysesPerDay: 3,
-  recoveryCasesPerDay: 1,
-  recoveryUpdatesPerDay: 1,
-  recoveryUpdateCooldownSeconds: 6 * 3600
-});
 
 export const APP_TIER_ALLOWANCE = Object.freeze({
   analysesPerDay: 50,
@@ -55,10 +50,12 @@ function listed(user, name) {
 // The raised counts need a confirmed email, so nobody can claim the review
 // address by signing up with it before the owner does. The user object is the
 // one Supabase's /auth/v1/user returned for the caller's own token.
-export function appTierFor(user) {
+// Returns the allowance for a listed account, or null for everybody else
+// (whose counts come from their plan).
+export function appAllowanceFor(user) {
   const confirmed = Boolean(user?.email_confirmed_at || user?.confirmed_at);
   if (confirmed && (listed(user, "REVIEW_ACCOUNT_EMAILS") || listed(user, "ADMIN_EMAILS"))) return APP_TIER_ALLOWANCE;
-  return APP_TIER;
+  return null;
 }
 
 // ── Reset times ──
@@ -87,7 +84,8 @@ export function recoveryNextReset(now = new Date()) {
   return new Date(Date.parse(recoveryWindowStart(now)) + 86_400_000).toISOString();
 }
 
-// ── Messages: never a plan name, never a purchase prompt ──
+// ── Messages for the allowance accounts (everybody else gets the website's
+// "Daily Free limit reached." style messages, so the app can offer a plan) ──
 export const APP_MESSAGES = Object.freeze({
   aiLimit: "You've used today's AI explanations. They reset at 00:00 UTC (4:00 AM Gulf time).",
   recoveryCaseLimit: "You've started today's Recovery case. You can start another after 12:00 PM Gulf time.",
@@ -108,7 +106,7 @@ export function recoveryCooldownMessage(seconds) {
   return `You can send your next Recovery update in about ${minutes} minute${minutes === 1 ? "" : "s"}.`;
 }
 
-// ── Reservations (service-role RPCs) ──
+// ── Reservations for the allowance accounts (service-role RPCs) ──
 // `serviceFetch` is the calling function's own serviceFetch (path, init), so
 // each function keeps its timeouts and PGRST303 retry policy; by default it is
 // the one in lib/supabase.mjs.

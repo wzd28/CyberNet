@@ -65,6 +65,7 @@ function env(name) {
 export const TABLES = [
   { name: "profiles", key: ["id"] },
   { name: "business_accounts", key: ["id"] },
+  { name: "apple_subscriptions", key: ["original_transaction_id"] },
   { name: "business_members", key: ["id"] },
   { name: "business_invites", key: ["id"] },
   { name: "business_daily_usage", key: ["business_account_id", "usage_date"] },
@@ -78,7 +79,8 @@ export const TABLES = [
   { name: "recovery_versions", key: ["id"], identity: "id" },
   { name: "recovery_tasks", key: ["id"], identity: "id" },
   { name: "checkout_debug_log", key: ["id"], identity: "id", identityAlways: true },
-  { name: "feedback", key: ["id"] }
+  { name: "feedback", key: ["id"] },
+  { name: "apple_notifications", key: ["notification_uuid"] }
 ];
 
 // Public tables that are deliberately left out of the backup:
@@ -92,7 +94,7 @@ export const EXCLUDED_TABLES = ["api_rate_limits"];
 // The newest database migration when TABLES was last checked. Bump it
 // together with TABLES. The manifest also carries a fingerprint of the
 // live columns, so a schema change since then is visible in the backup.
-export const SCHEMA_VERSION = "20261021135311_explicit_grants";
+export const SCHEMA_VERSION = "20261030120000_apple_iap";
 
 // Account fields kept for each sign-in account. This is an allowlist on
 // purpose: password hashes, confirmation and recovery tokens and anything

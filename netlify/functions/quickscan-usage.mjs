@@ -1,10 +1,10 @@
 import { json, verifyUser, serviceFetch, isAdminUser, getActiveTeamMembership } from "../lib/supabase.mjs";
 import { reportError } from "../lib/report-error.mjs";
-// Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
-// management, admin): requests from the app get 403 (netlify/lib/cors.mjs).
-import { webOnly } from "../lib/cors.mjs";
+// The iPhone app counts its Quick Scans here too (Free: 5 a day, as on the
+// website), so the function answers CORS for the app (netlify/lib/cors.mjs).
+import { withCors, isIOS } from "../lib/cors.mjs";
 
-export default webOnly(async (request) => {
+async function handler(request) {
   if (request.method !== "POST") {
     return json({ error: "Method not allowed." }, 405);
   }
@@ -16,7 +16,8 @@ export default webOnly(async (request) => {
     return json({ error: "Please sign in to use Quick Scan." }, 401);
   }
 
-  if (isAdminUser(user)) {
+  // The admin bypass is the website's; in the app an admin is counted like anyone.
+  if (!isIOS(request) && isAdminUser(user)) {
     return json({ allowed: true, used: 0, limit: 999999, plan: "business" });
   }
 
@@ -62,7 +63,9 @@ export default webOnly(async (request) => {
     reportError(error, { fn: "quickscan-usage", label: "Quick Scan usage check failed" });
     return json({ error: "Could not check Quick Scan usage right now. Please try again." }, 503);
   }
-});
+}
+
+export default withCors(handler);
 
 export const config = {
   path: "/api/quickscan-usage"

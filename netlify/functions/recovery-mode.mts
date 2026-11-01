@@ -3,7 +3,7 @@ import { DEFAULT_MODEL, DEFAULT_MINI_MODEL, modelParams, createResponse, autoRep
 import { reportError } from "../lib/report-error.mjs";
 import { fetchWithJwtRetry, RETRY_STANDARD } from "../lib/supabase-retry.mjs";
 import { withCors, isIOS } from "../lib/cors.mjs";
-import { appTierFor, consumeRecoveryCaseApp, recoveryCaseLimitMessage } from "../lib/app-tier.mjs";
+import { appAllowanceFor, consumeRecoveryCaseApp, recoveryCaseLimitMessage } from "../lib/app-tier.mjs";
 import { aiConsentGate } from "../lib/ai-consent.mjs";
 
 declare const Netlify: {
@@ -867,8 +867,9 @@ async function saveCase<T>(userId: string, classifier: ClassifierResult, plan: a
 }
 
 async function handler(request: Request, context: any): Promise<Response> {
-  // The iPhone app (BUILD-PLAN §8.2, §8.4): the person's recorded AI consent
-  // first, then the App-tier count; never the admin bypass or the team pool.
+  // The iPhone app: the person's recorded AI consent first, then the same
+  // plan limits and team pool as the website; never the admin bypass. Only the
+  // disclosed review / admin accounts get raised counts (netlify/lib/app-tier.mjs).
   const ios = isIOS(request);
   if (request.method === "GET") {
     const aiEnabled = Boolean(env("OPENAI_API_KEY"));
@@ -906,17 +907,16 @@ async function handler(request: Request, context: any): Promise<Response> {
     if (blocked) return json(blocked.body, blocked.status);
   }
 
+  const allowance = ios ? appAllowanceFor(user) : null;
   let usage;
   let team: { businessAccountId: string; recoveryPoolLimit: number; role: string } | null = null;
   if (!ios && isAdminUser(user)) {
     usage = { allowed: true, used: 0, limit: 999999, plan: "business", resetAt: null };
   } else {
     try {
-      // In the app the team is read only so a member's case still reaches the
-      // team owner's log (owner answer 8); the count is the App tier's.
       team = await getActiveTeamMembership(user.id);
-      usage = ios
-        ? await consumeRecoveryCaseApp(serviceFetch, user.id, appTierFor(user).recoveryCasesPerDay)
+      usage = allowance
+        ? await consumeRecoveryCaseApp(serviceFetch, user.id, allowance.recoveryCasesPerDay)
         : team
           ? await consumeRecoveryCaseBusiness(team.businessAccountId)
           : await consumeRecoveryCase(user.id);
@@ -926,7 +926,7 @@ async function handler(request: Request, context: any): Promise<Response> {
       return json({ error: "Recovery Mode couldn't check your daily allowance just now. Please try again in a minute.", code: "usage_service_unavailable" }, 503);
     }
     if (!usage.allowed) {
-      if (ios) return json({ error: recoveryCaseLimitMessage(usage.limit), code: "daily_limit_reached", usage }, 429);
+      if (allowance) return json({ error: recoveryCaseLimitMessage(usage.limit), code: "daily_limit_reached", usage }, 429);
       const planLabel = usage.plan === "business" ? "team" : usage.plan === "pro" ? "Pro" : "Free";
       return json({ error: `Daily ${planLabel} Recovery case limit reached.`, code: "daily_limit_reached", usage }, 429);
     }

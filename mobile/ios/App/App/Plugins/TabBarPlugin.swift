@@ -4,8 +4,8 @@ import Capacitor
 /// Keeps the native tab bar in step with the page (BUILD-PLAN §6.6). Used by mobile/web-ios/ios.js.
 ///
 /// JS name `CNTabBar`:
-///   select({ tab })        -> {}                  highlights "check" | "scan" | "recovery" | "learn" | "account"
-///                                                  (no `cnTab` event is sent back)
+///   select({ tab })        -> {}                  highlights "home" | "check" | "scan" | "recovery" | "learn" |
+///                                                  "account" (no `cnTab` event is sent back)
 ///   setHidden({ hidden })  -> {}                  e.g. while the keyboard or a full-screen sheet is up
 ///   getMetrics()           -> { height, hidden }  the bar's overlap with the page in CSS pixels,
 ///                                                  home-indicator area included (0 when hidden)

@@ -166,7 +166,7 @@ html.cn-still .cn-ios-seg-thumb, html.cn-still .cn-ios-seg-btn { transition: non
   left: 0; right: 0; bottom: 0;
   z-index: 900;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr); /* Home, Check, Scan QR, Recovery, Learn, Account */
   padding: 4px max(8px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(8px, env(safe-area-inset-left, 0px));
   background: rgba(6, 10, 20, .86);
   -webkit-backdrop-filter: saturate(160%) blur(18px);
@@ -190,6 +190,7 @@ html.cn-kb-open .cn-ios-tabbar { display: none; }
 }
 .cn-ios-tab.is-active { color: var(--cn-ios-accent); }
 .cn-ios-tab svg { display: block; }
+@media (max-width: 380px) { .cn-ios-tab { font-size: 10px; letter-spacing: -.01em; } .cn-ios-tab span { white-space: nowrap; } } /* six tabs on a 320 pt screen */
 
 /* ---------- sheets ---------- */
 .cn-ios-sheet-backdrop {
@@ -761,3 +762,79 @@ html.cn-ios #cnPrivacyMessage:empty { display: none; }
 /* The privacy dialogs and sign-in card sit above the tab bar. */
 html.cn-ios .modal { z-index: 1500; }
 html.cn-ios .modal .modal-card { max-height: calc(100% - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 24px); overflow-y: auto; }
+
+/* ---------- Home (the website's home page, first tab) ----------
+   The hero shows its still picture (the three.js globe is not in the app) and the page's last block clears the tab bar. */
+html.cn-ios #home { padding-bottom: 24px; } /* the body's own padding already clears the tab bar (--cn-native-tabbar-h) */
+/* The three tiles open the tools in the app. The colour of each tile came from the website's data-video attribute. */
+html.cn #home .hero .hero-video-btn[data-page="cybernetai"] {
+  --cn-tile: var(--cn-iris-2, #b9baff);
+  --cn-tile-tint: rgba(139, 140, 255, .12);
+  --cn-tile-line: rgba(139, 140, 255, .32);
+}
+html.cn #home .hero .hero-video-btn[data-page="recovery"] {
+  --cn-tile: var(--cn-mint);
+  --cn-tile-tint: rgba(94, 234, 212, .1);
+  --cn-tile-line: rgba(94, 234, 212, .3);
+}
+/* The real address next to the lookalike in the QR tile is plain text in the app (the website links it). */
+html.cn #home .cn-threats .cn-qr-links .cn-qr-real {
+  grid-area: url;
+  min-inline-size: 0;
+  font-family: var(--cn-font-mono);
+  font-size: clamp(.875rem, .84rem + .2cqi, .9375rem);
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: -.01em;
+  overflow-wrap: anywhere;
+  color: #f5f7fa;
+}
+
+/* ---------- the plans page (#pricing; ios/store.js) ----------
+   The website's pricing section in the app's words. Its own styles (50-pricing.css) are in the app; this adds what the app has
+   that the website does not: a Done button, a retry box, the small print under each button and the terms block. */
+.cn-ios-plans { padding-bottom: 28px; }
+.cn-ios-plans-bar {
+  display: flex;
+  justify-content: flex-end;
+  box-sizing: border-box;
+  width: min(var(--cn-max, 1200px), calc(100% - var(--cn-gutter-l, 16px) - var(--cn-gutter-r, 16px)));
+  margin: 0 auto;
+  padding: 4px 0;
+}
+.cn-ios-plans-bar .cn-ios-link-btn { min-width: 44px; padding: 8px 6px; font-size: 1.05rem; }
+.cn-ios-renew { margin: 10px 0 0; font-size: .82rem; line-height: 1.45; text-align: center; color: var(--cn-ios-text-2); }
+.cn-ios-renew:empty { display: none; }
+.cn-ios-plans .plan-select-btn[disabled] { opacity: .6; cursor: default; }
+.cn-ios-plans-retry {
+  box-sizing: border-box;
+  width: min(560px, calc(100% - var(--cn-gutter-l, 16px) - var(--cn-gutter-r, 16px)));
+  margin: 12px auto 0;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--cn-ios-line);
+  background: var(--cn-ios-row-bg);
+  text-align: center;
+}
+.cn-ios-plans-retry[hidden] { display: none; }
+.cn-ios-plans-retry p { margin: 0 0 10px; line-height: 1.5; }
+.cn-ios-plans-retry .secondary-btn { min-height: 48px; }
+.cn-ios-plans .cn-seat-option span { display: inline; }
+.cn-ios-plans .pricing-notice.show { margin-top: 12px; }
+.cn-ios-terms p { margin: 0 0 10px; line-height: 1.55; }
+.cn-ios-terms-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 18px; }
+.cn-ios-terms-links .cn-legal-link-btn {
+  min-height: 44px;
+  font: 600 .95rem/1.2 var(--cn-font, -apple-system, system-ui, sans-serif);
+  letter-spacing: 0;
+  text-transform: none;
+  text-decoration: underline;
+  text-underline-offset: .2em;
+}
+.cn-ios-terms-actions { display: grid; gap: 10px; margin-top: 6px; }
+.cn-ios-terms-actions .secondary-btn { min-height: 48px; }
+.cn-ios-terms-actions [hidden] { display: none; }
+
+/* In the delete-account dialog: the button to Apple's Manage Subscriptions sheet (shown for an Apple-billed plan). */
+.cn-privacy-manage-sub { margin: 4px 0 12px; min-height: 44px; }
+.cn-privacy-manage-sub[hidden] { display: none; }

@@ -157,7 +157,10 @@ document.addEventListener("DOMContentLoaded",()=>{
     about:{
       title:"About | CyberNet AI",
       description:"CyberNet AI's mission is to protect people before threats become real damage, by making cybersecurity understandable and accessible."
-    },/*@end-web*/
+    },/*@end-web*//*@ios    pricing:{
+      title:"Plans | CyberNet AI",
+      description:"Compare the Free, Pro and Business plans: daily limits, saved history, downloadable reports, team seats and Recovery features."
+    }, @end-ios*/
     recovery:{
       title:"Recovery Mode | CyberNet AI",
       description:"Got scammed or hacked? Describe what happened and CyberNet AI builds a step-by-step recovery plan to secure your accounts, money and devices."
@@ -178,7 +181,8 @@ document.addEventListener("DOMContentLoaded",()=>{
     recovery:"/recovery",
     learn:"/learn"/*@web*/,
     pricing:"/pricing",
-    about:"/about"/*@end-web*/
+    about:"/about"/*@end-web*//*@ios ,
+    pricing:"/pricing" @end-ios*/
   };
   const PATH_TO_PAGE=Object.fromEntries(Object.entries(PAGE_PATHS).map(([page,path])=>[path,page]));
   function pageForCurrentPath(){
@@ -224,7 +228,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   const initialRoutePage=pageForCurrentPath();
   if(initialRoutePage&&initialRoutePage!=="home"){
     switchPage(initialRoutePage,{skipUrlUpdate:true});
-  }/*@ios else{switchPage("cybernet",{skipUrlUpdate:true})} @end-ios*/
+  }
 
   /* ─── Support the browser's back/forward buttons ─── */
   window.addEventListener("popstate",()=>{
@@ -256,7 +260,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   const businessPlanBtn=document.getElementById("businessPlanBtn");
   const pricingNotice=document.getElementById("pricingNotice");
   const aiUpgradeBtn=document.getElementById("aiUpgradeBtn");
-  const manageBillingBtn=document.getElementById("manageBillingBtn");/*@end-web*//*@ios const freePlanBtn=null,proPlanBtn=null,businessPlanBtn=null,aiUpgradeBtn=null,manageBillingBtn=null; @end-ios*/
+  const manageBillingBtn=document.getElementById("manageBillingBtn");/*@end-web*//*@ios const freePlanBtn=null,proPlanBtn=null,businessPlanBtn=null,aiUpgradeBtn=document.getElementById("aiUpgradeBtn"),manageBillingBtn=document.getElementById("manageBillingBtn"); @end-ios*/
   const resetForm=document.getElementById("authResetForm");
   const newPasswordForm=document.getElementById("authNewPasswordForm");
   const sendResetBtn=document.getElementById("sendResetBtn");
@@ -866,7 +870,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 
   function planTier(){
     const plan=appState.profile?.plan;
-/*@web*/    return plan==="business"?"business":plan==="pro"?"pro":"free";/*@end-web*//*@ios return plan?"app":"app"; @end-ios*/
+    return plan==="business"?"business":plan==="pro"?"pro":"free";
   }
   function isPro(){return planTier()!=="free"}
   function isBusiness(){return planTier()==="business"}
@@ -905,11 +909,11 @@ document.addEventListener("DOMContentLoaded",()=>{
 /*@web*/      list.innerHTML="<p>Sign in to view your plan and AI access.</p>";/*@end-web*//*@ios list.innerHTML="<p>Sign in to see your saved explanations.</p>"; @end-ios*/
       return;
     }
-/*@web*/    if(!isPro()){
+    if(!isPro()){
       if(label)label.textContent="Pro feature";
       list.innerHTML="<p>Upgrade to Pro to save and revisit your AI scan history.</p>";
       return;
-    }/*@end-web*/
+    }
     if(label)label.textContent="Saved securely";
     if(!appState.history.length){
       list.innerHTML="<p>Your completed analyses will appear here.</p>";
@@ -923,7 +927,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     }).join("");
   }
 
-/*@web*/  function updatePlanBenefits(){
+  function updatePlanBenefits(){
     const list=document.getElementById("aiBenefitList");
     if(!list)return;
     if(isBusiness()){
@@ -942,7 +946,7 @@ document.addEventListener("DOMContentLoaded",()=>{
         <div><span>✓</span> Downloadable security reports</div>`;
     }else{
       list.innerHTML=`
-        <div><span>✓</span> Accurate Text, Link &amp; Image analysis</div>
+        <div><span>✓</span> Text, Link &amp; Image analysis</div>
         <div><span>✓</span> Basic threat explanations</div>
         <div class="benefit-locked"><span>×</span> Saved scan history</div>
         <div class="benefit-locked"><span>×</span> Downloadable reports</div>`;
@@ -983,6 +987,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       badge.textContent=badgeText;
       badge.className=`plan-badge ${isBusiness()?"plan-badge-business":pro?"plan-badge-pro":"plan-badge-free"}`;
     });
+    /*@ios if(navPlanBadge)navPlanBadge.hidden=true; @end-ios*/
 
     const used=Number(appState.usage.used)||0;
     const limit=Number(appState.usage.limit)||(signedIn?(pro?15:3):3);
@@ -1000,6 +1005,11 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(qsUsageText)qsUsageText.textContent=!signedIn?"— / 5":qsUnlimited?`${qsUsed} / Unlimited`:`${qsUsed} / ${qsFallbackLimit}`;
     if(qsUsageBar)qsUsageBar.style.width=`${signedIn&&!qsUnlimited?Math.min(100,(qsUsed/qsFallbackLimit)*100):0}%`;
     if(qsUsageReset)qsUsageReset.textContent=qsUnlimited?"Unlimited":"Resets daily";
+    /*@ios if(!signedIn){
+      const dq=deviceQuickScanUsed();
+      if(qsUsageText)qsUsageText.textContent=`${dq} / ${deviceQuickScanLimit()}`;
+      if(qsUsageBar)qsUsageBar.style.width=`${Math.min(100,(dq/deviceQuickScanLimit())*100)}%`;
+    } @end-ios*/
 
     // Recovery Mode's own usage meter (separate limit, separate reset time)
     const recUsed=Number(appState.recoveryUsage?.used)||0;
@@ -1022,7 +1032,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     const aiApiStatus=document.getElementById("aiApiStatus");
 
     if(aiPlanTitle)aiPlanTitle.textContent=isBusiness()?"Analysis AI Business":pro?"Analysis AI Pro":"Analysis AI Free";
-    if(aiPlanDescription)aiPlanDescription.textContent=!signedIn?"Sign in to activate 3 accurate AI analyses per day across text, links, and images.":pro?"Top-level Analysis AI protection with advanced analysis, history, and reports.":"Accurate everyday AI protection with 3 shared analyses per day.";
+    if(aiPlanDescription)aiPlanDescription.textContent=!signedIn?/*@web*/"Sign in to activate 3 accurate AI analyses per day across text, links, and images."/*@end-web*//*@ios "Sign in to use 3 AI analyses per day across text, links and images." @end-ios*/:pro?/*@web*/"Top-level Analysis AI protection with advanced analysis, history, and reports."/*@end-web*//*@ios "Advanced Analysis AI with saved history and reports." @end-ios*/:/*@web*/"Accurate everyday AI protection with 3 shared analyses per day."/*@end-web*//*@ios "Everyday Analysis AI with 3 shared analyses per day." @end-ios*/;
     if(aiUsageText)aiUsageText.textContent=signedIn?`${used} / ${limit}`:`0 / 3`;
     if(aiUsageBar)aiUsageBar.style.width=`${signedIn?Math.min(100,(used/Math.max(1,limit))*100):0}%`;
     if(aiUsageReset)aiUsageReset.textContent=appState.usage.resetDate?`Resets ${new Date(appState.usage.resetDate).toLocaleDateString()}`:"Resets daily";
@@ -1046,7 +1056,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     }
 
     if(aiUpgradeBtn){aiUpgradeBtn.hidden=pro;aiUpgradeBtn.textContent=signedIn?"Upgrade to Pro":"View Pro Plan"}
-    if(manageBillingBtn)manageBillingBtn.hidden=!pro;
+    if(manageBillingBtn)manageBillingBtn.hidden=/*@web*/!pro||appState.profile?.billing?.source==="apple"/*@end-web*//*@ios appState.profile?.billing?.source!=="apple" @end-ios*/;
     /* Exactly one pricing card says "Current Plan": Business includes Pro, so it is never shown as Pro. */
     const tier=planTier();
     if(freePlanBtn){freePlanBtn.textContent=!signedIn?"Start Free":tier==="free"?"Current Plan":`Included with ${tier==="business"?"Business":"Pro"}`;freePlanBtn.disabled=signedIn}
@@ -1055,54 +1065,8 @@ document.addEventListener("DOMContentLoaded",()=>{
 
     updatePlanBenefits();
     renderProHistory();
-  }/*@end-web*//*@ios 
-  // App tier (BUILD-PLAN 8.2): every feature the app shows is open to every signed-in account; only
-  // the daily counts the server sends differ. No plan names, badges or buttons.
-  function aiResetText(){
-    const at=appState.usage?.resetDate?new Date(appState.usage.resetDate):null;
-    if(!at||Number.isNaN(at.getTime()))return "They reset tomorrow.";
-    return `They reset at ${at.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})}.`;
+    /*@ios try{window.dispatchEvent(new CustomEvent("cybernet:account-ui",{detail:{signedIn}}))}catch{} @end-ios*/
   }
-  function updateAccountUI(){
-    const signedIn=isSignedIn();
-    document.body.dataset.plan=signedIn?"app":"guest";
-    if(accountSummary)accountSummary.hidden=!signedIn;
-    if(openAuth){openAuth.hidden=signedIn;}
-    const authCheckingSkeleton=document.getElementById("authCheckingSkeleton");
-    if(authCheckingSkeleton)authCheckingSkeleton.hidden=true;
-    if(navGreeting)navGreeting.textContent=signedIn?`Hi ${firstName(appState.profile.fullName||appState.user?.user_metadata?.full_name||appState.user?.email)}`:"";
-    if(navPlanBadge)navPlanBadge.hidden=true;
-    const text=(id,value)=>{const el=document.getElementById(id);if(el&&el.textContent!==value)el.textContent=value};
-    const bar=(id,pct)=>{const el=document.getElementById(id);if(el)el.style.width=`${Math.max(0,Math.min(100,pct||0))}%`};
-    text("cyberTextBtn","Start the analysis");
-    text("cyberLinkBtn","Start the analysis");
-    const chatSendBtnEl=document.getElementById("chatSendBtn");
-    if(chatSendBtnEl){chatSendBtnEl.innerHTML="➤";chatSendBtnEl.classList.remove("send-btn-wide")}
-    const recoveryStartBtnEl=document.getElementById("recoveryStartBtn");
-    if(recoveryStartBtnEl&&!recoveryStartBtnEl.disabled)recoveryStartBtnEl.textContent="Start Recovery";
-    const used=Number(appState.usage.used)||0;
-    const limit=Number(appState.usage.limit)||3;
-    const remaining=Math.max(0,Number.isFinite(appState.usage.remaining)?Number(appState.usage.remaining):limit-used);
-    ["aiUsage","analysisAiHeaderUsage"].forEach(prefix=>{
-      text(prefix+"Text",signedIn?`${used} / ${limit}`:`— / ${limit}`);
-      bar(prefix+"Bar",signedIn?(used/Math.max(1,limit))*100:0);
-      text(prefix+"Reset",signedIn?aiResetText():"Resets daily");
-    });
-    const recUsed=Number(appState.recoveryUsage?.used)||0;
-    const recLimit=Number(appState.recoveryUsage?.limit)||1;
-    text("recoveryUsageCaseText",signedIn?`${recUsed} / ${recLimit}`:`— / ${recLimit}`);
-    bar("recoveryUsageCaseBar",signedIn?(recUsed/Math.max(1,recLimit))*100:0);
-    const status=document.getElementById("aiApiStatus");
-    if(status){
-      if(!supabaseConfigured)status.innerHTML=`<span class="warning">${escapeHTML(authSetupMessage())}</span>`;
-      else if(!signedIn)status.innerHTML='<span class="warning">Sign in to get AI explanations.</span>';
-      else if(remaining<=0)status.innerHTML=`<span class="warning">You've used today's AI explanations. ${escapeHTML(aiResetText())}</span>`;
-      else status.innerHTML=`<span class="safe">${remaining} of ${limit} AI ${limit===1?"explanation":"explanations"} left today.</span>`;
-    }
-    renderProHistory();
-    try{window.dispatchEvent(new CustomEvent("cybernet:account-ui",{detail:{signedIn}}))}catch{}
-  }
- @end-ios*/
 
   // One request per access token at a time (getSession, INITIAL_SESSION and
   // the service check all ask on load). A response for a token that is no
@@ -1136,7 +1100,8 @@ document.addEventListener("DOMContentLoaded",()=>{
         subscriptionStatus:data.profile?.subscriptionStatus||"inactive",
         billingInterval:data.profile?.billingInterval||"",
         isTeamMember:Boolean(data.profile?.isTeamMember),
-        teamRole:data.profile?.teamRole||null
+        teamRole:data.profile?.teamRole||null,
+        billing:data.profile?.billing||null
       };
       appState.usage={
         used:Number(data.usage?.used)||0,
@@ -1460,6 +1425,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 
   async function openBillingPortal(){
     if(!isSignedIn())return openAuthModal("login");
+    if(appState.profile?.billing?.source==="apple"){showPricingNotice("This plan is billed by Apple. Manage it in Settings > your name > Subscriptions on your iPhone.","");switchPage("pricing");return}
     try{
       const response=await fetch("/api/customer-portal",{method:"POST",headers:authHeaders({"Content-Type":"application/json"})});
       const data=await response.json().catch(()=>({}));
@@ -1482,7 +1448,10 @@ document.addEventListener("DOMContentLoaded",()=>{
   }else if(checkoutState==="cancelled"){
     setTimeout(()=>{switchPage("pricing");showPricingNotice("Checkout was cancelled. No payment was taken.")},500);
     history.replaceState({},"",window.location.pathname);
-  }/*@end-web*/
+  }/*@end-web*//*@ios
+  if(aiUpgradeBtn)aiUpgradeBtn.addEventListener("click",()=>switchPage("pricing"));
+  if(manageBillingBtn)manageBillingBtn.addEventListener("click",()=>{try{window.CNStore?.manage?.()}catch{}});
+ @end-ios*/
 
 
   /* ─── CyberNet support and Netlify feedback survey ─── */
@@ -1765,7 +1734,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     }
     requestAnimationFrame(frame);
   }
-/*@web*/  async function initLiveHeroCounters(){
+  async function initLiveHeroCounters(){
     const els=document.querySelectorAll(".hero-live-stat strong[id]");
     const noteEl=document.getElementById("heroStatsNote");
     if(!els.length)return;
@@ -1783,7 +1752,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       els.forEach(el=>{el.textContent="—"});
       if(noteEl)noteEl.innerHTML=`<strong>Stats unavailable</strong> — could not reach CyberNet AI's usage data right now.`;
     }
-  }/*@end-web*/
+  }
 
   function animateHeroStats(scopeSelector){
     const scope=scopeSelector?document.querySelector(scopeSelector):document;
@@ -1797,7 +1766,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   setTimeout(()=>{
     animateWowCounters();
     animateHeroStats("#home");
-/*@web*/    initLiveHeroCounters();/*@end-web*/
+    initLiveHeroCounters();
   },650);
 
   /* ─── Ticker duplication for seamless loop ─── */
@@ -2153,7 +2122,51 @@ document.addEventListener("DOMContentLoaded",()=>{
     }catch{
       return{allowed:false,message:"Could not check your Quick Scan usage right now. Please try again."};
     }
-  }/*@end-web*//*@ios async function checkQuickScanQuota(){return{allowed:true}} @end-ios*/
+  }/*@end-web*//*@ios
+  // Free Quick Scans, 5 a day (owner decision, 30 Oct 2026). Signed in, the server counts them (the same call as the website, so the
+  // number follows the account); as a guest, or when the server cannot answer, this iPhone counts them for the UTC day. Scan QR (camera)
+  // and the Share sheet never come through here: they stay on the iPhone and are not counted.
+  // (Functions only, no const: updateAccountUI may run before this part of the file has been reached.)
+  function deviceQuickScanLimit(){return 5}
+  function deviceQuickScanKey(){return "cn-qs-"+new Date().toISOString().slice(0,10)}
+  function deviceQuickScanMemory(){return deviceQuickScanMemory.state||(deviceQuickScanMemory.state={key:"",used:0})}
+  function deviceQuickScanUsed(){
+    const key=deviceQuickScanKey();
+    try{const raw=window.localStorage.getItem(key);if(raw!==null)return Math.max(0,parseInt(raw,10)||0)}catch{}
+    const memory=deviceQuickScanMemory();
+    return memory.key===key?memory.used:0;
+  }
+  function deviceQuickScanAdd(){
+    const key=deviceQuickScanKey(),used=deviceQuickScanUsed()+1;
+    Object.assign(deviceQuickScanMemory(),{key,used});
+    try{
+      window.localStorage.setItem(key,String(used));
+      for(let i=window.localStorage.length-1;i>=0;i--){const k=window.localStorage.key(i);if(k&&k.indexOf("cn-qs-")===0&&k!==key)window.localStorage.removeItem(k)}
+    }catch{}
+  }
+  function checkDeviceQuickScan(){
+    if(deviceQuickScanUsed()>=deviceQuickScanLimit()){
+      updateAccountUI();
+      return{allowed:false,message:isSignedIn()?"Daily Quick Scan limit reached. Upgrade to Pro for unlimited scans.":"Daily Quick Scan limit reached. Sign in and upgrade to Pro for unlimited scans."};
+    }
+    deviceQuickScanAdd();
+    updateAccountUI();
+    return{allowed:true};
+  }
+  async function checkQuickScanQuota(){
+    if(!isSignedIn())return checkDeviceQuickScan();
+    try{
+      const res=await fetch("/api/quickscan-usage",{method:"POST",headers:authHeaders()});
+      const data=await res.json().catch(()=>({}));
+      if(res.ok||res.status===429){
+        appState.quickScanUsage={used:Number(data.used)||0,limit:Number(data.limit)||5,plan:data.plan||"free"};
+        updateAccountUI();
+        return res.ok?{allowed:true}:{allowed:false,message:data.error||"Daily Quick Scan limit reached. Upgrade to Pro for unlimited scans."};
+      }
+    }catch{}
+    return checkDeviceQuickScan(); // the server could not answer: the scan runs on this iPhone anyway
+  }
+ @end-ios*/
 
   if(cyberTextBtn&&cyberTextInput&&cyberTextResult)cyberTextBtn.addEventListener("click",async()=>{
 /*@web*/    if(!isSignedIn()){openAuthModal("signup");return}/*@end-web*/
@@ -2180,7 +2193,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       const result=isBareLink?analyzeLinkRules(text):analyzeTextRules(text);
       const note=isBareLink
         ?/*@web*/"This looked like a link rather than a message, so CyberNet AI analyzed it with the link engine for a more accurate result. Use Link Detection directly next time for the same result."/*@end-web*//*@ios "This looked like a link rather than a message, so CyberNet AI checked it with the link engine, which reads web addresses more closely. Use Link Detection directly next time for the same result." @end-ios*/
-        :"Local protection scan complete. Use Analysis AI for a deeper, AI-assisted check.";
+        :/*@web*/"Local protection scan complete. Use Analysis AI for a deeper, AI-assisted check."/*@end-web*//*@ios "Local scan complete. Use Analysis AI for a deeper, AI-assisted check." @end-ios*/;
       showReport(cyberTextResult,result.score,result.scamType,result.reasons,result.advice,{...result,note,previewHtml:isBareLink?renderLinkPreview(text,result):renderLinksFound(result.links||[])});
       prependScan("textScanList",`“${text.slice(0,42)}${text.length>42?"…":""}”`,result);
       reportTeamActivity({kind:"quick_scan",scanType:isBareLink?"link":"text",content:text,result:quickScanLogResult(result)});
@@ -2354,7 +2367,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       return false;
     }
     if(Number(appState.usage.remaining)<=0){
-      addChatBubble("ai",/*@web*/`<span class="warning">You have reached today's ${appState.usage.limit||5}-analysis limit.</span><button class="report-download-btn" data-upgrade-now>View Pro options</button>`/*@end-web*//*@ios `<span class="warning">You've used today's AI explanations. ${escapeHTML(aiResetText())}</span>` @end-ios*/);
+      addChatBubble("ai",`<span class="warning">You have reached today's ${appState.usage.limit||5}-analysis limit.</span><button class="report-download-btn" data-upgrade-now>View Pro options</button>`);
       return false;
     }
     return true;
@@ -2578,7 +2591,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       if(isPro())await refreshAccountStatus();
     }catch(error){
       if(stopDiagnostic)stopDiagnostic();
-      if(inner)inner.innerHTML=`<span class="warning">${escapeHTML(friendlyNetworkError(error)||error.message||"The analysis didn't finish. Please try again.")}</span>${/*@web*/error.code==="daily_limit_reached"?'<button class="report-download-btn" data-upgrade-now>Upgrade to Pro</button>':""/*@end-web*//*@ios "" @end-ios*/}`;
+      if(inner)inner.innerHTML=`<span class="warning">${escapeHTML(friendlyNetworkError(error)||error.message||"The analysis didn't finish. Please try again.")}</span>${error.code==="daily_limit_reached"?'<button class="report-download-btn" data-upgrade-now>Upgrade to Pro</button>':""}`;
     }
     if(chatMessages)chatMessages.scrollTop=chatMessages.scrollHeight;
   }
@@ -2624,7 +2637,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   }
   if(chatSendBtn)chatSendBtn.addEventListener("click",sendChatMessage);
   if(chatInput)chatInput.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();sendChatMessage()}});
-/*@web*/  if(chatMessages)chatMessages.addEventListener("click",event=>{if(event.target.closest("[data-upgrade-now]"))switchPage("pricing")});/*@end-web*/
+  if(chatMessages)chatMessages.addEventListener("click",event=>{if(event.target.closest("[data-upgrade-now]"))switchPage("pricing")});
   if(aiImageInput)aiImageInput.addEventListener("change",()=>{
     const file=aiImageInput.files[0];
     if(!file){return}
@@ -2877,9 +2890,9 @@ document.addEventListener("DOMContentLoaded",()=>{
     }
     // Plan-aware wording for Recovery limit messages: only Free is told to upgrade.
     function recoveryLimitSuffix(usage,freeText,paidText){
-/*@web*/      const plan=usage?.plan;
+      const plan=usage?.plan;
       if(plan==="free"||!plan)return ` ${freeText}`;
-      return plan==="business"?` Your team's shared ${paidText}`:` Your ${paidText}`;/*@end-web*//*@ios return ` ${paidText}`; @end-ios*/
+      return plan==="business"?` Your team's shared ${paidText}`:` Your ${paidText}`;
     }
     let currentCaseId=null;
     let currentPlan=null;
@@ -2960,7 +2973,7 @@ document.addEventListener("DOMContentLoaded",()=>{
         if(data.aiPending)watchForAiPlan(data.caseId,Number(data.caseVersion)||1,"plan");
       }catch(error){
         if(error.code==="daily_limit_reached"){
-          setIntakeMessage(`${error.message}${recoveryLimitSuffix(error.usage,/*@web*/"Upgrade to Pro for more Recovery cases per day."/*@end-web*//*@ios "" @end-ios*/,"Recovery cases reset at 12:00 PM Gulf time.")}`,"warning");
+          setIntakeMessage(`${error.message}${recoveryLimitSuffix(error.usage,"Upgrade to Pro for more Recovery cases per day.","Recovery cases reset at 12:00 PM Gulf time.")}`,"warning");
           if(error.usage){appState.recoveryUsage={used:Number(error.usage.used)||0,limit:Number(error.usage.limit??error.usage.daily_limit)||1};updateAccountUI()}
         }else{
           setIntakeMessage(friendlyNetworkError(error)||error.message||"Recovery Mode couldn't start right now. Please try again.","warning");
@@ -3106,10 +3119,10 @@ document.addEventListener("DOMContentLoaded",()=>{
 
     document.querySelectorAll(".recovery-timeline-tab").forEach(tab=>{
       tab.addEventListener("click",()=>{
-/*@web*/        if(!isPro()&&tab.dataset.timeline!=="first10Minutes"){
+        if(!isPro()&&tab.dataset.timeline!=="first10Minutes"){
           switchPage("pricing");
           return;
-        }/*@end-web*/
+        }
         document.querySelectorAll(".recovery-timeline-tab").forEach(t=>t.classList.remove("active"));
         tab.classList.add("active");
         activeTimelineTab=tab.dataset.timeline;
@@ -3180,7 +3193,7 @@ document.addEventListener("DOMContentLoaded",()=>{
           const hours=Math.ceil(seconds/3600),minutes=Math.max(1,Math.ceil(seconds/60));
           setUpdateMessage(seconds>0?`You can send your next update in about ${seconds>=3600?`${hours} hour${hours>1?"s":""}`:`${minutes} minute${minutes>1?"s":""}`}.`:(error.message||"Please wait before submitting another update."),"warning");
         }else if(error.code==="daily_limit_reached"){
-          setUpdateMessage(`${error.message}${/*@web*/error.usage?.plan==="free"||!error.usage?.plan?" Upgrade to Pro for more updates per day.":" Updates reset at 12:00 PM Gulf time."/*@end-web*//*@ios " Updates reset at 12:00 PM Gulf time." @end-ios*/}`,"warning");
+          setUpdateMessage(`${error.message}${error.usage?.plan==="free"||!error.usage?.plan?" Upgrade to Pro for more updates per day.":" Updates reset at 12:00 PM Gulf time."}`,"warning");
         }else{
           setUpdateMessage(friendlyNetworkError(error)||error.message||"Couldn't update this case right now. Please try again.","warning");
         }

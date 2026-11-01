@@ -10,8 +10,10 @@
   </div>
 
   <div class="cn-ios-group" data-ios-signed-out>
-    <p class="cn-ios-group-lead">Sign in to get AI explanations, keep your saved explanations and use Recovery. Check, Scan QR and the Share sheet work without an account.</p>
+    <p class="cn-ios-group-lead">Sign in to get AI explanations and use Recovery. Check, Scan QR and the Share sheet work without an account.</p>
     <div id="cnAcctSignIn"></div>
+    <button type="button" class="cn-ios-row cn-ios-row-btn" data-ios-action="plans">See plans</button>
+    <button type="button" class="cn-ios-row cn-ios-row-btn" data-ios-action="restore-purchases">Restore Purchases</button>
   </div>
 
   <div class="cn-ios-group" data-ios-signed-in hidden>
@@ -20,6 +22,17 @@
     <div class="cn-ios-row"><span>Recovery cases today</span><strong id="cnAcctRec">&mdash;</strong></div>
     <p class="cn-ios-note" id="cnAcctTeam" hidden>You are a member of a team. Your AI explanations and Recovery activity are shown to your team&rsquo;s owner in their activity log. Check, Scan QR and the Share sheet stay on your iPhone and are never logged.</p>
     <button type="button" class="secondary-btn full" data-ios-action="sign-out">Sign out</button>
+  </div>
+
+  <h2 class="cn-ios-group-title" data-ios-signed-in hidden>Plan</h2>
+  <div class="cn-ios-group" data-ios-signed-in hidden>
+    <div class="cn-ios-row"><span>Your plan</span><strong id="cnAcctPlan">CyberNet AI Free</strong></div>
+    <div class="cn-ios-row" id="cnAcctPlanDateRow" hidden><span id="cnAcctPlanDateLabel">Renews on</span><strong id="cnAcctPlanDate"></strong></div>
+    <p class="cn-ios-note" id="cnAcctPlanNote" hidden></p>
+    <button type="button" class="cn-ios-row cn-ios-row-btn" data-ios-action="plans">See plans</button>
+    <button type="button" class="cn-ios-row cn-ios-row-btn" id="cnAcctManageSub" data-ios-action="manage-subscription" hidden>Manage subscription</button>
+    <button type="button" class="cn-ios-row cn-ios-row-btn" id="cnAcctTeamBtn" data-ios-action="team" hidden>Manage Business</button>
+    <button type="button" class="cn-ios-row cn-ios-row-btn" data-ios-action="restore-purchases">Restore Purchases</button>
   </div>
 
   <h2 class="cn-ios-group-title" data-ios-signed-in hidden>Privacy &amp; data</h2>

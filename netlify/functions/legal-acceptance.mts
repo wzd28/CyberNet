@@ -4,7 +4,7 @@ import { fetchWithJwtRetry, RETRY_STANDARD } from "../lib/supabase-retry.mjs";
 import { withCors } from "../lib/cors.mjs";
 
 // Default only: the page sends its own versions (public/cybernet-legal-upgrade.js LEGAL_VERSION).
-const CURRENT_VERSION = "2026-10-29";
+const CURRENT_VERSION = "2026-10-30";
 const ALLOWED_TYPES = new Set(["signup", "checkout", "reaccept"]);
 
 function env(name) {

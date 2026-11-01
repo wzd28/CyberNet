@@ -1,8 +1,13 @@
-// The iPhone app's database migration (supabase/migrations/20261029120000_ios_app_1_0.sql),
-// run for real in PGlite (PostgreSQL in WebAssembly, already in node_modules):
-// supabase/schema.sql (which now carries the same objects) loads top to bottom,
-// the migration file then runs twice on top (it must be idempotent), and the
-// consent and App-tier functions are exercised. No network, no keys, no accounts.
+// The iPhone app's database migrations, run for real in PGlite (PostgreSQL in
+// WebAssembly, already in node_modules):
+//   supabase/migrations/20261029120000_ios_app_1_0.sql   AI consent, the *_app functions
+//   supabase/migrations/20261030120000_apple_iap.sql      Apple In-App Purchase plans
+// supabase/schema.sql (which carries the same objects) loads top to bottom, each
+// migration file then runs twice on top (they must be idempotent), and the
+// consent, App-tier, plan_of, usage and Apple subscription functions are
+// exercised (tests/run-ios-migration-apple.mjs). Its last part drives
+// netlify/functions/apple-verify.mjs and apple-notifications.mjs against this
+// database. No network, no keys, no accounts.
 //
 //   node tests/run-ios-migration.mjs
 //
@@ -50,6 +55,7 @@ set check_function_bodies = off;
 // pgcrypto is not bundled in PGlite; gen_random_uuid() is built into PostgreSQL 13+.
 const withoutExtensions = (sql) => sql.replace(/^create extension[^;]*;/gim, "-- (extension skipped in PGlite)");
 const migration = read("supabase/migrations/20261029120000_ios_app_1_0.sql");
+const appleMigration = read("supabase/migrations/20261030120000_apple_iap.sql");
 
 try {
   await db.exec(withoutExtensions(read("supabase/schema.sql")));
@@ -63,6 +69,12 @@ for (const run of [1, 2]) {
     check(`migration run ${run} succeeds`, true);
   } catch (error) {
     check(`migration run ${run} succeeds`, false, error.message);
+  }
+  try {
+    await db.exec(withoutExtensions(appleMigration));
+    check(`apple_iap migration run ${run} succeeds`, true);
+  } catch (error) {
+    check(`apple_iap migration run ${run} succeeds`, false, error.message);
   }
 }
 await db.exec("set check_function_bodies = on;");
@@ -222,12 +234,17 @@ const definer = await q(`select p.proname, p.prosecdef, p.proconfig from pg_proc
   where n.nspname = 'public' and p.proname in ('grant_ai_consent','withdraw_ai_consent','has_ai_consent','consume_analysis_app','consume_recovery_case_app','consume_recovery_update_app')`);
 check("functions: security definer with a fixed search_path", definer.length === 6 && definer.every((f) => f.prosecdef === true && (f.proconfig || []).some((c) => /^search_path=public, pg_temp$/.test(c))), definer);
 
-// schema.sql carries the same SQL as the migration (it is the restore path).
+// schema.sql carries the same SQL as the migrations (it is the restore path).
 {
   const schema = read("supabase/schema.sql");
-  const body = migration.slice(migration.indexOf("begin;\n") + 7, migration.indexOf("\ncommit;")).trim();
-  check("schema.sql mirrors the migration", schema.includes(body));
+  const bodyOf = (sql) => sql.slice(sql.indexOf("begin;\n") + 7, sql.indexOf("\ncommit;")).trim();
+  check("schema.sql mirrors the migration", schema.includes(bodyOf(migration)));
+  check("schema.sql mirrors the apple_iap migration", schema.includes(bodyOf(appleMigration)));
 }
+
+// ═════════════════════════ Apple In-App Purchase ═════════════════════════
+const { runApple } = await import("./run-ios-migration-apple.mjs");
+await runApple({ db, q, one, check, read, root, appleMigration });
 
 await db.close();
 console.log(`ios migration: ${checks - failures}/${checks} checks passed`);

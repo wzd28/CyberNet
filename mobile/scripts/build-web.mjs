@@ -22,18 +22,21 @@
 //     as the website and the tests; no detection change ever happens here).
 //  4. Vendored libraries replace every CDN: supabase-js (its SHA-384 must equal the SRI hash the website
 //     pins in index.html), jsQR and the Capacitor runtime. Nothing is fetched from a CDN at runtime.
-//  5. The UI layer is rebuilt for the app from ui-src without the home-page, pricing, about and
-//     three.js modules (UI_EXCLUDE below), with the site's own scripts/build-ui.mjs.
+//  5. The UI layer is rebuilt for the app from ui-src without the about page, the sign-in gate, the
+//     three.js globe and the background canvases (UI_EXCLUDE below), with the site's own scripts/build-ui.mjs.
+//     Since 30 Oct 2026 the app has the website's home page (first tab) and its plans page, so their
+//     modules and styles are in.
 //  6. index.html is transformed with parse5: every [data-web-only] element goes, every
 //     <!--@ios ... @end-ios--> comment becomes markup, the head is rebuilt from an allow-list
 //     (no SEO, preconnect, manifest or analytics tags), scripts and stylesheets are mapped to the
 //     bundle (an unknown one fails the build so somebody decides), the iOS files and the app's
 //     Content-Security-Policy are added, the Account page partial is inserted, and Learn guides get
-//     their iPhone wording (mobile/web-ios/learn-overrides.json).
+//     their iPhone wording (mobile/web-ios/learn-overrides.json). Home is the first page; the plans
+//     page (#pricing) is the app's own twin of the website's pricing section.
 //  7. The legal pages (legal/terms.html, privacy.html, acceptable-use.html) are built from the
 //     website's pages: site header and footer removed, a Back bar added, Terms sections 10-14 (plans,
-//     pricing, payments, cancellation, refunds) replaced by one paragraph, an "iPhone app" section
-//     added, and every link that would leave the legal pages turned into plain text.
+//     pricing, payments, cancellation, refunds) replaced by the iPhone version (Apple In-App Purchase),
+//     an "iPhone app" section added, and every link that would leave the legal pages turned into plain text.
 //  8. Only the images and fonts the bundle actually references are copied.
 //  9. cybernet-engine.js is also copied for the Share Extension when its target folder exists.
 // 10. The gate runs (mobile/scripts/check-bundle.mjs) unless --no-gate.
@@ -93,10 +96,11 @@ export const JS_FILES = [
   "cybernet-errors.js",
   "config.js",
   "script.js",
-  "cybernet-privacy-controls.js"
+  "cybernet-privacy-controls.js",
+  "cybernet-business-team.js"
 ];
 export const ENGINE = "cybernet-engine.js";
-export const CSS_FILES = ["style.css", "cybernet-legal.css"];
+export const CSS_FILES = ["style.css", "cybernet-legal.css", "cybernet-business-team.css"];
 
 // How each <script src> / stylesheet of public/index.html maps into the bundle. Keys are the path with
 // the leading "/", "legacy/" and "?v=" removed. null = deliberately not in the app (reason given).
@@ -111,8 +115,8 @@ export const SCRIPT_MAP = {
   "ui/cybernet-ui.js": "ui/cybernet-ui.js",
   "cybernet-consent.js": null,            // Google Analytics cookie bar: the app has its own, ATT-gated (ios/cn-analytics.js)
   "cybernet-account-api-upgrade.js": null, // web Account modal: plans, billing, BYOK (ios.js has the Account screen)
-  "cybernet-howto.js": null,               // home-page how-to player; its openers are web-only
-  "cybernet-business-team.js": null,       // Business purchase and management (B14)
+  "cybernet-howto.js": null,               // how-to video player; the app's Home tiles open the tools instead
+  "cybernet-business-team.js": "cybernet-business-team.js", // Manage Business (the invite-accept flow is web-only: /*@web*/ regions)
   "cybernet-final-ui-fix.js": null,        // web Account modal tabs, mojibake repair, web mobile menu
   "cybernet-legal-upgrade.js": null,       // web Legal Center + checkout consent; ios.js has the app's legal layer
   "cybernet-onboarding.js": null,          // plan cards and ?checkout= returns; ios.js has the first-run intro
@@ -124,20 +128,20 @@ export const STYLE_MAP = {
   "ui/cybernet-ui.css": "ui/cybernet-ui.css",
   "cybernet-account-api-upgrade.css": null,
   "cybernet-howto.css": null,
-  "cybernet-business-team.css": null,
+  "cybernet-business-team.css": "cybernet-business-team.css",
   "cybernet-consent.css": null
 };
-// The UI layer for the app: ui-src without these (home page, live stats, demo, reel, about, pricing,
-// sign-in gate, three.js globe, background canvases).
+// The UI layer for the app: ui-src without these (the about page, the website's sign-in gate, the three.js globe, which loads
+// three.js from a CDN so the hero shows its still picture instead, and the background canvases). Home and the plans page
+// are in the app since 30 Oct 2026: their styles (hero, live, threats, demo, flow, home-more, pricing) and modules (live, demo, reel) ship.
 export const UI_EXCLUDE = {
-  js: ["10-hero3d.js", "25-live.js", "30-demo.js", "35-reel.js", "09-bgfx.js", "65-press.js"],
-  css: ["20-hero.css", "22-live.css", "24-demo.css", "45-about.css", "50-pricing.css", "23-threats.css",
-        "26-flow.css", "28-home-more.css", "63-gate.css", "04-bgfx.css"]
+  js: ["10-hero3d.js", "09-bgfx.js", "65-press.js"],
+  css: ["45-about.css", "63-gate.css", "04-bgfx.css"]
 };
 // iOS-only files (mobile/web-ios -> www/ios). Order of the scripts = order in the page.
 export const IOS_HEAD_SCRIPTS = ["vendor/capacitor.js", "ios/cn-ios-boot.js"]; // classic, before everything
-export const IOS_TAIL_SCRIPTS = ["ios/ios.js", "ios/cn-analytics.js"];          // deferred, after script.js
-const IOS_JS = ["cn-ios-boot.js", "ios.js", "cn-analytics.js", "legal-page.js"];
+export const IOS_TAIL_SCRIPTS = ["ios/ios.js", "ios/store.js", "ios/cn-analytics.js"]; // deferred, after script.js
+const IOS_JS = ["cn-ios-boot.js", "ios.js", "store.js", "cn-analytics.js", "legal-page.js"];
 const IOS_DEBUG_JS = ["debug.js"];
 
 export const API_ORIGIN = "https://cybernetai.app";
@@ -355,8 +359,8 @@ async function buildVendor(indexHtml) {
 // CSS rules that only style markup the app does not have (web-only pages and elements) are dropped from the
 // app's UI stylesheet. A selector list loses only its matching selectors; a selector that uses :not() is
 // never touched. Robust to markup changes: a rule kept by mistake costs bytes, never layout.
-export const WEB_ONLY_SELECTORS = [/#home\b/, /#pricing\b/, /#about\b/, /#cnGate/, /\.cn-gate\b/, /\.cn-gate-/, /\.cn-intro\b/,
-  /\.recovery-pro-upsell/, /\.recovery-locked-note/, /#cnConsentBar/, /\.cn-consent/, /\.cn-cookie/, /\.google-auth/, /#googleAuth/];
+export const WEB_ONLY_SELECTORS = [/#about\b/, /#cnGate/, /\.cn-gate\b/, /\.cn-gate-/, /\.cn-intro\b/,
+  /#cnConsentBar/, /\.cn-consent/, /\.cn-cookie/, /\.google-auth/, /#googleAuth/];
 export function pruneCss(css, patterns = WEB_ONLY_SELECTORS) {
   const isQuote = c => c === '"' || c === "'";
   function matchBrace(from) {
@@ -532,16 +536,20 @@ async function buildIndex(source, versions, appVersion) {
   if (lastScript) insertAt(lastScript.parentNode, lastScript.parentNode.childNodes.indexOf(lastScript) + 1, tail);
   else appendNodes(body, tail);
 
-  // ---- pages: Home is web-only, so Check (Quick Scan) is the first screen; the Account page is the app's
+  // ---- pages: Home is the first screen (owner, 30 Oct 2026), then the tools; the plans page and the Account page are the app's own
   const home = byId(doc, "home");
-  if (home) fail("index.html: #home survived; mark it data-web-only.");
-  const check = byId(doc, "cybernet");
-  if (!check) fail("index.html: #cybernet (Quick Scan) is missing.");
-  setAttr(check, "class", ((attrOf(check, "class") || "").replace(/\bactive-page\b/g, "") + " active-page").replace(/\s+/g, " ").trim());
-  for (const n of findAll(doc, n => attrOf(n, "data-page") === "home")) setAttr(n, "data-page", "cybernet");
+  if (!home) fail("index.html: #home (the website's home page) is missing; the app's first tab shows it.");
+  if (!byId(doc, "cybernet")) fail("index.html: #cybernet (Quick Scan) is missing.");
+  if (!byId(doc, "pricing")) fail("index.html: #pricing is missing; the app's twin of the pricing section (<!--@ios ... @end-ios-->) is the plans page.");
+  if (byId(doc, "about")) fail("index.html: #about survived; the About page is not in the app (mark it data-web-only).");
+  for (const page of findAll(doc, n => n.tagName === "section" && hasClass(n, "page"))) {
+    const cls = (attrOf(page, "class") || "").split(/\s+/).filter(c => c && c !== "active-page");
+    if (page === home) cls.push("active-page");
+    setAttr(page, "class", cls.join(" "));
+  }
   for (const n of findAll(doc, n => hasClass(n, "nav-link"))) {
     const cls = (attrOf(n, "class") || "").split(/\s+/).filter(c => c && c !== "active");
-    if (attrOf(n, "data-page") === "cybernet") cls.push("active");
+    if (attrOf(n, "data-page") === "home") cls.push("active");
     setAttr(n, "class", cls.join(" "));
   }
   const main = byId(doc, "cnMain");
@@ -639,7 +647,7 @@ function unwrapLink(a) {
 }
 
 /* ------------------------------------------------------------------ legal pages */
-const TERMS_REMOVED = ["plans", "subscriptions", "payments", "cancellation", "refunds"];
+const TERMS_REMOVED = ["plans", "subscriptions", "payments", "cancellation", "refunds"]; // replaced by mobile/web-ios/legal/terms-iphone-plans.html (Apple In-App Purchase)
 async function buildLegal(versions) {
   const partials = path.join(webIos, "legal");
   const bar = await readText(path.join(partials, "bar.html"));
@@ -658,7 +666,7 @@ async function buildLegal(versions) {
       const content = first(shell, n => hasClass(n, "cn-legal-content"));
       const sections = TERMS_REMOVED.map(id => byId(doc, id));
       if (sections.some(s => !s)) fail(`legal: terms.html no longer has sections #${TERMS_REMOVED.join(", #")}; update TERMS_REMOVED in build-web.mjs.`);
-      const replacement = fragment(await readText(path.join(partials, "terms-no-purchases.html")));
+      const replacement = fragment(await readText(path.join(partials, "terms-iphone-plans.html")));
       replaceNode(sections[0], replacement);
       for (const s of sections.slice(1)) detach(s);
       if (!content) fail("legal: terms.html has no .cn-legal-content.");

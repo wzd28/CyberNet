@@ -5,6 +5,7 @@ import {
   verifyUser,
   getProfile
 } from "../lib/supabase.mjs";
+import { appleEntitled } from "../lib/entitlements.mjs";
 import { reportError } from "../lib/report-error.mjs";
 // Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
 // management, admin): requests from the app get 403 (netlify/lib/cors.mjs).
@@ -38,6 +39,16 @@ export default webOnly(async (request) => {
     const customerId = profile.stripe_customer_id || "";
 
     if (!customerId) {
+      // A plan bought in the iPhone app is billed and managed by Apple.
+      if ((profile.apple || []).some((row) => appleEntitled(row))) {
+        return json(
+          {
+            code: "BILLED_BY_APPLE",
+            error: "This plan is billed by Apple. Manage it in Settings > your name > Subscriptions on your iPhone."
+          },
+          409
+        );
+      }
       return json(
         {
           error:

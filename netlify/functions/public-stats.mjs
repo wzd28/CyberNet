@@ -1,5 +1,8 @@
 import { json, serviceFetch } from "../lib/supabase.mjs";
 import { reportError } from "../lib/report-error.mjs";
+// The iPhone app's Home tab shows these numbers, so the app's origin gets CORS
+// (netlify/lib/cors.mjs). The website's response is unchanged.
+import { withCors } from "../lib/cors.mjs";
 
 // Simple in-memory cache so a burst of homepage visits doesn't hammer the
 // database with the same aggregate query. Cold-starts reset this, which is
@@ -7,7 +10,7 @@ import { reportError } from "../lib/report-error.mjs";
 let cache = { value: null, expires: 0 };
 const CACHE_MS = 60_000;
 
-export default async (request) => {
+async function handler(request) {
   if (request.method !== "GET") {
     return json({ error: "Method not allowed." }, 405);
   }
@@ -45,7 +48,9 @@ export default async (request) => {
     // returning a plausible-looking but fabricated number.
     return json({ live: false, error: "Live stats are temporarily unavailable." }, 503);
   }
-};
+}
+
+export default withCors(handler);
 
 export const config = {
   path: "/api/public-stats"

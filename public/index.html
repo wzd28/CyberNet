@@ -760,7 +760,7 @@
           <option value="">Choose one</option>
           <option value="bug">Something is broken or wrong (website, account, a scan result)</option>
           <option value="feature">Feature request</option>
-          <option data-web-only value="billing">Billing or plan question</option>
+          <option value="billing">Billing or plan question</option>
           <option value="other">Question or other feedback</option>
         </select>
 
@@ -809,13 +809,13 @@
 
     <nav class="nav-tabs">
       <span class="nav-indicator" id="navIndicator"></span>
-      <button data-web-only class="nav-link active" data-page="home">Home</button>
+      <button class="nav-link active" data-page="home">Home</button>
       <button class="nav-link" data-page="cybernet">Quick Scan</button>
       <button class="nav-link" data-page="cybernetai">Analysis AI</button>
       <button class="nav-link" data-page="recovery">Recovery</button>
       <button class="nav-link" data-page="learn">Learn</button>
-      <button data-web-only class="nav-link" id="navManageBusinessBtn" type="button" aria-haspopup="dialog">Manage Business</button>
-      <button data-web-only class="nav-link" data-page="pricing">Pricing</button>
+      <button class="nav-link" id="navManageBusinessBtn" type="button" aria-haspopup="dialog">Manage Business</button>
+      <button class="nav-link" data-page="pricing">Pricing</button>
       <button data-web-only class="nav-link" data-page="about">About</button>
     </nav>
 
@@ -845,7 +845,7 @@
   <main id="cnMain" tabindex="-1">
 
     <!-- ═══════════ HOME ═══════════ -->
-    <section data-web-only id="home" class="page active-page">
+    <section id="home" class="page active-page">
       <div class="hero" id="heroSection">
         <div class="cn-stage cn-hero4">
           <div class="cn-hero4-scene" aria-hidden="true">
@@ -853,22 +853,32 @@
             <canvas class="cn-hero4-canvas" data-cn="hero3d"></canvas>
           </div>
           <div class="hero-content reveal cn-hero">
-            <button class="pill hero-learn-pill hero-learn-pill-filled" id="heroLearnFeaturesBtn" type="button">
+            <button data-web-only class="pill hero-learn-pill hero-learn-pill-filled" id="heroLearnFeaturesBtn" type="button">
               Learn how to use each feature
               <svg viewBox="0 0 24 24" width="13" height="13" fill="none" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
+            <!--@ios <button class="pill hero-learn-pill hero-learn-pill-filled" id="heroLearnFeaturesBtn" type="button" data-page="learn">
+              Learn how to use each feature
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button> @end-ios-->
             <h1 class="hero-title" aria-label="Is it a scam? Know in seconds."><cn-w aria-hidden="true" style="--i:0">Is</cn-w> <cn-w aria-hidden="true" style="--i:1">it</cn-w> <cn-w aria-hidden="true" style="--i:2">a</cn-w> <cn-w aria-hidden="true" style="--i:3">scam?</cn-w><br/><span><cn-w aria-hidden="true" style="--i:4">Know</cn-w> <cn-w aria-hidden="true" style="--i:5">in</cn-w> <cn-w aria-hidden="true" style="--i:6"><em class="cn-sweep">seconds</em>.</cn-w></span></h1>
             <p class="cn-hero-sub">Paste a message or link below. Get a clear answer, and a recovery plan if something already went wrong.</p>
             <div class="cn-scanbox" id="cnScanBox">
               <label class="cn-sr" for="cnScanInput">Paste a message or link to check</label>
               <textarea id="cnScanInput" rows="2" maxlength="5000" placeholder="Paste a text, email or link…" data-cn-placeholders="Paste a text from your bank…|Paste a link you weren’t expecting…|Paste a job offer from WhatsApp…|Paste a “parcel on hold” message…" autocomplete="off" spellcheck="false"></textarea>
               <div class="cn-scan-row">
-                <div class="cn-try" role="group" aria-label="Try an example">
+                <div data-web-only class="cn-try" role="group" aria-label="Try an example">
                   <span class="cn-try-label">Try</span>
                   <button type="button" class="cn-chip" data-cn-try="text" title="Runs a real Quick Scan on an example scam text. Needs a free account.">Text</button>
                   <button type="button" class="cn-chip" data-cn-try="link" title="Runs a real Quick Scan on an example scam link. Needs a free account.">Link</button>
                   <button type="button" class="cn-chip" data-cn-try="qr" title="Runs a real Quick Scan on an example QR code image. Needs a free account.">QR code</button>
                 </div>
+                <!--@ios <div class="cn-try" role="group" aria-label="Try an example">
+                  <span class="cn-try-label">Try</span>
+                  <button type="button" class="cn-chip" data-cn-try="text" title="Runs a real Quick Scan on an example scam text.">Text</button>
+                  <button type="button" class="cn-chip" data-cn-try="link" title="Runs a real Quick Scan on an example scam link.">Link</button>
+                  <button type="button" class="cn-chip" data-cn-try="qr" title="Runs a real Quick Scan on an example QR code image.">QR code</button>
+                </div> @end-ios-->
                 <div class="hero-buttons">
                   <button class="primary-btn big" data-page="cybernet">Start scanning</button>
                 </div>
@@ -880,27 +890,48 @@
         </div>
 
         <div class="hero-video-buttons" role="group" aria-label="Step-by-step guides for each tool">
-          <button class="hero-video-btn" type="button" data-video="protect" aria-haspopup="dialog">
+          <button data-web-only class="hero-video-btn" type="button" data-video="protect" aria-haspopup="dialog">
             <span class="hero-video-btn-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.8" cy="10.8" r="6.6"/><path d="m20.5 20.5-4.9-4.9"/><path d="M11.5 7.6 9.4 11h3l-2.1 3.4"/></svg>
             </span>
             <span class="hero-video-btn-label">Quick Scan</span>
             <span class="cn-tile-sub">How it works</span>
           </button>
-          <button class="hero-video-btn" type="button" data-video="cybernetai" aria-haspopup="dialog">
+          <button data-web-only class="hero-video-btn" type="button" data-video="cybernetai" aria-haspopup="dialog">
             <span class="hero-video-btn-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 3.5c.6 4 2.6 6 6.5 6.5-3.9.6-5.9 2.6-6.5 6.5-.6-3.9-2.6-5.9-6.5-6.5 3.9-.5 5.9-2.5 6.5-6.5Z"/><path d="M18.5 15c.3 1.6 1 2.3 2.5 2.5-1.5.3-2.2 1-2.5 2.5-.3-1.5-1-2.2-2.5-2.5 1.5-.2 2.2-.9 2.5-2.5Z"/></svg>
             </span>
             <span class="hero-video-btn-label">Analysis AI</span>
             <span class="cn-tile-sub">How it works</span>
           </button>
-          <button class="hero-video-btn" type="button" data-video="recovery" aria-haspopup="dialog">
+          <button data-web-only class="hero-video-btn" type="button" data-video="recovery" aria-haspopup="dialog">
             <span class="hero-video-btn-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.4 12a8.6 8.6 0 1 0 8.6-8.6 8.6 8.6 0 0 0-6.1 2.5L3.5 8.3"/><path d="M3.5 3.6v4.7h4.7"/><path d="M12 7.6l3.8 1.7-.45 3.8L12 16.9l-3.35-3.8-.45-3.8Z"/></svg>
             </span>
             <span class="hero-video-btn-label">Recovery</span>
             <span class="cn-tile-sub">How it works</span>
           </button>
+          <!--@ios <button class="hero-video-btn" type="button" data-page="cybernet">
+            <span class="hero-video-btn-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.8" cy="10.8" r="6.6"/><path d="m20.5 20.5-4.9-4.9"/><path d="M11.5 7.6 9.4 11h3l-2.1 3.4"/></svg>
+            </span>
+            <span class="hero-video-btn-label">Quick Scan</span>
+            <span class="cn-tile-sub">Open</span>
+          </button> @end-ios-->
+          <!--@ios <button class="hero-video-btn" type="button" data-page="cybernetai">
+            <span class="hero-video-btn-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 3.5c.6 4 2.6 6 6.5 6.5-3.9.6-5.9 2.6-6.5 6.5-.6-3.9-2.6-5.9-6.5-6.5 3.9-.5 5.9-2.5 6.5-6.5Z"/><path d="M18.5 15c.3 1.6 1 2.3 2.5 2.5-1.5.3-2.2 1-2.5 2.5-.3-1.5-1-2.2-2.5-2.5 1.5-.2 2.2-.9 2.5-2.5Z"/></svg>
+            </span>
+            <span class="hero-video-btn-label">Analysis AI</span>
+            <span class="cn-tile-sub">Open</span>
+          </button> @end-ios-->
+          <!--@ios <button class="hero-video-btn" type="button" data-page="recovery">
+            <span class="hero-video-btn-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.4 12a8.6 8.6 0 1 0 8.6-8.6 8.6 8.6 0 0 0-6.1 2.5L3.5 8.3"/><path d="M3.5 3.6v4.7h4.7"/><path d="M12 7.6l3.8 1.7-.45 3.8L12 16.9l-3.35-3.8-.45-3.8Z"/></svg>
+            </span>
+            <span class="hero-video-btn-label">Recovery</span>
+            <span class="cn-tile-sub">Open</span>
+          </button> @end-ios-->
         </div>
 
         <div class="hero-visual" hidden aria-hidden="true">
@@ -936,7 +967,8 @@
       <section class="cn-core" id="cnCore" aria-labelledby="cnCoreTitle">
         <h2 class="cn-core-label" id="cnCoreTitle">What CyberNet AI does</h2>
         <p class="cn-core-tag cn-core-tag--top">Rules first. Then AI.</p>
-        <p class="cn-core-lead" data-cn-lines>Let’s <b>protect</b> you from a scam.</p>
+        <p data-web-only class="cn-core-lead" data-cn-lines>Let’s <b>protect</b> you from a scam.</p>
+        <!--@ios <p class="cn-core-lead" data-cn-lines>Let’s help you <b>spot</b> a scam.</p> @end-ios-->
         <p class="cn-manifesto" data-cn="manifesto">CyberNet AI reads the message <b>before you act</b>. Its own <b>scam rules</b> check a text, link or QR code in seconds. <b>Analysis AI</b> explains the warning signs in plain words. And if something already went wrong, <b>Recovery</b> gives you a plan, step by step.</p>
         <p class="cn-core-tag cn-core-tag--end">Texts, links and QR codes</p>
       </section>
@@ -984,7 +1016,7 @@
             <li><span class="why-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span> Reasons in plain language, not jargon</li>
             <li><span class="why-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" aria-hidden="true"><path d="M12 2 L21 6 L20 15 L12 22 L4 15 L3 6 Z" stroke="currentColor" stroke-width="1.7"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span> Step-by-step help if you already clicked or paid</li>
           </ul>
-          <button class="secondary-btn glass" data-page="about">About CyberNet AI</button>
+          <button data-web-only class="secondary-btn glass" data-page="about">About CyberNet AI</button>
         </div>
         </div>
       </section>
@@ -1002,9 +1034,11 @@
           </figure>
           <figure class="cn-tile cn-tile--b cn-tile--qr reveal">
             <div class="cn-qr">
-              <a class="cn-qr-code" href="https://cybernetai.app" aria-label="QR code that opens cybernetai.app"><img src="/ui/img/qr-cybernetai.svg?v=20261014-5" alt="QR code that opens cybernetai.app" width="232" height="232" loading="lazy" decoding="async" /></a>
+              <a data-web-only class="cn-qr-code" href="https://cybernetai.app" aria-label="QR code that opens cybernetai.app"><img src="/ui/img/qr-cybernetai.svg?v=20261014-5" alt="QR code that opens cybernetai.app" width="232" height="232" loading="lazy" decoding="async" /></a>
+              <!--@ios <span class="cn-qr-code"><img src="/ui/img/qr-cybernetai.svg?v=20261014-5" alt="QR code that opens cybernetai.app" width="232" height="232" loading="lazy" decoding="async" /></span> @end-ios-->
               <ul class="cn-qr-links" aria-label="A real link next to a lookalike">
-                <li class="is-real"><span class="cn-qr-tag">Real</span><a href="https://cybernetai.app">cybernetai.app</a></li>
+                <li data-web-only class="is-real"><span class="cn-qr-tag">Real</span><a href="https://cybernetai.app">cybernetai.app</a></li>
+                <!--@ios <li class="is-real"><span class="cn-qr-tag">Real</span><span class="cn-qr-real">cybernetai.app</span></li> @end-ios-->
                 <li class="is-fake"><span class="cn-qr-tag">Lookalike</span><span class="cn-qr-fake">cybernetai-app.invalid</span></li>
               </ul>
             </div>
@@ -1228,7 +1262,7 @@
         <p>Paste a message or link, or upload a QR code, and get an instant scam verdict.</p>
         <p class="feature-crosslink">Prefer a conversational back-and-forth instead of picking a tab? Try <button class="inline-link-btn" data-page="cybernetai" type="button">Analysis AI</button>.</p>
 
-        <div data-web-only class="usage-meter-card" id="quickScanUsageCard">
+        <div class="usage-meter-card" id="quickScanUsageCard">
           <div class="usage-meter-labels">
             <span>Daily Quick Scans</span>
             <strong id="quickScanUsageText">0 / 5</strong>
@@ -1539,7 +1573,7 @@
 
       <div class="ai-layout reveal">
         <div class="ai-config glass account-access-panel">
-          <div data-web-only class="account-access-head">
+          <div class="account-access-head">
             <div>
               <span class="account-eyebrow">Your access</span>
               <h4 id="aiPlanTitle">CyberNet AI Free</h4>
@@ -1548,6 +1582,7 @@
           </div>
 
           <p data-web-only id="aiPlanDescription">Sign in to activate 3 accurate AI analyses per day across text, links, and images.</p>
+          <!--@ios <p id="aiPlanDescription">Sign in to use 3 AI analyses per day across text, links and images.</p> @end-ios-->
 
           <div class="usage-meter-card">
             <div class="usage-meter-labels">
@@ -1558,20 +1593,21 @@
             <small id="aiUsageReset">Resets daily</small>
           </div>
 
-          <div data-web-only class="plan-benefit-list" id="aiBenefitList">
-            <div><span>✓</span> Accurate Text, Link &amp; Image analysis</div>
+          <div class="plan-benefit-list" id="aiBenefitList">
+            <div><span>✓</span> Text, Link &amp; Image analysis</div>
             <div><span>✓</span> Basic threat explanations</div>
             <div class="benefit-locked"><span>×</span> Saved scan history</div>
             <div class="benefit-locked"><span>×</span> Downloadable reports</div>
           </div>
 
-          <button data-web-only class="primary-btn full" id="aiUpgradeBtn" type="button">Upgrade to Pro</button>
+          <button class="primary-btn full" id="aiUpgradeBtn" type="button">Upgrade to Pro</button>
           <button data-web-only class="secondary-btn full api-service-check" id="manageBillingBtn" type="button" hidden>Manage Billing</button>
+          <!--@ios <button class="secondary-btn full api-service-check" id="manageBillingBtn" type="button" hidden>Manage subscription</button> @end-ios-->
           <button data-web-only class="secondary-btn full api-service-check" id="testApiKeyBtn" type="button">Refresh Account Status</button>
 
           <div id="aiApiStatus" class="result-box">Sign in to use Analysis AI.</div>
 
-          <div data-web-only class="ai-status-block">
+          <div class="ai-status-block">
             <h5>Service status</h5>
 
             <div class="ai-status-row">
@@ -1592,13 +1628,11 @@
 
           <div class="pro-history-card" id="proHistoryCard">
             <div class="pro-history-head">
-              <h5 data-web-only>Scan history</h5>
-              <!--@ios <h5>Saved explanations</h5> @end-ios-->
-              <span id="historyPlanLabel" data-web-only>Pro feature</span>
+              <h5>Scan history</h5>
+              <span id="historyPlanLabel">Pro feature</span>
             </div>
             <div id="proHistoryList" class="pro-history-list">
-              <p data-web-only>Upgrade to Pro to save and revisit your AI scan history.</p>
-              <!--@ios <p>Sign in to see your saved explanations.</p> @end-ios-->
+              <p>Upgrade to Pro to save and revisit your AI scan history.</p>
             </div>
           </div>
         </div>
@@ -1613,7 +1647,7 @@
             <!--@ios <div class="chat-bubble chat-bubble-ai"><div class="chat-bubble-inner">Sign in, then paste or drop anything suspicious below: a message, a link or a screenshot. Analysis AI works out what it is looking at and explains it in plain language.</div></div> @end-ios-->
             <div class="chat-bubble chat-bubble-ai" data-web-only>
               <div class="chat-bubble-inner">
-                Sign in, then paste or drop anything suspicious below: a message, a link or a screenshot. Analysis AI works out what it is looking at and runs the right analysis. Free accounts receive 3 accurate AI analyses per day; Pro accounts receive 15 advanced analyses, saved history, and reports.
+                Sign in, then paste or drop anything suspicious below: a message, a link or a screenshot. Analysis AI works out what it is looking at and runs the right analysis. Free accounts receive 3 AI analyses per day; Pro accounts receive 15 advanced analyses, saved history, and reports.
               </div>
             </div>
           </div>
@@ -1829,7 +1863,7 @@
             <button class="recovery-timeline-tab" data-timeline="next7Days">Next 7 days</button>
           </div>
           <div id="recoveryTimelineActions" class="recovery-action-list"></div>
-          <div data-web-only id="recoveryTimelineLocked" class="recovery-locked-note" hidden>
+          <div id="recoveryTimelineLocked" class="recovery-locked-note" hidden>
             <p>Free covers your immediate actions and the first 10 minutes. <strong>Pro unlocks the full recovery timeline</strong>: the first hour, the first 24 hours and the next 7 days.</p>
             <button class="secondary-btn" data-page="pricing" type="button">See Pro Recovery</button>
           </div>
@@ -1840,7 +1874,7 @@
           <ul id="recoveryRemainingList"></ul>
         </div>
 
-        <div data-web-only class="recovery-pro-upsell glass" id="recoveryProUpsell" hidden>
+        <div class="recovery-pro-upsell glass" id="recoveryProUpsell" hidden>
           <div class="recovery-pro-upsell-icon"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" aria-hidden="true"><path d="M12 2 L21 6 L20 15 L12 22 L4 15 L3 6 Z" stroke="currentColor" stroke-width="1.7"/><path d="M9 12l2 2 4-4.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
           <div class="recovery-pro-upsell-body">
             <h4>You've addressed the immediate danger. Let's finish the job.</h4>
@@ -2898,6 +2932,193 @@
         </div>
       </div>
     </section>
+    <!--@ios <section id="pricing" class="page cn-ios-plans" aria-labelledby="cnPlansTitle">
+      <div class="cn-ios-plans-bar">
+        <button type="button" class="cn-ios-link-btn" data-store-done>Done</button>
+      </div>
+      <p class="cn-operator">CyberNet AI is operated under <strong>Marks Events FZ LLE</strong></p>
+      <div class="section-head reveal pricing-head">
+        <div class="cn-edrow cn-pr-labels">
+          <p class="cn-edlabel">Simple, transparent pricing</p>
+          <p class="cn-edlabel cn-edlabel--muted cn-edlabel--end">Start free. Cancel any time in Settings.</p>
+        </div>
+        <h1 id="cnPlansTitle" data-cn-lines="head">Choose the <b>plan</b> that fits you</h1>
+        <p class="cn-pr-lead">Start free. Upgrade when you need deeper analysis, saved history and reports.</p>
+
+        <div class="pricing-toggle-wrap">
+          <div class="pricing-toggle glass" id="pricingToggle" data-cycle="monthly">
+            <button class="toggle-option active" type="button" data-cycle="monthly">Monthly</button>
+            <button class="toggle-option" type="button" data-cycle="yearly">Yearly</button>
+            <span class="toggle-thumb"></span>
+          </div>
+          <span class="save-tag" data-store-save hidden></span>
+        </div>
+      </div>
+
+      <div id="pricingNotice" class="pricing-notice glass" aria-live="polite" data-store-notice></div>
+      <div class="cn-ios-plans-retry" data-store-retry-box hidden>
+        <p>Plans can't load right now. Check your connection and try again.</p>
+        <button type="button" class="secondary-btn full" data-store-retry>Retry</button>
+      </div>
+
+      <div class="pricing-grid pricing-grid-three">
+        <article class="price-card glass reveal free-price-card" data-store-card="free">
+          <div class="price-card-topline">
+            <span class="price-plan-label">Free forever</span>
+            <span class="plan-badge plan-badge-free">FREE</span>
+          </div>
+          <h3>CyberNet AI Free</h3>
+          <h2><span class="price-amount">Free</span></h2>
+          <p>Check suspicious messages before you act.</p>
+          <ul>
+            <li><strong>5 Quick Scans per day</strong></li>
+            <li><strong>3 AI analyses per day</strong>, shared across Text, Link, and Image</li>
+            <li>AI-powered threat analysis</li>
+            <li>Basic threat explanations</li>
+            <li>Cybersecurity learning center</li>
+            <li><strong>1 Recovery case per day</strong>, 1 update/day</li>
+            <li class="feature-unavailable">No saved scan history</li>
+            <li class="feature-unavailable">No downloadable reports</li>
+            <li class="feature-unavailable">Recovery timeline limited to immediate actions</li>
+          </ul>
+          <button class="primary-btn full plan-select-btn" id="freePlanBtn" type="button" data-plan="free" data-store-free>Start Free</button>
+        </article>
+
+        <article class="price-card featured-price glass reveal pro-price-card" data-cn-glow="50 0" data-cn-glow-motes="off" data-store-card="pro">
+          <span class="popular-ribbon" aria-hidden="true">Recommended</span>
+          <div class="price-card-topline">
+            <span class="price-plan-label">Deeper analysis</span>
+            <span class="plan-badge plan-badge-pro">PRO</span>
+          </div>
+          <h3>CyberNet AI Pro</h3>
+          <h2>
+            <span class="price-amount" data-store-amount="pro">&mdash;</span>
+            <span class="price-period" data-store-period="pro"></span>
+          </h2>
+          <p class="billing-equivalent" id="billingEquivalent" data-store-billing="pro">Billed monthly to your Apple ID. Renews until you cancel.</p>
+          <ul>
+            <li>Everything in CyberNet AI Free</li>
+            <li><strong>Unlimited Quick Scans</strong></li>
+            <li><strong>15 AI analyses per day</strong></li>
+            <li>Advanced Text, Image, and Link analysis</li>
+            <li>Detailed risk scoring and explanations</li>
+            <li>Downloadable security reports</li>
+            <li>Saved scan history</li>
+            <li>Faster AI responses</li>
+            <li><strong>3 Recovery cases per day</strong>, with a reminder email if a case sits idle for a day</li>
+            <li>Full recovery timeline: first hour, 24 hours, and 7 days</li>
+            <li>Downloadable Recovery case report</li>
+          </ul>
+          <button class="primary-btn full plan-select-btn" id="proPlanBtn" type="button" data-plan="pro" data-cycle="monthly" data-store-buy="app.cybernetai.pro.monthly">Upgrade to Pro</button>
+          <p class="cn-ios-renew" data-store-renew="pro"></p>
+        </article>
+
+        <article class="price-card glass reveal business-price-card" data-store-card="business">
+          <div class="price-card-topline">
+            <span class="price-plan-label">For teams &amp; organizations</span>
+            <span class="plan-badge plan-badge-business">BUSINESS</span>
+          </div>
+          <h3>CyberNet AI Business</h3>
+          <h2>
+            <span class="price-amount" data-store-amount="business">&mdash;</span>
+            <span class="price-period" data-store-period="business"></span>
+          </h2>
+          <p class="billing-equivalent" id="businessBillingEquivalent" data-store-billing="business">Billed monthly to your Apple ID. Renews until you cancel.</p>
+
+          <div class="cn-seat-picker" id="businessSeatPicker">
+            <span class="cn-seat-picker-label">Team size</span>
+            <div class="cn-seat-options">
+              <button class="cn-seat-option is-active" type="button" data-seat-tier="5" data-store-product="app.cybernetai.business5.monthly">
+                <b>5 seats</b><span data-store-seat-price="app.cybernetai.business5.monthly">&mdash;</span>
+              </button>
+              <button class="cn-seat-option" type="button" data-seat-tier="10" data-store-product="app.cybernetai.business10.monthly">
+                <b>10 seats</b><span data-store-seat-price="app.cybernetai.business10.monthly">&mdash;</span>
+              </button>
+              <button class="cn-seat-option" type="button" data-seat-tier="20" data-store-product="app.cybernetai.business20.monthly">
+                <b>20 seats</b><span data-store-seat-price="app.cybernetai.business20.monthly">&mdash;</span>
+              </button>
+            </div>
+          </div>
+
+          <p class="business-email-note">One subscription covers your whole team. Every teammate signs in with their own named account, so any scan, analysis, or recovery case can be traced back to the person who ran it. Any email address works, including personal ones.</p>
+          <ul>
+            <li>Everything in CyberNet AI Pro, plus:</li>
+            <li><strong>Named seats for your team:</strong> invite teammates by email, each with their own login</li>
+            <li><strong>Full team activity log:</strong> see who ran what, and the full result of every analysis</li>
+            <li><strong>Shared daily pool:</strong> 50 analyses/day on 5 seats, 90 on 10, 160 on 20</li>
+            <li><strong>Shared Recovery pool:</strong> 20 cases/day on 5 seats, 36 on 10, 64 on 20</li>
+            <li>Faster Recovery update cooldown (1 hour)</li>
+            <li>Owner controls who joins and who is removed</li>
+          </ul>
+          <button class="primary-btn full plan-select-btn" id="businessPlanBtn" type="button" data-plan="business" data-cycle="monthly" data-store-buy="app.cybernetai.business5.monthly">Upgrade to Business</button>
+          <p class="cn-ios-renew" data-store-renew="business"></p>
+        </article>
+      </div>
+
+
+      <p class="cn-manifesto cn-pr-statement" data-cn="manifesto">Start <b>free</b> and stay free for as long as you like. Upgrade only when you want deeper analysis, saved history and reports, or <b>one subscription</b> for your whole team.</p>
+
+      <section class="cn-faq reveal" aria-labelledby="cnPricingFaqTitle">
+        <div class="cn-faq-inner">
+          <div class="cn-faq-head">
+            <p class="cn-edlabel cn-faq-eyebrow">Questions</p>
+            <h2 id="cnPricingFaqTitle" data-cn-lines="head">Before you <b>choose</b> a plan</h2>
+            <p>Straight answers about plans, limits and teams. For anything else, email <a href="mailto:support@cybernetai.app">support@cybernetai.app</a>.</p>
+          </div>
+          <div class="cn-faq-list">
+            <details class="cn-faq-item">
+              <summary>What does the Free plan include?</summary>
+              <p>Free costs nothing. Every day you get 5 Quick Scans, 3 AI analyses (text, link or image, in any mix) and 1 Recovery case with 1 update.</p>
+            </details>
+            <details class="cn-faq-item">
+              <summary>Can I cancel at any time?</summary>
+              <p>Yes. Pro and Business renew at the end of each billing period until you cancel. To cancel or change your plan, open the Settings app, tap your name, then Subscriptions, and choose CyberNet AI. Cancel at least 24 hours before the renewal date.</p>
+            </details>
+            <details class="cn-faq-item">
+              <summary>When do my daily limits reset?</summary>
+              <p>Quick Scans and AI analyses reset at midnight UTC. Recovery limits reset at 12:00 noon Gulf Standard Time (08:00 UTC).</p>
+            </details>
+            <details class="cn-faq-item">
+              <summary>How do Business seats work?</summary>
+              <p>One subscription covers your team. Each teammate signs in with their own named account, and the team shares a daily pool: 50 analyses a day on 5 seats, 90 on 10 and 160 on 20.</p>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <div class="pricing-footnote reveal">
+        <span data-store-yearly-note hidden>Yearly Pro is billed once at <strong data-store-yearly-price></strong>, equal to about <strong data-store-yearly-month></strong>/month.</span>
+        <span>Quick Scan and AI analysis limits reset daily at midnight UTC. Recovery limits reset daily at 12:00 noon Gulf Standard Time (Asia/Dubai).</span>
+      </div>
+
+      <div class="pricing-renewal-note reveal cn-ios-terms">
+        <p>Payment is charged to your Apple ID at confirmation of purchase. Your subscription renews automatically unless you cancel it at least 24 hours before the end of the current period. Your account is charged for renewal within 24 hours before the end of the current period. Manage or cancel any time in Settings &gt; your name &gt; Subscriptions.</p>
+        <p class="cn-ios-terms-links">
+          <button type="button" class="cn-legal-link-btn" data-open-legal="terms">Terms of Use</button>
+          <button type="button" class="cn-legal-link-btn" data-open-legal="privacy">Privacy Policy</button>
+        </p>
+        <div class="cn-ios-terms-actions">
+          <button type="button" class="secondary-btn full" data-store-restore>Restore Purchases</button>
+          <button type="button" class="secondary-btn full" data-store-manage hidden>Manage subscription</button>
+        </div>
+      </div>
+
+      <div class="pricing-legal-operator-note reveal">
+        Subscriptions bought in the app are billed by Apple. CyberNet AI is operated by <strong>Marks Events FZ LLE</strong>.
+      </div>
+
+      <div class="support-box glass reveal">
+        <div class="support-box-copy">
+          <span class="account-eyebrow">Support and feedback</span>
+          <h2>Not sure which plan is right?</h2>
+          <p>Questions about your plan? Contact <a href="mailto:support@cybernetai.app">support@cybernetai.app</a> or send a report through the survey. Refunds for purchases made in the app are handled by Apple.</p>
+        </div>
+        <div class="support-box-actions">
+          <a class="secondary-btn" href="mailto:support@cybernetai.app?subject=CyberNet%20AI%20Support">Email CyberNet</a>
+          <button type="button" class="primary-btn open-feedback-btn">Send feedback</button>
+        </div>
+      </div>
+    </section> @end-ios-->
 
     <!-- ═══════════ ABOUT ═══════════ -->
     <section data-web-only id="about" class="page">
@@ -3071,12 +3292,12 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" defer></script>
   <script src="/config.js?v=20260830-3" defer></script>
   <script src="/legacy/cybernet-engine.js?v=20261029-1" defer></script>
-  <script src="/legacy/script.js?v=20261029-ios1" defer></script>
-  <script src="/legacy/cybernet-account-api-upgrade.js?v=20261028-1" defer></script>
+  <script src="/legacy/script.js?v=20261030-plans1" defer></script>
+  <script src="/legacy/cybernet-account-api-upgrade.js?v=20261030-plans1" defer></script>
   <script src="/cybernet-howto.js?v=20261019-1" defer></script>
 <script src="/legacy/cybernet-business-team.js?v=20261028-1" defer></script>
   <script src="/legacy/cybernet-final-ui-fix.js?v=20261028-1" defer></script>
-      <script src="/legacy/cybernet-legal-upgrade.js?v=20261029-ios1" defer></script>
+      <script src="/legacy/cybernet-legal-upgrade.js?v=20261030-plans1" defer></script>
   <!-- After script.js, cybernet-account-api-upgrade.js and cybernet-final-ui-fix.js (account modal tabs). -->
   <script src="/legacy/cybernet-privacy-controls.js?v=20261029-ios1" defer></script>
   <!-- After script.js (cybernet:session event, appState). -->

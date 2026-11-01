@@ -6,8 +6,8 @@ import Capacitor
 /// folder) with a native UIKit tab bar on top (BUILD-PLAN §6.6).
 ///
 /// Contract with the web bundle (mobile/web-ios/ios.js):
-/// - A tab tap fires the window event `cnTab`; `event.tab` is "check" | "scan" | "recovery" | "learn" |
-///   "account". The page decides what to show; the Scan tab opens the QR scanner.
+/// - A tab tap fires the window event `cnTab`; `event.tab` is "home" | "check" | "scan" | "recovery" |
+///   "learn" | "account" (this order). The page decides what to show; the Scan tab opens the QR scanner.
 /// - The window event `cnTabBarMetrics` (`event.height`, `event.hidden`) reports how much of the page
 ///   the bar covers, in CSS pixels, home-indicator area included (0 while hidden). ios.js turns it into
 ///   `--cn-native-tabbar-h`. The `CNTabBar` plugin (TabBarPlugin.swift) answers the same with
@@ -22,7 +22,11 @@ final class MainViewController: CAPBridgeViewController, UITabBarDelegate {
         let hint: String
     }
 
+    /// Six items, Home first (owner, 30 Oct 2026: the website's Home page is the app's first tab). The ids
+    /// and their order must equal TABS in mobile/web-ios/ios.js (mobile/tests/run-bundle.mjs compares them).
     static let tabs: [Tab] = [
+        Tab(id: "home", title: "Home", symbol: "house",
+            hint: "Overview of CyberNet AI: check a message, see how it works and see the plans."),
         Tab(id: "check", title: "Check", symbol: "checkmark.shield",
             hint: "Check a message or a link on your iPhone."),
         Tab(id: "scan", title: "Scan QR", symbol: "qrcode.viewfinder",
@@ -56,6 +60,7 @@ final class MainViewController: CAPBridgeViewController, UITabBarDelegate {
         bridge?.registerPluginInstance(AppleSignInPlugin())
         bridge?.registerPluginInstance(WebAuthPlugin())
         bridge?.registerPluginInstance(TabBarPlugin())
+        bridge?.registerPluginInstance(StoreKitPlugin())
 
         #if DEBUG
         // Capacitor installs its own WKUserContentController after webViewConfiguration(for:), so

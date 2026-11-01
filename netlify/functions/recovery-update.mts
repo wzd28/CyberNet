@@ -5,7 +5,7 @@ import { rekeyPlan, planActions, buildTaskRows, supersededTaskKeys, taskKeyInLis
 import { reportError } from "../lib/report-error.mjs";
 import { fetchWithJwtRetry, RETRY_STANDARD } from "../lib/supabase-retry.mjs";
 import { withCors, isIOS } from "../lib/cors.mjs";
-import { appTierFor, consumeRecoveryUpdateApp, recoveryCooldownMessage, APP_MESSAGES } from "../lib/app-tier.mjs";
+import { appAllowanceFor, consumeRecoveryUpdateApp, recoveryCooldownMessage, APP_MESSAGES } from "../lib/app-tier.mjs";
 import { aiConsentGate } from "../lib/ai-consent.mjs";
 
 declare const Netlify: {
@@ -376,9 +376,10 @@ async function consumeRecoveryUpdateBusiness(userId: string) {
 
 async function handler(request: Request, context: any): Promise<Response> {
   if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
-  // The iPhone app (BUILD-PLAN §8.2, §8.4): the update text goes to the AI
-  // planner, so the recorded consent is checked first; then the App-tier
-  // count and cooldown, never the admin bypass or the Business tier.
+  // The iPhone app: the update text goes to the AI planner, so the recorded
+  // consent is checked first; then the same plan limits, cooldown and team
+  // tier as the website, never the admin bypass. Only the disclosed review /
+  // admin accounts get raised counts (netlify/lib/app-tier.mjs).
   const ios = isIOS(request);
   const contentLength = Number(request.headers.get("content-length") || 0);
   if (contentLength > 1_000_000) return json({ error: "Request is too large" }, 413);
@@ -410,9 +411,10 @@ async function handler(request: Request, context: any): Promise<Response> {
   }
 
   const admin = !ios && isAdminUser(user);
+  const allowance = ios ? appAllowanceFor(user) : null;
   // The case row and the team check do not depend on each other. A failed team
   // check is held until the usage step below, where it has always been reported.
-  const teamCheck = admin || ios
+  const teamCheck = admin
     ? Promise.resolve({ onTeam: false, error: null as unknown })
     : getActiveTeamMembership(user.id).then((onTeam) => ({ onTeam, error: null as unknown }), (error) => ({ onTeam: false, error }));
   const loadCaseRow = async () => {
@@ -445,9 +447,8 @@ async function handler(request: Request, context: any): Promise<Response> {
   } else {
     try {
       if (team.error) throw team.error;
-      if (ios) {
-        const tier = appTierFor(user);
-        usage = await consumeRecoveryUpdateApp(serviceFetch, user.id, tier.recoveryUpdatesPerDay, tier.recoveryUpdateCooldownSeconds);
+      if (allowance) {
+        usage = await consumeRecoveryUpdateApp(serviceFetch, user.id, allowance.recoveryUpdatesPerDay, allowance.recoveryUpdateCooldownSeconds);
       } else {
         usage = team.onTeam
           ? await consumeRecoveryUpdateBusiness(user.id)
@@ -460,7 +461,7 @@ async function handler(request: Request, context: any): Promise<Response> {
     }
     if (!usage.allowed) {
       const code = usage.cooldownSecondsRemaining > 0 ? "cooldown_active" : "daily_limit_reached";
-      if (ios) {
+      if (allowance) {
         return json({ error: usage.cooldownSecondsRemaining > 0 ? recoveryCooldownMessage(usage.cooldownSecondsRemaining) : APP_MESSAGES.recoveryUpdateLimit, code, usage }, 429);
       }
       const planLabel = usage.plan === "business" ? "team" : usage.plan === "pro" ? "Pro" : "Free";

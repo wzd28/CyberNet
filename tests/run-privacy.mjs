@@ -84,6 +84,7 @@ function install(db = {}) {
   const state = {
     profile: { id: USER, plan: "free", subscription_status: "inactive" },
     owned: [],
+    apple: [], // apple_subscriptions rows of the user (Apple In-App Purchase)
     teamDeleteReturns: null, // rows returned by the business_accounts DELETE (default: the team)
     teamStillThere: [],
     teamNow: null, // the owned teams as the re-read just before the clean-up sees them (default: owned)
@@ -184,6 +185,7 @@ function install(db = {}) {
       const teamId = target.match(/id=eq\.([^&]+)/)[1];
       return respond(200, state.teamDeleteReturns ?? [{ id: teamId }]);
     }
+    if (method === "GET" && target.startsWith(`/rest/v1/apple_subscriptions?user_id=eq.${USER}`)) return respond(200, state.apple);
     if (method === "GET" && target.startsWith(`/rest/v1/recovery_cases?owner_user_id=eq.${USER}`)) return respond(200, [{ id: CASE, owner_user_id: USER }]);
     if (method === "GET" && target.startsWith("/rest/v1/recovery_versions?")) return respond(200, [{ case_id: CASE, version: 1 }]);
     if (method === "GET" && target.startsWith("/rest/v1/recovery_tasks?")) return respond(200, [{ case_id: CASE, title: "Call the bank" }]);
@@ -658,6 +660,78 @@ check("export: the stored user agent of each AI consent is included", /CyberNetA
 install({ fail: { "GET /rest/v1/ai_consents": 404 } });
 r = await call({ action: "export" });
 check("export: missing ai_consents table reads as empty", r.status === 200 && Array.isArray(r.data.data.aiConsents) && r.data.data.aiConsents.length === 0, r.status);
+
+// ── 13b. Apple In-App Purchase subscriptions ──
+// A subscription bought in the app cannot be cancelled from here (only the person can, in Settings), so the
+// deletion goes ahead and says that Apple keeps charging; an Apple-billed team is closed with no Stripe call.
+{
+  const row = (over = {}) => ({ status: "active", auto_renew: true, revoked_at: null, ...over });
+  const FIRST_DELETE = [
+    ...FIRST,
+    `DELETE /rest/v1/business_members?user_id=eq.${USER}`,
+    `DELETE /rest/v1/business_invites?invited_by_user_id=eq.${USER}`,
+    `DELETE /auth/v1/admin/users/${USER}`
+  ];
+  ENV = fullEnv();
+  install({ apple: [row()] });
+  r = await call({ action: "delete-account", confirmation: "DELETE" });
+  check("apple pro: deleted, and the reply says an App Store subscription is still open", r.status === 200 && r.data.deleted === true && r.data.appleSubscriptionOpen === true && r.data.cancelledSubscriptions === 0, r);
+  check("apple pro: nothing to cancel at Stripe, the usual writes only (the Apple rows go with the auth user)", stripeCalls.length === 0 && same(writes(), FIRST_DELETE), { w: writes(), stripeCalls });
+  check("apple pro: the Apple rows are looked up for this user only", calls.some(c => c.target.startsWith(`/rest/v1/apple_subscriptions?user_id=eq.${USER}`)), calls.map(c => c.target));
+  ownOnly("apple pro");
+  for (const [label, apple] of [
+    ["renewal switched off", [row({ auto_renew: false })]],
+    ["expired", [row({ status: "expired" })]],
+    ["revoked (refunded)", [row({ status: "revoked", revoked_at: "2026-10-01T00:00:00Z" })]],
+    ["billing retry that is still renewing", [row({ status: "billing_retry" })]],
+    ["none", []]
+  ]) {
+    install({ apple });
+    r = await call({ action: "delete-account", confirmation: "DELETE" });
+    const expectOpen = label.startsWith("billing retry");
+    check(`apple ${label}: deleted${expectOpen ? ", and still flagged open (Apple may still charge)" : ", no open-subscription flag"}`, r.status === 200 && r.data.deleted === true && ("appleSubscriptionOpen" in r.data) === expectOpen, r);
+  }
+  // The lookup is only informational: a failure or a missing table never blocks the deletion.
+  install({ apple: [row()], fail: { "GET /rest/v1/apple_subscriptions": 500 } });
+  r = await call({ action: "delete-account", confirmation: "DELETE" });
+  check("apple lookup failing (500): the deletion still goes ahead, with no flag", r.status === 200 && r.data.deleted === true && !("appleSubscriptionOpen" in r.data), r);
+  install({ fail: { "GET /rest/v1/apple_subscriptions": 404 } });
+  r = await call({ action: "delete-account", confirmation: "DELETE" });
+  check("apple table missing (migration not applied): the deletion goes ahead", r.status === 200 && r.data.deleted === true && !("appleSubscriptionOpen" in r.data), r);
+
+  // An Apple-billed Business team: no Stripe ids, so nothing is cancelled at Stripe, with or without a Stripe key.
+  for (const withKey of [true, false]) {
+    ENV = withKey ? { ...fullEnv(), STRIPE_SECRET_KEY: STRIPE_TEST_KEY } : fullEnv();
+    install({ owned: [{ id: TEAM, subscription_status: "active", stripe_subscription_id: null, stripe_customer_id: null }], apple: [row()] });
+    r = await call({ action: "delete-account", confirmation: "DELETE" });
+    check(`apple team (${withKey ? "Stripe configured" : "no Stripe key"}): 200 deleted, the team is closed, nothing at Stripe`, r.status === 200 && r.data.deleted === true && r.data.closedTeams === 1 && r.data.cancelledSubscriptions === 0 && r.data.appleSubscriptionOpen === true && stripeCalls.length === 0, { r: r.data, stripeCalls });
+    check(`apple team (${withKey ? "Stripe configured" : "no Stripe key"}): marked canceled, then cleaned up in the usual order`, same(writes(), [
+      ...FIRST,
+      `PATCH /rest/v1/business_accounts?id=eq.${TEAM}&owner_user_id=eq.${USER}`,
+      `DELETE /rest/v1/business_members?business_account_id=eq.${TEAM}`,
+      `DELETE /rest/v1/business_invites?business_account_id=eq.${TEAM}`,
+      `DELETE /rest/v1/business_daily_usage?business_account_id=eq.${TEAM}`,
+      `DELETE /rest/v1/business_recovery_usage?business_account_id=eq.${TEAM}`,
+      `PATCH /rest/v1/scan_history?business_account_id=eq.${TEAM}`,
+      `PATCH /rest/v1/recovery_cases?business_account_id=eq.${TEAM}`,
+      `DELETE /rest/v1/business_accounts?id=eq.${TEAM}&owner_user_id=eq.${USER}&${CLOSED}`,
+      `DELETE /rest/v1/business_members?user_id=eq.${USER}`,
+      `DELETE /rest/v1/business_invites?invited_by_user_id=eq.${USER}`,
+      `DELETE /auth/v1/admin/users/${USER}`
+    ]) && calls.find(c => c.method === "PATCH" && c.target.startsWith("/rest/v1/business_accounts?id="))?.body?.subscription_status === "canceled", { w: writes() });
+    ownOnly(`apple team`, [TEAM]);
+  }
+  ENV = fullEnv();
+
+  // Export: the person's own Apple subscription details (product, dates, status), nothing else.
+  install({ apple: [{ product_id: "app.cybernetai.pro.monthly", plan: "pro", seat_tier: null, billing_interval: "month", environment: "Production", purchase_date: "2026-10-01T00:00:00Z", expires_at: "2026-11-01T00:00:00Z", grace_expires_at: null, auto_renew: true, status: "active", revoked_at: null, created_at: "2026-10-01T00:00:00Z" }] });
+  r = await call({ action: "export" });
+  check("export: the Apple subscriptions are included", r.status === 200 && r.data.data.appleSubscriptions?.length === 1 && r.data.data.appleSubscriptions[0].product_id === "app.cybernetai.pro.monthly" && calls.some(c => c.target.startsWith(`/rest/v1/apple_subscriptions?user_id=eq.${USER}&select=`)), r.data?.data?.appleSubscriptions);
+  check("export: the Apple read selects no transaction id and no user id column", !/original_transaction_id|latest_transaction_id|user_id,/.test(calls.find(c => c.target.startsWith("/rest/v1/apple_subscriptions"))?.target.split("select=")[1] || ""), calls.find(c => c.target.startsWith("/rest/v1/apple_subscriptions"))?.target);
+  install({ fail: { "GET /rest/v1/apple_subscriptions": 404 } });
+  r = await call({ action: "export" });
+  check("export: a missing apple_subscriptions table reads as empty", r.status === 200 && Array.isArray(r.data.data.appleSubscriptions) && r.data.data.appleSubscriptions.length === 0, r.status);
+}
 
 // ── 14. legal-acceptance: the same key fallback ──
 async function accept(env) {

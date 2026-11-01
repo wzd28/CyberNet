@@ -14,10 +14,12 @@
 (() => {
   "use strict";
 
+  /*@web*/
   const PENDING_BUSINESS_CHECKOUT = "cybernet_pending_business_checkout";
   const PENDING_INVITE = "cybernet_pending_invite";
   const PENDING_INVITE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
   const INVITE_TOKEN_PATTERN = /^[a-f0-9]{64}$/;
+  /*@end-web*/
   // The same email check as the sign-in form (script.js EMAIL_PATTERN) and business-invite.mts.
   const INVITE_EMAIL_PATTERN = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)*\.[a-z0-9-]{2,}$/i;
   const STYLESHEET_VERSION = "20260927-2";
@@ -28,7 +30,9 @@
 
     ensureStylesheet();
     createTeamModal();
+    /*@web*/
     createAcceptInviteModal();
+    /*@end-web*/
     injectManageButton();
     whenAppReady(initializeController);
   }
@@ -53,6 +57,7 @@
 
   function ensureStylesheet() {
     if (document.getElementById("cybernetBusinessTeamStylesheet")) return;
+    /*@ios if (document.querySelector('link[href*="cybernet-business-team.css"]')) return; @end-ios*/
 
     const link = document.createElement("link");
     link.id = "cybernetBusinessTeamStylesheet";
@@ -153,6 +158,7 @@
     document.body.appendChild(modal);
   }
 
+  /*@web*/
   function createAcceptInviteModal() {
     if (document.getElementById("acceptInviteModal")) return;
 
@@ -192,6 +198,7 @@
 
     document.body.appendChild(modal);
   }
+  /*@end-web*/
 
   function injectManageButton() {
     if (document.getElementById("accountManageBusinessBtn")) return true;
@@ -251,11 +258,13 @@
     const activitySection = document.getElementById("cnTeamActivitySection");
     const message = document.getElementById("cnTeamMessage");
 
+    /*@web*/
     const inviteModal = document.getElementById("acceptInviteModal");
     const inviteCloseBtn = document.getElementById("cnInviteClose");
     const inviteAcceptBtn = document.getElementById("cnInviteAcceptBtn");
     const inviteDeclineBtn = document.getElementById("cnInviteDeclineBtn");
     const inviteMessage = document.getElementById("cnInviteMessage");
+    /*@end-web*/
 
     let session = null;
     // False until the first answer from Supabase: until then "no session"
@@ -280,11 +289,13 @@
       message.className = `cn-team-message ${tone}`.trim();
     }
 
+    /*@web*/
     function setInviteMessage(text = "", tone = "") {
       if (!inviteMessage) return;
       inviteMessage.textContent = text;
       inviteMessage.className = `cn-team-message ${tone}`.trim();
     }
+    /*@end-web*/
 
     // Every change of signed-in user drops what was loaded for the previous one.
     function setSession(next) {
@@ -1334,6 +1345,10 @@
 
     // Not on a team: the Business plan, with a note saying why.
     function showBusinessPlan() {
+      /*@ios
+      window.CNStore?.openPaywall?.({ focus: "business", notice: "Manage Business comes with the Business plan. Upgrade below to create your team." });
+      @end-ios*/
+      /*@web*/
       document.querySelector('.nav-tabs .nav-link[data-page="pricing"]')?.click();
       const notice = document.getElementById("pricingNotice");
       if (notice) {
@@ -1343,6 +1358,7 @@
       setTimeout(() => {
         document.querySelector(".business-price-card")?.scrollIntoView({ behavior: "smooth", block: "center" });
       }, 350);
+      /*@end-web*/
     }
 
     // Asks for the team before the tap lands, when the account check says this
@@ -1381,6 +1397,7 @@
       }
     }
 
+    /*@web*/
     /* ─── Accept invite ─── */
 
     function onInvitePage() {
@@ -1535,6 +1552,8 @@
       }
     }
 
+    /*@end-web*/
+
     /* ─── Wiring ─── */
 
     // The "Manage Business" entry in the main navigation. Team members get the
@@ -1627,6 +1646,7 @@
         watchIntent(button);
       }
 
+      /*@web*/
       // Right after a Business checkout, take the owner straight into the
       // panel so the first thing they see is where to add their team.
       if (onTeam && profile.teamRole === "owner" && !autoOpened) {
@@ -1647,6 +1667,7 @@
           setTimeout(openTeam, 1200);
         }
       }
+      /*@end-web*/
     }
 
     window.addEventListener("cybernet:account-refreshed", (event) => {
@@ -1676,6 +1697,7 @@
       }
     });
 
+    /*@web*/
     inviteCloseBtn?.addEventListener("click", closeInviteModal);
     inviteDeclineBtn?.addEventListener("click", () => {
       forgetInvite();
@@ -1683,11 +1705,14 @@
       window.location.assign("/");
     });
     inviteAcceptBtn?.addEventListener("click", acceptInvite);
+    /*@end-web*/
 
     document.addEventListener("keydown", (event) => {
       if (event.key !== "Escape") return;
       if (modal?.classList.contains("show")) closeTeam();
+      /*@web*/
       if (inviteModal?.classList.contains("show")) closeInviteModal();
+      /*@end-web*/
     });
 
     if (client) {
@@ -1696,17 +1721,25 @@
         // Signed out, or another account signed in: the open panel showed the
         // previous person's team.
         if (previous && previous !== currentUserId() && panelOpen()) closeTeam();
+        /*@web*/
         if (inviteToken()) refreshInviteGate();
         else resumeStoredInvite();
+        /*@end-web*/
       });
     }
 
+    /*@web*/
     if (inviteToken()) {
       openInviteModal();
       refreshInviteGate();
     } else {
       getSession().then(resumeStoredInvite).catch(() => {});
     }
+    /*@end-web*/
+    /*@ios
+    // The Account screen (ios.js) and the plans page (store.js) open the team panel through this.
+    window.CNBusinessTeam = Object.freeze({ open: () => openTeam() });
+    @end-ios*/
   }
 
   if (document.readyState === "loading") {

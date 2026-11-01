@@ -1,12 +1,12 @@
 import { json, verifyUser, getActiveTeamMembership, serviceFetch } from "../lib/supabase.mjs";
 import { reportError } from "../lib/report-error.mjs";
-// Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
-// management, admin): requests from the app get 403 (netlify/lib/cors.mjs).
-import { webOnly } from "../lib/cors.mjs";
+// Business team management is available in the iPhone app (the team's owner
+// and members), so the app's origin gets CORS (netlify/lib/cors.mjs).
+import { withCors } from "../lib/cors.mjs";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export default webOnly(async (request: Request) => {
+async function handler(request: Request): Promise<Response> {
   if (request.method !== "POST") return json({ error: "Method not allowed." }, 405);
 
   try {
@@ -63,6 +63,8 @@ export default webOnly(async (request: Request) => {
     reportError(error, { fn: "business-invite-cancel", label: "Invite cancel failed", status: error?.status });
     return json({ error: error.message || "Could not cancel the invite." }, Number(error.status) || 500);
   }
-});
+}
+
+export default withCors(handler);
 
 export const config = { path: "/api/business-invite-cancel" };

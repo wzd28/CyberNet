@@ -1,5 +1,5 @@
 {
-  "_": "Copy changes for the in-app legal pages (legal/*.html), applied to the built page. Same rule format as web-ios/text-overrides.json. Each one keeps the meaning; owner to review.",
+  "_": "Copy changes for the in-app legal pages (legal/*.html), applied to the built page. Same rule format as web-ios/text-overrides.json. Each one keeps the meaning; owner to review. Only words the legal gate still refuses are rewritten (checkout, a dollar sign, placeholder wording): plan names, prices-as-words and Stripe are allowed in the Terms and Privacy Policy since 30 Oct 2026.",
   "privacy.html": [
     {
       "find": "<strong>Stripe:</strong> checkout, recurring billing",
@@ -14,13 +14,6 @@
       "min": 0,
       "max": 1,
       "why": "legal gate word (checkout); same meaning"
-    },
-    {
-      "find": "needed to unlock, renew, cancel, refund",
-      "replace": "needed to provide, renew, cancel, refund",
-      "min": 0,
-      "max": 1,
-      "why": "legal gate word (unlock); same meaning"
     },
     {
       "find": "only if you choose Continue with Google;",
@@ -51,13 +44,6 @@
       "min": 0,
       "max": 1,
       "why": "placeholder wording is not allowed in the app (D12); the clause keeps its meaning"
-    },
-    {
-      "find": "legal, pricing, or business changes",
-      "replace": "legal, commercial, or business changes",
-      "min": 0,
-      "max": 1,
-      "why": "legal gate word (pricing); same meaning"
     },
     {
       "find": "or USD $100.</p>",

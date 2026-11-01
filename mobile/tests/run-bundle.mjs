@@ -28,8 +28,7 @@ try {
     const pub = rel => readFile(path.join(root, "public", rel));
 
     // first screen and pages
-    check("Check (Quick Scan) is the first screen", /<section id="cybernet" class="page active-page"/.test(html));
-    check("no Home, Pricing or About page", !/id="home"|id="pricing"|id="about"/.test(html));
+    // Home is the first screen and the plans page is in the app since 30 Oct 2026: see "Plans in the app" below.
     check("the Account page is in the page", /<section id="account" class="page cn-ios-account"/.test(html));
     // The website's sign-in gate (its stage, its head snippet) is not in the app's page. Since 30 Oct 2026 the app has its own gate: a sign-in card that ios.js builds (tested below).
     check("the website's sign-in gate (cnGateStage, html.cn-gate) is not in the page; the app's own card is built by ios.js", !/cnGateStage|cn-gate-stage|html\.cn-gate|classList\.add\("cn-gate"\)/.test(html));
@@ -43,10 +42,10 @@ try {
     check("ios.js after script.js and the privacy controls", scripts.indexOf("ios/ios.js") > scripts.indexOf("script.js") && scripts.indexOf("ios/ios.js") > scripts.indexOf("cybernet-privacy-controls.js"), scripts.join(", "));
     check("analytics module is the last script", scripts[scripts.length - 1] === "ios/cn-analytics.js", scripts.join(", "));
     check("no remote script tags", scripts.every(s => !/^(https?:)?\/\//.test(s)), scripts.join(", "));
-    check("web-only scripts are not loaded", !scripts.some(s => /consent|business-team|account-api-upgrade|onboarding|legal-upgrade|final-ui-fix|howto|admin-feedback/.test(s)), scripts.join(", "));
+    check("web-only scripts are not loaded (the Manage Business module is, since the plans decision of 30 Oct 2026)", !scripts.some(s => /consent|account-api-upgrade|onboarding|legal-upgrade|final-ui-fix|howto|admin-feedback/.test(s)) && scripts.includes("cybernet-business-team.js") && scripts.includes("ios/store.js"), scripts.join(", "));
     check("CSP meta present", /<meta http-equiv="Content-Security-Policy" content="default-src 'self' capacitor:\/\/localhost;/.test(html));
     check("title is CyberNet AI", /<title>CyberNet AI<\/title>/.test(html));
-    check("no SEO / manifest / preconnect tags", !/og:|twitter:|rel="manifest"|rel="preconnect"|ld\+json|canonical/.test(html));
+    check("no SEO / manifest / preconnect tags", !/property="og:|name="twitter:|rel="manifest"|rel="preconnect"|ld\+json|canonical/.test(html));
 
     // the same engine and the same supabase-js as the website
     check("engine is byte-identical to public/cybernet-engine.js", Buffer.compare(await readFile(path.join(out, "cybernet-engine.js")), await pub("cybernet-engine.js")) === 0);
@@ -56,12 +55,9 @@ try {
 
     // iOS behaviour compiled in
     const script = await read("script.js");
-    check("planTier is the App tier", /function planTier\(\)\{const plan=appState\.profile\?\.plan;return plan\?"app":"app"\}/.test(script), script.match(/function planTier\(\)\{[^}]*\}/)?.[0]);
-    check("Quick Scan has no server quota", /async function checkQuickScanQuota\(\)\{return\{allowed:true\}\}/.test(script));
     check("sessions live in the Keychain adapter", /storage:window\.CNSecureStorage\|\|void 0/.test(script) || /storage:window\.CNSecureStorage\|\|undefined/.test(script));
     check("email links land on the app pages", script.includes("https://cybernetai.app/app/confirmed.html") && script.includes("https://cybernetai.app/app/reset.html"));
     check("jsQR comes from the bundle", script.includes('"vendor/jsQR.js"') && !script.includes("cdn.jsdelivr"));
-    check("the app opens on Check", /else\{switchPage\("cybernet",\{skipUrlUpdate:true\}\)\}/.test(script));
 
     // Behaviour of the compiled app code, run in isolation: each function is cut out of www/script.js with
     // acorn and called with stubs (no DOM, no network).
@@ -384,7 +380,7 @@ try {
         const acct = parse(card.signInChoicesHtml("cnAcct"));
         check("Sign-in card: the message line is above the buttons on the card (so they stay where the finger is) and under them on the Account tab; one line each", order(launch) === "msg|apple" && order(guest) === "msg|apple" && order(acct) === "apple|msg", [order(launch), order(guest), order(acct)]);
         const leads = pages ? Object.keys(pages).map(k => card.ACCOUNT_LEADS[k]) : [];
-        check("Sign-in card: a guest's card says what its page does instead of repeating its heading; the launch card keeps the approved line", leads.length === 2 && leads.every(l => l && !/^Sign in/i.test(l)) && textOf(guest.find(n => /gate-lead/.test(attr(n, "class") || ""))) === card.ACCOUNT_LEADS.cybernetai && /constlead=\(?page&&ACCOUNT_LEADS\[page\]\)?\|\|GATE_LEAD/.test(fnText("signInCard")), leads);
+        check("Sign-in card: a guest's card says what its page does instead of repeating its heading; the launch card keeps the approved line", leads.length === 2 && leads.every(l => l && !/^Sign in/i.test(l)) && textOf(guest.find(n => /gate-lead/.test(attr(n, "class") || ""))) === card.ACCOUNT_LEADS.cybernetai && /constlead=askedLead\|\|\(?page&&ACCOUNT_LEADS\[page\]\)?\|\|GATE_LEAD/.test(fnText("signInCard")), leads);
         check("Sign-in card: no inline script and no remote file in the markup", !launch.some(n => n.tagName === "script" || /^https?:/.test(attr(n, "src") || attr(n, "href") || "")));
         // wording: App Review 2.3.1(a) (REJECTION-RISKS B2); the gate's own word list runs over every string the card and the hints show
         const strings = [card.GATE_LEAD, card.GUEST_LABEL, card.GUEST_NOTE, "Sign in to CyberNet AI", "Sign in to use Analysis AI", "Sign in to use Recovery", "Not now", ...launch.concat(guest).map(n => n.childNodes.filter(c => c.nodeName === "#text").map(c => c.value).join(" ")),
@@ -469,7 +465,7 @@ try {
         check("Guest: Analysis AI and Recovery need an account; Check, Learn, Account and the QR scanner do not; nobody signed in is asked (and prototype names are not pages)", g("cybernetai") && g("recovery") && !g("cybernet") && !g("learn") && !g("account") && !g("scan") && !g("constructor") && !g("toString") && !m("cybernetai") && !m("recovery"));
         check("Guest: the Analysis AI segment asks before the thumb or the focus moves, and a cancelled card leaves the switch on Quick Scan", (() => { const t = fnText("pickCheckMode"); return t.indexOf("if(needsAccount(page)){requireAccount(page);return}") > 0 && t.indexOf("if(needsAccount(page))") < t.indexOf(".focus(") && t.indexOf("if(needsAccount(page))") < t.indexOf("paintCheckSwitch(") && t.indexOf("if(needsAccount(page))") < t.indexOf("tick()"); })());
         check("Guest: navigate() asks too (the Recovery tab, the native tab bar, a reminder, a shared item), before it clears or starts anything", /^functionnavigate\(page\)\{if\(needsAccount\(page\)\)\{requireAccount\(page\);return\}modeWanted=null;/.test(fnText("navigate")));
-        check("Guest: the website's own in-page buttons (they switch pages directly) are caught when the page changes: the card, and Cancel goes back to where they came from", /if\(needsAccount\(now\)\)requireAccount\(now,null,needsAccount\(from\)\?"cybernet":from\)/.test(fnText("watchPages")) && /constfrom=last;last=now;syncTabs\(\)/.test(fnText("watchPages")));
+        check("Guest: the website's own in-page buttons (they switch pages directly) are caught when the page changes: the card, and Cancel goes back to where they came from", /if\(needsAccount\(now\)\)requireAccount\(now,null,needsAccount\(from\)\?"cybernet":from\)/.test(fnText("watchPages")) && /constfrom=last;last=now;if\(now==="pricing"&&from!=="pricing"\)plansFrom=from;syncTabs\(\)/.test(fnText("watchPages")));
         check("Guest: a session that ends while a page that needs an account is open (an expired refresh) gets the card, then Check", /elseif\(needsAccount\(activePage\(\)\)\)requireAccount\(activePage\(\),null,"cybernet"\)/.test(squash(iosJs)));
         check("Guest: Get an AI explanation (QR result, shared item) asks for the account first and puts the item in once they are in; the old pending-item listener is gone", /if\(requireAccount\("cybernetai",\(\)=>askAi\(text,file\)\)\)return/.test(fnText("askAi")) && !/pendingAi/.test(iosJs) && !/Sign in to get an AI explanation/.test(iosJs));
         // requireAccount() and arrive(), run with stubs
@@ -526,14 +522,15 @@ try {
 
       // ---- Analysis AI for a signed-in person: no sign-in prompt anywhere on the page
       {
-        const tidy = (texts) => {
+        const tidy = (texts, plan = "pro") => {
           const nodes = { bubble: { textContent: texts[0] }, status: { textContent: texts[1] }, saved: { textContent: texts[2] } };
-          run(["AI_GREETING", "tidyAnalysisAi"], ["$"], "tidyAnalysisAi", sel => (/chat-bubble-inner/.test(sel) ? nodes.bubble : /aiApiStatus/.test(sel) ? nodes.status : /proHistoryList/.test(sel) ? nodes.saved : null))();
+          run(["AI_GREETING", "planOf", "tidyAnalysisAi"], ["$", "state"], "tidyAnalysisAi", sel => (/chat-bubble-inner/.test(sel) ? nodes.bubble : /aiApiStatus/.test(sel) ? nodes.status : /proHistoryList/.test(sel) ? nodes.saved : null), () => ({ profile: { plan } }))();
           return Object.values(nodes).map(n => n.textContent);
         };
         const before = ["Sign in, then paste or drop anything suspicious below: a message, a link or a screenshot.", "Sign in to use Analysis AI.", "Sign in to see your saved explanations."];
         const after = tidy(before);
-        check("Analysis AI (signed in): the page's own sign-in lines (greeting, status, saved list) are rewritten at start, so none asks for a sign-in; text script.js already wrote is left alone", after.every(t => !/sign in/i.test(t)) && after[0].startsWith("Paste or drop anything suspicious below") && tidy(["Hello", "4 of 5 left", "Nothing yet"]).join("|") === "Hello|4 of 5 left|Nothing yet" && before.every(t => /^Sign in/.test(t)) && /<div class="chat-bubble-inner">Sign in, then paste or drop/.test(html), after);
+        const afterFree = tidy(before, "free");
+        check("Analysis AI (signed in): the page's own sign-in lines (greeting, status, saved list) are rewritten at start, so none asks for a sign-in; text script.js already wrote is left alone", after.every(t => !/sign in/i.test(t)) && after[0].startsWith("Paste or drop anything suspicious below") && /Free accounts receive 3 AI analyses per day; Pro accounts receive 15 advanced analyses, saved history, and reports\./.test(after[0]) && afterFree[2] === "Sign in to see your saved explanations." && tidy(["Hello", "4 of 5 left", "Nothing yet"]).join("|") === "Hello|4 of 5 left|Nothing yet" && before.every(t => /^Sign in/.test(t)) && /<div class="chat-bubble-inner">Sign in, then paste or drop/.test(html), after);
         check("Analysis AI (signed in): the AI consent sheet is unchanged: the fetch layer still asks before the first send, the notice version is the same, and Not now still sends nothing", /AI_ENDPOINT\.test\(url\)/.test(iosJs) && /if\(!awaitconsent\.ensure\(\)\)returnconsentDeclined\(\)/.test(squash(iosJs)) && /AI_CONSENT_VERSION="2026-11-ios-1"/.test(squash(iosJs)) && /code:"AI_CONSENT_REQUIRED"/.test(squash(iosJs)));
         check("Analysis AI (signed in): sending a message from the page itself still needs an account (the guest hint is true; the card comes first so a guest never types into it)", /function sendChatMessage\(\)\{if\(!isSignedIn\(\)\)\{openAuthModal\("signup"\);return\}/.test(script));
       }
@@ -818,16 +815,241 @@ try {
       }
 
       // ---- the Account tab for a guest matches the card
-      check("Account (guest): the same three ways in as the card (Apple first), under the same lead, wired by the same function; the old two buttons are gone", /<div class="cn-ios-group" data-ios-signed-out(?:="")?>\s*<p class="cn-ios-group-lead">Sign in to get AI explanations, keep your saved explanations and use Recovery\./.test(html) && /<div id="cnAcctSignIn"><\/div>/.test(html) && !/data-ios-action="(sign-in|create)"/.test(html + iosJs) && /entry\.innerHTML=signInChoicesHtml\("cnAcct"\);wireSignIn\(entry\)/.test(fnText("bindAccount")));
+      check("Account (guest): the same three ways in as the card (Apple first), under the same lead, wired by the same function; the old two buttons are gone", /<div class="cn-ios-group" data-ios-signed-out(?:="")?>\s*<p class="cn-ios-group-lead">Sign in to get AI explanations and use Recovery\./.test(html) && /<div id="cnAcctSignIn"><\/div>/.test(html) && !/data-ios-action="(sign-in|create)"/.test(html + iosJs) && /entry\.innerHTML=signInChoicesHtml\("cnAcct"\);wireSignIn\(entry\)/.test(fnText("bindAccount")));
     }
 
 
-    // Copy rules on app screens: no protection claim on the sign-in sheet, no website plan names in the
-    // deletion dialog, and the Recovery disclaimer (risk D3).
+    // ---- Plans in the app (owner decision, 30 Oct 2026): Home as the first tab, Free / Pro / Business sold with Apple In-App Purchase,
+    // the website's limits and locks. App Review 3.1.1, 3.1.2, 3.1.3(b), 2.3.1 and 5.1.1(v) shape the wording and the flows.
+    {
+      const squashed = value => String(value).replace(/\s+/g, "");
+      const iosAstP = acorn.parse(iosJs, { ecmaVersion: "latest", sourceType: "script" });
+      const storeText = existsSync(path.join(out, "ios", "store.js")) ? await read("ios/store.js") : "";
+      const storeAst = storeText ? acorn.parse(storeText, { ecmaVersion: "latest", sourceType: "script" }) : null;
+      const sliceOf = (text, node) => (node ? text.slice(node.start, node.end) : "");
+      const fnIn = (ast, name) => find(n => n.type === "FunctionDeclaration" && n.id?.name === name, ast);
+      const declIn = (ast, name) => find(n => n.type === "VariableDeclaration" && n.declarations.some(d => d.id?.name === name), ast);
+      const P5 = await import(pathToFileURL(createRequire(path.join(mobile, "package.json")).resolve("parse5")).href);
+      const doc = P5.parse(html, { sourceCodeLocationInfo: false });
+      const nodes = [];
+      (function walk(n) { for (const c of n.childNodes || []) { if (c.tagName) nodes.push(c); walk(c); } })(doc);
+      const attr = (n, name) => n.attrs?.find(a => a.name === name)?.value;
+      const textOf = n => (n.nodeName === "#text" ? n.value : (n.childNodes || []).map(textOf).join(""));
+      const byId = id => nodes.find(n => attr(n, "id") === id);
+      const within = root => { const out2 = []; (function walk(n) { for (const c of n.childNodes || []) { if (c.tagName) out2.push(c); walk(c); } })(root); return out2; };
+
+      // (a) Home is the first tab and the first page; the tools, the plans page and Account follow; there is no About page
+      const home = byId("home");
+      check("Home: the website's home page is the app's first page (#home is the active page, no other page is) and the About page is not in the app",
+        !!home && /\bactive-page\b/.test(attr(home, "class") || "") && nodes.filter(n => n.tagName === "section" && /\bpage\b/.test(attr(n, "class") || "") && /\bactive-page\b/.test(attr(n, "class") || "")).length === 1 && !byId("about") && !/data-page="about"/.test(html));
+      check("Pages: Check (Quick Scan), Analysis AI, Recovery, Learn, the plans page (#pricing) and Account are all in the page", ["cybernet", "cybernetai", "recovery", "learn", "pricing", "account"].every(id => byId(id)?.tagName === "section" && /\bpage\b/.test(attr(byId(id), "class") || "")), nodes.filter(n => /\bpage\b/.test(attr(n, "class") || "")).map(n => attr(n, "id")));
+      const tabsDecl = sliceOf(iosJs, declIn(iosAstP, "TABS"));
+      const tabIds = [...squashed(tabsDecl).matchAll(/\{id:"(\w+)",page:(null|"\w+")/g)].map(m => `${m[1]}:${m[2].replace(/"/g, "")}`);
+      check("Tabs: Home first (page home), then Check, Scan QR, Recovery, Learn, Account", tabIds.join() === "home:home,check:cybernet,scan:null,recovery:recovery,learn:learn,account:account", tabIds);
+      const pageTab = new Function(`${sliceOf(iosJs, declIn(iosAstP, "PAGE_TAB"))}\nreturn PAGE_TAB;`)();
+      check("Tabs: Home lights Home, and the plans page (not a tab) keeps the Account tab lit; the Check tab still holds both tools", pageTab.home === "home" && pageTab.pricing === "account" && pageTab.cybernet === "check" && pageTab.cybernetai === "check" && pageTab.account === "account", pageTab);
+      check("Tabs: tapping Home when Home is open scrolls it to the top; the web tab bar has six columns", /if\(id==="home"\)\{if\(activePage\(\)==="home"\)\{scrollToTop\(\);return\}navigate\("home"\);return\}/.test(squashed(sliceOf(iosJs, fnIn(iosAstP, "goTab")))) && /grid-template-columns:repeat\(6,1fr\)/.test(squashed(await read("ios/ios.css"))));
+      check("Launch: the app opens on Home (script.js no longer switches to Quick Scan at start)", !/else\{switchPage\("cybernet",\{skipUrlUpdate:true\}\)\}/.test(script) && /home:\{title:/.test(script));
+
+      // (b) the Home page in the app: the website's markup, with the app's twins where the website points at things the app has not got
+      const homeNodes = within(home);
+      const tiles = homeNodes.filter(n => n.tagName === "button" && /\bhero-video-btn\b/.test(attr(n, "class") || ""));
+      check("Home: the three 'How it works' tiles are buttons that open Quick Scan, Analysis AI and Recovery (sub-label Open, no video, no dialog)", tiles.length === 3 && tiles.map(n => attr(n, "data-page")).join() === "cybernet,cybernetai,recovery" && tiles.every(n => textOf(n).includes("Open") && !textOf(n).includes("How it works") && attr(n, "aria-haspopup") === undefined && attr(n, "data-video") === undefined), tiles.map(textOf));
+      const learnPill = homeNodes.find(n => attr(n, "id") === "heroLearnFeaturesBtn");
+      check("Home: 'Learn how to use each feature' opens the Learn tab", !!learnPill && attr(learnPill, "data-page") === "learn" && /Learn how to use each feature/.test(textOf(learnPill)));
+      check("Home: no About button, and the QR tile's two addresses are plain words, not links (the sentence that the code is real stays)",
+        !homeNodes.some(n => attr(n, "data-page") === "about") && !homeNodes.some(n => n.tagName === "a" && /^https?:/i.test(attr(n, "href") || "")) && /This code is real: it opens cybernetai\.app\./.test(textOf(home)) && /cn-qr-real">cybernetai\.app</.test(html), homeNodes.filter(n => n.tagName === "a").map(n => attr(n, "href")));
+      check("Home: the Try chips need no account in the app, and the core line is calm ('help you spot a scam', no protection claim)",
+        homeNodes.filter(n => attr(n, "data-cn-try")).length === 3 && homeNodes.filter(n => attr(n, "data-cn-try")).every(n => !/Needs a free account/.test(attr(n, "title") || "") && /Runs a real Quick Scan/.test(attr(n, "title") || "")) && /Let’s help you <b>spot<\/b> a scam\./.test(html) && !/Let’s <b>protect<\/b>/.test(html));
+      check("Home: the live numbers section and its script are in the app, and the hero shows the still picture (no three.js, no canvas script)", /Real activity\./.test(textOf(home)) && !/10-hero3d|hero3d-kit|three\.js|three@/i.test(await read("ui/cybernet-ui.js")) === true && !scripts.some(s => /hero3d|three/.test(s)));
+
+      // (c) the plans page: the website's pricing section with Apple's prices and Apple's required text
+      const pricing = byId("pricing");
+      const pricingNodes = within(pricing);
+      const pricingText = textOf(pricing);
+      const pricingHtml = html.slice(html.indexOf('<section id="pricing"'), html.indexOf("</section>", html.indexOf('id="cnPricingFaqTitle"')) + 10);
+      check("Plans page: Free, Pro and Business cards in the website's structure (price cards, Monthly | Yearly toggle, seat picker, FAQ), titled 'Plans'", pricingNodes.filter(n => (attr(n, "class") || "").split(/\s+/).includes("price-card")).length === 3 && !!pricingNodes.find(n => attr(n, "id") === "pricingToggle") && !!pricingNodes.find(n => attr(n, "id") === "businessSeatPicker") && pricingNodes.filter(n => /\bcn-faq-item\b/.test(attr(n, "class") || "")).length === 4 && /Plans \| CyberNet AI/.test(script));
+      check("Plans page: the cards say Choose the plan that fits you, Free for the price, Deeper analysis for Pro; the protection and 'accurate' wording is gone", /Choose the <b>plan<\/b> that fits you/.test(pricingHtml) && /<span class="price-amount">Free<\/span>/.test(pricingHtml) && /Deeper analysis/.test(pricingText) && !/protection|accurate/i.test(pricingText), pricingText.match(/[^.]*(protection|accurate)[^.]*/i)?.[0]);
+      check("Plans page: Free keeps the website's limits and locks word for word (5 Quick Scans, 3 AI analyses, 1 Recovery case; no history, no reports, timeline limited to immediate actions); Pro and Business keep theirs",
+        ["5 Quick Scans per day", "3 AI analyses per day", "1 Recovery case per day", "No saved scan history", "No downloadable reports", "Recovery timeline limited to immediate actions", "15 AI analyses per day", "Full recovery timeline: first hour, 24 hours, and 7 days", "Unlimited Quick Scans", "Shared daily pool", "50 analyses/day on 5 seats, 90 on 10, 160 on 20", "20 cases/day on 5 seats, 36 on 10, 64 on 20", "Faster Recovery update cooldown (1 hour)"].every(t => pricingText.includes(t)));
+      check("Plans page: no price is typed anywhere on the page (every amount is painted from StoreKit), and no web address or link out", !/[$€£]\s?\d|\d\s?(?:USD|AED|EUR)\b|\b\d+[.,]\d{2}\b/.test(pricingText) && !pricingNodes.some(n => /^(https?:)?\/\//i.test(attr(n, "href") || attr(n, "src") || attr(n, "action") || "")) && !/https?:\/\/|www\./i.test(pricingText), pricingText.match(/[$€£]\s?\d[\d.,]*/)?.[0]);
+      check("Plans page: 'Need more than 20 seats ... email' and the web billing wording are gone (3.1.1: nothing that points to another way to pay)", !/Need more than 20 seats|Manage Billing|Stripe|checkout|billing portal/i.test(pricingText));
+      const ids = ["app.cybernetai.business10.monthly", "app.cybernetai.business20.monthly", "app.cybernetai.business5.monthly", "app.cybernetai.pro.monthly", "app.cybernetai.pro.yearly"];
+      const markupIds = ids.filter(id => id !== "app.cybernetai.pro.yearly"); // the toggle swaps the Pro button to the yearly product in store.js
+      const idsOf = text => [...new Set([...String(text).matchAll(/app\.cybernetai\.[a-z0-9_]+\.[a-z0-9_]+/g)].map(m => m[0]))].sort();
+      check("Plans page: the buy buttons and seat options carry only product ids from the five (Pro monthly, the three Business sizes), one Pro and one Business button, three seat options (5, 10, 20)", idsOf(pricingHtml).join() === markupIds.join() && pricingNodes.filter(n => attr(n, "data-store-buy")).length === 2 && pricingNodes.filter(n => attr(n, "data-seat-tier")).map(n => attr(n, "data-seat-tier")).join() === "5,10,20" && pricingNodes.filter(n => attr(n, "data-store-product")).map(n => attr(n, "data-store-product")).join() === "app.cybernetai.business5.monthly,app.cybernetai.business10.monthly,app.cybernetai.business20.monthly", idsOf(pricingHtml));
+      check("Plans page: store.js knows exactly the same five product ids, and sells Business monthly only", storeText !== "" && idsOf(storeText).join() === ids.join() && !/business\d+\.yearly/.test(storeText));
+
+      // what guideline 3.1.2(a) requires on the page: price and length from Apple, renewal terms, links to the Terms of Use and the Privacy Policy, Restore Purchases, Manage subscription
+      const terms = pricingNodes.find(n => attr(n, "data-open-legal") === "terms"), priv = pricingNodes.find(n => attr(n, "data-open-legal") === "privacy");
+      check("Plans page: Terms of Use and Privacy Policy open the in-app legal pages; Restore Purchases and Manage subscription controls are there",
+        !!terms && textOf(terms).trim() === "Terms of Use" && !!priv && textOf(priv).trim() === "Privacy Policy" && pricingNodes.some(n => n.tagName === "button" && attr(n, "data-store-restore") !== undefined && textOf(n).trim() === "Restore Purchases") && pricingNodes.some(n => n.tagName === "button" && attr(n, "data-store-manage") !== undefined && textOf(n).trim() === "Manage subscription"));
+      check("Plans page: the renewal terms are on the page itself (charged to the Apple ID at confirmation, renews unless cancelled 24 hours before the end of the period, charged within 24 hours before the end, cancel in Settings)",
+        ["Payment is charged to your Apple ID at confirmation of purchase.", "Your subscription renews automatically unless you cancel it at least 24 hours before the end of the current period.", "Your account is charged for renewal within 24 hours before the end of the current period.", "Manage or cancel any time in Settings > your name > Subscriptions."].every(t => pricingText.includes(t)) && /Subscriptions bought in the app are billed by Apple\. CyberNet AI is operated by Marks Events FZ LLE\./.test(pricingText.replace(/\s+/g, " ")));
+      check("Plans page: under each buy button the store's price and the renewal line are painted ('{price} / month. Renews automatically until you cancel.'), and the yearly note and saving come from the store's numbers (shown from 5% only)",
+        storeText.includes("Renews automatically until you cancel.") && /seats\. Renews automatically until you cancel\./.test(storeText) && /Billed once a year at/.test(storeText) && /saving>=5/.test(squashed(storeText)) && /Intl\.NumberFormat\(void0,\{style:"currency",currency\}\)|Intl\.NumberFormat\(undefined,\{style:"currency",currency\}\)/.test(squashed(storeText)));
+      check("Plans page: if Apple's prices cannot be loaded the page says so with a Retry button and the buy buttons stay off (no fallback prices)", /Plans can't load right now\. Check your connection and try again\./.test(pricingText.replace(/\s+/g, " ")) && !!pricingNodes.find(n => attr(n, "data-store-retry") !== undefined) && /proBtn\.disabled=have\.plan!=="free"\|\|!ready\|\|Boolean\(busy\)/.test(squashed(storeText)) && /bizBtn\.disabled=/.test(squashed(storeText)));
+      check("Plans page: there is a Done button that goes back to where the page was opened from", !!pricingNodes.find(n => attr(n, "data-store-done") !== undefined && textOf(n).trim() === "Done") && /Ios\.plansFrom\(\)/.test(storeText) && /plansFrom=from/.test(squashed(iosJs)));
+
+      // (d) store.js: the purchase flow, run with stubs
+      if (storeAst) {
+        const sText = node => sliceOf(storeText, node);
+        const sDecl = name => sText(declIn(storeAst, name)), sFn = name => sText(fnIn(storeAst, name));
+        const call = (names, params, ret, ...stubs) => new Function(...params, `${names.map(n => sDecl(n) || sFn(n)).join(";\n")};\nreturn ${ret};`)(...stubs);
+
+        // who has what: never offer, and never start, a purchase for a plan the account already has
+        const covers = (profile, id) => call(["PRO_MONTHLY", "PRO_YEARLY", "BUSINESS", "seatsOf", "isBusinessId", "planOf", "having", "covered"], ["state"], "covered", () => ({ profile }))(id);
+        const apple = (plan, seatTier) => ({ plan, billing: { source: "apple", plan, seatTier: seatTier || null } });
+        const PM = "app.cybernetai.pro.monthly", PY = "app.cybernetai.pro.yearly", B5 = "app.cybernetai.business5.monthly", B10 = "app.cybernetai.business10.monthly";
+        check("Duplicate-purchase guard: Free may buy anything; Pro (Apple or website) is never offered Pro again but may buy Business; Business is never offered Pro; a website or team Business is never offered Business; an Apple team may change its seats, not repeat them",
+          !covers({ plan: "free" }, PM) && !covers({ plan: "free" }, B5) && covers(apple("pro"), PM) && covers(apple("pro"), PY) && !covers(apple("pro"), B5) && covers({ plan: "pro", billing: { source: "stripe" } }, PY) && !covers({ plan: "pro", billing: { source: "stripe" } }, B10)
+          && covers(apple("business", 5), PM) && covers(apple("business", 5), B5) && !covers(apple("business", 5), B10) && covers({ plan: "business", billing: { source: "stripe" } }, B5) && covers({ plan: "business", billing: { source: "team" } }, B10) && covers({ plan: "business" }, B5));
+
+        // the saving and the monthly equivalent come from the store's own numbers; under 5% nothing is claimed
+        const facts = (monthly, yearly) => call(["PRO_MONTHLY", "PRO_YEARLY", "products", "numberOf", "formatMoney", "display", "yearlyFacts"], [], "yearlyFacts", ...[]);
+        const mkFacts = (monthly, yearly) => new Function(`${sDecl("PRO_MONTHLY")};${sDecl("PRO_YEARLY")};
+          let products = new Map([[PRO_MONTHLY, { price: "${monthly}", displayPrice: "m", currencyCode: "USD" }], [PRO_YEARLY, { price: "${yearly}", displayPrice: "y", currencyCode: "USD" }]]);
+          ${sFn("numberOf")};${sFn("formatMoney")};${sDecl("display")};${sFn("yearlyFacts")};return yearlyFacts();`)();
+        const f1 = mkFacts("10", "96"), f2 = mkFacts("10", "115"), f3 = mkFacts("9.99", "95.99");
+        check("Yearly saving: 20% for 10 and 96 (about 8 a month), nothing claimed under 5% (10 and 115), 20% for 9.99 and 95.99", f1.saving === 20 && /8/.test(f1.perMonth) && f2.saving === 0 && f3.saving === 20, [f1, f2, f3]);
+
+        // verify(): only what the server says to finish is finished; a refused or unreachable server finishes nothing
+        const verifier = async ({ status = 200, body = {}, throws = false, profile = { plan: "pro" } }) => {
+          const log = { finished: [], fetched: [] };
+          const fetchStub = async (url, init) => { log.fetched.push({ url, body: JSON.parse(init.body) }); if (throws) throw new Error("offline"); return { ok: status === 200, status, json: async () => body }; };
+          const verify = call(["planOf", "verify"], ["fetch", "authHeaders", "CNStore", "account", "state", "report"], "verify", fetchStub, h => h, { finish: async ({ transactionId }) => { log.finished.push(transactionId); } }, () => ({ refreshAccountStatus: async () => {} }), () => ({ profile }), () => {});
+          return { log, out: await verify([{ jws: "a.b.c", renewalInfoJws: "r", transactionId: "1" }, { jws: "d.e.f", transactionId: "2" }], "purchase") };
+        };
+        const okRun = await verifier({ body: { results: [{ transactionId: "1", status: "applied", finish: true }, { transactionId: "2", status: "stale", finish: false }] } });
+        check("verify(): the signed text goes to /api/apple-verify (reason, jws, renewalInfoJws); only a transaction the server says finish:true is finished",
+          okRun.log.fetched[0].url === "/api/apple-verify" && okRun.log.fetched[0].body.reason === "purchase" && okRun.log.fetched[0].body.transactions[0].jws === "a.b.c" && okRun.log.fetched[0].body.transactions[0].renewalInfoJws === "r" && okRun.log.finished.join() === "1" && okRun.out.ok === true, okRun);
+        const bad = await Promise.all([verifier({ status: 503 }), verifier({ status: 401 }), verifier({ status: 429 }), verifier({ throws: true })]);
+        check("verify(): a 5xx, 401, 429 or no network finishes nothing and says not ok (the purchase stays unfinished and comes back at the next launch, sign-in or return to the app)", bad.every(r => r.out.ok === false && r.log.finished.length === 0), bad.map(r => r.out));
+        check("verify(): at most 20 transactions per request", /slice\(0,20\)/.test(squashed(sFn("verify"))));
+        const outcomes = call(["outcomeOf"], [], "outcomeOf");
+        check("Outcomes: applied wins; wrong account, a plan from outside the app (conflict), another team and a refused purchase each have their own word; expired and stale give nothing", outcomes([{ status: "applied" }]) === "applied" && outcomes([{ status: "wrong_account" }]) === "wrong_account" && outcomes([{ status: "conflict_web_plan" }]) === "conflict" && outcomes([{ status: "in_other_team" }]) === "other_team" && outcomes([{ status: "invalid" }]) === "refused" && outcomes([{ status: "expired" }, { status: "stale" }]) === "none" && outcomes([{ status: "stale" }, { status: "applied" }]) === "applied");
+
+        // buy(): sign-in first, one at a time, the account id signed into the purchase, finish only after the server answered, calm texts
+        const buyText = squashed(sFn("buy"));
+        check("Buy: the plugin's purchase is given the product and the signed-in account's id (appAccountToken), a cancelled sheet is silent, Ask to Buy says it is waiting, and Business opens the team panel afterwards",
+          /CNStore\.purchase\(\{productId,appAccountToken:uid\}\)/.test(buyText) && /status==="cancelled"\)return\{stop:"cancelled"\}/.test(buyText) && /status==="pending"\)return\{stop:"pending"\}/.test(buyText) && /CNBusinessTeam\?\.open\?\.\(\)/.test(buyText) && /Waiting for approval\. Your plan appears when it is approved\./.test(storeText) && /Your Pro plan is active\./.test(storeText) && /Your Business plan is active\./.test(storeText));
+        check("Buy: one at a time (a busy flag checked before and after the sign-in card), the signed-out tap opens the card 'Sign in to choose a plan' first, and a plan the account already has is never bought again",
+          /if\(busy\)return;if\(!ALL_IDS\.includes\(productId\)\)return/.test(buyText) && /if\(!awaitensureAccount\(\)\)return;if\(busy\)return;if\(covered\(productId\)\)/.test(buyText) && /Sign in to choose a plan/.test(storeText) && /Your plan belongs to your CyberNet AI account\./.test(storeText) && /signInCard\(\{title:TEXT\.signInTitle,lead:TEXT\.signInLead\}\)/.test(squashed(storeText)));
+        check("Buy: the transaction is finished only inside verify(), after the server answered; purchase() never finishes (store.js has exactly one finish call)", (storeText.match(/CNStore\.finish\(/g) || []).length === 1 && /finish/.test(sFn("verify")) && !/finish/.test(sFn("buy")) && !/finish/.test(sFn("restore")));
+        check("Buy: when the server cannot confirm, the person is told it finishes by itself and that Restore Purchases is there; the text names no plan", /We couldn't confirm your purchase yet\. It will finish automatically; you can also tap Restore Purchases\./.test(storeText) && /The purchase did not finish\. Please try again\./.test(storeText));
+        check("Restore: Apple is asked only when the person taps it (sign-in card first for a guest), nothing to restore and a purchase of another account have their own texts", /CNStore\.restore\(\)/.test(storeText) && /if\(!awaitensureAccount\(\)\)return/.test(squashed(sFn("restore"))) && /No purchases to restore for this account\./.test(storeText) && /This subscription belongs to a different CyberNet AI account\. Sign in with the account you bought it with\./.test(storeText) && /Your plan was restored\./.test(storeText));
+        check("Manage subscription opens Apple's sheet (CNStore.manageSubscriptions) and nothing else; there is no link to a web page for it", /CNStore\.manageSubscriptions\(\)/.test(sFn("manage")) && !/https?:|location\.|open\(/.test(sFn("manage")));
+        check("Sync: at launch and sign-in the unfinished transactions are sent every time, the current plans at most once in six hours; renewals, Ask to Buy approvals and other devices arrive as transactionUpdate and are verified then finished",
+          /SIX_HOURS=(?:6\*3600e3|6\*36e5)/.test(squashed(storeText)) && /CNStore\.unfinished\(\)/.test(storeText) && /CNStore\.currentEntitlements\(\)/.test(storeText) && /addListener\("transactionUpdate"/.test(storeText) && /reason==="launch"\?"launch":"update"/.test(squashed(sFn("sync"))) && /appStateChange/.test(storeText));
+        check("Page API: window.CNStore has openPaywall, manage, restore and sync (what script.js, ios.js and the team module call), and no other way in", /w\.CNStore=Object\.freeze\(\{openPaywall,manage,restore,sync/.test(squashed(storeText)) && /window\.CNStore\?\.manage\?\.\(\)/.test(script) && /window\.CNStore\?\.openPaywall\?\.\(/.test(await read("cybernet-business-team.js")));
+        check("Money text: nothing in store.js is typed as a price or names a billing page or another seller", !/[$€£]\d|\b\d+\.\d{2}\b|stripe|checkout|billing portal|manage billing/i.test(storeText));
+      }
+
+      // (e) the Account screen: the Plan group in every state, and Restore Purchases for a guest too
+      const acct = byId("account");
+      const acctNodes = within(acct);
+      const planGroup = acctNodes.find(n => n.tagName === "h2" && textOf(n).trim() === "Plan");
+      check("Account: a Plan group (your plan, Renews on / Ends on, See plans, Manage subscription, Manage Business, Restore Purchases) for a signed-in person; the old Manage Billing entry does not exist",
+        !!planGroup && ["cnAcctPlan", "cnAcctPlanDateRow", "cnAcctPlanDateLabel", "cnAcctPlanDate", "cnAcctPlanNote", "cnAcctManageSub", "cnAcctTeamBtn"].every(id => byId(id)) && acctNodes.filter(n => attr(n, "data-ios-action") === "restore-purchases").length === 2 && acctNodes.filter(n => attr(n, "data-ios-action") === "plans").length === 2 && !/Manage Billing/i.test(textOf(acct)), acctNodes.map(n => attr(n, "data-ios-action")).filter(Boolean));
+      const signedOut = acctNodes.find(n => n.tagName === "div" && attr(n, "data-ios-signed-out") !== undefined);
+      check("Account (guest): Restore Purchases and See plans are there before signing in (Restore asks for the account first), under the sign-in choices", !!signedOut && within(signedOut).some(n => attr(n, "data-ios-action") === "restore-purchases" && textOf(n).trim() === "Restore Purchases") && within(signedOut).some(n => attr(n, "data-ios-action") === "plans") && !/keep your saved explanations/.test(textOf(signedOut)) && /Sign in to get AI explanations and use Recovery\./.test(textOf(signedOut)));
+      const bindText = squashed(sliceOf(iosJs, fnIn(iosAstP, "bindAccount")));
+      check("Account: the actions are wired (See plans opens the plans page, Restore Purchases and Manage subscription go to the store, Manage Business opens the team panel) and a sign-in schedules a store sync",
+        /action==="plans"\)navigate\("pricing"\)/.test(bindText) && /action==="restore-purchases"\)/.test(bindText) && /w\.CNStore\?\.restore\?\.\(\)/.test(bindText) && /action==="manage-subscription"\)/.test(bindText) && /w\.CNStore\?\.manage\?\.\(\)/.test(bindText) && /action==="team"\)\{if\(w\.CNBusinessTeam\?\.open\)w\.CNBusinessTeam\.open\(\)/.test(bindText) && /w\.CNStore\?\.sync\?\.\("launch"\)/.test(bindText));
+      const renderPlan = (profile, member = false) => {
+        const els = {};
+        const el = () => ({ textContent: "", hidden: false });
+        for (const id of ["#cnAcctPlan", "#cnAcctPlanDateRow", "#cnAcctPlanDateLabel", "#cnAcctPlanDate", "#cnAcctPlanNote", "#cnAcctManageSub", "#cnAcctTeamBtn"]) els[id] = el();
+        const prof = member ? { ...profile, isTeamMember: true, teamRole: profile.teamRole || "member" } : profile;
+        new Function("$", "state", `${sliceOf(iosJs, declIn(iosAstP, "PLAN_NAMES"))};${sliceOf(iosJs, declIn(iosAstP, "planOf"))};${sliceOf(iosJs, fnIn(iosAstP, "longDate"))};${sliceOf(iosJs, fnIn(iosAstP, "isTeamMember"))};${sliceOf(iosJs, fnIn(iosAstP, "renderPlan"))};renderPlan();`)(sel => els[sel] || null, () => ({ profile: prof }));
+        return { plan: els["#cnAcctPlan"].textContent, dateRow: !els["#cnAcctPlanDateRow"].hidden, label: els["#cnAcctPlanDateLabel"].textContent, note: els["#cnAcctPlanNote"].hidden ? "" : els["#cnAcctPlanNote"].textContent, manage: !els["#cnAcctManageSub"].hidden, team: els["#cnAcctTeamBtn"].hidden ? "" : els["#cnAcctTeamBtn"].textContent };
+      };
+      const day = "2026-12-01T10:00:00Z";
+      const free = renderPlan({ plan: "free" });
+      const pro = renderPlan({ plan: "pro", billing: { source: "apple", renewsAt: day, autoRenew: true } });
+      const proEnding = renderPlan({ plan: "pro", billing: { source: "apple", renewsAt: day, autoRenew: false } });
+      const biz = renderPlan({ plan: "business", teamRole: "owner", isTeamMember: true, billing: { source: "apple", seatTier: 10, renewsAt: day, autoRenew: true } });
+      const outside = renderPlan({ plan: "pro", billing: { source: "web-checkout", renewsAt: day } });
+      const member = renderPlan({ plan: "business", isTeamMember: true, teamRole: "member", billing: { source: "team" } });
+      const twice = renderPlan({ plan: "pro", billing: { source: "apple", renewsAt: day, autoRenew: true, alsoBilledElsewhere: true } });
+      const grace = renderPlan({ plan: "pro", billing: { source: "apple", renewsAt: day, autoRenew: true, inGrace: true } });
+      check("Account plan group: Free names its plan, no dates, no Manage subscription, no team button", free.plan === "CyberNet AI Free" && !free.dateRow && !free.manage && free.team === "" && free.note === "", free);
+      check("Account plan group: an Apple-billed Pro shows 'Renews on' a date and Manage subscription; one that will not renew shows 'Ends on'", pro.plan === "CyberNet AI Pro" && pro.dateRow && pro.label === "Renews on" && pro.manage && proEnding.label === "Ends on" && proEnding.manage, [pro, proEnding]);
+      check("Account plan group: an Apple-billed Business owner sees Manage Business; a team member sees My Business team and no Manage subscription", biz.plan === "CyberNet AI Business" && biz.team === "Manage Business" && biz.manage && member.team === "My Business team" && !member.manage && /comes with your team/.test(member.note), [biz, member]);
+      check("Account plan group: a plan started outside the app is shown as active with the neutral note (no link, no website or payment-provider wording, nothing to manage here); a second subscription and a payment problem each get one calm line",
+        outside.plan === "CyberNet AI Pro" && outside.note === "This plan was started outside the app. To change or cancel it, use the same place you started it." && !outside.manage && twice.note === "This account has another subscription that is no longer needed. Cancel it where you started it." && /Apple could not renew this plan yet/.test(grace.note) && grace.manage, [outside, twice, grace]);
+
+      // (f) the website's locks and limits run in the app with the real plan
+      check("planTier is the real plan, as on the website (free, pro or business; no 'app' tier)", /function planTier\(\)\{const plan=appState\.profile\?\.plan;return plan==="business"\?"business":plan==="pro"\?"pro":"free"\}/.test(script) && !/return plan\?"app":"app"/.test(script));
+      check("The plan comes with its billing: account-status's profile.billing is kept, the website's limit messages, upgrade buttons and the Recovery locks are the website's (View Pro options, Upgrade to Pro, the timeline tab sends Free to the plans page)",
+        /billing:data\.profile\?\.billing\|\|null/.test(script) && /data-upgrade-now>View Pro options<\/button>/.test(script) && /data-upgrade-now>Upgrade to Pro<\/button>/.test(script) && /if\(!isPro\(\)&&tab\.dataset\.timeline!=="first10Minutes"\)\{switchPage\("pricing"\);return\}/.test(script) && /closest\("\[data-upgrade-now\]"\)\)switchPage\("pricing"\)/.test(script) && !/You've used today's AI explanations/.test(script));
+      check("Recovery lock and the Pro offer are in the app with the website's words (the timeline note and 'See Pro Recovery' buttons open the plans page)", /id="recoveryTimelineLocked"/.test(html) && /Free covers your immediate actions and the first 10 minutes\. <strong>Pro unlocks the full recovery timeline<\/strong>: the first hour, the first 24 hours and the next 7 days\./.test(html) && /You've addressed the immediate danger\. Let's finish the job\./.test(html) && (html.match(/<button[^>]*data-page="pricing"[^>]*>See Pro Recovery<\/button>/g) || []).length === 2);
+      check("Analysis AI: the plan card, the benefit list, the upgrade and Manage subscription buttons and the saved history card (Scan history / Pro feature / Upgrade to Pro to save...) are in the app; Manage subscription is hidden unless Apple bills the plan",
+        /id="aiBenefitList"/.test(html) && /id="aiUpgradeBtn"[^>]*>Upgrade to Pro</.test(html) && /id="manageBillingBtn"[^>]*hidden(?:="")?>Manage subscription</.test(html) && /<h5>Scan history<\/h5>/.test(html) && /<span id="historyPlanLabel">Pro feature<\/span>/.test(html) && /Upgrade to Pro to save and revisit your AI scan history\./.test(html) && /billing\?\.source!=="apple"/.test(script) && /manageBillingBtn\.addEventListener\("click",\(\)=>\{try\{window\.CNStore\?\.manage\?\.\(\)\}catch\{\}\}\)/.test(script) && /aiUpgradeBtn\.addEventListener\("click",\(\)=>switchPage\("pricing"\)\)/.test(script));
+      check("Analysis AI plan card wording: no protection claim and no 'accurate' (Apple's copy), the Quick Scan meter is in the page, and the Pro screenshot preview stays out of the app",
+        /Sign in to use 3 AI analyses per day across text, links and images\./.test(script) && /Advanced Analysis AI with saved history and reports\./.test(script) && /Everyday Analysis AI with 3 shared analyses per day\./.test(script) && !/Top-level Analysis AI protection|Accurate everyday AI protection|3 accurate AI analyses/.test(script + html) && /id="quickScanUsageCard"/.test(html) && /Local scan complete\. Use Analysis AI for a deeper, AI-assisted check\./.test(script) && !/Local protection scan complete/.test(script) && !/screenshot-preview|loadScreenshotPreview/.test(script));
+      check("Navigation of the website that the app does not use stays hidden: no nav bar tabs, Manage Business and Pricing buttons exist only for script.js and are never shown", /html\.cn-ios \.navbar \.nav-tabs[^}]*\{display:none!important\}/.test(squashed(await read("ios/ios.css")).replace(/,/g, ",")) || /\.navbar \.nav-tabs/.test(await read("ios/ios.css")));
+
+      // (g) the Quick Scan limit: 5 a day, counted on the server when signed in, on this iPhone otherwise (never for the camera QR scan or the Share sheet)
+      {
+        const names = ["deviceQuickScanLimit", "deviceQuickScanKey", "deviceQuickScanMemory", "deviceQuickScanUsed", "deviceQuickScanAdd", "checkDeviceQuickScan", "checkQuickScanQuota"];
+        const mk = ({ signed, storage, fetchImpl }) => {
+          const calls = { ui: 0, fetched: 0 };
+          const appState = {};
+          const fns = new Function("window", "updateAccountUI", "isSignedIn", "fetch", "authHeaders", "appState", `${names.map(n => src(fnNamed(n))).join(";\n")};return { checkQuickScanQuota, deviceQuickScanUsed, deviceQuickScanKey };`)(
+            { localStorage: storage }, () => { calls.ui++; }, () => signed, async (...a) => { calls.fetched++; return fetchImpl(...a); }, h => h || {}, appState);
+          return { fns, calls, appState };
+        };
+        const memory = () => { const m = new Map(); return { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k), key: i => [...m.keys()][i] ?? null, get length() { return m.size; }, map: m }; };
+        const guestStore = memory();
+        guestStore.setItem("cn-qs-2020-01-01", "5");
+        const guest = mk({ signed: false, storage: guestStore, fetchImpl: async () => { throw new Error("a guest never asks the server"); } });
+        const verdicts = [];
+        for (let i = 0; i < 6; i++) verdicts.push(await guest.fns.checkQuickScanQuota());
+        const today = guest.fns.deviceQuickScanKey();
+        check("Quick Scan (guest): five scans a day are allowed and the sixth is refused with the limit message; the count is kept on this iPhone under cn-qs-<UTC date>, yesterday's key is removed, the server is never asked",
+          verdicts.slice(0, 5).every(v => v.allowed) && verdicts[5].allowed === false && /^Daily Quick Scan limit reached\./.test(verdicts[5].message) && guestStore.getItem(today) === "5" && /^cn-qs-\d{4}-\d{2}-\d{2}$/.test(today) && today === `cn-qs-${new Date().toISOString().slice(0, 10)}` && !guestStore.map.has("cn-qs-2020-01-01") && guest.calls.fetched === 0 && guest.calls.ui === 6, [verdicts, today]);
+        const blocked = { getItem() { throw new Error("blocked"); }, setItem() { throw new Error("blocked"); }, removeItem() { throw new Error("blocked"); }, key() { return null; }, length: 0 };
+        const noStorage = mk({ signed: false, storage: blocked, fetchImpl: async () => ({}) });
+        const v2 = [];
+        for (let i = 0; i < 6; i++) v2.push((await noStorage.fns.checkQuickScanQuota()).allowed);
+        check("Quick Scan (guest): with storage blocked the count is kept in memory (still five)", v2.join() === "true,true,true,true,true,false", v2);
+        const reply = (status, body) => async () => ({ ok: status >= 200 && status < 300, status, json: async () => body });
+        const signedOk = mk({ signed: true, storage: memory(), fetchImpl: reply(200, { allowed: true, used: 2, limit: 5, plan: "free" }) });
+        const sv = await signedOk.fns.checkQuickScanQuota();
+        const signedLimit = mk({ signed: true, storage: memory(), fetchImpl: reply(429, { error: "Daily Quick Scan limit reached. Upgrade to Pro for unlimited scans.", code: "daily_limit_reached", used: 5, limit: 5, plan: "free" }) });
+        const lv = await signedLimit.fns.checkQuickScanQuota();
+        check("Quick Scan (signed in): the server's count decides (the same call as the website, /api/quickscan-usage); the limit answer carries the server's message and the usage is kept for the meter",
+          sv.allowed === true && signedOk.appState.quickScanUsage?.used === 2 && signedOk.appState.quickScanUsage?.limit === 5 && lv.allowed === false && lv.message === "Daily Quick Scan limit reached. Upgrade to Pro for unlimited scans." && signedLimit.appState.quickScanUsage?.used === 5 && signedOk.fns.deviceQuickScanUsed() === 0, [sv, lv]);
+        const offline = mk({ signed: true, storage: memory(), fetchImpl: async () => { throw new Error("offline"); } });
+        const ov = [];
+        for (let i = 0; i < 6; i++) ov.push((await offline.fns.checkQuickScanQuota()).allowed);
+        const refused = mk({ signed: true, storage: memory(), fetchImpl: reply(403, { error: "no" }) });
+        const down = mk({ signed: true, storage: memory(), fetchImpl: reply(503, {}) });
+        check("Quick Scan (signed in): when the server cannot answer (no network, 503, a refusal that is not the limit) this iPhone counts instead, so the scan still runs",
+          ov.join() === "true,true,true,true,true,false" && (await refused.fns.checkQuickScanQuota()).allowed === true && (await down.fns.checkQuickScanQuota()).allowed === true && offline.fns.deviceQuickScanUsed() === 5);
+        check("Quick Scan: the three Quick Scan buttons count; the camera QR scan and the Share sheet never do (they are not in script.js's quota path)", (script.match(/checkQuickScanQuota\(\)/g) || []).length === 4 && !/checkQuickScanQuota|quickscan-usage|cn-qs-/.test(iosJs) && !/quickscan-usage/.test(await read("ios/cn-ios-boot.js")));
+        check("Quick Scan: guests are not sent to a sign-in prompt by the three buttons any more (the website's sign-in-first calls stay on the website)", !/openAuthModal\("signup"\);return\}const text=cyberTextInput/.test(script) && !/if\(!isSignedIn\(\)\)\{openAuthModal\("signup"\);return\}const link=cyberLinkInput/.test(script));
+      }
+
+      // (h) Business teams in the app: the panel is there, the website's invite-accept flow is not
+      const teamJs = await read("cybernet-business-team.js");
+      check("Business team: the Manage Business module and its stylesheet are in the app; the invite-accept flow, the checkout return and the Stripe-era storage keys are not", scripts.includes("cybernet-business-team.js") && existsSync(path.join(out, "cybernet-business-team.css")) && /<link rel="stylesheet" href="cybernet-business-team\.css">/.test(html) && !/acceptInviteModal|business-invite-accept|cybernet_pending_invite|cybernet_pending_business_checkout|accept-invite|cnInviteAcceptBtn/.test(teamJs));
+      check("Business team: it opens the plans page when this account is not on a team, and exports window.CNBusinessTeam.open for Account and the plans page", /window\.CNStore\?\.openPaywall\?\.\(\{focus:"business"/.test(teamJs) && /window\.CNBusinessTeam=Object\.freeze\(\{open:\(\)=>openTeam\(\)\}\)/.test(teamJs));
+      check("Business team: the member notice is unchanged (the owner sees your AI and Recovery activity, Check, Scan QR and Share are never logged)", /Your AI explanations and Recovery activity are shown to your team(?:’|&rsquo;)s owner in their activity log\. Check, Scan QR and the Share sheet stay on your iPhone and are never logged\./.test(html) && /You are a member of a team:<\/strong> your AI explanations and Recovery activity also appear in your team owner/.test(iosJs));
+
+      // (i) the Share Extension and the camera stay free of plans: Scan QR and the share sheet work for everyone
+      check("Scan QR and the Share sheet are not plan features: no plan, upgrade or limit word in the QR verdict and shared-item code", !/upgrade|Pro plan|daily limit|CNStore|pricing/i.test(squashed(sliceOf(iosJs, fnIn(iosAstP, "showQrVerdict")) + sliceOf(iosJs, fnIn(iosAstP, "startQrScan")) + sliceOf(iosJs, fnIn(iosAstP, "checkInbox")))));
+    }
+
+    // Copy rules on app screens: no protection claim on the sign-in sheet, the deletion dialog (it warns about App Store
+    // subscriptions since 30 Oct 2026), and the Recovery disclaimer (risk D3).
     // (ios.js is scanned too: the first-run intro once carried the phrase on the app's very first screen.)
     check("sign-in sheet: no protection claim", !/designed for protection/i.test(script + html + iosJs) && /<p id="authModalIntro">Sign in to get AI explanations and Recovery plans\./.test(html));
     const privacyControls = await read("cybernet-privacy-controls.js");
-    check("deletion dialog names no website plan", !/\bBusiness\b/.test(privacyControls), (privacyControls.match(/[^.]*\bBusiness\b[^.]*/) || [])[0]);
+    check("deletion dialog: Apple-aware (an App Store subscription is not cancelled by deleting the account; Settings > your name > Subscriptions; a Manage subscription button for an Apple-billed plan), and it names no billing page or payment processor",
+      /Subscribed through the App Store\?<\/strong> Deleting your account does not cancel an App Store subscription\. Cancel it first in Settings &gt; your name &gt; Subscriptions, or Apple keeps charging you\./.test(privacyControls) && /data-privacy-manage-sub hidden>Manage subscription<\/button>/.test(privacyControls) && /Any plan bought outside the app: it is cancelled immediately\. A subscription bought in the app is not cancelled by this\./.test(privacyControls) && /billing\?\.source!=="apple"/.test(privacyControls) && /window\.CNStore\?\.manage\?\.\(\)/.test(privacyControls) && !/Stripe|Manage Billing|Paying for Pro or Business/.test(privacyControls), (privacyControls.match(/[^.]*(Stripe|Manage Billing)[^.]*/) || [])[0]);
+    check("deletion dialog: the refusal button and the Account Info sentence say Manage subscription; the notice after a deletion repeats the App Store sentence", /"Manage subscription"/.test(privacyControls) && /use Manage subscription in Account\./.test(privacyControls) && /If you subscribed through the App Store, cancel the subscription in Settings &gt; your name &gt; Subscriptions\. Deleting your account does not stop Apple charging you\./.test(privacyControls) && !/Open Manage Billing/.test(privacyControls));
     check("Recovery shows the guidance / emergency line", /id="cnRecoveryNote">CyberNet AI gives guidance, not legal or financial advice\. If you feel unsafe, contact your local emergency services\./.test(html));
     check("consent sheet tells team members about the owner's log", /You are a member of a team:<\/strong> your AI explanations and Recovery activity also appear in your team owner/.test(iosJs));
     check("Account team note does not mention Quick Scan", /id="cnAcctTeam"[^>]*>[^<]*AI explanations and Recovery activity/.test(html) && !/id="cnAcctTeam"[^>]*>[^<]*Quick Scan/.test(html));
@@ -855,11 +1077,102 @@ try {
       check("Share Extension: the review QR sample reads SCAM", qr.headline === "SCAM", qr);
     }
 
+    // ---- Apple In-App Purchase, native side (owner decision, 30 Oct 2026: Free / Pro / Business bought with StoreKit 2,
+    // and Home as the first tab). Swift cannot be compiled on this machine, so these are static checks of
+    // StoreKitPlugin.swift against the files that must agree with it: ios/store.js (the only caller), the server's product
+    // list, TABS in ios.js and the privacy manifest. The real test is the TestFlight sandbox pass.
+    {
+      const lf = value => String(value).replace(/\r\n/g, "\n");
+      const nativeApp = path.join(mobile, "native", "App");
+      const sk = lf(await readFile(path.join(nativeApp, "Plugins", "StoreKitPlugin.swift"), "utf8"));
+      const mainVc = lf(await readFile(path.join(nativeApp, "MainViewController.swift"), "utf8"));
+      const manifest = lf(await readFile(path.join(nativeApp, "PrivacyInfo.xcprivacy"), "utf8"));
+      const mirrorManifest = lf(await readFile(path.join(mobile, "ios", "App", "App", "PrivacyInfo.xcprivacy"), "utf8"));
+      const storeJs = existsSync(path.join(out, "ios", "store.js")) ? await read("ios/store.js") : "";
+      const productsFile = path.join(root, "netlify", "lib", "apple-products.mjs");
+      const serverProducts = existsSync(productsFile) ? await readFile(productsFile, "utf8") : "";
+      const idsIn = text => [...new Set([...String(text).matchAll(/app\.cybernetai\.[a-z0-9_]+\.[a-z0-9_]+/g)].map(m => m[0]))].sort();
+      // the text between the brace after `from` and its match (strings and comments in this file hold no braces that matter)
+      const blockAt = (text, from) => {
+        const open = text.indexOf("{", from);
+        if (open < 0) return "";
+        let depth = 0;
+        for (let i = open; i < text.length; i++) {
+          if (text[i] === "{") depth++;
+          else if (text[i] === "}" && --depth === 0) return text.slice(open + 1, i);
+        }
+        return "";
+      };
+      const METHODS = ["products", "purchase", "currentEntitlements", "unfinished", "restore", "finish", "manageSubscriptions"];
+      const FIVE = ["app.cybernetai.business10.monthly", "app.cybernetai.business20.monthly", "app.cybernetai.business5.monthly", "app.cybernetai.pro.monthly", "app.cybernetai.pro.yearly"];
+
+      // (a) the plugin and every method the page calls
+      check("StoreKitPlugin: bridged class under its own name, JS name CNStore, StoreKit imported (the existing plugin check also needs it registered and its JS name unique)",
+        /^import StoreKit$/m.test(sk) && /@objc\(StoreKitPlugin\)\s*public final class StoreKitPlugin: CAPPlugin, CAPBridgedPlugin/.test(sk) && /identifier = "StoreKitPlugin"/.test(sk) && /jsName = "CNStore"/.test(sk));
+      const declared = [...sk.matchAll(/CAPPluginMethod\(name: "(\w+)", returnType: CAPPluginReturnPromise\)/g)].map(m => m[1]);
+      const objcFuncs = [...sk.matchAll(/@objc func (\w+)\(_ call: CAPPluginCall\)/g)].map(m => m[1]);
+      check("StoreKitPlugin: the seven methods (products, purchase, currentEntitlements, unfinished, restore, finish, manageSubscriptions) are each declared once and each has its @objc function",
+        declared.slice().sort().join() === METHODS.slice().sort().join() && objcFuncs.slice().sort().join() === METHODS.slice().sort().join(), `${declared} | ${objcFuncs}`);
+      const called = [...new Set([...storeJs.matchAll(/\bCNStore\??\.(\w+)/g)].map(m => m[1]))];
+      const LISTENER = ["addListener", "removeListener", "removeAllListeners"];
+      check("ios/store.js exists in the bundle and calls only methods the plugin has (CNStore.<name>), all seven of them", storeJs !== "" && called.every(n => METHODS.includes(n) || LISTENER.includes(n)) && METHODS.every(n => called.includes(n)), storeJs === "" ? "ios/store.js is not in the built bundle" : `calls: ${called}`);
+      check("store.js listens for the plugin's transactionUpdate event (renewals, Ask to Buy approvals, other devices)", /transactionUpdate/.test(storeJs) && /transactionUpdate/.test(sk));
+
+      // (b) one list of products everywhere
+      const idsStart = sk.indexOf("productIds: Set<String>");
+      const swiftIds = idsIn(sk.slice(idsStart, sk.indexOf("]", idsStart)));
+      check("StoreKitPlugin: exactly the five plan products, in one subscription group", swiftIds.join() === FIVE.join(), swiftIds);
+      check("Product ids: StoreKitPlugin.swift, netlify/lib/apple-products.mjs and ios/store.js are the same five", swiftIds.length === 5 && idsIn(serverProducts).join() === swiftIds.join() && idsIn(storeJs).join() === swiftIds.join(), `server ${idsIn(serverProducts)} | store.js ${idsIn(storeJs)}`);
+
+      // (c) registration and the tab bar
+      check("MainViewController registers StoreKitPlugin before the page can call it", mainVc.includes("bridge?.registerPluginInstance(StoreKitPlugin())"));
+      const nativeTabs = [...mainVc.matchAll(/Tab\(id: "(\w+)"/g)].map(m => m[1]);
+      const squashed = iosJs.replace(/\s+/g, "");
+      const webTabs = [...(/constTABS=\[(.*?)\];/.exec(squashed)?.[1] || "").matchAll(/\{id:"(\w+)"/g)].map(m => m[1]);
+      check("Native tab bar: Home first, then Check, Scan QR, Recovery, Learn, Account", nativeTabs.join() === "home,check,scan,recovery,learn,account", nativeTabs);
+      check("Native tab ids and their order equal TABS in ios.js (the page and the bar must agree on cnTab)", webTabs.length > 0 && webTabs.join() === nativeTabs.join(), `ios.js ${webTabs} | native ${nativeTabs}`);
+      check("Native Home tab: house symbol, accessibility hint, and the accessibility identifier is built from the id (tab-home)", /Tab\(id: "home", title: "Home", symbol: "house",\s*hint: "[^"]+"\)/.test(mainVc) && mainVc.includes('"tab-\\(tab.id)"'));
+
+      // (d) the updates stream never finishes a transaction; only finish() does, after the server has answered
+      const loopBody = blockAt(sk, sk.indexOf("for await result in Transaction.updates"));
+      const receivedBody = blockAt(sk, sk.indexOf("private func received("));
+      const finishBody = blockAt(sk, sk.indexOf("@objc func finish("));
+      const finishCalls = [...sk.matchAll(/\.finish\(\)/g)].length;
+      check("StoreKitPlugin: the Transaction.updates loop and its handler never finish a transaction; .finish() is called only inside finish({ transactionId })",
+        loopBody.length > 0 && receivedBody.length > 0 && !/finish\(/.test(loopBody) && !/finish\(/.test(receivedBody) && finishCalls === 2 && (finishBody.match(/\.finish\(\)/g) || []).length === 2, `${finishCalls} calls, ${(finishBody.match(/\.finish\(\)/g) || []).length} in finish()`);
+      check("StoreKitPlugin: purchase does not finish, an unverified result grants and finishes nothing", !/finish\(/.test(blockAt(sk, sk.indexOf("@objc func purchase("))) && /UNVERIFIED/.test(sk));
+      check("StoreKitPlugin: the account token is signed into the purchase, and the Apple ID sheet uses the window scene from iOS 17",
+        /\.appAccountToken\(account\)/.test(sk) && /UUID\(uuidString: token\)/.test(sk) && /#available\(iOS 17\.0, \*\)[^{]*\{\s*outcome = try await product\.purchase\(confirmIn: scene, options: options\)/.test(sk));
+      check("StoreKitPlugin: restore asks Apple (AppStore.sync) only when called, Manage subscription opens Apple's sheet, and products outside the five are never asked from Apple",
+        /try await AppStore\.sync\(\)/.test(sk) && !/AppStore\.sync/.test(blockAt(sk, sk.indexOf("override public func load("))) && /try await AppStore\.showManageSubscriptions\(in: scene\)/.test(sk) && /let wanted = asked\.filter \{ Self\.productIds\.contains\(\$0\) \}/.test(sk) && /Product\.products\(for: wanted\)/.test(sk));
+      check("StoreKitPlugin: every transaction the plugin hands out or finishes is checked against the five products", (sk.match(/productIds\.contains\(transaction\.productID\)/g) || []).length === 4 &&/productIds\.contains\(transaction\.productID\) else \{ continue \}/.test(sk));
+
+      // (e) hygiene: no force unwrap, no logging of signed text or ids, no plan names or prices in messages
+      const code = sk.replace(/\/\/.*$/gm, "").replace(/"(?:[^"\\\n]|\\.)*"/g, '""');
+      check("StoreKitPlugin: no force unwrap, no try!, no as!", !/[\w)\]]!(?!=)/.test(code) && !/\btry!/.test(code) && !/\bas!/.test(code), (/.{0,30}[\w)\]]!(?!=).{0,20}/.exec(code) || [])[0]);
+      const logs = [...sk.matchAll(/\b(?:CAPLog\.print|NSLog|print|os_log|Logger\.\w+)\(([^\n]*)/g)].map(m => m[1]);
+      check("StoreKitPlugin: logs nothing but a product id (no signed text, token, account or price)", logs.length <= 1 && logs.every(line => !/jws|token|account|price|email|userId|user_id/i.test(line)), logs);
+      const messages = [...sk.matchAll(/call\.reject\(("(?:[^"\\\n]|\\.)*")/g)].map(m => m[1]);
+      check("StoreKitPlugin: error messages are plain sentences with no plan names, prices or numbers (they may reach a toast)", messages.length >= 10 && messages.every(m => !/\b(Pro|Business|Free|Stripe|CyberNet)\b|\$|\d/.test(m)), messages.filter(m => /\b(Pro|Business|Free|Stripe|CyberNet)\b|\$|\d/.test(m)));
+      check("StoreKitPlugin: no website, link or payment-processor words in the Swift file", !/https?:\/\/|stripe|checkout|cybernetai\.app|customer-portal|billing portal/i.test(sk.replace(/\/\/.*$/gm, "")));
+
+      // (f) privacy manifest and entitlements
+      const purchaseEntry = /<string>NSPrivacyCollectedDataTypePurchaseHistory<\/string>\s*<key>NSPrivacyCollectedDataTypeLinked<\/key>\s*<true\/>\s*<key>NSPrivacyCollectedDataTypeTracking<\/key>\s*<false\/>\s*<key>NSPrivacyCollectedDataTypePurposes<\/key>\s*<array>\s*<string>NSPrivacyCollectedDataTypePurposeAppFunctionality<\/string>\s*<\/array>/;
+      check("Privacy manifest lists Purchase History: linked to the person, not used for tracking, App Functionality only (source and the generated copy)", purchaseEntry.test(manifest) && purchaseEntry.test(mirrorManifest) && (manifest.match(/NSPrivacyCollectedDataTypePurchaseHistory/g) || []).length === 1);
+      check("Privacy manifest: tracking stays as it was (on, the Google Analytics hosts, three tracked types), nothing else added for purchases",
+        /<key>NSPrivacyTracking<\/key>\s*<true\/>/.test(manifest) && !/NSPrivacyCollectedDataTypePaymentInfo|NSPrivacyCollectedDataTypeCreditInfo/.test(manifest) && (manifest.match(/<key>NSPrivacyCollectedDataTypeTracking<\/key>\s*<true\/>/g) || []).length === 3);
+      const entitlements = await readFile(path.join(nativeApp, "App.entitlements"), "utf8");
+      check("In-App Purchase needs no entitlement and no Info.plist key: App.entitlements has no payment key (the App ID capability is the owner's switch in the developer portal)", !/in-app-payments|storekit|inappurchase/i.test(entitlements));
+    }
+
     // legal pages
     for (const page of ["terms", "privacy", "acceptable-use"]) check(`legal/${page}.html exists`, existsSync(path.join(out, "legal", `${page}.html`)));
     const terms = await read("legal/terms.html");
     const privacy = await read("legal/privacy.html");
-    check("Terms: plans/pricing/payments/cancellation/refunds replaced", !/id="(subscriptions|payments|cancellation|refunds)"/.test(terms) && /no paid plans and no purchases/.test(terms));
+    check("Terms: the website's plans, subscriptions, payments, cancellation and refunds sections are replaced by the iPhone version (Apple In-App Purchase: plans and limits, Business teams, automatic renewal, billing and refunds by Apple, cancelling in Settings, deleting the account does not cancel an App Store subscription)",
+      !/id="(subscriptions|payments|cancellation|refunds)"/.test(terms) && !/no paid plans and no purchases|has no paid plans/.test(terms) && /id="plans"/.test(terms) && /Apple In-App Purchase/.test(terms) && /renews automatically unless you cancel it at least 24 hours before the end of the current period/.test(terms) && /refunded by Apple/.test(terms) && /Settings app: tap your name, then Subscriptions/.test(terms) && /Deleting your CyberNet account does not cancel an App Store subscription/.test(terms) && /Business teams/.test(terms) && /10&ndash;14\. Plans, payments and billing|10–14\. Plans, payments and billing/.test(terms));
+    check("Terms (iPhone section): plans are bought in the app with In-App Purchase and follow the plan; the old 'No purchases in the app' paragraph is gone", /Plans in the app\.<\/strong> The app offers the Free, Pro and Business plans\./.test(terms) && !/No purchases in the app/.test(terms) && /Deleting your account does not cancel an App Store subscription:/.test(terms));
+    check("Legal pages: no price, no dollar sign, no link out in the app's Terms and Privacy Policy (the legal gate), and the privacy page describes purchases (signed transaction details from Apple, no card details)", !/\$/.test(terms + privacy) && /Purchases in the app/.test(privacy) && /does not receive your card details/.test(privacy) && /Restore Purchases/.test(privacy) && !/The app has no purchases/.test(privacy));
     check("Terms and Privacy carry the iPhone app section", /id="iphone-app"/.test(terms) && /id="iphone-app"/.test(privacy));
     check("Privacy names the operator", /Marks Events FZ LLE/.test(privacy) && /support@cybernetai\.app/.test(privacy));
     // the sign-in card links here: the Terms and the Privacy Policy must not say the app has Sign in with Apple only (30 Oct 2026)
