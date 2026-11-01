@@ -96,7 +96,7 @@
   <link rel="stylesheet" href="/cybernet-howto.css?v=20260905-1" />
   <link id="cybernetBusinessTeamStylesheet" rel="stylesheet" href="/cybernet-business-team.css?v=20260927-2" />
   <link rel="stylesheet" href="/cybernet-consent.css?v=20260927-2" />
-  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261029-m2" />
+  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261101-lock" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=20261029-m1">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=20261029-m1">
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=20261029-m1">
@@ -340,17 +340,18 @@
   <div id="authModal" class="modal">
     <!-- Sign-in gate (63-gate.css; owner, 28 Oct 2026: every visitor signs in before using the site).
          Shown while html.cn-gate is set (head snippet: no saved session). One thing moves at a time:
-         the mark draws, the wordmark rises, the quote types and fades, the mark glides to its place,
-         then the sign-in card, which carries the pitch, rises in. Decorative copy:
+         the mark draws with its padlock open, the wordmark rises, the shackle swings down and snaps shut,
+         "Stay protected. All in one place." rises word by word and fades, the mark glides to its place,
+         then the sign-in card, which carries the pitch, rises in (owner, 1 Nov 2026). Decorative copy:
          aria-hidden; the dialog's own heading names it, and #cnGateStatus speaks the nudge and the
          welcome. Each typed line lists the texts it can show in data-alt, so its box is sized for the
          longest one from the start and nothing moves when the words change. -->
     <div data-web-only class="cn-gate-stage" id="cnGateStage" aria-hidden="true">
       <div class="cn-gate-brand">
-        <span class="cn-gate-mark"><svg viewBox="0 0 24 26" fill="none"><path class="cn-gate-shield" pathLength="1" d="M12 24 L4 15 L3 6 L12 2 L21 6 L20 15 Z" stroke="#22D3EE" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/><g class="cn-gate-lock"><path d="M9.6 12.5v-2.3a2.4 2.4 0 0 1 4.8 0v2.3" stroke="#22D3EE" stroke-width="1.3" stroke-linecap="round"/><path d="M9.5 12.5H14.5A1.2 1.2 0 0 1 15.7 13.7V17.5A1.2 1.2 0 0 1 14.5 18.7H9.5A1.2 1.2 0 0 1 8.3 17.5V13.7A1.2 1.2 0 0 1 9.5 12.5ZM11.5 16.066A1 1 0 1 1 12.5 16.066V17.3A.5 .5 0 0 1 11.5 17.3Z" fill="#22D3EE" fill-rule="evenodd"/></g></svg><i class="cn-gate-scan"></i></span>
+        <span class="cn-gate-mark"><svg viewBox="0 0 24 26" fill="none"><path class="cn-gate-shield" pathLength="1" d="M12 24 L4 15 L3 6 L12 2 L21 6 L20 15 Z" stroke="#22D3EE" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/><g class="cn-gate-lock"><path class="cn-gate-shackle" d="M9.6 12.5v-2.3a2.4 2.4 0 0 1 4.8 0v2.3" stroke="#22D3EE" stroke-width="1.3" stroke-linecap="round"/><path class="cn-gate-body" d="M9.5 12.5H14.5A1.2 1.2 0 0 1 15.7 13.7V17.5A1.2 1.2 0 0 1 14.5 18.7H9.5A1.2 1.2 0 0 1 8.3 17.5V13.7A1.2 1.2 0 0 1 9.5 12.5ZM11.5 16.066A1 1 0 1 1 12.5 16.066V17.3A.5 .5 0 0 1 11.5 17.3Z" fill="#22D3EE" fill-rule="evenodd"/></g></svg><i class="cn-gate-scan"></i></span>
         <span class="cn-gate-word"><span style="--i:0">C</span><span style="--i:1">y</span><span style="--i:2">b</span><span style="--i:3">e</span><span style="--i:4">r</span><b><span style="--i:5">N</span><span style="--i:6">e</span><span style="--i:7">t</span></b><small><span style="--i:8">A</span><span style="--i:9">I</span></small></span>
       </div>
-      <p class="cn-gate-quote"><span class="cn-gate-t">“That message looks real. That’s the point.”</span></p>
+      <p class="cn-gate-quote"><span class="cn-gate-ql"><span class="cn-gate-qw" style="--w:0">Stay</span> <span class="cn-gate-qw" style="--w:1">protected.</span></span> <span class="cn-gate-ql cn-gate-ql-2"><span class="cn-gate-qw" style="--w:2">All</span> <span class="cn-gate-qw" style="--w:3">in</span> <span class="cn-gate-qw" style="--w:4">one</span> <span class="cn-gate-qw" style="--w:5">place.</span></span></p>
       <!-- A small line under the mark, shown only for the nudge and the welcome: the pitch itself is the
            card's heading (owner, 29 Oct 2026: "keep the logo only"). -->
       <div class="cn-gate-pitch">
@@ -477,9 +478,10 @@
           later(showCard, GLIDE - 350);
         }, 650);
       }
+      /* the padlock has snapped shut (63-gate.css, 1.95-2.45 s): the line rises word by word, is read, then leaves */
       function full() {
         phase = 1;
-        later(function () { type(q(".cn-gate-quote .cn-gate-t"), null, 46, function () { later(compact, 900); }); }, 1900);
+        later(function () { r.classList.add("cn-gate-said"); later(compact, 2100); }, 2650);
       }
       function quick() {
         phase = 2;
@@ -505,7 +507,7 @@
       }
       function reset() {
         for (var j = 0; j < lines.length; j++) { lines[j].cnRun++; lines[j].cnText = lines[j].cnOrig; lines[j].cnNode.data = ""; lines[j].className = "cn-gate-t is-ready"; }
-        r.classList.remove("cn-gate-card", "cn-gate-compact", "cn-gate-quick", "cn-gate-nudge", "cn-gate-welcome", "cn-gate-enter", "cn-gate-leaving");
+        r.classList.remove("cn-gate-card", "cn-gate-compact", "cn-gate-quick", "cn-gate-nudge", "cn-gate-welcome", "cn-gate-enter", "cn-gate-leaving", "cn-gate-said");
         cardShown = false; wantCard = false; phase = 0; stage.style.transform = ""; say("");
       }
       function unlock() {

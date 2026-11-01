@@ -197,7 +197,7 @@ try {
     }
 
     // Owner, TestFlight build 1: "just need a onboarding motion screen like the website". ios.js section 7a puts up
-    // a stage on a first launch (the website gate's draw, wordmark, typed line and pitch) before the three steps.
+    // a stage on every launch (owner, 1 Nov 2026: the launch screen's open padlock snaps shut, the wordmark and the two lines rise)
     // Its markup and its pure functions are cut out of the built ios.js with acorn and run with their own data.
     {
       const iosAst = acorn.parse(iosJs, { ecmaVersion: "latest", sourceType: "script" });
@@ -209,7 +209,7 @@ try {
       const esc = v => String(v).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
       let ix = null;
       try {
-        ix = new Function("esc", [declOf("IX_SHIELD"), declOf("IX_QUOTE"), declOf("IX_PITCH"), declOf("IX"), fnOf("typingDelays"), fnOf("ixTimes"), fnOf("introStageHtml")].map(iosSrc).join(";\n") + ";\nreturn { IX_SHIELD, IX_QUOTE, IX_PITCH, IX, typingDelays, ixTimes, introStageHtml };")(esc);
+        ix = new Function("esc", [declOf("IX_SHIELD"), declOf("IX_PITCH"), declOf("IX"), fnOf("introStageHtml")].map(iosSrc).join(";\n") + ";\nreturn { IX_SHIELD, IX_PITCH, IX, introStageHtml };")(esc);
       } catch (error) { check("Intro stage: its markup and timing can be run", false, error.message); }
       const iosCssRaw = await read("ios/ios.css");
       const cssSpaced = iosCssRaw.replace(/\s+/g, " ");
@@ -230,20 +230,21 @@ try {
 
         // the stage: a labelled dialog; the typed and drawn parts are decorative; VoiceOver gets the pitch once
         check("Intro stage: one modal dialog named Welcome to CyberNet AI", stage && attr(stage, "role") === "dialog" && attr(stage, "aria-modal") === "true" && attr(stage, "aria-label") === "Welcome to CyberNet AI", stage?.attrs);
-        check("Intro stage: the drawn, typed and pitch parts are hidden from VoiceOver, which reads one line", byClass("cn-ix-lockup").concat(byClass("cn-ix-pitch")).every(n => attr(n, "aria-hidden") === "true") && textOf(byClass("cn-ix-sr")[0] || stage) === "CyberNet AI. Stay secure. All in one place. Check, scan and recover.", textOf(byClass("cn-ix-sr")[0] || stage));
+        check("Intro stage: the mark and pitch parts are hidden from VoiceOver, which reads one line", byClass("cn-ix-lockup").concat(byClass("cn-ix-pitch")).every(n => attr(n, "aria-hidden") === "true") && textOf(byClass("cn-ix-sr")[0] || stage) === "CyberNet AI. Stay protected. All in one place. Check, scan and recover.", textOf(byClass("cn-ix-sr")[0] || stage));
         // Skip: a real button, visible text, and the stage itself is the tap target
         const skip = byClass("cn-ix-skip");
         check("Intro stage: a visible Skip button", skip.length === 1 && skip[0].tagName === "button" && attr(skip[0], "type") === "button" && textOf(skip[0]).trim() === "Skip intro", skip.map(textOf));
         check("Intro stage CSS: Skip is at least 44 x 44 pt and sits inside the safe area", /min-width:44px/.test(rule(".cn-ix-skip")) && /min-height:44px/.test(rule(".cn-ix-skip")) && /top:calc\(env\(safe-area-inset-top,0px\)\+6px\)/.test(rule(".cn-ix-skip")) && /env\(safe-area-inset-right/.test(rule(".cn-ix-skip")), rule(".cn-ix-skip"));
         check("Intro stage: a tap anywhere, Escape, Return and Space skip it (the tap is not passed on to the steps)", /node\.addEventListener\("click",\(\) ?=> ?end\(true\)\)/.test(mountRaw) && mountRaw.replace(/ /g, "").includes('e.key==="Escape"||e.key==="Enter"||e.key===""') && /stopImmediatePropagation\(\)/.test(mountRaw), mount.slice(0, 200));
-        // 30 Oct 2026 (review): a skip also adds is-pitch, so the pitch is there behind the card (is-end already stops its entry animation); before, the band between the wordmark and the card stayed empty
-        check("Intro stage: skipping finishes every move at once (the pitch included, so the card never stands over an empty band) and goes straight to the steps", /if\(skipped\)node\.classList\.add\("is-end","is-glide","is-pitch","is-quick"\);go\(\)/.test(mount) && /\.cn-ix:is\(\.is-end,\.is-calm\):is\([^)]*\.cn-ix-line,\.cn-ix-rule,\.cn-ix-kicker/.test(css), mount.slice(0, 200));
+        // 30 Oct 2026 (review): a skip also adds is-pitch, so the pitch is there behind the card (is-end already stops its entry animation); 1 Nov 2026: and is-lines; the stage that opens onto the app does not glide
+        check("Intro stage: skipping finishes every move at once (the lines and the pitch included, so the card never stands over an empty band) and goes straight to the steps", /if\(skipped\)node\.classList\.add\("is-end","is-lines",\.\.\.\(?open\?\[\]:\["is-glide","is-pitch","is-quick"\]\)?\);go\(\)/.test(mount) && /\.cn-ix:is\(\.is-end,\.is-calm\):is\([^)]*\.cn-ix-line,\.cn-ix-rule,\.cn-ix-kicker/.test(css), mount.slice(0, 200));
 
-        // the website's pitch, with a kicker in the app's own words: it says what the app does and makes no protection claim
-        check("Intro stage: the pitch is Stay secure. / All in one place., kicker Check, scan and recover", byClass("cn-ix-line").map(textOf).join("|") === "Stay secure.|All in one place." && textOf(byClass("cn-ix-kicker")[0]) === "Check, scan and recover" && /\.cn-ix-kicker\{[^}]*text-transform:uppercase/.test(css), byClass("cn-ix-line").map(textOf));
+        // the owner's two lines (1 Nov 2026), with a kicker in the app's own words: it says what the app does
+        check("Intro stage: the pitch is Stay protected. / All in one place., kicker Check, scan and recover", byClass("cn-ix-line").map(textOf).join("|") === "Stay protected.|All in one place." && textOf(byClass("cn-ix-kicker")[0]) === "Check, scan and recover" && /\.cn-ix-kicker\{[^}]*text-transform:uppercase/.test(css), byClass("cn-ix-line").map(textOf));
         const claimWords = /protect|antivirus|real-?time|\bblocks?\b|monitor|accurate|100%|99%/i; // REJECTION-RISKS B2 (guideline 2.3.1(a))
-        check("Intro stage: no protection claim on its first screen (words App Review flags)", !claimWords.test([...ix.IX_PITCH.lines, ix.IX_PITCH.kicker].join(" ")) && !claimWords.test(textOf(byClass("cn-ix-sr")[0] || stage)), ix.IX_PITCH);
-        check("Intro stage: the typed line is the website's, every character in its own span, none for spaces", ix.IX_QUOTE.join(" ") === "That message looks real. That\u2019s the point." && byClass("cn-ix-c").map(textOf).join("") === ix.IX_QUOTE.join("").replace(/ /g, "") && byClass("cn-ix-c").length === ix.typingDelays(ix.IX_QUOTE).length, byClass("cn-ix-c").length);
+        // "Stay protected." is the owner's own slogan (1 Nov 2026) and the only such word on the screen; if App Review objects it is a
+        // one-word change back to "Stay secure." (REJECTION-RISKS B2). Nothing else on the stage makes a claim.
+        check("Intro stage: no protection claim on its first screen beyond the owner's slogan (words App Review flags)", ix.IX_PITCH.lines.join(" ") === "Stay protected. All in one place." && !claimWords.test(ix.IX_PITCH.kicker) && !claimWords.test(textOf(byClass("cn-ix-sr")[0] || stage).replace("Stay protected.", "")), ix.IX_PITCH);
         check("Intro stage: the wordmark is CyberNet AI, letter by letter", byClass("cn-ix-word").length === 1 && textOf(byClass("cn-ix-word")[0]) === "CyberNetAI" && all.filter(n => n.tagName === "span" && /^--i:\d+$/.test(attr(n, "style") || "")).length === 10);
 
         // the mark is the launch screen's shield: same geometry, colours, size and place, so the hand-over has no jump
@@ -260,19 +261,20 @@ try {
         // unit is max(width, height) * .62 / 2732 px, which is what the stage's --ix-u says. Its viewBox is the shield's box.
         const vb = /viewBox="(\d+) (\d+) (\d+) (\d+)"/.exec(ix.introStageHtml()).slice(1).map(Number);
         check("Intro stage: same size and place as the launch screen's shield", /width="2732"/.test(splash) && /scale\(0\.62\) translate\(-512 -516\)/.test(splash) && vb[0] + vb[2] / 2 === 512 && vb[1] + vb[3] / 2 === 516 && /--ix-u:calc\(max\(100vw,100vh\)\*\.62\/2732\)/.test(rule(".cn-ix")) && /--ix-mw:calc\(var\(--ix-u\)\*584\)/.test(rule(".cn-ix")) && vb[2] === 584 && /--ix-mh:calc\(var\(--ix-u\)\*732\)/.test(rule(".cn-ix")) && vb[3] === 732, vb);
+        // owner, 1 Nov 2026: the launch screen draws the padlock OPEN and the stage's first frame is that same padlock, which it then
+        // shuts: lifted 24 units and swung 20deg on the right leg (588, 486), the corner of the shackle's fill box (100% 100%)
+        check("Intro stage: the launch screen's padlock is open and the stage's first frame is the same open padlock, which it shuts", /<path d="M436 486 L436 428 A76 76 0 0 1 588 428 L588 486" transform="translate\(0 -24\) rotate\(20 588 486\)"/.test(splash) && byClass("cn-ix-shackle").length === 1 && byClass("cn-ix-body").length === 1 && /transform-box:fill-box;transform-origin:100%100%/.test(rule(".cn-ix-shackle")) && /@keyframescn-ix-shut\{0%\{transform:translateY\(-24px\)rotate\(20deg\)/.test(css) && /to\{transform:none\}\}/.test(css) && /cn-ix-shut\.5slinear\.22sbackwards/.test(rule(".cn-ix.is-run.cn-ix-shackle")), rule(".cn-ix-shackle"));
         check("Intro stage CSS: the first frame is the launch screen (no entry fade on a first launch, only on a replay)", /\.cn-ix\.is-fade\{animation:cn-ix-in/.test(css) && !/\.cn-ix\{[^}]*animation:/.test(css) && /node\.classList\.add\("is-fade"\)/.test(mount) && /fadeIn/.test(mount) && /mountStage\(true\)/.test(fnText("showIntro")) && /mountStage\(false\)/.test(fnText("prepareIntro")));
 
-        // timing: one move at a time, steady typing, 5 to 7 s before the steps, a calm hold when motion is off
-        const t = ix.ixTimes(), delays = ix.typingDelays(ix.IX_QUOTE);
-        check("Intro timing: the beats come in order", t.type < t.typed && t.typed < t.read && t.read < t.glide && t.glide < t.pitch && t.pitch < t.steps, t);
-        check("Intro timing: the steps come 5 to 7 s in (about 6.7 s)", t.steps >= 5000 && t.steps <= 7000, t);
-        check("Intro timing: typing is steady, never faster than one character in 30 ms, and takes 1.2 to 2.5 s", Math.min(...delays) >= 30 && t.typed - t.type < 2500 && t.typed - t.type > 1200, delays);
-        check("Intro timing: the typing starts after the draw (1.9 s) has landed", t.type >= 1900, t.type);
-        check("Intro timing: reduced motion shows the end frame for 2 to 3 s, then the steps", ix.IX.calm >= 2000 && ix.IX.calm <= 3000, ix.IX.calm);
-        check("Intro timing: the quote is held 0.3 s or more before it leaves, and the pitch (1.45 s to land) stays 0.6 s or more before the steps", ix.IX.hold >= 300 && ix.IX.show - 1450 >= 600, ix.IX);
-        // The wordmark glides up through the place where the pitch sits. On the tallest iPhone screen it has cleared
-        // the pitch 0.73 s into the 1 s glide (cubic-bezier(.65,0,.35,1)); the pitch must not start rising before that.
-        check("Intro timing: the pitch rises only after the wordmark has glided past it (no two texts over each other)", t.pitch - t.glide >= 740 && t.pitch - t.glide <= 1000 && /constglide=read\+IX\.glide,pitch=glide\+IX\.pitch/.test(squash(iosSrc(fnOf("ixTimes")))), t);
+        // timing: one move at a time. The shackle seats near 620 ms (ios.css: .5 s from .22 s, seated at 80 %) and the tap comes
+        // with it; the lines rise once it has settled and are read; then the stage opens onto the app, or glides up for the sheet.
+        const T = ix.IX;
+        check("Launch timing: the beats come in order, and the stage opens onto the app when it would otherwise glide", T.click < T.lines && T.lines < T.glide && T.glide < T.pitch && T.pitch < T.steps && T.open === T.glide, T);
+        check("Launch timing: the tap comes as the shackle seats (within 60 ms of 620 ms)", Math.abs(T.click - 620) <= 60, T.click);
+        check("Launch timing: the lines rise once the lock has shut and are read for 0.4 s or more after they land (0.98 s after they start)", T.lines >= 720 && T.glide - (T.lines + 980) >= 400, T);
+        check("Launch timing: the app is open within 3 s, and the card or the steps come 3 to 4.5 s in", T.open + 650 <= 3000 && T.steps >= 3000 && T.steps <= 4500, T);
+        check("Launch timing: the kicker rises once the 1 s glide is mostly done (no two texts over each other)", T.pitch - T.glide >= 600 && T.pitch - T.glide <= 1000, T);
+        check("Launch timing: reduced motion shows the end frame for 0.8 to 2 s", T.calm >= 800 && T.calm <= 2000, T.calm);
 
         // reduced motion and Pause motion: no drawing, typing or sliding; the same final layout, faded in
         let off = null;
@@ -284,7 +286,7 @@ try {
           const bare = off({ classList: { contains: () => false } }, {});
           check("Reduced motion: prefers-reduced-motion and the app's Pause motion both switch the motion off", still() === true && reduce() === true && normal() === false && bare() === false);
         }
-        check("Reduced motion: the stage opens on its end frame (no typing, only the hold), then shows the steps", /constcalm=motionOff\(\)/.test(mount) && /if\(calm\)node\.classList\.add\("is-calm","is-glide","is-pitch"\)/.test(mount) && /if\(calm\)wait\(\(\)=>end\(false\),IX\.calm\)/.test(mount) && /typeNext/.test(mount.split("if(calm)wait")[1] || "") && !/typeNext/.test(mount.split("if(calm)wait")[0]), mount.slice(0, 300));
+        check("Reduced motion: the stage opens on its end frame (the lock shut, the lines up; glided unless it opens onto the app), only the hold, then goes on", /constcalm=motionOff\(\)/.test(mount) && /if\(calm\)node\.classList\.add\("is-calm","is-lines",\.\.\.\(?open\?\[\]:\["is-glide","is-pitch"\]\)?\)/.test(mount) && /if\(calm\)wait\(\(\)=>end\(false\),IX\.calm\);else\{wait\(\(\)=>\{try\{P\("Haptics"\)/.test(mount), mount.slice(0, 300));
         check("Reduced motion CSS: every entry animation and transition is off, in the media query and under Pause motion", /@media\(prefers-reduced-motion:reduce\)\{\.cn-ix\*,\.cn-ix\*:before,\.cn-ix\*:after\{animation:none!important;transition:none!important\}/.test(css) && /html\.cn-still\.cn-ix\*,html\.cn-still\.cn-ix\*:before,html\.cn-still\.cn-ix\*:after\{animation:none!important;transition:none!important\}/.test(css));
         check("Reduced motion CSS: the end frame fades in (a cover of the stage's own colour fades out) and the layout is the final one", /\.cn-ix\.is-calm:after\{[^}]*animation:cn-ix-uncover/.test(css) && /@keyframescn-ix-uncover\{to\{opacity:0\}\}/.test(css) && /\.cn-ix\.is-glide \.cn-ix-lockup\{transform:translateY/.test(cssSpaced) && /\.cn-ix:is\(\.is-end,\.is-calm\):is\(/.test(css));
 
@@ -292,7 +294,7 @@ try {
         const frames = [...css.matchAll(/@keyframes(cn-ix-[\w-]+)\{((?:[^{}]|\{[^{}]*\})*)\}/g)];
         const animated = new Set();
         for (const f of frames) for (const decl of f[2].matchAll(/(?:^|[{;])([\w-]+):/g)) if (decl[1] !== "animation-timing-function") animated.add(decl[1]);
-        check("Intro stage CSS: it has its keyframes", frames.length >= 12, frames.map(f => f[1]));
+        check("Intro stage CSS: it has its keyframes", frames.length >= 10, frames.map(f => f[1]));
         check("Intro stage CSS: only transform, opacity and stroke-dashoffset are animated", [...animated].every(p => ["transform", "opacity", "stroke-dashoffset"].includes(p)), [...animated]);
         const stageRules = [...css.matchAll(/(?:^|[};])([^{}@]*\.cn-ix[^{}]*)\{([^}]*)\}/g)];
         check("Intro stage CSS: no filter and no backdrop blur anywhere in it", stageRules.length > 20 && stageRules.every(r => !/(^|[;{])(-webkit-)?(backdrop-)?filter:|blur\(/.test(r[2])), stageRules.length);
@@ -301,7 +303,7 @@ try {
         check("Intro stage CSS: the stage sits above the tab bar and the page but under the steps (z-index)", zOf(".cn-ix") > 900 && zOf(".cn-ix") < zOf(".cn-ios-sheet-backdrop"), [zOf(".cn-ix"), zOf(".cn-ios-sheet-backdrop")]);
         check("Intro stage CSS: the status bar is cleared (the mark glides to env(safe-area-inset-top) + 22px)", /--ix-top:calc\(env\(safe-area-inset-top,0px\)\+22px\)/.test(rule(".cn-ix")));
         // 30 Oct 2026 (review): the pitch no longer follows a screen-height guess (min-height: 760px was written for the 3-step sheet; the card is about 100 px taller and hid the kicker on 375 x 812). ios.js fitPitch() measures the sheet and sets has-room (all of the pitch) or has-lines (the two lines only).
-        check("Intro stage CSS: the pitch steps aside when a sheet rises over the stage, and stays (all of it, or only its two lines) when fitPitch() found room for it; no screen-height guess", /(?:^|\})\.cn-ix\.is-steps\.cn-ix-pitch\{opacity:0;transform:translateY\(-8px\)\}/.test(css) && /\.cn-ix\.is-steps:is\(\.has-lines,\.has-room\)\.cn-ix-pitch\{opacity:1;transform:none\}/.test(css) && /\.cn-ix\.is-steps\.has-lines:not\(\.has-room\):is\(\.cn-ix-rule,\.cn-ix-kicker\)\{opacity:0\}/.test(css) && /\.cn-ix-rule,\.cn-ix-kicker\{transition:opacity/.test(css) && !/@media\(min-height:760px\)/.test(css));
+        check("Intro stage CSS: the pitch steps aside when a sheet rises over the stage, and stays (all of it, or only its two lines) when fitPitch() found room for it; no screen-height guess", /(?:^|\})\.cn-ix\.is-steps\.cn-ix-pitch\{opacity:0;transform:translateY\(-8px\);transition-duration:\.4s\}/.test(css) && /\.cn-ix\.is-steps:is\(\.has-lines,\.has-room\)\.cn-ix-pitch\{opacity:1;transform:none\}/.test(css) && /\.cn-ix\.is-steps\.has-lines:not\(\.has-room\):is\(\.cn-ix-rule,\.cn-ix-kicker\)\{opacity:0\}/.test(css) && /\.cn-ix-rule,\.cn-ix-kicker\{transition:opacity/.test(css) && !/@media\(min-height:760px\)/.test(css));
         check("Intro stage CSS: the steps rise slowly over the bright stage", /\.cn-ios-sheet-backdrop\.cn-ix-over\.is-open\{background:(rgba\(2,6,14,0\)|#02060e00|#0000)\}/.test(css) && /\.cn-ios-sheet-backdrop\.cn-ix-over\.is-open \.cn-ios-sheet\{transition-duration:\.6s/.test(cssSpaced) && /overStage\)riseOverStage\(panel\)/.test(fnText("introSheet")) && /^functionriseOverStage\(panel\)\{panel\.parentNode\.classList\.add\("cn-ix-over"\);fitPitch\(panel\)\}/.test(fnText("riseOverStage")));
 
         // first launch, returning users, links and shared items
@@ -316,7 +318,7 @@ try {
         check("Launch: a plugin that never answers hides nothing (a shared item still counts) and the wait is capped at 450 ms", (await timeout(lt(plug({ App: { getLaunchUrl: never }, SharedInbox: { read: async () => ({ items: [{ createdAt: hours(1) }] }) } }))())) === true && (await timeout(lt(plug({ App: { getLaunchUrl: never } }))(), 80)) === "timeout" && /Promise\.race\(\[launchTarget\(\),newPromise\(resolve=>setTimeout\(\(\)=>resolve\(false\),450\)\)\]\)/.test(fnText("prepareIntro")));
         const startText = fnText("start");
         // Changed 30 Oct 2026: a returning user's launch screen now waits for the session check (prepareGate, section 7d), because a signed-out person gets the short gate and nothing may flash first. The wait is the Keychain read: milliseconds, 1.2 s at most.
-        check("Launch: a returning user's launch screen hides as soon as the session check has answered (1.2 s at most, usually milliseconds); no gate for someone signed in", /^asyncfunctionprepareGate\(\)\{if\(guestRemembered\(\)\)return;if\(awaitsessionKnown\(\)!==false\)return;/.test(fnText("prepareGate")) && /constprepared=\(first\?prepareIntro\(\):prepareGate\(\)\)/.test(startText) && /prepared\.then\(hideSplash\)/.test(startText) && /requestAnimationFrame\(\(\)=>requestAnimationFrame\(\(\)=>P\("SplashScreen"\)/.test(startText) && /later\(\(\)=>P\("SplashScreen"\)\?\.hide\(\)\.catch\(\(\)=>\{\}\),3e3\)/.test(startText) && /^asyncfunctionprepareIntro\(\)\{if\(store\.get\(INTRO_KEY\)\)return;/.test(fnText("prepareIntro")), startText.slice(0, 300));
+        check("Launch: a returning user's launch screen hides as soon as the session check has answered (1.2 s at most, usually milliseconds); the link check is asked at the same time", /^asyncfunctionprepareGate\(\)\{constguest=guestRemembered\(\);const\[session,direct\]=awaitPromise\.all\(\[guest\?null:sessionKnown\(\),Promise\.race\(\[launchTarget\(\),newPromise\(resolve=>setTimeout\(\(\)=>resolve\(false\),450\)\)\]\)\]\);/.test(fnText("prepareGate")) && /constprepared=\(first\?prepareIntro\(\):prepareGate\(\)\)/.test(startText) && /prepared\.then\(hideSplash\)/.test(startText) && /requestAnimationFrame\(\(\)=>requestAnimationFrame\(\(\)=>P\("SplashScreen"\)/.test(startText) && /later\(\(\)=>P\("SplashScreen"\)\?\.hide\(\)\.catch\(\(\)=>\{\}\),3e3\)/.test(startText) && /^asyncfunctionprepareIntro\(\)\{if\(store\.get\(INTRO_KEY\)\)return;/.test(fnText("prepareIntro")), startText.slice(0, 300));
         check("Launch: with a link or a shared item the steps come as a plain sheet, and a replay always gets the motion", /if\(target\)\{introPlain=true;return\}/.test(fnText("prepareIntro")) && /if\(force\|\|!introPlain\)/.test(fnText("showIntro")) && /introSheet\(!!stage\)/.test(fnText("showIntro")));
         check("Launch: after the intro (or the short gate) the app goes on as before (tracking prompt, then the shared-item sheet), and a step that fails no longer skips them (30 Oct 2026, below)", squash(iosJs).includes('awaitprepared;if(first)awaitshowIntro();elseawaitshowGate()}catch(error){report(error,"launch")}finally{try{awaitstartTracking(true)}catch(error){report(error,"tracking")}'));
         check("Launch: the intro key is unchanged", /INTRO_KEY\s*=\s*"cn-ios-intro-1"/.test(iosJs));
@@ -325,7 +327,7 @@ try {
         check("Launch: the steps say what they said (3 steps, same titles)", steps?.map(s => s.title).join("|") === "Check a text or link|Scan a QR code before you open it|Share to CyberNet AI" && /^Paste a message or a link into Check\./.test(steps[0].text), steps?.map(s => s.title));
         check("Launch: the key is stored once the steps are closed and the stage has left", /\.then\(value=>\{store\.set\(INTRO_KEY,String\(Date\.now\(\)\)\);returnvalue\}\)/.test(fnText("showIntro")) && /finally\{if\(stage\)awaitstage\.leave\(\)\}/.test(fnText("showIntro")));
         check("Launch: Show the welcome tips again replays it (showIntro(true))", /data-ios-action="intro"/.test(await read("index.html")) && /action==="intro"\)showIntro\(true\)/.test(squash(iosJs)));
-        check("Native tab bar: hidden under the stage, given back when it has left (also if the steps never came)", /if\(nativeTabs\)\{tabsHidden=true;nativeTabs\.setHidden\(\{hidden:true\}\)/.test(mount) && /showTabs=\(\)=>\{if\(tabsHidden\)\{tabsHidden=false;nativeTabs\?\.setHidden\(\{hidden:false\}\)/.test(mount) && /leave\(\)\{end\(true\);returnnewPromise\(resolve=>\{node\.classList\.add\("is-out"\);later\(\(\)=>\{node\.remove\(\);showTabs\(\);refocus\(\);resolve\(\)\}/.test(mount));
+        check("Native tab bar: hidden under the stage, given back when it has left (also if the steps never came)", /if\(nativeTabs\)\{tabsHidden=true;nativeTabs\.setHidden\(\{hidden:true\}\)/.test(mount) && /showTabs=\(\)=>\{if\(tabsHidden\)\{tabsHidden=false;nativeTabs\?\.setHidden\(\{hidden:false\}\)/.test(mount) && /leave\(\)\{end\(true\);returnnewPromise\(resolve=>\{constopening=open&&!calm;if\(opening\)\{root\.classList\.add\("cn-ix-opening"\);later\(showTabs,300\)\}node\.classList\.add\("is-out"\);later\(\(\)=>\{node\.remove\(\);showTabs\(\);refocus\(\);root\.classList\.remove\("cn-ix-opening"\);resolve\(\)\}/.test(mount));
         // Focus: the sheet can only hand focus back to the stage's own Skip (which is gone by then), so the stage
         // remembers what had focus before it (the Account row on a replay) and gives it back when it leaves.
         check("Intro stage: what had focus before it gets focus back when it leaves (a replay returns to the Account row)", mount.indexOf("constback=d.activeElement") > -1 && mount.indexOf("constback=d.activeElement") < mount.indexOf('$(".cn-ix-skip",node)).focus') && /constrefocus=\(\)=>\{try\{if\(back\?\.isConnected&&back!==d\.body\)back\.focus\(\{preventScroll:true\}\)\}catch/.test(mount), mount.slice(0, 400));
@@ -415,20 +417,22 @@ try {
       const mkPrepare = ({ session: s, target, mount, guest = false }) => {
         const calls = { mounted: [], reported: [], asked: 0 };
         const stage = { stage: true };
-        const api = run(["gateStage", "gateWanted", "prepareGate"], ["sessionKnown", "launchTarget", "launchGate", "mountStage", "report", "guestRemembered"], "{ prepareGate, state: () => ({ gateStage, gateWanted }) }",
+        const api = run(["gateStage", "gateWanted", "openStage", "prepareGate"], ["sessionKnown", "launchTarget", "launchGate", "mountStage", "report", "guestRemembered"], "{ prepareGate, state: () => ({ gateStage, gateWanted, openStage }) }",
           async () => { calls.asked++; return s; }, target, realGate, (...a) => { calls.mounted.push(a); if (mount === "throw") throw new Error("no stage"); return stage; }, (e, where) => calls.reported.push(where), () => guest);
         return { api, calls, stage };
       };
       {
         const out = {};
-        for (const [name, args] of Object.entries({ signedIn: { session: true, target: async () => false }, unknown: { session: null, target: async () => false }, link: { session: false, target: async () => true }, plain: { session: false, target: async () => false }, broken: { session: false, target: async () => false, mount: "throw" } })) {
+        for (const [name, args] of Object.entries({ signedIn: { session: true, target: async () => false }, unknown: { session: null, target: async () => false }, guest: { session: false, guest: true, target: async () => false }, brokenOpen: { session: true, target: async () => false, mount: "throw" }, link: { session: false, target: async () => true }, plain: { session: false, target: async () => false }, broken: { session: false, target: async () => false, mount: "throw" } })) {
           const t = mkPrepare(args);
           await t.api.prepareGate();
-          out[name] = { mounted: t.calls.mounted, reported: t.calls.reported, ...t.api.state() };
+          out[name] = { mounted: t.calls.mounted, reported: t.calls.reported, asked: t.calls.asked, ...t.api.state() };
         }
-        check("Short gate: nothing is put up for someone who is signed in or whose session check did not answer", out.signedIn.mounted.length === 0 && !out.signedIn.gateWanted && out.unknown.mounted.length === 0 && !out.unknown.gateWanted, out);
-        check("Short gate: nothing is put up when a link or a shared item opened the app", out.link.mounted.length === 0 && !out.link.gateWanted, out.link);
-        check("Short gate: signed out and nothing else opened the app: the short stage goes up under the launch screen (no fade-in, short: true)", out.plain.mounted.length === 1 && out.plain.mounted[0][0] === false && out.plain.mounted[0][1]?.short === true && out.plain.gateWanted && out.plain.gateStage?.stage === true, out.plain);
+        const opens = o => o.mounted.length === 1 && o.mounted[0][0] === false && o.mounted[0][1]?.open === true && !o.gateWanted && o.openStage?.stage === true;
+        check("Launch stage: signed in, a session check that did not answer, or a guest's choice in the last 7 days: the stage that opens onto the app goes up under the launch screen (no fade-in, open: true), no gate (owner, 1 Nov 2026)", opens(out.signedIn) && opens(out.unknown) && opens(out.guest) && out.guest.asked === 0, out);
+        check("Launch stage: if it cannot be built the app simply opens and the error is reported", out.brokenOpen.openStage === null && !out.brokenOpen.gateWanted && out.brokenOpen.reported.join() === "launch stage", out.brokenOpen);
+        check("Short gate: nothing is put up when a link or a shared item opened the app", out.link.mounted.length === 0 && !out.link.gateWanted && out.link.openStage === null, out.link);
+        check("Short gate: signed out and nothing else opened the app: the short stage goes up under the launch screen (no fade-in, short: true)", out.plain.mounted.length === 1 && out.plain.mounted[0][0] === false && out.plain.mounted[0][1]?.short === true && out.plain.gateWanted && out.plain.gateStage?.stage === true && out.plain.openStage === null, out.plain);
         check("Short gate: if the stage cannot be built the card still comes (over the app) and the error is reported", out.broken.gateWanted && out.broken.gateStage === null && out.broken.reported.join() === "gate stage", out.broken);
         const slow = mkPrepare({ session: false, target: never });
         const started = Date.now();
@@ -438,23 +442,25 @@ try {
       {
         const log = [];
         const stage = { ready: Promise.resolve(), toSteps: () => log.push("toSteps"), leave: () => { log.push("leave"); return Promise.resolve(); } };
-        const mk = () => run(["gateStage", "gateWanted", "showGate"], ["signInCard"], "{ showGate, set: (w, s) => { gateWanted = w; gateStage = s; } }", async opts => { log.push(`card ${JSON.stringify(opts)}`); return "guest"; });
+        const opening = { ready: Promise.resolve(), toSteps: () => log.push("open toSteps"), leave: () => { log.push("open leave"); return Promise.resolve(); } };
+        const mk = () => run(["gateStage", "gateWanted", "openStage", "showGate"], ["signInCard"], "{ showGate, set: (w, s, o = null) => { gateWanted = w; gateStage = s; openStage = o; } }", async opts => { log.push(`card ${JSON.stringify(opts)}`); return "guest"; });
         const a = mk();
         await a.showGate();
         a.set(true, stage);
         await a.showGate();
         a.set(true, null);
         await a.showGate();
-        check("Short gate: the card rises over the stage once its beats are over (steps aside, card, stage leaves); with no stage the card comes over the app; with no gate nothing happens", log.join(" | ") === 'toSteps | card {"launch":true,"overStage":true} | leave | card {"launch":true,"overStage":false}', log);
+        a.set(false, null, opening);
+        await a.showGate();
+        check("Short gate: the card rises over the stage once its beats are over (steps aside, card, stage leaves); with no stage the card comes over the app; with no gate nothing happens; the stage that opens onto the app plays out and leaves, with no card", log.join(" | ") === 'toSteps | card {"launch":true,"overStage":true} | leave | card {"launch":true,"overStage":false} | open leave', log);
       }
       check("Short gate: it is the first thing a later launch does (before the launch screen hides) and the launch goes on to the tracking prompt and the shared item as before", /constfirst=!store\.get\(INTRO_KEY\);constprepared=\(first\?prepareIntro\(\):prepareGate\(\)\)\.catch\(/.test(fnText("start")) && /prepared\.then\(hideSplash\)/.test(fnText("start")) && /awaitprepared;if\(first\)awaitshowIntro\(\);elseawaitshowGate\(\)\}catch\(error\)\{report\(error,"launch"\)\}finally\{try\{awaitstartTracking\(true\)\}catch\(error\)\{report\(error,"tracking"\)\}try\{if\(appleLeft\)awaitshowAppleLeftover\(\)\}catch\(error\)\{report\(error,"appleleftover"\)\}checkInbox\(\)\}/.test(fnText("start")));
       {
-        const t = run(["IXS"], [], "IXS");
-        check("Short gate timing: the beats come in order and the card is up in 1.0 to 1.5 s (about 1.4 s with its 0.6 s rise); reduced motion fades the end frame in for about 0.45 s", t.glide < t.pitch && t.pitch < t.card && t.card + 600 >= 1000 && t.card + 600 <= 1500 && t.calm >= 300 && t.calm <= 600, t);
-        check("Short gate timing: the pitch rises only once the wordmark has glided past it (the 0.55 s glide clears the pitch's place by about 0.45 s)", t.pitch - t.glide >= 400 && /transition-duration:\.55s/.test(css) && /\.cn-ix\.is-short:is\(\.cn-ix-lockup,\.cn-ix-mark,\.cn-ix-word\)\{transition-duration:\.55s/.test(css), t);
         const mount = fnText("mountStage");
-        check("Short gate: mountStage(fade, { short }) has no typing, no Skip focus, and under reduced motion only the calm hold", /functionmountStage\(fadeIn,\{short=false\}=\{\}\)/.test(mount) && /if\(short\)node\.classList\.add\("is-short"\)/.test(mount) && /if\(short\)\{constbeats=calm\?\[\[IXS\.calm,\(\)=>end\(false\)\]\]:\[\[IXS\.glide,\(\)=>node\.classList\.add\("is-glide"\)\],\[IXS\.pitch,\(\)=>node\.classList\.add\("is-pitch"\)\],\[IXS\.card,\(\)=>end\(false\)\]\];beats\.forEach\(\(\[ms,fn\]\)=>wait\(fn,ms\)\)\}elseif\(calm\)wait\(\(\)=>end\(false\),IX\.calm\)/.test(mount) && /\(short\?node:\$\("\.cn-ix-skip",node\)\)\.focus/.test(mount), mount.slice(0, 200));
-        check("Short gate CSS: the finished mark is already there (nothing drawn, typed or scanned), the wordmark fades in on the glide, the quote and Skip are not shown", /\.cn-ix\.is-short:is\(\.cn-ix-base,\.cn-ix-trace,\.cn-ix-lock,\.cn-ix-scan,\.cn-ix-wordspan\)\{animation:none\}/.test(css) && /\.cn-ix\.is-short:is\(\.cn-ix-quote,\.cn-ix-skip\)\{display:none\}/.test(css) && /opacity:0/.test(rule(".cn-ix.is-short.cn-ix-word")) && /opacity:1/.test(rule(".cn-ix.is-short.is-glide.cn-ix-word")), rule(".cn-ix.is-short.cn-ix-word"));
+        check("Short gate and the stage that opens onto the app: mountStage(fade, { short, open }) has no Skip button (the stage itself takes focus); the open stage ends with the opening instead of the glide", /functionmountStage\(fadeIn,\{short=false,open=false\}=\{\}\)/.test(mount) && /if\(short\|\|open\)node\.classList\.add\("is-short"\)/.test(mount) && /if\(open\)node\.classList\.add\("is-app"\)/.test(mount) && /if\(open\)wait\(\(\)=>end\(false\),IX\.open\);else\{wait\(\(\)=>node\.classList\.add\("is-glide"\),IX\.glide\);wait\(\(\)=>node\.classList\.add\("is-pitch"\),IX\.pitch\);wait\(\(\)=>end\(false\),IX\.steps\)\}/.test(mount) && /\(short\|\|open\?node:\$\("\.cn-ix-skip",node\)\)\.focus/.test(mount), mount.slice(0, 200));
+        check("Short gate CSS: no Skip button (a tap anywhere still finishes it)", /\.cn-ix\.is-short\.cn-ix-skip\{display:none\}/.test(css));
+        check("Opening onto the app CSS: the lockup comes forward as the stage fades and the page comes up under it; reduced motion and Pause motion still the page", /\.cn-ix\.is-app\.is-out\.cn-ix-lockup\{transform:scale\(1\.07\)\}/.test(css) && /html\.cn-ix-opening:is\(#cnMain,\.navbar\)\{animation:cn-ix-in/.test(css) && /html\.cn-still\.cn-ix-opening:is\(#cnMain,\.navbar\)\{animation:none\}/.test(css) && /@media\(prefers-reduced-motion:reduce\)\{[^@]*html\.cn-ix-opening:is\(#cnMain,\.navbar\)\{animation:none\}/.test(css));
+        check("Opening onto the app: the tab bar comes back during the opening, and the page's class goes when the stage has gone", /constopening=open&&!calm;if\(opening\)\{root\.classList\.add\("cn-ix-opening"\);later\(showTabs,300\)\}/.test(mount) && /root\.classList\.remove\("cn-ix-opening"\)/.test(mount));
         check("Short gate CSS: it adds no keyframes and no filter or blur (only the stage's own moves), and reduced motion and Pause motion still still every part of it", !/@keyframes[^{]*short/.test(css) && !/\.is-short[^{]*\{[^}]*(filter|blur)/.test(css) && /@media\(prefers-reduced-motion:reduce\)\{\.cn-ix\*,\.cn-ix\*:before,\.cn-ix\*:after\{animation:none!important;transition:none!important\}/.test(css) && /html\.cn-still\.cn-ix\*,html\.cn-still\.cn-ix\*:before,html\.cn-still\.cn-ix\*:after\{animation:none!important;transition:none!important\}/.test(css));
       }
       const showIntroText = fnText("showIntro");
@@ -1009,7 +1015,7 @@ try {
         await t.api.prepareGate();
         const normal = mkPrepare({ session: false, target: async () => false, guest: false });
         await normal.api.prepareGate();
-        check("Guest memory: a later launch within 7 days of the choice puts up no short gate (the session is not even asked), and the launch screen hides at once; after that the gate comes back", t.calls.mounted.length === 0 && t.calls.asked === 0 && !t.api.state().gateWanted && normal.calls.mounted.length === 1 && normal.api.state().gateWanted);
+        check("Guest memory: a later launch within 7 days of the choice puts up no short gate (the session is not even asked), only the stage that opens onto the app (1 Nov 2026); after that the gate comes back", t.calls.mounted.length === 1 && t.calls.mounted[0][1]?.open === true && t.calls.asked === 0 && !t.api.state().gateWanted && normal.calls.mounted.length === 1 && normal.calls.mounted[0][1]?.short === true && normal.api.state().gateWanted);
       }
       {
         // the launch card, run with stubs: the guest link stores the time; a sign-in, Not now and the other choices do not

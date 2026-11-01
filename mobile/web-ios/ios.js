@@ -784,57 +784,31 @@
 
   /* ---- 7a. the motion intro ---- */
   // The mark is the launch screen's shield, in the same place and size (native/brand/splash.svg), so the
-  // launch screen hands over without a jump. The shield path starts at its bottom point: a dashed draw
-  // then never leaves a notch at the top (the website's gate does the same, DESIGN.md "The gate draw").
+  // launch screen hands over without a jump. The launch screen shows the padlock OPEN, and every stage starts
+  // there (owner, 1 Nov 2026: "the lock was already open, it closes, then it says stay protected all in one
+  // place ... then it opens the application"): the shackle swings down and snaps shut with one firm tap,
+  // CyberNet AI rises letter by letter, and "Stay protected." and "All in one place." rise under it. Then the
+  // stage either opens onto the app (a later launch: signed in, or a guest's recent choice) or glides up and
+  // makes room for the card and the steps (signed out, and the first launch).
   const IX_SHIELD = "M512 856 C352 786 244 672 244 518 L244 266 C344 258 432 230 512 176 C592 230 680 258 780 266 L780 518 C780 672 672 786 512 856 Z";
-  const IX_QUOTE = ["That message looks real.", "That’s the point."]; // the website's typed line, split where it breathes
-  // The kicker says what the app does, in the words of the sign-in sheet; "protection" claims are not used
-  // in the iOS build (App Review, guideline 2.3.1(a)).
-  const IX_PITCH = { lines: ["Stay secure.", "All in one place."], kicker: "Check, scan and recover" };
-  // Beats in ms. CSS runs the first ones on its own from the stage's first frame (ios.css, .cn-ix: the draw to
-  // 1.9 s, the lock, the wordmark to 2.7 s); these set the typing and the three moves after it (ixTimes). The
-  // glide and the pitch delays in ios.css are written for them.
+  // The two lines are the owner's words; the kicker says what the app does, in the words of the sign-in sheet.
+  const IX_PITCH = { lines: ["Stay protected.", "All in one place."], kicker: "Check, scan and recover" };
+  // Beats in ms from the stage's first frame. ios.css runs the lock, the ring and the wordmark on the same clock
+  // (.cn-ix.is-run: the shackle shuts 220-720 ms and seats near 620, the wordmark rises 700-1.6 s); these add the moves after it.
   const IX = {
-    type: 2000,   // the quote starts typing
-    char: 36,     // one character, evenly
-    word: 14,     // a breath at the end of a word
-    stop: 130,    // after a full stop
-    line: 200,    // between the two lines
-    hold: 400,    // the quote is read before it leaves
-    glide: 100,   // from the quote leaving to the mark gliding up
-    pitch: 740,   // from the glide starting to the pitch rising in: the wordmark has glided past the pitch's place by then (0.73 s of the 1 s glide on the tallest screen)
-    show: 2060,   // from the pitch starting to the steps (the pitch lands in 1.45 s)
-    calm: 2200    // reduced motion: how long the end frame is shown before the steps
+    click: 600,   // the shackle seats: one firm tap
+    lines: 950,   // the two lines rise in under the wordmark, the second 0.18 s after the first (0.8 s each)
+    open: 2350,   // onto the app: the stage opens (0.6 s, leave())
+    glide: 2350,  // signed out: the mark, the wordmark and the two lines glide up together (1 s)
+    pitch: 3050,  // the rule and the kicker rise under the lines
+    steps: 3750,  // the card or the steps rise over the stage
+    calm: 1100    // reduced motion: how long the end frame is shown
   };
-  // The short gate (7d), for a launch after the first: the finished mark is already there (it is the launch
-  // screen's mark), it glides up, the pitch rises, and the card follows. About 1.4 s in all; under reduced motion
-  // the end frame fades in and the card comes after 0.45 s.
-  const IXS = {
-    glide: 200,  // the mark and the wordmark glide up (0.55 s, ios.css .is-short)
-    pitch: 650,  // the pitch rises, once the wordmark has passed its place
-    card: 850,   // the card starts to rise (0.6 s)
-    calm: 450    // reduced motion: how long the end frame fades in before the card
-  };
-  function typingDelays(lines) {
-    const out = [];
-    lines.forEach((line, li) => [...line].forEach((ch, i) => {
-      if (ch === " ") return; // spaces are not typed: they are already there
-      out.push(IX.char + (ch === "." ? IX.stop : 0) + (line[i + 1] === " " ? IX.word : 0) + (i === line.length - 1 && li < lines.length - 1 ? IX.line : 0));
-    }));
-    return out;
-  }
-  function ixTimes() {
-    const typed = IX.type + typingDelays(IX_QUOTE).slice(0, -1).reduce((a, b) => a + b, 0);
-    const read = typed + IX.hold;
-    const glide = read + IX.glide, pitch = glide + IX.pitch;
-    return { type: IX.type, typed, read, glide, pitch, steps: pitch + IX.show };
-  }
   // prefers-reduced-motion, or the visitor's own "pause motion" choice (cn-ios-boot.js sets html.cn-still)
   const motionOff = () => root.classList.contains("cn-still") || !!w.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
 
   function introStageHtml() {
     const letters = (text, from) => [...text].map((c, i) => `<span style="--i:${from + i}">${c}</span>`).join("");
-    const typed = IX_QUOTE.map(line => `<span class="cn-ix-q-line">${line.split(" ").map(word => `<span class="cn-ix-w">${[...word].map(c => `<span class="cn-ix-c">${esc(c)}</span>`).join("")}</span>`).join(" ")}</span>`).join("");
     const spoken = `CyberNet AI. ${IX_PITCH.lines.join(" ")} ${IX_PITCH.kicker}.`;
     return `<div class="cn-ix" id="cnIntroStage" role="dialog" aria-modal="true" aria-label="Welcome to CyberNet AI" tabindex="-1">
       <div class="cn-ix-lockup" aria-hidden="true">
@@ -843,19 +817,16 @@
           <svg class="cn-ix-svg" viewBox="220 150 584 732" focusable="false">
             <defs><linearGradient id="cnIxMark" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#67e8f9"/><stop offset="1" stop-color="#22d3ee"/></linearGradient></defs>
             <path class="cn-ix-base" d="${IX_SHIELD}" fill="none" stroke="url(#cnIxMark)" stroke-width="48" stroke-linejoin="round"/>
-            <path class="cn-ix-trace" pathLength="1" d="${IX_SHIELD}" fill="none" stroke="url(#cnIxMark)" stroke-width="48" stroke-linejoin="round" stroke-linecap="round"/>
-            <g class="cn-ix-lock">
-              <path d="M436 486 L436 428 A76 76 0 0 1 588 428 L588 486" fill="none" stroke="url(#cnIxMark)" stroke-width="40" stroke-linecap="round"/>
+            <path class="cn-ix-shackle" d="M436 486 L436 428 A76 76 0 0 1 588 428 L588 486" fill="none" stroke="url(#cnIxMark)" stroke-width="40" stroke-linecap="round"/>
+            <g class="cn-ix-body">
               <rect x="384" y="472" width="256" height="196" rx="34" fill="url(#cnIxMark)"/>
               <circle cx="512" cy="550" r="27" fill="#060a14"/>
               <path d="M498 560 L526 560 L534 620 L490 620 Z" fill="#060a14"/>
             </g>
           </svg>
           <span class="cn-ix-ring"></span>
-          <span class="cn-ix-scan"></span>
         </div>
         <p class="cn-ix-word">${letters("Cyber", 0)}<b>${letters("Net", 5)}</b><small>${letters("AI", 8)}</small></p>
-        <p class="cn-ix-quote">${typed}</p>
       </div>
       <div class="cn-ix-pitch" aria-hidden="true">
         <p class="cn-ix-line">${esc(IX_PITCH.lines[0])}</p>
@@ -870,18 +841,18 @@
 
   // Puts the stage up and starts its clock. Returns { ready, toSteps, leave }: ready resolves when the
   // beats are over or skipped (a tap anywhere, the Skip button, Escape / Return / Space); toSteps() hands the
-  // screen to the steps; leave() dissolves the stage and gives the native tab bar back.
-  function mountStage(fadeIn, { short = false } = {}) {
+  // screen to the steps; leave() dissolves the stage (open: opens it onto the app) and gives the native tab bar back.
+  // short: the short gate (7d), no Skip button. open: a later launch that goes straight to the app (7d).
+  function mountStage(fadeIn, { short = false, open = false } = {}) {
     $("#cnIntroStage")?.remove();
     const calm = motionOff();
     const node = el(introStageHtml());
-    if (calm) node.classList.add("is-calm", "is-glide", "is-pitch"); // no drawing, typing or sliding: the end frame, faded in
+    // reduced motion: no moves, the end frame faded in (the lock shut, the lines up and, unless it opens onto the app, glided up)
+    if (calm) node.classList.add("is-calm", "is-lines", ...(open ? [] : ["is-glide", "is-pitch"]));
     else node.classList.add("is-run");
-    if (short) node.classList.add("is-short"); // 7d: no drawing or typing, no Skip button
+    if (short || open) node.classList.add("is-short"); // no Skip button: it would be gone before it could be used (a tap anywhere still finishes it)
+    if (open) node.classList.add("is-app");
     if (fadeIn) node.classList.add("is-fade");
-    const chars = $$(".cn-ix-c", node);
-    const delays = typingDelays(IX_QUOTE);
-    const times = ixTimes();
     let timers = [], over = false, tabsHidden = false;
     let go;
     const ready = new Promise(resolve => { go = resolve; });
@@ -897,7 +868,8 @@
       timers.forEach(clearTimeout);
       timers = [];
       d.removeEventListener("keydown", onKey, true);
-      if (skipped) node.classList.add("is-end", "is-glide", "is-pitch", "is-quick"); // every move finishes at once; the mark hurries up; the pitch is there for the card (is-end stops its entry animation)
+      // every move finishes at once (is-end stops the entry animations) and the lines are there; for a sheet the mark hurries up
+      if (skipped) node.classList.add("is-end", "is-lines", ...(open ? [] : ["is-glide", "is-pitch", "is-quick"]));
       go();
     };
     node.addEventListener("click", () => end(true)); // the whole stage is the target; the tap is used up, never passed on to the steps
@@ -906,28 +878,18 @@
     if (nativeTabs) { tabsHidden = true; nativeTabs.setHidden({ hidden: true }).catch(() => {}); }
     d.body.appendChild(node);
     try { d.fonts?.load?.('700 34px "JetBrains Mono"'); d.fonts?.load?.('700 44px "Mona Sans"'); } catch { /* the fallback faces are fine */ }
-    try { (short ? node : $(".cn-ix-skip", node)).focus({ preventScroll: true }); } catch { /* ignore */ }
+    try { (short || open ? node : $(".cn-ix-skip", node)).focus({ preventScroll: true }); } catch { /* ignore */ }
 
-    if (short) {
-      const beats = calm ? [[IXS.calm, () => end(false)]] : [[IXS.glide, () => node.classList.add("is-glide")], [IXS.pitch, () => node.classList.add("is-pitch")], [IXS.card, () => end(false)]];
-      beats.forEach(([ms, fn]) => wait(fn, ms));
-    } else if (calm) wait(() => end(false), IX.calm);
+    if (calm) wait(() => end(false), IX.calm);
     else {
-      let at = 0;
-      const t0 = performance.now();
-      const marks = []; // when each character appears, from the stage's first frame
-      delays.reduce((sum, ms) => { marks.push(sum); return sum + ms; }, times.type);
-      // each step aims at its own mark, so the small lateness of chained timers never adds up
-      const typeNext = () => {
-        chars[at - 1]?.classList.remove("is-cur");
-        chars[at].classList.add("is-on", "is-cur");
-        if (++at < chars.length) wait(typeNext, Math.max(0, t0 + marks[at] - performance.now())); else node.classList.add("is-typed");
-      };
-      wait(typeNext, times.type);
-      wait(() => { node.classList.add("is-read"); chars[at - 1]?.classList.remove("is-cur"); }, times.read); // the quote has been read: it leaves
-      wait(() => node.classList.add("is-glide"), times.glide); // the mark and the wordmark glide up, the mark gets smaller
-      wait(() => node.classList.add("is-pitch"), times.pitch); // the pitch rises in, line by line (delays in ios.css)
-      wait(() => end(false), times.steps);
+      wait(() => { try { P("Haptics")?.impact({ style: "MEDIUM" })?.catch?.(() => {}); } catch { /* ignore */ } }, IX.click);
+      wait(() => node.classList.add("is-lines"), IX.lines);
+      if (open) wait(() => end(false), IX.open);
+      else {
+        wait(() => node.classList.add("is-glide"), IX.glide); // the mark, the wordmark and the lines glide up, the mark gets smaller
+        wait(() => node.classList.add("is-pitch"), IX.pitch); // the rule and the kicker rise under the lines
+        wait(() => end(false), IX.steps);
+      }
     }
     return {
       ready,
@@ -939,8 +901,11 @@
       leave() {
         end(true); // a no-op once over; makes sure no timer outlives the stage
         return new Promise(resolve => {
+          // onto the app: the lockup comes forward as the stage fades, and the page comes up under it (ios.css html.cn-ix-opening)
+          const opening = open && !calm;
+          if (opening) { root.classList.add("cn-ix-opening"); later(showTabs, 300); }
           node.classList.add("is-out");
-          later(() => { node.remove(); showTabs(); refocus(); resolve(); }, calm ? 220 : 520);
+          later(() => { node.remove(); showTabs(); refocus(); root.classList.remove("cn-ix-opening"); resolve(); }, calm ? 220 : opening ? 650 : 520);
         });
       }
     };
@@ -1231,12 +1196,14 @@
 
   /* ---- 7d. what each launch shows ---- */
   // The decision, in one place (owner, 30 Oct 2026):
-  //   signed in .......................................... Check at once, no gate (the first launch still plays the intro)
+  //   signed in .......................................... the lock shuts and the stage opens onto Check, no gate (the first
+  //                                                          launch plays the intro and the steps instead)
   //   no answer from the session check in time ........... the same: the app is usable, and the gate is not a wall
   //   opened by a link or a shared item .................. no gate; a guest may handle what was shared
   //   signed out, first launch ........................... the motion, then the card, then the three steps
   //   signed out, a later launch (sign out and a deleted account come back here too) ... the short gate, unless the person chose
   //                                                                                       "Continue without an account" in the last 7 days
+  //                                                                                       (then the stage opens onto Check)
   // Where the person lands is Check (Quick Scan) in every case, including right after signing in on the card. Someone who
   // is signed in reaches the Analysis AI message box through the Quick Scan | Analysis AI switch with no prompt, or straight
   // away when a guest asked for Analysis AI and then signed in (arrive). Opening on Analysis AI at launch is a decision
@@ -1269,18 +1236,32 @@
   }
   let gateStage = null;    // the short gate's stage, put up under the launch screen
   let gateWanted = false;
-  // Called at start on a later launch. Signed in (or no answer in time): nothing to do and the launch screen hides
-  // at once. Signed out: unless a link or a shared item opened the app, the short gate's stage goes up before the
-  // launch screen hides, so its first frame is the launch screen.
+  let openStage = null;    // a later launch that goes straight to the app: the lock shuts and the stage opens onto Check
+  // Called at start on a later launch. A link or a shared item opened the app: nothing to show, the launch screen hides
+  // onto it. Signed out (and no guest choice in the last 7 days): the short gate's stage. Everyone else (signed in, a
+  // guest's recent choice, no answer in time): the stage that opens onto the app (owner, 1 Nov 2026). Either stage goes
+  // up before the launch screen hides, so its first frame is the launch screen.
   async function prepareGate() {
-    if (guestRemembered()) return; // chose "Continue without an account" in the last 7 days: straight to Check
-    if ((await sessionKnown()) !== false) return;
-    const direct = await Promise.race([launchTarget(), new Promise(resolve => setTimeout(() => resolve(false), 450))]);
-    if (launchGate(false, false, direct) !== "short") return;
-    gateWanted = true;
-    try { gateStage = mountStage(false, { short: true }); } catch (error) { report(error, "gate stage"); } // without a stage the card comes over the app
+    const guest = guestRemembered(); // chose "Continue without an account" in the last 7 days: no card
+    const [session, direct] = await Promise.all([
+      guest ? null : sessionKnown(),
+      Promise.race([launchTarget(), new Promise(resolve => setTimeout(() => resolve(false), 450))])
+    ]);
+    if (direct) return;
+    if (!guest && launchGate(false, session, false) === "short") {
+      gateWanted = true;
+      try { gateStage = mountStage(false, { short: true }); } catch (error) { report(error, "gate stage"); } // without a stage the card comes over the app
+      return;
+    }
+    try { openStage = mountStage(false, { open: true }); } catch (error) { report(error, "launch stage"); }
   }
   async function showGate() {
+    if (openStage) {
+      const stage = openStage;
+      openStage = null;
+      try { await stage.ready; } finally { await stage.leave(); }
+      return;
+    }
     if (!gateWanted) return;
     gateWanted = false;
     const stage = gateStage;
@@ -2038,9 +2019,9 @@
       kb?.addListener("keyboardWillShow", () => { root.classList.add("cn-kb-open"); nativeTabs?.setHidden({ hidden: true }).catch(() => {}); });
       kb?.addListener("keyboardWillHide", () => { root.classList.remove("cn-kb-open"); nativeTabs?.setHidden({ hidden: barByCard || !!$("#cnIntroStage") }).catch(() => {}); });
       P("StatusBar")?.setStyle({ style: "DARK" }).catch(() => {});
-      // The launch (section 7d). The stage of the first launch's motion, or of the short gate for a signed-out
-      // person on a later launch, goes up under the launch screen, which then hides onto it. Everyone else sees
-      // the launch screen hide as soon as the session check has answered (the Keychain: milliseconds; 1.2 s at most).
+      // The launch (section 7d). The stage (the first launch's motion, the short gate for a signed-out person on a later
+      // launch, or the stage that opens onto Check for everyone else) goes up under the launch screen, which then hides onto
+      // it once the session check has answered (the Keychain: milliseconds; 1.2 s at most). A link or a shared item: no stage.
       const first = !store.get(INTRO_KEY);
       const prepared = (first ? prepareIntro() : prepareGate()).catch(error => report(error, first ? "intro" : "gate"));
       const hideSplash = () => requestAnimationFrame(() => requestAnimationFrame(() => P("SplashScreen")?.hide().catch(() => {})));

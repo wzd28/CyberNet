@@ -10,12 +10,14 @@
 
      0.0 s   a soft light grows behind the mark while the shield draws itself, from the bottom
              point up and over the top and back down, and a scan line passes down through it
-     1.25 s  the lock settles in, one ring of light leaves the mark, and CyberNet AI rises letter by
-             letter out of a mask, sharpening as it lands
-     2.1 s   the quote types itself under the wordmark, at an even pace
-     ~5.3 s  the quote has been read: it fades up and away, then the mark and wordmark glide up and
+     1.0 s   the padlock settles in OPEN; from 1.25 s CyberNet AI rises letter by letter out of a
+             mask, sharpening as it lands
+     1.95 s  the shackle swings down and snaps shut (2.45 s), the body gives, the light flares and
+             one ring of light leaves the mark (owner, 1 Nov 2026)
+     2.65 s  "Stay protected. All in one place." rises under the wordmark, word by word
+     ~4.75 s the line has been read: it fades up and away, then the mark and wordmark glide up and
              smaller (FLIP)
-     ~6.3 s  as the glide eases out, the sign-in card rises in (beside the mark from 900 px), its
+     ~5.8 s  as the glide eases out, the sign-in card rises in (beside the mark from 900 px), its
              parts one after another; its heading carries the pitch, "Stay secure." (owner, 29 Oct
              2026: "keep the logo only")
 
@@ -165,7 +167,7 @@ html.cn.cn-gate .cn-gate-mark::before {
   border-radius: 50%;
   background: radial-gradient(closest-side, rgba(34, 211, 238, .16), rgba(34, 211, 238, .05) 55%, transparent);
   pointer-events: none;
-  animation: cn-gate-glow 2.2s var(--cn-gate-arrive) .1s both;
+  animation: cn-gate-glow 2.2s var(--cn-gate-arrive) .1s both, cn-gate-flash 1.1s var(--cn-gate-arrive) 2.38s;
 }
 /* The outline draws itself (pathLength="1"). Its path starts and ends at the BOTTOM point and has
    round ends (index.html), so the top point is always a real rounded corner: the two line ends never
@@ -180,7 +182,22 @@ html.cn.cn-gate .cn-gate-shield {
 html.cn.cn-gate .cn-gate-lock {
   transform-box: fill-box;
   transform-origin: 50% 60%;
-  animation: cn-gate-lock .9s var(--cn-gate-arrive) 1.25s backwards;
+  animation: cn-gate-lock .9s var(--cn-gate-arrive) 1s backwards;
+}
+/* The padlock arrives OPEN (the shackle lifted and swung out on its right leg) and snaps shut once
+   the wordmark is up (owner, 1 Nov 2026: "the lock was already open, it closes"): the shackle swings
+   back over the body, drops in, seats with a small overshoot, and the body gives under it. The rest
+   value is the closed lock, so a skipped or reduced-motion gate shows it closed. The same geometry,
+   scaled, is the app's (mobile/web-ios/ios.css cn-ix-shut). */
+html.cn.cn-gate .cn-gate-shackle {
+  transform-box: fill-box;
+  transform-origin: 100% 100%;
+  animation: cn-gate-shut .5s linear 1.95s backwards;
+}
+html.cn.cn-gate .cn-gate-body {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: cn-gate-click .36s var(--cn-gate-arrive) 2.33s;
 }
 /* one ring of light leaves the mark as the lock settles */
 html.cn.cn-gate .cn-gate-mark::after {
@@ -195,7 +212,7 @@ html.cn.cn-gate .cn-gate-mark::after {
   border-radius: 50%;
   opacity: 0;
   pointer-events: none;
-  animation: cn-gate-ring 1.6s var(--cn-gate-arrive) 1.45s;
+  animation: cn-gate-ring 1.6s var(--cn-gate-arrive) 2.4s;
 }
 /* the scan line runs down through the mark while it draws */
 html.cn.cn-gate .cn-gate-scan {
@@ -254,18 +271,28 @@ html.cn.cn-gate .cn-gate-live::after {
 html.cn.cn-gate .cn-gate-t.is-typing .cn-gate-live::after { opacity: 1; }
 html.cn.cn-gate .cn-gate-t.is-typed:not(.is-rested) .cn-gate-live::after { animation: cn-gate-caret 1.1s ease-in-out 2; }
 
+/* "Stay protected. All in one place." once the lock has shut: two lines, each word rising out of a
+   blur in turn (html.cn-gate-said, set by the controller); the box is there from the start, so
+   nothing moves when the words arrive */
 html.cn.cn-gate .cn-gate-quote {
-  margin: 24px 0 0;
+  margin: 26px 0 0;
   max-width: 30ch;
   font-family: var(--cn-font);
-  font-weight: 300;
-  font-size: 21px;
-  font-size: clamp(18px, 1.1vw + 14px, 25px);
-  line-height: 1.4;
-  letter-spacing: -.005em;
-  color: #c9d2df;
+  font-weight: 600;
+  font-size: 24px;
+  font-size: clamp(21px, 1.5vw + 15px, 34px);
+  line-height: 1.22;
+  letter-spacing: -.02em;
+  text-align: center;
+  color: #f5f7fa;
   transition: opacity .6s var(--cn-gate-ease), transform .6s var(--cn-gate-ease);
 }
+html.cn.cn-gate .cn-gate-ql { display: block; }
+html.cn.cn-gate .cn-gate-ql-2 { font-weight: 400; color: #22d3ee; }
+html.cn.cn-gate .cn-gate-qw { display: inline-block; }
+html.cn.cn-gate:not(.cn-gate-said) .cn-gate-qw { opacity: 0; }
+html.cn.cn-gate-said .cn-gate-qw { animation: cn-gate-letter .9s var(--cn-gate-arrive) calc(var(--w) * 95ms + var(--ql, 0ms)) backwards; }
+html.cn.cn-gate-said .cn-gate-ql-2 { --ql: 120ms; }
 /* read: the quote fades up and away before anything else moves */
 html.cn.cn-gate-leaving .cn-gate-quote { opacity: 0; transform: translateY(-10px); }
 html.cn.cn-gate-compact .cn-gate-quote { display: none; }
@@ -380,6 +407,9 @@ html.cn.cn-gate-out .cn-gate-stage { opacity: 0; transform: translateY(-10px); t
   html.cn.cn-gate .cn-gate-mark::before,
   html.cn.cn-gate .cn-gate-shield,
   html.cn.cn-gate .cn-gate-lock,
+  html.cn.cn-gate .cn-gate-shackle,
+  html.cn.cn-gate .cn-gate-body,
+  html.cn.cn-gate .cn-gate-qw,
   html.cn.cn-gate .cn-gate-mark::after,
   html.cn.cn-gate .cn-gate-scan,
   html.cn.cn-gate .cn-gate-word span,
@@ -398,6 +428,9 @@ html.cn.cn-still.cn-gate #authModal::before,
 html.cn.cn-still.cn-gate .cn-gate-mark::before,
 html.cn.cn-still.cn-gate .cn-gate-shield,
 html.cn.cn-still.cn-gate .cn-gate-lock,
+html.cn.cn-still.cn-gate .cn-gate-shackle,
+html.cn.cn-still.cn-gate .cn-gate-body,
+html.cn.cn-still.cn-gate .cn-gate-qw,
 html.cn.cn-still.cn-gate .cn-gate-mark::after,
 html.cn.cn-still.cn-gate .cn-gate-scan,
 html.cn.cn-still.cn-gate .cn-gate-word span,
@@ -413,6 +446,16 @@ html.cn.cn-still.cn-gate .cn-gate-shield { stroke-dasharray: none; stroke-dashof
 /* the dash is dropped within the last 1.5 ms (a discrete swap lands halfway between the two frames) */
 @keyframes cn-gate-draw { 99.9% { stroke-dasharray: 1 2; stroke-dashoffset: 0; } to { stroke-dasharray: none; stroke-dashoffset: 0; } }
 @keyframes cn-gate-lock { from { opacity: 0; transform: translateY(8%) scale(.72); } }
+/* open: lifted .76 units and swung 20deg on the right leg (the long leg stays in the body); it swings
+   back over the body, drops in fast, overshoots by a hair and seats */
+@keyframes cn-gate-shut {
+  0% { transform: translateY(-.76px) rotate(20deg); animation-timing-function: cubic-bezier(.55, 0, .4, 1); }
+  52% { transform: translateY(-.76px) rotate(0deg); animation-timing-function: cubic-bezier(.7, 0, .9, .45); }
+  80% { transform: translateY(.1px); animation-timing-function: cubic-bezier(.2, .7, .35, 1); }
+  100% { transform: none; }
+}
+@keyframes cn-gate-click { 35% { transform: translateY(.22px) scaleY(.97); } }
+@keyframes cn-gate-flash { 30% { opacity: 1; transform: scale(1.14); } }
 @keyframes cn-gate-ring { 0% { opacity: .85; transform: scale(.6); } 100% { opacity: 0; transform: scale(1.4); } }
 @keyframes cn-gate-scan { 0% { opacity: 0; transform: translateY(-12%); } 15% { opacity: 1; } 85% { opacity: 1; } 100% { opacity: 0; transform: translateY(calc(var(--cn-gm) * 26 / 24 + 12%)); } }
 @keyframes cn-gate-letter { from { opacity: 0; transform: translateY(80%); filter: blur(6px); } }
