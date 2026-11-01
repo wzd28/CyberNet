@@ -62,6 +62,34 @@
       "min": 1,
       "max": 1,
       "why": "risk A1: no plan name on app screens"
+    },
+    {
+      "find": "saved in this browser",
+      "replace": "saved on this iPhone",
+      "min": 1,
+      "max": 5,
+      "why": "the app keeps reports on the iPhone, not in a browser"
+    },
+    {
+      "find": "Your account, your plan and your Recovery cases",
+      "replace": "Your account and your Recovery cases",
+      "min": 1,
+      "max": 5,
+      "why": "1.0 has no plans in the app"
+    },
+    {
+      "find": "Your data file has been downloaded. It is called",
+      "replace": "Your data file is ready. Choose where to save it. It is called",
+      "min": 1,
+      "max": 5,
+      "why": "the app opens the share sheet; nothing is downloaded yet"
+    },
+    {
+      "find": "Refresh the page and try to sign in",
+      "replace": "Close the app, open it again and try to sign in",
+      "min": 1,
+      "max": 5,
+      "why": "there is no page to refresh in the app"
     }
   ]
 }

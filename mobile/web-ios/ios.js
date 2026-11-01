@@ -666,7 +666,9 @@
       return res;
     }
     if (method === "POST" && /^\/api\/privacy-data(?:[?#]|$)/.test(url)) {
-      init = await withAppleCode(init);
+      const next = await withAppleCode(init);
+      if (next !== init) next.signal = freshSignal(30000); // the 30 s limit starts after Apple's sheet, however long it took
+      init = next;
       const res = await appFetch(input, init);
       await noteAppleLeftover(init, res);
       return res;
@@ -696,7 +698,7 @@
   // account without Sign in with Apple). On false the person has one step left in Settings. The page reloads at once after a
   // deletion, so the notice is carried over in storage and shown once the launch is over (appleLeftoverDue, showAppleLeftover).
   const APPLE_LEFT_KEY = "cn-ios-apple-leftover";
-  const APPLE_LEFT_TEXT = "To finish, open Settings > your name > Sign in with Apple > CyberNet AI > Stop Using Apple Account.";
+  const APPLE_LEFT_TEXT = "To finish, open Settings, tap your name, then Sign in with Apple. Choose CyberNet AI and tap Delete (on older iOS: Stop Using Apple Account).";
   async function noteAppleLeftover(init, res) {
     try {
       if (!res.ok || JSON.parse(init?.body || "{}")?.action !== "delete-account") return;
@@ -1025,6 +1027,7 @@
   // name, the legal consent box, password reset and email confirmation. The Apple button runs signInWithApple()
   // and the Google button signInWithGoogle() (both in section 9, the only places that call their plugins).
   const GATE_LEAD = "Sign in to get AI explanations and Recovery plans."; // the sign-in dialog's approved line
+  const DELETED_LEAD = "Your account and everything saved in it have been removed, and you are signed out. You can create a new account or continue without one.";
   const GUEST_LABEL = "Continue without an account";
   const GUEST_NOTE = "Quick Scan, QR, Share and Learn work without one.";
   // a guest's card (Analysis AI, Recovery) names what the page does instead of repeating its heading
@@ -1146,8 +1149,11 @@
   // launch: the gate (sticky: only its choices close it). overStage: it rises over the motion stage.
   function signInCard({ page = null, launch = false, overStage = false } = {}) {
     if (cardOpen) return cardOpen;
-    const title = page ? `Sign in to use ${ACCOUNT_PAGES[page]}` : "Sign in to CyberNet AI";
-    const lead = (page && ACCOUNT_LEADS[page]) || GATE_LEAD;
+    // the first launch card after a deletion confirms it (the website's notice would sit under the card)
+    const deleted = launch && !!w.CN_ACCOUNT_DELETED && !root.classList.contains("cn-deleted-told");
+    if (deleted) root.classList.add("cn-deleted-told");
+    const title = deleted ? "Your account has been deleted" : page ? `Sign in to use ${ACCOUNT_PAGES[page]}` : "Sign in to CyberNet AI";
+    const lead = deleted ? DELETED_LEAD : (page && ACCOUNT_LEADS[page]) || GATE_LEAD;
     cardOpen = sheet({
       id: "cnSignIn",
       label: title,
@@ -1743,7 +1749,7 @@
         } else askAi(String(item.url || item.text || ""));
       } else if (choice === "check") {
         if (item.kind === "url") showQrVerdict(String(item.url), "share");
-        else { navigate("cybernet"); later(() => { const t = $("#cyberTextInput"); if (t) { t.value = String(item.text || "").slice(0, 5000); t.dispatchEvent(new Event("input", { bubbles: true })); $("#cyberTextBtn")?.click(); } }, 380); }
+        else { navigate("cybernet"); later(() => { $('.detect-tab[data-tab="text"]')?.click(); const t = $("#cyberTextInput"); if (t) { t.value = String(item.text || "").slice(0, 5000); t.dispatchEvent(new Event("input", { bubbles: true })); $("#cyberTextBtn")?.click(); later(() => $("#cyberTextResult")?.scrollIntoView({ block: "start", behavior: "smooth" }), 650); } }, 380); }
       }
     } catch (error) { report(error, "inbox"); }
     finally { inboxBusy = false; }
@@ -1918,7 +1924,7 @@
   // Analysis AI's page opens with the website's "Sign in, then paste ..." lines. In the app a guest never sees the
   // page (the sign-in card comes first) and a signed-in person is already in, so none of it may ask for a sign-in;
   // script.js writes the real state over the two status lines as soon as the account answers.
-  const AI_GREETING = "Paste or drop anything suspicious below: a message, a link or a screenshot. Analysis AI works out what it is looking at and explains it in plain language.";
+  const AI_GREETING = "Paste anything suspicious below: a message, a link or a screenshot. Analysis AI works out what it is looking at and explains it in plain language.";
   function tidyAnalysisAi() {
     const bubble = $("#chatMessages .chat-bubble-ai .chat-bubble-inner");
     if (bubble && /^Sign in/.test(bubble.textContent.trim())) bubble.textContent = AI_GREETING;

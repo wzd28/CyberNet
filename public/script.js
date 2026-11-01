@@ -2879,7 +2879,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     function recoveryLimitSuffix(usage,freeText,paidText){
 /*@web*/      const plan=usage?.plan;
       if(plan==="free"||!plan)return ` ${freeText}`;
-      return plan==="business"?` Your team's shared ${paidText}`:` Your ${paidText}`;/*@end-web*//*@ios return ` ${paidText}`; @end-ios*/
+      return plan==="business"?` Your team's shared ${paidText}`:` Your ${paidText}`;/*@end-web*//*@ios return ""; @end-ios*/
     }
     let currentCaseId=null;
     let currentPlan=null;
@@ -3180,7 +3180,7 @@ document.addEventListener("DOMContentLoaded",()=>{
           const hours=Math.ceil(seconds/3600),minutes=Math.max(1,Math.ceil(seconds/60));
           setUpdateMessage(seconds>0?`You can send your next update in about ${seconds>=3600?`${hours} hour${hours>1?"s":""}`:`${minutes} minute${minutes>1?"s":""}`}.`:(error.message||"Please wait before submitting another update."),"warning");
         }else if(error.code==="daily_limit_reached"){
-          setUpdateMessage(`${error.message}${/*@web*/error.usage?.plan==="free"||!error.usage?.plan?" Upgrade to Pro for more updates per day.":" Updates reset at 12:00 PM Gulf time."/*@end-web*//*@ios " Updates reset at 12:00 PM Gulf time." @end-ios*/}`,"warning");
+          setUpdateMessage(`${error.message}${/*@web*/error.usage?.plan==="free"||!error.usage?.plan?" Upgrade to Pro for more updates per day.":" Updates reset at 12:00 PM Gulf time."/*@end-web*//*@ios "" @end-ios*/}`,"warning");
         }else{
           setUpdateMessage(friendlyNetworkError(error)||error.message||"Couldn't update this case right now. Please try again.","warning");
         }

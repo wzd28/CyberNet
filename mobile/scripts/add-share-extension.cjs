@@ -83,6 +83,10 @@ const APP_PLIST_KEYS = {
   NSUserTrackingUsageDescription: TRACKING_TEXT,
   UIRequiredDeviceCapabilities: ['arm64'],
   UISupportedInterfaceOrientations: ['UIInterfaceOrientationPortrait'],
+  // The tab bar is a UITabBar pinned to the safe area with a 49 pt content height (MainViewController).
+  // The iOS 26 floating bar does not fit that on home-button iPhones (SE) or on iPad, where its labels
+  // ran over the icons (CI screenshots, 1 Nov 2026). 1.0 keeps the standard bar; 1.1 moves to the new one.
+  UIDesignRequiresCompatibility: true,
 };
 const APP_PLIST_REMOVED = ['UISupportedInterfaceOrientations~ipad'];
 const ALLOWED_USAGE_KEYS = ['NSCameraUsageDescription', 'NSUserTrackingUsageDescription'];

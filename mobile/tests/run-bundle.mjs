@@ -386,7 +386,7 @@ try {
         const acct = parse(card.signInChoicesHtml("cnAcct"));
         check("Sign-in card: the message line is above the buttons on the card (so they stay where the finger is) and under them on the Account tab; one line each", order(launch) === "msg|apple" && order(guest) === "msg|apple" && order(acct) === "apple|msg", [order(launch), order(guest), order(acct)]);
         const leads = pages ? Object.keys(pages).map(k => card.ACCOUNT_LEADS[k]) : [];
-        check("Sign-in card: a guest's card says what its page does instead of repeating its heading; the launch card keeps the approved line", leads.length === 2 && leads.every(l => l && !/^Sign in/i.test(l)) && textOf(guest.find(n => /gate-lead/.test(attr(n, "class") || ""))) === card.ACCOUNT_LEADS.cybernetai && /constlead=\(?page&&ACCOUNT_LEADS\[page\]\)?\|\|GATE_LEAD/.test(fnText("signInCard")), leads);
+        check("Sign-in card: a guest's card says what its page does instead of repeating its heading; the launch card keeps the approved line", leads.length === 2 && leads.every(l => l && !/^Sign in/i.test(l)) && textOf(guest.find(n => /gate-lead/.test(attr(n, "class") || ""))) === card.ACCOUNT_LEADS.cybernetai && /constlead=deleted\?DELETED_LEAD:\(?page&&ACCOUNT_LEADS\[page\]\)?\|\|GATE_LEAD/.test(fnText("signInCard")), leads);
         check("Sign-in card: no inline script and no remote file in the markup", !launch.some(n => n.tagName === "script" || /^https?:/.test(attr(n, "src") || attr(n, "href") || "")));
         // wording: App Review 2.3.1(a) (REJECTION-RISKS B2); the gate's own word list runs over every string the card and the hints show
         const strings = [card.GATE_LEAD, card.GUEST_LABEL, card.GUEST_NOTE, "Sign in to CyberNet AI", "Sign in to use Analysis AI", "Sign in to use Recovery", "Not now", ...launch.concat(guest).map(n => n.childNodes.filter(c => c.nodeName === "#text").map(c => c.value).join(" ")),
@@ -539,7 +539,7 @@ try {
         };
         const before = ["Sign in, then paste or drop anything suspicious below: a message, a link or a screenshot.", "Sign in to use Analysis AI.", "Sign in to see your saved explanations."];
         const after = tidy(before);
-        check("Analysis AI (signed in): the page's own sign-in lines (greeting, status, saved list) are rewritten at start, so none asks for a sign-in; text script.js already wrote is left alone", after.every(t => !/sign in/i.test(t)) && after[0].startsWith("Paste or drop anything suspicious below") && tidy(["Hello", "4 of 5 left", "Nothing yet"]).join("|") === "Hello|4 of 5 left|Nothing yet" && before.every(t => /^Sign in/.test(t)) && /<div class="chat-bubble-inner">Sign in, then paste or drop/.test(html), after);
+        check("Analysis AI (signed in): the page's own sign-in lines (greeting, status, saved list) are rewritten at start, so none asks for a sign-in; text script.js already wrote is left alone", after.every(t => !/sign in/i.test(t)) && after[0].startsWith("Paste anything suspicious below") && tidy(["Hello", "4 of 5 left", "Nothing yet"]).join("|") === "Hello|4 of 5 left|Nothing yet" && before.every(t => /^Sign in/.test(t)) && /<div class="chat-bubble-inner">Sign in, then paste or drop/.test(html), after);
         check("Analysis AI (signed in): the AI consent sheet is unchanged: the fetch layer still asks before the first send, the notice version is the same, and Not now still sends nothing", /AI_ENDPOINT\.test\(url\)/.test(iosJs) && /if\(!awaitconsent\.ensure\(\)\)returnconsentDeclined\(\)/.test(squash(iosJs)) && /AI_CONSENT_VERSION="2026-11-ios-1"/.test(squash(iosJs)) && /code:"AI_CONSENT_REQUIRED"/.test(squash(iosJs)));
         check("Analysis AI (signed in): sending a message from the page itself still needs an account (the guest hint is true; the card comes first so a guest never types into it)", /function sendChatMessage\(\)\{if\(!isSignedIn\(\)\)\{openAuthModal\("signup"\);return\}/.test(script));
       }
@@ -1023,10 +1023,10 @@ try {
           const stored = {}, handlers = [];
           const waiters = [];
           const panel = { parentNode: { addEventListener() {} }, addEventListener: (type, fn) => handlers.push(fn) };
-          const api = run(["GUEST_KEY", "ACCOUNT_PAGES", "GATE_LEAD", "ACCOUNT_LEADS", "cardOpen", "gateOpen", "authClosedAt", "signInCard"],
-            ["sheet", "signInCardHtml", "d", "root", "inertBehind", "holdBar", "riseOverStage", "wireSignIn", "whenSignedIn", "store", "$", "performance"], "signInCard",
-            opts => new Promise(resolve => opts.onOpen(panel, resolve)), () => "", { addEventListener() {}, removeEventListener() {} }, { classList: { add() {}, remove() {} } },
-            () => {}, () => {}, () => {}, () => {}, fn => { waiters.push(fn); return () => {}; }, { set: (k, v) => { stored[k] = v; } }, () => null, performance);
+          const api = run(["GUEST_KEY", "ACCOUNT_PAGES", "GATE_LEAD", "DELETED_LEAD", "ACCOUNT_LEADS", "cardOpen", "gateOpen", "authClosedAt", "signInCard"],
+            ["sheet", "signInCardHtml", "d", "root", "inertBehind", "holdBar", "riseOverStage", "wireSignIn", "whenSignedIn", "store", "$", "performance", "w"], "signInCard",
+            opts => new Promise(resolve => opts.onOpen(panel, resolve)), () => "", { addEventListener() {}, removeEventListener() {} }, { classList: { add() {}, remove() {}, contains: () => false } },
+            () => {}, () => {}, () => {}, () => {}, fn => { waiters.push(fn); return () => {}; }, { set: (k, v) => { stored[k] = v; } }, () => null, performance, {});
           const done = api({ launch });
           if (how === "signed-in") waiters[0]();
           else handlers[0]({ target: { closest: () => ({ getAttribute: () => how }) } });
@@ -1135,7 +1135,7 @@ try {
         const t = mkLeft();
         await t.api.showAppleLeftover();
         const sheetNodes = parse(t.kept.__sheet.html);
-        check("Apple deletion: the notice says exactly: To finish, open Settings > your name > Sign in with Apple > CyberNet AI > Stop Using Apple Account. (one OK button, no link)", t.api.text === "To finish, open Settings > your name > Sign in with Apple > CyberNet AI > Stop Using Apple Account." && sheetNodes.some(n => n.tagName === "p" && textOf(n) === t.api.text) && sheetNodes.filter(n => n.tagName === "button").length === 1 && !sheetNodes.some(n => n.tagName === "a"), t.kept.__sheet?.html);
+        check("Apple deletion: the notice says exactly: To finish, open Settings, tap your name, then Sign in with Apple. Choose CyberNet AI and tap Delete (on older iOS: Stop Using Apple Account). (one OK button, no link)", t.api.text === "To finish, open Settings, tap your name, then Sign in with Apple. Choose CyberNet AI and tap Delete (on older iOS: Stop Using Apple Account)." && sheetNodes.some(n => n.tagName === "p" && textOf(n) === t.api.text) && sheetNodes.filter(n => n.tagName === "button").length === 1 && !sheetNodes.some(n => n.tagName === "a"), t.kept.__sheet?.html);
       }
 
       // ---- 7. a web subscriber's notice

@@ -211,7 +211,8 @@ html.cn-kb-open .cn-ios-tabbar { display: none; }
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   box-sizing: border-box;
-  padding: 22px 20px calc(18px + env(safe-area-inset-bottom, 0px));
+  /* the native tab bar stays over the page: the last control of a sheet must end above it (--cn-tabbar-h is 0 while the bar is hidden) */
+  padding: 22px 20px calc(18px + max(var(--cn-tabbar-h), env(safe-area-inset-bottom, 0px)));
   border-radius: 22px 22px 0 0;
   background: var(--cn-ios-sheet-bg);
   color: var(--cn-ios-text);
@@ -762,4 +763,7 @@ html.cn-ios #cnPrivacyMessage:empty { display: none; }
 
 /* The privacy dialogs and sign-in card sit above the tab bar. */
 html.cn-ios .modal { z-index: 1500; }
-html.cn-ios .modal .modal-card { max-height: calc(100% - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 24px); overflow-y: auto; }
+html.cn-ios .modal { padding-bottom: calc(24px + var(--cn-tabbar-h)); }
+html.cn-ios .modal .modal-card { max-height: calc(100% - env(safe-area-inset-top, 0px) - max(var(--cn-tabbar-h), env(safe-area-inset-bottom, 0px)) - 24px); overflow-y: auto; }
+/* after a deletion the launch card says so itself (ios.js signInCard); the website's notice would sit under it */
+html.cn-ios.cn-deleted-told #cnAccountDeletedNotice { display: none; }

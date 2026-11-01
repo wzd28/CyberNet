@@ -1439,12 +1439,14 @@
 
               <div class="upload-icon" aria-hidden="true">⇧</div>
 
-              <h3>Drag &amp; Drop Your Image Here</h3>
+              <h3 data-web-only>Drag &amp; Drop Your Image Here</h3>
+              <!--@ios <h3>Choose a photo or screenshot</h3> @end-ios-->
 
-              <p>
+              <p data-web-only>
                 or click to browse<br/>
                 Supports JPG, PNG, WEBP up to 10MB
               </p>
+              <!--@ios <p>Tap to choose a photo.<br/>JPG, PNG or WEBP up to 10 MB</p> @end-ios-->
             </label>
 
             <div id="cyberImageResult" class="result-box">Your image scam result will appear here.</div>
@@ -1475,7 +1477,7 @@
             <div class="hiw-steps-stacked">
               <div class="hiw-step-sm glass">
                 <span>1</span>
-                <div><h4>Upload image</h4><p>Drag in or browse for a screenshot.</p></div>
+                <div><h4>Upload image</h4><p data-web-only>Drag in or browse for a screenshot.</p><!--@ios <p>Choose a screenshot.</p> @end-ios--></div>
               </div>
 
               <div class="hiw-step-sm glass">
@@ -3094,7 +3096,7 @@
   <script src="/cybernet-howto.js?v=20261019-1" defer></script>
 <script src="/legacy/cybernet-business-team.js?v=20261028-1" defer></script>
   <script src="/legacy/cybernet-final-ui-fix.js?v=20261028-1" defer></script>
-      <script src="/legacy/cybernet-legal-upgrade.js?v=20261030-ios1" defer></script>
+      <script src="/legacy/cybernet-legal-upgrade.js?v=20261101-a" defer></script>
   <!-- After script.js, cybernet-account-api-upgrade.js and cybernet-final-ui-fix.js (account modal tabs). -->
   <script src="/legacy/cybernet-privacy-controls.js?v=20261029-ios1" defer></script>
   <!-- After script.js (cybernet:session event, appState). -->
