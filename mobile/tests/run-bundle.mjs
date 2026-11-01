@@ -772,30 +772,83 @@ try {
         } finally { await rm(dbgOut, { recursive: true, force: true }); }
 
         const dbgSrc = await readFile(path.join(mobile, "web-ios", "debug.js"), "utf8");
-        // debug.js is run with a fake page and a virtual clock; `stuck` is a card that does not close
-        const demoRun = async (demo, { stuck = false, probeFetch = false } = {}) => {
-          const log = [], lines = [], realCalls = [];
-          let now = 0, cardUp = true;
+        // debug.js is run with a fake page and a virtual clock (timers and animation frames are queued and fired in order).
+        //   stuck      the sign-in card does not close
+        //   framesAt   ms at which the web view starts drawing (animation frames tick); Infinity = never (CI build #5: not for seconds)
+        //   native     the page runs in the app: it must have the status bar's safe area (the probe reads 0 until insetAt)
+        //   flipBackAt ms after the screen is filled at which the page goes back to Quick Scan (something navigates away after READY)
+        const demoRun = async (demo, { stuck = false, probeFetch = false, framesAt = 0, native = false, insetAt = 0, flipBackAt = 0, resultAfter = 0, sheetAfter = 40, scrolled = false } = {}) => {
+          const log = [], lines = [], times = [], realCalls = [];
+          let now = 0, cardUp = true, nextId = 0;
           const queue = [];
-          const setT = (fn, ms) => { queue.push({ at: now + ms, fn }); return queue.length; };
-          const account = { appState: {}, updateAccountUI: () => log.push("updateAccountUI") };
+          const setT = (fn, ms) => { const id = ++nextId; queue.push({ at: now + ms, fn, id }); return id; };
+          const clearT = id => { const q = queue.find(e => e.id === id); if (q) q.dead = true; };
+          // what the page shows
+          const page = { active: "cybernet", leaving: false, input: "", result: null, qr: false, consent: false, backFlip: false };
+          const account = { appState: {}, updateAccountUI: () => log.push("updateAccountUI"), isSignedIn: () => !!account.appState.session };
           const guestBtn = { click: () => { log.push("guest link"); if (!stuck) cardUp = false; } };
           const card = { querySelector: s => (/data-gate="guest"/.test(s) ? guestBtn : null) };
+          const drawing = () => now >= framesAt;
+          const sheet = (id, open, inner) => ({ id, classList: { contains: c => c === "is-open" && open() }, querySelector: () => inner });
+          const qrSheet = sheet("cnQrVerdict", () => page.qr === "open", { innerText: "SCAM" });
+          const consentSheet = sheet("cnConsentSheet", () => page.consent === "open", null);
+          const textBox = { get value() { return page.input; }, set value(v) { page.input = v; }, dispatchEvent: () => true };
+          const textBtn = { disabled: false, click: () => { log.push("check clicked"); textBtn.disabled = true; setT(() => { page.result = "ok"; textBtn.disabled = false; }, 400 + resultAfter); } };
+          const resultBox = { classList: { contains: c => c === "result-has-danger" }, get innerText() { return page.result ? "SCAM This has the signs of a scam. ".repeat(5) : ""; } };
+          const el = {
+            cnSignIn: () => (cardUp ? card : null),
+            cnIosSegWrap: () => ({ hidden: false }),
+            cnIosSeg: () => ({ getAttribute: () => page.active }),
+            cyberTextInput: () => textBox, cyberTextBtn: () => textBtn,
+            cyberTextResult: () => (page.result ? Object.assign(resultBox, { getBoundingClientRect: () => ({ top: 941 }) }) : null),
+            cnQrVerdict: () => (page.qr ? qrSheet : null), cnConsentSheet: () => (page.consent ? consentSheet : null),
+            chatInput: () => ({}), recovery: () => ({ innerText: "CyberNet AI turns what happened into a clear recovery plan" })
+          };
           const win = {
             CN_DEMO_SCREEN: demo, CyberNetAccount: account, CNNative: {}, CN_reportError: () => {}, localStorage: { setItem: (k, v) => log.push(`storage ${k}=${v}`) },
-            CNIos: { navigate: p => log.push(`navigate ${p}`), askConsent: () => log.push("askConsent"), showQrVerdict: () => log.push("qr verdict") },
+            CNIos: {
+              navigate: p => {
+                log.push(`navigate ${p}`);
+                if (p === page.active) return;
+                page.leaving = true;
+                setT(() => { page.active = p; page.leaving = false; if (flipBackAt) setT(() => { page.active = "cybernet"; }, flipBackAt); }, 300);
+              },
+              askConsent: () => { log.push("askConsent"); page.consent = "added"; setT(() => { page.consent = "open"; }, sheetAfter); },
+              showQrVerdict: () => { log.push("qr verdict"); page.qr = "added"; setT(() => { page.qr = "open"; }, sheetAfter); } // opens on an animation frame, like ios.js's sheet()
+            },
+            CNPlugin: name => (name === "SplashScreen" ? { hide: () => { log.push("splash hide"); return Promise.resolve(); } } : null),
+            CNIsNative: () => native,
+            getComputedStyle: () => ({ paddingTop: now >= insetAt ? "62px" : "0px" }),
+            requestAnimationFrame: cb => (framesAt === Infinity ? 0 : setT(() => cb(now), Math.max(16, framesAt - now))),
+            scrollTo: (x, y) => log.push(`scroll ${y}`), get pageYOffset() { return scrolled ? 300 : 0; },
             addEventListener: () => {}, fetch: async (...a) => { realCalls.push(a[0]); return { real: true }; },
             dispatchEvent: e => { log.push(`event ${e.type} ${e.detail?.userId}`); if (e.detail?.userId) cardUp = false; return true; }
           };
-          const doc = { readyState: "complete", body: null, addEventListener: () => {}, getElementById: id => (id === "cnSignIn" && cardUp ? card : null) };
+          const doc = {
+            readyState: "complete", body: { appendChild: () => {} }, documentElement: { style: {} }, addEventListener: () => {},
+            createElement: () => ({ setAttribute: () => {} }),
+            getElementById: id => (el[id] ? el[id]() : null),
+            querySelector: s => {
+              if (s === ".page.active-page") return { id: page.active };
+              if (s === ".page.leaving") return page.leaving ? {} : null;
+              if (s === "#account [data-ios-signed-out]") return { hidden: false };
+              return null;
+            },
+            querySelectorAll: s => (s === ".cn-ios-sheet-backdrop" ? [page.qr && qrSheet, page.consent && consentSheet].filter(Boolean) : s === "#learn .rm-node" ? new Array(33).fill({}) : [])
+          };
           const FakeDate = function () { return { toISOString: () => "2026-10-30T12:00:00.000Z" }; };
           FakeDate.now = () => now;
           class FakeEvent { constructor(type, init) { this.type = type; this.detail = init?.detail; } }
-          new Function("window", "document", "console", "setTimeout", "navigator", "location", "Date", "CustomEvent", "Event", "Response", dbgSrc)(win, doc, { log: (...a) => lines.push(a.join(" ")) }, setT, {}, { search: "" }, FakeDate, FakeEvent, FakeEvent, Response);
-          for (let guard = 0; queue.length && guard < 500; guard++) {
-            queue.sort((a, b) => a.at - b.at);
-            const next = queue.shift();
-            now = next.at;
+          const fakeConsole = { log: (...a) => { lines.push(a.join(" ")); times.push(now); } };
+          new Function("window", "document", "console", "setTimeout", "clearTimeout", "navigator", "location", "Date", "CustomEvent", "Event", "Response", dbgSrc)(win, doc, fakeConsole, setT, clearT, {}, { search: "" }, FakeDate, FakeEvent, FakeEvent, Response);
+          for (let guard = 0; guard < 4000; guard++) {
+            await new Promise(resolve => setImmediate(resolve)); // the page's promise continuations run between the timers
+            const live = queue.filter(e => !e.dead);
+            if (!live.length) break;
+            live.sort((a, b) => a.at - b.at);
+            const next = live[0];
+            queue.splice(queue.indexOf(next), 1);
+            now = Math.max(now, next.at);
             next.fn();
           }
           let probe = null;
@@ -804,7 +857,7 @@ try {
             const other = await win.fetch("/api/something", { headers: { Authorization: "Bearer another" } });
             probe = { ownStatus: own.status, ownBody: await own.json(), otherReal: other.real === true, realCalls: realCalls.slice() };
           }
-          return { log, lines, session: account.appState.session, user: account.appState.user, probe };
+          return { log, lines, times, session: account.appState.session, user: account.appState.user, probe };
         };
         const dCheck = await demoRun("check");
         const dRec = await demoRun("recovery", { probeFetch: true });
@@ -815,6 +868,28 @@ try {
         check("Demo runs: the fictional person's requests are answered on the device (an empty case list) and never reach the network; every other request goes on as before", dRec.probe?.ownStatus === 200 && Array.isArray(dRec.probe.ownBody.cases) && dRec.probe.ownBody.cases.length === 0 && dRec.probe.otherReal && dRec.probe.realCalls.join() === "/api/something", dRec.probe);
         check("Demo runs: a sign-in card that will not close is reported as CN_DEMO_FAILED after 8 s, never as CN_DEMO_READY", dStuck.lines.length === 1 && /^CN_DEMO_FAILED check the sign-in card is still open$/.test(dStuck.lines[0]) && dStuck.log.includes("navigate cybernet"), [dStuck.lines, dStuck.log]);
         check("Demo runs: the first-run key is set before any demo (a later launch), and the tracking prompt is answered", /setItem\("cn-ios-intro-1", "demo"\)/.test(dbgSrc) && dCheck.log.includes("storage cn-ios-intro-1=demo"));
+        // CI build #5 (iPhone 17 Pro Max): the web view of a fresh install draws nothing for seconds (no animation frames, the safe area
+        // not applied yet), so a sheet that opens on a frame stayed closed, a scan never finished, the launch shield was still up, and the
+        // timers had already printed READY. READY now needs a drawing page and the finished, unchanged screen.
+        const dFrames = await demoRun("check-verdict", { framesAt: 5000, native: true, insetAt: 7000 });
+        const dSheet = await demoRun("scan-verdict", { sheetAfter: 3000 });
+        const dLate = await demoRun("check-verdict", { resultAfter: 3000 });
+        const dBlank = await demoRun("learn", { framesAt: Infinity });
+        const dNoInset = await demoRun("account", { native: true, insetAt: Infinity });
+        const dFlip = await demoRun("learn", { flipBackAt: 700 });
+        const dScrolled = await demoRun("learn", { scrolled: true });
+        const dPlain = await demoRun("check-verdict");
+        const dLearn = await demoRun("learn");
+        const lastScroll = r => Number((r.log.filter(l => /^scroll /.test(l)).pop() || "").slice(7));
+        const readyAt = r => (r.lines.length === 1 && /^CN_DEMO_READY /.test(r.lines[0]) ? r.times[0] : -1);
+        check("Demo runs: READY is not printed while the web view is not drawing: the splash is hidden first, the screen is filled after the first frames and the safe area, and READY comes after both", dFrames.lines.join("|") === "CN_DEMO_READY check-verdict" && readyAt(dFrames) >= 7000 && dFrames.log.indexOf("splash hide") > -1 && dFrames.log.indexOf("splash hide") < dFrames.log.indexOf("check clicked"), [dFrames.lines, dFrames.times, dFrames.log]);
+        check("Demo runs: a QR sheet that is not open yet, or a verdict that has not arrived yet, is waited for (READY only after it, plus 1.5 s of being left alone)", readyAt(dSheet) >= 1500 + 3000 + 1500 && readyAt(dLate) >= 1500 + 3000 + 1500, [readyAt(dSheet), readyAt(dLate)]);
+        check("Demo runs: a web view that never draws is CN_DEMO_FAILED (not READY), and nothing is filled", dBlank.lines.join("|") === "CN_DEMO_FAILED learn the page is not drawing frames" && !dBlank.log.includes("navigate learn"), [dBlank.lines, dBlank.log]);
+        check("Demo runs: an app page that never gets the status bar's safe area (header under the clock) is CN_DEMO_FAILED", /^CN_DEMO_FAILED account .*safe area 0/.test(dNoInset.lines.join("|")) && dNoInset.lines.length === 1, dNoInset.lines);
+        check("Demo runs: a screen that changes after it was filled (the page goes back to Quick Scan) is CN_DEMO_FAILED with the reason, not READY", dFlip.lines.join("|") === "CN_DEMO_FAILED learn the cybernet page is open, not learn", dFlip.lines);
+        check("Demo runs: a page that is still scrolled away from the top at the end (the header would sit under the status bar) is CN_DEMO_FAILED", dScrolled.lines.join("|") === "CN_DEMO_FAILED learn the page is scrolled (300 px) instead of at the top", dScrolled.lines);
+        check("Demo runs: the page is scrolled to the top before READY; check-verdict brings the verdict card to the top, just under the status bar", lastScroll(dLearn) === 0 && lastScroll(dPlain) === 941 - 16 && lastScroll(dFrames) === 941 - 62 - 16, [lastScroll(dLearn), lastScroll(dPlain), lastScroll(dFrames)]);
+        check("Demo runs: no error panel over a demo screenshot (errors go to the console as CN_DEMO_ERROR)", /if \(demoRun\) \{ console\.log\("CN_DEMO_ERROR "/.test(dbgSrc));
       }
 
       // ---- the Account tab for a guest matches the card

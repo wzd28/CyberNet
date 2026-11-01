@@ -14,7 +14,10 @@
 # Each launch runs with `simctl launch --console-pty` (as engine-parity.sh does) and keeps the app's
 # console in <screen>.log. A demo screen counts only when debug.js printed "CN_DEMO_READY <screen>";
 # otherwise the step fails on a required device (a capture of a half-drawn or covered screen is not
-# a pass; debug.js also reports CN_DEMO_FAILED while the sign-in card is still open). debug.js also skips the
+# a pass; debug.js reports CN_DEMO_FAILED, with the reason, when the web view never draws, the sign-in card
+# stays open or the screen is not what it should be). debug.js prints READY only after the splash is gone,
+# the page draws frames, the screen is filled and has been left alone for 1.5 s (build #5: READY came from
+# timers while the web view had drawn nothing yet). debug.js also skips the
 # first-run intro and answers the tracking prompt with "denied" in demo runs, so neither covers the
 # screenshots; the plain launch (00-launch) keeps the real first-run intro on purpose. A fresh simulator is
 # signed out, so the app opens with its sign-in card (a later launch shows it after a short stage): debug.js
@@ -29,6 +32,8 @@
 #   CN_SCREENS    demo screens, in order (names must match web-ios/debug.js)
 #   OUT_DIR       default build/screenshots      VIDEO_DIR   default build/videos
 #   WAIT_SECONDS  wait after each launch before the screenshot (default 6)
+#   READY_SECONDS how long to wait for CN_DEMO_READY after that (default 30)
+#   SETTLE_SECONDS  pause between CN_DEMO_READY and the screenshot (default 1)
 #   RUNTIME_ID    simulator runtime (default: the newest iOS runtime installed)
 #
 # Written for the macOS system bash 3.2 (no associative arrays, no mapfile).
@@ -39,6 +44,8 @@ BUNDLE_ID="app.cybernetai"
 OUT_DIR="${OUT_DIR:-build/screenshots}"
 VIDEO_DIR="${VIDEO_DIR:-build/videos}"
 WAIT_SECONDS="${WAIT_SECONDS:-6}"
+READY_SECONDS="${READY_SECONDS:-30}"
+SETTLE_SECONDS="${SETTLE_SECONDS:-1}"
 CN_SCREENS="${CN_SCREENS:-check check-verdict scan-verdict consent analysis recovery learn account}"
 
 # name | required or optional | expected screenshot size (App Store class), empty = no check
@@ -116,13 +123,23 @@ launch_and_capture() { # $1 udid, $2 slug, $3 index, $4 screen ("" = plain launc
   fi
   console_pid=$!
   sleep "$WAIT_SECONDS"
+  # The first launch after install on a freshly booted device can take longer than WAIT_SECONDS
+  # (build #5: only the plain launch on the two Pro Max/Pro devices missed it). Give the app up to
+  # 20 more seconds to appear before calling it "not running".
+  waited=0
+  until app_running "$udid" || [ "$waited" -ge 20 ]; do
+    sleep 1
+    waited=$((waited + 1))
+  done
   if [ -n "$screen" ]; then
     waited=0
     until grep -q "CN_DEMO_READY $screen" "$log" 2>/dev/null; do
-      if grep -q "CN_DEMO_FAILED $screen" "$log" 2>/dev/null || [ "$waited" -ge 20 ]; then break; fi
+      if grep -q "CN_DEMO_FAILED $screen" "$log" 2>/dev/null || [ "$waited" -ge "$READY_SECONDS" ]; then break; fi
       sleep 1
       waited=$((waited + 1))
     done
+    # debug.js prints READY once the screen is final and has been left alone for 1.5 s; this pause lets the last frame reach the display
+    grep -q "CN_DEMO_READY $screen" "$log" 2>/dev/null && sleep "$SETTLE_SECONDS"
   fi
   if ! app_running "$udid"; then
     report "$required" "$slug: the app was not running ${WAIT_SECONDS}s after launch ($label)"
