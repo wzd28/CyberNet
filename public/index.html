@@ -62,7 +62,7 @@
        Not when the address carries a sign-in return (email link, Google, invite): script.js finishes
        that first, and the gate locks afterwards only if it did not sign the visitor in. Signed-in
        visitors go straight to the page; the old boot intro is gone. Blocked storage: no gate. */
-    try{if(!/access_token|refresh_token|token_hash|error_description|[?&#]code=|type=recovery/.test(location.search+location.hash)&&!/^\/accept-invite/.test(location.pathname)&&!localStorage.getItem("sb-ndtcxippbufqzwcxkyjd-auth-token"))r.classList.add("cn-gate")}catch(e){}
+    try{if(!/access_token|refresh_token|token_hash|error_description|[?&#]code=|type=recovery/.test(location.search+location.hash)&&!/^\/accept-invite/.test(location.pathname)&&!localStorage.getItem("sb-ndtcxippbufqzwcxkyjd-auth-token")&&!(localStorage.getItem("cn-guest")==="1"&&(Number(localStorage.getItem("cn-guest-scans"))||0)<3))r.classList.add("cn-gate")}catch(e){}
     try{if(location.pathname==="/"&&!r.classList.contains("cn-gate")&&!r.classList.contains("cn-still")&&!matchMedia("(prefers-reduced-motion: reduce)").matches&&(localStorage.getItem("cn-fx")||"").indexOf("-exposure")<0&&!sessionStorage.getItem("cn-intro")){sessionStorage.setItem("cn-intro","1");r.classList.add("cn-intro","cn-intro-hold");hold()}}catch(e){r.classList.remove("cn-intro-hold")}
     if(/^\/(quick-scan|analysis-ai|recovery|learn|pricing|about)\/?$/.test(location.pathname)){
       r.classList.add("cn-deep");
@@ -96,7 +96,7 @@
   <link rel="stylesheet" href="/cybernet-howto.css?v=20260905-1" />
   <link id="cybernetBusinessTeamStylesheet" rel="stylesheet" href="/cybernet-business-team.css?v=20260927-2" />
   <link rel="stylesheet" href="/cybernet-consent.css?v=20260927-2" />
-  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261101-lock2" />
+  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261102-guest" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=20261029-m1">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=20261029-m1">
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=20261029-m1">
@@ -536,7 +536,7 @@
       function lock() {
         /* no storage (nothing can stay signed in), an invite (its own dialog leads to sign-in) or a
            sign-in library that never loaded: no gate */
-        if (r.classList.contains("cn-gate") || !storage() || /^\/accept-invite/.test(location.pathname) || !w.supabase) return;
+        if (r.classList.contains("cn-gate") || !storage() || guestOK() || /^\/accept-invite/.test(location.pathname) || !w.supabase) return;
         r.classList.add("cn-gate"); covered(true); page(true);
         if (reduced) { phase = 3; r.classList.add("cn-gate-compact"); finishAll(); showCard(); } else quick();
       }
@@ -577,10 +577,28 @@
         later(function () { if (gated() && !signedIn() && !modal.classList.contains("show")) { openAuth(lastView); nudge(); } }, 450);
       }).observe(modal, { attributes: true, attributeFilter: ["class", "data-auth-view"] });
 
+      /* Guest Quick Scans (owner, 2 Nov 2026): "Try 3 free Quick Scans first" opens the page on Quick Scan
+         (the button's data-page, script.js) without an account; script.js counts the scans in the same keys */
+      function guestOK() { try { return w.localStorage.getItem("cn-guest") === "1" && (Number(w.localStorage.getItem("cn-guest-scans")) || 0) < 3; } catch (e) { return false; } }
+      /* the card comes after this script in the page: the button is found on click and hidden once the
+         free scans are used up (DOMContentLoaded, below) */
+      d.addEventListener("click", function (e) {
+        var b = e.target && e.target.closest ? e.target.closest("#cnGateGuest") : null;
+        if (!b) return;
+        try { w.localStorage.setItem("cn-guest", "1"); } catch (err) {}
+        if (!gated()) return;
+        clear(); skipping = false;
+        var close = d.getElementById("closeAuth");
+        r.classList.remove("cn-gate", "cn-gate-out");
+        if (modal.classList.contains("show") && close) close.click();
+        reset(); page(false); covered(false); say("");
+        try { w.dispatchEvent(new CustomEvent("cn:gate-open")); } catch (err) {}
+      }, true);
       ["pointerdown", "touchstart"].forEach(function (n) { w.addEventListener(n, skip, { capture: true, passive: true }); });
       /* only the visitor's own click is used up, never the gate's own clicks on script.js buttons */
       w.addEventListener("click", function (e) { if (e.isTrusted && eatClick && Date.now() - eatClick < 700) { eatClick = 0; e.preventDefault(); e.stopPropagation(); } }, true);
       d.addEventListener("DOMContentLoaded", function () {
+        try { if ((Number(w.localStorage.getItem("cn-guest-scans")) || 0) >= 3) { var g = d.getElementById("cnGateGuest"); if (g) g.hidden = true; } } catch (e) {}
         if (gated()) { covered(true); page(true); }
         setTimeout(giveUp, 6000);
       });
@@ -602,6 +620,7 @@
       <div class="auth-heading">
         <h2 id="authModalTitle">Stay secure.</h2>
         <p id="authModalIntro" data-web-only>All in one place, designed for protection and recovery. Create your free account in seconds, or sign in.</p>
+        <button type="button" class="cn-gate-guest" id="cnGateGuest" data-page="cybernet" data-web-only>Or try 3 free Quick Scans first</button>
         <!--@ios <p id="authModalIntro">Sign in to get AI explanations and Recovery plans. Check, Scan QR and Share work without an account.</p> @end-ios-->
       </div>
       <!-- Notices about a link the visitor came back from (expired, already used, cancelled). script.js fills it; empty means hidden. -->
@@ -3091,7 +3110,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" defer></script>
   <script src="/config.js?v=20260830-3" defer></script>
   <script src="/legacy/cybernet-engine.js?v=20261030-d1" defer></script>
-  <script src="/legacy/script.js?v=20261030-d2" defer></script>
+  <script src="/legacy/script.js?v=20261102-guest" defer></script>
   <script src="/legacy/cybernet-account-api-upgrade.js?v=20261028-1" defer></script>
   <script src="/cybernet-howto.js?v=20261019-1" defer></script>
 <script src="/legacy/cybernet-business-team.js?v=20261028-1" defer></script>

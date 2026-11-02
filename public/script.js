@@ -2138,7 +2138,35 @@ document.addEventListener("DOMContentLoaded",()=>{
     return{label:"Low Visible Risk",cls:"risk-tag-safe"};
   }
 
-/*@web*/  async function checkQuickScanQuota(){
+/*@web*/  /* Guest Quick Scans (owner, 2 Nov 2026): a visitor who taps "Try 3 free Quick Scans" on the sign-in
+     gate can run three Quick Scans (text, link or image) in this browser before creating an account. Quick
+     Scan runs in the browser, so nothing is counted on the server: the count is kept in localStorage
+     (cn-guest-scans). The gate's head snippet and controller (index.html) read the same two keys. */
+  const GUEST_SCANS=3;
+  function guestChosen(){try{return localStorage.getItem("cn-guest")==="1"}catch{return false}}
+  function guestScansLeft(){try{return guestChosen()?Math.max(0,GUEST_SCANS-(Number(localStorage.getItem("cn-guest-scans"))||0)):0}catch{return 0}}
+  function guestScanUsed(){try{localStorage.setItem("cn-guest-scans",String((Number(localStorage.getItem("cn-guest-scans"))||0)+1))}catch{}}
+  function guestCanScan(){return isSignedIn()||guestScansLeft()>0}
+  function askForAccount(){
+    openAuthModal("signup");
+    if(guestChosen())setAuthNotice(`You've used your ${GUEST_SCANS} free scans`,"Create a free account to keep scanning. It takes a few seconds.","info");
+  }
+  // Under a guest's result: how many free scans are left, with the way to an account
+  function guestNote(box){
+    if(isSignedIn()||!box||!guestChosen())return;
+    const left=guestScansLeft();
+    const p=document.createElement("p");
+    p.className="cn-guest-left";
+    p.innerHTML=`${left>0?`${left} free scan${left===1?"":"s"} left.`:"That was your last free scan."} <button type="button" class="inline-link-btn" data-guest-signup>Create a free account</button> to keep scanning.`;
+    p.querySelector("[data-guest-signup]").addEventListener("click",()=>openAuthModal("signup"));
+    box.appendChild(p);
+  }
+  async function checkQuickScanQuota(){
+    if(!isSignedIn()){
+      if(guestScansLeft()<=0)return{allowed:false,message:"You've used your free scans. Create a free account to keep scanning."};
+      guestScanUsed();
+      return{allowed:true,guest:true};
+    }
     try{
       const res=await fetch("/api/quickscan-usage",{method:"POST",headers:authHeaders()});
       const data=await res.json().catch(()=>({}));
@@ -2156,7 +2184,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   }/*@end-web*//*@ios async function checkQuickScanQuota(){return{allowed:true}} @end-ios*/
 
   if(cyberTextBtn&&cyberTextInput&&cyberTextResult)cyberTextBtn.addEventListener("click",async()=>{
-/*@web*/    if(!isSignedIn()){openAuthModal("signup");return}/*@end-web*/
+/*@web*/    if(!guestCanScan()){askForAccount();return}/*@end-web*/
     const text=cyberTextInput.value.trim();if(!text){cyberTextResult.innerHTML=`<span class="warning">Paste a suspicious message first.</span>`;return}
     cyberTextBtn.disabled=true;
     if(!await scanEngineReady()){cyberTextResult.innerHTML=`<span class="warning">${ENGINE_MISSING}</span>`;cyberTextBtn.disabled=false;return}
@@ -2182,6 +2210,7 @@ document.addEventListener("DOMContentLoaded",()=>{
         ?/*@web*/"This looked like a link rather than a message, so CyberNet AI analyzed it with the link engine for a more accurate result. Use Link Detection directly next time for the same result."/*@end-web*//*@ios "This looked like a link rather than a message, so CyberNet AI checked it with the link engine, which reads web addresses more closely. Use Link Detection directly next time for the same result." @end-ios*/
         :/*@web*/"Local protection scan complete. Use Analysis AI for a deeper, AI-assisted check."/*@end-web*//*@ios "Check on your iPhone complete. Use Analysis AI for a deeper, AI-assisted check." @end-ios*/;
       showReport(cyberTextResult,result.score,result.scamType,result.reasons,result.advice,{...result,note,previewHtml:isBareLink?renderLinkPreview(text,result):renderLinksFound(result.links||[])});
+/*@web*/      guestNote(cyberTextResult);/*@end-web*/
       prependScan("textScanList",`“${text.slice(0,42)}${text.length>42?"…":""}”`,result);
       reportTeamActivity({kind:"quick_scan",scanType:isBareLink?"link":"text",content:text,result:quickScanLogResult(result)});
       if(status)status.textContent="Local scan complete";
@@ -2192,7 +2221,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   /* ─── CyberNet Link ─── */
   const cyberLinkInput=document.getElementById("cyberLinkInput"),cyberLinkResult=document.getElementById("cyberLinkResult"),cyberLinkBtn=document.getElementById("cyberLinkBtn");
   if(cyberLinkBtn&&cyberLinkInput&&cyberLinkResult)cyberLinkBtn.addEventListener("click",async()=>{
-/*@web*/    if(!isSignedIn()){openAuthModal("signup");return}/*@end-web*/
+/*@web*/    if(!guestCanScan()){askForAccount();return}/*@end-web*/
     const link=cyberLinkInput.value.trim();if(!link){cyberLinkResult.innerHTML=`<span class="warning">Paste a suspicious link first.</span>`;return}
     cyberLinkBtn.disabled=true;
     const engineReady=await scanEngineReady();
@@ -2204,7 +2233,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     runScan(cyberLinkBtn,cyberLinkResult,async()=>{
       const result=analyzeLinkRules(link);
       showReport(cyberLinkResult,result.score,result.scamType,result.reasons,result.advice,{...result,note:"Local structural URL scan complete. Use Analysis AI for a deeper, AI-assisted check.",previewHtml:renderLinkPreview(link,result)});
-      prependScan("linkScanList",link.slice(0,52),result);
+      prependScan("linkScanList",link.slice(0,52),result);/*@web*/guestNote(cyberLinkResult);/*@end-web*/
       reportTeamActivity({kind:"quick_scan",scanType:"link",content:link,result:quickScanLogResult(result)});
     },300,checkQuickScanQuota());
   });
@@ -2282,15 +2311,15 @@ document.addEventListener("DOMContentLoaded",()=>{
     // the filename alone. Opted in here, not inside analyzeImageRules, because
     // the Analysis AI page reuses that function for its own pre-analysis.
     showReport(cyberImageResult,result.score,result.scamType,result.reasons,result.advice,{...result,needsDeepScan:!decoded.qrData,note:/*@web*/"Local QR and file checks complete. Use Analysis AI for a deeper, AI-assisted check."/*@end-web*//*@ios "Check on your iPhone complete. Use Analysis AI for a deeper, AI-assisted check." @end-ios*/,previewHtml:decoded.qrData?renderQrPreview(decoded.qrData,qrKind,qrResult):""});
-    prependScan("imageScanList",file.name,result);
+    prependScan("imageScanList",file.name,result);/*@web*/guestNote(cyberImageResult);/*@end-web*/
     reportTeamActivity({kind:"quick_scan",scanType:"image",content:"",fileName:file.name,qr:decoded.qrData?{kind:qrKind,data:decoded.qrData}:null,result:quickScanLogResult(result,{needsDeepScan:!decoded.qrData})});
   }
-/*@web*/  if(cyberDropZone)cyberDropZone.addEventListener("click",e=>{if(!isSignedIn()){e.preventDefault();openAuthModal("signup")}});/*@end-web*/
-  if(cyberImageInput)cyberImageInput.addEventListener("change",()=>{/*@web*/if(!isSignedIn()){cyberImageInput.value="";openAuthModal("signup");return}/*@end-web*/handleCyberImage(cyberImageInput.files[0])});
+/*@web*/  if(cyberDropZone)cyberDropZone.addEventListener("click",e=>{if(!guestCanScan()){e.preventDefault();askForAccount()}});/*@end-web*/
+  if(cyberImageInput)cyberImageInput.addEventListener("change",()=>{/*@web*/if(!guestCanScan()){cyberImageInput.value="";askForAccount();return}/*@end-web*/handleCyberImage(cyberImageInput.files[0])});
   if(cyberDropZone&&cyberImageInput){
     cyberDropZone.addEventListener("dragover",e=>{e.preventDefault();cyberDropZone.classList.add("drag-over")});
     cyberDropZone.addEventListener("dragleave",()=>cyberDropZone.classList.remove("drag-over"));
-    cyberDropZone.addEventListener("drop",e=>{e.preventDefault();cyberDropZone.classList.remove("drag-over");/*@web*/if(!isSignedIn()){openAuthModal("signup");return}/*@end-web*/const f=e.dataTransfer.files[0];if(f)handleCyberImage(f)});
+    cyberDropZone.addEventListener("drop",e=>{e.preventDefault();cyberDropZone.classList.remove("drag-over");/*@web*/if(!guestCanScan()){askForAccount();return}/*@end-web*/const f=e.dataTransfer.files[0];if(f)handleCyberImage(f)});
   }
 
   /* ─── Detect tabs (CyberNet Features page) ─── */

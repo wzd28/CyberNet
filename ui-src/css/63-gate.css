@@ -469,3 +469,24 @@ html.cn.cn-still.cn-gate .cn-gate-shield { stroke-dasharray: none; stroke-dashof
 @keyframes cn-gate-rise { from { opacity: 0; transform: translateY(14px); } }
 @keyframes cn-gate-leave { to { opacity: 0; transform: translateY(10px) scale(.98); } }
 @keyframes cn-gate-out { to { opacity: 0; } }
+
+/* Guest Quick Scans (owner, 2 Nov 2026): the card's offer, shown only on the gate, and the line under a
+   guest's result (script.js guestNote) */
+html.cn #authModal .cn-gate-guest { display: none; }
+html.cn.cn-gate #authModal .cn-gate-guest:not([hidden]) {
+  display: block;
+  min-height: 44px;
+  margin: 6px auto 4px;
+  padding: 0 14px;
+  border: 0;
+  background: transparent;
+  color: #22d3ee;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+html.cn.cn-gate #authModal .cn-gate-guest:focus-visible { outline: 2px solid #22d3ee; outline-offset: 2px; border-radius: 8px; }
+.cn-guest-left { margin: 14px 0 0; font-size: .92rem; color: #b3bccb; }
+

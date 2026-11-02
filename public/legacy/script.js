@@ -2322,7 +2322,49 @@ document.addEventListener("DOMContentLoaded", () => {
     if (result.kind === "link" && !result.officialBrand) return window.CyberNetEngine.linkNeedsCaution(result) ? { label: "Can't Confirm", cls: "risk-tag-warning" } : { label: "Low Risk", cls: "risk-tag-safe" };
     return { label: "Low Visible Risk", cls: "risk-tag-safe" };
   }
+  const GUEST_SCANS = 3;
+  function guestChosen() {
+    try {
+      return localStorage.getItem("cn-guest") === "1";
+    } catch (e) {
+      return false;
+    }
+  }
+  function guestScansLeft() {
+    try {
+      return guestChosen() ? Math.max(0, GUEST_SCANS - (Number(localStorage.getItem("cn-guest-scans")) || 0)) : 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+  function guestScanUsed() {
+    try {
+      localStorage.setItem("cn-guest-scans", String((Number(localStorage.getItem("cn-guest-scans")) || 0) + 1));
+    } catch (e) {
+    }
+  }
+  function guestCanScan() {
+    return isSignedIn() || guestScansLeft() > 0;
+  }
+  function askForAccount() {
+    openAuthModal("signup");
+    if (guestChosen()) setAuthNotice(`You've used your ${GUEST_SCANS} free scans`, "Create a free account to keep scanning. It takes a few seconds.", "info");
+  }
+  function guestNote(box) {
+    if (isSignedIn() || !box || !guestChosen()) return;
+    const left = guestScansLeft();
+    const p = document.createElement("p");
+    p.className = "cn-guest-left";
+    p.innerHTML = `${left > 0 ? `${left} free scan${left === 1 ? "" : "s"} left.` : "That was your last free scan."} <button type="button" class="inline-link-btn" data-guest-signup>Create a free account</button> to keep scanning.`;
+    p.querySelector("[data-guest-signup]").addEventListener("click", () => openAuthModal("signup"));
+    box.appendChild(p);
+  }
   async function checkQuickScanQuota() {
+    if (!isSignedIn()) {
+      if (guestScansLeft() <= 0) return { allowed: false, message: "You've used your free scans. Create a free account to keep scanning." };
+      guestScanUsed();
+      return { allowed: true, guest: true };
+    }
     try {
       const res = await fetch("/api/quickscan-usage", { method: "POST", headers: authHeaders() });
       const data = await res.json().catch(() => ({}));
@@ -2339,8 +2381,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
   if (cyberTextBtn && cyberTextInput && cyberTextResult) cyberTextBtn.addEventListener("click", async () => {
-    if (!isSignedIn()) {
-      openAuthModal("signup");
+    if (!guestCanScan()) {
+      askForAccount();
       return;
     }
     const text = cyberTextInput.value.trim();
@@ -2377,6 +2419,7 @@ document.addEventListener("DOMContentLoaded", () => {
         "Local protection scan complete. Use Analysis AI for a deeper, AI-assisted check."
       );
       showReport(cyberTextResult, result.score, result.scamType, result.reasons, result.advice, { ...result, note, previewHtml: isBareLink ? renderLinkPreview(text, result) : renderLinksFound(result.links || []) });
+      guestNote(cyberTextResult);
       prependScan("textScanList", `“${text.slice(0, 42)}${text.length > 42 ? "…" : ""}”`, result);
       reportTeamActivity({ kind: "quick_scan", scanType: isBareLink ? "link" : "text", content: text, result: quickScanLogResult(result) });
       if (status) status.textContent = "Local scan complete";
@@ -2385,8 +2428,8 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   const cyberLinkInput = document.getElementById("cyberLinkInput"), cyberLinkResult = document.getElementById("cyberLinkResult"), cyberLinkBtn = document.getElementById("cyberLinkBtn");
   if (cyberLinkBtn && cyberLinkInput && cyberLinkResult) cyberLinkBtn.addEventListener("click", async () => {
-    if (!isSignedIn()) {
-      openAuthModal("signup");
+    if (!guestCanScan()) {
+      askForAccount();
       return;
     }
     const link = cyberLinkInput.value.trim();
@@ -2409,6 +2452,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const result = analyzeLinkRules(link);
       showReport(cyberLinkResult, result.score, result.scamType, result.reasons, result.advice, { ...result, note: "Local structural URL scan complete. Use Analysis AI for a deeper, AI-assisted check.", previewHtml: renderLinkPreview(link, result) });
       prependScan("linkScanList", link.slice(0, 52), result);
+      guestNote(cyberLinkResult);
       reportTeamActivity({ kind: "quick_scan", scanType: "link", content: link, result: quickScanLogResult(result) });
     }, 300, checkQuickScanQuota());
   });
@@ -2556,18 +2600,19 @@ document.addEventListener("DOMContentLoaded", () => {
       "Local QR and file checks complete. Use Analysis AI for a deeper, AI-assisted check."
     ), previewHtml: decoded.qrData ? renderQrPreview(decoded.qrData, qrKind, qrResult) : "" });
     prependScan("imageScanList", file.name, result);
+    guestNote(cyberImageResult);
     reportTeamActivity({ kind: "quick_scan", scanType: "image", content: "", fileName: file.name, qr: decoded.qrData ? { kind: qrKind, data: decoded.qrData } : null, result: quickScanLogResult(result, { needsDeepScan: !decoded.qrData }) });
   }
   if (cyberDropZone) cyberDropZone.addEventListener("click", (e) => {
-    if (!isSignedIn()) {
+    if (!guestCanScan()) {
       e.preventDefault();
-      openAuthModal("signup");
+      askForAccount();
     }
   });
   if (cyberImageInput) cyberImageInput.addEventListener("change", () => {
-    if (!isSignedIn()) {
+    if (!guestCanScan()) {
       cyberImageInput.value = "";
-      openAuthModal("signup");
+      askForAccount();
       return;
     }
     handleCyberImage(cyberImageInput.files[0]);
@@ -2581,8 +2626,8 @@ document.addEventListener("DOMContentLoaded", () => {
     cyberDropZone.addEventListener("drop", (e) => {
       e.preventDefault();
       cyberDropZone.classList.remove("drag-over");
-      if (!isSignedIn()) {
-        openAuthModal("signup");
+      if (!guestCanScan()) {
+        askForAccount();
         return;
       }
       const f = e.dataTransfer.files[0];
