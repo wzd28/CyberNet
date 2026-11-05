@@ -46,5 +46,6 @@ Every video is filed under its agency: `projects/markable/` or `projects/cyberne
 ## Feedback log
 | Date | Project | Video / concept | Liked | Disliked | Rule change |
 |---|---|---|---|---|---|
+| 2026-11-05 | Markable | Lights On / Blueprint / 72 Hours (final) | Approved: "Perfect" | — | This premium-editorial style is the baseline for agency clients |
 | 2026-11-05 | Markable | Memory Test / Feed / Hall Map | Formal premium showcases; their designs as the hero | The quiz concept; anything childish | Premium-editorial rule for B2B; 3 concepts: Lights On, Blueprint, 72 Hours |
 | 2026-11-05 | Markable | Memory Test v1 | Real stand renders, brand green | White-inverted logo; my own end-card copy instead of the agency's | Logo exactly as supplied; agency copy verbatim; one video per agency text set |
