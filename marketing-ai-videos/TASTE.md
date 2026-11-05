@@ -37,6 +37,14 @@ Every video is filed under its agency: `projects/markable/` or `projects/cyberne
 - **Formal, organized, premium.** For B2B clients like exhibition contractors, "wow" means editorial polish, not gimmicks: clean typography hierarchy, a calm rhythm, the client's work as the hero.
 - **Show off the client's craft and process** (design → build → delivery) and their big-name clients (credits under each piece).
 
+## Loved references (study before every project: research/reference-reels.md)
+- @sam.john.creates (kinetic type + talking head), @fantiqmotion "Scaffold OS" (SaaS film, phone-filming-a-laptop, zero cuts), @madebyext (UI-as-motion promo).
+- **Takeaways:**
+  - kinetic blur-in type with one emphasis word in a contrasting serif italic or colour;
+  - a sound for every motion (≈2 hits/s), with dropouts before reveals;
+  - UI rebuilt as motion (glass cards, chat bubbles, cursor clicks);
+  - continuous morph transitions; dark backgrounds with soft colour glows; 60 fps.
+
 ## Dislikes
 - **Hard, jumpy transitions** between showcase shots. Use smooth crossfades or dissolves with continuous camera motion.
 - **Bright, "ding-ding" chime sound effects** (they read as childish). End cards get a deep, warm cinematic resolve: sub hit, chord bloom, muted click.
