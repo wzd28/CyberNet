@@ -31,11 +31,14 @@ Every video is filed under its agency: `projects/markable/` or `projects/cyberne
 - Generic AI voiceover cadence, or royalty-free "corporate uplifting" music.
 
 ## Likes
-_(fill from feedback)_
+- **Real client material over anything synthetic.** As soon as the client's own renders and footage arrived, they replaced the CG placeholders. Always ask for and use the real assets first.
 
 ## Dislikes
-_(fill from feedback)_
+- **Altering the client's logo.** Use it *exactly as supplied*: same colours, same artwork, on a background it was designed for (Markable: blue + green on white). No white/inverted versions, no recolouring, no AI regeneration. If the supplied file is low-res, rebuild it at high res in the exact sampled colours and verify side by side.
+- **Inventing copy on top of the client's.** When the agency supplies headlines, sub-lines and buttons, they appear **verbatim**: same wording, casing, punctuation and button label. Creative hooks may sit around them, but the brief's text is never replaced or paraphrased.
+- **Waiting on questions when I could act.** Do the work; ask only when truly blocked, with one clear fix.
 
 ## Feedback log
 | Date | Project | Video / concept | Liked | Disliked | Rule change |
 |---|---|---|---|---|---|
+| 2026-11-05 | Markable | Memory Test v1 | Real stand renders, brand green | White-inverted logo; my own end-card copy instead of the agency's | Logo exactly as supplied; agency copy verbatim; one video per agency text set |
