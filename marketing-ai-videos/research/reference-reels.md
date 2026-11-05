@@ -53,3 +53,27 @@ Three reels the owner loves, downloaded (`reference-reels/`, not committed) and 
 | Dropouts | duck all audio to near-silence for 0.2–0.35 s before reveals |
 | 60 fps | render at 60 fps (doubles render time) |
 | UI as motion | glass cards, chat bubbles, cursor plus click ripple, typing cursor |
+
+---
+
+## Round 2: the viral mechanics (owner: "I want my videos to go super viral")
+
+| # | Reel | Specs | Engagement |
+|---|---|---|---|
+| D | @edita.visuals ("Opus 5.5 cooked", Apple-Intelligence-style motion piece) | 12 s · 1080×1920 · **60 fps** · 1 cut | 530 likes |
+| E | @jayantcreates.ai ("Claude grew my Instagram 0 → 29,752") | 47 s · 2 cuts | 1,844 likes |
+
+### What makes these spread (beyond craft)
+1. **Comment-keyword CTA → auto-DM.** "Comment CLAUDE for the full guide", "Comment GROW and I'll DM you". Every comment is a ranking signal, and the auto-DM (ManyChat, Ootto, etc.) turns it into a lead. In D it's a **persistent sticker at the top for the whole video**; in E it's an **animated comment box** typing "GROW" and showing "Sent ✓". *Only use it if a DM automation is set up, or the comments go unanswered.*
+2. **Big number counter as the hook.** "0 → 29,752 followers" counting up on a clean card in second 1 of E; "7% → 100%" progress in D. Numbers in motion hold the eye, but they must be **real**.
+3. **Save-worthy value.** E is a step-by-step tutorial ("connect once", "give it this prompt", "a 30-day content dashboard"). Saves and sends outrank likes for reach.
+4. **Short and loopable.** D is 12 s at 60 fps, ending where it started.
+5. **Persistent framing:** a sticker at the top and a @handle watermark at the bottom on every frame, like a branded series.
+6. **Native "made on a real screen" look** (D is filmed off a monitor, like B): it reads as a person sharing, not an ad.
+7. **Warm, cohesive palette** (E: cream background, orange emphasis, serif italic aside "you can do it too ✋"); one emphasis colour only.
+
+### Applying this to our accounts
+- **Every video gets one share trigger** that needs no automation, e.g. a top sticker "Send this to someone who clicks every link".
+- **Comment-keyword CTA** only once a DM automation exists. Recommended: ManyChat (Instagram) with the keyword "SCAN" → DM the cybernetai.app link.
+- **Counters:** only with real numbers (verified client counts, real stats). Never invented.
+- **Series framing:** a consistent sticker or handle on every post so the feed reads as a recognisable series.
