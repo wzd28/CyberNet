@@ -38,6 +38,8 @@ Every video is filed under its agency: `projects/markable/` or `projects/cyberne
 - **Show off the client's craft and process** (design → build → delivery) and their big-name clients (credits under each piece).
 
 ## Dislikes
+- **Hard, jumpy transitions** between showcase shots. Use smooth crossfades or dissolves with continuous camera motion.
+- **Bright, "ding-ding" chime sound effects** (they read as childish). End cards get a deep, warm cinematic resolve: sub hit, chord bloom, muted click.
 - **Gimmicks and games** ("remember one" quiz, viewer tests) and **playful/childish devices** (hearts bursting, cartoon UI) for B2B. Creative ≠ cute.
 - **Altering the client's logo.** Use it *exactly as supplied*: same colours, same artwork, on a background it was designed for (Markable: blue + green on white). No white/inverted versions, no recolouring, no AI regeneration. If the supplied file is low-res, rebuild it at high res in the exact sampled colours and verify side by side.
 - **Inventing copy on top of the client's.** When the agency supplies headlines, sub-lines and buttons, they appear **verbatim**: same wording, casing, punctuation and button label. Creative hooks may sit around them, but the brief's text is never replaced or paraphrased.
@@ -46,6 +48,7 @@ Every video is filed under its agency: `projects/markable/` or `projects/cyberne
 ## Feedback log
 | Date | Project | Video / concept | Liked | Disliked | Rule change |
 |---|---|---|---|---|---|
+| 2026-11-05 | Markable | Round 3 | Blueprint visuals | 01: rough transitions, headline → "Let Your Stand Stand Out."; 02: childish end-card sound; 03 (72 Hours): disliked entirely | Smooth crossfades; premium sound resolve; 03 replaced by The Showroom (3D gallery carousel) |
 | 2026-11-05 | Markable | Lights On / Blueprint / 72 Hours (final) | Approved: "Perfect" | — | This premium-editorial style is the baseline for agency clients |
 | 2026-11-05 | Markable | Memory Test / Feed / Hall Map | Formal premium showcases; their designs as the hero | The quiz concept; anything childish | Premium-editorial rule for B2B; 3 concepts: Lights On, Blueprint, 72 Hours |
 | 2026-11-05 | Markable | Memory Test v1 | Real stand renders, brand green | White-inverted logo; my own end-card copy instead of the agency's | Logo exactly as supplied; agency copy verbatim; one video per agency text set |
