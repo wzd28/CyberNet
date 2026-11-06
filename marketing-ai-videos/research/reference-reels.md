@@ -77,3 +77,20 @@ Three reels the owner loves, downloaded (`reference-reels/`, not committed) and 
 - **Comment-keyword CTA** only once a DM automation exists. Recommended: ManyChat (Instagram) with the keyword "SCAN" → DM the cybernetai.app link.
 - **Counters:** only with real numbers (verified client counts, real stats). Never invented.
 - **Series framing:** a consistent sticker or handle on every post so the feed reads as a recognisable series.
+
+---
+
+## Round 3: six more reels (2026-11-06)
+@jayantcreates.ai ×2 (dark "0 → 31K" step tutorial; "MACHINE", reels written as code), @mrcreates.ai (4.2K likes), @softgirlnocode (3.0K), @aipranjal, @maxhasmotion8 (3.0K).
+
+**The pattern in every one:**
+1. **A voice tells the story, with word-by-word synced captions and the current word highlighted** (a coloured box or a serif-italic swap). This is the retention engine; fancy editing is secondary (jayant says so outright).
+2. **Persistent frame chrome:** series tag, step counter ("01 / 06"), handle, and in @mrcreates a running **countdown/level bar** at the bottom ("58.2s · Level 1").
+3. **Numbered structure:** "STEP 01…04" / "No.1 No.2 No.3". The viewer always knows where they are and how much is left.
+4. **A host:** a face (talking head) or an **original mascot/avatar** of the creator. It builds recognition across a series.
+5. **Self-building UI as the visual:** tables fill, matrices light up cell by cell, counters roll, progress bars run.
+6. **Comment-keyword CTA** (MATRIX / MACHINE / MARKETING / SITE / EDITOR / LINK) with an auto-DM.
+7. **Music fitted to the edit's pace** (softgirl uses Suno).
+
+**Applied:** CybernetAI "How to spot a scam text" now has an AI voiceover (Kokoro, free, Apache-2.0) and karaoke captions synced word by word with the current word in a cyan box, plus step chrome and a progress line.
+**Not yet:** an original CybernetAI mascot host (possible series asset; owner to approve the look first).
