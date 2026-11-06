@@ -46,6 +46,7 @@ Every video is filed under its agency: `projects/markable/` or `projects/cyberne
   - continuous morph transitions; dark backgrounds with soft colour glows; 60 fps.
 
 ## Dislikes
+- **Flat, static motion graphics** ("too basic, no motion"). Cards fading on a flat background isn't enough. The camera must always be moving in 3D space: fly-throughs, depth, parallax, things passing the lens, flips, particles. Static 2D is only acceptable for the final CTA.
 - **Hard, jumpy transitions** between showcase shots. Use smooth crossfades or dissolves with continuous camera motion.
 - **Bright, "ding-ding" chime sound effects** (they read as childish). End cards get a deep, warm cinematic resolve: sub hit, chord bloom, muted click.
 - **Gimmicks and games** ("remember one" quiz, viewer tests) and **playful/childish devices** (hearts bursting, cartoon UI) for B2B. Creative ≠ cute.
