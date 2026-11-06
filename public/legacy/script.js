@@ -642,8 +642,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const AUTH_HEADINGS = {
     // Owner, 29 Oct 2026: the card itself carries the pitch and invites a free sign-up.
     /*@web*/
-    login: ["Stay secure.", "All in one place, designed for protection and recovery. Create your free account in seconds, or sign in."],
+    login: ["Register to Start Scanning for Free", "Check suspicious links and messages in seconds."],
     /*@end-web*/
+    // owner, 6 Nov 2026: direct
     /*@ios login:["Stay secure.","Sign in to get AI explanations and Recovery plans. Check, Scan QR and Share work without an account."], @end-ios*/
     reset: ["Reset your password", "Enter the email you use for CyberNet AI. We'll send you a link to choose a new password."],
     recovery: ["Choose a new password", "Pick a new password for your CyberNet AI account. You'll stay signed in on this device."]
