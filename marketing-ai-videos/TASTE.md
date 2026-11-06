@@ -22,6 +22,7 @@ Every video must be:
 - **Uniqueness above everything.** When given instructions, don't execute them literally: research, then find the unexpected angle and come back with something nobody has seen.
 
 ## Clients
+- **Brand name spelling:** always **CybernetAI** (one word, as in the logo). Never "CyberNet" or "Cybernet AI" on screen or in copy.
 Every video is filed under its agency: `projects/markable/` or `projects/cybernet-ai/`. New agencies get their own folder.
 
 ## Hard bans (until told otherwise)
