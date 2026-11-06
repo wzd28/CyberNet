@@ -22,7 +22,7 @@ Every video must be:
 - **Uniqueness above everything.** When given instructions, don't execute them literally: research, then find the unexpected angle and come back with something nobody has seen.
 
 ## Clients
-- **Brand name spelling:** always **CybernetAI** (one word, as in the logo). Never "CyberNet" or "Cybernet AI" on screen or in copy.
+- **Brand name spelling:** always **CybernetAI**. In voiceover write it as `Cybernet-AI` (no pause); `A.I.` causes a 140 ms gap between "Cybernet" and "AI" (one word, as in the logo). Never "CyberNet" or "Cybernet AI" on screen or in copy.
 Every video is filed under its agency: `projects/markable/` or `projects/cybernet-ai/`. New agencies get their own folder.
 
 ## Hard bans (until told otherwise)
@@ -47,6 +47,8 @@ Every video is filed under its agency: `projects/markable/` or `projects/cyberne
   - continuous morph transitions; dark backgrounds with soft colour glows; 60 fps.
 
 ## Dislikes
+- **Repeating a concept across posts.** CybernetAI's "scam text → scan → High risk" story was used too many times. Every new video needs a different format, hook and visual system (e.g. 3D teardown, kinetic manifesto, interactive quiz).
+- **Small, unclear labels under portfolio pieces.** Client credits must be big, clear plates ("DESIGNED FOR / CLIENT / EXHIBITION STAND · 01/06").
 - **Flat, static motion graphics** ("too basic, no motion"). Cards fading on a flat background isn't enough. The camera must always be moving in 3D space: fly-throughs, depth, parallax, things passing the lens, flips, particles. Static 2D is only acceptable for the final CTA.
 - **Hard, jumpy transitions** between showcase shots. Use smooth crossfades or dissolves with continuous camera motion.
 - **Bright, "ding-ding" chime sound effects** (they read as childish). End cards get a deep, warm cinematic resolve: sub hit, chord bloom, muted click.
@@ -58,6 +60,7 @@ Every video is filed under its agency: `projects/markable/` or `projects/cyberne
 ## Feedback log
 | Date | Project | Video / concept | Liked | Disliked | Rule change |
 |---|---|---|---|---|---|
+| 2026-11-06 | Markable + CybernetAI | Round 5 | Blueprint (keep) | 01 and 03 Markable concepts; all 3 CybernetAI (repetitive); unclear stand labels; "Cybernet… AI" spoken with a pause | Blueprint + free-design offer + client plates; new Markable 01 "The Wall", 03 "Departures"; new CybernetAI: 3D anatomy, kinetic manifesto, spot-the-fake quiz |
 | 2026-11-05 | Markable | Round 3 | Blueprint visuals | 01: rough transitions, headline → "Let Your Stand Stand Out."; 02: childish end-card sound; 03 (72 Hours): disliked entirely | Smooth crossfades; premium sound resolve; 03 replaced by The Showroom (3D gallery carousel) |
 | 2026-11-05 | Markable | Lights On / Blueprint / 72 Hours (final) | Approved: "Perfect" | — | This premium-editorial style is the baseline for agency clients |
 | 2026-11-05 | Markable | Memory Test / Feed / Hall Map | Formal premium showcases; their designs as the hero | The quiz concept; anything childish | Premium-editorial rule for B2B; 3 concepts: Lights On, Blueprint, 72 Hours |
