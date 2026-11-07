@@ -61,6 +61,7 @@ Every video is filed under its agency: `projects/markable/` or `projects/cyberne
 ## Feedback log
 | Date | Project | Video / concept | Liked | Disliked | Rule change |
 |---|---|---|---|---|---|
+| 2026-11-07 | Markable + CybernetAI | Round 6 | (pending) | All round-5 videos ("didn't like the old ones at all") | Six new concepts built on the loved references: laptop-in-room (Proposal, Launch film), micro-UI zoom (QR check), cream tutorial (Clicked a scam link?), Swatch deck, The Aisle |
 | 2026-11-06 | Markable + CybernetAI | Round 5 | Blueprint (keep) | 01 and 03 Markable concepts; all 3 CybernetAI (repetitive); unclear stand labels; "Cybernet… AI" spoken with a pause | Blueprint + free-design offer + client plates; new Markable 01 "The Wall", 03 "Departures"; new CybernetAI: 3D anatomy, kinetic manifesto, spot-the-fake quiz |
 | 2026-11-05 | Markable | Round 3 | Blueprint visuals | 01: rough transitions, headline → "Let Your Stand Stand Out."; 02: childish end-card sound; 03 (72 Hours): disliked entirely | Smooth crossfades; premium sound resolve; 03 replaced by The Showroom (3D gallery carousel) |
 | 2026-11-05 | Markable | Lights On / Blueprint / 72 Hours (final) | Approved: "Perfect" | — | This premium-editorial style is the baseline for agency clients |
