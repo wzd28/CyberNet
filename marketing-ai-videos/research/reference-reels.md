@@ -176,4 +176,4 @@ Three reels the owner loves, downloaded (`reference-reels/`, not committed) and 
 
 **Why it works:** one metaphor with a built-in count ("card 3 of 5") keeps people watching to the end, and the reveal of each face is a small payoff every 2–3 seconds. The gold ace makes a natural climax.
 
-**Applied:** CybernetAI 07 "The Hand" (V53, ): "Scammers are dealing. Here's the hand that beats them." Cards: Messages, Links, Screenshots, QR codes, and the ace, Recovery Mode. It ends on a share box instead of a comment keyword.
+**Applied:** CybernetAI 07 "The Hand" (V53, `series16.mjs`): "Scammers are dealing. Here's the hand that beats them." Cards: Messages, Links, Screenshots, QR codes, and the ace, Recovery Mode. It ends on a share box instead of a comment keyword.
