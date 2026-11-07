@@ -94,3 +94,25 @@ Three reels the owner loves, downloaded (`reference-reels/`, not committed) and 
 
 **Applied:** CybernetAI "How to spot a scam text" now has an AI voiceover (Kokoro, free, Apache-2.0) and karaoke captions synced word by word with the current word in a cyan box, plus step chrome and a progress line.
 **Not yet:** an original CybernetAI mascot host (possible series asset; owner to approve the look first).
+
+---
+
+## Round 4: @duncanrogoff "54 specialists, zero payroll" (2026-11-07)
+56 s · 1080×1920 · 30 fps · 6 hard cuts · 460 likes
+
+**Format: split-screen explainer.**
+- **Top ~60%:** motion-graphics panel (dark green-glow tech scenes alternating with off-white "paper" scenes).
+- **Bottom ~40%:** creator talking to camera.
+- **Word-by-word caption** sits on the seam between the two, one or two words at a time, in big bold sans.
+- Cuts to a **full-frame talking head** for emotional or personal lines, then back to the split.
+
+**Motion devices worth stealing:**
+1. **Count-up + grid fill:** "00 → 54 AI SPECIALISTS" with a 6×9 grid of tiles lighting up green one by one. Number and visual tell the same story.
+2. **Stacking list chips:** icon + label chips slide in and stack (VIRAL REEL → 10 HOOKS → SCRIPT), building a pipeline as the voice explains it.
+3. **Org-chart chips:** a role title ("THE SCOUT") with a numbered sub-chip tree (01 TRENDING REELS / 02 REDDIT / 03 SCOUT) connected by a thin line with a dot; the active item is highlighted in orange.
+4. **Theme switch as chapter break:** dark-green tech scenes switch to light-paper scenes for the "how it works" section.
+5. **Proof shots:** real GitHub repo pages with a highlighted "221 STARS" pill and "OPEN SOURCE" / "FREE AGENCY" badges.
+6. **Big-number price card** ("10 dollars / per week") in one accent colour.
+7. **CTA:** "Comment" plus a speech-bubble chip that fills in with the keyword (HARBOR), and "for the link · IG · FB · YT ONLY".
+
+**What it would take for CybernetAI:** the split-screen needs a real person on camera (the owner, filmed on a phone). Without footage, the top-panel devices (count-up grid, stacking chips, org-chart, theme switch, comment-keyword end card) can carry a full-frame video with the AI voice.
