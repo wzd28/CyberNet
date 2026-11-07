@@ -154,3 +154,26 @@ Three reels the owner loves, downloaded (`reference-reels/`, not committed) and 
 2. **Micro-UI with extreme zoom:** one satisfying task, a light palette, and the camera diving into the detail that matters (one letter of a URL), then a progress bar and a result. The UI fills at least 70% of the frame width.
 3. **Cream tutorial format:** paper background, a line-drawn skyline, an icon-to-icon connector with a travelling dot, green-check pills, a pattern interrupt ("Most people ... right here." then "HERE'S THE MOVE"), a dark app window acting by itself with one caption pill under it, and a save/share end beat.
 4. **For B2B and formal brands:** the same craft without the gimmicks: real work as the hero (stands in a dark hall, a designer's swatch deck), in-world name signs instead of floating stickers, verbatim copy, and a formal voice.
+
+---
+
+## Round 7: @jayantcreates.ai "I let Claude run my Instagram" (DfcuMoTmTSX, 2026-11-07, owner: "copy this skill")
+49.6 s · 1080×1920 · 60 fps · one continuous metaphor, no hard cuts.
+
+**The skill: turn the whole pitch into one physical metaphor, a deck of playing cards.**
+- **The set:** near-black background with a slow gold sunburst, a thin gold frame with diamond corners, and a deco serif-caps title at the top with one gold word.
+- **Hook card:** a cream playing card with corner indices, the stat as the card's rank, and a number counting up on the card ("131 → 38,000 followers"), with a gold "4 MONTHS" ribbon. *(Our rule: counters only with real numbers.)*
+- **Mystery beat:** a face-down card with a keyhole; a gold key turns in it, then a glow ("the one key that unlocks this").
+- **System beat:** the card multiplies into a fanned hand, then an "AUTOPILOT" toggle switches on under the hand.
+- **The list as cards:** "five cards run the whole agency". Each card rises to the centre, flips, and plays a mini UI animation on its face, then rejoins the hand:
+  1. Connect: the plug connects.
+  2. Research: a magnifier over a grid, then "20.2M views".
+  3. Hooks: pips become a ranked list from 1 to 10.
+  4. Humanizer: AI text gets struck through and rewritten as handwriting with a voice waveform.
+  5. **The ace:** a gold card, saved for the best feature.
+- **Captions:** heavy white sans in caps, one or two words at a time, with keywords in gold. They sit under the card, and the title stays fixed at the top as the chapter name.
+- **CTA:** the full hand fans out, then a comment box types the keyword and a DM arrives with green-check items. *(We need a DM automation first.)*
+
+**Why it works:** one metaphor with a built-in count ("card 3 of 5") keeps people watching to the end, and the reveal of each face is a small payoff every 2–3 seconds. The gold ace makes a natural climax.
+
+**Applied:** CybernetAI 07 "The Hand" (V53, ): "Scammers are dealing. Here's the hand that beats them." Cards: Messages, Links, Screenshots, QR codes, and the ace, Recovery Mode. It ends on a share box instead of a comment keyword.
