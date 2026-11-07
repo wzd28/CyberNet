@@ -5,6 +5,8 @@ Workspace for researching, planning and producing AI-assisted marketing videos.
 | Path | What it is |
 |---|---|
 | `TASTE.md` | Standing creative preferences. **Read first, every project.** Updated after every round of feedback. |
+| `research/GRANDMASTER.md` | **The operating manual.** Method, routing to skills, hooks, motion, sound, distribution, pre-flight checklist. **Read second, every task.** |
+| `skills-library/` | 123 third-party MIT/Apache skill playbooks (Ootto, Corey Haines, HyperFrames), indexed in `INDEX.md`. Reference only. |
 | `research/SUMMARY.md` | Condensed playbook, per-platform checklists, pre-publish QA. **Read second.** |
 | `research/*.md` | One file per platform plus AI tools, psychology and case studies, all with cited sources. |
 | `templates/video-brief.md` | Reusable brief: goal → audience → platform → hook → concept → script → shots → prompts → VO → captions → music → CTA. |

@@ -1,6 +1,7 @@
 # TASTE.md — standing preferences (read before every project)
 
 > Rule for Claude: read this file in full before starting or continuing any project.
+> Then read `research/GRANDMASTER.md` (the operating manual: method, routing table to the skills library, hook gate, motion/sound rules, pre-flight checklist) and follow it for every content task.
 > After every round of feedback on a video, append a dated entry under **Feedback log**
 > and, if the feedback is a pattern rather than a one-off, promote it into **Likes** / **Dislikes**.
 
