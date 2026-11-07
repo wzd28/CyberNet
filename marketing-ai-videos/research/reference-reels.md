@@ -116,3 +116,41 @@ Three reels the owner loves, downloaded (`reference-reels/`, not committed) and 
 7. **CTA:** "Comment" plus a speech-bubble chip that fills in with the keyword (HARBOR), and "for the link · IG · FB · YT ONLY".
 
 **What it would take for CybernetAI:** the split-screen needs a real person on camera (the owner, filmed on a phone). Without footage, the top-panel devices (count-up grid, stacking chips, org-chart, theme switch, comment-keyword end card) can carry a full-frame video with the AI voice.
+
+---
+
+## Round 5: five more reels (2026-11-07; owner loved two of them)
+### Dc5kaDjETLZ, @jayantcreates.ai "Connect Claude to your Instagram in 2 minutes" (5,981 likes, 40 s, 0 hard cuts)
+- Warm cream "paper" background with faint line-drawn city skyline at the bottom (landmarks sketched in thin orange-brown lines). Very calm, premium, warm, not techy-dark.
+- Persistent icon-to-icon link motif at top: Instagram icon ●—— dotted line ——● Claude icon; the dot travels along the line (connection metaphor).
+- Headline: bold black serif-less + one orange emphasis word ("your Instagram") + small orange pill ("in 2 minutes").
+- Benefit checklist builds in: green-check pills stacking ("what to post to go viral", "makes reels like this", "edits your reels for you").
+- Dark macOS-style app window as the "screen" that the camera pushes into/out of; UI types itself (mcp.ootto.ai/mcp being typed with cursor), searches show "No results".
+- Pattern-interrupt cards: "✋ Most people stop right here." (orange second line), "HERE'S THE MOVE" with an underline: tension, then turn.
+- Every beat: window + single caption pill at the bottom of the window (white rounded pill, one key word orange).
+- Demo payoff montage: profile breakdown with stats counting, competitor research rows, content calendar filling with colored bars, editor timeline, DM thread with auto-replies popping in.
+- Self-referential "like this": a phone tilts in showing this same reel.
+- CTA: "Comment" + a comment input box where the keyword types itself ("OOTT|"), Post button, then an "AUTO-REPLY → DM sent" chip slides in below.
+- Handle watermark @JAYANTCREATES.AI bottom centre on every frame.
+
+### DfcIoZvtYDD, @roshanstudio_ "POV: Your next demo video looks this" (OWNER LOVES), 36 s, 1440x2560, 0 cuts
+- A real laptop filmed in a moody dark room (blue/cyan backlight, plant leaves, a toy figure on a Rubik's cube), slight handheld; the motion-graphics demo plays ON the laptop screen.
+- Screen piece = SaaS launch: soft pastel gradient sky, logo mark draws, "Meet heyclicky|" type-on with cursor, app windows float and dock, cloud-sky wallpaper, kinetic words "your apps / your workflow / your ai buddy", "Create your own Clickys", end logo type-on.
+- Static white-box POV caption at the top the whole time.
+
+### DfaHvJiN5wf, @thejimmy.vision "What if one video could sell your SaaS product under a minute" (40 s, 60 fps, 0 cuts)
+- Same device: laptop on a desk in a green-lit room; screen plays a dark premium launch: blurred kinetic type, glossy 3D glass icons, liquid teal-blue gradients, a 3D ribbon ring, pill chips stacking, dashboards with charts, a circle-dot pattern field, logo "UPLINQ" on an aurora gradient.
+
+### DcGgRnVi2bn, @sumama_bashir (OWNER LOVES, 11.8K likes), 14 s, 60 fps
+- Micro UI animation of one satisfying task (upload a file): sparks, logo pop, "+ New" pill grows, file card flips in with glow, EXTREME camera zoom into the UI (sidebar items macro), hand cursor grabs a folder, file-upload card, progress bar filling the whole frame in cyan, blue check pops, handle end card.
+- Light minimal palette, one continuous task, dense layered sound design (shown as a "Sound Design" timeline under the picture).
+
+### DfaqDFWmaP9, @duncanrogoff (Claude-made motion graphics library), 35 s
+- Same split explainer format as round 4.
+
+
+### What we took from round 5 (applied in round 6)
+1. **Device framing (laptop in a moody room):** the product film plays on a 3D laptop screen with a white-box "POV:" sticker at the top. On a 9:16 phone the screen is only about a third of the frame, so **the camera has to push in on the screen** for every beat that carries text, and on-screen type needs to be about twice its desktop size (at least 90 px on a 1920-wide screen canvas).
+2. **Micro-UI with extreme zoom:** one satisfying task, a light palette, and the camera diving into the detail that matters (one letter of a URL), then a progress bar and a result. The UI fills at least 70% of the frame width.
+3. **Cream tutorial format:** paper background, a line-drawn skyline, an icon-to-icon connector with a travelling dot, green-check pills, a pattern interrupt ("Most people ... right here." then "HERE'S THE MOVE"), a dark app window acting by itself with one caption pill under it, and a save/share end beat.
+4. **For B2B and formal brands:** the same craft without the gimmicks: real work as the hero (stands in a dark hall, a designer's swatch deck), in-world name signs instead of floating stickers, verbatim copy, and a formal voice.
