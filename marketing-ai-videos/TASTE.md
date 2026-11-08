@@ -55,6 +55,7 @@ Every video is filed under its agency: `projects/markable/` or `projects/cyberne
 - **Bright, "ding-ding" chime sound effects** (they read as childish). End cards get a deep, warm cinematic resolve: sub hit, chord bloom, muted click.
 - **Gimmicks and games** ("remember one" quiz, viewer tests) and **playful/childish devices** (hearts bursting, cartoon UI) for B2B. Creative ≠ cute.
 - **Altering the client's logo.** Use it *exactly as supplied*: same colours, same artwork, on a background it was designed for (Markable: blue + green on white). No white/inverted versions, no recolouring, no AI regeneration. If the supplied file is low-res, rebuild it at high res in the exact sampled colours and verify side by side.
+- **No free AI voice (Kokoro).** The owner dislikes it (2026-11-08). Markable: no voiceover at all. CybernetAI: ElevenLabs only (or the owner's own voice).
 - **Markable Text 1 headline:** use the agency's "Let Your Exhibition Stand Shine." (owner, 2026-11-07; the earlier "Let Your Stand Stand Out." override is retired).
 - **Inventing copy on top of the client's.** When the agency supplies headlines, sub-lines and buttons, they appear **verbatim**: same wording, casing, punctuation and button label. Creative hooks may sit around them, but the brief's text is never replaced or paraphrased.
 - **Waiting on questions when I could act.** Do the work; ask only when truly blocked, with one clear fix.
