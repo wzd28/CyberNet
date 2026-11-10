@@ -10,8 +10,8 @@ import {
   serviceFetch
 } from "../lib/supabase.mjs";
 import { reportError } from "../lib/report-error.mjs";
-import { withCors, isIOS } from "../lib/cors.mjs";
-import { appTierFor, nextUtcMidnight, recoveryNextReset } from "../lib/app-tier.mjs";
+import { withCors, isIOS, honoursWebPlans } from "../lib/cors.mjs";
+import { appTierFor, appLimitsFor, nextUtcMidnight, recoveryNextReset } from "../lib/app-tier.mjs";
 import { hasAiConsent, AI_CONSENT_VERSION } from "../lib/ai-consent.mjs";
 
 async function getTeamUsage(businessAccountId, dailyPoolLimit) {
@@ -47,8 +47,18 @@ async function getTeamUsage(businessAccountId, dailyPoolLimit) {
 // the person, in plain text, that they apply on the website (ios.js section 3b).
 // The field is absent for Free, so the app can never show it to a free account.
 // Admin access is not a plan and is never reported.
+//
+// With X-CyberNet-Plans: 1 (app build 6 on; honoursWebPlans in lib/cors.mjs)
+// the website plan applies in the app (lib/app-tier.mjs appLimitsFor), so:
+// profile.appPlan is "free" | "pro" | "business", webPlan is not sent (the
+// notice it fed is obsolete), and usage / recoveryUsage report the limits and
+// counters actually charged: the team's shared pools for a team account
+// (business_daily_usage, business_recovery_usage), the person's own rows
+// otherwise. Recovery updates are always per person. Still no billing data,
+// prices or upgrade prompts; profile.plan stays "app".
 async function appStatus(request, user, profile) {
   const tier = appTierFor(user);
+  const webPlans = honoursWebPlans(request);
   const today = new Date().toISOString().slice(0, 10);
   const [analysisRows, recoveryRows, team, consent] = await Promise.all([
     serviceFetch(
@@ -71,6 +81,8 @@ async function appStatus(request, user, profile) {
     getActiveTeamMembership(user.id).catch(() => null),
     hasAiConsent(serviceFetch, user.id, "ios").catch(() => null)
   ]);
+
+  if (webPlans) return appStatusWithPlans(request, user, profile, { analysisRows, recoveryRows, team, consent });
 
   const used = Number(analysisRows?.[0]?.analysis_count) || 0;
   const webPlan = team ? "business" : effectivePlan(profile);
@@ -102,6 +114,63 @@ async function appStatus(request, user, profile) {
       casesLimit: tier.recoveryCasesPerDay,
       updatesUsed: Number(recovery.updates_used) || 0,
       updatesLimit: tier.recoveryUpdatesPerDay,
+      updateCooldownSecondsRemaining: Math.max(0, Math.ceil((cooldownEnds - Date.now()) / 1000)),
+      resetAt: recoveryNextReset()
+    },
+    aiConsent: { granted: consent === true, known: consent !== null, version: AI_CONSENT_VERSION },
+    history
+  });
+}
+
+// Team pool counters for the window the personal Recovery row was read with
+// (the same database window key; consume_recovery_case_business uses it too).
+async function teamRecoveryCasesUsed(businessAccountId) {
+  const windowStart = await serviceFetch("/rest/v1/rpc/recovery_window_start", { method: "POST", body: "{}" })
+    .then(async (response) => (response.ok ? response.json() : null))
+    .catch(() => null);
+  if (typeof windowStart !== "string" || !windowStart) return 0;
+  const rows = await serviceFetch(
+    `/rest/v1/business_recovery_usage?business_account_id=eq.${encodeURIComponent(businessAccountId)}&window_start=eq.${encodeURIComponent(windowStart)}&select=cases_created`
+  ).then(async (response) => (response.ok ? response.json().catch(() => []) : [])).catch(() => []);
+  return Number(Array.isArray(rows) ? rows[0]?.cases_created : 0) || 0;
+}
+
+async function appStatusWithPlans(request, user, profile, { analysisRows, recoveryRows, team, consent }) {
+  const rules = appLimitsFor(user, { plan: effectivePlan(profile), team });
+  const [teamAnalyses, teamCases] = await Promise.all([
+    team && rules.analyses.pool === "team" ? getTeamUsage(team.businessAccountId, rules.analyses.limit) : null,
+    team && rules.recoveryCases.pool === "team" ? teamRecoveryCasesUsed(team.businessAccountId) : null
+  ]);
+  const used = teamAnalyses ? teamAnalyses.used : Number(analysisRows?.[0]?.analysis_count) || 0;
+  const recovery = Array.isArray(recoveryRows) ? recoveryRows[0] || {} : {};
+  const casesUsed = teamCases !== null ? teamCases : Number(recovery.cases_created) || 0;
+  const lastUpdate = Date.parse(recovery.last_update_at || "");
+  const cooldownEnds = Number.isFinite(lastUpdate) ? lastUpdate + rules.recoveryUpdates.cooldownSeconds * 1000 : 0;
+
+  const includeHistory = new URL(request.url).searchParams.get("includeHistory") === "1";
+  const history = includeHistory ? await getHistory(user.id, 8) : [];
+
+  return json({
+    isAdmin: false,
+    platform: "ios",
+    profile: {
+      fullName: profile.full_name || user.user_metadata?.full_name || "",
+      plan: "app",
+      appPlan: rules.appPlan,
+      isTeamMember: Boolean(team && team.role !== "owner"),
+      teamRole: team?.role || null
+    },
+    usage: {
+      used,
+      limit: rules.analyses.limit,
+      remaining: Math.max(0, rules.analyses.limit - used),
+      resetDate: nextUtcMidnight()
+    },
+    recoveryUsage: {
+      casesUsed,
+      casesLimit: rules.recoveryCases.limit,
+      updatesUsed: Number(recovery.updates_used) || 0,
+      updatesLimit: rules.recoveryUpdates.limit,
       updateCooldownSecondsRemaining: Math.max(0, Math.ceil((cooldownEnds - Date.now()) / 1000)),
       resetAt: recoveryNextReset()
     },

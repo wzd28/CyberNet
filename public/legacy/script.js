@@ -1189,7 +1189,8 @@ document.addEventListener("DOMContentLoaded", () => {
         };
         appState.usage = {
           used: Number((_j = data.usage) == null ? void 0 : _j.used) || 0,
-          limit: Number((_k = data.usage) == null ? void 0 : _k.limit) || 5,
+          limit: Number((_k = data.usage) == null ? void 0 : _k.limit) || /*@web*/
+          5,
           remaining: Number((_l = data.usage) == null ? void 0 : _l.remaining),
           resetDate: ((_m = data.usage) == null ? void 0 : _m.resetDate) || ""
         };
@@ -1205,7 +1206,13 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         appState.isAdmin = false;
         appState.profile = { plan: "free", fullName: ((_r = (_q = appState.user) == null ? void 0 : _q.user_metadata) == null ? void 0 : _r.full_name) || "", subscriptionStatus: "inactive", billingInterval: "" };
-        appState.usage = { used: 0, limit: 5, remaining: 5, resetDate: "" };
+        appState.usage = { used: 0, limit: (
+          /*@web*/
+          5
+        ), remaining: (
+          /*@web*/
+          5
+        ), resetDate: "" };
         appState.history = [];
         appState.accountStatusError = true;
         console.warn(error);

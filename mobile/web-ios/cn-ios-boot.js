@@ -105,6 +105,7 @@
       var headers = new Headers(options.headers || (typeof input === "object" && input ? input.headers : undefined));
       headers.set("X-CyberNet-Platform", "ios");
       headers.set("X-CyberNet-App-Version", VERSION);
+      headers.set("X-CyberNet-Plans", "1"); // this build understands the plan the server reports (profile.appPlan)
       options.headers = headers;
       if (!options.method && typeof input === "object" && input && input.method) options.method = input.method;
       var timer = 0;

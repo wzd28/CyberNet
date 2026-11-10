@@ -29,7 +29,17 @@ try {
 
     // first screen and pages
     check("Check (Quick Scan) is the first screen", /<section id="cybernet" class="page active-page"/.test(html));
-    check("no Home, Pricing or About page", !/id="home"|id="pricing"|id="about"/.test(html));
+    // Home (the website's home page) is the first tab since 10 Nov 2026; the app still opens on Check. Plans, prices and purchases are nowhere in it.
+    check("Home is in the page but Check (Quick Scan) is the page that is open; no Pricing or About page", /<section id="home" class="page"/.test(html) && !/<section id="home"[^>]*active-page/.test(html) && /<section id="cybernet" class="page active-page"/.test(html) && !/id="pricing"|id="about"/.test(html));
+    {
+      const homeHtml = html.slice(html.indexOf('<section id="home"'), html.indexOf('<section id="cybernet"'));
+      const homeText = homeHtml.replace(/<script[\s\S]*?<\/script>/g, " ").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ");
+      check("Home: the website's hero, tools, example scan, flow and threats are there (the paste box, the three tools, the demo, the reel)", /id="cnScanInput"/.test(homeHtml) && /class="cn-demo"/.test(homeHtml) && /class="cn-flow"/.test(homeHtml) && /class="cn-threats"/.test(homeHtml) && /id="cnCore"/.test(homeHtml) && /Is it a scam\?/.test(homeText), homeText.slice(0, 200));
+      const homeWords = homeText.replace(/\b(recovery|step-by-step) plan\b/gi, " ").replace(/\ba plan, step by step\b/gi, " ").replace(/\bBusiness team\b/g, "Team");
+      check("Home: no price, plan name, purchase or upgrade wording, and no link to the website's pricing", !/\bPro\b|\bBusiness\b|\bFree\b|\bplans?\b|pricing|upgrade|subscri|checkout|\bbuy\b|purchase|per month|\/month|billing|stripe|\$9|\$40/i.test(homeWords) && !/data-page="(pricing|about)"|href="[^"]*pricing/.test(homeHtml), homeWords.match(/.{30}(\bPro\b|Business|\bFree\b|\bplans?\b|pricing|upgrade|\bbuy\b).{30}/i)?.[0]);
+      check("Home: no globe script, GSAP or Lenis, no how-to video buttons, no live-statistics section, no link out of the app", !/data-video=|gsap|lenis|cnLiveTitle|liveScansCount|public-stats/i.test(homeHtml) && !/<a[^>]*href="https?:/i.test(homeHtml), (homeHtml.match(/<a[^>]*href="https?:[^>]*>/i) || [""])[0]);
+      check("Home: no protection claim in its copy (Let's help you spot a scam)", /Let\W?s help you spot a scam/.test(homeText) && !/protect you/i.test(homeText));
+    }
     check("the Account page is in the page", /<section id="account" class="page cn-ios-account"/.test(html));
     // The website's sign-in gate (its stage, its head snippet) is not in the app's page. Since 30 Oct 2026 the app has its own gate: a sign-in card that ios.js builds (tested below).
     check("the website's sign-in gate (cnGateStage, html.cn-gate) is not in the page; the app's own card is built by ios.js", !/cnGateStage|cn-gate-stage|html\.cn-gate|classList\.add\("cn-gate"\)/.test(html));
@@ -209,7 +219,7 @@ try {
       const esc = v => String(v).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
       let ix = null;
       try {
-        ix = new Function("esc", [declOf("IX_SHIELD"), declOf("IX_PITCH"), declOf("IX"), fnOf("introStageHtml")].map(iosSrc).join(";\n") + ";\nreturn { IX_SHIELD, IX_PITCH, IX, introStageHtml };")(esc);
+        ix = new Function("esc", [declOf("IX_MARK"), declOf("IX_PITCH"), declOf("IX"), fnOf("introStageHtml")].map(iosSrc).join(";\n") + ";\nreturn { IX_MARK, IX_PITCH, IX, introStageHtml };")(esc);
       } catch (error) { check("Intro stage: its markup and timing can be run", false, error.message); }
       const iosCssRaw = await read("ios/ios.css");
       const cssSpaced = iosCssRaw.replace(/\s+/g, " ");
@@ -228,52 +238,61 @@ try {
         const mountRaw = iosSrc(fnOf("mountStage"));
         const mount = squash(mountRaw);
 
-        // the stage: a labelled dialog; the typed and drawn parts are decorative; VoiceOver gets the pitch once
+        // the stage: a labelled dialog; the drawn parts are decorative; VoiceOver gets the pitch once
         check("Intro stage: one modal dialog named Welcome to CyberNet AI", stage && attr(stage, "role") === "dialog" && attr(stage, "aria-modal") === "true" && attr(stage, "aria-label") === "Welcome to CyberNet AI", stage?.attrs);
-        check("Intro stage: the mark and pitch parts are hidden from VoiceOver, which reads one line", byClass("cn-ix-lockup").concat(byClass("cn-ix-pitch")).every(n => attr(n, "aria-hidden") === "true") && textOf(byClass("cn-ix-sr")[0] || stage) === "CyberNet AI. Stay protected. All in one place. Check, scan and recover.", textOf(byClass("cn-ix-sr")[0] || stage));
+        check("Intro stage: the drawn parts are hidden from VoiceOver, which reads one line (no kicker)", byClass("cn-gate-stage").every(n => attr(n, "aria-hidden") === "true") && byClass("cn-ix-bg").concat(byClass("cn-ix-sweep")).every(n => attr(n, "aria-hidden") === "true") && textOf(byClass("cn-ix-sr")[0] || stage) === "CyberNet AI. Stay protected. All in one place.", textOf(byClass("cn-ix-sr")[0] || stage));
         // Skip: a real button, visible text, and the stage itself is the tap target
         const skip = byClass("cn-ix-skip");
         check("Intro stage: a visible Skip button", skip.length === 1 && skip[0].tagName === "button" && attr(skip[0], "type") === "button" && textOf(skip[0]).trim() === "Skip intro", skip.map(textOf));
         check("Intro stage CSS: Skip is at least 44 x 44 pt and sits inside the safe area", /min-width:44px/.test(rule(".cn-ix-skip")) && /min-height:44px/.test(rule(".cn-ix-skip")) && /top:calc\(env\(safe-area-inset-top,0px\)\+6px\)/.test(rule(".cn-ix-skip")) && /env\(safe-area-inset-right/.test(rule(".cn-ix-skip")), rule(".cn-ix-skip"));
         check("Intro stage: a tap anywhere, Escape, Return and Space skip it (the tap is not passed on to the steps)", /node\.addEventListener\("click",\(\) ?=> ?end\(true\)\)/.test(mountRaw) && mountRaw.replace(/ /g, "").includes('e.key==="Escape"||e.key==="Enter"||e.key===""') && /stopImmediatePropagation\(\)/.test(mountRaw), mount.slice(0, 200));
-        // 30 Oct 2026 (review): a skip also adds is-pitch, so the pitch is there behind the card (is-end already stops its entry animation); 1 Nov 2026: and is-lines; the stage that opens onto the app does not glide
-        check("Intro stage: skipping finishes every move at once (the lines and the pitch included, so the card never stands over an empty band) and goes straight to the steps", /if\(skipped\)node\.classList\.add\("is-end","is-lines",\.\.\.\(?open\?\[\]:\["is-glide","is-pitch","is-quick"\]\)?\);go\(\)/.test(mount) && /\.cn-ix:is\(\.is-end,\.is-calm\):is\([^)]*\.cn-ix-line,\.cn-ix-rule,\.cn-ix-kicker/.test(css), mount.slice(0, 200));
+        // a skip takes .is-run away, so every part shows its rest value (the end frame: lock shut, words said) and the mark is up
+        check("Intro stage: skipping finishes every move at once (no .is-run: the end frame, the mark glided up) and goes straight to the steps", /node\.classList\.remove\("is-run","is-leaving"\);if\(skipped\)node\.classList\.add\("is-end","is-said",\.\.\.\(?open\?\[\]:\["is-glide"\]\)?\);elseif\(!open\)node\.classList\.add\("is-glide"\);go\(\)/.test(mount) && /\.cn-ix\.is-end \.cn-gate-brand\{transition:none\}/.test(cssSpaced), mount.slice(0, 300));
 
-        // the owner's two lines (1 Nov 2026), with a kicker in the app's own words: it says what the app does
-        check("Intro stage: the pitch is Stay protected. / All in one place., kicker Check, scan and recover", byClass("cn-ix-line").map(textOf).join("|") === "Stay protected.|All in one place." && textOf(byClass("cn-ix-kicker")[0]) === "Check, scan and recover" && /\.cn-ix-kicker\{[^}]*text-transform:uppercase/.test(css), byClass("cn-ix-line").map(textOf));
-        const claimWords = /protect|antivirus|real-?time|\bblocks?\b|monitor|accurate|100%|99%/i; // REJECTION-RISKS B2 (guideline 2.3.1(a))
-        // "Stay protected." is the owner's own slogan (1 Nov 2026) and the only such word on the screen; if App Review objects it is a
-        // one-word change back to "Stay secure." (REJECTION-RISKS B2). Nothing else on the stage makes a claim.
-        check("Intro stage: no protection claim on its first screen beyond the owner's slogan (words App Review flags)", ix.IX_PITCH.lines.join(" ") === "Stay protected. All in one place." && !claimWords.test(ix.IX_PITCH.kicker) && !claimWords.test(textOf(byClass("cn-ix-sr")[0] || stage).replace("Stay protected.", "")), ix.IX_PITCH);
-        check("Intro stage: the wordmark is CyberNet AI, letter by letter", byClass("cn-ix-word").length === 1 && textOf(byClass("cn-ix-word")[0]) === "CyberNetAI" && all.filter(n => n.tagName === "span" && /^--i:\d+$/.test(attr(n, "style") || "")).length === 10);
+        // THE WEBSITE'S STAGE (owner, 10 Nov 2026): the same markup as public/index.html #cnGateStage, word for word
+        const siteHtml = await readFile(path.join(root, "public", "index.html"), "utf8");
+        const siteStage = /<div data-web-only class="cn-gate-stage" id="cnGateStage" aria-hidden="true">\s*(<div class="cn-gate-brand">[\s\S]*?<\/div>)\s*<p class="cn-gate-quote">([\s\S]*?)<\/p>/.exec(siteHtml);
+        const tight = s => String(s).replace(/>\s+</g, "><").trim();
+        const mine = ix.introStageHtml();
+        const mineBrand = /<div class="cn-gate-brand">[\s\S]*?<\/div>/.exec(mine)?.[0];
+        const mineQuote = /<p class="cn-gate-quote">([\s\S]*?)<\/p>/.exec(mine)?.[1];
+        check("Intro stage: the mark, the wordmark (letter by letter) and the quote (word by word) are the website's markup, byte for byte", !!siteStage && tight(siteStage[1]) === tight(mineBrand) && tight(siteStage[2]) === tight(mineQuote), [siteStage?.[1]?.slice(0, 80), mineBrand?.slice(0, 80)]);
+        check("Intro stage: the shield is drawn from the bottom point and the padlock is the website's (shackle shut at rest)", /pathLength="1" d="M12 24 L4 15 L3 6 L12 2 L21 6 L20 15 Z"/.test(mine) && /class="cn-gate-shackle" d="M9\.6 12\.5v-2\.3a2\.4 2\.4 0 0 1 4\.8 0v2\.3"/.test(mine) && /class="cn-gate-body"/.test(mine) && byClass("cn-gate-scan").length === 1);
+        check("Intro stage: the wordmark is CyberNet AI and the quote is Stay protected. All in one place. (no kicker line, no rule)", textOf(byClass("cn-gate-word")[0]) === "CyberNetAI" && byClass("cn-gate-qw").map(textOf).join(" ") === "Stay protected. All in one place." && byClass("cn-gate-qw").length === 6 && !/kicker|Check, scan and recover|cn-ix-rule/i.test(mine) && !/Check, scan and recover/.test(iosJs));
+        check("Intro stage: no protection claim on its first screen beyond the owner's slogan (words App Review flags)", ix.IX_PITCH.lines.join(" ") === "Stay protected. All in one place." && !/protect|antivirus|real-?time|\bblocks?\b|monitor|accurate|100%|99%/i.test(textOf(byClass("cn-ix-sr")[0] || stage).replace("Stay protected.", "")), ix.IX_PITCH);
+        // the website's rules, copied: every keyframe of the gate's stage is the same text, and the animation lines carry the same numbers
+        const siteCss = await readFile(path.join(root, "ui-src", "css", "63-gate.css"), "utf8");
+        const appCssSource = await readFile(path.join(mobile, "web-ios", "ios.css"), "utf8");
+        const frameText = (source, name) => {
+          const start = source.indexOf("@keyframes " + name + " {");
+          if (start < 0) return "";
+          let depth = 0, i = source.indexOf("{", start);
+          for (; i < source.length; i++) { if (source[i] === "{") depth++; else if (source[i] === "}" && --depth === 0) break; }
+          return source.slice(start, i + 1).replace(/\s+/g, " ");
+        };
+        const GATE_FRAMES = ["cn-gate-sweep", "cn-gate-glow", "cn-gate-draw", "cn-gate-lock", "cn-gate-shut", "cn-gate-click", "cn-gate-flash", "cn-gate-ring", "cn-gate-scan", "cn-gate-letter"];
+        check("Intro stage CSS: the website gate's keyframes are in the app word for word (sweep, glow, draw, lock, shut, click, flash, ring, scan, letter)", GATE_FRAMES.every(n => frameText(siteCss, n) && frameText(siteCss, n) === frameText(appCssSource, n)), GATE_FRAMES.filter(n => frameText(siteCss, n) !== frameText(appCssSource, n)));
+        const siteSpaced = siteCss.replace(/\s+/g, " ");
+        const appSpaced = appCssSource.replace(/\s+/g, " ");
+        const CLOCK = ["cn-gate-glow 2.2s var(--cn-gate-arrive) .1s both, cn-gate-flash 1.1s var(--cn-gate-arrive) 2.38s", "cn-gate-draw 1.5s var(--cn-gate-ease) .2s forwards", "cn-gate-lock .9s var(--cn-gate-arrive) 1s backwards", "cn-gate-shut .5s linear 1.95s backwards", "cn-gate-click .36s var(--cn-gate-arrive) 2.33s", "cn-gate-ring 1.6s var(--cn-gate-arrive) 2.4s", "cn-gate-scan 1.4s var(--cn-gate-ease) .15s", "cn-gate-letter .95s var(--cn-gate-arrive) calc(1.25s + var(--i) * 55ms) backwards", "cn-gate-letter .9s var(--cn-gate-arrive) calc(var(--w) * 95ms + var(--ql, 0ms)) backwards", "cn-gate-sweep 3.2s var(--cn-gate-ease) .3s backwards"];
+        check("Intro stage CSS: the website's clock, to the millisecond (shield 0.2-1.7 s, lock 1.0 s, letters from 1.25 s every 55 ms, shackle 1.95-2.45 s, words from 2.65 s every 95 ms)", CLOCK.every(c => siteSpaced.includes(c) && appSpaced.includes(c)), CLOCK.filter(c => !(siteSpaced.includes(c) && appSpaced.includes(c))));
+        const SIZES = ["--cn-gm: clamp(76px, 6vw + 48px, 116px)", "--cn-gw: clamp(34px, 2.6vw + 24px, 60px)", "--cn-gm: clamp(40px, 1.4vw + 34px, 52px)", "--cn-gw: clamp(22px, .6vw + 19px, 28px)", "font-size: clamp(21px, 1.5vw + 15px, 34px)", "--cn-gate-glide: 1.2s", "--cn-gate-ease: cubic-bezier(.65, 0, .35, 1)", "--cn-gate-arrive: cubic-bezier(.22, 1, .36, 1)", "margin: 26px 0 0", "max-width: 30ch"];
+        check("Intro stage CSS: the website's sizes and eases (mark 76-116 px, wordmark 34-60 px, quote 21-34 px, glide 1.2 s)", SIZES.every(c => siteSpaced.includes(c) && appSpaced.includes(c)), SIZES.filter(c => !(siteSpaced.includes(c) && appSpaced.includes(c))));
+        check("Intro stage CSS: the layer is the website's glow and dot grid over the launch screen's plain ground", /radial-gradient\(ellipse 62% 44% at 50% 30%, rgba\(34, 211, 238, \.085\), transparent 70%\)/.test(appSpaced) && /radial-gradient\(rgba\(148, 163, 184, \.10\) 1px, transparent 1\.3px\) 0 0 \/ 24px 24px/.test(appSpaced) && /background:#060a14/.test(rule(".cn-ix")));
+        check("Intro stage CSS: the animations run only under .is-run (a skip, reduced motion, the short gate and the stage that opens onto the app show the rest value, the end frame)", !/(^|\})\.cn-ix(?!\.is-run)[^{}]*\.cn-gate-(shield|lock|shackle|body|scan|word span|qw)[^{}]*\{[^}]*animation:cn-gate/.test(css.replace(/\.cn-ix\.is-run/g, "")) && /\.cn-ix\.is-run \.cn-gate-shackle\{animation:cn-gate-shut \.5s linear 1\.95s backwards\}/.test(cssSpaced.replace(/\s*([{};])\s*/g, "$1")), "");
 
-        // the mark is the launch screen's shield: same geometry, colours, size and place, so the hand-over has no jump
-        const icon = await readFile(path.join(mobile, "native", "brand", "app-icon.svg"), "utf8");
+        // the launch screen is the website's first frame: plain ground, no mark (the stage's own first frame is the same)
         const splash = await readFile(path.join(mobile, "native", "brand", "splash.svg"), "utf8");
-        const segs = d => d.split(/(?=[MCLAZ])/).map(s => s.trim()).filter(s => s && !/^[MZ]/.test(s));
-        const cyclic = (a, b) => a.length === b.length && a.some((_, i) => a.map((__, k) => a[(i + k) % a.length]).join("|") === b.join("|"));
-        const iconShield = /<path d="(M512 176[^"]+)"/.exec(icon)?.[1] || "";
-        check("Intro stage: the shield outline is the app icon's shield, drawn from the bottom point", cyclic(segs(iconShield), segs(ix.IX_SHIELD)) && /^M512 856 /.test(ix.IX_SHIELD) && /Z$/.test(ix.IX_SHIELD), ix.IX_SHIELD);
-        const lockParts = ['d="M436 486 L436 428 A76 76 0 0 1 588 428 L588 486"', 'x="384" y="472" width="256" height="196" rx="34"', 'cx="512" cy="550" r="27"', 'd="M498 560 L526 560 L534 620 L490 620 Z"'];
-        check("Intro stage: the lock is the launch screen's lock", lockParts.every(p => icon.includes(p) && splash.includes(p) && ix.introStageHtml().includes(p)));
-        check("Intro stage: the launch screen's colours (#060a14 ground, #67e8f9 to #22d3ee mark, 48-unit outline)", ix.introStageHtml().includes('stop-color="#67e8f9"') && ix.introStageHtml().includes('stop-color="#22d3ee"') && /background:#060a14/.test(rule(".cn-ix")) && /fill="#060a14"/.test(splash) && /stroke-width="48"/.test(ix.introStageHtml()));
-        // splash.svg: a 2732 square with the 1024-unit mark at scale .62, centred on (512, 516); shown aspect-fill, so one
-        // unit is max(width, height) * .62 / 2732 px, which is what the stage's --ix-u says. Its viewBox is the shield's box.
-        const vb = /viewBox="(\d+) (\d+) (\d+) (\d+)"/.exec(ix.introStageHtml()).slice(1).map(Number);
-        check("Intro stage: same size and place as the launch screen's shield", /width="2732"/.test(splash) && /scale\(0\.62\) translate\(-512 -516\)/.test(splash) && vb[0] + vb[2] / 2 === 512 && vb[1] + vb[3] / 2 === 516 && /--ix-u:calc\(max\(100vw,100vh\)\*\.62\/2732\)/.test(rule(".cn-ix")) && /--ix-mw:calc\(var\(--ix-u\)\*584\)/.test(rule(".cn-ix")) && vb[2] === 584 && /--ix-mh:calc\(var\(--ix-u\)\*732\)/.test(rule(".cn-ix")) && vb[3] === 732, vb);
-        // owner, 1 Nov 2026: the launch screen draws the padlock OPEN and the stage's first frame is that same padlock, which it then
-        // shuts: lifted 24 units and swung 20deg on the right leg (588, 486), the corner of the shackle's fill box (100% 100%)
-        check("Intro stage: the launch screen's padlock is open and the stage's first frame is the same open padlock, which it shuts", /<path d="M436 486 L436 428 A76 76 0 0 1 588 428 L588 486" transform="translate\(0 -24\) rotate\(20 588 486\)"/.test(splash) && byClass("cn-ix-shackle").length === 1 && byClass("cn-ix-body").length === 1 && /transform-box:fill-box;transform-origin:100%100%/.test(rule(".cn-ix-shackle")) && /@keyframescn-ix-shut\{0%\{transform:translateY\(-24px\)rotate\(20deg\)/.test(css) && /to\{transform:none\}\}/.test(css) && /cn-ix-shut\.5slinear\.22sbackwards/.test(rule(".cn-ix.is-run.cn-ix-shackle")), rule(".cn-ix-shackle"));
+        check("Launch screen: splash.svg is the plain #060a14 ground, a 2732 square, with no mark, no gradient and no text (the website's first frame has no mark)", /width="2732" height="2732"/.test(splash) && /<rect width="2732" height="2732" fill="#060a14"\/>/.test(splash) && !/<path|<circle|<g[ >]|linearGradient|<text/.test(splash), splash.slice(0, 200));
         check("Intro stage CSS: the first frame is the launch screen (no entry fade on a first launch, only on a replay)", /\.cn-ix\.is-fade\{animation:cn-ix-in/.test(css) && !/\.cn-ix\{[^}]*animation:/.test(css) && /node\.classList\.add\("is-fade"\)/.test(mount) && /fadeIn/.test(mount) && /mountStage\(true\)/.test(fnText("showIntro")) && /mountStage\(false\)/.test(fnText("prepareIntro")));
 
-        // timing: one move at a time. The shackle seats near 620 ms (ios.css: .5 s from .22 s, seated at 80 %) and the tap comes
-        // with it; the lines rise once it has settled and are read; then the stage opens onto the app, or glides up for the sheet.
+        // timing: the website controller's numbers. Its pacing: 2650 said, 2100 read, 650 leaving, GLIDE 1200, the card at GLIDE - 350.
         const T = ix.IX;
-        check("Launch timing: the beats come in order, and the stage opens onto the app when it would otherwise glide", T.click < T.lines && T.lines < T.glide && T.glide < T.pitch && T.pitch < T.steps && T.open === T.glide, T);
-        check("Launch timing: the tap comes as the shackle seats (within 60 ms of 620 ms)", Math.abs(T.click - 620) <= 60, T.click);
-        check("Launch timing: the lines rise once the lock has shut and are read for 0.4 s or more after they land (0.98 s after they start)", T.lines >= 720 && T.glide - (T.lines + 980) >= 400, T);
-        check("Launch timing: the app is open within 3 s, and the card or the steps come 3 to 4.5 s in", T.open + 650 <= 3000 && T.steps >= 3000 && T.steps <= 4500, T);
-        check("Launch timing: the kicker rises once the 1 s glide is mostly done (no two texts over each other)", T.pitch - T.glide >= 600 && T.pitch - T.glide <= 1000, T);
+        const ctrl = (siteHtml.match(/<script data-web-only>\s*\/\* Sign-in gate controller[\s\S]*?<\/script>/) || [""])[0];
+        check("Launch timing: the website controller's numbers (said 2650 ms, read 2100 ms, leaving 650 ms, glide 1200 ms, the card 350 ms before the glide ends)", T.said === 2650 && T.read === 2100 && T.leaving === 650 && T.glide === 1200 && T.steps === 2650 + 2100 + 650 + 1200 - 350 && /\}, 2650\)/.test(ctrl) && /compact, 2100\)/.test(ctrl.replace("later(compact, 2100)", "compact, 2100)")) && /var GLIDE = 1200/.test(ctrl) && /GLIDE - 350/.test(ctrl) && /\}, 650\)/.test(ctrl), T);
+        check("Launch timing: the haptic is the moment the shackle shuts (the shackle seats at 2.45 s, the body gives at 2.33 s, the flash is at 2.38 s)", T.click >= 2330 && T.click <= 2450, T.click);
+        check("Launch timing: the beats come in order", T.click < T.said && T.said < T.said + T.read && T.said + T.read < T.said + T.read + T.leaving && T.steps > T.said + T.read + T.leaving, T);
+        check("Launch timing: the short gate shows the card within half a second, and the stage that opens onto the app is over within 1.6 s with its opening (never a 6 s film on every launch)", T.quick <= 500 && T.open + 650 <= 1600, T);
         check("Launch timing: reduced motion shows the end frame for 0.8 to 2 s", T.calm >= 800 && T.calm <= 2000, T.calm);
 
         // reduced motion and Pause motion: no drawing, typing or sliding; the same final layout, faded in
@@ -286,25 +305,27 @@ try {
           const bare = off({ classList: { contains: () => false } }, {});
           check("Reduced motion: prefers-reduced-motion and the app's Pause motion both switch the motion off", still() === true && reduce() === true && normal() === false && bare() === false);
         }
-        check("Reduced motion: the stage opens on its end frame (the lock shut, the lines up; glided unless it opens onto the app), only the hold, then goes on", /constcalm=motionOff\(\)/.test(mount) && /if\(calm\)node\.classList\.add\("is-calm","is-lines",\.\.\.\(?open\?\[\]:\["is-glide","is-pitch"\]\)?\)/.test(mount) && /if\(calm\)wait\(\(\)=>end\(false\),IX\.calm\);else\{wait\(\(\)=>\{try\{P\("Haptics"\)/.test(mount), mount.slice(0, 300));
+        check("Reduced motion: the stage opens on its end frame (the lock shut, the words said; the mark glided up unless it opens onto the app), only the hold, then goes on", /constcalm=motionOff\(\)/.test(mount) && /if\(calm\)node\.classList\.add\("is-calm","is-said",\.\.\.\(?open\?\[\]:\["is-glide"\]\)?\)/.test(mount) && /if\(calm\)wait\(\(\)=>end\(false\),IX\.calm\);elseif\(short\)wait\(\(\)=>end\(false\),IX\.quick\);elseif\(open\)wait\(\(\)=>end\(false\),IX\.open\);else\{wait\(\(\)=>\{try\{P\("Haptics"\)/.test(mount), mount.slice(0, 300));
+        check("Short gate and the stage that opens onto the app: no .is-run (no film), the mark at rest fading in", mount.includes('elseif(short)node.classList.add("is-quick","is-said","is-glide");elseif(open)node.classList.add("is-said");elsenode.classList.add("is-run")') && /\.cn-ix:is\(\.is-quick,\.is-app\)\.cn-gate-brand\{animation:cn-ix-in/.test(css), mount.slice(0, 400));
         check("Reduced motion CSS: every entry animation and transition is off, in the media query and under Pause motion", /@media\(prefers-reduced-motion:reduce\)\{\.cn-ix\*,\.cn-ix\*:before,\.cn-ix\*:after\{animation:none!important;transition:none!important\}/.test(css) && /html\.cn-still\.cn-ix\*,html\.cn-still\.cn-ix\*:before,html\.cn-still\.cn-ix\*:after\{animation:none!important;transition:none!important\}/.test(css));
-        check("Reduced motion CSS: the end frame fades in (a cover of the stage's own colour fades out) and the layout is the final one", /\.cn-ix\.is-calm:after\{[^}]*animation:cn-ix-uncover/.test(css) && /@keyframescn-ix-uncover\{to\{opacity:0\}\}/.test(css) && /\.cn-ix\.is-glide \.cn-ix-lockup\{transform:translateY/.test(cssSpaced) && /\.cn-ix:is\(\.is-end,\.is-calm\):is\(/.test(css));
+        check("Reduced motion CSS: the end frame fades in (a cover of the stage's own colour fades out) and the layout is the final one (the mark up at the top, the quote gone)", /\.cn-ix\.is-calm:after\{[^}]*animation:cn-ix-uncover/.test(css) && /@keyframescn-ix-uncover\{to\{opacity:0\}\}/.test(css) && /\.cn-ix\.is-glide \.cn-gate-stage\{justify-content:flex-start\}/.test(cssSpaced) && /\.cn-ix\.is-glide\.cn-gate-quote,\.cn-ix\.is-app\.cn-gate-quote\{display:none\}/.test(css));
 
-        // smooth on an iPhone: only transform, opacity and stroke-dashoffset move; no filter or blur
-        const frames = [...css.matchAll(/@keyframes(cn-ix-[\w-]+)\{((?:[^{}]|\{[^{}]*\})*)\}/g)];
+        // smooth on an iPhone: only transform, opacity, the shield's dash and the letters' one-off blur move (the website's own set)
+        const frames = [...css.matchAll(/@keyframes(cn-(?:ix|gate)-[\w-]+)\{((?:[^{}]|\{[^{}]*\})*)\}/g)];
         const animated = new Set();
         for (const f of frames) for (const decl of f[2].matchAll(/(?:^|[{;])([\w-]+):/g)) if (decl[1] !== "animation-timing-function") animated.add(decl[1]);
-        check("Intro stage CSS: it has its keyframes", frames.length >= 10, frames.map(f => f[1]));
-        check("Intro stage CSS: only transform, opacity and stroke-dashoffset are animated", [...animated].every(p => ["transform", "opacity", "stroke-dashoffset"].includes(p)), [...animated]);
+        check("Intro stage CSS: it has its keyframes (the website gate's ten and the app's three)", frames.length >= 13, frames.map(f => f[1]));
+        check("Intro stage CSS: only transform, opacity, the shield's dash and the one-off letter blur are animated", [...animated].every(p => ["transform", "opacity", "stroke-dashoffset", "stroke-dasharray", "filter"].includes(p)), [...animated]);
+        check("Intro stage CSS: the blur is the letters' and words' alone (cn-gate-letter), nowhere else", frames.filter(f => /filter:/.test(f[2])).map(f => f[1]).join() === "cn-gate-letter");
         const stageRules = [...css.matchAll(/(?:^|[};])([^{}@]*\.cn-ix[^{}]*)\{([^}]*)\}/g)];
-        check("Intro stage CSS: no filter and no backdrop blur anywhere in it", stageRules.length > 20 && stageRules.every(r => !/(^|[;{])(-webkit-)?(backdrop-)?filter:|blur\(/.test(r[2])), stageRules.length);
+        check("Intro stage CSS: no filter and no backdrop blur in its rules (only the keyframe above)", stageRules.length > 20 && stageRules.every(r => !/(^|[;{])(-webkit-)?(backdrop-)?filter:|blur\(/.test(r[2])), stageRules.length);
         check("Intro stage CSS: transitions only move transform and opacity (and the Skip tap colour)", stageRules.every(r => [...r[2].matchAll(/(?:^|;)transition:([^;]*)/g)].every(m => m[1].split(",").every(part => /^(none|transform|opacity|background-color)/.test(part)))), stageRules.map(r => r[2].match(/transition:[^;]*/)?.[0]).filter(Boolean));
         const zOf = sel => Number(/z-index:(\d+)/.exec(rule(sel))?.[1]);
         check("Intro stage CSS: the stage sits above the tab bar and the page but under the steps (z-index)", zOf(".cn-ix") > 900 && zOf(".cn-ix") < zOf(".cn-ios-sheet-backdrop"), [zOf(".cn-ix"), zOf(".cn-ios-sheet-backdrop")]);
-        check("Intro stage CSS: the status bar is cleared (the mark glides to env(safe-area-inset-top) + 22px)", /--ix-top:calc\(env\(safe-area-inset-top,0px\)\+22px\)/.test(rule(".cn-ix")));
-        // 30 Oct 2026 (review): the pitch no longer follows a screen-height guess (min-height: 760px was written for the 3-step sheet; the card is about 100 px taller and hid the kicker on 375 x 812). ios.js fitPitch() measures the sheet and sets has-room (all of the pitch) or has-lines (the two lines only).
-        check("Intro stage CSS: the pitch steps aside when a sheet rises over the stage, and stays (all of it, or only its two lines) when fitPitch() found room for it; no screen-height guess", /(?:^|\})\.cn-ix\.is-steps\.cn-ix-pitch\{opacity:0;transform:translateY\(-8px\);transition-duration:\.4s\}/.test(css) && /\.cn-ix\.is-steps:is\(\.has-lines,\.has-room\)\.cn-ix-pitch\{opacity:1;transform:none\}/.test(css) && /\.cn-ix\.is-steps\.has-lines:not\(\.has-room\):is\(\.cn-ix-rule,\.cn-ix-kicker\)\{opacity:0\}/.test(css) && /\.cn-ix-rule,\.cn-ix-kicker\{transition:opacity/.test(css) && !/@media\(min-height:760px\)/.test(css));
-        check("Intro stage CSS: the steps rise slowly over the bright stage", /\.cn-ios-sheet-backdrop\.cn-ix-over\.is-open\{background:(rgba\(2,6,14,0\)|#02060e00|#0000)\}/.test(css) && /\.cn-ios-sheet-backdrop\.cn-ix-over\.is-open \.cn-ios-sheet\{transition-duration:\.6s/.test(cssSpaced) && /overStage\)riseOverStage\(panel\)/.test(fnText("introSheet")) && /^functionriseOverStage\(panel\)\{panel\.parentNode\.classList\.add\("cn-ix-over"\);fitPitch\(panel\)\}/.test(fnText("riseOverStage")));
+        check("Intro stage CSS: the status bar is cleared (the mark rests at env(safe-area-inset-top) + 22px) and the mark glides by a FLIP like the website's", /--ix-top:calc\(env\(safe-area-inset-top,0px\)\+22px\)/.test(rule(".cn-ix")) && /padding:var\(--ix-top\)16pxmax\(28px,env\(safe-area-inset-bottom,0px\)\)/.test(rule(".cn-gate-stage") || css.replace(/\s/g, "").match(/\.cn-ix \.cn-gate-stage\{[^}]*\}/)?.[0] || "") || /padding:var\(--ix-top\)/.test(cssSpaced.replace(/ /g, "")), "");
+        check("Intro stage: the glide is the website's FLIP (measure, change the layout, measure, glide from the old box)", /^functionflip\(node,mutate\)\{consta=node\.getBoundingClientRect\(\);mutate\(\);constb=node\.getBoundingClientRect\(\)/.test(fnText("flip")) && /wait\(\(\)=>flip\(brand,\(\)=>\{node\.classList\.add\("is-glide"\);node\.classList\.remove\("is-leaving"\)\}\),IX\.said\+IX\.read\+IX\.leaving\)/.test(mount) && /wait\(\(\)=>end\(false\),IX\.steps\)/.test(mount));
+        check("Intro stage: the haptic is retimed to the shackle (IX.click) and happens once, only in the full run", /else\{wait\(\(\)=>\{try\{P\("Haptics"\)\?\.impact\(\{style:"MEDIUM"\}\)/.test(mount) && /IX\.click\)/.test(mount) && (mount.match(/Haptics/g) || []).length === 1);
+        check("Intro stage CSS: the steps rise slowly over the bright stage", /\.cn-ios-sheet-backdrop\.cn-ix-over\.is-open\{background:(rgba\(2,6,14,0\)|#02060e00|#0000)\}/.test(css) && /\.cn-ios-sheet-backdrop\.cn-ix-over\.is-open \.cn-ios-sheet\{transition-duration:\.6s/.test(cssSpaced) && /overStage\)riseOverStage\(panel\)/.test(fnText("introSheet")) && /^functionriseOverStage\(panel\)\{panel\.parentNode\.classList\.add\("cn-ix-over"\)\}/.test(fnText("riseOverStage")));
 
         // first launch, returning users, links and shared items
         const lt = new Function("P", `${iosSrc(fnOf("launchTarget"))};\nreturn launchTarget;`);
@@ -457,9 +478,9 @@ try {
       check("Short gate: it is the first thing a later launch does (before the launch screen hides) and the launch goes on to the tracking prompt and the shared item as before", /constfirst=!store\.get\(INTRO_KEY\);constprepared=\(first\?prepareIntro\(\):prepareGate\(\)\)\.catch\(/.test(fnText("start")) && /prepared\.then\(hideSplash\)/.test(fnText("start")) && /awaitprepared;if\(first\)awaitshowIntro\(\);elseawaitshowGate\(\)\}catch\(error\)\{report\(error,"launch"\)\}finally\{try\{awaitstartTracking\(true\)\}catch\(error\)\{report\(error,"tracking"\)\}try\{if\(appleLeft\)awaitshowAppleLeftover\(\)\}catch\(error\)\{report\(error,"appleleftover"\)\}checkInbox\(\)\}/.test(fnText("start")));
       {
         const mount = fnText("mountStage");
-        check("Short gate and the stage that opens onto the app: mountStage(fade, { short, open }) has no Skip button (the stage itself takes focus); the open stage ends with the opening instead of the glide", /functionmountStage\(fadeIn,\{short=false,open=false\}=\{\}\)/.test(mount) && /if\(short\|\|open\)node\.classList\.add\("is-short"\)/.test(mount) && /if\(open\)node\.classList\.add\("is-app"\)/.test(mount) && /if\(open\)wait\(\(\)=>end\(false\),IX\.open\);else\{wait\(\(\)=>node\.classList\.add\("is-glide"\),IX\.glide\);wait\(\(\)=>node\.classList\.add\("is-pitch"\),IX\.pitch\);wait\(\(\)=>end\(false\),IX\.steps\)\}/.test(mount) && /\(short\|\|open\?node:\$\("\.cn-ix-skip",node\)\)\.focus/.test(mount), mount.slice(0, 200));
+        check("Short gate and the stage that opens onto the app: mountStage(fade, { short, open }) has no Skip button (the stage itself takes focus); the open stage ends with the opening instead of the glide", /functionmountStage\(fadeIn,\{short=false,open=false\}=\{\}\)/.test(mount) && /if\(short\|\|open\)node\.classList\.add\("is-short"\)/.test(mount) && /if\(open\)node\.classList\.add\("is-app"\)/.test(mount) && /elseif\(open\)wait\(\(\)=>end\(false\),IX\.open\)/.test(mount) && /elseif\(short\)wait\(\(\)=>end\(false\),IX\.quick\)/.test(mount) && /\(short\|\|open\?node:\$\("\.cn-ix-skip",node\)\)\.focus/.test(mount), mount.slice(0, 200));
         check("Short gate CSS: no Skip button (a tap anywhere still finishes it)", /\.cn-ix\.is-short\.cn-ix-skip\{display:none\}/.test(css));
-        check("Opening onto the app CSS: the lockup comes forward as the stage fades and the page comes up under it; reduced motion and Pause motion still the page", /\.cn-ix\.is-app:not\(\.is-calm\)\.is-out\.cn-ix-lockup\{transform:scale\(1\.07\)\}/.test(css) && !/\.cn-ix\.is-app\.is-out\{/.test(css) && /html\.cn-ix-opening:is\(#cnMain,\.navbar\)\{animation:cn-ix-in/.test(css) && /html\.cn-still\.cn-ix-opening:is\(#cnMain,\.navbar\)\{animation:none\}/.test(css) && /@media\(prefers-reduced-motion:reduce\)\{[^@]*html\.cn-ix-opening:is\(#cnMain,\.navbar\)\{animation:none\}/.test(css));
+        check("Opening onto the app CSS: the lockup comes forward as the stage fades and the page comes up under it; reduced motion and Pause motion still the page", /\.cn-ix\.is-app:not\(\.is-calm\)\.is-out\.cn-gate-brand\{transform:scale\(1\.07\)\}/.test(css) && !/\.cn-ix\.is-app\.is-out\{/.test(css) && /html\.cn-ix-opening:is\(#cnMain,\.navbar\)\{animation:cn-ix-in/.test(css) && /html\.cn-still\.cn-ix-opening:is\(#cnMain,\.navbar\)\{animation:none\}/.test(css) && /@media\(prefers-reduced-motion:reduce\)\{[^@]*html\.cn-ix-opening:is\(#cnMain,\.navbar\)\{animation:none\}/.test(css));
         check("Opening onto the app: the tab bar comes back during the opening, and the page's class goes when the stage has gone", /constopening=open&&!calm;if\(opening\)\{root\.classList\.add\("cn-ix-opening"\);later\(showTabs,300\)\}/.test(mount) && /root\.classList\.remove\("cn-ix-opening"\)/.test(mount));
         check("Short gate CSS: it adds no keyframes and no filter or blur (only the stage's own moves), and reduced motion and Pause motion still still every part of it", !/@keyframes[^{]*short/.test(css) && !/\.is-short[^{]*\{[^}]*(filter|blur)/.test(css) && /@media\(prefers-reduced-motion:reduce\)\{\.cn-ix\*,\.cn-ix\*:before,\.cn-ix\*:after\{animation:none!important;transition:none!important\}/.test(css) && /html\.cn-still\.cn-ix\*,html\.cn-still\.cn-ix\*:before,html\.cn-still\.cn-ix\*:after\{animation:none!important;transition:none!important\}/.test(css));
       }
@@ -598,7 +619,41 @@ try {
         check("Choices: the offline notes: the launch card's note is short (its guest link sits right under it), the other cards name what still works", gateText[0] === "You're offline. Connect to the internet to sign in." && !/continue without/i.test(gateText[0]) && gateText[1] === "You're offline. Connect to the internet to sign in. Quick Scan, QR and Learn still work.");
         check("Offline: Continue without an account needs no network (the card's handler only resolves the card), and only the Apple and Google sign-ins check the connection", !/offline|fetch|navigator\.onLine/.test(fnText("signInCard")) && (fnText("wireSignIn").match(/if\(offline\)\{say\(offlineText,"info"\);return\}/g) || []).length === 2);
         check("Choices: nothing is a dead end: an unexpected problem shows \"Something went wrong\" on the card's own message line", /catch\(error\)\{report\(error,`signin\$\{what\}`\);say\("Somethingwentwrong\.Pleasetryagain\."\)\}/.test(fnText("wireSignIn")));
-        check("Choices: a failed Apple sign-in says so, with the email way out, on the line it came from (the existing words); a cancelled one says nothing", squash(iosJs).includes(squash(`say("Sign in with Apple didn't finish. Please try again, or use your email and password.")`)) && /if\(\/cancel\|1001\/i\.test\(text\)\)say\("",""\)/.test(fnText("signInWithApple")));
+        check("Choices: a failed Apple sign-in says so, with the email way out, on the line it came from (the existing words); a cancelled one says nothing", squash(iosJs).includes(squash(`say("Sign in with Apple didn't finish. Please try again, or use your email and password.")`)) && /if\(error\?\.code==="CANCELED"\|\|\/cancel\|1001\/i\.test\(text\)\)say\("",""\)/.test(fnText("signInWithApple")));
+        {
+          // 10 Nov 2026: Apple's "unknown" error after the sheet was shown is a cancel (AppleSignInPlugin.swift), and a real failure is reported with Apple's own code
+          const swift = await readFile(path.join(mobile, "native", "App", "Plugins", "AppleSignInPlugin.swift"), "utf8");
+          const sq = swift.replace(/\s+/g, " ");
+          check("Sign in with Apple (native): canceled, or unknown after the sheet was presented, is CANCELED; the sheet counts as shown once iOS asks for a window; every error carries Apple's domain and code",
+            /private var sheetWasShown = false/.test(swift) && /func presentationAnchor\(for controller: ASAuthorizationController\) -> ASPresentationAnchor \{ sheetWasShown = true/.test(sq) && /authError\.code == \.canceled \|\| \(authError\.code == \.unknown && sheetWasShown\)/.test(swift) && /"CANCELED", error, details\)/.test(swift) && /"FAILED", error, details\)/.test(swift) && /"nativeDomain": native\.domain, "nativeCode": native\.code/.test(swift));
+          const run2 = async err => {
+            const log = { said: [], reported: [] };
+            const fn = new Function("P", "supabase", "legalAccepted", "legalError", "storeAcceptance", "rememberLoginAcceptance", "authMessage", "$", "randomNonce", "sha256Hex", "report", "toast", `${iosSrc(fnOf("signInWithApple"))};\nreturn signInWithApple;`)(
+              () => ({ signIn: async () => { throw err; } }), () => ({ auth: {} }), () => true, () => {}, () => {}, () => {}, () => {}, () => null, () => "n", async () => "h", (e, where) => log.reported.push([e, where]), () => {});
+            await fn({ disabled: false }, { view: "login", say: (a, b) => log.said.push(a) });
+            return log;
+          };
+          const cancelled = await run2(Object.assign(new Error("Sign in with Apple was cancelled."), { code: "CANCELED", data: { nativeDomain: "com.apple.AuthenticationServices.AuthorizationError", nativeCode: 1000 } }));
+          const failed = await run2(Object.assign(new Error("Sign in with Apple did not finish. Please try again."), { code: "FAILED", data: { nativeDomain: "com.apple.AuthenticationServices.AuthorizationError", nativeCode: 1004 } }));
+          const plain = await run2(new Error("boom"));
+          check("Sign in with Apple (JavaScript): CANCELED shows nothing and reports nothing (also with a native code 1000); FAILED reports with Apple's code and says it did not finish; an error with no native code is reported as it is",
+            cancelled.said.at(-1) === "" && cancelled.reported.length === 0 && /didn't finish/.test(failed.said.at(-1)) && failed.reported.length === 1 && /\(com\.apple\.AuthenticationServices\.AuthorizationError 1004\)/.test(failed.reported[0][0].message) && failed.reported[0][1] === "apple sign-in" && plain.reported.length === 1 && plain.reported[0][0].message === "boom", [cancelled, failed, plain]);
+        }
+        {
+          // QR result sheet (10 Nov 2026): Wi-Fi, contact and payment codes show the engine's own reasons and advice, not the generic lines
+          const vm2 = await import("node:vm");
+          const ctx2 = vm2.createContext({ console, URL, URLSearchParams, TextEncoder, TextDecoder, Intl });
+          ctx2.window = ctx2;
+          vm2.runInContext(await readFile(path.join(root, "public", "cybernet-engine.js"), "utf8"), ctx2);
+          const Eng = ctx2.CyberNetEngine || ctx2.window.CyberNetEngine;
+          const qrSummary = run(["QR_OWN_WORDS", "qrSummary"], [], "qrSummary");
+          const sum = value => { const a = Eng.analyzeQr(value); const plain = Eng.plainSummary(a.result, { fallbackText: "" }); return { a, plain, own: qrSummary(a.kind, a.result, plain) }; };
+          const wifi = sum("WIFI:T:WPA;S:Cafe Net;P:secret;;"), openWifi = sum("WIFI:T:nopass;S:Cafe Net;;"), card = sum("BEGIN:VCARD\nVERSION:3.0\nFN:Sam Lee\nTEL:+15550100\nEND:VCARD"), pay = sum("bitcoin:bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq?amount=1"), site = sum("https://example.org/page"), txt = sum("Hello there, see you at five");
+          check("QR sheet: a Wi-Fi code shows the engine's own reasons (the network and what joining means) and its own advice, not 'We didn't find the usual signs of a scam'", wifi.a.kind === "wifi" && JSON.stringify(wifi.own.points) === JSON.stringify(wifi.a.result.reasons.slice(0, 3)) && wifi.own.action === wifi.a.result.advice.slice(0, 2).join(" ") && wifi.own.lead === wifi.a.result.scamType && /Cafe Net/.test(wifi.own.points[0]) && !/usual signs of a scam/.test(JSON.stringify(wifi.own)) && /usual signs of a scam/.test(JSON.stringify(wifi.plain)), [wifi.own, wifi.plain]);
+          check("QR sheet: an open Wi-Fi network adds the engine's open-network reason; a contact card shows its own two lines of advice", openWifi.own.points.length === 3 && /Open networks/.test(openWifi.own.points[2]) && card.a.kind === "contact" && card.own.points[0] === card.a.result.reasons[0] && card.own.action === card.a.result.advice.slice(0, 2).join(" ") && card.own.lead === "Contact card", [openWifi.own, card.own]);
+          check("QR sheet: a payment code shows the engine's reasons and advice instead of 'It matches patterns CyberNet AI sees in scams'", pay.a.kind === "payment" && /payment destination/.test(pay.own.points[0]) && /Only pay a QR code you received directly/.test(pay.own.action) && /matches patterns/.test(JSON.stringify(pay.plain)) && !/matches patterns/.test(JSON.stringify(pay.own)), [pay.own, pay.plain]);
+          check("QR sheet: a web address and plain text keep the plain summary exactly as before, and a result with no reasons falls back to it", JSON.stringify(site.own) === JSON.stringify(site.plain) && JSON.stringify(txt.own) === JSON.stringify(txt.plain) && JSON.stringify(qrSummary("wifi", { reasons: [] }, { x: 1 })) === '{"x":1}' && JSON.stringify(qrSummary("wifi", null, { x: 1 })) === '{"x":1}', [site.kind, txt.a.kind]);
+        }
       }
 
       // ---- Sign in with Google (owner, 30 Oct 2026): the system's secure sign-in sheet (CNWebAuth), PKCE, a quiet cancel.
@@ -710,6 +765,14 @@ try {
         const swiftFiles = (await import("node:fs")).readdirSync(pluginsDir).filter(n => n.endsWith(".swift"));
         const swift = Object.fromEntries(await Promise.all(swiftFiles.map(async n => [n, await readFile(path.join(pluginsDir, n), "utf8")])));
         const mainController = await readFile(path.join(mobile, "native", "App", "MainViewController.swift"), "utf8");
+        {
+          // six tabs, Home first (owner, 10 Nov 2026): the native bar and the web fallback bar list the same ids in the same order, and the bar fits
+          const swiftIds = [...mainController.slice(mainController.indexOf("static let tabs"), mainController.indexOf("barContentHeight")).matchAll(/Tab\(id: "(\w+)"/g)].map(m => m[1]);
+          const jsIds = [...(/const TABS=\[([\s\S]*?)\];const PAGE_TAB/.exec(iosJs)?.[1] || "").matchAll(/\{id:"(\w+)"/g)].map(m => m[1]);
+          check("Tab bar: the native bar (MainViewController.swift) and TABS in ios.js are the same six ids in the same order, Home first", swiftIds.join() === "home,check,scan,recovery,learn,account" && jsIds.join() === swiftIds.join(), [swiftIds, jsIds]);
+          check("Tab bar: Home opens the Home page and the Check tab is still the one that is selected at launch (the app opens on Check)", /\{id:"home",page:"home"/.test(iosJs) && /PAGE_TAB=\{home:"home",cybernet:"check"/.test(iosJs) && /first\(where: \{ \$0\.accessibilityIdentifier == "tab-check" \}\)/.test(mainController));
+          check("Tab bar: the classic bar stays (UIDesignRequiresCompatibility), six equal columns in the web fallback, a smaller label on an SE-width screen", /UIDesignRequiresCompatibility/.test(await readFile(path.join(mobile, "scripts", "add-share-extension.cjs"), "utf8")) && /\.cn-ios-tabbar\{[^}]*grid-template-columns:repeat\(6,1fr\)/.test(css) && /@media\(max-width:340px\)\{\.cn-ios-tab\{font-size:10px\}\}/.test(css));
+        }
         const web = swift["WebAuthPlugin.swift"] || "";
         const classes = Object.values(swift).map(t => /@objc\((\w+)\)\s*public final class (\w+): CAPPlugin, CAPBridgedPlugin/.exec(t));
         check("Native plugins: every plugin file declares its class once under its own name and is registered in MainViewController, and the JS names are unique", classes.every((m, i) => m && m[1] === m[2] && new RegExp(`identifier = "${m[2]}"`).test(Object.values(swift)[i]) && mainController.includes(`bridge?.registerPluginInstance(${m[2]}())`)) && new Set(Object.values(swift).map(t => /jsName = "(\w+)"/.exec(t)?.[1])).size === swiftFiles.length, swiftFiles);
@@ -723,22 +786,8 @@ try {
 
       // ---- review of 30 Oct 2026: the sticky pitch, the message line, the legal links, a reminder at cold start, the Account tab, the tips, the demo runs
       {
-        // fitPitch(): the pitch stays above a sheet that rises over the stage as far as it fits (all of it, only its two lines, or none)
-        const mkFit = $ => run(["PITCH_GAP", "fitPitch"], ["$"], "fitPitch", $);
-        const fit = (vh, sheetH) => {
-          const set = {};
-          const stage = { classList: { toggle: (c, on) => { set[c] = !!on; } } };
-          const pitch = { offsetTop: 242, offsetHeight: 142 }; // 390 x 844: the pitch runs from 242 to 384, its second line ends at 331.2
-          const second = { offsetTop: 44.6, offsetHeight: 44.6 };
-          mkFit(sel => ({ "#cnIntroStage": stage, ".cn-ix-pitch": pitch, ".cn-ix-line-2": second })[sel] || null)({ offsetHeight: sheetH, parentNode: { clientHeight: vh } });
-          return `${set["has-room"] ? "room" : "-"}/${set["has-lines"] ? "lines" : "-"}`;
-        };
-        const fits = [fit(844, 446), fit(812, 469), fit(844, 498), fit(667, 465), fit(844, 600)];
-        check("Pitch: it stays whole above a sheet with 10 px of air (the card on 390 x 844), only its two lines when the sheet would cover the rule and the kicker (375 x 812, or a message line on 390 x 844), and steps aside when it would reach the lines (the offline card on 375 x 667)", fits.join(" ") === "room/lines -/lines -/lines -/- -/-", fits);
-        let quiet = true;
-        try { mkFit(() => null)({ offsetHeight: 400, parentNode: { clientHeight: 800 } }); } catch { quiet = false; }
-        check("Pitch: with no stage behind the sheet (a guest's card over the app) fitPitch does nothing", quiet);
-        check("Pitch: the card and the steps both rise through riseOverStage, and a message that changes the card's height measures again", /overStage\)riseOverStage\(panel\)/.test(fnText("signInCard")) && /wireSignIn\(panel,\{launch,onSay:overStage\?\(\)=>fitPitch\(panel\):null\}\)/.test(fnText("signInCard")) && /line\.hidden=!text;onSay\?\.\(\)/.test(fnText("wireSignIn")));
+        // the old pitch (two lines, a rule, a kicker) that stayed above the sheet is gone: the website's quote fades once it is read and the mark rests at the top
+        check("Stage: the card and the steps both rise through riseOverStage, and nothing measures a pitch any more (no fitPitch, no kicker)", /overStage\)riseOverStage\(panel\)/.test(fnText("signInCard")) && /overStage\)riseOverStage\(panel\)/.test(fnText("introSheet")) && !/fitPitch|has-lines|has-room|PITCH_GAP|cn-ix-pitch/.test(iosJs));
 
         // the legal links' touch areas stop at their neighbours
         check("Sign-in card CSS: the legal links' 44 pt touch areas reach 14 px past the text, and the note's margins above and below are 14 px, so they never take a tap from Create account or the guest link", /\.cn-signin-choices\+\.cn-ios-apple-note\{margin:14px00\}/.test(css) && /\.cn-ios-apple-note\.cn-legal-link-btn:after\{content:"";position:absolute;inset:-14px-6px\}/.test(css) && /\.cn-ios-gate-foot\{[^}]*margin-top:14px\}/.test(css), rule(".cn-ios-gate-foot"));
@@ -1138,98 +1187,78 @@ try {
         check("Apple deletion: the notice says exactly: To finish, open Settings, tap your name, then Sign in with Apple. Choose CyberNet AI and tap Delete (on older iOS: Stop Using Apple Account). (one OK button, no link)", t.api.text === "To finish, open Settings, tap your name, then Sign in with Apple. Choose CyberNet AI and tap Delete (on older iOS: Stop Using Apple Account)." && sheetNodes.some(n => n.tagName === "p" && textOf(n) === t.api.text) && sheetNodes.filter(n => n.tagName === "button").length === 1 && !sheetNodes.some(n => n.tagName === "a"), t.kept.__sheet?.html);
       }
 
-      // ---- 7. a web subscriber's notice
+      // ---- 7. the plan on the account (profile.appPlan from the server; the app has no purchases)
       {
-        const NOTICE = run(["PLAN_NOTICE"], [], "PLAN_NOTICE");
-        check("Subscriber notice: the exact words for Pro and for Business",
-          NOTICE.pro.title === "You have CyberNet AI Pro." && NOTICE.pro.body === "For now, your Pro limits and features apply on cybernetai.app. Pro and Business are coming to the app in an update soon." &&
-          NOTICE.business.title === "You have CyberNet AI Business." && NOTICE.business.body === "For now, your Business limits and features apply on cybernetai.app. Pro and Business are coming to the app in an update soon." && Object.keys(NOTICE).join() === "pro,business", NOTICE);
-        check("Subscriber notice: the gate lets these four sentences through in ios/ios.js and nowhere else, and nothing wider", gateMod.PLAN_NOTICE_STRINGS.length === 4 && gateMod.PLAN_NOTICE_STRINGS.every(s => s === NOTICE.pro.title || s === NOTICE.pro.body || s === NOTICE.business.title || s === NOTICE.business.body));
+        const LABEL = run(["PLAN_LABEL"], [], "PLAN_LABEL");
+        check("Plan line: the label is the bare word Pro or Business, nothing else", JSON.stringify(LABEL) === '{"pro":"Pro","business":"Business"}', LABEL);
+        check("Plan line: the gate lets only the bare word Pro through, in ios/ios.js and nowhere else", gateMod.PLAN_NOTICE_STRINGS.length === 1 && gateMod.PLAN_NOTICE_STRINGS[0] === LABEL.pro && gateMod.wordHits("Pro", { file: "ios/ios.js" }).length === 0 && gateMod.wordHits("Pro", { file: "script.js" }).includes("Pro"));
+        check("Plan line: the old website-plan notice is gone (no webPlan, no card, no 'coming to the app')", !/webPlan|cnPlanNotice|PLAN_NOTICE_SEEN|plan-notice|coming to the app|update soon/.test(iosJs) && !/plan-notice/.test(css));
 
-        const planFor = run(["PLAN_NOTICE", "planNoticeFor"], [], "planNoticeFor");
-        check("Subscriber notice: shown only for the signed-in account the active Pro or Business answer is for; never for Free, a guest, a signed-out app, another account, or an unknown word",
-          JSON.stringify(planFor("u1", true, { userId: "u1", plan: "pro" })) === JSON.stringify(NOTICE.pro) && JSON.stringify(planFor("u1", true, { userId: "u1", plan: "business" })) === JSON.stringify(NOTICE.business) &&
-          planFor("u1", true, { userId: "u1", plan: null }) === null && planFor("u1", false, { userId: "u1", plan: "pro" }) === null && planFor(null, true, { userId: null, plan: "pro" }) === null &&
-          planFor("u2", true, { userId: "u1", plan: "pro" }) === null && planFor("u1", true, { userId: "u1", plan: "constructor" }) === null && planFor("u1", true, { userId: "u1", plan: "admin" }) === null);
+        const labelFor = run(["PLAN_LABEL", "planLabelFor"], [], "planLabelFor");
+        check("Plan line: shown only for the signed-in account the Pro or Business answer is for; never for Free, a guest, a signed-out app, another account, or an unknown word",
+          labelFor("u1", true, { userId: "u1", plan: "pro" }) === "Pro" && labelFor("u1", true, { userId: "u1", plan: "business" }) === "Business" &&
+          labelFor("u1", true, { userId: "u1", plan: null }) === null && labelFor("u1", false, { userId: "u1", plan: "pro" }) === null && labelFor(null, true, { userId: null, plan: "pro" }) === null &&
+          labelFor("u2", true, { userId: "u1", plan: "pro" }) === null && labelFor("u1", true, { userId: "u1", plan: "constructor" }) === null && labelFor("u1", true, { userId: "u1", plan: "admin" }) === null);
 
         // what the account-status reply says, through the fetch layer (cut out of ios.js and run with stubs)
         const wrapperNode = find(n => n.type === "AssignmentExpression" && n.left?.type === "MemberExpression" && n.left.object?.name === "w" && n.left.property?.name === "fetch", iosAst);
         const mkLayer = (answer) => {
           const session = { token: "t1", user: { id: "u1" } };
           const stored = {};
-          const dom = run(["PLAN_NOTICE", "webPlan", "noteWebPlan"], ["state"], "{ noteWebPlan, get: () => webPlan }", () => ({ session: { access_token: session.token }, user: session.user }));
-          const layer = new Function("AI_ENDPOINT", "appFetch", "state", "noteWebPlan", "withAppleCode", "noteAppleLeftover", `return (${iosSrc(wrapperNode.right)});`)(
+          const dom = run(["PLAN_LABEL", "appPlan", "noteAppPlan"], ["state"], "{ noteAppPlan, get: () => appPlan }", () => ({ session: { access_token: session.token }, user: session.user }));
+          const layer = new Function("AI_ENDPOINT", "appFetch", "state", "noteAppPlan", "withAppleCode", "noteAppleLeftover", `return (${iosSrc(wrapperNode.right)});`)(
             /^\/api\/(analyze|recovery-mode|recovery-update)(?:[?#]|$)/, async () => { if (answer.swap) session.token = "t2"; return new Response(JSON.stringify(answer.data), { status: answer.status || 200 }); },
-            () => ({ session: { access_token: session.token }, user: session.user }), dom.noteWebPlan, async init => init, async (init, res) => { stored.deleted = JSON.parse(init.body).action; stored.revoked = (await res.clone().json()).appleTokensRevoked; });
+            () => ({ session: { access_token: session.token }, user: session.user }), dom.noteAppPlan, async init => init, async (init, res) => { stored.deleted = JSON.parse(init.body).action; stored.revoked = (await res.clone().json()).appleTokensRevoked; });
           return { layer, dom, session, stored };
         };
         const ask = async (answer) => { const t = mkLayer(answer); const res = await t.layer("/api/account-status?includeHistory=1", { headers: {} }); return { t, res }; };
-        const pro = await ask({ data: { profile: { plan: "app", webPlan: "pro" }, recoveryUsage: { casesLimit: 1, casesUsed: 0 } } });
-        const biz = await ask({ data: { profile: { plan: "app", webPlan: "business" } } });
-        const free = await ask({ data: { profile: { plan: "app" } } });
-        const odd = await ask({ data: { profile: { plan: "app", webPlan: "admin" } } });
+        const pro = await ask({ data: { profile: { plan: "app", appPlan: "pro" }, recoveryUsage: { casesLimit: 3, casesUsed: 0 } } });
+        const biz = await ask({ data: { profile: { plan: "app", appPlan: "business" } } });
+        const free = await ask({ data: { profile: { plan: "app", appPlan: "free" } } });
+        const odd = await ask({ data: { profile: { plan: "app", appPlan: "admin" } } });
         const failed = await ask({ data: { error: "no" }, status: 500 });
-        const gone = await ask({ data: { profile: { webPlan: "pro" } }, swap: true });
-        check("Subscriber notice: the account-status reply's profile.webPlan is noted for the account and session it was asked for (pro, business); Free, an unknown word, a failed reply, and an answer for a session that has ended note nothing; the caller still gets the reply",
-          JSON.stringify(pro.t.dom.get()) === '{"userId":"u1","plan":"pro"}' && JSON.stringify(biz.t.dom.get()) === '{"userId":"u1","plan":"business"}' && pro.t.dom.get().plan === "pro" && free.t.dom.get().plan === null && odd.t.dom.get().plan === null &&
-          failed.t.dom.get().userId === null && gone.t.dom.get().userId === null && (await pro.res.json()).profile.webPlan === "pro", [pro.t.dom.get(), free.t.dom.get(), odd.t.dom.get(), failed.t.dom.get(), gone.t.dom.get()]);
+        const gone = await ask({ data: { profile: { appPlan: "pro" } }, swap: true });
+        check("Plan line: the account-status reply's profile.appPlan is noted for the account and session it was asked for (pro, business); Free, an unknown word, a failed reply, and an answer for a session that has ended note nothing; the caller still gets the reply",
+          JSON.stringify(pro.t.dom.get()) === '{"userId":"u1","plan":"pro"}' && JSON.stringify(biz.t.dom.get()) === '{"userId":"u1","plan":"business"}' && free.t.dom.get().plan === null && odd.t.dom.get().plan === null &&
+          failed.t.dom.get().userId === null && gone.t.dom.get().userId === null && (await pro.res.json()).profile.appPlan === "pro", [pro.t.dom.get(), free.t.dom.get(), odd.t.dom.get(), failed.t.dom.get(), gone.t.dom.get()]);
         const del = mkLayer({ data: { deleted: true, appleTokensRevoked: false } });
         await del.layer("/api/privacy-data", { method: "POST", body: JSON.stringify({ action: "delete-account" }) });
         check("Apple deletion: the fetch layer reads the deletion reply (after the Apple code is added) so the notice can be carried over the reload", del.stored.deleted === "delete-account" && del.stored.revoked === false, del.stored);
 
-        // the card and the Account line, run with a small fake page
+        // the Account row and sentence, run with a small fake page
         const mkPage = (userId, signed, answer) => {
-          const kept = {};
-          const dom = { card: null, note: { hidden: true, textContent: "" }, page: { prepend(c) { dom.card = c; } }, head: { tabIndex: 0, focused: 0, focus() { dom.head.focused++; } } };
-          const cardNode = () => ({ remove() { dom.card = null; }, title: { textContent: "" }, body: { textContent: "" }, x: { addEventListener(type, fn) { dom.click = fn; } } });
+          const dom = { row: { hidden: true }, note: { hidden: true }, name: { textContent: "" } };
           const who = { id: userId, signed };
-          const api = run(["PLAN_NOTICE", "PLAN_NOTICE_SEEN", "webPlan", "planNoticeFor", "planNoticeHtml", "renderPlanNotice", "closePlanNotice"], ["state", "signedIn", "store", "$", "el", "pageDom"],
-            "{ renderPlanNotice, set: v => { webPlan = v; }, dom: () => pageDom }", () => ({ user: who.id ? { id: who.id } : null }), () => who.signed, { get: k => kept[k] ?? null, set: (k, v) => { kept[k] = v; }, del: k => { delete kept[k]; } },
-            (sel, scope) => ({ "#cnAcctPlan": dom.note, "#cnPlanNotice": dom.card, "[data-plan-notice-close]": scope?.x, "#cnPlanNoticeTitle": scope?.title, "#cnPlanNoticeBody": scope?.body, "#cybernet": dom.page, "#cybernet .feature-page-header h1": dom.head })[sel] || null, cardNode, dom);
+          const api = run(["PLAN_LABEL", "appPlan", "planLabelFor", "renderPlanLine"], ["state", "signedIn", "$", "dom"],
+            "{ renderPlanLine, set: v => { appPlan = v; }, dom: () => dom }", () => ({ user: who.id ? { id: who.id } : null }), () => who.signed,
+            sel => ({ "#cnAcctPlanRow": dom.row, "#cnAcctPlan": dom.note, "#cnAcctPlanName": dom.name })[sel] || null, dom);
           api.set(answer);
-          return { api, dom, kept, who };
+          return { api, dom, who };
         };
-        const show = (t) => { t.api.renderPlanNotice(); return t.api.dom(); };
-        const p1 = mkPage("u1", true, { userId: "u1", plan: "pro" });
-        let d1 = show(p1);
-        check("Subscriber notice (Pro): a card at the top of Check with the title and the body, and the same body as a line on the Account tab", d1.card?.title.textContent === NOTICE.pro.title && d1.card?.body.textContent === NOTICE.pro.body && d1.note.hidden === false && d1.note.textContent === NOTICE.pro.body, [d1.card?.title, d1.note]);
-        d1.click();
-        d1 = p1.api.dom();
-        check("Subscriber notice: the X removes the card, remembers it for that account (key with the user id), moves focus to the page heading, and the Account line stays", d1.card === null && p1.kept["cn-ios-plan-notice-u1"] === "1" && d1.head.focused === 1 && d1.head.tabIndex === -1 && d1.note.hidden === false, p1.kept);
-        p1.api.renderPlanNotice();
-        check("Subscriber notice: once closed it never returns for that account (every render, every launch), while the Account line stays", p1.api.dom().card === null && p1.api.dom().note.textContent === NOTICE.pro.body);
-        const p2 = mkPage("u2", true, { userId: "u2", plan: "business" });
-        p2.kept["cn-ios-plan-notice-u1"] = "1";
-        const d2 = show(p2);
-        check("Subscriber notice (Business): shown with its own words, and another account's X does not hide it", d2.card?.title.textContent === NOTICE.business.title && d2.card?.body.textContent === NOTICE.business.body);
+        const show = t => { t.api.renderPlanLine(); return t.api.dom(); };
+        const d1 = show(mkPage("u1", true, { userId: "u1", plan: "pro" }));
+        const d2 = show(mkPage("u2", true, { userId: "u2", plan: "business" }));
+        check("Plan line: a Pro account sees the row 'Pro' and the sentence; a Business account sees 'Business'", d1.row.hidden === false && d1.note.hidden === false && d1.name.textContent === "Pro" && d2.row.hidden === false && d2.name.textContent === "Business", [d1, d2]);
         const free2 = show(mkPage("u3", true, { userId: "u3", plan: null }));
         const guest = show(mkPage(null, false, { userId: null, plan: "pro" }));
         const out = show(mkPage("u1", false, { userId: "u1", plan: "pro" }));
         const other = show(mkPage("u1", true, { userId: "u9", plan: "pro" }));
-        check("Subscriber notice: never shown to a free account, a guest, a signed-out app, or while the answer belongs to another account; the Account line stays hidden then too",
-          [free2, guest, out, other].every(x => x.card === null && x.note.hidden === true && x.note.textContent === ""), [free2, guest, out, other]);
+        check("Plan line: never shown to a free account, a guest, a signed-out app, or while the answer belongs to another account", [free2, guest, out, other].every(x => x.row.hidden === true && x.note.hidden === true && x.name.textContent === ""), [free2, guest, out, other]);
         const gone2 = mkPage("u1", true, { userId: "u1", plan: "pro" });
         show(gone2);
         gone2.who.signed = false;
-        gone2.api.renderPlanNotice();
-        check("Subscriber notice: signing out takes the card away", gone2.api.dom().card === null && gone2.api.dom().note.hidden === true);
+        gone2.api.renderPlanLine();
+        check("Plan line: signing out takes it away", gone2.api.dom().row.hidden === true && gone2.api.dom().note.hidden === true);
 
-        const cardNodes = parse(run(["planNoticeHtml"], [], "planNoticeHtml")());
-        const region = cardNodes.find(n => n.tagName === "section");
-        const closeBtn = cardNodes.find(n => n.tagName === "button");
-        const ids = cardNodes.map(n => attr(n, "id")).filter(Boolean);
-        check("Subscriber notice: accessible (a labelled and described region, a real button named Close for VoiceOver with an icon hidden from it) and plain text only (no link, no other button, no form)",
-          attr(region, "role") === "region" && ids.includes(attr(region, "aria-labelledby")) && ids.includes(attr(region, "aria-describedby")) && cardNodes.filter(n => n.tagName === "button").length === 1 && attr(closeBtn, "type") === "button" && attr(closeBtn, "aria-label") === "Close" && attr(closeBtn, "data-plan-notice-close") !== undefined &&
-          closeBtn.childNodes.some(c => c.tagName === "svg" && attr(c, "aria-hidden") === "true") && !cardNodes.some(n => ["a", "form", "input", "iframe", "img"].includes(n.tagName) || n.attrs.some(a => /^(href|src|onclick)$/.test(a.name))), cardNodes.map(n => n.tagName).join());
-        check("Subscriber notice CSS: the X is 44 x 44 pt and has the page's focus ring", /\.cn-ios-plan-notice-x\{[^}]*width:44px[^}]*height:44px/.test(css) && /html\.cn-ios:focus-visible\{outline:2pxsolid/.test(css));
         const accountPartial = P5.parseFragment(await readFile(path.join(mobile, "web-ios", "partials", "account.html"), "utf8"));
-        let planLine = null;
-        (function walk(n) { if (n.attrs && attr(n, "id") === "cnAcctPlan") planLine = n; (n.childNodes || []).forEach(walk); })(accountPartial);
-        const planGroup = planLine?.parentNode;
-        check("Account tab: a quiet note (empty and hidden until ios.js fills it) inside the signed-in group, so a guest never sees it", planLine?.tagName === "p" && /\bcn-ios-note\b/.test(attr(planLine, "class")) && attr(planLine, "hidden") !== undefined && textOf(planLine) === "" && planGroup && attr(planGroup, "data-ios-signed-in") !== undefined);
-        check("Subscriber notice: no price, upgrade, purchase or link words anywhere near it (the gate's own word list over the markup and both texts, with the four sentences allowed in ios/ios.js alone)",
-          !/\$|upgrade|subscribe|purchase|buy|checkout|price|per month|\/month|billing/i.test([...Object.values(NOTICE).flatMap(c => [c.title, c.body]), run(["planNoticeHtml"], [], "planNoticeHtml")()].join(" ")) &&
-          Object.values(NOTICE).flatMap(c => [c.title, c.body]).every(s => gateMod.wordHits(s, { file: "ios/ios.js" }).length === 0 && gateMod.wordHits(s, { file: "script.js" }).includes("Pro") === /\bPro\b/.test(s)));
+        const byId = {};
+        (function walk(n) { if (n.attrs && attr(n, "id")) byId[attr(n, "id")] = n; (n.childNodes || []).forEach(walk); })(accountPartial);
+        const planRow = byId.cnAcctPlanRow, planLine = byId.cnAcctPlan, planGroup = planLine?.parentNode;
+        check("Account tab: the plan row ('Your plan' and an empty value) and the one plain sentence sit hidden inside the signed-in group, so a guest never sees them",
+          planRow && attr(planRow, "hidden") !== undefined && textOf(planRow) === "Your plan" && byId.cnAcctPlanName && textOf(byId.cnAcctPlanName) === "" && planLine?.tagName === "p" && /\bcn-ios-note\b/.test(attr(planLine, "class")) && attr(planLine, "hidden") !== undefined &&
+          textOf(planLine) === "Your plan's daily limits apply in the app." && planGroup && attr(planGroup, "data-ios-signed-in") !== undefined && planRow.parentNode === planGroup);
+        const planMarkup = [textOf(planRow), textOf(planLine), ...Object.values(LABEL)].join(" ");
+        check("Plan line: no price, upgrade, subscribe, buy, purchase, website or link words, and no link or button in the row", !/\$|upgrade|subscribe|purchase|buy|checkout|price|per month|\/month|billing|website|cybernetai/i.test(planMarkup) && !(planRow.childNodes || []).some(n => ["a", "button"].includes(n.tagName)) && !(planLine.childNodes || []).some(n => ["a", "button"].includes(n.tagName)));
       }
     }
 
@@ -1237,7 +1266,7 @@ try {
     for (const page of ["terms", "privacy", "acceptable-use"]) check(`legal/${page}.html exists`, existsSync(path.join(out, "legal", `${page}.html`)));
     const terms = await read("legal/terms.html");
     const privacy = await read("legal/privacy.html");
-    check("Terms: plans/pricing/payments/cancellation/refunds replaced", !/id="(subscriptions|payments|cancellation|refunds)"/.test(terms) && /no paid plans and no purchases/.test(terms));
+    check("Terms: plans/pricing/payments/cancellation/refunds replaced", !/id="(subscriptions|payments|cancellation|refunds)"/.test(terms) && /The iPhone app has no purchases. A plan bought on the website also applies when you sign in with the same account in the app/.test(terms));
     check("Terms and Privacy carry the iPhone app section", /id="iphone-app"/.test(terms) && /id="iphone-app"/.test(privacy));
     check("Privacy names the operator", /Marks Events FZ LLE/.test(privacy) && /support@cybernetai\.app/.test(privacy));
     // the sign-in card links here: the Terms and the Privacy Policy must not say the app has Sign in with Apple only (30 Oct 2026)

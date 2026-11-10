@@ -166,7 +166,7 @@ html.cn-still .cn-ios-seg-thumb, html.cn-still .cn-ios-seg-btn { transition: non
   left: 0; right: 0; bottom: 0;
   z-index: 900;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr); /* Home, Check, Scan QR, Recovery, Learn, Account (ios.js TABS) */
   padding: 4px max(8px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(8px, env(safe-area-inset-left, 0px));
   background: rgba(6, 10, 20, .86);
   -webkit-backdrop-filter: saturate(160%) blur(18px);
@@ -189,6 +189,7 @@ html.cn-kb-open .cn-ios-tabbar { display: none; }
   letter-spacing: .01em;
 }
 .cn-ios-tab.is-active { color: var(--cn-ios-accent); }
+@media (max-width: 340px) { .cn-ios-tab { font-size: 10px; } } /* six labels across an iPhone SE-width screen */
 .cn-ios-tab svg { display: block; }
 
 /* ---------- sheets ---------- */
@@ -251,36 +252,6 @@ html.cn-still .cn-ios-sheet, html.cn-still .cn-ios-sheet-backdrop, html.cn-still
 .cn-ios-note { margin: 8px 0; font-size: .88rem; line-height: 1.5; color: var(--cn-ios-text-2); }
 /* the numbered steps in a sheet (Account > Help > Turn on Share to CyberNet AI) */
 .cn-ios-steps { margin: 0 0 12px; padding-left: 1.4em; display: grid; gap: 6px; line-height: 1.5; color: var(--cn-ios-text); }
-/* a web subscriber's card at the top of Check (ios.js, section 3b): quiet, with a 44 pt X at its right edge */
-.cn-ios-plan-notice {
-  display: flex;
-  align-items: flex-start;
-  gap: 4px;
-  margin: 0 auto 14px;
-  max-width: 640px;
-  padding: 10px 4px 10px 16px;
-  border-radius: 16px;
-  background: var(--cn-ios-row-bg);
-  border: 1px solid var(--cn-ios-line);
-}
-.cn-ios-plan-notice-text { flex: 1 1 auto; min-width: 0; padding: 4px 0; }
-.cn-ios-plan-notice-title { margin: 0 0 4px; font-weight: 700; color: var(--cn-ios-text); }
-.cn-ios-plan-notice-body { margin: 0; font-size: .88rem; line-height: 1.5; color: var(--cn-ios-text-2); }
-.cn-ios-plan-notice-x {
-  appearance: none;
-  flex: none;
-  width: 44px;
-  height: 44px;
-  margin: -4px 0 0;
-  padding: 0;
-  border: 0;
-  border-radius: 999px;
-  background: none;
-  color: var(--cn-ios-text-2);
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-}
 
 /* QR / shared item verdict */
 .cn-ios-qr-target {
@@ -309,31 +280,23 @@ html.cn-still .cn-ios-sheet, html.cn-still .cn-ios-sheet-backdrop, html.cn-still
 .cn-ios-intro-dots i.is-on { background: var(--cn-ios-accent); }
 
 /* ---------- the launch stage (ios.js, section 7a) ----------
-   The stage covers the screen from its first frame in the launch screen's colour, with the launch screen's
-   shield in the same place and size (--ix-u is one unit of native/brand/splash.svg: its 1024-unit mark at .62
-   on a square as long as the screen's long side), so the launch screen hands over without a jump. The launch
-   screen shows the padlock OPEN; the stage closes it (owner, 1 Nov 2026), one move at a time, on the website
-   gate's calm eases: the shackle swings down and snaps shut, the body gives, the light flares and one ring
-   leaves the mark, CyberNet AI rises letter by letter, then "Stay protected." and "All in one place." rise
-   under it. Then either the stage opens onto the app (.is-app, a later launch) or the mark, the wordmark and
-   the lines glide up together, the rule and the kicker rise, and the card or the steps (a sheet) rise over it.
-   Timing (ms from the first frame): shackle 220-720 (seated near 620), ring and flare from 620, wordmark
-   700-1600, lines from 950 (ios.js), then the opening or the glide at 2350 (1 s), the kicker near 3050, the
-   sheet near 3750. Only transform and opacity move: no blur, no filter. Every rest value is the END frame and
-   each entry animation fills "backwards", so dropping the animation (Skip, reduced motion) leaves the
-   finished layout: the lock shut. */
+   The website's sign-in gate intro, in the app (owner, 10 Nov 2026: "the loading screen the same as the website"). The markup
+   inside .cn-gate-stage is the website's (public/index.html #cnGateStage) and the rules below are the website's
+   (ui-src/css/63-gate.css sections 2 and the keyframes, same names, same numbers and the same clock), with three changes: they
+   hang on .cn-ix instead of html.cn.cn-gate; the animations run only while .is-run is on (a skip, reduced motion, the short
+   gate and the stage that opens onto the app drop it, so every part shows its rest value, the END frame); and the layer's
+   ground is the launch screen's plain colour, so the launch screen hands over without a jump (the glow, the dot grid and the
+   light that crosses it fade in over the first 0.6 s; there is no page behind to blur).
+   Clock (s from the first frame): the shield draws 0.2-1.7, the padlock arrives OPEN at 1.0, the wordmark rises letter by letter
+   from 1.25, the shackle shuts 1.95-2.45 (the haptic is at 2.38), "Stay protected. All in one place." rises word by word from
+   2.65, is read (2.1 s) and fades, the mark and wordmark glide up and smaller (1.2 s, a FLIP in ios.js) and the sheet rises
+   over the stage 0.85 s into the glide. Only transform and opacity move, plus the letters' and words' one-off blur. */
 .cn-ix {
-  --ix-u: calc(max(100vw, 100vh) * .62 / 2732);
-  --ix-mw: calc(var(--ix-u) * 584);   /* the shield with its stroke: 584 x 732 units, centred on the screen */
-  --ix-mh: calc(var(--ix-u) * 732);
-  --ix-s: .55;                        /* the mark's size once it has glided up */
+  --cn-gate-glide: 1.2s;                          /* ios.js IX.glide */
+  --cn-gate-ease: cubic-bezier(.65, 0, .35, 1);   /* moves: starts and ends gently */
+  --cn-gate-arrive: cubic-bezier(.22, 1, .36, 1); /* arrivals: settles softly */
+  --ix-open: cubic-bezier(.4, 0, .2, 1);          /* the opening onto the app: quick to start, long to settle */
   --ix-top: calc(env(safe-area-inset-top, 0px) + 22px);
-  /* before the glide, the lines sit under the centred wordmark: from their place under the glided mark, down by the
-     distance the wordmark glides, and a little smaller (they grow to full size on the way up) */
-  --ix-pre: translateY(calc(50vh + var(--ix-mh) / 2 - var(--ix-top) - var(--ix-mh) * var(--ix-s))) scale(.8);
-  --ix-ease: cubic-bezier(.65, 0, .35, 1);   /* moves start and end gently (the website gate's ease) */
-  --ix-arrive: cubic-bezier(.22, 1, .36, 1); /* arrivals settle softly */
-  --ix-open: cubic-bezier(.4, 0, .2, 1);     /* the opening onto the app: quick to start, long to settle */
   position: fixed;
   inset: 0;
   z-index: 1950; /* above the tab bar and the page, below the steps (2000) */
@@ -345,129 +308,173 @@ html.cn-still .cn-ios-sheet, html.cn-still .cn-ios-sheet-backdrop, html.cn-still
   user-select: none;
   touch-action: none;
   -webkit-tap-highlight-color: transparent;
-  transition: opacity .5s var(--ix-ease);
+  transition: opacity .5s var(--cn-gate-ease);
 }
 .cn-ix.is-out { opacity: 0; pointer-events: none; }
 .cn-ix.is-calm.is-out { transition-duration: .2s; }
 .cn-ix.is-fade { animation: cn-ix-in .4s ease backwards; } /* a replay fades in over the app; a launch must not (it is the launch screen) */
-.cn-ix-lockup { position: absolute; inset: 0; transition: transform 1s var(--ix-ease); }
-.cn-ix.is-glide .cn-ix-lockup { transform: translateY(calc(var(--ix-top) + var(--ix-mh) * var(--ix-s) / 2 - 50%)); }
-.cn-ix-mark {
+/* the layer: the website's glow and dot grid over the ground, and the one light that crosses it */
+.cn-ix-bg {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  width: var(--ix-mw);
-  height: var(--ix-mh);
-  margin: calc(var(--ix-mh) / -2) 0 0 calc(var(--ix-mw) / -2);
-  transition: transform 1s var(--ix-ease);
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 62% 44% at 50% 30%, rgba(34, 211, 238, .085), transparent 70%),
+    radial-gradient(rgba(148, 163, 184, .10) 1px, transparent 1.3px) 0 0 / 24px 24px;
+  animation: cn-ix-in .6s ease backwards;
 }
-.cn-ix.is-glide .cn-ix-mark { transform: scale(var(--ix-s)); }
-.cn-ix.is-quick :is(.cn-ix-lockup, .cn-ix-mark, .cn-ix-word, .cn-ix-pitch) { transition-duration: .45s; }
-/* Onto the app (.is-app, ios.js leave()): the lockup comes forward a little and the lines lift away while the stage
-   fades, and the page comes up under it (html.cn-ix-opening). About 0.6 s.
-   Reduced motion keeps the calm path's plain 0.2 s fade (none of these apply under .is-calm). */
-.cn-ix.is-app:not(.is-calm).is-out { transition: opacity .6s var(--ix-open); }
-.cn-ix.is-app:not(.is-calm) .cn-ix-lockup { transition: transform .65s var(--ix-open); }
-.cn-ix.is-app:not(.is-calm).is-out .cn-ix-lockup { transform: scale(1.07); }
-.cn-ix.is-app:not(.is-calm).is-out .cn-ix-pitch { opacity: 0; transform: translateY(-10px) var(--ix-pre); transition: opacity .35s ease, transform .5s var(--ix-open); }
-html.cn-ix-opening :is(#cnMain, .navbar) { animation: cn-ix-in .6s cubic-bezier(.22, 1, .36, 1) backwards; }
-.cn-ix-svg { position: relative; z-index: 1; display: block; width: 100%; height: 100%; overflow: visible; }
-/* a soft light grows behind the mark, and flares once as the lock seats */
-.cn-ix-halo {
+.cn-ix-sweep {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  width: calc(var(--ix-mh) * 2.6);
-  height: calc(var(--ix-mh) * 2.6);
-  margin: calc(var(--ix-mh) * -1.3) 0 0 calc(var(--ix-mh) * -1.3);
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent 38%, rgba(34, 211, 238, .06) 50%, transparent 62%);
+  transform: translateX(-100%);
+}
+.cn-ix.is-run .cn-ix-sweep { animation: cn-gate-sweep 3.2s var(--cn-gate-ease) .3s backwards; }
+
+/* ---------- the stage (63-gate.css section 2) ---------- */
+.cn-ix .cn-gate-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--ix-top) 16px max(28px, env(safe-area-inset-bottom, 0px));
+  text-align: center;
+  color: #f5f7fa;
+}
+.cn-ix.is-glide .cn-gate-stage { justify-content: flex-start; } /* the mark rests at the top; the sheet rises under it */
+/* the mark and the wordmark */
+.cn-ix .cn-gate-brand {
+  --cn-gm: clamp(76px, 6vw + 48px, 116px);
+  --cn-gw: clamp(34px, 2.6vw + 24px, 60px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform-origin: 50% 50%;
+  transition: transform var(--cn-gate-glide) var(--cn-gate-ease);
+}
+.cn-ix.is-glide .cn-gate-brand { --cn-gm: clamp(40px, 1.4vw + 34px, 52px); --cn-gw: clamp(22px, .6vw + 19px, 28px); }
+@media (max-height: 700px) {
+  .cn-ix.is-glide .cn-gate-brand { --cn-gm: 34px; --cn-gw: 20px; }
+  .cn-ix.is-glide .cn-gate-shield { stroke-width: 1.6; }
+  .cn-ix.is-glide .cn-gate-lock > path:first-child { stroke-width: 1.5; }
+  .cn-ix.is-glide .cn-gate-lock > path:last-child { fill-rule: nonzero; }
+}
+.cn-ix .cn-gate-mark {
+  position: relative;
+  display: block;
+  width: var(--cn-gm);
+  height: calc(var(--cn-gm) * 26 / 24);
+  margin-bottom: calc(var(--cn-gm) * .22);
+}
+.cn-ix .cn-gate-mark svg { position: relative; z-index: 1; display: block; width: 100%; height: 100%; overflow: visible; }
+/* a soft light behind the mark; it grows as the mark draws, flares once and stays */
+.cn-ix .cn-gate-mark::before {
+  content: "";
+  position: absolute;
+  top: -70%;
+  right: -70%;
+  bottom: -70%;
+  left: -70%;
   border-radius: 50%;
   background: radial-gradient(closest-side, rgba(34, 211, 238, .16), rgba(34, 211, 238, .05) 55%, transparent);
   pointer-events: none;
-  animation: cn-ix-halo 1.2s var(--ix-arrive) backwards, cn-ix-flash 1.1s var(--ix-arrive) .62s;
 }
-/* The shackle arrives open (lifted 24 units and swung 20deg on its right leg, as the launch screen draws it), swings
-   back over the body, drops in fast, overshoots by a hair and seats; the body gives under it. Same geometry as the
-   website gate's padlock (ui-src/css/63-gate.css cn-gate-shut), scaled. */
-.cn-ix-shackle { transform-box: fill-box; transform-origin: 100% 100%; }
-.cn-ix-body { transform-box: fill-box; transform-origin: 50% 100%; }
-.cn-ix.is-run .cn-ix-shackle { animation: cn-ix-shut .5s linear .22s backwards; }
-.cn-ix.is-run .cn-ix-body { animation: cn-ix-click .36s var(--ix-arrive) .58s; }
-.cn-ix-ring {
+.cn-ix.is-run .cn-gate-mark::before { animation: cn-gate-glow 2.2s var(--cn-gate-arrive) .1s both, cn-gate-flash 1.1s var(--cn-gate-arrive) 2.38s; }
+/* the outline draws itself (pathLength="1") from the bottom point; the dash is dropped on the last frame */
+.cn-ix.is-run .cn-gate-shield {
+  stroke-dasharray: 1 2;
+  stroke-dashoffset: 1.001;
+  animation: cn-gate-draw 1.5s var(--cn-gate-ease) .2s forwards;
+}
+.cn-ix.is-run .cn-gate-lock {
+  transform-box: fill-box;
+  transform-origin: 50% 60%;
+  animation: cn-gate-lock .9s var(--cn-gate-arrive) 1s backwards;
+}
+/* the padlock arrives open and snaps shut once the wordmark is up; the rest value is the closed lock */
+.cn-ix .cn-gate-shackle { transform-box: fill-box; transform-origin: 100% 100%; }
+.cn-ix .cn-gate-body { transform-box: fill-box; transform-origin: 50% 100%; }
+.cn-ix.is-run .cn-gate-shackle { animation: cn-gate-shut .5s linear 1.95s backwards; }
+.cn-ix.is-run .cn-gate-body { animation: cn-gate-click .36s var(--cn-gate-arrive) 2.33s; }
+/* one ring of light leaves the mark as the lock settles */
+.cn-ix .cn-gate-mark::after {
+  content: "";
   position: absolute;
-  left: 50%;
-  top: 50%;
+  top: -18%;
+  right: -18%;
+  bottom: -18%;
+  left: -18%;
   z-index: 1;
-  width: var(--ix-mh);
-  height: var(--ix-mh);
-  margin: calc(var(--ix-mh) / -2) 0 0 calc(var(--ix-mh) / -2);
   border: 1px solid rgba(34, 211, 238, .5);
   border-radius: 50%;
   opacity: 0;
   pointer-events: none;
 }
-.cn-ix.is-run .cn-ix-ring { animation: cn-ix-ring 1.5s var(--ix-arrive) .62s; }
-.cn-ix-word {
+.cn-ix.is-run .cn-gate-mark::after { animation: cn-gate-ring 1.6s var(--cn-gate-arrive) 2.4s; }
+/* the scan line runs down through the mark while it draws */
+.cn-ix .cn-gate-scan {
   position: absolute;
-  right: 0;
-  left: 0;
-  top: calc(50% + var(--ix-mh) / 2 + 22px);
-  display: flex;
+  top: 0;
+  right: -30%;
+  left: -30%;
+  z-index: 2;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(34, 211, 238, .9) 50%, transparent);
+  opacity: 0;
+  pointer-events: none;
+}
+.cn-ix.is-run .cn-gate-scan { animation: cn-gate-scan 1.4s var(--cn-gate-ease) .15s; }
+.cn-ix .cn-gate-word {
+  display: inline-flex;
   align-items: baseline;
-  justify-content: center;
-  margin: 0;
+  overflow: hidden;
+  padding: .06em .02em .1em;
   font-family: var(--cn-font-mono, ui-monospace, "SF Mono", Menlo, monospace);
   font-weight: 700;
-  font-size: clamp(26px, 8vw, 34px);
-  line-height: 1.1;
+  font-size: var(--cn-gw);
+  line-height: 1;
   letter-spacing: -.02em;
   white-space: nowrap;
-  transition: transform 1s var(--ix-ease);
 }
-.cn-ix.is-glide .cn-ix-word { transform: translateY(calc(var(--ix-mh) * (var(--ix-s) - 1) / 2)); } /* follows the mark's bottom edge up */
-.cn-ix-word b { color: #22d3ee; font-weight: 700; }
-.cn-ix-word small { margin-left: .32em; font-size: .46em; font-weight: 600; letter-spacing: .08em; color: #b3bccb; }
-.cn-ix-word span { display: inline-block; animation: cn-ix-letter .7s var(--ix-arrive) calc(.7s + var(--i) * 40ms) backwards; }
-/* the pitch: the two lines rise in under the centred wordmark (.is-lines), glide up with it and grow to full size
-   (.is-glide), then the rule and the kicker rise under them (.is-pitch); it steps aside for the steps */
-.cn-ix-pitch {
-  position: absolute;
-  right: 0;
-  left: 0;
-  top: calc(var(--ix-top) + var(--ix-mh) * var(--ix-s) + 96px);
-  box-sizing: border-box;
-  padding: 0 24px;
+.cn-ix .cn-gate-word b { color: #22d3ee; font-weight: 700; }
+.cn-ix .cn-gate-word small { margin-left: .32em; font-size: .46em; font-weight: 600; letter-spacing: .08em; color: #b3bccb; }
+.cn-ix .cn-gate-word span { display: inline-block; }
+.cn-ix.is-run .cn-gate-word span { animation: cn-gate-letter .95s var(--cn-gate-arrive) calc(1.25s + var(--i) * 55ms) backwards; }
+/* "Stay protected. All in one place.": two lines, each word rising out of a blur in turn (.is-said); the box is there from
+   the start, so nothing moves when the words arrive. Read: it fades up and away (.is-leaving), then the mark glides. */
+.cn-ix .cn-gate-quote {
+  margin: 26px 0 0;
+  max-width: 30ch;
+  font-family: var(--cn-font, ui-sans-serif, system-ui, -apple-system, sans-serif);
+  font-weight: 600;
+  font-size: clamp(21px, 1.5vw + 15px, 34px);
+  line-height: 1.22;
+  letter-spacing: -.02em;
   text-align: center;
-  transform: var(--ix-pre);
-  transform-origin: 50% 0;
-  transition: opacity .4s var(--ix-ease), transform 1s var(--ix-ease);
+  color: #f5f7fa;
+  transition: opacity .6s var(--cn-gate-ease), transform .6s var(--cn-gate-ease);
 }
-.cn-ix.is-glide .cn-ix-pitch { transform: none; }
-.cn-ix:not(.is-lines) .cn-ix-pitch, .cn-ix:not(.is-pitch) :is(.cn-ix-rule, .cn-ix-kicker) { visibility: hidden; }
-.cn-ix.is-steps .cn-ix-pitch { opacity: 0; transform: translateY(-8px); transition-duration: .4s; }
-/* The pitch stays above the sheet that rises over the stage (the card, the steps), the way the website's card keeps its
-   heading, as far as it fits: ios.js fitPitch() measures the sheet against the pitch and sets has-room (all of it) or
-   has-lines (the two lines, without the rule and the kicker); with neither, the pitch steps aside. */
-.cn-ix.is-steps:is(.has-lines, .has-room) .cn-ix-pitch { opacity: 1; transform: none; }
-.cn-ix-rule, .cn-ix-kicker { transition: opacity .4s var(--ix-ease); }
-.cn-ix.is-steps.has-lines:not(.has-room) :is(.cn-ix-rule, .cn-ix-kicker) { opacity: 0; }
-.cn-ix-line { margin: 0; font-weight: 700; font-size: clamp(34px, 10.4vw, 46px); line-height: 1.1; letter-spacing: -.025em; color: #f5f7fa; }
-.cn-ix-line-2 { color: var(--cn-ios-accent, #22d3ee); }
-.cn-ix-rule { display: block; width: 36px; height: 2px; margin: 18px auto 0; border-radius: 1px; background: #22d3ee; }
-.cn-ix-kicker {
-  margin: 14px 0 0;
-  font-family: var(--cn-font-mono, ui-monospace, "SF Mono", Menlo, monospace);
-  font-weight: 500;
-  font-size: clamp(10px, 2.9vw, 12px);
-  line-height: 1.7;
-  letter-spacing: .16em;
-  text-transform: uppercase;
-  color: #9fb2c6;
-  text-wrap: balance;
-}
-.cn-ix.is-lines .cn-ix-line { animation: cn-ix-rise .8s var(--ix-arrive) backwards; }
-.cn-ix.is-lines .cn-ix-line-2 { animation-delay: .18s; }
-.cn-ix.is-pitch .cn-ix-rule { animation: cn-ix-rule .7s var(--ix-arrive) backwards; }
-.cn-ix.is-pitch .cn-ix-kicker { animation: cn-ix-rise .8s var(--ix-arrive) .1s backwards; }
+.cn-ix .cn-gate-ql { display: block; }
+.cn-ix .cn-gate-ql-2 { font-weight: 400; color: #22d3ee; }
+.cn-ix .cn-gate-qw { display: inline-block; }
+.cn-ix.is-run:not(.is-said) .cn-gate-qw { opacity: 0; }
+.cn-ix.is-run.is-said .cn-gate-qw { animation: cn-gate-letter .9s var(--cn-gate-arrive) calc(var(--w) * 95ms + var(--ql, 0ms)) backwards; }
+.cn-ix.is-said .cn-gate-ql-2 { --ql: 120ms; }
+.cn-ix.is-leaving .cn-gate-quote { opacity: 0; transform: translateY(-10px); }
+.cn-ix.is-glide .cn-gate-quote, .cn-ix.is-app .cn-gate-quote { display: none; }
+/* the short gate and the stage that opens onto the app show the mark and the wordmark as they rest, fading in */
+.cn-ix:is(.is-quick, .is-app) .cn-gate-brand { animation: cn-ix-in .4s ease backwards; }
+/* Onto the app (.is-app, ios.js leave()): the mark comes forward a little as the stage fades, and the page comes up under
+   it (html.cn-ix-opening). About 0.6 s. Reduced motion keeps the calm path's plain 0.2 s fade (none of these apply under .is-calm). */
+.cn-ix.is-app:not(.is-calm).is-out { transition: opacity .6s var(--ix-open); }
+.cn-ix.is-app:not(.is-calm) .cn-gate-brand { transition: transform .65s var(--ix-open); }
+.cn-ix.is-app:not(.is-calm).is-out .cn-gate-brand { transform: scale(1.07); }
+html.cn-ix-opening :is(#cnMain, .navbar) { animation: cn-ix-in .6s cubic-bezier(.22, 1, .36, 1) backwards; }
 /* Skip: 44 x 44 pt at least, top right below the status bar; the stage as a whole is tappable too. The short gate and
    the stage that opens onto the app have none: it would be gone before it could be used. */
 .cn-ix-skip {
@@ -495,9 +502,10 @@ html.cn-ix-opening :is(#cnMain, .navbar) { animation: cn-ix-in .6s cubic-bezier(
 .cn-ix.is-short .cn-ix-skip { display: none; }
 .cn-ix.is-steps .cn-ix-skip { opacity: 0; pointer-events: none; }
 .cn-ix-sr { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-/* Skipped, or reduced motion: no entry animation runs, so every part shows its rest value, the end frame */
-.cn-ix:is(.is-end, .is-calm) :is(.cn-ix-halo, .cn-ix-shackle, .cn-ix-body, .cn-ix-ring, .cn-ix-word span, .cn-ix-line, .cn-ix-rule, .cn-ix-kicker, .cn-ix-skip) { animation: none; }
-.cn-ix.is-calm :is(.cn-ix-lockup, .cn-ix-mark, .cn-ix-word, .cn-ix-pitch, .cn-ix-skip) { transition: none; }
+/* quick moves for a skip: the mark has no glide to wait for */
+.cn-ix.is-end .cn-gate-brand { transition: none; }
+.cn-ix.is-calm :is(.cn-gate-brand, .cn-gate-quote, .cn-ix-skip) { transition: none; }
+.cn-ix.is-calm .cn-ix-skip, .cn-ix.is-calm .cn-ix-bg { animation: none; }
 /* reduced motion: the end frame fades in (the cover, the same colour as the stage, fades out) instead of moving */
 .cn-ix.is-calm::after { content: ""; position: absolute; inset: 0; z-index: 5; background: #060a14; pointer-events: none; animation: cn-ix-uncover .6s ease both; }
 @media (prefers-reduced-motion: reduce) {
@@ -538,20 +546,25 @@ html.cn-ios .cn-signin-choices + .cn-ios-apple-note .cn-legal-link-btn::after { 
 @keyframes cn-ix-in { from { opacity: 0; } }
 @keyframes cn-ix-uncover { to { opacity: 0; } }
 @keyframes cn-ix-appear { from { opacity: 0; } }
-@keyframes cn-ix-halo { from { opacity: 0; transform: scale(.55); } }
-@keyframes cn-ix-flash { 30% { opacity: 1; transform: scale(1.14); } }
-/* open (the launch screen's frame): lifted 24 units, swung 20deg on the right leg; back over the body, a fast drop, a hair of overshoot, seated */
-@keyframes cn-ix-shut {
-  0% { transform: translateY(-24px) rotate(20deg); animation-timing-function: cubic-bezier(.55, 0, .4, 1); }
-  52% { transform: translateY(-24px) rotate(0deg); animation-timing-function: cubic-bezier(.7, 0, .9, .45); }
-  80% { transform: translateY(3px); animation-timing-function: cubic-bezier(.2, .7, .35, 1); }
+/* the website gate's keyframes, word for word (ui-src/css/63-gate.css; run-bundle.mjs compares them) */
+@keyframes cn-gate-sweep { to { transform: translateX(100%); } }
+@keyframes cn-gate-glow { from { opacity: 0; transform: scale(.55); } }
+/* the dash is dropped within the last 1.5 ms (a discrete swap lands halfway between the two frames) */
+@keyframes cn-gate-draw { 99.9% { stroke-dasharray: 1 2; stroke-dashoffset: 0; } to { stroke-dasharray: none; stroke-dashoffset: 0; } }
+@keyframes cn-gate-lock { from { opacity: 0; transform: translateY(8%) scale(.72); } }
+/* open: lifted .76 units and swung 20deg on the right leg (the long leg stays in the body); it swings
+   back over the body, drops in fast, overshoots by a hair and seats */
+@keyframes cn-gate-shut {
+  0% { transform: translateY(-.76px) rotate(20deg); animation-timing-function: cubic-bezier(.55, 0, .4, 1); }
+  52% { transform: translateY(-.76px) rotate(0deg); animation-timing-function: cubic-bezier(.7, 0, .9, .45); }
+  80% { transform: translateY(.1px); animation-timing-function: cubic-bezier(.2, .7, .35, 1); }
   100% { transform: none; }
 }
-@keyframes cn-ix-click { 35% { transform: translateY(7px) scaleY(.97); } }
-@keyframes cn-ix-ring { 0% { opacity: .85; transform: scale(.6); } 100% { opacity: 0; transform: scale(1.5); } }
-@keyframes cn-ix-letter { from { opacity: 0; transform: translateY(60%); } }
-@keyframes cn-ix-rise { from { opacity: 0; transform: translateY(14px); } }
-@keyframes cn-ix-rule { from { opacity: 0; transform: scaleX(0); } }
+@keyframes cn-gate-click { 35% { transform: translateY(.22px) scaleY(.97); } }
+@keyframes cn-gate-flash { 30% { opacity: 1; transform: scale(1.14); } }
+@keyframes cn-gate-ring { 0% { opacity: .85; transform: scale(.6); } 100% { opacity: 0; transform: scale(1.4); } }
+@keyframes cn-gate-scan { 0% { opacity: 0; transform: translateY(-12%); } 15% { opacity: 1; } 85% { opacity: 1; } 100% { opacity: 0; transform: translateY(calc(var(--cn-gm) * 26 / 24 + 12%)); } }
+@keyframes cn-gate-letter { from { opacity: 0; transform: translateY(80%); filter: blur(6px); } }
 
 /* in-app legal pages (an iframe of legal/*.html) */
 .cn-ios-legal-sheet {

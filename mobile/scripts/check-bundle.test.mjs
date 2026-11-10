@@ -101,12 +101,13 @@ const PLANTED = [
   ["legal page names Chrome on Android", { "legal/privacy.html": CLEAN["legal/privacy.html"].replace("</main>", "<p>for example, Chrome 141 on Android</p></main>") }, "legal-word", "chrome"],
   ["legal page names Android", { "legal/privacy.html": CLEAN["legal/privacy.html"].replace("</main>", "<p>for example, Safari on Android</p></main>") }, "legal-word", "android"],
   ["legal page names the Play Store", { "legal/terms.html": CLEAN["legal/terms.html"].replace("</p>", " Also on the Play Store.</p>") }, "legal-word", "play store"],
-  // the web subscriber's notice: the four exact sentences in ios/ios.js alone; prices and purchase words stay forbidden next to them
-  ["plan notice sentence in another script", { "script.js": CLEAN["script.js"] + `const t="You have CyberNet AI Pro.";` }, "word", "Pro"],
-  ["plan notice body in the page", { "index.html": CLEAN["index.html"].replace("<h1>Quick Scan</h1>", "<h1>Quick Scan</h1><p>For now, your Business limits and features apply on cybernetai.app. Pro and Business are coming to the app in an update soon.</p>") }, "word", "Pro"],
-  ["Pro alone in ios.js", { "ios/ios.js": `const t="Pro";` }, "word", "Pro"],
-  ["the notice with a price added, in ios.js", { "ios/ios.js": `const t="You have CyberNet AI Pro for $9.99 per month.";` }, "word", "$9.99"],
-  ["the notice with an upgrade link, in ios.js", { "ios/ios.js": `const t="For now, your Pro limits and features apply on cybernetai.app. Pro and Business are coming to the app in an update soon. Upgrade now.";` }, "word", "upgrade"],
+  // the plan label: the bare word "Pro" in ios/ios.js alone; prices and purchase words stay forbidden next to it
+  ["plan label in another script", { "script.js": CLEAN["script.js"] + `const t="Pro";` }, "word", "Pro"],
+  ["plan label in the page", { "index.html": CLEAN["index.html"].replace("<h1>Quick Scan</h1>", "<h1>Quick Scan</h1><p>Pro</p>") }, "word", "Pro"],
+  ["the old notice sentence in ios.js", { "ios/ios.js": `const t="You have CyberNet AI Pro.";` }, "word", "Pro"],
+  ["the label with a price added, in ios.js", { "ios/ios.js": `const t="Pro for $9.99 per month";` }, "word", "$9.99"],
+  ["the label with an upgrade word, in ios.js", { "ios/ios.js": `const t="Pro. Upgrade now.";` }, "word", "upgrade"],
+  ["a plan sentence naming Pro, in ios.js", { "ios/ios.js": `const t="Your Pro limits apply in the app.";` }, "word", "Pro"],
   ["an upgrade sentence for Pro, in ios.js", { "ios/ios.js": `const t="Upgrade to Pro";` }, "word", "upgrade"],
   ["missing local file", { "index.html": CLEAN["index.html"].replace("</head>", `<link rel="stylesheet" href="nothere.css"></head>`) }, "missing-file"]
 ];
@@ -155,19 +156,15 @@ check("localhost with a port is not", wordHits("http://localhost:8888").includes
 check("Pro is case-sensitive", wordHits("protect your accounts").length === 0 && wordHits("Go Pro").includes("Pro"));
 check("Google words are allowed for ios/ios.js alone", wordHits("Sign in with Google", { file: "ios/ios.js" }).length === 0 && wordHits("signInWithOAuth", { file: "ios/ios.js" }).length === 0 && wordHits("Sign in with Google").includes("google") && wordHits("Sign in with Google", { file: "script.js" }).includes("google") && wordHits("Sign in with Google", { file: "ios/cn-ios-boot.js" }).includes("google") && wordHits("Upgrade with Google", { file: "ios/ios.js" }).includes("upgrade"));
 
-/* ---------- the web subscriber's notice (owner request, 30 Oct 2026) ---------- */
+/* ---------- the plan label (owner decision, 10 Nov 2026) ---------- */
 {
-  const NOTICE = [
-    "You have CyberNet AI Pro.",
-    "You have CyberNet AI Business.",
-    "For now, your Pro limits and features apply on cybernetai.app. Pro and Business are coming to the app in an update soon.",
-    "For now, your Business limits and features apply on cybernetai.app. Pro and Business are coming to the app in an update soon."
-  ];
-  check("plan notice: the four exact sentences pass in ios/ios.js", NOTICE.every(t => wordHits(t, { file: "ios/ios.js" }).length === 0), NOTICE.map(t => wordHits(t, { file: "ios/ios.js" })));
-  check("plan notice: the same sentences are refused in every other file (Pro, and nothing else widened)", [NOTICE[0], NOTICE[2], NOTICE[3]].every(t => wordHits(t, { file: "script.js" }).includes("Pro") && wordHits(t, { file: "index.html" }).includes("Pro") && wordHits(t, { file: "ios/cn-analytics.js" }).includes("Pro") && wordHits(t, { file: "ios/ios.css" }).includes("Pro")));
-  check("plan notice: not one character more or less (a longer or edited sentence, trailing text; Business alone was never a forbidden word, so its title needs no allowance)", [NOTICE[0] + " ", NOTICE[0].replace("Pro.", "Pro"), NOTICE[0] + " Upgrade.", "x " + NOTICE[2], NOTICE[2].replace("soon.", "soon"), NOTICE[3] + " Pro.", NOTICE[0].replace("You have", "You had")].every(t => wordHits(t, { file: "ios/ios.js" }).length > 0), [NOTICE[0] + " ", NOTICE[0].replace("Pro.", "Pro")].map(t => wordHits(t, { file: "ios/ios.js" })));
-  check("plan notice: prices, upgrade, purchase and checkout words stay forbidden in ios/ios.js, next to Pro or alone", ["$9.99", "per month", "Upgrade", "upgrade", "Buy Pro now", "Checkout", "Stripe", "subscription", "free trial", "pricing", "Pro plan", "Business plan"].every(t => wordHits(t, { file: "ios/ios.js" }).length > 0), ["$9.99", "per month", "Upgrade", "Stripe", "subscription", "Pro plan"].map(t => [t, wordHits(t, { file: "ios/ios.js" })]));
-  check("plan notice: the allowance is one list of four, exported, and Pro can never be exempted", gatePlan.PLAN_NOTICE_STRINGS.length === 4 && gatePlan.PLAN_NOTICE_FILE === "ios/ios.js");
+  const LABEL = ["Pro"];
+  check("plan label: the bare word Pro passes in ios/ios.js", LABEL.every(t => wordHits(t, { file: "ios/ios.js" }).length === 0), LABEL.map(t => wordHits(t, { file: "ios/ios.js" })));
+  check("plan label: the same word is refused in every other file", ["script.js", "index.html", "ios/cn-analytics.js", "ios/ios.css", "ios/cn-ios-boot.js"].every(f => wordHits("Pro", { file: f }).includes("Pro")));
+  check("plan label: not one character more or less (padding, a sentence around it, the old notice sentences)", ["Pro ", " Pro", "Pro.", "Go Pro", "pro plan", "You have CyberNet AI Pro.", "Your Pro limits apply in the app.", "For now, your Pro limits and features apply on cybernetai.app. Pro and Business are coming to the app in an update soon."].every(t => wordHits(t, { file: "ios/ios.js" }).length > 0), ["Pro ", "Pro."].map(t => wordHits(t, { file: "ios/ios.js" })));
+  check("plan label: Business alone was never a forbidden word, and the row's own sentence is clean", wordHits("Business", { file: "ios/ios.js" }).length === 0 && wordHits("Your plan", { file: "ios/ios.js" }).length === 0 && wordHits("Your plan's daily limits apply in the app.", { file: "ios/ios.js" }).length === 0);
+  check("plan label: prices, upgrade, purchase and checkout words stay forbidden in ios/ios.js, next to Pro or alone", ["$9.99", "per month", "Upgrade", "upgrade", "Buy Pro now", "Checkout", "Stripe", "subscription", "free trial", "pricing", "Pro plan", "Business plan"].every(t => wordHits(t, { file: "ios/ios.js" }).length > 0), ["$9.99", "per month", "Upgrade", "Stripe", "subscription", "Pro plan"].map(t => [t, wordHits(t, { file: "ios/ios.js" })]));
+  check("plan label: the allowance is one list of one, exported, and Pro can never be exempted", gatePlan.PLAN_NOTICE_STRINGS.length === 1 && gatePlan.PLAN_NOTICE_STRINGS[0] === "Pro" && gatePlan.PLAN_NOTICE_FILE === "ios/ios.js");
 }
 
 /* ---------- build regions ---------- */
@@ -210,10 +207,10 @@ check("Google words are allowed for ios/ios.js alone", wordHits("Sign in with Go
 
 /* ---------- CSS pruning ---------- */
 {
-  const css = `a{color:red}html.cn #home .x{color:blue}#pricing .p,.keep{margin:0}@media (min-width:1px){#about h1{x:1}.y{z:2}}@keyframes k{0%{opacity:0}}.page:not(#home){display:block}.c::before{content:"}{"}`;
+  const css = `a{color:red}html.cn #cnGate .x{color:blue}#pricing .p,.keep{margin:0}@media (min-width:1px){#about h1{x:1}.y{z:2}}@keyframes k{0%{opacity:0}}.page:not(#home){display:block}.c::before{content:"}{"}`;
   const out = pruneCss(css);
   check("css: plain rule kept", out.includes("a{color:red}"), out);
-  check("css: #home rule dropped", !out.includes("#home .x"), out);
+  check("css: #cnGate rule dropped (Home is in the app now, so its rules stay)", !out.includes("#cnGate .x"), out);
   check("css: selector list keeps the rest", out.includes(".keep{margin:0}") && !out.includes("#pricing"), out);
   check("css: media keeps its other rules", out.includes("@media (min-width:1px){.y{z:2}}") && !out.includes("#about"), out);
   check("css: keyframes untouched", out.includes("@keyframes k{0%{opacity:0}}"), out);

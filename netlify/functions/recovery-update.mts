@@ -4,8 +4,8 @@ import { modelParams, createResponse, autoReplaceEnabled } from "../lib/ai-model
 import { rekeyPlan, planActions, buildTaskRows, supersededTaskKeys, taskKeyInList } from "../lib/recovery-tasks.mjs";
 import { reportError } from "../lib/report-error.mjs";
 import { fetchWithJwtRetry, RETRY_STANDARD } from "../lib/supabase-retry.mjs";
-import { withCors, isIOS } from "../lib/cors.mjs";
-import { appTierFor, consumeRecoveryUpdateApp, recoveryCooldownMessage, APP_MESSAGES } from "../lib/app-tier.mjs";
+import { withCors, isIOS, honoursWebPlans } from "../lib/cors.mjs";
+import { appTierFor, consumeRecoveryUpdateApp, recoveryCooldownMessage, APP_MESSAGES, appLimitsFor, loadWebPlan, reserveRecoveryUpdateForApp } from "../lib/app-tier.mjs";
 import { aiConsentGate } from "../lib/ai-consent.mjs";
 
 declare const Netlify: {
@@ -378,8 +378,10 @@ async function handler(request: Request, context: any): Promise<Response> {
   if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
   // The iPhone app (BUILD-PLAN §8.2, §8.4): the update text goes to the AI
   // planner, so the recorded consent is checked first; then the App-tier
-  // count and cooldown, never the admin bypass or the Business tier.
+  // count and cooldown, never the admin bypass. With X-CyberNet-Plans: 1 the
+  // account's website plan sets them instead (team, Pro, else the App tier).
   const ios = isIOS(request);
+  const webPlans = honoursWebPlans(request);
   const contentLength = Number(request.headers.get("content-length") || 0);
   if (contentLength > 1_000_000) return json({ error: "Request is too large" }, 413);
 
@@ -412,9 +414,14 @@ async function handler(request: Request, context: any): Promise<Response> {
   const admin = !ios && isAdminUser(user);
   // The case row and the team check do not depend on each other. A failed team
   // check is held until the usage step below, where it has always been reported.
-  const teamCheck = admin || ios
+  // Without X-CyberNet-Plans the app reads no team and no plan (App tier).
+  const teamCheck = admin || (ios && !webPlans)
     ? Promise.resolve({ onTeam: false, error: null as unknown })
     : getActiveTeamMembership(user.id).then((onTeam) => ({ onTeam, error: null as unknown }), (error) => ({ onTeam: false, error }));
+  const planCheck = webPlans
+    ? loadWebPlan(serviceFetch, user.id).then((plan) => ({ plan, error: null as unknown }), (error) => ({ plan: "free", error }))
+    : Promise.resolve({ plan: "free", error: null as unknown });
+  planCheck.catch(() => null);
   const loadCaseRow = async () => {
     const caseResponse = await serviceFetch(`/rest/v1/recovery_cases?id=eq.${encodeURIComponent(caseId)}&select=*`);
     const caseRows = await caseResponse.json().catch(() => []);
@@ -445,7 +452,12 @@ async function handler(request: Request, context: any): Promise<Response> {
   } else {
     try {
       if (team.error) throw team.error;
-      if (ios) {
+      if (webPlans) {
+        const webPlan = await planCheck;
+        if (webPlan.error) throw webPlan.error;
+        const rule = appLimitsFor(user, { plan: webPlan.plan, team: team.onTeam }).recoveryUpdates;
+        usage = await reserveRecoveryUpdateForApp(serviceFetch, user.id, rule);
+      } else if (ios) {
         const tier = appTierFor(user);
         usage = await consumeRecoveryUpdateApp(serviceFetch, user.id, tier.recoveryUpdatesPerDay, tier.recoveryUpdateCooldownSeconds);
       } else {

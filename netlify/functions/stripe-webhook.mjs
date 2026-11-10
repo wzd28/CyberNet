@@ -7,6 +7,7 @@ import {
   serviceFetch
 } from "../lib/supabase.mjs";
 import { reportError } from "../lib/report-error.mjs";
+import { SEAT_POOL_LIMITS } from "../lib/plans.mjs";
 
 function env(name) {
   try {
@@ -61,11 +62,7 @@ async function userIdForSubscription(subscription) {
 // database level (a CHECK constraint enforces this — a pre-existing
 // constraint that predates this feature and would reject any attempt to
 // write plan:'business' onto an individual profile).
-const SEAT_POOL_LIMITS = {
-  5: { dailyPoolLimit: 50, recoveryPoolLimit: 20 },
-  10: { dailyPoolLimit: 90, recoveryPoolLimit: 36 },
-  20: { dailyPoolLimit: 160, recoveryPoolLimit: 64 }
-};
+// The seat -> pool table (SEAT_POOL_LIMITS) lives in netlify/lib/plans.mjs.
 
 function isBusinessLookupKey(lookupKey) {
   return String(lookupKey || "").includes("business");

@@ -117,7 +117,7 @@
       if (String(auth || "").indexOf(DEMO_TOKEN) < 0) return real.apply(this, arguments);
       var url = typeof input === "string" ? input : (input && input.url) || "";
       var body = url.indexOf("/api/recovery-case") >= 0 ? { cases: [] }
-        : url.indexOf("/api/account-status") >= 0 ? { profile: { plan: "free" }, usage: { used: 1, limit: 5, remaining: 4 }, history: [] } : {};
+        : url.indexOf("/api/account-status") >= 0 ? { profile: { plan: "app", appPlan: "free" }, usage: { used: 1, limit: 3, remaining: 2 }, history: [] } : {};
       return Promise.resolve(new Response(JSON.stringify(body), { status: 200, headers: { "Content-Type": "application/json" } }));
     };
   }
@@ -130,7 +130,7 @@
     s.session = { access_token: DEMO_TOKEN, user: user };
     s.user = user;
     s.profile = { plan: "free", fullName: "Alex Example", subscriptionStatus: "inactive", billingInterval: "" };
-    s.usage = { used: 1, limit: 5, remaining: 4, resetDate: "" };
+    s.usage = { used: 1, limit: 3, remaining: 2, resetDate: "" };
     s.accountUserId = user.id;
     s.accountReady = true;
     try { if (A.updateAccountUI) A.updateAccountUI(); } catch (e) { /* the screen still fills */ }

@@ -1081,21 +1081,24 @@ document.addEventListener("DOMContentLoaded",()=>{
     const recoveryStartBtnEl=document.getElementById("recoveryStartBtn");
     if(recoveryStartBtnEl&&!recoveryStartBtnEl.disabled)recoveryStartBtnEl.textContent="Start Recovery";
     const used=Number(appState.usage.used)||0;
-    const limit=Number(appState.usage.limit)||3;
+    // The counters show what the server sent (it already applies the account's plan); until it has answered they show a dash.
+    const limit=Number(appState.usage.limit)||0;
     const remaining=Math.max(0,Number.isFinite(appState.usage.remaining)?Number(appState.usage.remaining):limit-used);
+    const hasLimit=signedIn&&limit>0;
     ["aiUsage","analysisAiHeaderUsage"].forEach(prefix=>{
-      text(prefix+"Text",signedIn?`${used} / ${limit}`:`— / ${limit}`);
-      bar(prefix+"Bar",signedIn?(used/Math.max(1,limit))*100:0);
+      text(prefix+"Text",hasLimit?`${used} / ${limit}`:"— / —");
+      bar(prefix+"Bar",hasLimit?(used/Math.max(1,limit))*100:0);
       text(prefix+"Reset",signedIn?aiResetText():"Resets daily");
     });
     const recUsed=Number(appState.recoveryUsage?.used)||0;
-    const recLimit=Number(appState.recoveryUsage?.limit)||1;
-    text("recoveryUsageCaseText",signedIn?`${recUsed} / ${recLimit}`:`— / ${recLimit}`);
-    bar("recoveryUsageCaseBar",signedIn?(recUsed/Math.max(1,recLimit))*100:0);
+    const recLimit=Number(appState.recoveryUsage?.limit)||0;
+    text("recoveryUsageCaseText",signedIn&&recLimit>0?`${recUsed} / ${recLimit}`:"— / —");
+    bar("recoveryUsageCaseBar",signedIn&&recLimit>0?(recUsed/recLimit)*100:0);
     const status=document.getElementById("aiApiStatus");
     if(status){
       if(!supabaseConfigured)status.innerHTML=`<span class="warning">${escapeHTML(authSetupMessage())}</span>`;
       else if(!signedIn)status.innerHTML='<span class="warning">Sign in to get AI explanations.</span>';
+      else if(!limit)status.innerHTML="";
       else if(remaining<=0)status.innerHTML=`<span class="warning">You've used today's AI explanations. ${escapeHTML(aiResetText())}</span>`;
       else status.innerHTML=`<span class="safe">${remaining} of ${limit} AI ${limit===1?"explanation":"explanations"} left today.</span>`;
     }
@@ -1140,7 +1143,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       };
       appState.usage={
         used:Number(data.usage?.used)||0,
-        limit:Number(data.usage?.limit)||5,
+        limit:Number(data.usage?.limit)||/*@web*/5/*@end-web*//*@ios 0 @end-ios*/,
         remaining:Number(data.usage?.remaining),
         resetDate:data.usage?.resetDate||""
       };
@@ -1154,7 +1157,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       if(appState.accountReady&&appState.accountUserId&&appState.accountUserId===appState.user?.id){console.warn(error);return appState}
       appState.isAdmin=false;
       appState.profile={plan:"free",fullName:appState.user?.user_metadata?.full_name||"",subscriptionStatus:"inactive",billingInterval:""};
-      appState.usage={used:0,limit:5,remaining:5,resetDate:""};
+      appState.usage={used:0,limit:/*@web*/5/*@end-web*//*@ios 0 @end-ios*/,remaining:/*@web*/5/*@end-web*//*@ios 0 @end-ios*/,resetDate:""};
       appState.history=[];
       appState.accountStatusError=true;
       console.warn(error);

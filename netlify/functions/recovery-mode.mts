@@ -2,8 +2,8 @@ import OpenAI from "openai";
 import { DEFAULT_MODEL, DEFAULT_MINI_MODEL, modelParams, createResponse, autoReplaceEnabled } from "../lib/ai-models.mjs";
 import { reportError } from "../lib/report-error.mjs";
 import { fetchWithJwtRetry, RETRY_STANDARD } from "../lib/supabase-retry.mjs";
-import { withCors, isIOS } from "../lib/cors.mjs";
-import { appTierFor, consumeRecoveryCaseApp, recoveryCaseLimitMessage } from "../lib/app-tier.mjs";
+import { withCors, isIOS, honoursWebPlans } from "../lib/cors.mjs";
+import { appTierFor, consumeRecoveryCaseApp, recoveryCaseLimitMessage, appLimitsFor, loadWebPlan, reserveRecoveryCaseForApp } from "../lib/app-tier.mjs";
 import { aiConsentGate } from "../lib/ai-consent.mjs";
 
 declare const Netlify: {
@@ -868,8 +868,10 @@ async function saveCase<T>(userId: string, classifier: ClassifierResult, plan: a
 
 async function handler(request: Request, context: any): Promise<Response> {
   // The iPhone app (BUILD-PLAN §8.2, §8.4): the person's recorded AI consent
-  // first, then the App-tier count; never the admin bypass or the team pool.
+  // first, then the App-tier count (or, with X-CyberNet-Plans: 1, the
+  // account's website plan); never the admin bypass.
   const ios = isIOS(request);
+  const webPlans = honoursWebPlans(request);
   if (request.method === "GET") {
     const aiEnabled = Boolean(env("OPENAI_API_KEY"));
     return json({ online: true, aiEnabled, model: aiEnabled ? MODEL : "Server deterministic engine" });
@@ -912,14 +914,22 @@ async function handler(request: Request, context: any): Promise<Response> {
     usage = { allowed: true, used: 0, limit: 999999, plan: "business", resetAt: null };
   } else {
     try {
-      // In the app the team is read only so a member's case still reaches the
-      // team owner's log (owner answer 8); the count is the App tier's.
-      team = await getActiveTeamMembership(user.id);
-      usage = ios
-        ? await consumeRecoveryCaseApp(serviceFetch, user.id, appTierFor(user).recoveryCasesPerDay)
-        : team
-          ? await consumeRecoveryCaseBusiness(team.businessAccountId)
-          : await consumeRecoveryCase(user.id);
+      // In the app without X-CyberNet-Plans the team is read only so a
+      // member's case still reaches the team owner's log (owner answer 8) and
+      // the count is the App tier's. With it, the website plan decides: the
+      // team pool, Pro's count or the App tier (lib/app-tier.mjs).
+      const [teamRow, webPlan] = await Promise.all([
+        getActiveTeamMembership(user.id),
+        webPlans ? loadWebPlan(serviceFetch, user.id) : Promise.resolve("free"),
+      ]);
+      team = teamRow;
+      usage = webPlans
+        ? await reserveRecoveryCaseForApp(serviceFetch, user.id, appLimitsFor(user, { plan: webPlan, team }).recoveryCases, team)
+        : ios
+          ? await consumeRecoveryCaseApp(serviceFetch, user.id, appTierFor(user).recoveryCasesPerDay)
+          : team
+            ? await consumeRecoveryCaseBusiness(team.businessAccountId)
+            : await consumeRecoveryCase(user.id);
     } catch (error) {
       console.error("CyberNet Recovery usage reservation failed", error);
       reportError(error, { fn: "recovery-mode", label: "Recovery usage reservation failed", context });

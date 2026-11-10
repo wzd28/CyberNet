@@ -103,6 +103,9 @@ function reset(over = {}) {
   state = {
     consent: true, // has_ai_consent answer, or a number = HTTP status to fail with
     allowApp: true, // consume_*_app answer
+    allowTeam: true, // consume_analysis_business / consume_recovery_case_business answer
+    teamCooldown: 0, // consume_recovery_update(_business) cooldown_seconds_remaining
+    lastUpdate: null, // recovery_usage.last_update_at
     cooldown: 0, // consume_recovery_update_app cooldown_seconds_remaining
     feedbackRows: [],
     mails: [],
@@ -172,18 +175,18 @@ globalThis.fetch = async (input, init = {}) => {
     case "consume_analysis":
       return json([{ allowed: true, used: 1, daily_limit: PROFILE[uid] ? 15 : 3, plan: PROFILE[uid] ? "pro" : "free" }]);
     case "consume_analysis_business":
-      return json([{ allowed: true, used: 1, daily_limit: 50, plan: "business" }]);
+      return json([{ allowed: state.allowTeam, used: state.allowTeam ? 1 : 50, daily_limit: 50, plan: "business" }]);
     case "consume_recovery_case_app":
       return json([{ allowed: state.allowApp, used: state.allowApp ? 1 : body.p_limit, daily_limit: body.p_limit, plan: "app", reset_at: "2026-10-30T16:00:00+00:00" }]);
     case "consume_recovery_case":
       return json([{ allowed: true, used: 1, daily_limit: 1, plan: PROFILE[uid] ? "pro" : "free", reset_at: "2026-10-30T16:00:00+00:00" }]);
     case "consume_recovery_case_business":
-      return json([{ allowed: true, used: 1, daily_limit: 20, plan: "business", reset_at: "2026-10-30T16:00:00+00:00" }]);
+      return json([{ allowed: state.allowTeam, used: state.allowTeam ? 1 : 20, daily_limit: 20, plan: "business", reset_at: "2026-10-30T16:00:00+00:00" }]);
     case "consume_recovery_update_app":
       return json([{ allowed: state.allowApp && !state.cooldown, used: 1, daily_limit: body.p_limit, plan: "app", reset_at: "2026-10-30T16:00:00+00:00", cooldown_seconds_remaining: state.cooldown }]);
     case "consume_recovery_update":
     case "consume_recovery_update_business":
-      return json([{ allowed: true, used: 1, daily_limit: 999, plan: rpc.endsWith("business") ? "business" : "free", reset_at: null, cooldown_seconds_remaining: 0 }]);
+      return json([{ allowed: !state.teamCooldown, used: 1, daily_limit: 999, plan: rpc.endsWith("business") ? "business" : "free", reset_at: null, cooldown_seconds_remaining: state.teamCooldown || 0 }]);
     case "consume_quickscan":
       return json([{ allowed: true, used: 1, daily_limit: 5, plan: "free" }]);
     case "recovery_window_start":
@@ -206,7 +209,8 @@ globalThis.fetch = async (input, init = {}) => {
     return json(user ? [{ id: user.id, full_name: "Test", plan: "free", subscription_status: "inactive", billing_interval: "", ...(PROFILE[user.id] || {}) }] : []);
   }
   if (url.pathname === "/rest/v1/daily_usage" && method === "GET") return json([{ analysis_count: 2 }]);
-  if (url.pathname === "/rest/v1/recovery_usage" && method === "GET") return json([{ cases_created: 1, updates_used: 0, last_update_at: null }]);
+  if (url.pathname === "/rest/v1/recovery_usage" && method === "GET") return json([{ cases_created: 1, updates_used: 0, last_update_at: state.lastUpdate }]);
+  if (url.pathname === "/rest/v1/business_recovery_usage" && method === "GET") return json([{ cases_created: 4 }]);
   if (url.pathname === "/rest/v1/business_daily_usage" && method === "GET") return json([{ analysis_count: 9 }]);
   if (url.pathname === "/rest/v1/scan_history" && method === "POST") return json([{ id: 77 }], 201);
   if (url.pathname === "/rest/v1/scan_history" && method === "GET") return json([{ id: 77, analysis_type: "image", verdict: "suspicious", score: 55, threat_type: "Phishing", summary: "Stub explanation.", created_at: "2026-10-29T10:00:00Z" }], 200, { "Content-Range": "0-0/1" });
@@ -677,6 +681,208 @@ for (const [token, limit] of [["t-free", 3], ["t-pro", 3], ["t-member", 3], ["t-
   } else {
     console.log("(netlify.toml ignore command not executed: no sh/git on this machine)");
   }
+}
+
+// ══════════ 13. X-CyberNet-Plans: 1 — the website plan applies in the app ══════════
+// Build 6 on sends the header; build 5 does not, and every check above (no
+// header) pins that build 5 keeps the fixed App tier.
+const PLANS = { "X-CyberNet-Plans": "1" };
+const plansLib = await import(pathToFileURL(path.join(root, "netlify/lib/plans.mjs")).href);
+{
+  const h = (headers) => new Request(`${SITE}/api/x`, { headers });
+  check("honoursWebPlans: iOS with the header", cors.honoursWebPlans(h({ "X-CyberNet-Platform": "ios", "X-CyberNet-Plans": "1" })) === true && cors.honoursWebPlans(h({ Origin: APP, "X-CyberNet-Plans": " 1 " })) === true);
+  check("honoursWebPlans: not without iOS, not without the header, not for other values",
+    cors.honoursWebPlans(h({ "X-CyberNet-Plans": "1" })) === false && cors.honoursWebPlans(h({ "X-CyberNet-Platform": "ios" })) === false &&
+    ["0", "true", "yes", "2", ""].every((v) => cors.honoursWebPlans(h({ "X-CyberNet-Platform": "ios", "X-CyberNet-Plans": v })) === false));
+  const wrapped = cors.withCors(async () => new Response("ok"));
+  const r = await run(wrapped, new Request(`${SITE}/api/x`, { method: "OPTIONS", headers: { Origin: APP, "Access-Control-Request-Method": "POST" } }));
+  check("withCors: preflight allows X-CyberNet-Plans", /X-CyberNet-Plans/.test(r.headers.get("access-control-allow-headers") || ""), r.headers.get("access-control-allow-headers"));
+}
+// The numbers: one source for web and app, equal to what the database enforces.
+{
+  const { readFileSync } = await import("node:fs");
+  const sql = readFileSync(path.join(root, "supabase/schema.sql"), "utf8");
+  const body = (name) => {
+    const i = sql.indexOf(`create or replace function public.${name}(`);
+    if (i < 0) return "";
+    const open = sql.indexOf("$$", i);
+    return sql.slice(i, sql.indexOf("$$;", open + 2));
+  };
+  const branch = (src, plan) => Number((new RegExp(`v_plan = '${plan}'[\\s\\S]*?v_limit := (\\d+)`).exec(src) || [])[1]);
+  const elseLimit = (src) => Number((/else\s+v_plan := 'free';\s+v_limit := (\d+)/.exec(src) || [])[1]);
+  const hours = (src, plan) => Number((new RegExp(`v_plan = '${plan}'[\\s\\S]*?v_cooldown := interval '(\\d+) hours?'`).exec(src) || [])[1]) * 3600;
+  const freeHours = (src) => Number((/v_plan := 'free';[\s\S]*?v_cooldown := interval '(\d+) hours?'/.exec(src) || [])[1]) * 3600;
+  const a = body("consume_analysis"), c = body("consume_recovery_case"), u = body("consume_recovery_update"), ub = body("consume_recovery_update_business");
+  const L = plansLib.PLAN_LIMITS;
+  const got = {
+    free: [elseLimit(a), elseLimit(c), elseLimit(u), freeHours(u)],
+    pro: [branch(a, "pro"), branch(c, "pro"), branch(u, "pro"), hours(u, "pro")],
+    businessProfile: [branch(a, "business"), branch(c, "business"), branch(u, "business"), hours(u, "business")],
+    businessTeam: [Number((/v_limit integer := (\d+)/.exec(ub) || [])[1]), Number((/v_cooldown interval := interval '(\d+) hours?'/.exec(ub) || [])[1]) * 3600]
+  };
+  const want = {
+    free: [L.free.analysesPerDay, L.free.recoveryCasesPerDay, L.free.recoveryUpdatesPerDay, L.free.recoveryUpdateCooldownSeconds],
+    pro: [L.pro.analysesPerDay, L.pro.recoveryCasesPerDay, L.pro.recoveryUpdatesPerDay, L.pro.recoveryUpdateCooldownSeconds],
+    businessProfile: [L.businessProfile.analysesPerDay, L.businessProfile.recoveryCasesPerDay, L.businessProfile.recoveryUpdatesPerDay, L.businessProfile.recoveryUpdateCooldownSeconds],
+    businessTeam: [L.businessTeam.recoveryUpdatesPerDay, L.businessTeam.recoveryUpdateCooldownSeconds]
+  };
+  check("plans.mjs: every number equals supabase/schema.sql", JSON.stringify(got) === JSON.stringify(want), { got, want });
+  check("plans.mjs: Pro is 15 / 3 / 999 / 2 h; Free is the App tier", JSON.stringify(want.pro) === "[15,3,999,7200]" && JSON.stringify(Object.values(tier.APP_TIER)) === JSON.stringify(want.free));
+  check("plans.mjs: seat pools 50/20, 90/36, 160/64, frozen", JSON.stringify(plansLib.SEAT_POOL_LIMITS) === JSON.stringify({ 5: { dailyPoolLimit: 50, recoveryPoolLimit: 20 }, 10: { dailyPoolLimit: 90, recoveryPoolLimit: 36 }, 20: { dailyPoolLimit: 160, recoveryPoolLimit: 64 } }) && Object.isFrozen(plansLib.SEAT_POOL_LIMITS) && Object.isFrozen(L) && Object.isFrozen(L.pro));
+}
+// appLimitsFor: precedence team > Pro > Free; the allowance wins where it is higher.
+{
+  const T = (daily, rec) => ({ businessAccountId: TEAM, role: "member", dailyPoolLimit: daily, recoveryPoolLimit: rec });
+  const sum = (x) => [x.appPlan, x.analyses.pool, x.analyses.limit, x.recoveryCases.pool, x.recoveryCases.limit, x.recoveryUpdates.pool, x.recoveryUpdates.limit, x.recoveryUpdates.cooldownSeconds].join(" ");
+  const cases = [
+    ["free", tier.appLimitsFor(USERS["t-free"], { plan: "free" }), "free own 3 own 1 own 1 21600"],
+    ["pro", tier.appLimitsFor(USERS["t-pro"], { plan: "pro" }), "pro own 15 own 3 own 999 7200"],
+    ["team 5 seats", tier.appLimitsFor(USERS["t-member"], { plan: "free", team: T(50, 20) }), "business team 50 team 20 team 999 3600"],
+    ["team 20 seats", tier.appLimitsFor(USERS["t-member"], { plan: "free", team: T(160, 64) }), "business team 160 team 64 team 999 3600"],
+    ["Pro on a team: team wins", tier.appLimitsFor(USERS["t-pro"], { plan: "pro", team: T(90, 36) }), "business team 90 team 36 team 999 3600"],
+    ["review free", tier.appLimitsFor(USERS["t-review"], { plan: "free" }), "free own 50 own 10 own 10 0"],
+    ["review pro", tier.appLimitsFor(USERS["t-review"], { plan: "pro" }), "pro own 50 own 10 own 999 0"],
+    ["review on a big team: pool where higher", tier.appLimitsFor(USERS["t-review"], { plan: "free", team: T(160, 64) }), "business team 160 team 64 own 999 0"],
+    ["admin on a 5-seat team: pool 50 kept (not lower)", tier.appLimitsFor(USERS["t-admin"], { plan: "free", team: T(50, 20) }), "business team 50 team 20 own 999 0"],
+    ["unconfirmed review email: no allowance", tier.appLimitsFor(USERS["t-review-unconfirmed"], { plan: "free" }), "free own 3 own 1 own 1 21600"],
+    ["unknown plan word: free", tier.appLimitsFor(USERS["t-free"], { plan: "enterprise" }), "free own 3 own 1 own 1 21600"]
+  ];
+  for (const [name, x, want] of cases) check(`appLimitsFor ${name}: ${want}`, sum(x) === want, sum(x));
+}
+// analyze with the header.
+{
+  const EXPECT = { "t-free": ["own", 3], "t-pro": ["own", 15], "t-owner": ["team", 50], "t-member": ["team", 50], "t-admin": ["own", 50], "t-review": ["own", 50], "t-review-unconfirmed": ["own", 3] };
+  for (const [token, [pool, limit]] of Object.entries(EXPECT)) {
+    reset();
+    const r = await run(fn.analyze, req("/api/analyze", { token, ios: true, origin: APP, body: IMAGE, headers: PLANS }));
+    const names = calls.filter((c) => c.host === "supabase" && c.path.startsWith("/rest/v1/rpc/")).map(RPC_NAMES);
+    check(`analyze plans ${token}: 200, plan "app", limit ${limit}, CORS`, r.status === 200 && corsOk(r) && r.data.usage?.plan === "app" && r.data.usage?.limit === limit, { status: r.status, usage: r.data?.usage, err: r.data?.error });
+    if (pool === "team") {
+      const c = rpcCalls("consume_analysis_business");
+      check(`analyze plans ${token}: the team pool (consume_analysis_business), never the personal counters`, c.length === 1 && c[0].body.p_business_account_id === TEAM && !names.includes("consume_analysis_app") && !names.includes("consume_analysis"), names);
+    } else {
+      const c = rpcCalls("consume_analysis_app");
+      check(`analyze plans ${token}: consume_analysis_app(${limit}) after consent, no web/team RPC`, c.length === 1 && c[0].body.p_limit === limit && names.indexOf("has_ai_consent") < names.indexOf("consume_analysis_app") && !names.includes("consume_analysis") && !names.includes("consume_analysis_business"), names);
+    }
+    check(`analyze plans ${token}: the website plan was read`, restCalls("GET", "/rest/v1/profiles").some((c) => c.path.includes(USERS[token].id)));
+    check(`analyze plans ${token}: still the mini model, history saved`, calls.filter((c) => c.host === "openai")[0]?.body?.model === DEFAULT_MINI_MODEL && restCalls("POST", "/rest/v1/scan_history").length === 1);
+    check(`analyze plans ${token}: no plan words in usage`, !/"(pro|business|free|team)"/i.test(JSON.stringify(r.data.usage)), r.data.usage);
+    if (token === "t-member") check("analyze plans member: still reaches the owner's log", restCalls("POST", "/rest/v1/scan_history")[0]?.body?.business_account_id === TEAM && r.data.teamLogId === 77);
+  }
+  // A Pro plan that is no longer active is Free in the app too.
+  const proId = USERS["t-pro"].id, saved = PROFILE[proId];
+  PROFILE[proId] = { ...saved, subscription_status: "past_due" };
+  reset();
+  let r = await run(fn.analyze, req("/api/analyze", { token: "t-pro", ios: true, body: IMAGE, headers: PLANS }));
+  PROFILE[proId] = saved;
+  check("analyze plans: a past_due Pro gets the App tier (3)", rpcCalls("consume_analysis_app")[0]?.body.p_limit === 3 && r.data.usage.limit === 3, r.data.usage);
+  // Limit reached on the team pool: the same neutral message.
+  reset({ allowTeam: false });
+  r = await run(fn.analyze, req("/api/analyze", { token: "t-member", ios: true, body: IMAGE, headers: PLANS }));
+  check("analyze plans member, pool used up: 429 neutral message, plan \"app\", nothing sent to OpenAI", r.status === 429 && r.data.error === tier.APP_MESSAGES.aiLimit && !PLAN_WORDS.test(r.data.error) && r.data.usage.plan === "app" && !calls.some((c) => c.host === "openai"), r.data);
+  // The plan read failing: nothing reserved, the usual 503.
+  reset();
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (input, init) => (String(typeof input === "string" ? input : input.url).includes("/rest/v1/profiles") ? json({ message: "down" }, 500) : realFetch(input, init));
+  r = await run(fn.analyze, req("/api/analyze", { token: "t-pro", ios: true, body: IMAGE, headers: PLANS }));
+  globalThis.fetch = realFetch;
+  check("analyze plans, plan read fails: 503 usage_service_unavailable, nothing reserved", r.status === 503 && r.data.code === "usage_service_unavailable" && !calls.some((c) => c.path?.includes("consume_analysis")), r.data);
+  // No AI answer: the refund goes back to the counter that was charged.
+  ENV.OPENAI_API_KEY = "";
+  for (const [token, refund, other] of [["t-member", "refund_analysis_business", "refund_analysis"], ["t-owner", "refund_analysis_business", "refund_analysis"], ["t-pro", "refund_analysis", "refund_analysis_business"], ["t-free", "refund_analysis", "refund_analysis_business"], ["t-review", "refund_analysis", "refund_analysis_business"]]) {
+    reset();
+    r = await run(fn.analyze, req("/api/analyze", { token, ios: true, body: IMAGE, headers: PLANS }));
+    const got = rpcCalls(refund);
+    check(`analyze plans ${token}, no AI answer: ${refund} (the counter charged), not ${other}`,
+      r.status === 200 && got.length === 1 && !rpcCalls(other).length && r.data.usage.used === 0 &&
+      (refund === "refund_analysis_business" ? got[0].body.p_business_account_id === TEAM : got[0].body.p_user_id === USERS[token].id), calls.map((c) => c.path));
+  }
+  // Without the header the old rule stands: a member's refund hits the own counter.
+  reset();
+  r = await run(fn.analyze, req("/api/analyze", { token: "t-member", ios: true, body: IMAGE }));
+  check("analyze no header, member, no AI answer: refund_analysis as before, no plan read", rpcCalls("refund_analysis").length === 1 && !rpcCalls("refund_analysis_business").length && !restCalls("GET", "/rest/v1/profiles").length);
+  ENV.OPENAI_API_KEY = "stub-openai-key";
+  // The website ignores the header.
+  reset();
+  r = await run(fn.analyze, req("/api/analyze", { token: "t-member", body: IMAGE, headers: PLANS }));
+  check("analyze web with the header: unchanged (team pool, plan business, no CORS)", r.data.usage.plan === "business" && rpcCalls("consume_analysis_business").length === 1 && noCors(r), r.data.usage);
+}
+// recovery-mode with the header.
+{
+  const EXPECT = { "t-free": ["own", 1], "t-pro": ["own", 3], "t-owner": ["team", 20], "t-member": ["team", 20], "t-admin": ["own", 10], "t-review": ["own", 10] };
+  for (const [token, [pool, limit]] of Object.entries(EXPECT)) {
+    reset();
+    const r = await run(fn["recovery-mode"], req("/api/recovery-mode", { token, ios: true, origin: APP, body: INCIDENT, headers: PLANS }));
+    const names = calls.filter((c) => c.host === "supabase" && c.path.startsWith("/rest/v1/rpc/")).map(RPC_NAMES);
+    check(`recovery-mode plans ${token}: 200, plan "app", limit ${limit}, real reset time`, r.status === 200 && corsOk(r) && r.data.usage?.plan === "app" && r.data.usage?.limit === limit && /T08:00:00\.000Z$/.test(r.data.usage?.resetAt || ""), { status: r.status, usage: r.data?.usage, err: r.data?.error });
+    if (pool === "team") check(`recovery-mode plans ${token}: the team pool`, rpcCalls("consume_recovery_case_business")[0]?.body.p_business_account_id === TEAM && !names.includes("consume_recovery_case_app") && !names.includes("consume_recovery_case"), names);
+    else check(`recovery-mode plans ${token}: consume_recovery_case_app(${limit})`, rpcCalls("consume_recovery_case_app")[0]?.body.p_limit === limit && !names.includes("consume_recovery_case") && !names.includes("consume_recovery_case_business") && names.indexOf("has_ai_consent") < names.indexOf("consume_recovery_case_app"), names);
+  }
+  reset({ allowTeam: false });
+  const r = await run(fn["recovery-mode"], req("/api/recovery-mode", { token: "t-member", ios: true, body: INCIDENT, headers: PLANS }));
+  check("recovery-mode plans member, pool used up: 429 neutral plural message", r.status === 429 && r.data.error === tier.APP_MESSAGES.recoveryCasesLimit && !PLAN_WORDS.test(r.data.error) && r.data.usage.plan === "app", r.data);
+}
+// recovery-update with the header (the team lookup now happens).
+{
+  for (const [token, rpc, limit, cooldown] of [["t-free", "app", 1, 21600], ["t-pro", "app", 999, 7200], ["t-owner", "business", 999, null], ["t-member", "business", 999, null], ["t-admin", "app", 10, 0], ["t-review", "app", 10, 0]]) {
+    reset({ caseOwner: USERS[token].id });
+    const r = await run(fn["recovery-update"], req("/api/recovery-update", { token, ios: true, origin: APP, body: UPDATE, headers: PLANS }));
+    const looked = restCalls("GET", "/rest/v1/business_members").length === 1;
+    if (rpc === "business") {
+      check(`recovery-update plans ${token}: team lookup, consume_recovery_update_business, plan "app"`, r.status === 200 && looked && rpcCalls("consume_recovery_update_business")[0]?.body.p_user_id === USERS[token].id && !rpcCalls("consume_recovery_update_app").length && r.data.usage.plan === "app" && r.data.usage.limit === 999, { status: r.status, usage: r.data?.usage, calls: calls.map((x) => x.path) });
+    } else {
+      const c = rpcCalls("consume_recovery_update_app")[0]?.body;
+      check(`recovery-update plans ${token}: team lookup, consume_recovery_update_app(${limit}, ${cooldown})`, r.status === 200 && looked && c?.p_limit === limit && c?.p_cooldown_seconds === cooldown && !rpcCalls("consume_recovery_update_business").length && !rpcCalls("consume_recovery_update").length && r.data.usage.plan === "app", { status: r.status, c, err: r.data?.error });
+    }
+  }
+  reset({ caseOwner: USERS["t-member"].id, teamCooldown: 3000 });
+  let r = await run(fn["recovery-update"], req("/api/recovery-update", { token: "t-member", ios: true, body: UPDATE, headers: PLANS }));
+  check("recovery-update plans member cooldown: neutral message", r.status === 429 && r.data.code === "cooldown_active" && /about 50 minutes/.test(r.data.error) && !PLAN_WORDS.test(r.data.error) && r.data.usage.plan === "app", r.data);
+  reset({ caseOwner: USERS["t-pro"].id, cooldown: 7000 });
+  r = await run(fn["recovery-update"], req("/api/recovery-update", { token: "t-pro", ios: true, body: UPDATE, headers: PLANS }));
+  check("recovery-update plans pro cooldown: about 2 hours", r.status === 429 && /about 2 hours/.test(r.data.error) && !PLAN_WORDS.test(r.data.error), r.data);
+}
+// account-status with the header: appPlan, the limits and counters actually used, no webPlan.
+{
+  const EXPECT = {
+    "t-free": { appPlan: "free", limit: 3, used: 2, casesUsed: 1, casesLimit: 1, updatesLimit: 1, cooldown: 21600 },
+    "t-pro": { appPlan: "pro", limit: 15, used: 2, casesUsed: 1, casesLimit: 3, updatesLimit: 999, cooldown: 7200 },
+    "t-owner": { appPlan: "business", limit: 50, used: 9, casesUsed: 4, casesLimit: 20, updatesLimit: 999, cooldown: 3600 },
+    "t-member": { appPlan: "business", limit: 50, used: 9, casesUsed: 4, casesLimit: 20, updatesLimit: 999, cooldown: 3600 },
+    "t-review": { appPlan: "free", limit: 50, used: 2, casesUsed: 1, casesLimit: 10, updatesLimit: 10, cooldown: 0 },
+    "t-admin": { appPlan: "free", limit: 50, used: 2, casesUsed: 1, casesLimit: 10, updatesLimit: 10, cooldown: 0 }
+  };
+  const lastUpdate = new Date(Date.now() - 600_000).toISOString();
+  for (const [token, e] of Object.entries(EXPECT)) {
+    reset({ lastUpdate });
+    const r = await run(fn["account-status"], req("/api/account-status?includeHistory=1", { method: "GET", token, ios: true, origin: APP, headers: PLANS }));
+    const p = r.data?.profile || {}, u = r.data?.usage || {}, ru = r.data?.recoveryUsage || {};
+    check(`account-status plans ${token}: appPlan "${e.appPlan}", plan "app", no webPlan, no billing, no admin flag`, r.status === 200 && corsOk(r) && p.appPlan === e.appPlan && p.plan === "app" && !("webPlan" in p) && !("subscriptionStatus" in p) && !("billingInterval" in p) && r.data.isAdmin === false && r.data.platform === "ios", r.data);
+    check(`account-status plans ${token}: usage ${e.used} of ${e.limit}`, u.limit === e.limit && u.used === e.used && u.remaining === e.limit - e.used && typeof u.resetDate === "string", u);
+    const wait = Math.max(0, e.cooldown - 600);
+    check(`account-status plans ${token}: Recovery ${e.casesUsed} of ${e.casesLimit} cases, ${e.updatesLimit} updates, wait about ${wait} s`, ru.casesUsed === e.casesUsed && ru.casesLimit === e.casesLimit && ru.updatesUsed === 0 && ru.updatesLimit === e.updatesLimit && Math.abs(ru.updateCooldownSecondsRemaining - wait) <= 2 && /T08:00:00\.000Z$/.test(ru.resetAt), ru);
+    if (e.casesUsed === 4) check(`account-status plans ${token}: team counters read with the database's window key`, restCalls("GET", "/rest/v1/business_daily_usage").length === 1 && restCalls("GET", "/rest/v1/business_recovery_usage")[0]?.path.includes(`business_account_id=eq.${TEAM}`) && restCalls("GET", "/rest/v1/business_recovery_usage")[0]?.path.includes("window_start=eq.2026-10-29T16:00:00+00:00"));
+    else check(`account-status plans ${token}: no team counters read`, !restCalls("GET", "/rest/v1/business_daily_usage").length && !restCalls("GET", "/rest/v1/business_recovery_usage").length);
+    check(`account-status plans ${token}: history, consent, team flags`, r.data.history.length === 1 && r.data.aiConsent?.granted === true && p.isTeamMember === (token === "t-member") && p.teamRole === (TEAM_ROLE[USERS[token].id] || null), p);
+    const { appPlan: _a, ...rest } = p;
+    check(`account-status plans ${token}: appPlan is the only plan word; no price, upgrade or billing words`, !/"(pro|business|free)"/i.test(JSON.stringify({ ...r.data, profile: rest })) && !/price|upgrade|checkout|billing|subscription/i.test(JSON.stringify(r.data)), JSON.stringify(r.data).slice(0, 300));
+  }
+  const proId = USERS["t-pro"].id, saved = PROFILE[proId];
+  const got = {};
+  for (const status of ["active", "trialing", "past_due", "canceled", "inactive"]) {
+    PROFILE[proId] = { ...saved, subscription_status: status };
+    reset();
+    const r = await run(fn["account-status"], req("/api/account-status", { method: "GET", token: "t-pro", ios: true, headers: PLANS }));
+    got[status] = `${r.data.profile.appPlan}/${r.data.usage.limit}`;
+  }
+  PROFILE[proId] = saved;
+  check("account-status plans: Pro only while active or trialing", JSON.stringify(got) === JSON.stringify({ active: "pro/15", trialing: "pro/15", past_due: "free/3", canceled: "free/3", inactive: "free/3" }), got);
+  reset();
+  const r = await run(fn["account-status"], req("/api/account-status", { method: "GET", token: "t-pro", ios: true, headers: { "X-CyberNet-Plans": "0" } }));
+  check("account-status app with X-CyberNet-Plans: 0: the old answer (webPlan, App tier)", r.data.profile.webPlan === "pro" && !("appPlan" in r.data.profile) && r.data.usage.limit === 3, r.data.profile);
+  reset();
+  const w = await run(fn["account-status"], req("/api/account-status", { method: "GET", token: "t-pro", headers: PLANS }));
+  check("account-status web with the header: unchanged (plan pro, billing fields, no appPlan)", w.data.profile.plan === "pro" && "subscriptionStatus" in w.data.profile && !("appPlan" in w.data.profile) && noCors(w), w.data.profile);
 }
 
 console.log(`ios server: ${checks - failures}/${checks} checks passed`);

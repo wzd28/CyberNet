@@ -11,7 +11,9 @@ import Capacitor
 ///
 /// signIn({ scopes?, nonce?, state? }) ->
 ///   { user, idToken, authorizationCode, email, givenName, familyName, state }   (missing values are null)
-/// Errors: code "CANCELED" (the person closed the sheet: show nothing), "IN_PROGRESS", "FAILED".
+/// Errors: code "CANCELED" (the person closed the sheet: show nothing; also Apple's "unknown" error after the sheet was
+/// shown, which is what iOS reports when the person dismisses it without an Apple Account set up), "IN_PROGRESS", "FAILED".
+/// Every error from Apple also carries `data.nativeDomain` and `data.nativeCode` (the ASAuthorizationError code).
 /// Apple returns email and name only on the first sign-in for an Apple ID.
 /// For account deletion, call signIn() again to get a fresh authorizationCode for token revocation.
 @objc(AppleSignInPlugin)
@@ -59,6 +61,8 @@ final class AppleSignInSession: NSObject, ASAuthorizationControllerDelegate,
     private let anchor: () -> UIWindow?
     private let onFinish: () -> Void
     private var controller: ASAuthorizationController?
+    /// Set when iOS asks for a window to present the sheet on, which it does just before it shows it.
+    private var sheetWasShown = false
 
     init(call: CAPPluginCall, anchor: @escaping () -> UIWindow?, onFinish: @escaping () -> Void) {
         self.call = call
@@ -101,14 +105,18 @@ final class AppleSignInSession: NSObject, ASAuthorizationControllerDelegate,
 
     func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
         defer { finish() }
-        if let authError = error as? ASAuthorizationError, authError.code == .canceled {
-            call.reject("Sign in with Apple was cancelled.", "CANCELED", error)
+        let native = error as NSError
+        let details: [String: Any] = ["nativeDomain": native.domain, "nativeCode": native.code]
+        if let authError = error as? ASAuthorizationError,
+           authError.code == .canceled || (authError.code == .unknown && sheetWasShown) {
+            call.reject("Sign in with Apple was cancelled.", "CANCELED", error, details)
         } else {
-            call.reject("Sign in with Apple did not finish. Please try again.", "FAILED", error)
+            call.reject("Sign in with Apple did not finish. Please try again.", "FAILED", error, details)
         }
     }
 
     func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
+        sheetWasShown = true
         if let window = anchor() {
             return window
         }

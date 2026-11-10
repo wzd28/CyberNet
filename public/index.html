@@ -871,7 +871,7 @@
   <main id="cnMain" tabindex="-1">
 
     <!-- ═══════════ HOME ═══════════ -->
-    <section data-web-only id="home" class="page active-page">
+    <section id="home" class="page active-page">
       <div class="hero" id="heroSection">
         <div class="cn-stage cn-hero4">
           <div class="cn-hero4-scene" aria-hidden="true">
@@ -879,10 +879,14 @@
             <canvas class="cn-hero4-canvas" data-cn="hero3d"></canvas>
           </div>
           <div class="hero-content reveal cn-hero">
-            <button class="pill hero-learn-pill hero-learn-pill-filled" id="heroLearnFeaturesBtn" type="button">
+            <button data-web-only class="pill hero-learn-pill hero-learn-pill-filled" id="heroLearnFeaturesBtn" type="button">
               Learn how to use each feature
               <svg viewBox="0 0 24 24" width="13" height="13" fill="none" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
+            <!--@ios <button class="pill hero-learn-pill hero-learn-pill-filled" type="button" data-page="learn">
+              Learn how to use each feature
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button> @end-ios-->
             <h1 class="hero-title" aria-label="Is it a scam? Know in seconds."><cn-w aria-hidden="true" style="--i:0">Is</cn-w> <cn-w aria-hidden="true" style="--i:1">it</cn-w> <cn-w aria-hidden="true" style="--i:2">a</cn-w> <cn-w aria-hidden="true" style="--i:3">scam?</cn-w><br/><span><cn-w aria-hidden="true" style="--i:4">Know</cn-w> <cn-w aria-hidden="true" style="--i:5">in</cn-w> <cn-w aria-hidden="true" style="--i:6"><em class="cn-sweep">seconds</em>.</cn-w></span></h1>
             <p class="cn-hero-sub">Paste a message or link below. Get a clear answer, and a recovery plan if something already went wrong.</p>
             <div class="cn-scanbox" id="cnScanBox">
@@ -902,10 +906,10 @@
             </div>
             <p class="cn-hero-recovery">Already clicked, paid or shared&nbsp;a&nbsp;code? <button type="button" class="inline-link-btn cn-hero-recovery-btn" data-page="recovery">Get a recovery plan</button></p>
           </div>
-          <button class="cn-stage-pause" type="button" aria-pressed="false" aria-label="Pause background motion" title="Pause background motion"><span aria-hidden="true"></span></button>
+          <button data-web-only class="cn-stage-pause" type="button" aria-pressed="false" aria-label="Pause background motion" title="Pause background motion"><span aria-hidden="true"></span></button>
         </div>
 
-        <div class="hero-video-buttons" role="group" aria-label="Step-by-step guides for each tool">
+        <div data-web-only class="hero-video-buttons" role="group" aria-label="Step-by-step guides for each tool">
           <button class="hero-video-btn" type="button" data-video="protect" aria-haspopup="dialog">
             <span class="hero-video-btn-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.8" cy="10.8" r="6.6"/><path d="m20.5 20.5-4.9-4.9"/><path d="M11.5 7.6 9.4 11h3l-2.1 3.4"/></svg>
@@ -928,6 +932,30 @@
             <span class="cn-tile-sub">How it works</span>
           </button>
         </div>
+
+        <!--@ios <div class="hero-video-buttons" role="group" aria-label="The three tools">
+          <button class="hero-video-btn" type="button" data-page="cybernet">
+            <span class="hero-video-btn-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.8" cy="10.8" r="6.6"/><path d="m20.5 20.5-4.9-4.9"/><path d="M11.5 7.6 9.4 11h3l-2.1 3.4"/></svg>
+            </span>
+            <span class="hero-video-btn-label">Quick Scan</span>
+            <span class="cn-tile-sub">Check a message or link</span>
+          </button>
+          <button class="hero-video-btn" type="button" data-page="cybernetai">
+            <span class="hero-video-btn-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 3.5c.6 4 2.6 6 6.5 6.5-3.9.6-5.9 2.6-6.5 6.5-.6-3.9-2.6-5.9-6.5-6.5 3.9-.5 5.9-2.5 6.5-6.5Z"/><path d="M18.5 15c.3 1.6 1 2.3 2.5 2.5-1.5.3-2.2 1-2.5 2.5-.3-1.5-1-2.2-2.5-2.5 1.5-.2 2.2-.9 2.5-2.5Z"/></svg>
+            </span>
+            <span class="hero-video-btn-label">Analysis AI</span>
+            <span class="cn-tile-sub">Ask for an explanation</span>
+          </button>
+          <button class="hero-video-btn" type="button" data-page="recovery">
+            <span class="hero-video-btn-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.4 12a8.6 8.6 0 1 0 8.6-8.6 8.6 8.6 0 0 0-6.1 2.5L3.5 8.3"/><path d="M3.5 3.6v4.7h4.7"/><path d="M12 7.6l3.8 1.7-.45 3.8L12 16.9l-3.35-3.8-.45-3.8Z"/></svg>
+            </span>
+            <span class="hero-video-btn-label">Recovery</span>
+            <span class="cn-tile-sub">Already clicked or paid?</span>
+          </button>
+        </div> @end-ios-->
 
         <div class="hero-visual" hidden aria-hidden="true">
           <div class="globe-shield-wrap">
@@ -962,13 +990,13 @@
       <section class="cn-core" id="cnCore" aria-labelledby="cnCoreTitle">
         <h2 class="cn-core-label" id="cnCoreTitle">What CyberNet AI does</h2>
         <p class="cn-core-tag cn-core-tag--top">Rules first. Then AI.</p>
-        <p class="cn-core-lead" data-cn-lines>Let’s <b>protect</b> you from a scam.</p>
+        <p data-web-only class="cn-core-lead" data-cn-lines>Let’s <b>protect</b> you from a scam.</p><!--@ios <p class="cn-core-lead" data-cn-lines>Let’s help you <b>spot</b> a scam.</p> @end-ios-->
         <p class="cn-manifesto" data-cn="manifesto">CyberNet AI reads the message <b>before you act</b>. Its own <b>scam rules</b> check a text, link or QR code in seconds. <b>Analysis AI</b> explains the warning signs in plain words. And if something already went wrong, <b>Recovery</b> gives you a plan, step by step.</p>
         <p class="cn-core-tag cn-core-tag--end">Texts, links and QR codes</p>
       </section>
 
       <!-- LIVE ACTIVITY: real numbers from /api/public-stats -->
-      <section class="cn-live" aria-labelledby="cnLiveTitle">
+      <section data-web-only class="cn-live" aria-labelledby="cnLiveTitle">
         <header class="cn-head reveal">
           <span class="cn-eyebrow"><i class="cn-live-dot" aria-hidden="true"></i><span data-cn-live-label>Activity</span></span>
           <h2 id="cnLiveTitle">Real activity. <span>Real numbers.</span></h2>
@@ -1010,7 +1038,7 @@
             <li><span class="why-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span> Reasons in plain language, not jargon</li>
             <li><span class="why-icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" aria-hidden="true"><path d="M12 2 L21 6 L20 15 L12 22 L4 15 L3 6 Z" stroke="currentColor" stroke-width="1.7"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span> Step-by-step help if you already clicked or paid</li>
           </ul>
-          <button class="secondary-btn glass" data-page="about">About CyberNet AI</button>
+          <button data-web-only class="secondary-btn glass" data-page="about">About CyberNet AI</button>
         </div>
         </div>
       </section>
@@ -1028,9 +1056,9 @@
           </figure>
           <figure class="cn-tile cn-tile--b cn-tile--qr reveal">
             <div class="cn-qr">
-              <a class="cn-qr-code" href="https://cybernetai.app" aria-label="QR code that opens cybernetai.app"><img src="/ui/img/qr-cybernetai.svg?v=20261014-5" alt="QR code that opens cybernetai.app" width="232" height="232" loading="lazy" decoding="async" /></a>
+              <a data-web-only class="cn-qr-code" href="https://cybernetai.app" aria-label="QR code that opens cybernetai.app"><img src="/ui/img/qr-cybernetai.svg?v=20261014-5" alt="QR code that opens cybernetai.app" width="232" height="232" loading="lazy" decoding="async" /></a><!--@ios <span class="cn-qr-code"><img src="/ui/img/qr-cybernetai.svg?v=20261014-5" alt="A QR code for a real website address" width="232" height="232" loading="lazy" decoding="async" /></span> @end-ios-->
               <ul class="cn-qr-links" aria-label="A real link next to a lookalike">
-                <li class="is-real"><span class="cn-qr-tag">Real</span><a href="https://cybernetai.app">cybernetai.app</a></li>
+                <li class="is-real"><span class="cn-qr-tag">Real</span><a data-web-only href="https://cybernetai.app">cybernetai.app</a><!--@ios <span>cybernetai.app</span> @end-ios--></li>
                 <li class="is-fake"><span class="cn-qr-tag">Lookalike</span><span class="cn-qr-fake">cybernetai-app.invalid</span></li>
               </ul>
             </div>
@@ -1175,7 +1203,7 @@
           </div>
           <div class="why-choose-item">
             <span class="wc-icon-box"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="15" r="1.4" fill="currentColor"/></svg></span>
-            <div><h4>Private by default</h4><p>Free scans aren’t saved. Pro history is visible only to you; on a Business team, the owner sees team activity.</p></div>
+            <div><h4>Private by default</h4><p data-web-only>Free scans aren’t saved. Pro history is visible only to you; on a Business team, the owner sees team activity.</p><!--@ios <p>Quick checks run on your iPhone. They are not saved and not sent anywhere.</p> @end-ios--></div>
           </div>
           <div class="why-choose-item">
             <span class="wc-icon-box"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12l5 5L20 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
@@ -3111,12 +3139,12 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" defer></script>
   <script src="/config.js?v=20260830-3" defer></script>
   <script src="/legacy/cybernet-engine.js?v=20261030-d1" defer></script>
-  <script src="/legacy/script.js?v=20261106-head" defer></script>
+  <script src="/legacy/script.js?v=20261110-limits" defer></script>
   <script src="/legacy/cybernet-account-api-upgrade.js?v=20261028-1" defer></script>
   <script src="/cybernet-howto.js?v=20261019-1" defer></script>
 <script src="/legacy/cybernet-business-team.js?v=20261028-1" defer></script>
   <script src="/legacy/cybernet-final-ui-fix.js?v=20261028-1" defer></script>
-      <script src="/legacy/cybernet-legal-upgrade.js?v=20261101-a" defer></script>
+      <script src="/legacy/cybernet-legal-upgrade.js?v=20261110-a" defer></script>
   <!-- After script.js, cybernet-account-api-upgrade.js and cybernet-final-ui-fix.js (account modal tabs). -->
   <script src="/legacy/cybernet-privacy-controls.js?v=20261029-ios1" defer></script>
   <!-- After script.js (cybernet:session event, appState). -->

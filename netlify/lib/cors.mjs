@@ -11,13 +11,18 @@
 // call (BUILD-PLAN §5.5). A request from the app's origin counts as iOS even
 // if a call slips past the shim, so the app can never reach the web paths
 // (plans, billing, admin bypass) by accident.
+//
+// honoursWebPlans(): app builds from 1.0 (6) on also send `X-CyberNet-Plans: 1`
+// on every /api call. Only those requests get the account's website plan in
+// the app (lib/app-tier.mjs appLimitsFor). An app request without it (build 5
+// and earlier) keeps the fixed App tier, unchanged.
 
 export const APP_ORIGIN = "capacitor://localhost";
 const ALLOWED = new Set([APP_ORIGIN]);
 
 const CORS_HEADERS = Object.freeze({
   "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Authorization, Content-Type, X-CyberNet-Platform, X-CyberNet-App-Version",
+  "Access-Control-Allow-Headers": "Authorization, Content-Type, X-CyberNet-Platform, X-CyberNet-App-Version, X-CyberNet-Plans",
   "Access-Control-Max-Age": "600"
 });
 
@@ -34,6 +39,11 @@ export function isIOS(request) {
   const headers = request?.headers;
   if (!headers?.get) return false;
   return String(headers.get("x-cybernet-platform") || "").trim().toLowerCase() === "ios" || Boolean(allowedOrigin(request));
+}
+
+export function honoursWebPlans(request) {
+  if (!isIOS(request)) return false;
+  return String(request.headers.get("x-cybernet-plans") || "").trim() === "1";
 }
 
 // Copies the response with the CORS headers added. The body is passed on as a

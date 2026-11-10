@@ -1,4 +1,5 @@
 import { fetchWithJwtRetry, RETRY_STANDARD } from "./supabase-retry.mjs";
+import { PLAN_LIMITS } from "./plans.mjs";
 
 function env(name) {
   try {
@@ -116,8 +117,8 @@ export function effectivePlan(profile = {}) {
 
 export function dailyLimit(profile = {}) {
   const plan = effectivePlan(profile);
-  if (plan === "business") return 50;
-  return plan === "pro" ? 15 : 3;
+  if (plan === "business") return PLAN_LIMITS.businessProfile.analysesPerDay;
+  return (plan === "pro" ? PLAN_LIMITS.pro : PLAN_LIMITS.free).analysesPerDay;
 }
 
 // Business team accounts: checks whether a user currently belongs to an

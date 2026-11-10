@@ -3,8 +3,8 @@ import { redactForTeamLog } from "../lib/team-log.mjs";
 import { DEFAULT_MODEL, DEFAULT_MINI_MODEL, modelParams, createResponse, autoReplaceEnabled, retirementOf } from "../lib/ai-models.mjs";
 import { reportError } from "../lib/report-error.mjs";
 import { fetchWithJwtRetry, RETRY_TIGHT } from "../lib/supabase-retry.mjs";
-import { withCors, isIOS } from "../lib/cors.mjs";
-import { appTierFor, consumeAnalysisApp, APP_MESSAGES } from "../lib/app-tier.mjs";
+import { withCors, isIOS, honoursWebPlans } from "../lib/cors.mjs";
+import { appTierFor, consumeAnalysisApp, APP_MESSAGES, appLimitsFor, loadWebPlan, reserveAnalysisForApp, refundAnalysisForApp } from "../lib/app-tier.mjs";
 import { aiConsentGate } from "../lib/ai-consent.mjs";
 // The rule set Quick Scan runs in the browser. It registers itself on
 // globalThis, so the page, this function and the tests all read one copy.
@@ -1336,10 +1336,12 @@ function buildServerEvidence(
 }
 
 async function handler(request: Request, context: any): Promise<Response> {
-  // The iPhone app (BUILD-PLAN §8.2-§8.4): App-tier counts for every account,
-  // no admin bypass, no team pool, no investigation mode, and nothing is
-  // forwarded to the AI provider without the person's recorded consent.
+  // The iPhone app (BUILD-PLAN §8.2-§8.4): no admin bypass, no investigation
+  // mode, and nothing is forwarded to the AI provider without the person's
+  // recorded consent. Counts: the fixed App tier, or, when the app sends
+  // X-CyberNet-Plans: 1, the account's website plan (lib/app-tier.mjs).
   const ios = isIOS(request);
+  const webPlans = honoursWebPlans(request);
   if (request.method === "GET") {
     const aiEnabled = Boolean(env("OPENAI_API_KEY"));
     return json({
@@ -1396,33 +1398,42 @@ async function handler(request: Request, context: any): Promise<Response> {
   // The team-membership read does not depend on it, so the two run together;
   // nothing is reserved until both have answered.
   // In the app, an admin gets the App tier's raised counts instead of the
-  // bypass, and a team member uses their own App-tier counter (the team is
-  // still read, only so the owner's activity log gets the result).
+  // bypass. Without X-CyberNet-Plans a team member uses their own App-tier
+  // counter (the team is still read, only so the owner's activity log gets the
+  // result); with it, the website plan decides (team pool, Pro, Free) and a
+  // refund goes back to whichever counter was charged.
   const admin = !ios && isAdminUser(user);
   let usage: UsageReservation;
   let team: { businessAccountId: string; dailyPoolLimit: number; role: string } | null = null;
   let usagePromise: Promise<UsageReservation> | null = null;
+  let appRule: { pool: string; limit: number } | null = null;
   if (!admin) {
-    const [withinLimit, teamResult] = await Promise.all([
+    const [withinLimit, teamResult, planResult] = await Promise.all([
       serviceFetch("/rest/v1/rpc/check_protect_rate_limit", {
         method: "POST",
         body: JSON.stringify({ p_key: `analyze:${mode}:${user.id}`, p_window_seconds: 600, p_max_requests: mode === "investigation" ? 12 : 40 }),
       }).then((r) => (r.ok ? r.json() : true)).catch(() => true),
       getActiveTeamMembership(user.id).then((value) => ({ value, error: null as unknown }), (error) => ({ value: null, error })),
+      webPlans
+        ? loadWebPlan(serviceFetch, user.id).then((value) => ({ value, error: null as unknown }), (error) => ({ value: "free", error }))
+        : Promise.resolve({ value: "free", error: null as unknown }),
     ]);
     if (withinLimit === false) {
       return json({ error: "Too many requests. Please try again later.", code: "rate_limited" }, 429);
     }
     team = teamResult.value;
+    if (webPlans) appRule = appLimitsFor(user, { plan: planResult.value, team }).analyses;
     // The reservation round trip starts here; the deterministic evidence below
     // is computed while it is in flight and only used once it has allowed.
-    usagePromise = teamResult.error
-      ? Promise.reject(teamResult.error)
-      : ios
-        ? consumeAnalysisApp(serviceFetch, user.id, appTierFor(user).analysesPerDay)
-        : team
-          ? consumeAnalysisBusiness(team.businessAccountId)
-          : consumeAnalysis(user.id);
+    usagePromise = teamResult.error || planResult.error
+      ? Promise.reject(teamResult.error || planResult.error)
+      : appRule
+        ? reserveAnalysisForApp(serviceFetch, user.id, appRule, team)
+        : ios
+          ? consumeAnalysisApp(serviceFetch, user.id, appTierFor(user).analysesPerDay)
+          : team
+            ? consumeAnalysisBusiness(team.businessAccountId)
+            : consumeAnalysis(user.id);
     usagePromise.catch(() => null); // awaited below; never left unhandled
   }
 
@@ -1534,7 +1545,9 @@ async function handler(request: Request, context: any): Promise<Response> {
   // alongside the history write and is awaited before the response.
   let refundPromise: Promise<void> | null = null;
   if (!aiUsed && !admin && !(mode === "investigation" && aiAttempted)) {
-    refundPromise = team && !ios ? refundAnalysisBusiness(team.businessAccountId) : refundAnalysis(user.id);
+    refundPromise = appRule
+      ? refundAnalysisForApp(serviceFetch, user.id, appRule, team)
+      : team && !ios ? refundAnalysisBusiness(team.businessAccountId) : refundAnalysis(user.id);
     usage.used = Math.max(0, usage.used - 1);
     usage.remaining = Math.max(0, usage.limit - usage.used);
   }

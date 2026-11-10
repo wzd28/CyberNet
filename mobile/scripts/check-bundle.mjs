@@ -16,8 +16,8 @@
 // libraries, but both are still checked for remote code and IP literals. The legal pages use a shorter
 // list: a privacy policy must name its processors, but nothing there may sell, price or link out.
 //
-// The web-subscriber notice (owner request, 30 Oct 2026) may use Pro and Business in four exact sentences, in ios/ios.js only
-// (PLAN_NOTICE_STRINGS below); prices and purchase words stay forbidden next to them.
+// The plan label (owner decision, 10 Nov 2026) may use the word Pro as one exact string, in ios/ios.js only
+// (PLAN_NOTICE_STRINGS below); prices and purchase words stay forbidden next to it.
 //
 // Sign in with Google (owner approval, 30 Oct 2026) is allowed in one file only: ios/ios.js, the app's own layer, where
 // it opens the system's secure sign-in sheet (see GOOGLE_SIGNIN below). The website's button and call (googleAuthBtn,
@@ -61,16 +61,13 @@ export const ALLOWED_PHRASES = [
 // must do, but nothing in them may price, sell or send the reader anywhere else.
 // android, chrome and play store: the app is for iPhone only, so its legal pages name no other platform (not even in an example).
 export const LEGAL_WORDS = ["$", "per month", "/month", "per year", "9.99", "95.90", "upgrade", "pricing", "checkout", "free trial", "unlock", "coming soon", "lorem", "todo", "tbd", "android", "chrome", "play store"];
-// The web-subscriber notice (owner request, 30 Oct 2026): an account that pays for Pro or Business on the website is told, in plain
-// text, that its limits apply on the website and that both plans are coming to the app. Pro and Business are otherwise forbidden
-// words, so these four sentences are allowed in ios/ios.js alone, as whole string literals and word for word (a longer string that
-// merely contains one is not allowed). Prices, upgrade, purchase and checkout words stay forbidden everywhere, also next to them.
+// The plan label (owner decision, 10 Nov 2026): plans are bought on the website only and the app has no purchases, but a paid account's
+// Account tab names its plan in one quiet row ("Your plan": "Pro" or "Business"). Pro is otherwise a forbidden word, so the bare label
+// "Pro" is allowed in ios/ios.js alone, as a whole string literal and word for word (a longer string that merely contains it is not
+// allowed). "Business" is not a listed word. Prices, upgrade, purchase and checkout words stay forbidden everywhere, also next to it.
 export const PLAN_NOTICE_FILE = "ios/ios.js";
 export const PLAN_NOTICE_STRINGS = [
-  "You have CyberNet AI Pro.",
-  "You have CyberNet AI Business.",
-  "For now, your Pro limits and features apply on cybernetai.app. Pro and Business are coming to the app in an update soon.",
-  "For now, your Business limits and features apply on cybernetai.app. Pro and Business are coming to the app in an update soon."
+  "Pro"
 ];
 export const FORBIDDEN_IDENTIFIERS = ["startCheckout", "openBillingPortal", "showPricingNotice", "initPricingToggle", "signInWithOAuth", "googleAuthBtn", "byokAnalyze"];
 // Terms no exemption may ever cover.

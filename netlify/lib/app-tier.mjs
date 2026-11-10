@@ -1,15 +1,28 @@
-// The App tier: what every signed-in account gets in the iPhone app
-// (BUILD-PLAN §8.2, owner answers 6 and 18, 29 Oct 2026).
+// What a signed-in account gets in the iPhone app (BUILD-PLAN §8.2; owner
+// answers 6 and 18, 29 Oct 2026; owner decision 10 Nov 2026).
 //
-// Every request from the app (isIOS in ./cors.mjs) gets these counts, whatever
-// profiles.plan says, whether the account belongs to a Business team, and
-// whether it is an admin. Nothing bought on the website changes anything in
-// the app (App Review 3.1.3(b)); the app has no purchases at all in 1.0.
+// Two rules, chosen per request by a header the app sends (./cors.mjs):
 //
-// The counts are constants in code, not environment variables, so the app's
-// behaviour cannot be switched remotely (2.5.19). The only exception is the
-// disclosed allowance below for the App Review demo account and the admins,
-// which raises counts and nothing else.
+// 1. Without `X-CyberNet-Plans: 1` (app build 5 and earlier): the fixed App
+//    tier below for every account, whatever profiles.plan says, whether the
+//    account belongs to a Business team, and whether it is an admin. This is
+//    the behaviour Apple reviewed; it must not change for those builds.
+//
+// 2. With `X-CyberNet-Plans: 1` (honoursWebPlans; build 6 on): the account's
+//    WEBSITE plan applies in the app, as on the website (appLimitsFor below).
+//    Precedence as on the web: an active Business team (owner or member) uses
+//    the team's shared pools and the *_business functions; otherwise an active
+//    Pro plan uses Pro's numbers (./plans.mjs) through the *_app functions;
+//    otherwise the App tier (= the website's Free numbers). Plans are bought
+//    only on the website; the app sells nothing and its answers never carry
+//    prices, upgrade prompts or billing data, and the reservation's plan field
+//    stays "app".
+//
+// In both rules the counts are constants in code (./plans.mjs) or the team's
+// own pool row, never environment variables, so the app's behaviour cannot be
+// switched remotely (2.5.19). The only environment input is the disclosed
+// allowance below for the App Review demo account and the admins, which only
+// raises counts (and wins where it is higher than the plan's).
 //
 // Environment (set by the owner in Netlify; names only, never values here):
 //   REVIEW_ACCOUNT_EMAILS  comma-separated; the App Review demo account(s).
@@ -18,17 +31,20 @@
 //                          the counts like the review account (no admin bypass).
 //
 // The counters are the same rows the website uses (daily_usage and
-// recovery_usage), so one account has one daily total across web and app.
-// The SQL functions *_app (supabase/migrations/20261029120000_ios_app_1_0.sql)
-// take the limit from here and always report plan "app".
+// recovery_usage; business_daily_usage and business_recovery_usage for a
+// team), so one account has one daily total across web and app. The SQL
+// functions *_app (supabase/migrations/20261029120000_ios_app_1_0.sql) take
+// the limit from here and always report plan "app".
 
-import { serviceFetch as defaultServiceFetch } from "./supabase.mjs";
+import { serviceFetch as defaultServiceFetch, effectivePlan } from "./supabase.mjs";
+import { PLAN_LIMITS } from "./plans.mjs";
 
+// The App tier is the website's Free plan.
 export const APP_TIER = Object.freeze({
-  analysesPerDay: 3,
-  recoveryCasesPerDay: 1,
-  recoveryUpdatesPerDay: 1,
-  recoveryUpdateCooldownSeconds: 6 * 3600
+  analysesPerDay: PLAN_LIMITS.free.analysesPerDay,
+  recoveryCasesPerDay: PLAN_LIMITS.free.recoveryCasesPerDay,
+  recoveryUpdatesPerDay: PLAN_LIMITS.free.recoveryUpdatesPerDay,
+  recoveryUpdateCooldownSeconds: PLAN_LIMITS.free.recoveryUpdateCooldownSeconds
 });
 
 export const APP_TIER_ALLOWANCE = Object.freeze({
@@ -150,6 +166,110 @@ export async function consumeRecoveryUpdateApp(serviceFetch, userId, limit, cool
     allowed: Boolean(row?.allowed),
     used: Number(row?.used) || 0,
     limit: Number.isFinite(daily) ? daily : Number(limit) || 0,
+    plan: "app",
+    resetAt: recoveryNextReset(),
+    cooldownSecondsRemaining: Number(row?.cooldown_seconds_remaining) || 0
+  };
+}
+
+// ── The website plan in the app (requests with X-CyberNet-Plans: 1) ──
+//
+// appLimitsFor(user, { plan, team }) decides, for each counter, which counter
+// is charged and with what limit:
+//   plan  the account's own website plan, effectivePlan(profile):
+//         "free" | "pro" | "business" (the old single-seat profile plan)
+//   team  the active Business team membership or null. Pools come from the
+//         team row (dailyPoolLimit, recoveryPoolLimit); a lookup that only
+//         knows "on a team" may pass true (Recovery updates need nothing more).
+// Returns
+//   { appPlan: "free" | "pro" | "business",
+//     analyses:        { pool: "team" | "own", limit },
+//     recoveryCases:   { pool: "team" | "own", limit },
+//     recoveryUpdates: { pool: "team" | "own", limit, cooldownSeconds } }
+// "team" means the *_business SQL functions (the website's own team path);
+// "own" means the *_app functions with the limit given here. The review/admin
+// allowance replaces a counter's rule wherever it is more generous.
+export function appLimitsFor(user, { plan = "free", team = null } = {}) {
+  const allowance = appTierFor(user) === APP_TIER_ALLOWANCE ? APP_TIER_ALLOWANCE : null;
+  let appPlan;
+  let analyses;
+  let recoveryCases;
+  let recoveryUpdates;
+  if (team) {
+    appPlan = "business";
+    analyses = { pool: "team", limit: Number(team.dailyPoolLimit) || 0 };
+    recoveryCases = { pool: "team", limit: Number(team.recoveryPoolLimit) || 0 };
+    recoveryUpdates = { pool: "team", limit: PLAN_LIMITS.businessTeam.recoveryUpdatesPerDay, cooldownSeconds: PLAN_LIMITS.businessTeam.recoveryUpdateCooldownSeconds };
+  } else {
+    const limits = plan === "pro" ? PLAN_LIMITS.pro : plan === "business" ? PLAN_LIMITS.businessProfile : APP_TIER;
+    appPlan = plan === "pro" || plan === "business" ? plan : "free";
+    analyses = { pool: "own", limit: limits.analysesPerDay };
+    recoveryCases = { pool: "own", limit: limits.recoveryCasesPerDay };
+    recoveryUpdates = { pool: "own", limit: limits.recoveryUpdatesPerDay, cooldownSeconds: limits.recoveryUpdateCooldownSeconds };
+  }
+  if (allowance) {
+    if (allowance.analysesPerDay > analyses.limit) analyses = { pool: "own", limit: allowance.analysesPerDay };
+    if (allowance.recoveryCasesPerDay > recoveryCases.limit) recoveryCases = { pool: "own", limit: allowance.recoveryCasesPerDay };
+    if (allowance.recoveryUpdatesPerDay > recoveryUpdates.limit || allowance.recoveryUpdateCooldownSeconds < recoveryUpdates.cooldownSeconds) {
+      recoveryUpdates = {
+        pool: "own",
+        limit: Math.max(allowance.recoveryUpdatesPerDay, recoveryUpdates.limit),
+        cooldownSeconds: Math.min(allowance.recoveryUpdateCooldownSeconds, recoveryUpdates.cooldownSeconds)
+      };
+    }
+  }
+  return { appPlan, analyses, recoveryCases, recoveryUpdates };
+}
+
+// The account's own website plan, read with the calling function's
+// serviceFetch (the .mts functions keep their own timeouts and retries).
+export async function loadWebPlan(serviceFetch = defaultServiceFetch, userId) {
+  const response = await serviceFetch(`/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=plan,subscription_status`);
+  const rows = await response.json().catch(() => []);
+  if (!response.ok) throw new Error(rows?.message || "Could not load the account's plan.");
+  return effectivePlan((Array.isArray(rows) ? rows[0] : null) || {});
+}
+
+// Reservations by rule. They always report plan "app" and the real reset
+// times, so no plan word and no 8-hours-late SQL reset reaches the app.
+export async function reserveAnalysisForApp(serviceFetch, userId, rule, team) {
+  if (rule.pool !== "team") return consumeAnalysisApp(serviceFetch, userId, rule.limit);
+  const row = await rpc(serviceFetch, "consume_analysis_business", { p_business_account_id: team.businessAccountId }, "Could not reserve an analysis request.");
+  const daily = Number(row?.daily_limit);
+  const max = Number.isFinite(daily) ? daily : Number(rule.limit) || 0;
+  const used = Number(row?.used) || 0;
+  return { allowed: Boolean(row?.allowed), used, limit: max, remaining: Math.max(0, max - used), plan: "app", resetDate: nextUtcMidnight() };
+}
+
+// A refund goes back to the counter that was charged. Never throws.
+export async function refundAnalysisForApp(serviceFetch, userId, rule, team) {
+  const [name, args] = rule.pool === "team"
+    ? ["refund_analysis_business", { p_business_account_id: team.businessAccountId }]
+    : ["refund_analysis", { p_user_id: userId }];
+  await serviceFetch(`/rest/v1/rpc/${name}`, { method: "POST", body: JSON.stringify(args) }).catch(() => undefined);
+}
+
+export async function reserveRecoveryCaseForApp(serviceFetch, userId, rule, team) {
+  if (rule.pool !== "team") return consumeRecoveryCaseApp(serviceFetch, userId, rule.limit);
+  const row = await rpc(serviceFetch, "consume_recovery_case_business", { p_business_account_id: team.businessAccountId }, "Could not reserve a Recovery case.");
+  const daily = Number(row?.daily_limit);
+  return {
+    allowed: Boolean(row?.allowed),
+    used: Number(row?.used) || 0,
+    limit: Number.isFinite(daily) ? daily : Number(rule.limit) || 0,
+    plan: "app",
+    resetAt: recoveryNextReset()
+  };
+}
+
+export async function reserveRecoveryUpdateForApp(serviceFetch, userId, rule) {
+  if (rule.pool !== "team") return consumeRecoveryUpdateApp(serviceFetch, userId, rule.limit, rule.cooldownSeconds);
+  const row = await rpc(serviceFetch, "consume_recovery_update_business", { p_user_id: userId }, "Could not reserve a Recovery update.");
+  const daily = Number(row?.daily_limit);
+  return {
+    allowed: Boolean(row?.allowed),
+    used: Number(row?.used) || 0,
+    limit: Number.isFinite(daily) ? daily : Number(rule.limit) || 0,
     plan: "app",
     resetAt: recoveryNextReset(),
     cooldownSecondsRemaining: Number(row?.cooldown_seconds_remaining) || 0

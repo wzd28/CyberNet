@@ -123,14 +123,15 @@
   /* ================================================================ 2. navigation / tab bar */
   // Native UITabBar (CNTabBar plugin, BUILD-PLAN §6.6) or, without it, a web tab bar with the same tabs.
   const TABS = [
+    { id: "home", page: "home", label: "Home", icon: '<path d="M4 10.8 12 4l8 6.8V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z"/>' },
     { id: "check", page: "cybernet", label: "Check", icon: '<path d="M12 2.8 20 6v5.8c0 4.7-3.1 7.7-8 9.4-4.9-1.7-8-4.7-8-9.4V6l8-3.2Z"/><path d="m8.6 12 2.3 2.3 4.6-4.7"/>' },
     { id: "scan", page: null, label: "Scan QR", icon: '<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M8 8h3v3H8zM13 13h3v3h-3zM13 8h3M8 13v3"/>' },
     { id: "recovery", page: "recovery", label: "Recovery", icon: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.5"/><path d="m6 6 3.5 3.5M18 6l-3.5 3.5M6 18l3.5-3.5M18 18l-3.5-3.5"/>' },
     { id: "learn", page: "learn", label: "Learn", icon: '<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5zM20 5.5A1.5 1.5 0 0 0 18.5 4H13v16h5.5a1.5 1.5 0 0 0 1.5-1.5z"/>' },
     { id: "account", page: "account", label: "Account", icon: '<circle cx="12" cy="9" r="3.6"/><path d="M5.5 19.2c1.3-3 3.7-4.4 6.5-4.4s5.2 1.4 6.5 4.4"/><circle cx="12" cy="12" r="9"/>' }
   ];
-  const PAGE_TAB = { cybernet: "check", cybernetai: "check", recovery: "recovery", learn: "learn", account: "account" };
-  const PAGE_NAMES = { cybernet: "Check", cybernetai: "Analysis AI", recovery: "Recovery", learn: "Learn", account: "Account" };
+  const PAGE_TAB = { home: "home", cybernet: "check", cybernetai: "check", recovery: "recovery", learn: "learn", account: "account" };
+  const PAGE_NAMES = { home: "Home", cybernet: "Check", cybernetai: "Analysis AI", recovery: "Recovery", learn: "Learn", account: "Account" };
   const nativeTabs = P("CNTabBar");
 
   let modeWanted = null; // the Check switch's pending tap (see openCheckPage)
@@ -383,63 +384,38 @@
       $("#cnAcctTeam").hidden = !isTeamMember();
       refreshConsentSwitch();
     }
-    renderPlanNotice();
+    renderPlanLine();
     refreshReminderSwitch();
     refreshTrackingRow();
   }
 
-  /* ---- 3b. a web subscriber's notice ---- */
-  // 1.0 has no purchases, so an account that pays for Pro or Business on the website gets the app's limits here. The server says
-  // which web plan is active (account-status, profile.webPlan: "pro" or "business", only while it is active, never for Free or a
-  // guest) and the app tells the person once: a card at the top of Check that stays until its X is tapped (remembered for that
-  // account, so it never returns), and a quiet line on the Account tab. Plain text only: no link, no button, no price. These four
-  // sentences are the only place the gate lets Pro and Business appear (check-bundle.mjs PLAN_NOTICE_STRINGS): change both together.
-  const PLAN_NOTICE = {
-    pro: { title: "You have CyberNet AI Pro.", body: "For now, your Pro limits and features apply on cybernetai.app. Pro and Business are coming to the app in an update soon." },
-    business: { title: "You have CyberNet AI Business.", body: "For now, your Business limits and features apply on cybernetai.app. Pro and Business are coming to the app in an update soon." }
-  };
-  const PLAN_NOTICE_SEEN = "cn-ios-plan-notice-"; // + the account's id: its X was tapped
-  let webPlan = { userId: null, plan: null };     // the last account-status answer, for the account it was asked for
-  // Called by the fetch layer with the reply's profile.webPlan; `token` is the session the request was made with.
-  function noteWebPlan(value, token) {
+  /* ---- 3b. the plan on the account ---- */
+  // The server sends the plan the account has (account-status, profile.appPlan: "free", "pro" or "business"; the request carries
+  // X-CyberNet-Plans: 1) and already applies its daily limits to the counters. The Account tab shows a quiet line for a paid
+  // account only: nothing for Free, a guest or an unknown word. No price, no link, no button. "Pro" is the only word the gate lets
+  // through here (check-bundle.mjs PLAN_NOTICE_STRINGS): change both together.
+  const PLAN_LABEL = { pro: "Pro", business: "Business" };
+  let appPlan = { userId: null, plan: null };   // the last account-status answer, for the account it was asked for
+  // Called by the fetch layer with the reply's profile.appPlan; `token` is the session the request was made with.
+  function noteAppPlan(value, token) {
     const s = state();
     if (!s?.user?.id || s.session?.access_token !== token) return; // the answer is for a session that is gone
-    webPlan = { userId: s.user.id, plan: value === "pro" || value === "business" ? value : null };
+    appPlan = { userId: s.user.id, plan: value === "pro" || value === "business" ? value : null };
   }
-  // The copy for the account that is signed in now, or null: nothing for a guest, a signed-out app, a Free account, or an answer that
-  // was given for another account.
-  function planNoticeFor(userId, signed, answer) {
+  // The label for the account that is signed in now, or null: nothing for a guest, a signed-out app, a Free account, or an
+  // answer that was given for another account.
+  function planLabelFor(userId, signed, answer) {
     if (!signed || !userId || answer.userId !== userId) return null;
-    return Object.prototype.hasOwnProperty.call(PLAN_NOTICE, answer.plan) ? PLAN_NOTICE[answer.plan] : null;
+    return Object.prototype.hasOwnProperty.call(PLAN_LABEL, answer.plan) ? PLAN_LABEL[answer.plan] : null;
   }
-  function planNoticeHtml() {
-    return `<section class="cn-ios-plan-notice" id="cnPlanNotice" role="region" aria-labelledby="cnPlanNoticeTitle" aria-describedby="cnPlanNoticeBody">
-        <div class="cn-ios-plan-notice-text"><p class="cn-ios-plan-notice-title" id="cnPlanNoticeTitle"></p><p class="cn-ios-plan-notice-body" id="cnPlanNoticeBody"></p></div>
-        <button type="button" class="cn-ios-plan-notice-x" data-plan-notice-close aria-label="Close"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
-      </section>`;
-  }
-  function renderPlanNotice() {
-    const uid = state()?.user?.id || null;
-    const copy = planNoticeFor(uid, signedIn(), webPlan);
-    const note = $("#cnAcctPlan"); // the Account tab's line shows for every subscriber, X or not
-    if (note) { note.hidden = !copy; note.textContent = copy ? copy.body : ""; }
-    let card = $("#cnPlanNotice");
-    if (!copy || store.get(PLAN_NOTICE_SEEN + uid)) { card?.remove(); return; }
-    if (!card) {
-      card = el(planNoticeHtml());
-      $("[data-plan-notice-close]", card).addEventListener("click", closePlanNotice);
-      ($("#cybernet") || $("#cnMain"))?.prepend(card);
-    }
-    $("#cnPlanNoticeTitle", card).textContent = copy.title;
-    $("#cnPlanNoticeBody", card).textContent = copy.body;
-  }
-  function closePlanNotice() {
-    const uid = state()?.user?.id;
-    if (uid) store.set(PLAN_NOTICE_SEEN + uid, "1");
-    $("#cnPlanNotice")?.remove();
-    // the X had the focus: give it to the page's heading, so the keyboard and VoiceOver do not start again from the top
-    const head = $("#cybernet .feature-page-header h1");
-    if (head) { head.tabIndex = -1; try { head.focus({ preventScroll: true }); } catch { /* ignore */ } }
+  function renderPlanLine() {
+    const label = planLabelFor(state()?.user?.id || null, signedIn(), appPlan);
+    const row = $("#cnAcctPlanRow");
+    const note = $("#cnAcctPlan");
+    if (row) row.hidden = !label;
+    if (note) note.hidden = !label;
+    const value = $("#cnAcctPlanName");
+    if (value) value.textContent = label || "";
   }
 
   // Account > Help: the Share sheet entry for CyberNet AI is off until the person turns it on (the welcome tips say so too).
@@ -501,7 +477,7 @@
       if (user) store.del(GUEST_KEY); // an account is signed in: there is no guest choice left to remember (a later sign-out meets the short gate again)
       lastUser = user;
     });
-    w.addEventListener("cybernet:account-ui", () => { if (activePage() === "account") renderAccount(); else renderPlanNotice(); });
+    w.addEventListener("cybernet:account-ui", () => { if (activePage() === "account") renderAccount(); else renderPlanLine(); });
   }
 
   async function signOut() {
@@ -651,7 +627,7 @@
       // script.js keeps appState.recoveryUsage as { used, limit } but only fills it from Recovery replies.
       // The app's account-status (App tier) sends today's Recovery counts too, so copy them before
       // script.js reads the reply; the Account screen and the Recovery meter then show them at once.
-      // It also carries profile.webPlan for an account that pays on the website (section 3b); the token says whose answer it is.
+      // It also carries profile.appPlan (section 3b); the token says whose answer it is.
       const token = state()?.session?.access_token;
       const res = await appFetch(input, init);
       if (res.ok) {
@@ -660,7 +636,7 @@
           const r = data?.recoveryUsage;
           const s = state();
           if (s && r && Number(r.casesLimit) > 0) s.recoveryUsage = { used: Number(r.casesUsed) || 0, limit: Number(r.casesLimit) };
-          noteWebPlan(data?.profile?.webPlan, token);
+          noteAppPlan(data?.profile?.appPlan, token);
         } catch { /* not JSON: script.js reports it */ }
       }
       return res;
@@ -785,72 +761,79 @@
   ];
 
   /* ---- 7a. the motion intro ---- */
-  // The mark is the launch screen's shield, in the same place and size (native/brand/splash.svg), so the
-  // launch screen hands over without a jump. The launch screen shows the padlock OPEN, and every stage starts
-  // there (owner, 1 Nov 2026: "the lock was already open, it closes, then it says stay protected all in one
-  // place ... then it opens the application"): the shackle swings down and snaps shut with one firm tap,
-  // CyberNet AI rises letter by letter, and "Stay protected." and "All in one place." rise under it. Then the
-  // stage either opens onto the app (a later launch: signed in, or a guest's recent choice) or glides up and
-  // makes room for the card and the steps (signed out, and the first launch).
-  const IX_SHIELD = "M512 856 C352 786 244 672 244 518 L244 266 C344 258 432 230 512 176 C592 230 680 258 780 266 L780 518 C780 672 672 786 512 856 Z";
-  // The two lines are the owner's words; the kicker says what the app does, in the words of the sign-in sheet.
-  const IX_PITCH = { lines: ["Stay protected.", "All in one place."], kicker: "Check, scan and recover" };
-  // Beats in ms from the stage's first frame. ios.css runs the lock, the ring and the wordmark on the same clock
-  // (.cn-ix.is-run: the shackle shuts 220-720 ms and seats near 620, the wordmark rises 700-1.6 s); these add the moves after it.
+  // The website's sign-in gate intro, the same markup, the same rules and the same clock (owner, 10 Nov 2026: "the loading
+  // screen identical to the website"): public/index.html #cnGateStage, ui-src/css/63-gate.css, mobile/web-ios/ios.css (.cn-ix).
+  // The launch screen (native/brand/splash.svg) is the plain ground, like the website's first frame, so it hands over without
+  // a jump. Then the shield draws itself, the padlock arrives open, CyberNet AI rises letter by letter, the shackle shuts with
+  // one firm tap (the haptic, at the moment it seats), "Stay protected. All in one place." rises word by word, is read and
+  // fades, the mark and wordmark glide up and smaller, and the sheet (the card, or the steps) rises over the stage. A later
+  // launch is short: signed out, the mark at rest and the card within half a second; signed in (or a guest's recent choice),
+  // the mark fades in and the stage opens onto the app. A skip, reduced motion and Pause motion show the end frame.
+  // The mark: the website's shield and padlock (index.html, the stage's first child), the shackle shut at rest.
+  const IX_MARK = "<svg viewBox=\"0 0 24 26\" fill=\"none\"><path class=\"cn-gate-shield\" pathLength=\"1\" d=\"M12 24 L4 15 L3 6 L12 2 L21 6 L20 15 Z\" stroke=\"#22D3EE\" stroke-width=\"1.3\" stroke-linejoin=\"round\" stroke-linecap=\"round\"/><g class=\"cn-gate-lock\"><path class=\"cn-gate-shackle\" d=\"M9.6 12.5v-2.3a2.4 2.4 0 0 1 4.8 0v2.3\" stroke=\"#22D3EE\" stroke-width=\"1.3\" stroke-linecap=\"round\"/><path class=\"cn-gate-body\" d=\"M9.5 12.5H14.5A1.2 1.2 0 0 1 15.7 13.7V17.5A1.2 1.2 0 0 1 14.5 18.7H9.5A1.2 1.2 0 0 1 8.3 17.5V13.7A1.2 1.2 0 0 1 9.5 12.5ZM11.5 16.066A1 1 0 1 1 12.5 16.066V17.3A.5 .5 0 0 1 11.5 17.3Z\" fill=\"#22D3EE\" fill-rule=\"evenodd\"/></g></svg>";
+  const IX_PITCH = { lines: ["Stay protected.", "All in one place."] };
+  // Beats in ms from the stage's first frame (63-gate.css runs the shield, the lock and the letters on the same clock; the
+  // website's controller has these numbers: 2650 said, 2100 read, 650 leaving, GLIDE 1200, the card at GLIDE - 350).
   const IX = {
-    click: 600,   // the shackle seats: one firm tap
-    lines: 950,   // the two lines rise in under the wordmark, the second 0.18 s after the first (0.8 s each)
-    open: 2350,   // onto the app: the stage opens (0.6 s, leave())
-    glide: 2350,  // signed out: the mark, the wordmark and the two lines glide up together (1 s)
-    pitch: 3050,  // the rule and the kicker rise under the lines
-    steps: 3750,  // the card or the steps rise over the stage
-    calm: 1100    // reduced motion: how long the end frame is shown
+    click: 2380,   // the shackle seats (the body gives at 2.33 s, the light flares at 2.38 s): one firm tap
+    said: 2650,    // the quote rises, word by word
+    read: 2100,    // how long it is read before it fades up and away
+    leaving: 650,  // the fade, then the glide
+    glide: 1200,   // the mark and wordmark glide up and smaller (--cn-gate-glide)
+    quick: 420,    // the short gate: the card rises after this
+    open: 900,     // a later launch that goes straight to the app: the mark fades in (0.4 s), is held, then the stage opens
+    steps: 2650 + 2100 + 650 + 1200 - 350, // the sheet rises as the glide eases out (said + read + leaving + glide - 350)
+    calm: 1100     // reduced motion: how long the end frame is shown
   };
   // prefers-reduced-motion, or the visitor's own "pause motion" choice (cn-ios-boot.js sets html.cn-still)
   const motionOff = () => root.classList.contains("cn-still") || !!w.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
 
+  // The website's stage, word for word (a test compares it with public/index.html), minus its typed nudge line.
   function introStageHtml() {
     const letters = (text, from) => [...text].map((c, i) => `<span style="--i:${from + i}">${c}</span>`).join("");
-    const spoken = `CyberNet AI. ${IX_PITCH.lines.join(" ")} ${IX_PITCH.kicker}.`;
+    let n = 0;
+    const quote = IX_PITCH.lines.map((line, i) => `<span class="cn-gate-ql${i ? " cn-gate-ql-2" : ""}">${line.split(" ").map(word => `<span class="cn-gate-qw" style="--w:${n++}">${esc(word)}</span>`).join(" ")}</span>`).join(" ");
     return `<div class="cn-ix" id="cnIntroStage" role="dialog" aria-modal="true" aria-label="Welcome to CyberNet AI" tabindex="-1">
-      <div class="cn-ix-lockup" aria-hidden="true">
-        <div class="cn-ix-mark">
-          <span class="cn-ix-halo"></span>
-          <svg class="cn-ix-svg" viewBox="220 150 584 732" focusable="false">
-            <defs><linearGradient id="cnIxMark" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#67e8f9"/><stop offset="1" stop-color="#22d3ee"/></linearGradient></defs>
-            <path class="cn-ix-base" d="${IX_SHIELD}" fill="none" stroke="url(#cnIxMark)" stroke-width="48" stroke-linejoin="round"/>
-            <path class="cn-ix-shackle" d="M436 486 L436 428 A76 76 0 0 1 588 428 L588 486" fill="none" stroke="url(#cnIxMark)" stroke-width="40" stroke-linecap="round"/>
-            <g class="cn-ix-body">
-              <rect x="384" y="472" width="256" height="196" rx="34" fill="url(#cnIxMark)"/>
-              <circle cx="512" cy="550" r="27" fill="#060a14"/>
-              <path d="M498 560 L526 560 L534 620 L490 620 Z" fill="#060a14"/>
-            </g>
-          </svg>
-          <span class="cn-ix-ring"></span>
+      <i class="cn-ix-bg" aria-hidden="true"></i><i class="cn-ix-sweep" aria-hidden="true"></i>
+      <div class="cn-gate-stage" aria-hidden="true">
+        <div class="cn-gate-brand">
+          <span class="cn-gate-mark">${IX_MARK}<i class="cn-gate-scan"></i></span>
+          <span class="cn-gate-word">${letters("Cyber", 0)}<b>${letters("Net", 5)}</b><small>${letters("AI", 8)}</small></span>
         </div>
-        <p class="cn-ix-word">${letters("Cyber", 0)}<b>${letters("Net", 5)}</b><small>${letters("AI", 8)}</small></p>
+        <p class="cn-gate-quote">${quote}</p>
       </div>
-      <div class="cn-ix-pitch" aria-hidden="true">
-        <p class="cn-ix-line">${esc(IX_PITCH.lines[0])}</p>
-        <p class="cn-ix-line cn-ix-line-2">${esc(IX_PITCH.lines[1])}</p>
-        <i class="cn-ix-rule"></i>
-        <p class="cn-ix-kicker">${esc(IX_PITCH.kicker)}</p>
-      </div>
-      <p class="cn-ix-sr">${esc(spoken)}</p>
+      <p class="cn-ix-sr">${esc(`CyberNet AI. ${IX_PITCH.lines.join(" ")}`)}</p>
       <button type="button" class="cn-ix-skip">Skip intro</button>
     </div>`;
+  }
+
+  // The website controller's FLIP: measure, change the layout, measure again, then glide from the old box to the new one.
+  function flip(node, mutate) {
+    const a = node.getBoundingClientRect();
+    mutate();
+    const b = node.getBoundingClientRect();
+    const dx = a.left + a.width / 2 - (b.left + b.width / 2), dy = a.top + a.height / 2 - (b.top + b.height / 2), s = b.width ? a.width / b.width : 1;
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1 && Math.abs(s - 1) < 0.01) return;
+    node.style.transition = "none";
+    node.style.transform = `translate(${dx}px,${dy}px) scale(${s})`;
+    node.getBoundingClientRect();
+    requestAnimationFrame(() => requestAnimationFrame(() => { node.style.transition = ""; node.style.transform = ""; }));
   }
 
   // Puts the stage up and starts its clock. Returns { ready, toSteps, leave }: ready resolves when the
   // beats are over or skipped (a tap anywhere, the Skip button, Escape / Return / Space); toSteps() hands the
   // screen to the steps; leave() dissolves the stage (open: opens it onto the app) and gives the native tab bar back.
-  // short: the short gate (7d), no Skip button. open: a later launch that goes straight to the app (7d).
+  // short: the short gate (7d), the mark at rest, no Skip button. open: a later launch that goes straight to the app (7d).
   function mountStage(fadeIn, { short = false, open = false } = {}) {
     $("#cnIntroStage")?.remove();
     const calm = motionOff();
     const node = el(introStageHtml());
-    // reduced motion: no moves, the end frame faded in (the lock shut, the lines up and, unless it opens onto the app, glided up)
-    if (calm) node.classList.add("is-calm", "is-lines", ...(open ? [] : ["is-glide", "is-pitch"]));
+    const brand = $(".cn-gate-brand", node);
+    // the end frame: the lock shut, the words said, the mark glided up (unless it opens onto the app); no animation runs
+    // without .is-run, so every part shows its rest value
+    if (calm) node.classList.add("is-calm", "is-said", ...(open ? [] : ["is-glide"]));
+    else if (short) node.classList.add("is-quick", "is-said", "is-glide");
+    else if (open) node.classList.add("is-said");
     else node.classList.add("is-run");
     if (short || open) node.classList.add("is-short"); // no Skip button: it would be gone before it could be used (a tap anywhere still finishes it)
     if (open) node.classList.add("is-app");
@@ -870,8 +853,10 @@
       timers.forEach(clearTimeout);
       timers = [];
       d.removeEventListener("keydown", onKey, true);
-      // every move finishes at once (is-end stops the entry animations) and the lines are there; for a sheet the mark hurries up
-      if (skipped) node.classList.add("is-end", "is-lines", ...(open ? [] : ["is-glide", "is-pitch", "is-quick"]));
+      // every move finishes at once: without .is-run each part shows its rest value, the end frame, and the mark is up
+      node.classList.remove("is-run", "is-leaving");
+      if (skipped) node.classList.add("is-end", "is-said", ...(open ? [] : ["is-glide"]));
+      else if (!open) node.classList.add("is-glide");
       go();
     };
     node.addEventListener("click", () => end(true)); // the whole stage is the target; the tap is used up, never passed on to the steps
@@ -883,27 +868,26 @@
     try { (short || open ? node : $(".cn-ix-skip", node)).focus({ preventScroll: true }); } catch { /* ignore */ }
 
     if (calm) wait(() => end(false), IX.calm);
+    else if (short) wait(() => end(false), IX.quick);
+    else if (open) wait(() => end(false), IX.open);
     else {
       wait(() => { try { P("Haptics")?.impact({ style: "MEDIUM" })?.catch?.(() => {}); } catch { /* ignore */ } }, IX.click);
-      wait(() => node.classList.add("is-lines"), IX.lines);
-      if (open) wait(() => end(false), IX.open);
-      else {
-        wait(() => node.classList.add("is-glide"), IX.glide); // the mark, the wordmark and the lines glide up, the mark gets smaller
-        wait(() => node.classList.add("is-pitch"), IX.pitch); // the rule and the kicker rise under the lines
-        wait(() => end(false), IX.steps);
-      }
+      wait(() => node.classList.add("is-said"), IX.said); // "Stay protected. All in one place." rises, word by word
+      wait(() => node.classList.add("is-leaving"), IX.said + IX.read); // it has been read: it fades up and away
+      wait(() => flip(brand, () => { node.classList.add("is-glide"); node.classList.remove("is-leaving"); }), IX.said + IX.read + IX.leaving); // the mark glides up
+      wait(() => end(false), IX.steps); // the sheet rises as the glide eases out
     }
     return {
       ready,
       toSteps() {
-        node.classList.add("is-steps"); // the pitch and Skip step aside; the sheet is the dialog now
+        node.classList.add("is-steps"); // Skip steps aside; the sheet is the dialog now
         node.setAttribute("aria-hidden", "true");
         node.inert = true;
       },
       leave() {
         end(true); // a no-op once over; makes sure no timer outlives the stage
         return new Promise(resolve => {
-          // onto the app: the lockup comes forward as the stage fades, and the page comes up under it (ios.css html.cn-ix-opening)
+          // onto the app: the mark comes forward as the stage fades, and the page comes up under it (ios.css html.cn-ix-opening)
           const opening = open && !calm;
           if (opening) { root.classList.add("cn-ix-opening"); later(showTabs, 300); }
           node.classList.add("is-out");
@@ -913,23 +897,10 @@
     };
   }
 
-  // A sheet that rises over the stage (the card, the steps) takes the bright stage's colour instead of dimming it, and
-  // the pitch stays above it only as far as it fits: all of it, or just the two lines, or none. Measured, not guessed
-  // from the screen's height: the card is taller than the steps, and Dynamic Type, the offline note and a message
-  // line make it taller still. Called again when the card's height changes (wireSignIn).
-  const PITCH_GAP = 10; // px of air between the pitch and the sheet's top edge
-  function fitPitch(panel) {
-    const stage = $("#cnIntroStage");
-    const pitch = stage && $(".cn-ix-pitch", stage);
-    const second = pitch && $(".cn-ix-line-2", pitch);
-    if (!second) return;
-    const top = panel.parentNode.clientHeight - panel.offsetHeight - PITCH_GAP; // where the sheet's top edge will be, less the air
-    stage.classList.toggle("has-lines", pitch.offsetTop + second.offsetTop + second.offsetHeight <= top);
-    stage.classList.toggle("has-room", pitch.offsetTop + pitch.offsetHeight <= top);
-  }
+  // A sheet that rises over the stage (the card, the steps) takes the bright stage's colour instead of dimming it; the mark
+  // rests above it.
   function riseOverStage(panel) {
     panel.parentNode.classList.add("cn-ix-over");
-    fitPitch(panel);
   }
 
   // Did something already bring the person here: a link that opened the app, or an item shared to it
@@ -1193,7 +1164,7 @@
           const b = e.target.closest("[data-gate]");
           if (b) finish(b.getAttribute("data-gate"));
         });
-        wireSignIn(panel, { launch, onSay: overStage ? () => fitPitch(panel) : null }); // a message changes the card's height
+        wireSignIn(panel, { launch });
         off = whenSignedIn(() => finish("signed-in"));
       }
     }).then(value => { cardOpen = null; return value; });
@@ -1494,8 +1465,13 @@
       return true;
     } catch (error) {
       const text = String(error?.message || error?.code || "");
-      if (/cancel|1001/i.test(text)) say("", "");
-      else { report(error, "apple sign-in"); say("Sign in with Apple didn't finish. Please try again, or use your email and password."); }
+      // The plugin answers CANCELED for a closed sheet (also Apple's "unknown" error after the sheet was shown); the message is the fallback
+      if (error?.code === "CANCELED" || /cancel|1001/i.test(text)) say("", "");
+      else {
+        // a real failure goes to the error report with Apple's own code (error.data: nativeDomain, nativeCode)
+        const native = error?.data && error.data.nativeCode !== undefined ? ` (${error.data.nativeDomain || "Apple"} ${error.data.nativeCode})` : "";
+        report(native ? new Error(text + native) : error, "apple sign-in");
+        say("Sign in with Apple didn't finish. Please try again, or use your email and password."); }
       return false;
     } finally { button.disabled = false; }
   }
@@ -1630,6 +1606,17 @@
       return { href: url.href, host: url.hostname, rest: url.href.slice(url.href.indexOf(url.hostname) + url.hostname.length) , scheme: url.protocol + "//" };
     } catch { return null; }
   }
+  // A Wi-Fi, contact or payment code is not a message or a link: the engine has no signals to put into plain words for it, so
+  // plainSummary() would say "We didn't find the usual signs of a scam" over a code that joins a network or asks for money. For
+  // these the engine's own reasons and advice are what the sheet shows (the engine's words, unchanged: no detection change).
+  const QR_OWN_WORDS = ["wifi", "contact", "payment"];
+  function qrSummary(kind, result, plain) {
+    if (!QR_OWN_WORDS.includes(kind)) return plain;
+    const reasons = (Array.isArray(result?.reasons) ? result.reasons : []).filter(Boolean).slice(0, 3);
+    const advice = (Array.isArray(result?.advice) ? result.advice : []).filter(Boolean).slice(0, 2);
+    if (!reasons.length) return plain;
+    return { lead: String(result.scamType || ""), points: reasons, action: advice.join(" ") };
+  }
   function showQrVerdict(value, kind = "qr", opts = {}) {
     const E = w.CyberNetEngine;
     if (!E) { toast("The checker could not load. Please restart the app."); syncTabs(); return; }
@@ -1637,7 +1624,7 @@
     try { analysed = E.analyzeQr(value); } catch (error) { report(error, "analyzeQr"); toast("This code could not be checked."); syncTabs(); return; }
     const result = analysed.result || { score: 0, reasons: ["The code holds plain text."], advice: [] };
     const v = verdictOf(result);
-    const plain = E.plainSummary ? E.plainSummary(result, { fallbackText: "" }) : { lead: "", points: (result.reasons || []).slice(0, 3), action: "" };
+    const plain = qrSummary(analysed.kind, result, E.plainSummary ? E.plainSummary(result, { fallbackText: "" }) : { lead: "", points: (result.reasons || []).slice(0, 3), action: "" });
     const link = analysed.kind === "url" ? linkParts(value) : null;
     const target = link ? `<p class="cn-ios-qr-target"><span>${esc(link.scheme)}</span><strong>${esc(link.host)}</strong><span>${esc(link.rest)}</span></p>` : `<pre class="cn-ios-qr-raw">${esc(value.slice(0, 600))}</pre>`;
     haptic(v.haptic);

@@ -30,9 +30,28 @@ does not use them. Verify query at the bottom of the file: 7 rows.
 comes from the origin `capacitor://localhost`. Only that origin gets CORS headers. Website
 requests are unchanged.
 
+### Website plans in the app: `X-CyberNet-Plans: 1`
+
+App builds from 1.0 (6) on send `X-CyberNet-Plans: 1` on every `/api` call (`honoursWebPlans()` in
+`cors.mjs`). Only those iOS requests get the account's **website plan** in the app; an iOS request
+without it (build 5) keeps the fixed App tier below, unchanged. With the header
+(`netlify/lib/app-tier.mjs` `appLimitsFor`, numbers in `netlify/lib/plans.mjs`):
+
+| Account | AI analyses / day | Recovery cases / day | Recovery updates |
+|---|---|---|---|
+| Active Business team (owner or member) | team pool (`consume_analysis_business`; 50/90/160 by seats) | team pool (`consume_recovery_case_business`; 20/36/64) | 999, 1 h wait, per person (`consume_recovery_update_business`) |
+| Active Pro (`effectivePlan` = pro) | 15 (`consume_analysis_app`) | 3 | 999, 2 h wait |
+| Free / lapsed | 3 | 1 | 1, 6 h wait |
+| Review / admin email (confirmed) | 50, or the plan's number if higher | 10, or higher | 10 with no wait, or the plan's count if higher |
+
+Precedence as on the web: team, then Pro, then Free. A no-AI-answer refund goes back to the counter
+that was charged. Answers still carry `plan: "app"`, no prices, billing or upgrade wording;
+`account-status` adds `profile.appPlan` (`free` | `pro` | `business`), reports the counters actually
+used (team pools for team accounts) and drops `profile.webPlan`.
+
 | Function | In the app |
 |---|---|
-| `account-status` | `profile.plan: "app"`, no billing fields, `isAdmin: false`, App-tier `usage`, `recoveryUsage`, `aiConsent {granted, known, version}`, history with `?includeHistory=1` for every account, `profile.isTeamMember` for the team notice |
+| `account-status` | `profile.plan: "app"`, no billing fields, `isAdmin: false`, App-tier `usage` (with `X-CyberNet-Plans: 1`: plan-based, see above, plus `profile.appPlan`), `recoveryUsage`, `aiConsent {granted, known, version}`, history with `?includeHistory=1` for every account, `profile.isTeamMember` for the team notice |
 | `analyze` | 428 `AI_CONSENT_REQUIRED` without consent; `consume_analysis_app`; mini model; history saved for every account; `mode=investigation` 403; team members' results still go to the owner's log |
 | `recovery-mode`, `recovery-update` | Consent first (428), then `consume_recovery_case_app` / `consume_recovery_update_app`; plan-free limit messages |
 | `ai-consent` (new) | `GET` state, `POST {version}` grant (409 if the version is not the current one; 429 `rate_limited` after 30 grants an hour per account), `DELETE` withdraw (never rate-limited). Current version: `2026-11-ios-1` (`netlify/lib/ai-consent.mjs`) |

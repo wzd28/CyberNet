@@ -127,12 +127,13 @@ export const STYLE_MAP = {
   "cybernet-business-team.css": null,
   "cybernet-consent.css": null
 };
-// The UI layer for the app: ui-src without these (home page, live stats, demo, reel, about, pricing,
-// sign-in gate, three.js globe, background canvases).
+// The UI layer for the app: ui-src without these (live stats, about, pricing, the website's sign-in gate, the three.js globe,
+// which loads three.js from a CDN so Home shows the globe's still picture, GSAP/Lenis, and the background canvases). The
+// website's Home page is the app's first tab (owner, 10 Nov 2026): its hero, threats, demo, flow and reel styles and the demo and
+// reel modules ship. The app's launch stage has its own rules in ios.css (the website gate's, copied); 63-gate.css stays out.
 export const UI_EXCLUDE = {
-  js: ["10-hero3d.js", "25-live.js", "30-demo.js", "35-reel.js", "09-bgfx.js", "65-press.js"],
-  css: ["20-hero.css", "22-live.css", "24-demo.css", "45-about.css", "50-pricing.css", "23-threats.css",
-        "26-flow.css", "28-home-more.css", "63-gate.css", "04-bgfx.css"]
+  js: ["10-hero3d.js", "25-live.js", "09-bgfx.js", "65-press.js"],
+  css: ["22-live.css", "45-about.css", "50-pricing.css", "63-gate.css", "04-bgfx.css"]
 };
 // iOS-only files (mobile/web-ios -> www/ios). Order of the scripts = order in the page.
 export const IOS_HEAD_SCRIPTS = ["vendor/capacitor.js", "ios/cn-ios-boot.js"]; // classic, before everything
@@ -355,7 +356,7 @@ async function buildVendor(indexHtml) {
 // CSS rules that only style markup the app does not have (web-only pages and elements) are dropped from the
 // app's UI stylesheet. A selector list loses only its matching selectors; a selector that uses :not() is
 // never touched. Robust to markup changes: a rule kept by mistake costs bytes, never layout.
-export const WEB_ONLY_SELECTORS = [/#home\b/, /#pricing\b/, /#about\b/, /#cnGate/, /\.cn-gate\b/, /\.cn-gate-/, /\.cn-intro\b/,
+export const WEB_ONLY_SELECTORS = [/#pricing\b/, /#about\b/, /#cnGate/, /\.cn-gate\b/, /\.cn-gate-/, /\.cn-intro\b/,
   /\.recovery-pro-upsell/, /\.recovery-locked-note/, /#cnConsentBar/, /\.cn-consent/, /\.cn-cookie/, /\.google-auth/, /#googleAuth/];
 export function pruneCss(css, patterns = WEB_ONLY_SELECTORS) {
   const isQuote = c => c === '"' || c === "'";
@@ -532,13 +533,21 @@ async function buildIndex(source, versions, appVersion) {
   if (lastScript) insertAt(lastScript.parentNode, lastScript.parentNode.childNodes.indexOf(lastScript) + 1, tail);
   else appendNodes(body, tail);
 
-  // ---- pages: Home is web-only, so Check (Quick Scan) is the first screen; the Account page is the app's
+  // ---- pages: the website's Home page is the app's first tab (owner, 10 Nov 2026), but the app still opens on Check (Quick Scan),
+  // as before; the Account page is the app's own. Home has no plan, price or purchase wording: the gate checks its text.
   const home = byId(doc, "home");
-  if (home) fail("index.html: #home survived; mark it data-web-only.");
+  if (!home) fail("index.html: #home (the website's home page) is missing; the app's first tab shows it.");
+  if (byId(doc, "pricing")) fail("index.html: #pricing survived; the app has no pricing page (mark it data-web-only).");
+  if (byId(doc, "about")) fail("index.html: #about survived; the app has no About page (mark it data-web-only).");
   const check = byId(doc, "cybernet");
   if (!check) fail("index.html: #cybernet (Quick Scan) is missing.");
-  setAttr(check, "class", ((attrOf(check, "class") || "").replace(/\bactive-page\b/g, "") + " active-page").replace(/\s+/g, " ").trim());
-  for (const n of findAll(doc, n => attrOf(n, "data-page") === "home")) setAttr(n, "data-page", "cybernet");
+  for (const page of findAll(doc, n => n.tagName === "section" && hasClass(n, "page"))) {
+    const cls = (attrOf(page, "class") || "").split(/\s+/).filter(c => c && c !== "active-page");
+    if (page === check) cls.push("active-page");
+    setAttr(page, "class", cls.join(" "));
+  }
+  // the Home tiles' examples say "Needs a free account"; in the app Quick Scan needs none
+  for (const n of findAll(doc, n => attrOf(n, "data-cn-try") !== undefined && attrOf(n, "title"))) removeAttr(n, "title");
   for (const n of findAll(doc, n => hasClass(n, "nav-link"))) {
     const cls = (attrOf(n, "class") || "").split(/\s+/).filter(c => c && c !== "active");
     if (attrOf(n, "data-page") === "cybernet") cls.push("active");
