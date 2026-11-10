@@ -349,9 +349,12 @@ html.cn.cn-still .cn-toast {
 /* ---------- 8. Narrow phones ---------- */
 /* Below 360 px "Create Account" wrapped onto two lines and the active tab's dot sat on the
    second line of text. Less side padding keeps both labels on one line. */
-@media (max-width: 359.98px) {
+/* 10 Nov 2026: it still wrapped on wider phones inside the compact card, so the labels never wrap at any width
+   and phones get the tighter padding. */
+html.cn #authModal .auth-tab { white-space: nowrap; }
+@media (max-width: 479.98px) {
   html.cn #authModal .auth-tab {
     padding-inline: 8px;
-    white-space: nowrap;
+    font-size: 13.5px;
   }
 }
