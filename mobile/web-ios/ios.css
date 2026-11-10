@@ -790,3 +790,24 @@ html.cn #home .hero .cn-tile-sub::after { position: absolute; inset-inline-end: 
 /* One tile per row on the phone: the label and its line each stay on one line, the arrow at the edge. */
 html.cn #home .hero .hero-video-buttons { grid-template-columns: minmax(0, 1fr); gap: .625rem; }
 html.cn #home .hero .hero-video-btn:last-child { grid-column: auto; justify-self: stretch; width: auto; }
+/* The example scan is a light panel on the website (22-live.css, which the app leaves out). Without the panel its dark
+   ink sat on the app's dark ground and could hardly be read: the panel's shell and ground, copied. */
+html.cn #home > .cn-demo {
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  width: auto;
+  max-width: none;
+  margin: 16px 12px;
+  padding: 48px 18px;
+  border-radius: 28px;
+  overflow: clip;
+  color-scheme: light;
+  color: var(--cn-text);
+  background-color: #f5f7fa;
+  background-image:
+    radial-gradient(60% 46% at 50% 0%, rgba(34, 211, 238, .08), transparent 72%),
+    linear-gradient(180deg, #fafbfc 0%, #f5f7fa 46%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9), 0 0 0 1px rgba(148, 163, 184, .14);
+}
+html.cn #home > .cn-demo .cn-demo-copy h2 > span { color: var(--cn-text-2); }
