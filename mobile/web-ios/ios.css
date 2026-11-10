@@ -780,3 +780,13 @@ html.cn-ios .modal { padding-bottom: calc(24px + var(--cn-tabbar-h)); }
 html.cn-ios .modal .modal-card { max-height: calc(100% - env(safe-area-inset-top, 0px) - max(var(--cn-tabbar-h), env(safe-area-inset-bottom, 0px)) - 24px); overflow-y: auto; }
 /* after a deletion the launch card says so itself (ios.js signInCard); the website's notice would sit under it */
 html.cn-ios.cn-deleted-told #cnAccountDeletedNotice { display: none; }
+
+/* Owner, 10 Nov 2026: no Pause buttons anywhere in the app. */
+html.cn [data-cn-demo-toggle], html.cn [data-cn-reel-pause], html.cn .cn-stage-pause, html.cn .cn-motion-toggle { display: none !important; }
+/* The tool tiles: the small arrow sits at the tile's far edge, centred, clear of the text (it used to drop under it). */
+html.cn #home .hero .hero-video-btn { padding-inline-end: 34px; row-gap: 4px; }
+html.cn #home .hero .cn-tile-sub { display: block; }
+html.cn #home .hero .cn-tile-sub::after { position: absolute; inset-inline-end: 15px; top: 50%; width: 6px; height: 6px; margin: -4px 0 0; }
+/* One tile per row on the phone: the label and its line each stay on one line, the arrow at the edge. */
+html.cn #home .hero .hero-video-buttons { grid-template-columns: minmax(0, 1fr); gap: .625rem; }
+html.cn #home .hero .hero-video-btn:last-child { grid-column: auto; justify-self: stretch; width: auto; }

@@ -132,7 +132,7 @@ export const STYLE_MAP = {
 // website's Home page is the app's first tab (owner, 10 Nov 2026): its hero, threats, demo, flow and reel styles and the demo and
 // reel modules ship. The app's launch stage has its own rules in ios.css (the website gate's, copied); 63-gate.css stays out.
 export const UI_EXCLUDE = {
-  js: ["10-hero3d.js", "25-live.js", "09-bgfx.js", "65-press.js"],
+  js: ["25-live.js", "09-bgfx.js", "65-press.js"],
   css: ["22-live.css", "45-about.css", "50-pricing.css", "63-gate.css", "04-bgfx.css"]
 };
 // iOS-only files (mobile/web-ios -> www/ios). Order of the scripts = order in the page.
@@ -337,6 +337,8 @@ async function buildVendor(indexHtml) {
   const supabase = depFile("@supabase/supabase-js", "dist/umd/supabase.js");
   const jsqr = depFile("jsqr", "dist/jsQR.js");
   const capacitor = depFile("@capacitor/core", "dist/capacitor.js");
+  const three = depFile("three", "build/three.min.js");
+  if (!three) fail("vendor: three is not installed (mobile/package.json pins it). Run `npm ci` in mobile/.");
   if (!supabase) fail("vendor: @supabase/supabase-js is not installed (mobile/package.json pins it). Run `npm ci` in mobile/.");
   if (!jsqr) fail("vendor: jsqr is not installed. Run `npm ci` in mobile/.");
   if (!capacitor) fail("vendor: @capacitor/core is not installed. Run `npm ci` in mobile/.");
@@ -350,6 +352,16 @@ async function buildVendor(indexHtml) {
   await write("vendor/supabase.js", supaBuf);
   await write("vendor/jsQR.js", await readFile(jsqr));
   await write("vendor/capacitor.js", await readFile(capacitor));
+  // The Home globe (owner, 10 Nov 2026: it must turn in the app too). The website loads three.js from a CDN by version
+  // and SRI hash; the app ships the very same file from its own bundle and never fetches code.
+  const hero = await readText(path.join(root, "ui-src", "js", "10-hero3d.js"));
+  const t = /three@([\d.]+)\/build\/three\.min\.js";\s*var THREE_SRI = "([^"]+)"/.exec(hero);
+  if (!t) fail("vendor: could not read the three.js version and SRI hash from ui-src/js/10-hero3d.js.");
+  const threeBuf = await readFile(three);
+  if (depVersion("three") !== t[1]) fail(`vendor: the website loads three ${t[1]} but mobile/node_modules has ${depVersion("three")}. Pin the same version in mobile/package.json.`);
+  if (sha384(threeBuf) !== t[2]) fail(`vendor: three ${t[1]} does not match the SRI hash in ui-src/js/10-hero3d.js.`);
+  await write("vendor/three.min.js", threeBuf);
+  await write("vendor/hero3d-kit.min.js", await readFile(path.join(pub, "ui", "3d", "hero3d-kit.min.js")));
   return { supabase: installed, jsqr: depVersion("jsqr"), capacitor: depVersion("@capacitor/core") };
 }
 
@@ -431,6 +443,17 @@ async function buildUi() {
         if (existsSync(file)) await rm(file);
       }
     }
+    // The globe module, for the app: three.js and the scene come from the bundle, and an iPhone is never "low-end"
+    // (WebKit reports few cores on every iPhone; the module's own governor still falls back to the still picture).
+    const heroFile = path.join(tmp, "js", "10-hero3d.js");
+    let hero = await readText(heroFile);
+    const swap = (re, to) => { if (!re.test(hero)) fail(`10-hero3d.js: could not adapt it for the app (${re}).`); hero = hero.replace(re, to); };
+    swap(/var THREE_SRC = "[^"]+";/, 'var THREE_SRC = "vendor/three.min.js";');
+    swap(/var THREE_SRI = "[^"]+";/, 'var THREE_SRI = "";');
+    swap(/var KIT_SRC = "\/ui\/3d\/hero3d-kit\.min\.js\?v=" \+ KIT_V;/, 'var KIT_SRC = "vendor/hero3d-kit.min.js";');
+    swap(/function lowEnd\(\) \{ return [^}]+\}/, "function lowEnd() { return false; }");
+    hero = hero.replace(/jsDelivr, SRI/g, "bundled");
+    await writeFile(heroFile, hero);
     const outDir = path.join(OUT, "ui");
     const r = spawnSync(process.execPath, [path.join(root, "scripts", "build-ui.mjs"), `--src=${tmp}`, `--out=${outDir}`], { cwd: root, encoding: "utf8" });
     if (r.status !== 0) fail(`UI build failed:\n${(r.stderr || r.stdout || "").trim()}`);

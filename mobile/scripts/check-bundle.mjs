@@ -80,7 +80,7 @@ export const ALLOWED_FILES = [
   /^(style|cybernet-legal)\.css$/,
   /^(config|cybernet-engine|cybernet-errors|cybernet-compat|script|cybernet-privacy-controls)\.js$/,
   /^ios\/(cn-ios-boot|ios|cn-analytics|legal-page)\.js$/, /^ios\/ios\.css$/,
-  /^vendor\/(supabase|jsQR|capacitor)\.js$/,
+  /^vendor\/(supabase|jsQR|capacitor)\.js$/, /^vendor\/(three|hero3d-kit)\.min\.js$/,
   /^ui\/cybernet-ui\.(css|js)$/, /^ui\/cybernet-ui-legal\.css$/,
   /^ui\/fonts\/[\w.-]+\.woff2$/, /^ui\/fonts\/OFL\.txt$/,
   /^ui\/(img|3d)\/[\w.-]+\.(png|webp|svg|jpe?g)$/, /^ui\/[\w.-]+\.(png|webp|svg|jpe?g)$/,
