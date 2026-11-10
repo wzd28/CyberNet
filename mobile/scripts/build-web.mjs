@@ -453,6 +453,12 @@ async function buildUi() {
     swap(/var KIT_SRC = "\/ui\/3d\/hero3d-kit\.min\.js\?v=" \+ KIT_V;/, 'var KIT_SRC = "vendor/hero3d-kit.min.js";');
     swap(/function lowEnd\(\) \{ return [^}]+\}/, "function lowEnd() { return false; }");
     hero = hero.replace(/jsDelivr, SRI/g, "bundled");
+    // Owner, 10 Nov 2026 ("super clear, not laggy"): on the iPhone the globe draws at the screen's own resolution and
+    // at 60 frames a second (the website's phone mode is DPR 1 at 30). The governor still steps down if a frame is slow.
+    swap(/DPR_COARSE = 1;/, "DPR_COARSE = 3;");
+    swap(/MAX_PX_COARSE = 600000;/, "MAX_PX_COARSE = 3200000;");
+    swap(/FRAME_LITE = 1000 \/ 30;/, "FRAME_LITE = 1000 / 60;");
+    swap(/START_COARSE = 400;/, "START_COARSE = 0;");
     await writeFile(heroFile, hero);
     const outDir = path.join(OUT, "ui");
     const r = spawnSync(process.execPath, [path.join(root, "scripts", "build-ui.mjs"), `--src=${tmp}`, `--out=${outDir}`], { cwd: root, encoding: "utf8" });
