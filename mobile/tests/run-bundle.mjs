@@ -1186,78 +1186,10 @@ try {
         check("Apple deletion: the notice says exactly: To finish, open Settings, tap your name, then Sign in with Apple. Choose CyberNet AI and tap Delete (on older iOS: Stop Using Apple Account). (one OK button, no link)", t.api.text === "To finish, open Settings, tap your name, then Sign in with Apple. Choose CyberNet AI and tap Delete (on older iOS: Stop Using Apple Account)." && sheetNodes.some(n => n.tagName === "p" && textOf(n) === t.api.text) && sheetNodes.filter(n => n.tagName === "button").length === 1 && !sheetNodes.some(n => n.tagName === "a"), t.kept.__sheet?.html);
       }
 
-      // ---- 7. the plan on the account (profile.appPlan from the server; the app has no purchases)
+      // ---- 7. no plans in the app (owner, 11 Nov 2026, option A): a website plan does not change the app
       {
-        const LABEL = run(["PLAN_LABEL"], [], "PLAN_LABEL");
-        check("Plan line: the label is the bare word Pro or Business, nothing else", JSON.stringify(LABEL) === '{"pro":"Pro","business":"Business"}', LABEL);
-        check("Plan line: the gate lets only the bare word Pro through, in ios/ios.js and nowhere else", gateMod.PLAN_NOTICE_STRINGS.length === 1 && gateMod.PLAN_NOTICE_STRINGS[0] === LABEL.pro && gateMod.wordHits("Pro", { file: "ios/ios.js" }).length === 0 && gateMod.wordHits("Pro", { file: "script.js" }).includes("Pro"));
-        check("Plan line: the old website-plan notice is gone (no webPlan, no card, no 'coming to the app')", !/webPlan|cnPlanNotice|PLAN_NOTICE_SEEN|plan-notice|coming to the app|update soon/.test(iosJs) && !/plan-notice/.test(css));
-
-        const labelFor = run(["PLAN_LABEL", "planLabelFor"], [], "planLabelFor");
-        check("Plan line: shown only for the signed-in account the Pro or Business answer is for; never for Free, a guest, a signed-out app, another account, or an unknown word",
-          labelFor("u1", true, { userId: "u1", plan: "pro" }) === "Pro" && labelFor("u1", true, { userId: "u1", plan: "business" }) === "Business" &&
-          labelFor("u1", true, { userId: "u1", plan: null }) === null && labelFor("u1", false, { userId: "u1", plan: "pro" }) === null && labelFor(null, true, { userId: null, plan: "pro" }) === null &&
-          labelFor("u2", true, { userId: "u1", plan: "pro" }) === null && labelFor("u1", true, { userId: "u1", plan: "constructor" }) === null && labelFor("u1", true, { userId: "u1", plan: "admin" }) === null);
-
-        // what the account-status reply says, through the fetch layer (cut out of ios.js and run with stubs)
-        const wrapperNode = find(n => n.type === "AssignmentExpression" && n.left?.type === "MemberExpression" && n.left.object?.name === "w" && n.left.property?.name === "fetch", iosAst);
-        const mkLayer = (answer) => {
-          const session = { token: "t1", user: { id: "u1" } };
-          const stored = {};
-          const dom = run(["PLAN_LABEL", "appPlan", "noteAppPlan"], ["state"], "{ noteAppPlan, get: () => appPlan }", () => ({ session: { access_token: session.token }, user: session.user }));
-          const layer = new Function("AI_ENDPOINT", "appFetch", "state", "noteAppPlan", "withAppleCode", "noteAppleLeftover", `return (${iosSrc(wrapperNode.right)});`)(
-            /^\/api\/(analyze|recovery-mode|recovery-update)(?:[?#]|$)/, async () => { if (answer.swap) session.token = "t2"; return new Response(JSON.stringify(answer.data), { status: answer.status || 200 }); },
-            () => ({ session: { access_token: session.token }, user: session.user }), dom.noteAppPlan, async init => init, async (init, res) => { stored.deleted = JSON.parse(init.body).action; stored.revoked = (await res.clone().json()).appleTokensRevoked; });
-          return { layer, dom, session, stored };
-        };
-        const ask = async (answer) => { const t = mkLayer(answer); const res = await t.layer("/api/account-status?includeHistory=1", { headers: {} }); return { t, res }; };
-        const pro = await ask({ data: { profile: { plan: "app", appPlan: "pro" }, recoveryUsage: { casesLimit: 3, casesUsed: 0 } } });
-        const biz = await ask({ data: { profile: { plan: "app", appPlan: "business" } } });
-        const free = await ask({ data: { profile: { plan: "app", appPlan: "free" } } });
-        const odd = await ask({ data: { profile: { plan: "app", appPlan: "admin" } } });
-        const failed = await ask({ data: { error: "no" }, status: 500 });
-        const gone = await ask({ data: { profile: { appPlan: "pro" } }, swap: true });
-        check("Plan line: the account-status reply's profile.appPlan is noted for the account and session it was asked for (pro, business); Free, an unknown word, a failed reply, and an answer for a session that has ended note nothing; the caller still gets the reply",
-          JSON.stringify(pro.t.dom.get()) === '{"userId":"u1","plan":"pro"}' && JSON.stringify(biz.t.dom.get()) === '{"userId":"u1","plan":"business"}' && free.t.dom.get().plan === null && odd.t.dom.get().plan === null &&
-          failed.t.dom.get().userId === null && gone.t.dom.get().userId === null && (await pro.res.json()).profile.appPlan === "pro", [pro.t.dom.get(), free.t.dom.get(), odd.t.dom.get(), failed.t.dom.get(), gone.t.dom.get()]);
-        const del = mkLayer({ data: { deleted: true, appleTokensRevoked: false } });
-        await del.layer("/api/privacy-data", { method: "POST", body: JSON.stringify({ action: "delete-account" }) });
-        check("Apple deletion: the fetch layer reads the deletion reply (after the Apple code is added) so the notice can be carried over the reload", del.stored.deleted === "delete-account" && del.stored.revoked === false, del.stored);
-
-        // the Account row and sentence, run with a small fake page
-        const mkPage = (userId, signed, answer) => {
-          const dom = { row: { hidden: true }, note: { hidden: true }, name: { textContent: "" } };
-          const who = { id: userId, signed };
-          const api = run(["PLAN_LABEL", "appPlan", "planLabelFor", "renderPlanLine"], ["state", "signedIn", "$", "dom"],
-            "{ renderPlanLine, set: v => { appPlan = v; }, dom: () => dom }", () => ({ user: who.id ? { id: who.id } : null }), () => who.signed,
-            sel => ({ "#cnAcctPlanRow": dom.row, "#cnAcctPlan": dom.note, "#cnAcctPlanName": dom.name })[sel] || null, dom);
-          api.set(answer);
-          return { api, dom, who };
-        };
-        const show = t => { t.api.renderPlanLine(); return t.api.dom(); };
-        const d1 = show(mkPage("u1", true, { userId: "u1", plan: "pro" }));
-        const d2 = show(mkPage("u2", true, { userId: "u2", plan: "business" }));
-        check("Plan line: a Pro account sees the row 'Pro' and the sentence; a Business account sees 'Business'", d1.row.hidden === false && d1.note.hidden === false && d1.name.textContent === "Pro" && d2.row.hidden === false && d2.name.textContent === "Business", [d1, d2]);
-        const free2 = show(mkPage("u3", true, { userId: "u3", plan: null }));
-        const guest = show(mkPage(null, false, { userId: null, plan: "pro" }));
-        const out = show(mkPage("u1", false, { userId: "u1", plan: "pro" }));
-        const other = show(mkPage("u1", true, { userId: "u9", plan: "pro" }));
-        check("Plan line: never shown to a free account, a guest, a signed-out app, or while the answer belongs to another account", [free2, guest, out, other].every(x => x.row.hidden === true && x.note.hidden === true && x.name.textContent === ""), [free2, guest, out, other]);
-        const gone2 = mkPage("u1", true, { userId: "u1", plan: "pro" });
-        show(gone2);
-        gone2.who.signed = false;
-        gone2.api.renderPlanLine();
-        check("Plan line: signing out takes it away", gone2.api.dom().row.hidden === true && gone2.api.dom().note.hidden === true);
-
-        const accountPartial = P5.parseFragment(await readFile(path.join(mobile, "web-ios", "partials", "account.html"), "utf8"));
-        const byId = {};
-        (function walk(n) { if (n.attrs && attr(n, "id")) byId[attr(n, "id")] = n; (n.childNodes || []).forEach(walk); })(accountPartial);
-        const planRow = byId.cnAcctPlanRow, planLine = byId.cnAcctPlan, planGroup = planLine?.parentNode;
-        check("Account tab: the plan row ('Your plan' and an empty value) and the one plain sentence sit hidden inside the signed-in group, so a guest never sees them",
-          planRow && attr(planRow, "hidden") !== undefined && textOf(planRow) === "Your plan" && byId.cnAcctPlanName && textOf(byId.cnAcctPlanName) === "" && planLine?.tagName === "p" && /\bcn-ios-note\b/.test(attr(planLine, "class")) && attr(planLine, "hidden") !== undefined &&
-          textOf(planLine) === "Your plan's daily limits apply in the app." && planGroup && attr(planGroup, "data-ios-signed-in") !== undefined && planRow.parentNode === planGroup);
-        const planMarkup = [textOf(planRow), textOf(planLine), ...Object.values(LABEL)].join(" ");
-        check("Plan line: no price, upgrade, subscribe, buy, purchase, website or link words, and no link or button in the row", !/\$|upgrade|subscribe|purchase|buy|checkout|price|per month|\/month|billing|website|cybernetai/i.test(planMarkup) && !(planRow.childNodes || []).some(n => ["a", "button"].includes(n.tagName)) && !(planLine.childNodes || []).some(n => ["a", "button"].includes(n.tagName)));
+        check("No plans: the app shows no plan line, plan sheet or plan names, and keeps no plan state", !/cnAcctPlan|data-ios-action="plans"/.test(html) && !/PLAN_LABEL|appPlan|showPlans|renderPlanLine|cn-ios-plan|Plans and daily limits/.test(iosJs));
+        check("No plans: requests do not ask the server for the website plan (no X-CyberNet-Plans header)", !/X-CyberNet-Plans/i.test(await read("ios/cn-ios-boot.js")));
       }
     }
 
@@ -1265,7 +1197,7 @@ try {
     for (const page of ["terms", "privacy", "acceptable-use"]) check(`legal/${page}.html exists`, existsSync(path.join(out, "legal", `${page}.html`)));
     const terms = await read("legal/terms.html");
     const privacy = await read("legal/privacy.html");
-    check("Terms: plans/pricing/payments/cancellation/refunds replaced", !/id="(subscriptions|payments|cancellation|refunds)"/.test(terms) && /The iPhone app has no purchases. A plan bought on the website also applies when you sign in with the same account in the app/.test(terms));
+    check("Terms: plans/pricing/payments/cancellation/refunds replaced", !/id="(subscriptions|payments|cancellation|refunds)"/.test(terms) && /no paid plans and no purchases/.test(terms));
     check("Terms and Privacy carry the iPhone app section", /id="iphone-app"/.test(terms) && /id="iphone-app"/.test(privacy));
     check("Privacy names the operator", /Marks Events FZ LLE/.test(privacy) && /support@cybernetai\.app/.test(privacy));
     // the sign-in card links here: the Terms and the Privacy Policy must not say the app has Sign in with Apple only (30 Oct 2026)
@@ -1285,7 +1217,7 @@ try {
       const offenders = (re) => Object.entries(pages).filter(([, text]) => re.test(text)).map(([name]) => name);
       check("iPhone legal pages: no BYOK, no own OpenAI key, no connected API keys offered", offenders(/\bBYOK\b|bring your own|your own OpenAI|user-provided OpenAI|connect an API key,|connected API key|connecting an API key|Forget Key|API-key/i).length === 0, offenders(/\bBYOK\b|bring your own|your own OpenAI|user-provided OpenAI|connect an API key,|connected API key|connecting an API key|Forget Key|API-key/i));
       check("iPhone legal pages: no Pro or Business plan wording (Pro, Free and Pro, Business team, plan or subscription, seats, seat tiers)", offenders(/\bPro\b|Free and Pro|Business (?:team|plan|subscription|account|seat|allowance)|\bseat/i).length === 0, offenders(/\bPro\b|Free and Pro|Business (?:team|plan|subscription|account|seat|allowance)|\bseat/i));
-      check("iPhone legal pages: no link previews and neither of their providers", offenders(/Link and QR-code previews|GetScreenshot|Rasterwise|Microlink/).length === 0 && /no link previews/.test(pages.privacy), offenders(/Link and QR-code previews|GetScreenshot|Rasterwise|Microlink/));
+      check("iPhone legal pages: the picture of a page is described as on request only, with its two providers (owner, 11 Nov 2026)", /Link and QR-code previews/.test(pages.privacy) && /only if you tap Show a picture of this page/.test(pages.privacy) && /GetScreenshot/.test(pages.privacy) && /Microlink/.test(pages.privacy) && !/On Pro and Business accounts/.test(pages.privacy) && !/no link previews/.test(pages.privacy));
       check("iPhone legal pages: no 'buying the seats', no price, no Chrome, Android or Play Store", offenders(/buying the seats|\$|per month|per year|Chrome|Android|Play Store/i).length === 0, offenders(/buying the seats|\$|per month|per year|Chrome|Android|Play Store/i));
       check("iPhone legal pages: the sections that were about the website's keys and plans say so plainly and stay in place (Terms 8, Acceptable Use 5: same numbers, short text)", /<h2>8\. API keys<\/h2>\s*<p>The iPhone app does not let you connect an API key of your own\./.test(terms) && /<h2>5\. Accounts and credentials<\/h2>\s*<p>The iPhone app does not accept API keys\./.test(acceptable) && /<h2>10–14\. No purchases in the app<\/h2>/.test(terms) && /One person, one account\./.test(acceptable) && /Payments on the website<\/h3>\s*<p>The app has no purchases\./.test(privacy));
       check("iPhone legal pages: the headings and contents entries no longer name plans, billing or a user-provided key feature (Terms 8 and 10-14, Acceptable Use 5); the numbers and the #byok, #plans and #api anchors stay", ["User-provided API keys", "Plans, payments and billing", "API keys and third-party accounts", "Free, Pro, and Business"].every(w => !terms.includes(w) && !acceptable.includes(w)) && [[terms, "byok", "8. API keys"], [terms, "plans", "10–14. No purchases in the app"], [acceptable, "api", "5. Accounts and credentials"]].every(([page, id, label]) => page.includes(`<a href="#${id}">${label}</a>`) && page.includes(`id="${id}"`)), [terms.includes("User-provided API keys"), terms.includes("Plans, payments and billing"), acceptable.includes("API keys and third-party accounts")]);

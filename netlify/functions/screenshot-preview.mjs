@@ -1,9 +1,10 @@
 import { json, verifyUser, getProfile, effectivePlan, getActiveTeamMembership, serviceFetch, isAdminUser } from "../lib/supabase.mjs";
 import { reportError } from "../lib/report-error.mjs";
 import { lookup as dnsLookup } from "node:dns/promises";
-// Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
-// management, admin): requests from the app get 403 (netlify/lib/cors.mjs).
-import { webOnly } from "../lib/cors.mjs";
+// The iPhone app uses it too (owner, 11 Nov 2026): any signed-in app account gets
+// a picture when it taps "Show a picture of this page" (same per-account caps).
+// The website keeps it for Pro and Business accounts.
+import { withCors, isIOS } from "../lib/cors.mjs";
 
 // Every preview spends a paid GetScreenshot credit (or the shared keyless
 // Microlink allowance), so each account gets a short-burst and a daily cap.
@@ -220,7 +221,7 @@ export async function buildPreview(safeUrl, { apiKey, deadline = previewDeps.now
   }
 }
 
-export default webOnly(async (request) => {
+export default withCors(async (request) => {
   if (request.method !== "POST") {
     return json({ error: "Method not allowed." }, 405);
   }
@@ -234,7 +235,7 @@ export default webOnly(async (request) => {
 
   // Admin-allowlist accounts have Business access (as account-status reports).
   const isAdmin = isAdminUser(user);
-  if (!isAdmin) {
+  if (!isAdmin && !isIOS(request)) {
     const profile = await getProfile(user).catch(() => ({}));
     const plan = effectivePlan(profile);
     const onTeam = plan === "business" || Boolean(profile?.isTeamMember) || (await isActiveTeamMember(user.id));

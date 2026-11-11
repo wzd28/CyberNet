@@ -41,7 +41,7 @@ export const WORDS = [
   "upgrade", "unlock", "pricing", 'switchpage("pricing")', "data-upgrade-now", "view pro", "pro feature",
   "pro plan", "business plan", "per month", "/month", "per year", "$9.99", "95.90", "$40", "subscription",
   "free trial", "google", "signinwithoauth", "android", "play store", "chrome", "install app", "pwa", "byok",
-  "openai key", "api key", "investigation", "screenshot-preview", "public-stats", "three@", "jsdelivr", "unpkg",
+  "openai key", "api key", "investigation", "public-stats", "three@", "jsdelivr", "unpkg",
   "googletagmanager", "gtag", "coming soon", "lorem", "todo", "tbd", "localhost:", "accurate", "protects your",
   "real-time protection", "99%", "antivirus", "100% safe", "cn_demo_screen", "cn_engine_selftest",
   // App Review 2.3.1(a): the Check screen makes no malware-detection or protection claim (the website's wording for these is
@@ -66,9 +66,7 @@ export const LEGAL_WORDS = ["$", "per month", "/month", "per year", "9.99", "95.
 // "Pro" is allowed in ios/ios.js alone, as a whole string literal and word for word (a longer string that merely contains it is not
 // allowed). "Business" is not a listed word. Prices, upgrade, purchase and checkout words stay forbidden everywhere, also next to it.
 export const PLAN_NOTICE_FILE = "ios/ios.js";
-export const PLAN_NOTICE_STRINGS = [
-  "Pro"
-];
+export const PLAN_NOTICE_STRINGS = []; // owner, 11 Nov 2026 (option A): no plan names in the app at all
 export const FORBIDDEN_IDENTIFIERS = ["startCheckout", "openBillingPortal", "showPricingNotice", "initPricingToggle", "signInWithOAuth", "googleAuthBtn", "byokAnalyze"];
 // Terms no exemption may ever cover.
 const NEVER_EXEMPT = ["stripe", "checkout", "customer-portal", "create-checkout-session", "manage billing", "billing portal", "upgrade", "pricing", "data-upgrade-now", "view pro", "pro plan", "business plan", "per month", "/month", "per year", "$9.99", "95.90", "$40", "subscription", "free trial", "google", "signinwithoauth", "jsdelivr", "unpkg", "three@", "googletagmanager", "gtag", "Pro"];

@@ -53,10 +53,10 @@
     {
       "pattern": "<h3>Link and QR-code previews</h3>\\s*<p>[\\s\\S]*?</p>\\s*",
       "flags": "g",
-      "replace": "",
+      "replace": "<h3>Link and QR-code previews</h3>\n<p>When you are signed in, a link you check in the app, including one in a QR code, can come with a picture of the page, but only if you tap Show a picture of this page. CyberNet AI then sends that web address, and nothing else, to GetScreenshot, a service of Rasterwise, and, if it is slow or unavailable, to Microlink. Their computers open the page and send back a screenshot, so the page never runs on your iPhone. They receive the full web address, including anything written inside it, but not your name, email address or account details. CyberNet AI shows the picture in the result and does not store it on its servers; the providers may keep the address and the picture for a short time under their own terms. If a link carries private details, such as a password-reset or invitation link, those details reach the preview service too.</p>\n",
       "min": 1,
       "max": 1,
-      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. link previews (a Pro and Business website feature, with its two providers) are not in the app"
+      "why": "Owner, 11 Nov 2026: the app shows a picture of a page on request (signed-in accounts); this section describes the app's version"
     },
     {
       "find": "Pro AI history, Recovery Mode cases, and account information may be stored in Supabase.",
@@ -168,10 +168,10 @@
     {
       "pattern": "<li><strong>GetScreenshot \\(Rasterwise\\) and Microlink:</strong>[\\s\\S]*?</li>\\s*",
       "flags": "g",
-      "replace": "",
+      "replace": "<li><strong>GetScreenshot (Rasterwise) and Microlink:</strong> pictures of a page, only when you tap Show a picture of this page; they receive the web address being previewed, as described in <a href=\"#feature-storage\">section 3</a>;</li>\n",
       "min": 1,
       "max": 1,
-      "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. section 6: the two link-preview providers are not used by the app"
+      "why": "Owner, 11 Nov 2026: the app uses the two preview providers on request; section 6 names them"
     },
     {
       "find": "<tr><td>Business team activity (",

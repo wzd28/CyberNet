@@ -384,61 +384,8 @@
       $("#cnAcctTeam").hidden = !isTeamMember();
       refreshConsentSwitch();
     }
-    renderPlanLine();
     refreshReminderSwitch();
     refreshTrackingRow();
-  }
-
-  /* ---- 3b. the plan on the account ---- */
-  // The server sends the plan the account has (account-status, profile.appPlan: "free", "pro" or "business"; the request carries
-  // X-CyberNet-Plans: 1) and already applies its daily limits to the counters. The Account tab shows a quiet line for a paid
-  // account only: nothing for Free, a guest or an unknown word. No price, no link, no button. "Pro" is the only word the gate lets
-  // through here (check-bundle.mjs PLAN_NOTICE_STRINGS): change both together.
-  const PLAN_LABEL = { pro: "Pro", business: "Business" };
-  let appPlan = { userId: null, plan: null };   // the last account-status answer, for the account it was asked for
-  // Called by the fetch layer with the reply's profile.appPlan; `token` is the session the request was made with.
-  function noteAppPlan(value, token) {
-    const s = state();
-    if (!s?.user?.id || s.session?.access_token !== token) return; // the answer is for a session that is gone
-    appPlan = { userId: s.user.id, plan: value === "pro" || value === "business" ? value : null };
-  }
-  // The label for the account that is signed in now, or null: nothing for a guest, a signed-out app, a Free account, or an
-  // answer that was given for another account.
-  function planLabelFor(userId, signed, answer) {
-    if (!signed || !userId || answer.userId !== userId) return null;
-    return Object.prototype.hasOwnProperty.call(PLAN_LABEL, answer.plan) ? PLAN_LABEL[answer.plan] : null;
-  }
-  function renderPlanLine() {
-    const label = planLabelFor(state()?.user?.id || null, signedIn(), appPlan);
-    const row = $("#cnAcctPlanRow");
-    const note = $("#cnAcctPlan");
-    if (row) row.hidden = !label;
-    if (note) note.hidden = !label;
-    const value = $("#cnAcctPlanName");
-    if (value) value.textContent = label || "";
-  }
-
-  // Account > Plans (owner, 11 Nov 2026): what each plan's daily limits are. Information only: no price, no button, link or
-  // prompt to buy (Guideline 3.1.1). The numbers are the server's (netlify/lib/plans.mjs); every account has every feature.
-  function showPlans() {
-    const P = PLAN_LABEL.pro, B = PLAN_LABEL.business;
-    sheet({
-      id: "cnPlans",
-      label: "Plans and daily limits",
-      html: `<h2 class="cn-ios-sheet-title">Plans and daily limits</h2>
-        <div class="cn-ios-sheet-body">
-          <p>Every account has every feature. Check, Scan QR and the Share sheet have no limit. Plans only change how many AI explanations and Recovery cases you get each day.</p>
-          <div class="cn-ios-plan"><h3>Free</h3><ul>
-            <li>3 AI explanations a day</li><li>1 Recovery case a day, with 1 update</li></ul></div>
-          <div class="cn-ios-plan"><h3>${P}</h3><ul>
-            <li>15 AI explanations a day</li><li>3 Recovery cases a day</li><li>Recovery updates every 2 hours</li></ul></div>
-          <div class="cn-ios-plan"><h3>${B}</h3><ul>
-            <li>For teams: each person signs in with their own account</li><li>A shared team pool of 50 to 160 AI explanations a day</li><li>A shared pool of 20 to 64 Recovery cases a day</li><li>Recovery updates every hour</li></ul></div>
-          <p>Want more daily usage? Plans are available on our website, cybernetai.app. They cannot be bought in the app. A plan from the website applies here when you sign in with the same account.</p>
-          <p class="cn-ios-note">AI explanations reset at midnight UTC. Recovery resets at 12:00 noon Gulf time.</p>
-        </div>
-        <div class="cn-ios-sheet-actions"><button type="button" class="primary-btn full" data-sheet-value="done" data-autofocus>Done</button></div>`
-    });
   }
 
   // Account > Help: the Share sheet entry for CyberNet AI is off until the person turns it on (the welcome tips say so too).
@@ -476,7 +423,6 @@
         else if (action === "legal") openLegal(t.getAttribute("data-doc") || "privacy");
         else if (action === "intro") showIntro(true);
         else if (action === "share-help") showShareHelp();
-        else if (action === "plans") showPlans();
         else if (action === "test-reminder") testReminder();
         else if (action === "tracking-settings") openExternal("app-settings:");
       } catch (error) { report(error, `account ${action}`); toast("Something went wrong. Please try again."); }
@@ -501,7 +447,7 @@
       if (user) store.del(GUEST_KEY); // an account is signed in: there is no guest choice left to remember (a later sign-out meets the short gate again)
       lastUser = user;
     });
-    w.addEventListener("cybernet:account-ui", () => { if (activePage() === "account") renderAccount(); else renderPlanLine(); });
+    w.addEventListener("cybernet:account-ui", () => { if (activePage() === "account") renderAccount(); });
   }
 
   async function signOut() {
@@ -651,8 +597,6 @@
       // script.js keeps appState.recoveryUsage as { used, limit } but only fills it from Recovery replies.
       // The app's account-status (App tier) sends today's Recovery counts too, so copy them before
       // script.js reads the reply; the Account screen and the Recovery meter then show them at once.
-      // It also carries profile.appPlan (section 3b); the token says whose answer it is.
-      const token = state()?.session?.access_token;
       const res = await appFetch(input, init);
       if (res.ok) {
         try {
@@ -660,7 +604,6 @@
           const r = data?.recoveryUsage;
           const s = state();
           if (s && r && Number(r.casesLimit) > 0) s.recoveryUsage = { used: Number(r.casesUsed) || 0, limit: Number(r.casesLimit) };
-          noteAppPlan(data?.profile?.appPlan, token);
         } catch { /* not JSON: script.js reports it */ }
       }
       return res;
@@ -1659,6 +1602,7 @@
         <div class="verdict-headline verdict-headline-${v.tone}"><span class="verdict-headline-text">${v.headline}</span></div>
         <div class="cn-ios-sheet-body">
           ${target}
+          ${link && signedIn() ? `<div class="cn-ios-shot" data-qr-shot><button type="button" class="secondary-btn full" data-qr="shot">Show a picture of this page</button><p class="cn-ios-note">Sends only this web address to our preview service, which opens the page away from your iPhone.</p></div>` : ""}
           ${plain.lead ? `<p class="plain-lead">${esc(plain.lead)}</p>` : ""}
           <ul class="plain-points">${(plain.points || []).slice(0, 3).map(p => `<li>${esc(p)}</li>`).join("")}</ul>
           ${plain.action ? `<p class="plain-action"><strong>What to do:</strong> ${esc(plain.action)}</p>` : ""}
@@ -1678,6 +1622,7 @@
           if (!b) return;
           const what = b.getAttribute("data-qr");
           if (what === "copy") copyText(value);
+          if (what === "shot" && link) loadPagePicture(panel.querySelector("[data-qr-shot]"), link.href);
           if (what === "open" && link) {
             if (v.tone !== "safe") {
               const ok = await confirmSheet("Open a risky link?", `CyberNet AI found warning signs for ${link.host}. Open it in Safari only if you are sure who sent it.`, "Open in Safari", "Don't open");
@@ -1691,6 +1636,24 @@
         });
       }
     }).then(() => syncTabs());
+  }
+  // The picture of a page (owner, 11 Nov 2026): only when a signed-in person taps for it. Only the web address goes to
+  // CyberNet AI's server, whose preview service (GetScreenshot, or Microlink) opens the page; the image comes back as data:.
+  async function loadPagePicture(box, url) {
+    if (!box) return;
+    box.innerHTML = '<div class="screenshot-loading"><span class="btn-spinner"></span> Loading a picture of this page…</div>';
+    let msg = "Couldn't show a picture of this page right now. Please try again later.";
+    try {
+      const token = state()?.session?.access_token;
+      const res = await w.fetch("/api/screenshot-preview", { method: "POST", headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ url }) });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.unreachable) msg = "We couldn't open this page to show a picture of it. This doesn't change the result above.";
+      else if (res.ok && typeof data.screenshot === "string" && /^data:image\/(png|jpeg|webp);base64,/.test(data.screenshot)) {
+        box.innerHTML = `<img class="cn-ios-shot-img" alt="Picture of the page" src="${esc(data.screenshot)}"><p class="cn-ios-note">A picture shows what the page looks like right now. It doesn't prove the page is safe.</p>`;
+        return;
+      } else if (data && typeof data.error === "string") msg = data.error;
+    } catch (error) { report(error, "pagePicture"); }
+    box.innerHTML = `<p class="cn-ios-note" role="status">${esc(msg)}</p>`;
   }
   function confirmSheet(title, text, yes, no) {
     return sheet({

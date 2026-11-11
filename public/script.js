@@ -2041,7 +2041,9 @@ document.addEventListener("DOMContentLoaded",()=>{
 /*@web*/      if(!isSignedIn()){slot.remove();return}
       if(!isPro()){slot.innerHTML=`<p class="dest-shot-note">Upgrade to Pro to see a live picture of this page before you decide.</p>`;return}
       slot.innerHTML=`<div class="screenshot-loading"><span class="btn-spinner"></span> Loading a picture of this page…</div>`;
-      loadScreenshotPreview(slot,url);/*@end-web*//*@ios slot.remove(); @end-ios*/
+      loadScreenshotPreview(slot,url);/*@end-web*//*@ios if(!isSignedIn()){slot.remove();return}
+      slot.innerHTML=`<button type="button" class="secondary-btn dest-shot-btn">Show a picture of this page</button><p class="dest-shot-note">Sends only this web address to our preview service, which opens the page away from your iPhone.</p>`;
+      slot.querySelector(".dest-shot-btn").addEventListener("click",()=>{slot.innerHTML=`<div class="screenshot-loading"><span class="btn-spinner"></span> Loading a picture of this page…</div>`;loadScreenshotPreview(slot,url)},{once:true}); @end-ios*/
     });
   }
 
@@ -2515,7 +2517,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     hydratePreviews(resultBox);
   }
 
-/*@web*/  async function loadScreenshotPreview(container,url){
+  async function loadScreenshotPreview(container,url){
     if(!container)return;
     try{
       const res=await fetch("/api/screenshot-preview",{method:"POST",headers:authHeaders({"Content-Type":"application/json"}),body:JSON.stringify({url})});
@@ -2531,7 +2533,7 @@ document.addEventListener("DOMContentLoaded",()=>{
         `;
         return;
       }
-      if(!res.ok||!data.screenshot){container.remove();return}
+      if(!res.ok||!data.screenshot){/*@web*/container.remove();/*@end-web*//*@ios container.innerHTML=`<p class="dest-shot-note" role="status">${escapeHTML(data.error||"Couldn't show a picture of this page right now. Please try again later.")}</p>`; @end-ios*/return}
       const wwwNote=data.wwwFallback&&data.shownHost&&data.requestedHost?`<p class="screenshot-disclaimer dest-shot-www">Showing ${escapeHTML(data.shownHost)}: ${escapeHTML(data.requestedHost)} on its own doesn't load.</p>`:"";
       container.innerHTML=`
         <strong>📷 Here's what this page looks like right now:</strong>
@@ -2540,9 +2542,9 @@ document.addEventListener("DOMContentLoaded",()=>{
         <p class="screenshot-disclaimer">A screenshot shows what a page looked like at this moment — it doesn't prove the page is safe. A convincing fake login page can look exactly like a real one.</p>
       `;
     }catch{
-      container.remove();
+      /*@web*/container.remove();/*@end-web*//*@ios container.innerHTML=`<p class="dest-shot-note" role="status">Couldn't show a picture of this page right now. Please try again later.</p>`; @end-ios*/
     }
-  }/*@end-web*/
+  }
 
 
 

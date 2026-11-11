@@ -158,13 +158,8 @@ check("Google words are allowed for ios/ios.js alone", wordHits("Sign in with Go
 
 /* ---------- the plan label (owner decision, 10 Nov 2026) ---------- */
 {
-  const LABEL = ["Pro"];
-  check("plan label: the bare word Pro passes in ios/ios.js", LABEL.every(t => wordHits(t, { file: "ios/ios.js" }).length === 0), LABEL.map(t => wordHits(t, { file: "ios/ios.js" })));
-  check("plan label: the same word is refused in every other file", ["script.js", "index.html", "ios/cn-analytics.js", "ios/ios.css", "ios/cn-ios-boot.js"].every(f => wordHits("Pro", { file: f }).includes("Pro")));
-  check("plan label: not one character more or less (padding, a sentence around it, the old notice sentences)", ["Pro ", " Pro", "Pro.", "Go Pro", "pro plan", "You have CyberNet AI Pro.", "Your Pro limits apply in the app.", "For now, your Pro limits and features apply on cybernetai.app. Pro and Business are coming to the app in an update soon."].every(t => wordHits(t, { file: "ios/ios.js" }).length > 0), ["Pro ", "Pro."].map(t => wordHits(t, { file: "ios/ios.js" })));
-  check("plan label: Business alone was never a forbidden word, and the row's own sentence is clean", wordHits("Business", { file: "ios/ios.js" }).length === 0 && wordHits("Your plan", { file: "ios/ios.js" }).length === 0 && wordHits("Your plan's daily limits apply in the app.", { file: "ios/ios.js" }).length === 0);
-  check("plan label: prices, upgrade, purchase and checkout words stay forbidden in ios/ios.js, next to Pro or alone", ["$9.99", "per month", "Upgrade", "upgrade", "Buy Pro now", "Checkout", "Stripe", "subscription", "free trial", "pricing", "Pro plan", "Business plan"].every(t => wordHits(t, { file: "ios/ios.js" }).length > 0), ["$9.99", "per month", "Upgrade", "Stripe", "subscription", "Pro plan"].map(t => [t, wordHits(t, { file: "ios/ios.js" })]));
-  check("plan label: the allowance is one list of one, exported, and Pro can never be exempted", gatePlan.PLAN_NOTICE_STRINGS.length === 1 && gatePlan.PLAN_NOTICE_STRINGS[0] === "Pro" && gatePlan.PLAN_NOTICE_FILE === "ios/ios.js");
+  check("no plan names: the bare word Pro is refused everywhere, ios/ios.js included", ["ios/ios.js", "script.js", "index.html", "ios/cn-ios-boot.js"].every(f => wordHits("Pro", { file: f }).includes("Pro")));
+  check("no plan names: the allowance list is empty", gatePlan.PLAN_NOTICE_STRINGS.length === 0);
 }
 
 /* ---------- build regions ---------- */

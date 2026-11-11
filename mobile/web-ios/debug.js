@@ -117,7 +117,7 @@
       if (String(auth || "").indexOf(DEMO_TOKEN) < 0) return real.apply(this, arguments);
       var url = typeof input === "string" ? input : (input && input.url) || "";
       var body = url.indexOf("/api/recovery-case") >= 0 ? { cases: [] }
-        : url.indexOf("/api/account-status") >= 0 ? { profile: { plan: "app", appPlan: "free" }, usage: { used: 1, limit: 3, remaining: 2 }, history: [] } : {};
+        : url.indexOf("/api/account-status") >= 0 ? { profile: { plan: "app" }, usage: { used: 1, limit: 3, remaining: 2 }, history: [] } : {};
       return Promise.resolve(new Response(JSON.stringify(body), { status: 200, headers: { "Content-Type": "application/json" } }));
     };
   }
