@@ -811,3 +811,8 @@ html.cn #home > .cn-demo {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9), 0 0 0 1px rgba(148, 163, 184, .14);
 }
 html.cn #home > .cn-demo .cn-demo-copy h2 > span { color: var(--cn-text-2); }
+
+/* Account > Plans sheet: one quiet card per plan (information only). */
+.cn-ios-plan { margin: 0 0 10px; padding: 12px 14px; border: 1px solid var(--cn-hair-2, rgba(255,255,255,.1)); border-radius: 14px; background: rgba(255,255,255,.03); }
+.cn-ios-plan h3 { margin: 0 0 6px; font-size: 1rem; font-weight: 600; }
+.cn-ios-plan ul { margin: 0; padding-inline-start: 18px; color: var(--cn-ios-text-2, #a9b4c6); line-height: 1.5; font-size: .9rem; }

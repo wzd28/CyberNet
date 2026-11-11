@@ -1,7 +1,8 @@
 <!-- The app's Account screen (BUILD-PLAN §7.7). Inserted into <main> by mobile/scripts/build-web.mjs;
      ios.js fills and wires it. A guest sees #cnAcctSignIn: the same three ways in as the sign-in card (Sign in
      with Apple, email, Create account). The buttons with cnPrivacy* ids are the ones cybernet-privacy-controls.js
-     marks busy while it exports, clears or deletes. The Notifications group (Recovery reminders) is for a signed-in
+     marks busy while it exports, clears or deletes. Plans (owner, 11 Nov 2026) opens an information-only sheet
+     (ios.js showPlans): each plan's daily limits, no price, button, link or prompt to buy. The Notifications group (Recovery reminders) is for a signed-in
      person only, like Recovery itself. -->
 <section id="account" class="page cn-ios-account" aria-labelledby="cnAccountTitle">
   <div class="feature-page-header">
@@ -22,6 +23,11 @@
     <p class="cn-ios-note" id="cnAcctPlan" hidden>Your plan's daily limits apply in the app.</p>
     <p class="cn-ios-note" id="cnAcctTeam" hidden>You are a member of a team. Your AI explanations and Recovery activity are shown to your team&rsquo;s owner in their activity log. Check, Scan QR and the Share sheet stay on your iPhone and are never logged.</p>
     <button type="button" class="secondary-btn full" data-ios-action="sign-out">Sign out</button>
+  </div>
+
+  <h2 class="cn-ios-group-title">Plans</h2>
+  <div class="cn-ios-group">
+    <button type="button" class="cn-ios-row cn-ios-row-btn" data-ios-action="plans">Plans and daily limits</button>
   </div>
 
   <h2 class="cn-ios-group-title" data-ios-signed-in hidden>Privacy &amp; data</h2>

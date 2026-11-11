@@ -418,6 +418,29 @@
     if (value) value.textContent = label || "";
   }
 
+  // Account > Plans (owner, 11 Nov 2026): what each plan's daily limits are. Information only: no price, no button, link or
+  // prompt to buy (Guideline 3.1.1). The numbers are the server's (netlify/lib/plans.mjs); every account has every feature.
+  function showPlans() {
+    const P = PLAN_LABEL.pro, B = PLAN_LABEL.business;
+    sheet({
+      id: "cnPlans",
+      label: "Plans and daily limits",
+      html: `<h2 class="cn-ios-sheet-title">Plans and daily limits</h2>
+        <div class="cn-ios-sheet-body">
+          <p>Every account has every feature. Check, Scan QR and the Share sheet have no limit. Plans only change how many AI explanations and Recovery cases you get each day.</p>
+          <div class="cn-ios-plan"><h3>Free</h3><ul>
+            <li>3 AI explanations a day</li><li>1 Recovery case a day, with 1 update</li></ul></div>
+          <div class="cn-ios-plan"><h3>${P}</h3><ul>
+            <li>15 AI explanations a day</li><li>3 Recovery cases a day</li><li>Recovery updates every 2 hours</li></ul></div>
+          <div class="cn-ios-plan"><h3>${B}</h3><ul>
+            <li>For teams: each person signs in with their own account</li><li>A shared team pool of 50 to 160 AI explanations a day</li><li>A shared pool of 20 to 64 Recovery cases a day</li><li>Recovery updates every hour</li></ul></div>
+          <p>Want more daily usage? Plans are available on our website, cybernetai.app. They cannot be bought in the app. A plan from the website applies here when you sign in with the same account.</p>
+          <p class="cn-ios-note">AI explanations reset at midnight UTC. Recovery resets at 12:00 noon Gulf time.</p>
+        </div>
+        <div class="cn-ios-sheet-actions"><button type="button" class="primary-btn full" data-sheet-value="done" data-autofocus>Done</button></div>`
+    });
+  }
+
   // Account > Help: the Share sheet entry for CyberNet AI is off until the person turns it on (the welcome tips say so too).
   function showShareHelp() {
     sheet({
@@ -453,6 +476,7 @@
         else if (action === "legal") openLegal(t.getAttribute("data-doc") || "privacy");
         else if (action === "intro") showIntro(true);
         else if (action === "share-help") showShareHelp();
+        else if (action === "plans") showPlans();
         else if (action === "test-reminder") testReminder();
         else if (action === "tracking-settings") openExternal("app-settings:");
       } catch (error) { report(error, `account ${action}`); toast("Something went wrong. Please try again."); }
@@ -803,7 +827,6 @@
         <p class="cn-gate-quote">${quote}</p>
       </div>
       <p class="cn-ix-sr">${esc(`CyberNet AI. ${IX_PITCH.lines.join(" ")}`)}</p>
-      <button type="button" class="cn-ix-skip">Skip intro</button>
     </div>`;
   }
 
@@ -865,7 +888,8 @@
     if (nativeTabs) { tabsHidden = true; nativeTabs.setHidden({ hidden: true }).catch(() => {}); }
     d.body.appendChild(node);
     try { d.fonts?.load?.('700 34px "JetBrains Mono"'); d.fonts?.load?.('700 44px "Mona Sans"'); } catch { /* the fallback faces are fine */ }
-    try { (short || open ? node : $(".cn-ix-skip", node)).focus({ preventScroll: true }); } catch { /* ignore */ }
+    // owner, 11 Nov 2026: no Skip intro button; the stage itself takes focus (a tap anywhere still finishes it)
+    try { node.focus({ preventScroll: true }); } catch { /* ignore */ }
 
     if (calm) wait(() => end(false), IX.calm);
     else if (short) wait(() => end(false), IX.quick);
