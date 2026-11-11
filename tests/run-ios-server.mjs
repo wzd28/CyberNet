@@ -646,6 +646,9 @@ for (const [token, limit] of [["t-free", 3], ["t-pro", 3], ["t-member", 3], ["t-
   reset();
   r = await run(fn["screenshot-preview"], req("/api/screenshot-preview", { ios: true, origin: APP, body: bad }));
   check("screenshot-preview: the app without a signed-in account gets 401", r.status === 401, r.status);
+  reset();
+  r = await run(fn["screenshot-preview"], req("/api/screenshot-preview", { token: "t-free", ios: true, body: bad }));
+  check("screenshot-preview: the platform header alone (a website visitor could add it) does not skip the plan check", r.status === 403, { status: r.status, data: r.data });
 }
 
 // ══════════ 10. source checks: routes and wrapping ══════════
@@ -666,7 +669,7 @@ for (const [token, limit] of [["t-free", 3], ["t-pro", 3], ["t-member", 3], ["t-
   // the picture of a page (owner, 11 Nov 2026): the app may ask for it, for any signed-in account; the website keeps Pro/Business
   const shot = src("screenshot-preview.mjs");
   check("source: screenshot-preview is CORS-wrapped for the app, not web-only", /export default withCors\(/.test(shot) && !/webOnly\(/.test(shot));
-  check("source: screenshot-preview skips the plan check only for app requests, and keeps the per-account caps for everyone but admins", /if \(!isAdmin && !isIOS\(request\)\) \{\s*const profile/.test(shot) && /if \(!isAdmin\) \{\s*const allowed =/.test(shot));
+  check("source: screenshot-preview skips the plan check only for app requests, and keeps the per-account caps for everyone but admins", /const fromApp = Boolean\(allowedOrigin\(request\)\);\s*if \(!isAdmin && !fromApp\) \{\s*const profile/.test(shot) && /shot:app:day/.test(shot) && /if \(!isAdmin\) \{\s*const allowed =/.test(shot));
   const toml = readFileSync(path.join(root, "netlify.toml"), "utf8");
   const ignore = /^\s*ignore = '([^'\n]*)'\s*$/m.exec(toml)?.[1] || "";
   check("netlify.toml: mobile-only commits skip the Netlify build", /git diff --quiet "\$CACHED_COMMIT_REF" "\$COMMIT_REF" -- public netlify netlify\.toml package\.json package-lock\.json supabase$/.test(ignore), ignore);

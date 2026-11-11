@@ -4,12 +4,14 @@ import { lookup as dnsLookup } from "node:dns/promises";
 // The iPhone app uses it too (owner, 11 Nov 2026): any signed-in app account gets
 // a picture when it taps "Show a picture of this page" (same per-account caps).
 // The website keeps it for Pro and Business accounts.
-import { withCors, isIOS } from "../lib/cors.mjs";
+import { withCors, allowedOrigin } from "../lib/cors.mjs";
 
 // Every preview spends a paid GetScreenshot credit (or the shared keyless
 // Microlink allowance), so each account gets a short-burst and a daily cap.
 const SHOT_PER_MINUTE = 6;
 const SHOT_PER_DAY = 60;
+// All app accounts together (owner, 11 Nov 2026: pictures for every signed-in app account).
+const APP_SHOTS_PER_DAY = 300;
 
 // Fails open: a quota-service outage must not take previews away from paying
 // users.
@@ -235,7 +237,10 @@ export default withCors(async (request) => {
 
   // Admin-allowlist accounts have Business access (as account-status reports).
   const isAdmin = isAdminUser(user);
-  if (!isAdmin && !isIOS(request)) {
+  // The app is recognised by its capacitor://localhost Origin, which a web page cannot set (the
+  // X-CyberNet-Platform header alone could be added by any website visitor).
+  const fromApp = Boolean(allowedOrigin(request));
+  if (!isAdmin && !fromApp) {
     const profile = await getProfile(user).catch(() => ({}));
     const plan = effectivePlan(profile);
     const onTeam = plan === "business" || Boolean(profile?.isTeamMember) || (await isActiveTeamMember(user.id));
@@ -261,7 +266,9 @@ export default withCors(async (request) => {
   if (!isAdmin) {
     const allowed =
       (await consumeQuota(`shot:min:${user.id}`, 60, SHOT_PER_MINUTE)) &&
-      (await consumeQuota(`shot:day:${user.id}`, 86400, SHOT_PER_DAY));
+      (await consumeQuota(`shot:day:${user.id}`, 86400, SHOT_PER_DAY)) &&
+      // app accounts are free to make: one shared daily ceiling for all app pictures bounds the credits they can spend
+      (!fromApp || (await consumeQuota("shot:app:day", 86400, APP_SHOTS_PER_DAY)));
     if (!allowed) {
       return json({ error: "Preview limit reached. Please try again later.", code: "rate_limited" }, 429);
     }
