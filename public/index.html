@@ -39,7 +39,7 @@
        being the active page (4 s fallback), so the Home hero does not flash first. Keep this above
        every stylesheet: an inline script after a stylesheet waits for that stylesheet to load. -->
   <style data-web-only>html.cn.cn-deep #home.active-page{visibility:hidden}</style>
-  <script data-web-only>
+  <script data-web-only id="cnGateHead">
   (function(){
     var d=document,r=d.documentElement;
     try{if(localStorage.getItem("cn-still-2")==="1")r.classList.add("cn-still")}catch(e){}
@@ -62,9 +62,16 @@
        Not when the address carries a sign-in return (email link, Google, invite): script.js finishes
        that first, and the gate locks afterwards only if it did not sign the visitor in. Signed-in
        visitors go straight to the page; the old boot intro is gone. Blocked storage: no gate. */
+    /* Try-first landing (owner, 17 Nov 2026): a signed-out visitor with free guest scans left (<3) who
+       arrives with ?try=1 or from an ad (utm_source, ttclid, fbclid or gclid in the address) gets the guest
+       choice made for them (cn-guest=1) before the gate line below runs, so the gate never shows. On / they
+       land on Quick Scan (window.CN_tryLand, script.js tryFirstLanding; cn-deep hides Home meanwhile and
+       the intro is skipped); a deep link keeps its own page. Never on a sign-in return or /accept-invite. */
+    var tryLand=false;
+    try{var q=new URLSearchParams(location.search),ls=localStorage;if((q.get("try")==="1"||q.get("utm_source")||q.get("ttclid")||q.get("fbclid")||q.get("gclid"))&&!/access_token|refresh_token|token_hash|error_description|[?&#]code=|type=recovery/.test(location.search+location.hash)&&!/^\/accept-invite/.test(location.pathname)&&!ls.getItem("sb-ndtcxippbufqzwcxkyjd-auth-token")&&(Number(ls.getItem("cn-guest-scans"))||0)<3){ls.setItem("cn-guest","1");tryLand=location.pathname==="/";window.CN_tryLand=tryLand}}catch(e){tryLand=false}
     try{if(!/access_token|refresh_token|token_hash|error_description|[?&#]code=|type=recovery/.test(location.search+location.hash)&&!/^\/accept-invite/.test(location.pathname)&&!localStorage.getItem("sb-ndtcxippbufqzwcxkyjd-auth-token")&&!(localStorage.getItem("cn-guest")==="1"&&(Number(localStorage.getItem("cn-guest-scans"))||0)<3))r.classList.add("cn-gate")}catch(e){}
-    try{if(location.pathname==="/"&&!r.classList.contains("cn-gate")&&!r.classList.contains("cn-still")&&!matchMedia("(prefers-reduced-motion: reduce)").matches&&(localStorage.getItem("cn-fx")||"").indexOf("-exposure")<0&&!sessionStorage.getItem("cn-intro")){sessionStorage.setItem("cn-intro","1");r.classList.add("cn-intro","cn-intro-hold");hold()}}catch(e){r.classList.remove("cn-intro-hold")}
-    if(/^\/(quick-scan|analysis-ai|recovery|learn|pricing|about)\/?$/.test(location.pathname)){
+    try{if(location.pathname==="/"&&!tryLand&&!r.classList.contains("cn-gate")&&!r.classList.contains("cn-still")&&!matchMedia("(prefers-reduced-motion: reduce)").matches&&(localStorage.getItem("cn-fx")||"").indexOf("-exposure")<0&&!sessionStorage.getItem("cn-intro")){sessionStorage.setItem("cn-intro","1");r.classList.add("cn-intro","cn-intro-hold");hold()}}catch(e){r.classList.remove("cn-intro-hold")}
+    if(tryLand||/^\/(quick-scan|analysis-ai|recovery|learn|pricing|about)\/?$/.test(location.pathname)){
       r.classList.add("cn-deep");
       var t=0,done=function(){clearTimeout(t);r.classList.remove("cn-deep")};
       d.addEventListener("DOMContentLoaded",function(){
@@ -3158,12 +3165,12 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" defer></script>
   <script src="/config.js?v=20260830-3" defer></script>
   <script src="/legacy/cybernet-engine.js?v=20261030-d1" defer></script>
-  <script src="/legacy/script.js?v=20261117-src" defer></script>
+  <script src="/legacy/script.js?v=20261117-try" defer></script>
   <script src="/legacy/cybernet-account-api-upgrade.js?v=20261028-1" defer></script>
   <script src="/cybernet-howto.js?v=20261019-1" defer></script>
 <script src="/legacy/cybernet-business-team.js?v=20261028-1" defer></script>
   <script src="/legacy/cybernet-final-ui-fix.js?v=20261028-1" defer></script>
-      <script src="/legacy/cybernet-legal-upgrade.js?v=20261111-a" defer></script>
+      <script src="/legacy/cybernet-legal-upgrade.js?v=20261117-src" defer></script>
   <!-- After script.js, cybernet-account-api-upgrade.js and cybernet-final-ui-fix.js (account modal tabs). -->
   <script src="/legacy/cybernet-privacy-controls.js?v=20261029-ios1" defer></script>
   <!-- After script.js (cybernet:session event, appState). -->

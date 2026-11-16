@@ -224,7 +224,18 @@ document.addEventListener("DOMContentLoaded",()=>{
   const initialRoutePage=pageForCurrentPath();
   if(initialRoutePage&&initialRoutePage!=="home"){
     switchPage(initialRoutePage,{skipUrlUpdate:true});
-  }/*@ios else{switchPage("cybernet",{skipUrlUpdate:true})} @end-ios*/
+  }/*@web*/else if(window.CN_tryLand){tryFirstLanding()}/*@end-web*//*@ios else{switchPage("cybernet",{skipUrlUpdate:true})} @end-ios*/
+/*@web*/  /* Try-first landing (owner, 17 Nov 2026): the head snippet in index.html sets window.CN_tryLand when a
+     signed-out visitor with free guest scans left arrives on / from an ad or a ?try=1 link. It has already
+     set cn-guest=1, so the sign-in gate stays down; here they land on Quick Scan, as if they had tapped
+     "Or try 3 free Quick Scans first", with the paste box ready (focused only where there is a mouse, so a
+     phone keyboard does not cover the page). The address becomes /quick-scan, query and hash kept. */
+  function tryFirstLanding(){
+    switchPage("cybernet",{skipUrlUpdate:true});
+    try{history.replaceState({page:"cybernet"},"",PAGE_PATHS.cybernet+window.location.search+window.location.hash)}catch{}
+    const box=document.getElementById("cyberTextInput");
+    try{if(box&&matchMedia("(pointer: fine)").matches)setTimeout(()=>{try{box.focus({preventScroll:true})}catch{}},400)}catch{}
+  }/*@end-web*/
 
   /* ─── Support the browser's back/forward buttons ─── */
   window.addEventListener("popstate",()=>{

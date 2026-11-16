@@ -66,6 +66,17 @@
   to = "/support.html"
   status = 200
 
+# Black Friday scam checklist (owner, 17 Nov 2026): a plain standalone page, shared as a pretty URL.
+[[redirects]]
+  from = "/black-friday-scam-checklist"
+  to = "/black-friday-scam-checklist.html"
+  status = 200
+
+[[redirects]]
+  from = "/black-friday-scam-checklist/"
+  to = "/black-friday-scam-checklist.html"
+  status = 200
+
 # People type these by hand. Send them to the home page with the sign-in card open.
 [[redirects]]
   from = "/login"

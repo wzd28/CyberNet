@@ -259,6 +259,25 @@ document.addEventListener("DOMContentLoaded", () => {
   const initialRoutePage = pageForCurrentPath();
   if (initialRoutePage && initialRoutePage !== "home") {
     switchPage(initialRoutePage, { skipUrlUpdate: true });
+  } else if (window.CN_tryLand) {
+    tryFirstLanding();
+  }
+  function tryFirstLanding() {
+    switchPage("cybernet", { skipUrlUpdate: true });
+    try {
+      history.replaceState({ page: "cybernet" }, "", PAGE_PATHS.cybernet + window.location.search + window.location.hash);
+    } catch (e) {
+    }
+    const box = document.getElementById("cyberTextInput");
+    try {
+      if (box && matchMedia("(pointer: fine)").matches) setTimeout(() => {
+        try {
+          box.focus({ preventScroll: true });
+        } catch (e) {
+        }
+      }, 400);
+    } catch (e) {
+    }
   }
   window.addEventListener("popstate", () => {
     const page = pageForCurrentPath() || "home";

@@ -84,5 +84,46 @@ if (helper) {
   check("never twice in one page", calls.length, 1);
 }
 
+// Try-first landing (17 Nov 2026): the gate head snippet (#cnGateHead) lets a signed-out visitor who
+// arrives with ?try=1 or from an ad skip the sign-in wall straight into guest Quick Scan.
+const gm = html.match(/<script data-web-only id="cnGateHead">([\s\S]*?)<\/script>/);
+check("#cnGateHead snippet found", Boolean(gm), true);
+if (gm) {
+  const SB = "sb-ndtcxippbufqzwcxkyjd-auth-token";
+  function gate(href, stored = {}) {
+    const data = { ...stored }, cls = new Set();
+    const store = o => ({ getItem: k => (k in o ? o[k] : null), setItem: (k, v) => { o[k] = String(v); } });
+    const win = {};
+    const box = {
+      window: win, localStorage: store(data), sessionStorage: store({}), location: new URL(href),
+      document: { documentElement: { classList: { add: (...c) => c.forEach(x => cls.add(x)), remove: (...c) => c.forEach(x => cls.delete(x)), contains: c => cls.has(c) } }, addEventListener() {}, fonts: null },
+      matchMedia: () => ({ matches: false }), requestAnimationFrame() {}, performance: { now: () => 0 }, setTimeout, clearTimeout, URLSearchParams, Number, String
+    };
+    vm.createContext(box);
+    vm.runInContext(gm[1], box);
+    return { wall: cls.has("cn-gate"), land: Boolean(win.CN_tryLand), guest: data["cn-guest"] === "1", deep: cls.has("cn-deep"), intro: cls.has("cn-intro") };
+  }
+  const W = "https://cybernetai.app";
+  check("no parameter: wall as today", gate(W + "/"), { wall: true, land: false, guest: false, deep: false, intro: false });
+  check("?try=1 lands on Quick Scan, no wall", gate(W + "/?try=1"), { wall: false, land: true, guest: true, deep: true, intro: false });
+  check("checklist button link", gate(W + "/?try=1&utm_source=checklist&utm_medium=web&utm_campaign=bf2026").land, true);
+  for (const p of ["utm_source=tiktok", "ttclid=abc", "fbclid=abc", "gclid=abc"]) check("ad param " + p, gate(W + "/?" + p), { wall: false, land: true, guest: true, deep: true, intro: false });
+  check("empty ttclid: wall", gate(W + "/?ttclid=").wall, true);
+  check("?try=0: wall", gate(W + "/?try=0").wall, true);
+  check("utm_medium alone: wall", gate(W + "/?utm_medium=paid").wall, true);
+  check("2 scans used: still lands", gate(W + "/?try=1", { "cn-guest-scans": "2" }).land, true);
+  check("3 scans used: wall returns", gate(W + "/?utm_source=tiktok", { "cn-guest-scans": "3" }), { wall: true, land: false, guest: false, deep: false, intro: false });
+  check("3 scans used, already a guest: wall", gate(W + "/?try=1", { "cn-guest": "1", "cn-guest-scans": "3" }).wall, true);
+  check("signed in: no wall, no landing", gate(W + "/?try=1", { [SB]: "{}" }), { wall: false, land: false, guest: false, deep: false, intro: true });
+  check("deep link /pricing: no wall, keeps its page", gate(W + "/pricing?utm_source=tiktok"), { wall: false, land: false, guest: true, deep: true, intro: false });
+  check("deep link /learn/x: no wall, no landing", gate(W + "/learn?gclid=1"), { wall: false, land: false, guest: true, deep: true, intro: false });
+  check("/accept-invite untouched", gate(W + "/accept-invite?utm_source=x&token_hash=t"), { wall: false, land: false, guest: false, deep: false, intro: false });
+  check("/accept-invite without token untouched", gate(W + "/accept-invite?try=1").guest, false);
+  for (const cb of ["/?try=1#access_token=a", "/?utm_source=x&code=abc", "/?try=1&type=recovery", "/?try=1&token_hash=t", "/?try=1&error_description=x"])
+    check("auth callback untouched " + cb, gate(W + cb), { wall: false, land: false, guest: false, deep: false, intro: true });
+}
+check("script.js: / with CN_tryLand opens Quick Scan", /\/\*@web\*\/else if\(window\.CN_tryLand\)\{tryFirstLanding\(\)\}\/\*@end-web\*\//.test(script), true);
+check("script.js: tryFirstLanding switches to cybernet", /function tryFirstLanding\(\)\{\s*switchPage\("cybernet",\{skipUrlUpdate:true\}\)/.test(script), true);
+
 console.log(`signup-source: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
