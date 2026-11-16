@@ -1171,9 +1171,34 @@ document.addEventListener("DOMContentLoaded",()=>{
     try{return await request}finally{if(accountStatusInflight===request)accountStatusInflight=null}
   }
 
+  /* Sign-up source (cn-src, kept by the head snippet in index.html on the first arrival). It goes into
+     the new account's user_metadata as signup_source, so sign-ups can be counted per platform. */
+/*@web*/  function signupSource(){
+    try{
+      const raw=JSON.parse(localStorage.getItem("cn-src")||"null");
+      if(!raw||typeof raw!=="object")return null;
+      const t=v=>String(v||"").trim().slice(0,60);
+      return{s:t(raw.s),m:t(raw.m),c:t(raw.c),k:t(raw.k),r:t(raw.r),d:t(raw.d)};
+    }catch{return null}
+  }
+  /* Google sign-in creates the account without signUp: add the source once, right after a first
+     sign-in (account under 15 minutes old) that has none yet. */
+  let signupSourceTried=false;
+  function tagNewGoogleAccount(user){
+    if(signupSourceTried||!user||!appState.supabase)return;
+    const meta=user.user_metadata||{};
+    if(meta.signup_source)return;
+    const age=Date.now()-Date.parse(user.created_at||"");
+    if(!(age>=0&&age<15*60*1000))return;
+    const source=signupSource();
+    if(!source)return;
+    signupSourceTried=true;
+    appState.supabase.auth.updateUser({data:{signup_source:source}}).catch(()=>{});
+  }/*@end-web*/
   async function syncSession(session){
     appState.session=session||null;
     appState.user=session?.user||null;
+/*@web*/    try{tagNewGoogleAccount(appState.user)}catch{}/*@end-web*/
     await refreshAccountStatus();
     /* Lets the Recovery case list and the legal-acceptance recorder follow sign-in and sign-out. */
     try{window.dispatchEvent(new CustomEvent("cybernet:session",{detail:{userId:appState.user?.id||null}}))}catch{}
@@ -1319,7 +1344,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       const {data,error}=await appState.supabase.auth.signUp({
         email,password,
         options:{
-          data:{full_name:fullName,first_name:first,last_name:last},
+          data:{full_name:fullName,first_name:first,last_name:last/*@web*/,...(signupSource()?{signup_source:signupSource()}:{})/*@end-web*/},
           /*@web*/emailRedirectTo:inviteReturnUrl()||`${window.location.origin}/`/*@end-web*//*@ios emailRedirectTo:"https://cybernetai.app/app/confirmed.html" @end-ios*/
         }
       });

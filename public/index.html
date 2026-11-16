@@ -77,6 +77,25 @@
     }
   })();
   </script>
+  <!-- Sign-up source (owner, 17 Nov 2026): on a visitor's first arrival, keep where they came from in
+       localStorage cn-src, first touch only, never overwritten. Read here, before script.js can tidy the
+       address. script.js passes it as signup_source in the new account's user_metadata (email sign-up,
+       or once after a first Google sign-in), so sign-ups can be counted per platform in auth.users.
+       Only these fields, each at most 60 characters: s/m/c utm_source/medium/campaign, k the click id
+       present (ttclid, fbclid, gclid; the name only, never its value), r the referring site's host
+       (empty for this site), d the date. Blocked storage: nothing is kept. -->
+  <script data-web-only id="cnSrcCapture">
+  (function(){
+    try{
+      var ls=window.localStorage;if(ls.getItem("cn-src"))return;
+      var q=new URLSearchParams(location.search),t=function(v){return String(v||"").trim().slice(0,60)};
+      var k="",ids=["ttclid","fbclid","gclid"];for(var i=0;i<ids.length;i++){if(q.get(ids[i])){k=ids[i];break}}
+      var r="";try{r=document.referrer?new URL(document.referrer).hostname:""}catch(e){}
+      if(r===location.hostname)r="";
+      ls.setItem("cn-src",JSON.stringify({s:t(q.get("utm_source")),m:t(q.get("utm_medium")),c:t(q.get("utm_campaign")),k:k,r:t(r),d:new Date().toISOString().slice(0,10)}));
+    }catch(e){}
+  })();
+  </script>
   <!-- First-party error reporter. Keep it the first deferred script so it is listening before every
        later script runs (deferred scripts run in document order); defer keeps it off the critical path. -->
   <script src="/cybernet-compat.js?v=20261028-1" defer></script>
@@ -3139,7 +3158,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" defer></script>
   <script src="/config.js?v=20260830-3" defer></script>
   <script src="/legacy/cybernet-engine.js?v=20261030-d1" defer></script>
-  <script src="/legacy/script.js?v=20261111-shot" defer></script>
+  <script src="/legacy/script.js?v=20261117-src" defer></script>
   <script src="/legacy/cybernet-account-api-upgrade.js?v=20261028-1" defer></script>
   <script src="/cybernet-howto.js?v=20261019-1" defer></script>
 <script src="/legacy/cybernet-business-team.js?v=20261028-1" defer></script>

@@ -1234,10 +1234,37 @@ document.addEventListener("DOMContentLoaded", () => {
       if (accountStatusInflight === request) accountStatusInflight = null;
     }
   }
+  function signupSource() {
+    try {
+      const raw = JSON.parse(localStorage.getItem("cn-src") || "null");
+      if (!raw || typeof raw !== "object") return null;
+      const t = (v) => String(v || "").trim().slice(0, 60);
+      return { s: t(raw.s), m: t(raw.m), c: t(raw.c), k: t(raw.k), r: t(raw.r), d: t(raw.d) };
+    } catch (e) {
+      return null;
+    }
+  }
+  let signupSourceTried = false;
+  function tagNewGoogleAccount(user) {
+    if (signupSourceTried || !user || !appState.supabase) return;
+    const meta = user.user_metadata || {};
+    if (meta.signup_source) return;
+    const age = Date.now() - Date.parse(user.created_at || "");
+    if (!(age >= 0 && age < 15 * 60 * 1e3)) return;
+    const source = signupSource();
+    if (!source) return;
+    signupSourceTried = true;
+    appState.supabase.auth.updateUser({ data: { signup_source: source } }).catch(() => {
+    });
+  }
   async function syncSession(session) {
     var _a2;
     appState.session = session || null;
     appState.user = (session == null ? void 0 : session.user) || null;
+    try {
+      tagNewGoogleAccount(appState.user);
+    } catch (e) {
+    }
     await refreshAccountStatus();
     try {
       window.dispatchEvent(new CustomEvent("cybernet:session", { detail: { userId: ((_a2 = appState.user) == null ? void 0 : _a2.id) || null } }));
@@ -1427,7 +1454,13 @@ document.addEventListener("DOMContentLoaded", () => {
         email,
         password,
         options: {
-          data: { full_name: fullName, first_name: first, last_name: last },
+          data: {
+            full_name: fullName,
+            first_name: first,
+            last_name: last,
+            ...signupSource() ? { signup_source: signupSource() } : {}
+            /*@end-web*/
+          },
           /*@web*/
           emailRedirectTo: inviteReturnUrl() || `${window.location.origin}/`
           /*@end-web*/
