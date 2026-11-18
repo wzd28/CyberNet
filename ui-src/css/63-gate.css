@@ -539,9 +539,9 @@ html.cn #authModal.cn-inapp #googleAuthWrap .auth-divider { margin: 0 0 12px; }
      otherwise, and a scrim on the text side so the copy reads 4.5:1 or more over either;
    - the For individuals section (#for-you).
    ====================================================================================== */
-html.cn #home .hero-content .hero-title.cn-hero-title-biz { font-size: max(2rem, min(calc(var(--cn-step-hero) * .74), 7vh + 10px)); line-height: 1.06; }
+html.cn #home .hero-content .hero-title.cn-hero-title-biz { font-size: max(2rem, min(calc(var(--cn-step-hero) * .64), 6.4vh + 10px)); line-height: 1.06; }
 @supports (height: 1svh) {
-  html.cn #home .hero-content .hero-title.cn-hero-title-biz { font-size: max(2rem, min(calc(var(--cn-step-hero) * .74), 7svh + 10px)); }
+  html.cn #home .hero-content .hero-title.cn-hero-title-biz { font-size: max(2rem, min(calc(var(--cn-step-hero) * .64), 6.4svh + 10px)); }
 }
 html.cn #home .hero-content .cn-hero-teams {
   margin: clamp(12px, .4rem + .8vw, 18px) auto 0;
@@ -661,3 +661,5 @@ html.cn #home .cn-foryou-list span { color: #b8c2d0; font-size: .94rem; line-hei
 @media (max-width: 480px) {
   html.cn #home .cn-teams-actions > button { flex: 1 1 100%; }
 }
+html.cn #authModal.cn-code-step #googleAuthWrap,
+html.cn #authModal.cn-code-step .cn-gate-guest { display: none !important; }
