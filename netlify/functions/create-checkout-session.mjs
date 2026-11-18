@@ -73,7 +73,7 @@ function alreadySubscribed(plan, status) {
     return json({
       error:
         `Your CyberNet AI ${planName(plan)} plan has a payment that didn't go through. ` +
-        `Update your card from ${MANAGE_BILLING} to keep it. Starting a new checkout would charge you twice.`,
+        `Update your card from ${MANAGE_BILLING} (or email support@cybernetai.app) to keep it. Starting a new checkout would charge you twice.`,
       code: "PAYMENT_PAST_DUE"
     }, 409);
   }

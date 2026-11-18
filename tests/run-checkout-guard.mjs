@@ -193,7 +193,7 @@ const is409 = (r, code) => r.status === 409 && r.data.code === code && typeof r.
   let r = await buy(PRO);
   check("past_due Pro buying Pro: 409 PAYMENT_PAST_DUE", is409(r, "PAYMENT_PAST_DUE"), r);
   check("past_due Pro: no Stripe request", r.stripeCalls === 0, r);
-  check("past_due: message says to update the card", /card/i.test(r.data.error), r.data);
+  check("past_due: message says to update the card and gives the support address (the Manage Billing button is hidden while plan is free)", /card/i.test(r.data.error) && r.data.error.includes("support@cybernetai.app"), r.data);
 
   reset({ profile: proProfile("unpaid") });
   r = await buy(BIZ);
