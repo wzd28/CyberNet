@@ -19,7 +19,11 @@
     "wbraid",
     "fbclid",
     "ttclid",
-    "msclkid"
+    "msclkid",
+    // ?try=1 (the try-first landing) and ?checkout=success|cancelled (the Stripe return). Never
+    // session_id: Stripe's checkout session id stays out of Google.
+    "try",
+    "checkout"
   ];
   let pageChoice = null;
   let gaLoaded = false;
@@ -246,6 +250,27 @@
       if (bar && !bar.hidden) reserveSpace(bar);
     });
   }
+  function cleanParams(params) {
+    const out = {};
+    if (!params || typeof params !== "object") return out;
+    Object.keys(params).slice(0, 8).forEach((key) => {
+      if (!/^[a-z][a-z_]{0,39}$/.test(key)) return;
+      const value = params[key];
+      if (typeof value === "string") out[key] = value.slice(0, 40);
+      else if (typeof value === "boolean" || typeof value === "number" && Number.isFinite(value)) out[key] = value;
+    });
+    return out;
+  }
+  function cnTrack(name, params) {
+    if (typeof name !== "string" || !/^[a-z][a-z_]{0,39}$/.test(name)) return;
+    if (currentChoice() !== "granted") return;
+    try {
+      if (!gaLoaded) loadAnalytics(true);
+      if (typeof window.gtag === "function") window.gtag("event", name, cleanParams(params));
+    } catch (e) {
+    }
+  }
+  window.cnTrack = cnTrack;
   window.CyberNetConsent = Object.freeze({
     open,
     choice: () => currentChoice()

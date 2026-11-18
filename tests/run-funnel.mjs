@@ -124,5 +124,39 @@ if (helper) {
   check("helper posts to /api/funnel", helper[0].includes('"/api/funnel"'));
 }
 for (const e of mod.EVENTS) check(`script.js sends ${e}`, new RegExp(`cnFunnel\\("${e}"|"${e}"`).test(script));
+// GA4 conversion events: window.cnTrack in public/cybernet-consent.js does nothing before Accept.
+{
+  const vm = await import("node:vm");
+  const consentSrc = readFileSync(path.join(root, "public/cybernet-consent.js"), "utf8");
+  function loadConsent(stored) {
+    const data = stored ? { cybernet_analytics_consent: JSON.stringify({ choice: stored, at: 1, v: 1 }) } : {};
+    const appended = [];
+    const win = { location: new URL("https://cybernetai.app/?checkout=success&session_id=cs_secret&try=1&email=a@b.c"), addEventListener() {}, requestIdleCallback: fn => fn() };
+    const doc = { readyState: "loading", addEventListener() {}, documentElement: { dataset: {}, classList: { add() {}, remove() {} }, style: { setProperty() {}, removeProperty() {} } },
+      head: { appendChild: n => appended.push(n) }, createElement: () => ({}), querySelector: () => null, cookie: "", referrer: "" };
+    const box = { window: win, document: doc, localStorage: { getItem: k => data[k] ?? null, setItem: (k, v) => { data[k] = v; } }, URL, URLSearchParams, JSON, Date, Set, Object, String, Number, setTimeout };
+    win.window = win;
+    vm.createContext(box);
+    vm.runInContext(consentSrc, box);
+    return { win, appended };
+  }
+  const none = loadConsent(null);
+  check("cnTrack defined at load", typeof none.win.cnTrack === "function");
+  none.win.cnTrack("purchase", { plan: "pro" });
+  check("no choice: nothing queued, no tag", !none.win.dataLayer && none.appended.length === 0);
+  const denied = loadConsent("denied");
+  denied.win.cnTrack("sign_up", { method: "email" });
+  check("declined: nothing queued", !denied.win.dataLayer && denied.appended.length === 0);
+  const ok = loadConsent("granted");
+  ok.win.cnTrack("purchase", { plan: "pro", cycle: "monthly", email: "x".repeat(80), "Bad-Key": 1, nested: { a: 1 } });
+  const events = (ok.win.dataLayer || []).map(a => Array.from(a)).filter(a => a[0] === "event");
+  check("accepted: one event sent", events.length === 1 && events[0][1] === "purchase", events);
+  check("params cleaned", JSON.stringify(events[0]?.[2]) === JSON.stringify({ plan: "pro", cycle: "monthly", email: "x".repeat(40) }), events[0]?.[2]);
+  const cfg = (ok.win.dataLayer || []).map(a => Array.from(a)).find(a => a[0] === "config");
+  check("page_location keeps try and checkout, never session_id", cfg && /[?&]checkout=success/.test(cfg[2].page_location) && /[?&]try=1/.test(cfg[2].page_location) && !/session_id|email/.test(cfg[2].page_location), cfg?.[2]?.page_location);
+  ok.win.cnTrack("Bad Name!", {});
+  check("bad event name dropped", (ok.win.dataLayer || []).filter(a => a[0] === "event").length === 1);
+}
+for (const ev of ["sign_up", "login", "begin_checkout", "purchase", "scan"]) check(`script.js tracks ${ev}`, script.includes(`track("${ev}"`));
 console.log(`funnel: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

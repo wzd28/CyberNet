@@ -21,7 +21,10 @@
   // is never sent because Supabase puts access tokens there after sign-in.
   const KEPT_PARAMS = [
     "utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "utm_id",
-    "gclid", "gbraid", "wbraid", "fbclid", "ttclid", "msclkid"
+    "gclid", "gbraid", "wbraid", "fbclid", "ttclid", "msclkid",
+    // ?try=1 (the try-first landing) and ?checkout=success|cancelled (the Stripe return). Never
+    // session_id: Stripe's checkout session id stays out of Google.
+    "try", "checkout"
   ];
 
   let pageChoice = null;
@@ -310,6 +313,37 @@
       if (bar && !bar.hidden) reserveSpace(bar);
     });
   }
+
+  /* ─── Conversion events (window.cnTrack) ───
+     cnTrack(name, params) sends one GA4 event, and only once the visitor has accepted analytics.
+     Before a choice, and after Decline, it does nothing at all: nothing is queued or kept for later.
+     Defined at load (not in start) so an event at page load, such as purchase on ?checkout=success,
+     is not lost; if the visitor accepted on an earlier visit and the tag is not set up yet, it is set
+     up first. Params are kept small and plain: at most 8, names [a-z_], strings cut to 40 characters,
+     numbers and true/false; anything else is dropped. Callers send labels only (plan, cycle, method,
+     scan type), never what was scanned, an email or an id. */
+  function cleanParams(params) {
+    const out = {};
+    if (!params || typeof params !== "object") return out;
+    Object.keys(params).slice(0, 8).forEach(key => {
+      if (!/^[a-z][a-z_]{0,39}$/.test(key)) return;
+      const value = params[key];
+      if (typeof value === "string") out[key] = value.slice(0, 40);
+      else if (typeof value === "boolean" || (typeof value === "number" && Number.isFinite(value))) out[key] = value;
+    });
+    return out;
+  }
+  function cnTrack(name, params) {
+    if (typeof name !== "string" || !/^[a-z][a-z_]{0,39}$/.test(name)) return;
+    if (currentChoice() !== "granted") return;
+    try {
+      if (!gaLoaded) loadAnalytics(true);
+      if (typeof window.gtag === "function") window.gtag("event", name, cleanParams(params));
+    } catch {
+      // Analytics must never break the page.
+    }
+  }
+  window.cnTrack = cnTrack;
 
   window.CyberNetConsent = Object.freeze({
     open,
