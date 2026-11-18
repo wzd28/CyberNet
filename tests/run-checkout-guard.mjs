@@ -1,8 +1,12 @@
-// One paid plan per person: /api/create-checkout-session refuses a second
-// checkout (409) when the signed-in person already pays for a plan (Pro on
-// their profile, a Business team they own, a live subscription in Stripe, or a
-// past-due one Stripe is still retrying) or is covered by a Business team. A
-// free account, or one whose old plan has ended, can still check out. The
+// Duplicate-plan guard on /api/create-checkout-session. The owner's rules:
+// never stop a customer from buying or upgrading, never cancel a plan anyone
+// has. So the guard refuses (409) only:
+//   ALREADY_SUBSCRIBED  the same tier the person already has live
+//   PAYMENT_PAST_DUE    the same tier while Stripe is still retrying the card
+//   TEAM_MEMBER         a member of someone else's team buying Business
+// A different tier answers 409 CONFIRM_SECOND_PLAN until the request carries
+// confirmSecondPlan: true, then checkout opens. A failed plan lookup opens
+// nothing. No request to Stripe ever cancels, updates or deletes anything. The
 // Stripe webhook's grant path is checked to be unchanged.
 //
 // No network, no keys, no accounts: fetch (Supabase REST/Auth) and Node's
@@ -37,6 +41,7 @@ console.warn = () => {};
 // ── accounts (by bearer token) ──
 const USER_ID = "00000000-0000-4000-8000-0000000000a1";
 let state;
+const allStripe = []; // every faked Stripe request of the whole run
 function reset(next = {}) {
   state = {
     profile: { id: USER_ID, full_name: "Test User", plan: "free", subscription_status: "inactive", billing_interval: "", stripe_customer_id: null, stripe_subscription_id: null },
@@ -44,6 +49,7 @@ function reset(next = {}) {
     memberships: [],     // business_members rows (with embedded business_accounts)
     stripeSubs: [],      // what Stripe lists for the customer
     supabaseDown: false,
+    membersDown: false,
     rest: [],
     stripe: [],
     ...next
@@ -75,6 +81,7 @@ globalThis.fetch = async (input, init = {}) => {
     return jsonResponse([]);
   }
   if (url.pathname === "/rest/v1/business_members") {
+    if (state.membersDown) return jsonResponse({ message: "down" }, 500);
     if (method === "GET") return jsonResponse(state.memberships);
     return jsonResponse([], 201);
   }
@@ -92,6 +99,7 @@ https.request = (options) => {
   req.end = () => {
     const call = { method: options.method, path: options.path, body };
     state.stripe.push(call);
+    allStripe.push(call);
     const [status, data] = stripeAnswer(call);
     const res = new PassThrough();
     res.statusCode = status;
@@ -142,6 +150,7 @@ const BIZ = { plan: "business", seatTier: 5 };
 const liveTeam = (status = "active") => ({ id: "team-1", subscription_status: status });
 const member = (role, status = "active") => ({ role, business_accounts: { id: "team-1", seat_tier: 5, daily_pool_limit: 50, recovery_pool_limit: 5, subscription_status: status } });
 const proProfile = (status = "active") => ({ id: USER_ID, full_name: "Test User", plan: status === "active" || status === "trialing" ? "pro" : "free", subscription_status: status, billing_interval: "month", stripe_customer_id: "cus_pro", stripe_subscription_id: "sub_pro" });
+const stripeSub = (status, lookupKey) => ({ id: `sub_${status}_${lookupKey}`, status, items: { data: [{ price: { lookup_key: lookupKey } }] } });
 const is409 = (r, code) => r.status === 409 && r.data.code === code && typeof r.data.error === "string" && r.data.error.length > 20;
 
 // ══════════ free accounts can check out ══════════
@@ -173,18 +182,57 @@ const is409 = (r, code) => r.status === 409 && r.data.code === code && typeof r.
 {
   reset({ profile: proProfile("active") });
   let r = await buy(PRO);
-  check("Pro buying Pro: 409 ALREADY_SUBSCRIBED", is409(r, "ALREADY_SUBSCRIBED"), r);
+  check("Pro buying Pro: 409 ALREADY_SUBSCRIBED", is409(r, "ALREADY_SUBSCRIBED") && r.data.currentPlan === "Pro", r);
   check("Pro buying Pro: no Stripe request at all", r.stripeCalls === 0, r);
-  check("Pro buying Pro: message points to Manage Billing", r.data.error.includes("Manage Billing"), r.data);
+  check("Pro buying Pro: message points to Manage billing", r.data.error.includes("Manage billing"), r.data);
 
   reset({ profile: proProfile("active") });
+  r = await buy({ ...PRO, cycle: "yearly", confirmSecondPlan: true });
+  check("Pro buying Pro yearly with the flag: still ALREADY_SUBSCRIBED, no checkout", is409(r, "ALREADY_SUBSCRIBED") && r.sessions === 0, r);
+
+  reset({ profile: proProfile("trialing") });
+  r = await buy(PRO);
+  check("Pro on a trial buying Pro: 409 ALREADY_SUBSCRIBED", is409(r, "ALREADY_SUBSCRIBED") && r.stripeCalls === 0, r);
+
+  // Pro granted on the profile without a subscription id (no Stripe customer).
+  reset({ profile: { ...proProfile("active"), stripe_subscription_id: null, stripe_customer_id: null } });
+  r = await buy(PRO);
+  check("Pro without a subscription id buying Pro: 409 ALREADY_SUBSCRIBED", is409(r, "ALREADY_SUBSCRIBED") && r.stripeCalls === 0, r);
+
+  // A different tier is never refused: it asks once, then opens.
+  reset({ profile: proProfile("active"), stripeSubs: [stripeSub("active", "cybernet_ai_pro_monthly")] });
   r = await buy(BIZ);
-  check("Pro buying Business: 409 ALREADY_SUBSCRIBED (change it from billing, not a second checkout)", is409(r, "ALREADY_SUBSCRIBED") && r.data.error.includes("Pro"), r);
-  check("Pro buying Business: no Stripe request", r.stripeCalls === 0, r);
+  check("Pro buying Business, no flag: 409 CONFIRM_SECOND_PLAN", is409(r, "CONFIRM_SECOND_PLAN") && r.data.currentPlan === "Pro" && r.data.targetPlan === "Business", r);
+  check("Pro buying Business, no flag: no checkout session", r.sessions === 0, r);
+  check("Pro buying Business: message says it adds a second subscription and does not replace Pro",
+    r.data.error.includes("You already have CyberNet AI Pro") && r.data.error.includes("adds a second subscription") &&
+    r.data.error.includes("does not replace Pro") && r.data.error.includes("Manage billing") && r.data.error.includes("Continue anyway?"), r.data);
+
+  for (const flag of ["true", 1, "yes", false, null]) {
+    reset({ profile: proProfile("active"), stripeSubs: [stripeSub("active", "cybernet_ai_pro_monthly")] });
+    r = await buy({ ...BIZ, confirmSecondPlan: flag });
+    check(`Pro buying Business with confirmSecondPlan ${JSON.stringify(flag)} (not true): still asks`, is409(r, "CONFIRM_SECOND_PLAN") && r.sessions === 0, r);
+  }
+
+  reset({ profile: proProfile("active"), stripeSubs: [stripeSub("active", "cybernet_ai_pro_monthly")] });
+  r = await buy({ ...BIZ, confirmSecondPlan: true });
+  check("Pro buying Business with the flag: checkout opens", r.status === 200 && r.data.url?.includes("checkout.stripe.test") && r.sessions === 1, r);
+  let session = state.stripe.find((c) => c.path === "/v1/checkout/sessions");
+  check("Pro buying Business with the flag: the session is for the Business price on the same customer",
+    decodeURIComponent(session?.body || "").includes("price_cybernet_ai_business_monthly") && decodeURIComponent(session?.body || "").includes("customer=cus_pro"), session);
+  check("Pro buying Business with the flag: the Pro profile is not touched", !state.rest.some((c) => c.method !== "GET"), state.rest);
+
+  // A profile that itself names Business (granted by hand) is Business, not Pro.
+  reset({ profile: { ...proProfile("active"), plan: "business" } });
+  r = await buy(PRO);
+  check("Business named on the profile buying Pro: asks, is not called a duplicate", is409(r, "CONFIRM_SECOND_PLAN") && r.data.currentPlan === "Business" && r.sessions === 0, r);
+  reset({ profile: { ...proProfile("active"), plan: "business" } });
+  r = await buy(BIZ);
+  check("Business named on the profile buying Business: 409 ALREADY_SUBSCRIBED", is409(r, "ALREADY_SUBSCRIBED") && r.data.currentPlan === "Business" && r.stripeCalls === 0, r);
 
   reset({ profile: proProfile("trialing") });
   r = await buy(BIZ);
-  check("Pro on a trial buying Business: 409", is409(r, "ALREADY_SUBSCRIBED") && r.stripeCalls === 0, r);
+  check("Pro on a trial buying Business: asks, does not refuse", is409(r, "CONFIRM_SECOND_PLAN") && r.sessions === 0, r);
 }
 
 // ══════════ past due (the webhook sets plan free + past_due, the subscription id stays) ══════════
@@ -193,15 +241,34 @@ const is409 = (r, code) => r.status === 409 && r.data.code === code && typeof r.
   let r = await buy(PRO);
   check("past_due Pro buying Pro: 409 PAYMENT_PAST_DUE", is409(r, "PAYMENT_PAST_DUE"), r);
   check("past_due Pro: no Stripe request", r.stripeCalls === 0, r);
-  check("past_due: message says to update the card and gives the support address (the Manage Billing button is hidden while plan is free)", /card/i.test(r.data.error) && r.data.error.includes("support@cybernetai.app"), r.data);
+  check("past_due: message says to update the card and gives the support address", /card/i.test(r.data.error) && r.data.error.includes("support@cybernetai.app"), r.data);
+
+  reset({ profile: proProfile("past_due") });
+  r = await buy({ ...PRO, confirmSecondPlan: true });
+  check("past_due Pro buying Pro with the flag: still PAYMENT_PAST_DUE", is409(r, "PAYMENT_PAST_DUE") && r.sessions === 0, r);
 
   reset({ profile: proProfile("unpaid") });
-  r = await buy(BIZ);
-  check("unpaid Pro buying Business: 409 PAYMENT_PAST_DUE", is409(r, "PAYMENT_PAST_DUE") && r.stripeCalls === 0, r);
+  r = await buy(PRO);
+  check("unpaid Pro buying Pro: 409 PAYMENT_PAST_DUE", is409(r, "PAYMENT_PAST_DUE") && r.stripeCalls === 0, r);
 
   reset({ ownedTeams: [liveTeam("past_due")] });
   r = await buy(BIZ);
-  check("past_due Business owner: 409 PAYMENT_PAST_DUE", is409(r, "PAYMENT_PAST_DUE") && r.stripeCalls === 0, r);
+  check("past_due Business owner buying Business: 409 PAYMENT_PAST_DUE", is409(r, "PAYMENT_PAST_DUE") && r.data.currentPlan === "Business" && r.stripeCalls === 0, r);
+
+  // A different tier while past due is not refused.
+  reset({ profile: proProfile("past_due"), stripeSubs: [stripeSub("past_due", "cybernet_ai_pro_monthly")] });
+  r = await buy(BIZ);
+  check("past_due Pro buying Business, no flag: CONFIRM_SECOND_PLAN", is409(r, "CONFIRM_SECOND_PLAN") && r.data.currentPlan === "Pro" && r.sessions === 0, r);
+  reset({ profile: proProfile("past_due"), stripeSubs: [stripeSub("past_due", "cybernet_ai_pro_monthly")] });
+  r = await buy({ ...BIZ, confirmSecondPlan: true });
+  check("past_due Pro buying Business with the flag: checkout opens", r.status === 200 && r.sessions === 1, r);
+
+  reset({ ownedTeams: [liveTeam("past_due")] });
+  r = await buy(PRO);
+  check("past_due Business owner buying Pro, no flag: CONFIRM_SECOND_PLAN", is409(r, "CONFIRM_SECOND_PLAN") && r.data.currentPlan === "Business" && r.sessions === 0, r);
+  reset({ ownedTeams: [liveTeam("past_due")] });
+  r = await buy({ ...PRO, confirmSecondPlan: true });
+  check("past_due Business owner buying Pro with the flag: checkout opens", r.status === 200 && r.sessions === 1, r);
 }
 
 // ══════════ Business owners (team rows, never profiles.plan) ══════════
@@ -211,43 +278,86 @@ const is409 = (r, code) => r.status === 409 && r.data.code === code && typeof r.
   check("Business owner buying Business: 409 ALREADY_SUBSCRIBED", is409(r, "ALREADY_SUBSCRIBED") && r.data.error.includes("Business"), r);
   check("Business owner buying Business: no Stripe request", r.stripeCalls === 0, r);
 
+  reset({ ownedTeams: [liveTeam("trialing")] });
+  r = await buy({ plan: "business", seatTier: 20, confirmSecondPlan: true });
+  check("Business owner on a trial buying 20 seats, even with the flag: 409 ALREADY_SUBSCRIBED", is409(r, "ALREADY_SUBSCRIBED") && r.stripeCalls === 0, r);
+
+  // Owner membership row alone (the account row is found only through the join).
+  reset({ memberships: [member("owner")] });
+  r = await buy(BIZ);
+  check("owner role in an active team buying Business: 409 ALREADY_SUBSCRIBED", is409(r, "ALREADY_SUBSCRIBED") && r.stripeCalls === 0, r);
+
   reset({ ownedTeams: [liveTeam("active")], memberships: [member("owner")] });
   r = await buy(PRO);
-  check("Business owner buying Pro: 409", is409(r, "ALREADY_SUBSCRIBED") && r.stripeCalls === 0, r);
+  check("Business owner buying Pro, no flag: CONFIRM_SECOND_PLAN", is409(r, "CONFIRM_SECOND_PLAN") && r.data.currentPlan === "Business" && r.data.targetPlan === "Pro" && r.sessions === 0, r);
+  check("Business owner buying Pro: message names both plans", r.data.error.includes("You already have CyberNet AI Business") && r.data.error.includes("Buying Pro adds a second subscription"), r.data);
 
-  reset({ ownedTeams: [liveTeam("trialing")] });
-  r = await buy({ plan: "business", seatTier: 20 });
-  check("Business owner on a trial buying 20 seats: 409", is409(r, "ALREADY_SUBSCRIBED") && r.stripeCalls === 0, r);
-
-  // Owner membership row alone (e.g. the account row is found only through the join).
-  reset({ memberships: [member("owner")] });
-  r = await buy(PRO);
-  check("owner role in an active team: 409", is409(r, "ALREADY_SUBSCRIBED") && r.stripeCalls === 0, r);
+  reset({ ownedTeams: [liveTeam("active")], memberships: [member("owner")] });
+  r = await buy({ ...PRO, confirmSecondPlan: true });
+  check("Business owner buying Pro with the flag: checkout opens", r.status === 200 && r.sessions === 1, r);
+  check("Business owner buying Pro with the flag: no team row is written", !state.rest.some((c) => c.path.startsWith("/rest/v1/business_") && c.method !== "GET"), state.rest);
 }
 
-// ══════════ team members ══════════
+// ══════════ team members (covered by someone else's team) ══════════
 {
   reset({ memberships: [member("member")] });
-  let r = await buy(PRO);
-  check("team member buying Pro: 409 TEAM_MEMBER", is409(r, "TEAM_MEMBER"), r);
-  check("team member: message says the team covers them", /team already covers you/i.test(r.data.error), r.data);
-  check("team member: no Stripe request", r.stripeCalls === 0, r);
+  let r = await buy(BIZ);
+  check("team member buying Business: 409 TEAM_MEMBER", is409(r, "TEAM_MEMBER"), r);
+  check("team member buying Business: message says to ask the owner", r.data.error === "Your team already covers you. To get your own Business plan, ask your team owner to remove you first.", r.data);
+  check("team member buying Business: no Stripe request", r.stripeCalls === 0, r);
 
   reset({ memberships: [member("member", "trialing")] });
-  r = await buy(BIZ);
-  check("team member buying Business: 409 TEAM_MEMBER", is409(r, "TEAM_MEMBER") && r.stripeCalls === 0, r);
+  r = await buy({ ...BIZ, confirmSecondPlan: true });
+  check("team member buying Business with the flag: still TEAM_MEMBER", is409(r, "TEAM_MEMBER") && r.stripeCalls === 0, r);
+
+  reset({ memberships: [member("member")] });
+  r = await buy(PRO);
+  check("team member buying Pro, no flag: CONFIRM_SECOND_PLAN", is409(r, "CONFIRM_SECOND_PLAN") && r.data.viaTeam === true && r.sessions === 0, r);
+  check("team member buying Pro: message says the team covers them and stays unchanged", /team/i.test(r.data.error) && r.data.error.includes("Continue anyway?"), r.data);
+
+  reset({ memberships: [member("member")] });
+  r = await buy({ ...PRO, confirmSecondPlan: true });
+  check("team member buying Pro with the flag: checkout opens", r.status === 200 && r.sessions === 1, r);
+  check("team member buying Pro with the flag: membership is not touched", !state.rest.some((c) => c.path.startsWith("/rest/v1/business_") && c.method !== "GET"), state.rest);
 }
 
 // ══════════ Stripe knows before the database does (webhook not processed yet) ══════════
 {
-  reset({ profile: { ...state.profile, stripe_customer_id: "cus_fresh" }, stripeSubs: [{ id: "sub_just_paid", status: "active", items: { data: [{ price: { lookup_key: "cybernet_ai_pro_monthly" } }] } }] });
-  let r = await buy(PRO);
-  check("just paid, webhook pending: 409 from the Stripe check", is409(r, "ALREADY_SUBSCRIBED") && r.sessions === 0, r);
-  check("just paid: only the read-only subscription list was called", state.stripe.every((c) => c.method === "GET"), state.stripe);
+  const fresh = () => ({ id: USER_ID, full_name: "Test User", plan: "free", subscription_status: "inactive", billing_interval: "", stripe_customer_id: "cus_fresh", stripe_subscription_id: null });
 
-  reset({ profile: { ...state.profile, stripe_customer_id: "cus_fresh" }, stripeSubs: [{ id: "sub_biz", status: "past_due", items: { data: [{ price: { lookup_key: "cybernet_ai_business_monthly" } }] } }] });
+  reset({ profile: fresh(), stripeSubs: [stripeSub("active", "cybernet_ai_pro_monthly")] });
+  let r = await buy(PRO);
+  check("just paid Pro, webhook pending, buying Pro: 409 ALREADY_SUBSCRIBED from the Stripe check", is409(r, "ALREADY_SUBSCRIBED") && r.sessions === 0, r);
+  check("just paid: only the read-only subscription list was called", state.stripe.length === 1 && state.stripe[0].method === "GET" && state.stripe[0].path.startsWith("/v1/subscriptions"), state.stripe);
+
+  reset({ profile: fresh(), stripeSubs: [stripeSub("active", "cybernet_ai_pro_monthly")] });
+  r = await buy({ ...PRO, confirmSecondPlan: true });
+  check("webhook-pending duplicate with the flag: still ALREADY_SUBSCRIBED", is409(r, "ALREADY_SUBSCRIBED") && r.sessions === 0, r);
+
+  reset({ profile: fresh(), stripeSubs: [stripeSub("active", "cybernet_ai_business_10seat_yearly")] });
+  r = await buy(BIZ);
+  check("just paid Business (10 seats), webhook pending, buying Business: 409 ALREADY_SUBSCRIBED", is409(r, "ALREADY_SUBSCRIBED") && r.data.currentPlan === "Business" && r.sessions === 0, r);
+
+  reset({ profile: fresh(), stripeSubs: [stripeSub("past_due", "cybernet_ai_pro_monthly")] });
   r = await buy(PRO);
-  check("past_due Business seen only in Stripe: 409 PAYMENT_PAST_DUE", is409(r, "PAYMENT_PAST_DUE") && r.data.error.includes("Business") && r.sessions === 0, r);
+  check("past_due Pro seen only in Stripe, buying Pro: 409 PAYMENT_PAST_DUE", is409(r, "PAYMENT_PAST_DUE") && r.sessions === 0, r);
+
+  // A live subscription of a different tier, known only to Stripe.
+  reset({ profile: fresh(), stripeSubs: [stripeSub("active", "cybernet_ai_business_monthly")] });
+  r = await buy(PRO);
+  check("Business seen only in Stripe, buying Pro, no flag: CONFIRM_SECOND_PLAN", is409(r, "CONFIRM_SECOND_PLAN") && r.data.currentPlan === "Business" && r.sessions === 0, r);
+  reset({ profile: fresh(), stripeSubs: [stripeSub("active", "cybernet_ai_business_monthly")] });
+  r = await buy({ ...PRO, confirmSecondPlan: true });
+  check("Business seen only in Stripe, buying Pro with the flag: checkout opens", r.status === 200 && r.sessions === 1, r);
+
+  reset({ profile: fresh(), stripeSubs: [stripeSub("past_due", "cybernet_ai_business_monthly")] });
+  r = await buy(PRO);
+  check("past_due Business seen only in Stripe, buying Pro: asks, does not refuse", is409(r, "CONFIRM_SECOND_PLAN") && r.sessions === 0, r);
+
+  // Ended subscriptions in Stripe never count.
+  reset({ profile: fresh(), stripeSubs: [stripeSub("canceled", "cybernet_ai_pro_monthly"), stripeSub("incomplete_expired", "cybernet_ai_business_monthly")] });
+  r = await buy(PRO);
+  check("only ended subscriptions in Stripe: checkout opens without asking", r.status === 200 && r.sessions === 1, r);
 }
 
 // ══════════ fail closed and quiet ══════════
@@ -256,9 +366,43 @@ const is409 = (r, code) => r.status === 409 && r.data.code === code && typeof r.
   let r = await buy(PRO);
   check("plan lookup down: no checkout is opened", r.status >= 500 && r.sessions === 0 && r.stripeCalls === 0, r);
 
-  reset({ profile: proProfile("active") });
-  r = await buy(PRO);
-  check("an expected refusal writes no checkout_debug_log row", r.debugLogs === 0, r);
+  reset({ supabaseDown: true });
+  r = await buy({ ...BIZ, confirmSecondPlan: true });
+  check("plan lookup down, with the flag: still no checkout", r.status >= 500 && r.sessions === 0 && r.stripeCalls === 0, r);
+
+  reset({ membersDown: true });
+  r = await buy({ ...PRO, confirmSecondPlan: true });
+  check("team lookup down: no checkout is opened", r.status >= 500 && r.sessions === 0 && r.stripeCalls === 0, r);
+
+  const quiet = [
+    ["ALREADY_SUBSCRIBED", { profile: proProfile("active") }, PRO],
+    ["PAYMENT_PAST_DUE", { profile: proProfile("past_due") }, PRO],
+    ["CONFIRM_SECOND_PLAN", { profile: proProfile("active") }, BIZ],
+    ["TEAM_MEMBER", { memberships: [member("member")] }, BIZ]
+  ];
+  for (const [code, next, body] of quiet) {
+    reset(next);
+    r = await buy(body);
+    check(`${code}: writes no checkout_debug_log row and nothing else`, is409(r, code) && r.debugLogs === 0 && !state.rest.some((c) => c.method !== "GET"), { r, rest: state.rest });
+  }
+}
+
+// ══════════ nothing the checkout guard does can cancel or change a plan ══════════
+{
+  const writes = allStripe.filter((c) => c.method !== "GET");
+  check("Stripe: requests were made at all (the fake is wired)", allStripe.length > 20, allStripe.length);
+  check("Stripe: no DELETE request, ever", !allStripe.some((c) => c.method === "DELETE"), allStripe.filter((c) => c.method === "DELETE"));
+  check("Stripe: the only writes are new checkout sessions and new customers",
+    writes.every((c) => c.method === "POST" && (c.path === "/v1/checkout/sessions" || c.path === "/v1/customers")), writes);
+  check("Stripe: no subscription, schedule, invoice or portal endpoint is written to",
+    !writes.some((c) => /\/v1\/(subscriptions|subscription_items|subscription_schedules|invoices|billing_portal)/.test(c.path)), writes);
+  check("Stripe: subscriptions are only ever listed", allStripe.filter((c) => c.path.startsWith("/v1/subscriptions")).every((c) => c.method === "GET" && /^\/v1\/subscriptions\?/.test(c.path)), allStripe.filter((c) => c.path.startsWith("/v1/subscriptions")));
+  check("Stripe: no checkout session asks to cancel or replace anything",
+    !allStripe.some((c) => c.path === "/v1/checkout/sessions" && /cancel_at|proration|subscription_data\[(?!metadata)/.test(decodeURIComponent(c.body || ""))), null);
+
+  const source = (await import("node:fs")).readFileSync(path.join(root, "netlify/functions/create-checkout-session.mjs"), "utf8");
+  check("source: no Stripe cancel/update/delete/pause call in the checkout function",
+    !/subscriptions\.(cancel|update|del|deleteDiscount|resume)|subscriptionItems\.|subscriptionSchedules\.|pause_collection|cancel_at_period_end/.test(source), null);
 }
 
 // ══════════ the webhook grant path is unchanged ══════════

@@ -57,32 +57,80 @@ async function getOrCreateCustomer(stripe, user, profile) {
   return customerId;
 }
 
-// ── One paid plan per person ──
-// Stripe statuses where a subscription is still alive and will (or may) bill
-// again. past_due and unpaid are included: Stripe keeps retrying the card, so a
-// second checkout would leave two subscriptions billing the same person.
+// ── Duplicate-plan guard ──
+// Owner's rules: never stop a customer from buying or upgrading a plan, and
+// never cancel a plan anyone has. So this guard only ever answers a checkout
+// request; nothing here cancels, pauses or changes a subscription (every Stripe
+// call it makes is a read).
+//
+//   same tier, live            → 409 ALREADY_SUBSCRIBED (an exact duplicate)
+//   same tier, payment failing → 409 PAYMENT_PAST_DUE (Stripe is still retrying
+//                                the card; a second identical subscription would
+//                                bill twice once the retry succeeds)
+//   member of someone else's team buying Business → 409 TEAM_MEMBER (one person
+//                                cannot be in two teams, so the new team would
+//                                be paid for and never set up)
+//   a different tier           → 409 CONFIRM_SECOND_PLAN until the request
+//                                carries confirmSecondPlan: true, then checkout
+//                                opens normally
+//
+// Stripe statuses where a subscription is still alive and will (or may) bill.
 const LIVE_SUBSCRIPTION_STATUSES = ["active", "trialing", "past_due", "unpaid"];
-const MANAGE_BILLING = "Account → Manage Billing";
+const PAST_DUE_STATUSES = ["past_due", "unpaid"];
+const MANAGE_BILLING = "Account → Manage billing";
 
 function planName(plan) {
   return plan === "business" ? "Business" : "Pro";
 }
 
-function alreadySubscribed(plan, status) {
-  if (status === "past_due" || status === "unpaid") {
+function tierOfLookupKey(lookupKey) {
+  return String(lookupKey || "").includes("business") ? "business" : "pro";
+}
+
+function refuseDuplicate(plan, pastDue) {
+  if (pastDue) {
     return json({
       error:
         `Your CyberNet AI ${planName(plan)} plan has a payment that didn't go through. ` +
-        `Update your card from ${MANAGE_BILLING} (or email support@cybernetai.app) to keep it. Starting a new checkout would charge you twice.`,
-      code: "PAYMENT_PAST_DUE"
+        `Update your card from ${MANAGE_BILLING} (or email support@cybernetai.app) to keep it. ` +
+        `Buying ${planName(plan)} again would charge you twice.`,
+      code: "PAYMENT_PAST_DUE",
+      currentPlan: planName(plan)
     }, 409);
   }
 
   return json({
     error:
-      `You already have an active CyberNet AI ${planName(plan)} plan, so a second checkout would charge you twice. ` +
-      `Manage it from ${MANAGE_BILLING}, or email support@cybernetai.app to switch plans.`,
-    code: "ALREADY_SUBSCRIBED"
+      `You already have CyberNet AI ${planName(plan)}, so buying it again would charge you twice. ` +
+      `Manage your plan from ${MANAGE_BILLING}.`,
+    code: "ALREADY_SUBSCRIBED",
+    currentPlan: planName(plan)
+  }, 409);
+}
+
+function refuseTeamMember() {
+  return json({
+    error:
+      "Your team already covers you. To get your own Business plan, ask your team owner to remove you first.",
+    code: "TEAM_MEMBER",
+    currentPlan: "Business"
+  }, 409);
+}
+
+function askToConfirm(currentPlan, targetPlan, viaTeam) {
+  const current = planName(currentPlan);
+  const target = planName(targetPlan);
+
+  return json({
+    error: viaTeam
+      ? `Your team's CyberNet AI Business plan already covers you. Buying ${target} adds a subscription of your own; ` +
+        "it does not change your team. Continue anyway?"
+      : `You already have CyberNet AI ${current}. Buying ${target} adds a second subscription; it does not replace ${current}. ` +
+        `To switch instead, use ${MANAGE_BILLING}. Continue anyway?`,
+    code: "CONFIRM_SECOND_PLAN",
+    currentPlan: current,
+    targetPlan: target,
+    viaTeam: Boolean(viaTeam)
   }, 409);
 }
 
@@ -97,14 +145,22 @@ async function readRows(response, message) {
   return rows;
 }
 
-// What the database already knows: the profile's own subscription (Pro), a
-// Business team this person owns and pays for, or a team that covers them.
-// Returns a 409 Response, or null when a new checkout is safe.
-async function existingPlanBlock(user, profile) {
+// What the database knows. Returns the plans this person pays for
+// ([{ tier, status }]) and whether someone else's Business team covers them.
+// Throws (503) when a lookup fails, so an outage is never read as "no plan".
+async function plansInDatabase(user, profile) {
+  const plans = [];
   const ownStatus = String(profile.subscription_status || "");
 
+  // The profile row carries the person's own subscription: Pro, unless the
+  // profile itself names another tier. A plan granted on the profile without a
+  // subscription id still counts.
+  const granted = effectivePlan(profile);
+
   if (profile.stripe_subscription_id && LIVE_SUBSCRIPTION_STATUSES.includes(ownStatus)) {
-    return alreadySubscribed("pro", ownStatus);
+    plans.push({ tier: granted !== "free" ? granted : "pro", status: ownStatus });
+  } else if (granted !== "free") {
+    plans.push({ tier: granted, status: "active" });
   }
 
   const owned = await readRows(
@@ -116,50 +172,60 @@ async function existingPlanBlock(user, profile) {
     "Could not check your current plan. Please try again in a moment."
   );
 
-  if (owned[0]) {
-    return alreadySubscribed("business", String(owned[0].subscription_status || ""));
+  for (const team of owned) {
+    plans.push({ tier: "business", status: String(team.subscription_status || "") });
   }
 
   const membership = await getActiveTeamMembership(user.id);
 
-  if (membership?.role === "owner") {
-    return alreadySubscribed("business", "active");
+  if (membership?.role === "owner" && !owned.length) {
+    plans.push({ tier: "business", status: "active" });
   }
 
-  if (membership) {
-    return json({
-      error:
-        "Your Business team already covers you, so there's nothing to buy. " +
-        "If you want a plan of your own, ask your team owner to remove you from the team first.",
-      code: "TEAM_MEMBER"
-    }, 409);
-  }
-
-  return null;
+  return { plans, teamMember: Boolean(membership) && membership.role !== "owner" };
 }
 
 // What Stripe knows: the database can lag behind it (a delayed or failed
 // webhook right after paying), so a customer who already exists in Stripe is
-// checked there too. Read-only.
-async function stripePlanBlock(stripe, profile) {
+// checked there too. Read-only: it only lists.
+async function plansInStripe(stripe, profile) {
   const customerId = profile.stripe_customer_id || "";
-  if (!customerId) return null;
+  if (!customerId) return [];
 
   let subscriptions;
   try {
     subscriptions = await stripe.subscriptions.list({ customer: customerId, limit: 100 });
   } catch (error) {
-    if (error?.code === "resource_missing") return null;
+    if (error?.code === "resource_missing") return [];
     throw error;
   }
 
-  const live = (subscriptions?.data || []).find((sub) =>
-    LIVE_SUBSCRIPTION_STATUSES.includes(String(sub.status || ""))
-  );
-  if (!live) return null;
+  return (subscriptions?.data || [])
+    .filter((sub) => LIVE_SUBSCRIPTION_STATUSES.includes(String(sub.status || "")))
+    .map((sub) => ({
+      tier: tierOfLookupKey(sub.items?.data?.[0]?.price?.lookup_key),
+      status: String(sub.status)
+    }));
+}
 
-  const lookupKey = String(live.items?.data?.[0]?.price?.lookup_key || "");
-  return alreadySubscribed(lookupKey.includes("business") ? "business" : "pro", String(live.status));
+// Returns a 409 Response, or null when checkout may open.
+function checkoutBlock({ plans, teamMember }, targetPlan, confirmed) {
+  const sameTier = plans.filter((p) => p.tier === targetPlan);
+
+  if (sameTier.length) {
+    // A healthy duplicate is reported as such; otherwise the card needs fixing.
+    return refuseDuplicate(targetPlan, sameTier.every((p) => PAST_DUE_STATUSES.includes(p.status)));
+  }
+
+  if (teamMember && targetPlan === "business") return refuseTeamMember();
+
+  if (confirmed) return null;
+
+  const other = plans.find((p) => p.tier !== targetPlan);
+  if (other) return askToConfirm(other.tier, targetPlan, false);
+  if (teamMember) return askToConfirm("business", targetPlan, true);
+
+  return null;
 }
 
 export default webOnly(async (request) => {
@@ -188,7 +254,6 @@ export default webOnly(async (request) => {
     const { user } = await verifyUser(request);
     debugUserId = user.id;
     const profile = await getProfile(user);
-    const currentPlan = effectivePlan(profile);
 
     const body = await request.json().catch(() => ({}));
     const cycle = body.cycle === "yearly" ? "yearly" : "monthly";
@@ -196,12 +261,12 @@ export default webOnly(async (request) => {
     debugCycle = cycle;
     debugTargetPlan = targetPlan;
 
-    const blocked = await existingPlanBlock(user, profile);
-    if (blocked) return blocked;
+    // Only an explicit true counts as "yes, add a second plan".
+    const confirmSecondPlan = body.confirmSecondPlan === true;
 
-    if (currentPlan === targetPlan) {
-      return alreadySubscribed(targetPlan, "active");
-    }
+    const known = await plansInDatabase(user, profile);
+    const blocked = checkoutBlock(known, targetPlan, confirmSecondPlan);
+    if (blocked) return blocked;
 
     const seatTier = targetPlan === "business" ? (Number(body.seatTier) || 5) : null;
     if (targetPlan === "business" && ![5, 10, 20].includes(seatTier)) {
@@ -230,7 +295,11 @@ export default webOnly(async (request) => {
 
     const stripe = new Stripe(secret);
 
-    const stripeBlocked = await stripePlanBlock(stripe, profile);
+    const stripeBlocked = checkoutBlock(
+      { plans: await plansInStripe(stripe, profile), teamMember: known.teamMember },
+      targetPlan,
+      confirmSecondPlan
+    );
     if (stripeBlocked) return stripeBlocked;
 
     const prices = await stripe.prices.list({
