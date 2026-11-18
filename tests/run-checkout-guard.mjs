@@ -3,6 +3,8 @@
 // has. So the guard refuses (409) only:
 //   ALREADY_SUBSCRIBED  the same tier the person already has live
 //   PAYMENT_PAST_DUE    the same tier while Stripe is still retrying the card
+//                       (Stripe is asked first: "past due" left in the database
+//                       by a first payment that failed never blocks a sale)
 //   TEAM_MEMBER         a member of someone else's team buying Business
 // A different tier answers 409 CONFIRM_SECOND_PLAN until the request carries
 // confirmSecondPlan: true, then checkout opens. A failed plan lookup opens
@@ -48,6 +50,7 @@ function reset(next = {}) {
     ownedTeams: [],      // business_accounts rows where owner_user_id = USER_ID
     memberships: [],     // business_members rows (with embedded business_accounts)
     stripeSubs: [],      // what Stripe lists for the customer
+    stripeDown: false,
     supabaseDown: false,
     membersDown: false,
     rest: [],
@@ -111,6 +114,7 @@ https.request = (options) => {
 };
 
 function stripeAnswer({ method, path: p }) {
+  if (state.stripeDown) return [500, { error: { type: "api_error", message: "Stripe is down" } }];
   if (method === "GET" && p.startsWith("/v1/subscriptions")) return [200, { object: "list", data: state.stripeSubs, has_more: false }];
   if (method === "GET" && p.startsWith("/v1/prices")) {
     const key = decodeURIComponent(p).match(/lookup_keys\[0\]=([^&]+)/)?.[1] || "";
@@ -237,23 +241,66 @@ const is409 = (r, code) => r.status === 409 && r.data.code === code && typeof r.
 
 // ══════════ past due (the webhook sets plan free + past_due, the subscription id stays) ══════════
 {
-  reset({ profile: proProfile("past_due") });
+  // Stripe is still retrying the card on a live Pro plan: refused, after one read of Stripe.
+  const proPastDue = () => ({ profile: proProfile("past_due"), stripeSubs: [stripeSub("past_due", "cybernet_ai_pro_monthly")] });
+  const teamOwnerProfile = () => ({ id: USER_ID, full_name: "Test User", plan: "free", subscription_status: "inactive", billing_interval: "", stripe_customer_id: "cus_team", stripe_subscription_id: null });
+  const onlyListed = (r) => r.stripeCalls === 1 && state.stripe[0].method === "GET" && state.stripe[0].path.startsWith("/v1/subscriptions?");
+  reset(proPastDue());
   let r = await buy(PRO);
   check("past_due Pro buying Pro: 409 PAYMENT_PAST_DUE", is409(r, "PAYMENT_PAST_DUE"), r);
-  check("past_due Pro: no Stripe request", r.stripeCalls === 0, r);
+  check("past_due Pro: Stripe is only asked which plans are live", onlyListed(r), state.stripe);
   check("past_due: message says to update the card and gives the support address", /card/i.test(r.data.error) && r.data.error.includes("support@cybernetai.app"), r.data);
 
-  reset({ profile: proProfile("past_due") });
+  reset(proPastDue());
   r = await buy({ ...PRO, confirmSecondPlan: true });
   check("past_due Pro buying Pro with the flag: still PAYMENT_PAST_DUE", is409(r, "PAYMENT_PAST_DUE") && r.sessions === 0, r);
 
-  reset({ profile: proProfile("unpaid") });
+  reset({ profile: proProfile("unpaid"), stripeSubs: [stripeSub("unpaid", "cybernet_ai_pro_monthly")] });
   r = await buy(PRO);
-  check("unpaid Pro buying Pro: 409 PAYMENT_PAST_DUE", is409(r, "PAYMENT_PAST_DUE") && r.stripeCalls === 0, r);
+  check("unpaid Pro buying Pro: 409 PAYMENT_PAST_DUE", is409(r, "PAYMENT_PAST_DUE") && onlyListed(r), r);
 
+  reset({ profile: teamOwnerProfile(), ownedTeams: [liveTeam("past_due")], stripeSubs: [stripeSub("past_due", "cybernet_ai_business_monthly")] });
+  r = await buy(BIZ);
+  check("past_due Business owner buying Business: 409 PAYMENT_PAST_DUE", is409(r, "PAYMENT_PAST_DUE") && r.data.currentPlan === "Business" && onlyListed(r), r);
+
+  // No Stripe customer to ask: the database's word stands and nothing opens.
   reset({ ownedTeams: [liveTeam("past_due")] });
   r = await buy(BIZ);
-  check("past_due Business owner buying Business: 409 PAYMENT_PAST_DUE", is409(r, "PAYMENT_PAST_DUE") && r.data.currentPlan === "Business" && r.stripeCalls === 0, r);
+  check("past_due Business, no Stripe customer on the profile: 409 PAYMENT_PAST_DUE, no Stripe request", is409(r, "PAYMENT_PAST_DUE") && r.stripeCalls === 0, r);
+
+  // Stale "past due": a first payment that was declined at Checkout. The webhook wrote past_due,
+  // but Stripe has no live plan (the subscription is incomplete, or gone), so the sale goes ahead.
+  reset({ profile: proProfile("past_due"), stripeSubs: [stripeSub("incomplete", "cybernet_ai_pro_monthly")] });
+  r = await buy(PRO);
+  check("past_due in the database, incomplete in Stripe (declined first payment): Pro checkout opens", r.status === 200 && r.sessions === 1, r);
+  check("declined first payment: Stripe subscriptions are listed once", state.stripe.filter((c) => c.path.startsWith("/v1/subscriptions")).length === 1, state.stripe);
+
+  reset({ profile: proProfile("past_due"), stripeSubs: [] });
+  r = await buy(PRO);
+  check("past_due in the database, nothing in Stripe: Pro checkout opens", r.status === 200 && r.sessions === 1, r);
+
+  reset({ profile: proProfile("unpaid"), stripeSubs: [stripeSub("canceled", "cybernet_ai_pro_monthly"), stripeSub("incomplete_expired", "cybernet_ai_pro_monthly")] });
+  r = await buy(PRO);
+  check("unpaid in the database, only ended plans in Stripe: Pro checkout opens", r.status === 200 && r.sessions === 1, r);
+
+  reset({ profile: teamOwnerProfile(), ownedTeams: [liveTeam("past_due")], stripeSubs: [stripeSub("incomplete", "cybernet_ai_business_monthly")] });
+  r = await buy(BIZ);
+  check("past_due team in the database, incomplete in Stripe: Business checkout opens", r.status === 200 && r.sessions === 1, r);
+
+  // The database lags the other way: the retry has succeeded and the plan is live again.
+  reset({ profile: proProfile("past_due"), stripeSubs: [stripeSub("active", "cybernet_ai_pro_monthly")] });
+  r = await buy(PRO);
+  check("past_due in the database, active in Stripe: 409 ALREADY_SUBSCRIBED", is409(r, "ALREADY_SUBSCRIBED") && r.sessions === 0, r);
+
+  // A stale past_due Pro never hides a live plan of the other tier.
+  reset({ profile: proProfile("past_due"), stripeSubs: [stripeSub("active", "cybernet_ai_business_monthly")] });
+  r = await buy(PRO);
+  check("stale past_due Pro, live Business in Stripe, buying Pro: asks first", is409(r, "CONFIRM_SECOND_PLAN") && r.data.currentPlan === "Business" && r.sessions === 0, r);
+
+  // Stripe cannot be read: nothing opens.
+  reset({ profile: proProfile("past_due"), stripeDown: true });
+  r = await buy(PRO);
+  check("past_due in the database, Stripe unreachable: no checkout is opened", r.status >= 400 && r.sessions === 0, r);
 
   // A different tier while past due is not refused.
   reset({ profile: proProfile("past_due"), stripeSubs: [stripeSub("past_due", "cybernet_ai_pro_monthly")] });
@@ -376,7 +423,7 @@ const is409 = (r, code) => r.status === 409 && r.data.code === code && typeof r.
 
   const quiet = [
     ["ALREADY_SUBSCRIBED", { profile: proProfile("active") }, PRO],
-    ["PAYMENT_PAST_DUE", { profile: proProfile("past_due") }, PRO],
+    ["PAYMENT_PAST_DUE", { profile: proProfile("past_due"), stripeSubs: [stripeSub("past_due", "cybernet_ai_pro_monthly")] }, PRO],
     ["CONFIRM_SECOND_PLAN", { profile: proProfile("active") }, BIZ],
     ["TEAM_MEMBER", { memberships: [member("member")] }, BIZ]
   ];

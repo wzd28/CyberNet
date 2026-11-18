@@ -66,7 +66,12 @@ async function getOrCreateCustomer(stripe, user, profile) {
 //   same tier, live            → 409 ALREADY_SUBSCRIBED (an exact duplicate)
 //   same tier, payment failing → 409 PAYMENT_PAST_DUE (Stripe is still retrying
 //                                the card; a second identical subscription would
-//                                bill twice once the retry succeeds)
+//                                bill twice once the retry succeeds). The database
+//                                alone never decides this one: a card declined at
+//                                the very first payment also leaves "past due"
+//                                behind with nothing live in Stripe, so Stripe is
+//                                asked, and the sale goes ahead when it has no
+//                                live plan of that tier.
 //   member of someone else's team buying Business → 409 TEAM_MEMBER (one person
 //                                cannot be in two teams, so the new team would
 //                                be paid for and never set up)
@@ -126,7 +131,7 @@ function askToConfirm(currentPlan, targetPlan, viaTeam) {
       ? `Your team's CyberNet AI Business plan already covers you. Buying ${target} adds a subscription of your own; ` +
         "it does not change your team. Continue anyway?"
       : `You already have CyberNet AI ${current}. Buying ${target} adds a second subscription; it does not replace ${current}. ` +
-        `To switch instead, use ${MANAGE_BILLING}. Continue anyway?`,
+        `You can manage ${current} from ${MANAGE_BILLING}. Continue anyway?`,
     code: "CONFIRM_SECOND_PLAN",
     currentPlan: current,
     targetPlan: target,
@@ -208,6 +213,12 @@ async function plansInStripe(stripe, profile) {
     }));
 }
 
+// True when all the database knows of the target tier is a failing payment.
+function onlyPastDue(plans, targetPlan) {
+  const sameTier = plans.filter((p) => p.tier === targetPlan);
+  return sameTier.length > 0 && sameTier.every((p) => PAST_DUE_STATUSES.includes(p.status));
+}
+
 // Returns a 409 Response, or null when checkout may open.
 function checkoutBlock({ plans, teamMember }, targetPlan, confirmed) {
   const sameTier = plans.filter((p) => p.tier === targetPlan);
@@ -264,8 +275,31 @@ export default webOnly(async (request) => {
     // Only an explicit true counts as "yes, add a second plan".
     const confirmSecondPlan = body.confirmSecondPlan === true;
 
-    const known = await plansInDatabase(user, profile);
-    const blocked = checkoutBlock(known, targetPlan, confirmSecondPlan);
+    let known = await plansInDatabase(user, profile);
+    let stripe = null;
+    let stripePlans = null;
+
+    // "Past due" in the database can be stale (the webhook writes it for any
+    // failed invoice, including a first payment that never started a plan), so
+    // Stripe has the last word before a sale is refused for it. Without a Stripe
+    // customer to ask, or if Stripe cannot be read, nothing opens.
+    if (onlyPastDue(known.plans, targetPlan) && profile.stripe_customer_id) {
+      stripe = new Stripe(secret);
+      stripePlans = await plansInStripe(stripe, profile);
+
+      if (!stripePlans.some((p) => p.tier === targetPlan)) {
+        known = { ...known, plans: known.plans.filter((p) => p.tier !== targetPlan) };
+      }
+    }
+
+    const blocked = checkoutBlock(
+      // Stripe's own status wins for the tier it was asked about.
+      stripePlans?.some((p) => p.tier === targetPlan)
+        ? { ...known, plans: [...known.plans.filter((p) => p.tier !== targetPlan), ...stripePlans.filter((p) => p.tier === targetPlan)] }
+        : known,
+      targetPlan,
+      confirmSecondPlan
+    );
     if (blocked) return blocked;
 
     const seatTier = targetPlan === "business" ? (Number(body.seatTier) || 5) : null;
@@ -293,10 +327,11 @@ export default webOnly(async (request) => {
         );
     debugLookupKey = lookupKey;
 
-    const stripe = new Stripe(secret);
+    if (!stripe) stripe = new Stripe(secret);
+    if (!stripePlans) stripePlans = await plansInStripe(stripe, profile);
 
     const stripeBlocked = checkoutBlock(
-      { plans: await plansInStripe(stripe, profile), teamMember: known.teamMember },
+      { plans: stripePlans, teamMember: known.teamMember },
       targetPlan,
       confirmSecondPlan
     );

@@ -698,8 +698,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const tabbed = view === "login" || view === "signup";
     authView = view;
     if (authModal) authModal.dataset.authView = view;
-    if (view === "signup") cnFunnel("signup_open");
-    else showCodeStep("");
+    if (view === "signup") {
+      cnFunnel("signup_open");
+      restoreCodeStep();
+    } else renderCodeStep(false);
     authTabs.forEach((tab) => tab.classList.toggle("active", tab.dataset.auth === view));
     if (authTabsEl) authTabsEl.hidden = !tabbed;
     [[loginForm, "login"], [signupForm, "signup"], [resetForm, "reset"], [newPasswordForm, "recovery"]].forEach(([form, name]) => {
@@ -754,6 +756,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!(authModal == null ? void 0 : authModal.classList.contains("show"))) authReturnFocus = document.activeElement;
     authModal == null ? void 0 : authModal.classList.add("show");
     focusFirstField(authModal == null ? void 0 : authModal.querySelector(".auth-form.active-auth-form"));
+    if (authModal == null ? void 0 : authModal.classList.contains("cn-code-step")) focusField(document.getElementById("authCode"));
   }
   function closeAuthModal() {
     var _a2;
@@ -998,7 +1001,7 @@ document.addEventListener("DOMContentLoaded", () => {
           showAuthReturnNotice(notice.view, notice, { resend: true });
         }
       }
-    }
+    } else if (!signedIn && !(authModal == null ? void 0 : authModal.classList.contains("show")) && pendingCodeEmail(36e5)) openAuthModal("signup");
   }
   if (authReturnError) cleanAuthReturnUrl({ dropReset: true });
   if (CYBERNET_AUTH_RETURN.type === "recovery" && CYBERNET_AUTH_RETURN.hasSession && !authReturnError) appState.recoveryMode = true;
@@ -1373,6 +1376,10 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (e) {
     }
     try {
+      if (appState.user) codeStepSignedIn();
+    } catch (e) {
+    }
+    try {
       noteAccount(appState.user);
     } catch (e) {
     }
@@ -1504,6 +1511,10 @@ document.addEventListener("DOMContentLoaded", () => {
       setAuthMessage("You're signed in.", "success");
       closeAuthModal();
     } catch (error) {
+      if (isUnconfirmedEmailError(error)) {
+        openCodeStepFor(email.toLowerCase(), password, "Your email isn't confirmed yet. Enter the 6-digit code from the email we sent you, or choose Send a new code.");
+        return;
+      }
       const wrongCredentials = authErrorCode(error) === "invalid_credentials" || /invalid login credentials/i.test(String((error == null ? void 0 : error.message) || ""));
       setAuthMessage(
         friendlyAuthError(error, "login"),
@@ -1540,6 +1551,7 @@ document.addEventListener("DOMContentLoaded", () => {
         "success"
       );
       startCooldown(button, 60, waitLabel);
+      return true;
     } catch (error) {
       setAuthMessage(friendlyAuthError(error, "resend"), "error");
       const wait = authWaitSeconds(error);
@@ -1551,7 +1563,10 @@ document.addEventListener("DOMContentLoaded", () => {
   if (resendConfirmBtn) resendConfirmBtn.addEventListener("click", () => {
     setAuthMessage("");
     if (!fieldsValid([loginEmailEl])) return;
-    sendConfirmationEmail(loginEmailEl.value.trim().toLowerCase(), resendConfirmBtn);
+    sendConfirmationEmail(loginEmailEl.value.trim().toLowerCase(), resendConfirmBtn).then((ok) => {
+      if (ok) openCodeStepFor(loginEmailEl.value.trim().toLowerCase(), (loginPasswordEl == null ? void 0 : loginPasswordEl.value) || "");
+    }).catch(() => {
+    });
   });
   function signupFields() {
     return ["signupFirstName", "signupLastName", "signupEmail", "signupPassword"].map((id) => document.getElementById(id)).filter(Boolean);
@@ -1631,12 +1646,20 @@ document.addEventListener("DOMContentLoaded", () => {
       lastSignupEmail = email;
       hidePasswords(signupForm);
       setAuthMessage("If the email isn't in your inbox in a minute or two, check your spam folder.");
+      codePassword = password;
+      startCooldown(document.getElementById("authCodeResendBtn"), 60, (left) => `Resend available in ${left}s`);
       showCodeStep(email);
       if (signupResendBtn) {
         signupResendBtn.hidden = false;
         startCooldown(signupResendBtn, 60, (left) => `Resend available in ${left}s`);
       }
     } catch (error) {
+      if (authWaitSeconds(error) && email === lastSignupEmail) {
+        codePassword = password;
+        showCodeStep(email);
+        setAuthMessage(`We already sent a code to ${email}. Enter it above. You can ask for a new one in about a minute.`);
+        return;
+      }
       setAuthMessage(friendlyAuthError(error, "signup"), "error");
     } finally {
       done();
@@ -1648,25 +1671,99 @@ document.addEventListener("DOMContentLoaded", () => {
     setAuthMessage("");
     sendConfirmationEmail(email, signupResendBtn);
   });
-  var codeEmail = "";
-  function codeHeadings() {
-    return ["Check your email", `We sent a 6-digit code to ${codeEmail}.`];
+  var codeEmail = codeEmail || "";
+  var codePassword = codePassword || "";
+  function savePendingCode(email) {
+    try {
+      if (email) sessionStorage.setItem("cn-code-email", JSON.stringify({ email, at: Date.now() }));
+      else sessionStorage.removeItem("cn-code-email");
+    } catch (e) {
+    }
   }
-  function showCodeStep(email) {
+  function pendingCodeEmail(maxAge) {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem("cn-code-email") || "null");
+      if (saved && typeof saved.email === "string" && /^[^\s@]+@[^\s@]+$/.test(saved.email) && Date.now() - Number(saved.at) < (maxAge || 864e5)) return saved.email;
+    } catch (e) {
+    }
+    return "";
+  }
+  function renderCodeStep(show) {
     var _a2;
     const box = document.getElementById("authCodeBox"), form = document.getElementById("authSignupForm");
     if (!box) return;
-    codeEmail = email || "";
-    box.hidden = !codeEmail;
-    if (form) form.hidden = Boolean(codeEmail);
-    (_a2 = document.getElementById("authModal")) == null ? void 0 : _a2.classList.toggle("cn-code-step", Boolean(codeEmail));
+    const on = Boolean(show && codeEmail);
+    box.hidden = !on;
+    if (form) form.hidden = on;
+    (_a2 = document.getElementById("authModal")) == null ? void 0 : _a2.classList.toggle("cn-code-step", on);
     if (authView === "signup") {
-      const [title, intro] = codeEmail ? codeHeadings() : AUTH_HEADINGS.signup;
+      const [title, intro] = on ? codeHeadings() : AUTH_HEADINGS.signup;
       if (authTitleEl && authTitleEl.textContent !== title) authTitleEl.textContent = title;
       if (authIntroEl && authIntroEl.textContent !== intro) authIntroEl.textContent = intro;
     }
     const resend = document.getElementById("signupResendBtn");
-    if (resend && codeEmail) resend.hidden = true;
+    if (resend && on) resend.hidden = true;
+  }
+  function restoreCodeStep() {
+    if (!codeEmail && !isSignedIn()) codeEmail = pendingCodeEmail();
+    if (codeEmail && isSignedIn()) codeEmail = "";
+    renderCodeStep(true);
+  }
+  function openCodeStepFor(email, password, message) {
+    setAuthView("signup", { keepMessages: true });
+    if (resendConfirmBtn && !coolingDown(resendConfirmBtn)) resendConfirmBtn.hidden = true;
+    codePassword = password || "";
+    showCodeStep(email);
+    if (message) setAuthMessage(message, "error");
+  }
+  function codeStepDone(toast) {
+    showCodeStep("");
+    if (signupForm) {
+      signupForm.reset();
+      hidePasswords(signupForm);
+    }
+    if (loginForm) hidePasswords(loginForm);
+    setAuthMessage("Your free account is ready.", "success");
+    closeAuthModal();
+    showAuthToast(toast);
+  }
+  function codeStepSignedIn() {
+    if (!codeEmail && !pendingCodeEmail()) return;
+    const onStep = Boolean((authModal == null ? void 0 : authModal.classList.contains("cn-code-step")) && authModal.classList.contains("show"));
+    if (onStep) codeStepDone("Email confirmed. You're signed in.");
+    else showCodeStep("");
+  }
+  async function signInAfterLink() {
+    if (!codeEmail || !codePassword || !appState.supabase) return false;
+    try {
+      const { data, error } = await appState.supabase.auth.signInWithPassword({ email: codeEmail, password: codePassword });
+      return !error && Boolean(data == null ? void 0 : data.session);
+    } catch (e) {
+      return false;
+    }
+  }
+  function isCodeRefused(error) {
+    return authErrorCode(error) === "otp_expired" || /expired|invalid|not found|otp/.test(String((error == null ? void 0 : error.message) || "").toLowerCase());
+  }
+  function offerSignInInstead() {
+    const email = codeEmail;
+    setAuthMessage("Already opened the link in the email? Then your account is confirmed: choose Sign in instead.", "", [
+      { label: "Sign in instead", run: () => {
+        if (loginEmailEl && email) loginEmailEl.value = email;
+        setAuthView("login");
+        focusField(loginPasswordEl);
+      } }
+    ]);
+  }
+  function codeHeadings() {
+    return ["Check your email", `We sent a 6-digit code to ${codeEmail}.`];
+  }
+  function showCodeStep(email) {
+    if (!document.getElementById("authCodeBox")) return;
+    codeEmail = email || "";
+    savePendingCode(codeEmail);
+    if (!codeEmail) codePassword = "";
+    renderCodeStep(authView === "signup");
     const field = document.getElementById("authCode");
     if (field) {
       field.value = "";
@@ -1680,8 +1777,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return "";
   }
   function friendlyCodeError(error) {
-    const message = String((error == null ? void 0 : error.message) || "").toLowerCase(), code = authErrorCode(error);
-    if (code === "otp_expired" || /expired|invalid|not found|otp/.test(message))
+    if (isCodeRefused(error))
       return "That code doesn't match, or it has expired. Check the newest email from CyberNet AI, or choose Send a new code.";
     return friendlyAuthError(error, "login");
   }
@@ -1717,21 +1813,44 @@ document.addEventListener("DOMContentLoaded", () => {
       const { data, error } = await appState.supabase.auth.verifyOtp({ email: codeEmail, token, type: "email" });
       if (error) throw error;
       if (!(data == null ? void 0 : data.session)) throw Object.assign(new Error("Token has expired or is invalid"), { code: "otp_expired" });
-      showCodeStep("");
-      if (signupForm) signupForm.reset();
-      setAuthMessage("Your free account is ready.", "success");
-      closeAuthModal();
-      showAuthToast("Email confirmed. Your free account is ready and you're signed in.");
+      codeStepDone("Email confirmed. Your free account is ready and you're signed in.");
     } catch (error) {
+      if (isCodeRefused(error) && await signInAfterLink()) {
+        codeStepDone("Email confirmed. Your free account is ready and you're signed in.");
+        return;
+      }
       setFieldError(authCodeEl, friendlyCodeError(error));
+      if (isCodeRefused(error)) offerSignInInstead();
       authCodeEl == null ? void 0 : authCodeEl.focus();
     } finally {
       done();
     }
   });
-  if (authCodeResendBtn) authCodeResendBtn.addEventListener("click", () => {
+  if (authCodeResendBtn) authCodeResendBtn.addEventListener("click", async () => {
+    if (isBusy(authCodeResendBtn) || coolingDown(authCodeResendBtn) || !codeEmail) return;
     setAuthMessage("");
-    if (codeEmail) sendConfirmationEmail(codeEmail, authCodeResendBtn);
+    if (codePassword) {
+      const done = setBusy(authCodeResendBtn, "Sending…");
+      let signedIn = false;
+      try {
+        signedIn = await signInAfterLink();
+      } finally {
+        done();
+      }
+      if (signedIn) {
+        codeStepDone("Email confirmed. Your free account is ready and you're signed in.");
+        return;
+      }
+    }
+    if (await sendConfirmationEmail(codeEmail, authCodeResendBtn))
+      setAuthMessage(`We sent a new code to ${codeEmail}. Use the newest email. If nothing arrives and you already opened the link in an earlier email, your account is confirmed: choose Sign in instead.`, "success", [
+        { label: "Sign in instead", run: () => {
+          const email = codeEmail;
+          if (loginEmailEl && email) loginEmailEl.value = email;
+          setAuthView("login");
+          focusField(loginPasswordEl);
+        } }
+      ]);
   });
   if (authCodeBackBtn) authCodeBackBtn.addEventListener("click", () => {
     showCodeStep("");

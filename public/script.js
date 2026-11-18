@@ -618,7 +618,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     const tabbed=view==="login"||view==="signup";
     authView=view;
     if(authModal)authModal.dataset.authView=view;
-/*@web*/    if(view==="signup")cnFunnel("signup_open");else showCodeStep("");/*@end-web*/
+/*@web*/    if(view==="signup"){cnFunnel("signup_open");restoreCodeStep()}else renderCodeStep(false);/*@end-web*/
     authTabs.forEach(tab=>tab.classList.toggle("active",tab.dataset.auth===view));
     if(authTabsEl)authTabsEl.hidden=!tabbed;
     [[loginForm,"login"],[signupForm,"signup"],[resetForm,"reset"],[newPasswordForm,"recovery"]].forEach(([form,name])=>{
@@ -663,6 +663,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(!authModal?.classList.contains("show"))authReturnFocus=document.activeElement;
     authModal?.classList.add("show");
     focusFirstField(authModal?.querySelector(".auth-form.active-auth-form"));
+/*@web*/    if(authModal?.classList.contains("cn-code-step"))focusField(document.getElementById("authCode"));/*@end-web*/
   }
   function closeAuthModal(){
     if(!authModal?.classList.contains("show"))return;
@@ -876,6 +877,7 @@ document.addEventListener("DOMContentLoaded",()=>{
         }
       }
     }
+/*@web*/    else if(!signedIn&&!authModal?.classList.contains("show")&&pendingCodeEmail(3600000))openAuthModal("signup");/*@end-web*/
   }
   /* An error from Supabase is cleared from the address before the client starts, so the client never acts on
      it (it would sign this device out) and any session already here is kept. */
@@ -1270,6 +1272,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     appState.session=session||null;
     appState.user=session?.user||null;
 /*@web*/    try{tagNewGoogleAccount(appState.user)}catch{}/*@end-web*/
+/*@web*/    try{if(appState.user)codeStepSignedIn()}catch{}/*@end-web*/
 /*@web*/    try{noteAccount(appState.user)}catch{}
     // signed out (a stale saved session, or a sign-out): a guest again, with whatever free checks are left
     if(!appState.user){try{localStorage.setItem("cn-guest","1")}catch{}}/*@end-web*/
@@ -1372,6 +1375,8 @@ document.addEventListener("DOMContentLoaded",()=>{
       setAuthMessage("You're signed in.","success");
       closeAuthModal();
     }catch(error){
+/*@web*/      // Not confirmed yet: the code from the confirmation email can be typed right here.
+      if(isUnconfirmedEmailError(error)){openCodeStepFor(email.toLowerCase(),password,"Your email isn't confirmed yet. Enter the 6-digit code from the email we sent you, or choose Send a new code.");return}/*@end-web*/
       // A wrong password, or an account that only ever used Google: offer Google as the next step.
       const wrongCredentials=authErrorCode(error)==="invalid_credentials"||/invalid login credentials/i.test(String(error?.message||""));
       setAuthMessage(friendlyAuthError(error,"login"),"error"/*@web*/,wrongCredentials&&googleAuthBtn?[{label:"Continue with Google",run:()=>googleAuthBtn.click()}]:[]/*@end-web*/);
@@ -1392,6 +1397,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       clearAuthNotice();
       setAuthMessage(/*@web*/`We sent a new email to ${email} with a new code and link. Use the newest one. It can take a minute to arrive, so check your spam folder too.`/*@end-web*//*@ios `We sent a new confirmation link to ${email}. It can take a minute to arrive, so check your spam folder too.` @end-ios*/,"success");
       startCooldown(button,60,waitLabel);
+/*@web*/      return true;/*@end-web*/
     }catch(error){
       setAuthMessage(friendlyAuthError(error,"resend"),"error");
       const wait=authWaitSeconds(error);
@@ -1401,7 +1407,10 @@ document.addEventListener("DOMContentLoaded",()=>{
   if(resendConfirmBtn)resendConfirmBtn.addEventListener("click",()=>{
     setAuthMessage("");
     if(!fieldsValid([loginEmailEl]))return;
-    sendConfirmationEmail(loginEmailEl.value.trim().toLowerCase(),resendConfirmBtn);
+    sendConfirmationEmail(loginEmailEl.value.trim().toLowerCase(),resendConfirmBtn)/*@web*/.then(ok=>{
+      // the new email carries a code: show the field to type it into
+      if(ok)openCodeStepFor(loginEmailEl.value.trim().toLowerCase(),loginPasswordEl?.value||"");
+    }).catch(()=>{})/*@end-web*/;
   });
 
   function signupFields(){return ["signupFirstName","signupLastName","signupEmail","signupPassword"].map(id=>document.getElementById(id)).filter(Boolean)}
@@ -1459,9 +1468,19 @@ document.addEventListener("DOMContentLoaded",()=>{
       lastSignupEmail=email;
       hidePasswords(signupForm);
 /*@web*/      setAuthMessage("If the email isn't in your inbox in a minute or two, check your spam folder.");
+      codePassword=password;
+      startCooldown(document.getElementById("authCodeResendBtn"),60,left=>`Resend available in ${left}s`);
       showCodeStep(email);/*@end-web*//*@ios setAuthMessage(`Almost done. We sent a confirmation link to ${email}. Open it, then come back to the app and tap I've confirmed, sign me in. If it isn't in your inbox in a minute or two, check your spam folder.`,"success",[{label:"I've confirmed, sign me in",run:async()=>{const{error}=await appState.supabase.auth.signInWithPassword({email,password});if(error){setAuthMessage(friendlyAuthError(error,"login"),"error");return}setAuthMessage("You're signed in.","success");closeAuthModal();showAuthToast("Email confirmed. You're signed in.")}}]); @end-ios*/
       if(signupResendBtn){signupResendBtn.hidden=false;startCooldown(signupResendBtn,60,left=>`Resend available in ${left}s`)}
-    }catch(error){setAuthMessage(friendlyAuthError(error,"signup"),"error")}
+    }catch(error){/*@web*/
+      // The same address again inside Supabase's one-email-a-minute limit: the code already sent still works.
+      if(authWaitSeconds(error)&&email===lastSignupEmail){
+        codePassword=password;
+        showCodeStep(email);
+        setAuthMessage(`We already sent a code to ${email}. Enter it above. You can ask for a new one in about a minute.`);
+        return;
+      }
+      /*@end-web*/setAuthMessage(friendlyAuthError(error,"signup"),"error")}
     finally{done()}
   });
   if(signupResendBtn)signupResendBtn.addEventListener("click",()=>{
@@ -1476,25 +1495,93 @@ document.addEventListener("DOMContentLoaded",()=>{
      browser in. The link keeps working. type "email" is the type Supabase's docs use for a sign-up code
      (supabase-js also accepts "signup"). The code length is the project's Email OTP length (6 by default),
      so 6 to 10 digits are accepted. */
-  var codeEmail="";
-  /* The code step's own heading (design pass, 18 Nov 2026): the card says what happened and where the code
-     went, above the field, instead of repeating the sign-up pitch with the address in a line under the button. */
-  function codeHeadings(){return ["Check your email",`We sent a 6-digit code to ${codeEmail}.`]}
-  function showCodeStep(email){
+  var codeEmail=codeEmail||"";
+  /* Final fixes (18 Nov 2026). The address waiting for its code is also kept in sessionStorage
+     (cn-code-email, this tab only, never the password), so the step survives a reload, a closed card and a
+     look at the Sign In tab. It ends when the code is accepted, when the visitor chooses Use a different
+     email, or when a session appears (the link was opened in another tab). codePassword is the password
+     typed a moment ago, in memory only: if the code is refused because the link was opened first (the
+     account is then already confirmed), one sign-in with it finishes the step. */
+  var codePassword=codePassword||"";
+  function savePendingCode(email){try{if(email)sessionStorage.setItem("cn-code-email",JSON.stringify({email,at:Date.now()}));else sessionStorage.removeItem("cn-code-email")}catch{}}
+  function pendingCodeEmail(maxAge){
+    try{
+      const saved=JSON.parse(sessionStorage.getItem("cn-code-email")||"null");
+      if(saved&&typeof saved.email==="string"&&/^[^\s@]+@[^\s@]+$/.test(saved.email)&&Date.now()-Number(saved.at)<(maxAge||86400000))return saved.email;
+    }catch{}
+    return "";
+  }
+  /* Shows or hides the step without touching which address is waiting. */
+  function renderCodeStep(show){
     const box=document.getElementById("authCodeBox"),form=document.getElementById("authSignupForm");
     if(!box)return;
-    codeEmail=email||"";
-    box.hidden=!codeEmail;
-    if(form)form.hidden=Boolean(codeEmail);
+    const on=Boolean(show&&codeEmail);
+    box.hidden=!on;
+    if(form)form.hidden=on;
     // the code step is the only thing on the card: no Google button, no "check a message first" offer (63-gate.css)
-    document.getElementById("authModal")?.classList.toggle("cn-code-step",Boolean(codeEmail));
+    document.getElementById("authModal")?.classList.toggle("cn-code-step",on);
     if(authView==="signup"){
-      const [title,intro]=codeEmail?codeHeadings():AUTH_HEADINGS.signup;
+      const [title,intro]=on?codeHeadings():AUTH_HEADINGS.signup;
       if(authTitleEl&&authTitleEl.textContent!==title)authTitleEl.textContent=title;
       if(authIntroEl&&authIntroEl.textContent!==intro)authIntroEl.textContent=intro;
     }
     const resend=document.getElementById("signupResendBtn");
-    if(resend&&codeEmail)resend.hidden=true;
+    if(resend&&on)resend.hidden=true;
+  }
+  /* The Sign Up tab opens on the code step while an address is still waiting for its code. */
+  function restoreCodeStep(){
+    if(!codeEmail&&!isSignedIn())codeEmail=pendingCodeEmail();
+    if(codeEmail&&isSignedIn())codeEmail="";
+    renderCodeStep(true);
+  }
+  /* From the Sign In tab: an address that still needs its code. */
+  function openCodeStepFor(email,password,message){
+    setAuthView("signup",{keepMessages:true});
+    if(resendConfirmBtn&&!coolingDown(resendConfirmBtn))resendConfirmBtn.hidden=true;
+    codePassword=password||"";
+    showCodeStep(email);
+    if(message)setAuthMessage(message,"error");
+  }
+  function codeStepDone(toast){
+    showCodeStep("");
+    if(signupForm){signupForm.reset();hidePasswords(signupForm)}
+    if(loginForm)hidePasswords(loginForm);
+    setAuthMessage("Your free account is ready.","success");
+    closeAuthModal();
+    showAuthToast(toast);
+  }
+  /* A session appeared while a code was pending (the email link, opened in another tab of this browser). */
+  function codeStepSignedIn(){
+    if(!codeEmail&&!pendingCodeEmail())return;
+    const onStep=Boolean(authModal?.classList.contains("cn-code-step")&&authModal.classList.contains("show"));
+    if(onStep)codeStepDone("Email confirmed. You're signed in.");else showCodeStep("");
+  }
+  /* The link in the email confirms the account too. If it was opened first, the code is used up but the
+     password typed a moment ago signs this browser in. Quiet: any failure leaves the step as it was. */
+  async function signInAfterLink(){
+    if(!codeEmail||!codePassword||!appState.supabase)return false;
+    try{
+      const{data,error}=await appState.supabase.auth.signInWithPassword({email:codeEmail,password:codePassword});
+      return !error&&Boolean(data?.session);
+    }catch{return false}
+  }
+  function isCodeRefused(error){return authErrorCode(error)==="otp_expired"||/expired|invalid|not found|otp/.test(String(error?.message||"").toLowerCase())}
+  function offerSignInInstead(){
+    const email=codeEmail;
+    setAuthMessage("Already opened the link in the email? Then your account is confirmed: choose Sign in instead.","",[
+      {label:"Sign in instead",run:()=>{if(loginEmailEl&&email)loginEmailEl.value=email;setAuthView("login");focusField(loginPasswordEl)}}
+    ]);
+  }
+  /* The code step's own heading (design pass, 18 Nov 2026): the card says what happened and where the code
+     went, above the field, instead of repeating the sign-up pitch with the address in a line under the button. */
+  function codeHeadings(){return ["Check your email",`We sent a 6-digit code to ${codeEmail}.`]}
+  /* An address starts the step for it (and remembers it); "" ends the step and forgets the address. */
+  function showCodeStep(email){
+    if(!document.getElementById("authCodeBox"))return;
+    codeEmail=email||"";
+    savePendingCode(codeEmail);
+    if(!codeEmail)codePassword="";
+    renderCodeStep(authView==="signup");
     const field=document.getElementById("authCode");
     if(field){field.value="";setFieldError(field,"")}
     if(codeEmail&&field)focusField(field);
@@ -1505,8 +1592,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     return "";
   }
   function friendlyCodeError(error){
-    const message=String(error?.message||"").toLowerCase(),code=authErrorCode(error);
-    if(code==="otp_expired"||/expired|invalid|not found|otp/.test(message))
+    if(isCodeRefused(error))
       return "That code doesn't match, or it has expired. Check the newest email from CyberNet AI, or choose Send a new code.";
     return friendlyAuthError(error,"login");
   }
@@ -1533,19 +1619,29 @@ document.addEventListener("DOMContentLoaded",()=>{
       const{data,error}=await appState.supabase.auth.verifyOtp({email:codeEmail,token,type:"email"});
       if(error)throw error;
       if(!data?.session)throw Object.assign(new Error("Token has expired or is invalid"),{code:"otp_expired"});
-      showCodeStep("");
-      if(signupForm)signupForm.reset();
-      setAuthMessage("Your free account is ready.","success");
-      closeAuthModal();
-      showAuthToast("Email confirmed. Your free account is ready and you're signed in.");
+      codeStepDone("Email confirmed. Your free account is ready and you're signed in.");
     }catch(error){
+      // The link was opened first (in another browser, or by a mail scanner): the account is confirmed already.
+      if(isCodeRefused(error)&&await signInAfterLink()){codeStepDone("Email confirmed. Your free account is ready and you're signed in.");return}
       setFieldError(authCodeEl,friendlyCodeError(error));
+      if(isCodeRefused(error))offerSignInInstead();
       authCodeEl?.focus();
     }finally{done()}
   });
-  if(authCodeResendBtn)authCodeResendBtn.addEventListener("click",()=>{
+  if(authCodeResendBtn)authCodeResendBtn.addEventListener("click",async()=>{
+    if(isBusy(authCodeResendBtn)||coolingDown(authCodeResendBtn)||!codeEmail)return;
     setAuthMessage("");
-    if(codeEmail)sendConfirmationEmail(codeEmail,authCodeResendBtn);
+    // Already confirmed by the link: no new email would come, so sign in instead of sending one.
+    if(codePassword){
+      const done=setBusy(authCodeResendBtn,"Sending…");
+      let signedIn=false;
+      try{signedIn=await signInAfterLink()}finally{done()}
+      if(signedIn){codeStepDone("Email confirmed. Your free account is ready and you're signed in.");return}
+    }
+    if(await sendConfirmationEmail(codeEmail,authCodeResendBtn))
+      setAuthMessage(`We sent a new code to ${codeEmail}. Use the newest email. If nothing arrives and you already opened the link in an earlier email, your account is confirmed: choose Sign in instead.`,"success",[
+        {label:"Sign in instead",run:()=>{const email=codeEmail;if(loginEmailEl&&email)loginEmailEl.value=email;setAuthView("login");focusField(loginPasswordEl)}}
+      ]);
   });
   if(authCodeBackBtn)authCodeBackBtn.addEventListener("click",()=>{
     showCodeStep("");
