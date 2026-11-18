@@ -219,6 +219,14 @@ document.addEventListener("DOMContentLoaded",()=>{
     }
   }
   navButtons.forEach(btn=>{btn.addEventListener("click",e=>{e.preventDefault();if(btn.dataset.page)switchPage(btn.dataset.page)})});
+/*@web*/  /* "For individuals" in the nav (and any [data-cn-anchor]): Home, then the section (#for-you), 18 Nov 2026 */
+  document.querySelectorAll("[data-cn-anchor]").forEach(btn=>btn.addEventListener("click",e=>{
+    e.preventDefault();
+    const id=btn.dataset.cnAnchor,onHome=document.getElementById("home")?.classList.contains("active-page");
+    if(navbar)navbar.classList.remove("open");
+    const go=()=>{const el=document.getElementById(id);if(!el)return;el.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"});try{history.replaceState(history.state,"","/#"+id)}catch{}};
+    if(onHome)go();else{switchPage("home");setTimeout(go,520)}
+  }));/*@end-web*/
   if(mobileMenu&&navbar)mobileMenu.addEventListener("click",()=>navbar.classList.toggle("open"));
 
   /* ─── Route to the right page based on the URL when the site first loads ─── */

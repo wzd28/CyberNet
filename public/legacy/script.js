@@ -256,6 +256,26 @@ document.addEventListener("DOMContentLoaded", () => {
       if (btn.dataset.page) switchPage(btn.dataset.page);
     });
   });
+  document.querySelectorAll("[data-cn-anchor]").forEach((btn) => btn.addEventListener("click", (e) => {
+    var _a2;
+    e.preventDefault();
+    const id = btn.dataset.cnAnchor, onHome = (_a2 = document.getElementById("home")) == null ? void 0 : _a2.classList.contains("active-page");
+    if (navbar) navbar.classList.remove("open");
+    const go = () => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+      try {
+        history.replaceState(history.state, "", "/#" + id);
+      } catch (e2) {
+      }
+    };
+    if (onHome) go();
+    else {
+      switchPage("home");
+      setTimeout(go, 520);
+    }
+  }));
   if (mobileMenu && navbar) mobileMenu.addEventListener("click", () => navbar.classList.toggle("open"));
   const initialRoutePage = pageForCurrentPath();
   if (initialRoutePage && initialRoutePage !== "home") {
