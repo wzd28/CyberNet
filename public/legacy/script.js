@@ -222,6 +222,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     currentPageId = pageName;
     updatePageMeta(pageName);
+    if (pageName === "cybernetai") cnFunnel("ai_open");
     if (!options.skipUrlUpdate && PAGE_PATHS[pageName] !== void 0) {
       const targetPath = PAGE_PATHS[pageName];
       if (window.location.pathname !== targetPath) {
@@ -675,6 +676,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const tabbed = view === "login" || view === "signup";
     authView = view;
     if (authModal) authModal.dataset.authView = view;
+    if (view === "signup") cnFunnel("signup_open");
     authTabs.forEach((tab) => tab.classList.toggle("active", tab.dataset.auth === view));
     if (authTabsEl) authTabsEl.hidden = !tabbed;
     [[loginForm, "login"], [signupForm, "signup"], [resetForm, "reset"], [newPasswordForm, "recovery"]].forEach(([form, name]) => {
@@ -1276,12 +1278,66 @@ document.addEventListener("DOMContentLoaded", () => {
     appState.supabase.auth.updateUser({ data: { signup_source: source } }).catch(() => {
     });
   }
+  function funnelSource() {
+    const src = signupSource();
+    if (!src) return "direct";
+    const clean = (v) => String(v || "").toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 40);
+    return clean(src.s) || { ttclid: "tiktok", fbclid: "meta", gclid: "google" }[src.k] || (src.r ? "referral" : "direct");
+  }
+  function cnFunnel(step) {
+    try {
+      const key = `cn-fun-${step}`;
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, "1");
+    } catch (e) {
+      return;
+    }
+    try {
+      const body = JSON.stringify({ event: step, source: funnelSource() });
+      if (navigator.sendBeacon && navigator.sendBeacon("/api/funnel", new Blob([body], { type: "text/plain;charset=UTF-8" }))) return;
+      fetch("/api/funnel", { method: "POST", body, keepalive: true, credentials: "same-origin", headers: { "Content-Type": "text/plain;charset=UTF-8" } }).catch(() => {
+      });
+    } catch (e) {
+    }
+  }
+  function track(name, params) {
+    try {
+      if (typeof window.cnTrack === "function") window.cnTrack(name, params || {});
+    } catch (e) {
+    }
+  }
+  cnFunnel("land");
+  let accountNoted = "";
+  function noteAccount(user) {
+    var _a2;
+    if (!user || accountNoted === user.id) return;
+    accountNoted = user.id;
+    const age = Date.now() - Date.parse(user.created_at || "");
+    const method = String(((_a2 = user.app_metadata) == null ? void 0 : _a2.provider) || "email").slice(0, 20);
+    if (age >= 0 && age < 30 * 60 * 1e3) {
+      let seen = false;
+      try {
+        seen = localStorage.getItem("cn-fun-signed-up") === "1";
+        localStorage.setItem("cn-fun-signed-up", "1");
+      } catch (e) {
+      }
+      if (seen) return;
+      cnFunnel("signup_confirmed");
+      track("sign_up", { method, signup_source: funnelSource() });
+    } else if (CYBERNET_AUTH_RETURN.hasSession && method === "google") {
+      track("login", { method });
+    }
+  }
   async function syncSession(session) {
     var _a2;
     appState.session = session || null;
     appState.user = (session == null ? void 0 : session.user) || null;
     try {
       tagNewGoogleAccount(appState.user);
+    } catch (e) {
+    }
+    try {
+      noteAccount(appState.user);
     } catch (e) {
     }
     await refreshAccountStatus();
@@ -1391,6 +1447,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (error) throw error;
       if (resendConfirmBtn) resendConfirmBtn.hidden = true;
       hidePasswords(loginForm);
+      track("login", { method: "email" });
       setAuthMessage("You're signed in.", "success");
       closeAuthModal();
     } catch (error) {
@@ -1468,6 +1525,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const email = document.getElementById("signupEmail").value.trim().toLowerCase();
     const password = document.getElementById("signupPassword").value;
     const done = setBusy(signupBtn, "Creating your account…");
+    cnFunnel("signup_submit");
     try {
       const { data, error } = await appState.supabase.auth.signUp({
         email,
@@ -1640,6 +1698,13 @@ document.addEventListener("DOMContentLoaded", () => {
       showPricingNotice(isBusiness() ? "Your Business plan already includes everything in Pro." : "CyberNet AI Pro is already active on this account.", "success");
       return;
     }
+    cnFunnel("checkout_open");
+    track("begin_checkout", { plan, cycle });
+    try {
+      sessionStorage.setItem("cn-checkout-plan", JSON.stringify({ plan, cycle }));
+      sessionStorage.removeItem("cn-purchase-sent");
+    } catch (e) {
+    }
     showPricingNotice("Opening secure Stripe Checkout…");
     if (btn) btn.disabled = true;
     businessBtns.forEach((b) => b.disabled = true);
@@ -1694,6 +1759,15 @@ document.addEventListener("DOMContentLoaded", () => {
     let isBusinessCheckout = false;
     try {
       isBusinessCheckout = sessionStorage.getItem("cybernet_pending_business_checkout") === "1";
+    } catch (e) {
+    }
+    try {
+      if (!sessionStorage.getItem("cn-purchase-sent")) {
+        sessionStorage.setItem("cn-purchase-sent", "1");
+        const chosen = JSON.parse(sessionStorage.getItem("cn-checkout-plan") || "null") || {};
+        const plan = chosen.plan === "business" || isBusinessCheckout ? "business" : chosen.plan === "pro" ? "pro" : "unknown";
+        track("purchase", { plan, cycle: chosen.cycle === "yearly" ? "yearly" : chosen.cycle === "monthly" ? "monthly" : "unknown" });
+      }
     } catch (e) {
     }
     setTimeout(() => {
@@ -2419,6 +2493,12 @@ document.addEventListener("DOMContentLoaded", () => {
     p.querySelector("[data-guest-signup]").addEventListener("click", () => openAuthModal("signup"));
     box.appendChild(p);
   }
+  function afterQuickScan(box, type) {
+    const guest = !isSignedIn();
+    cnFunnel(guest ? "scan_guest" : "scan_account");
+    track("scan", { type, guest });
+    if (guest) guestNote(box);
+  }
   async function checkQuickScanQuota() {
     if (!isSignedIn()) {
       if (guestScansLeft() <= 0) return { allowed: false, message: "You've used your free scans. Create a free account to keep scanning." };
@@ -2479,7 +2559,7 @@ document.addEventListener("DOMContentLoaded", () => {
         "Local protection scan complete. Use Analysis AI for a deeper, AI-assisted check."
       );
       showReport(cyberTextResult, result.score, result.scamType, result.reasons, result.advice, { ...result, note, previewHtml: isBareLink ? renderLinkPreview(text, result) : renderLinksFound(result.links || []) });
-      guestNote(cyberTextResult);
+      afterQuickScan(cyberTextResult, isBareLink ? "link" : "text");
       prependScan("textScanList", `“${text.slice(0, 42)}${text.length > 42 ? "…" : ""}”`, result);
       reportTeamActivity({ kind: "quick_scan", scanType: isBareLink ? "link" : "text", content: text, result: quickScanLogResult(result) });
       if (status) status.textContent = "Local scan complete";
@@ -2512,7 +2592,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const result = analyzeLinkRules(link);
       showReport(cyberLinkResult, result.score, result.scamType, result.reasons, result.advice, { ...result, note: "Local structural URL scan complete. Use Analysis AI for a deeper, AI-assisted check.", previewHtml: renderLinkPreview(link, result) });
       prependScan("linkScanList", link.slice(0, 52), result);
-      guestNote(cyberLinkResult);
+      afterQuickScan(cyberLinkResult, "link");
       reportTeamActivity({ kind: "quick_scan", scanType: "link", content: link, result: quickScanLogResult(result) });
     }, 300, checkQuickScanQuota());
   });
@@ -2660,7 +2740,7 @@ document.addEventListener("DOMContentLoaded", () => {
       "Local QR and file checks complete. Use Analysis AI for a deeper, AI-assisted check."
     ), previewHtml: decoded.qrData ? renderQrPreview(decoded.qrData, qrKind, qrResult) : "" });
     prependScan("imageScanList", file.name, result);
-    guestNote(cyberImageResult);
+    afterQuickScan(cyberImageResult, "image");
     reportTeamActivity({ kind: "quick_scan", scanType: "image", content: "", fileName: file.name, qr: decoded.qrData ? { kind: qrKind, data: decoded.qrData } : null, result: quickScanLogResult(result, { needsDeepScan: !decoded.qrData }) });
   }
   if (cyberDropZone) cyberDropZone.addEventListener("click", (e) => {

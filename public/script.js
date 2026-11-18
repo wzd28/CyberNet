@@ -192,6 +192,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(current&&current.id===pageName){if(navbar)navbar.classList.remove("open");runRevealAnimation();return}
     currentPageId=pageName;
     updatePageMeta(pageName);
+/*@web*/    if(pageName==="cybernetai")cnFunnel("ai_open");/*@end-web*/
     if(!options.skipUrlUpdate&&PAGE_PATHS[pageName]!==undefined){
       const targetPath=PAGE_PATHS[pageName];
       if(window.location.pathname!==targetPath){
@@ -607,6 +608,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     const tabbed=view==="login"||view==="signup";
     authView=view;
     if(authModal)authModal.dataset.authView=view;
+/*@web*/    if(view==="signup")cnFunnel("signup_open");/*@end-web*/
     authTabs.forEach(tab=>tab.classList.toggle("active",tab.dataset.auth===view));
     if(authTabsEl)authTabsEl.hidden=!tabbed;
     [[loginForm,"login"],[signupForm,"signup"],[resetForm,"reset"],[newPasswordForm,"recovery"]].forEach(([form,name])=>{
@@ -1206,10 +1208,54 @@ document.addEventListener("DOMContentLoaded",()=>{
     signupSourceTried=true;
     appState.supabase.auth.updateUser({data:{signup_source:source}}).catch(()=>{});
   }/*@end-web*/
+/*@web*/  /* Funnel counts (netlify/functions/funnel.mjs, 18 Nov 2026): one anonymous +1 per step and per browser
+     session (sessionStorage cn-fun-<step>), sent without cookies, so the owner can see visit -> check ->
+     sign-up. Only the step and a short source label leave the browser: utm_source, or the platform of the
+     click id (tiktok, meta, google), else referral or direct, from the first-touch cn-src. */
+  function funnelSource(){
+    const src=signupSource();
+    if(!src)return"direct";
+    const clean=v=>String(v||"").toLowerCase().replace(/[^a-z0-9_-]/g,"").slice(0,40);
+    return clean(src.s)||({ttclid:"tiktok",fbclid:"meta",gclid:"google"})[src.k]||(src.r?"referral":"direct");
+  }
+  function cnFunnel(step){
+    try{
+      const key=`cn-fun-${step}`;
+      if(sessionStorage.getItem(key))return;
+      sessionStorage.setItem(key,"1");
+    }catch{return}
+    try{
+      const body=JSON.stringify({event:step,source:funnelSource()});
+      if(navigator.sendBeacon&&navigator.sendBeacon("/api/funnel",new Blob([body],{type:"text/plain;charset=UTF-8"})))return;
+      fetch("/api/funnel",{method:"POST",body,keepalive:true,credentials:"same-origin",headers:{"Content-Type":"text/plain;charset=UTF-8"}}).catch(()=>{});
+    }catch{}
+  }
+  /* GA4 events (public/cybernet-consent.js): window.cnTrack does nothing until the visitor accepts analytics. */
+  function track(name,params){try{if(typeof window.cnTrack==="function")window.cnTrack(name,params||{})}catch{}}
+  cnFunnel("land");
+  /* A new account's first sign-in (account under 30 minutes old, once per browser): the sign-up has
+     finished, by the 6-digit code, the email link or Google. An older account coming back from Google
+     counts as a login. */
+  let accountNoted="";
+  function noteAccount(user){
+    if(!user||accountNoted===user.id)return;
+    accountNoted=user.id;
+    const age=Date.now()-Date.parse(user.created_at||"");
+    const method=String(user.app_metadata?.provider||"email").slice(0,20);
+    if(age>=0&&age<30*60*1000){
+      let seen=false;try{seen=localStorage.getItem("cn-fun-signed-up")==="1";localStorage.setItem("cn-fun-signed-up","1")}catch{}
+      if(seen)return;
+      cnFunnel("signup_confirmed");
+      track("sign_up",{method,signup_source:funnelSource()});
+    }else if(CYBERNET_AUTH_RETURN.hasSession&&method==="google"){
+      track("login",{method});
+    }
+  }/*@end-web*/
   async function syncSession(session){
     appState.session=session||null;
     appState.user=session?.user||null;
 /*@web*/    try{tagNewGoogleAccount(appState.user)}catch{}/*@end-web*/
+/*@web*/    try{noteAccount(appState.user)}catch{}/*@end-web*/
     await refreshAccountStatus();
     /* Lets the Recovery case list and the legal-acceptance recorder follow sign-in and sign-out. */
     try{window.dispatchEvent(new CustomEvent("cybernet:session",{detail:{userId:appState.user?.id||null}}))}catch{}
@@ -1290,6 +1336,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       if(error)throw error;
       if(resendConfirmBtn)resendConfirmBtn.hidden=true;
       hidePasswords(loginForm);
+/*@web*/      track("login",{method:"email"});/*@end-web*/
       setAuthMessage("You're signed in.","success");
       closeAuthModal();
     }catch(error){
@@ -1351,6 +1398,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     const email=document.getElementById("signupEmail").value.trim().toLowerCase();
     const password=document.getElementById("signupPassword").value;
     const done=setBusy(signupBtn,"Creating your account…");
+/*@web*/    cnFunnel("signup_submit");/*@end-web*/
     try{
       const {data,error}=await appState.supabase.auth.signUp({
         email,password,
@@ -1469,6 +1517,9 @@ document.addEventListener("DOMContentLoaded",()=>{
     }
     if(plan==="business"&&effectivePlanName()==="business"){showPricingNotice("CyberNet AI Business is already active on this account.","success");return}
     if(plan==="pro"&&isPro()){showPricingNotice(isBusiness()?"Your Business plan already includes everything in Pro.":"CyberNet AI Pro is already active on this account.","success");return}
+    cnFunnel("checkout_open");
+    track("begin_checkout",{plan,cycle});
+    try{sessionStorage.setItem("cn-checkout-plan",JSON.stringify({plan,cycle}));sessionStorage.removeItem("cn-purchase-sent")}catch{}
     showPricingNotice("Opening secure Stripe Checkout…");
     if(btn)btn.disabled=true;
     businessBtns.forEach(b=>b.disabled=true);
@@ -1516,6 +1567,16 @@ document.addEventListener("DOMContentLoaded",()=>{
   const checkoutState=new URLSearchParams(window.location.search).get("checkout");
   if(checkoutState==="success"){
     let isBusinessCheckout=false;try{isBusinessCheckout=sessionStorage.getItem("cybernet_pending_business_checkout")==="1"}catch{}
+    /* GA4 purchase, once per checkout (a reload of the success address is not a second purchase). No amount
+       or session id is sent: the plan and cycle the visitor chose, from this tab's own begin_checkout. */
+    try{
+      if(!sessionStorage.getItem("cn-purchase-sent")){
+        sessionStorage.setItem("cn-purchase-sent","1");
+        const chosen=JSON.parse(sessionStorage.getItem("cn-checkout-plan")||"null")||{};
+        const plan=chosen.plan==="business"||isBusinessCheckout?"business":chosen.plan==="pro"?"pro":"unknown";
+        track("purchase",{plan,cycle:chosen.cycle==="yearly"?"yearly":chosen.cycle==="monthly"?"monthly":"unknown"});
+      }
+    }catch{}
     setTimeout(()=>{switchPage("pricing");showPricingNotice(isBusinessCheckout?"Payment received. Your Business plan is being confirmed securely.":"Payment received. Your Pro access is being confirmed securely.","success");refreshAccountStatus()},900);
     history.replaceState({},"",window.location.pathname);
   }else if(checkoutState==="cancelled"){
@@ -2202,6 +2263,13 @@ document.addEventListener("DOMContentLoaded",()=>{
     p.querySelector("[data-guest-signup]").addEventListener("click",()=>openAuthModal("signup"));
     box.appendChild(p);
   }
+  /* After every Quick Scan result: the funnel step (guest or account) and the GA4 scan event. */
+  function afterQuickScan(box,type){
+    const guest=!isSignedIn();
+    cnFunnel(guest?"scan_guest":"scan_account");
+    track("scan",{type,guest});
+    if(guest)guestNote(box);
+  }
   async function checkQuickScanQuota(){
     if(!isSignedIn()){
       if(guestScansLeft()<=0)return{allowed:false,message:"You've used your free scans. Create a free account to keep scanning."};
@@ -2251,7 +2319,7 @@ document.addEventListener("DOMContentLoaded",()=>{
         ?/*@web*/"This looked like a link rather than a message, so CyberNet AI analyzed it with the link engine for a more accurate result. Use Link Detection directly next time for the same result."/*@end-web*//*@ios "This looked like a link rather than a message, so CyberNet AI checked it with the link engine, which reads web addresses more closely. Use Link Detection directly next time for the same result." @end-ios*/
         :/*@web*/"Local protection scan complete. Use Analysis AI for a deeper, AI-assisted check."/*@end-web*//*@ios "Check on your iPhone complete. Use Analysis AI for a deeper, AI-assisted check." @end-ios*/;
       showReport(cyberTextResult,result.score,result.scamType,result.reasons,result.advice,{...result,note,previewHtml:isBareLink?renderLinkPreview(text,result):renderLinksFound(result.links||[])});
-/*@web*/      guestNote(cyberTextResult);/*@end-web*/
+/*@web*/      afterQuickScan(cyberTextResult,isBareLink?"link":"text");/*@end-web*/
       prependScan("textScanList",`“${text.slice(0,42)}${text.length>42?"…":""}”`,result);
       reportTeamActivity({kind:"quick_scan",scanType:isBareLink?"link":"text",content:text,result:quickScanLogResult(result)});
       if(status)status.textContent="Local scan complete";
@@ -2274,7 +2342,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     runScan(cyberLinkBtn,cyberLinkResult,async()=>{
       const result=analyzeLinkRules(link);
       showReport(cyberLinkResult,result.score,result.scamType,result.reasons,result.advice,{...result,note:"Local structural URL scan complete. Use Analysis AI for a deeper, AI-assisted check.",previewHtml:renderLinkPreview(link,result)});
-      prependScan("linkScanList",link.slice(0,52),result);/*@web*/guestNote(cyberLinkResult);/*@end-web*/
+      prependScan("linkScanList",link.slice(0,52),result);/*@web*/afterQuickScan(cyberLinkResult,"link");/*@end-web*/
       reportTeamActivity({kind:"quick_scan",scanType:"link",content:link,result:quickScanLogResult(result)});
     },300,checkQuickScanQuota());
   });
@@ -2352,7 +2420,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     // the filename alone. Opted in here, not inside analyzeImageRules, because
     // the Analysis AI page reuses that function for its own pre-analysis.
     showReport(cyberImageResult,result.score,result.scamType,result.reasons,result.advice,{...result,needsDeepScan:!decoded.qrData,note:/*@web*/"Local QR and file checks complete. Use Analysis AI for a deeper, AI-assisted check."/*@end-web*//*@ios "Check on your iPhone complete. Use Analysis AI for a deeper, AI-assisted check." @end-ios*/,previewHtml:decoded.qrData?renderQrPreview(decoded.qrData,qrKind,qrResult):""});
-    prependScan("imageScanList",file.name,result);/*@web*/guestNote(cyberImageResult);/*@end-web*/
+    prependScan("imageScanList",file.name,result);/*@web*/afterQuickScan(cyberImageResult,"image");/*@end-web*/
     reportTeamActivity({kind:"quick_scan",scanType:"image",content:"",fileName:file.name,qr:decoded.qrData?{kind:qrKind,data:decoded.qrData}:null,result:quickScanLogResult(result,{needsDeepScan:!decoded.qrData})});
   }
 /*@web*/  if(cyberDropZone)cyberDropZone.addEventListener("click",e=>{if(!guestCanScan()){e.preventDefault();askForAccount()}});/*@end-web*/
