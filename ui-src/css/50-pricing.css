@@ -42,7 +42,8 @@ html.cn #pricing .business-price-card:has(.cn-seat-option[data-seat-tier="20"].i
 
 /* ---------- operator line (look and its 24px from 02-components.css; the head's top margin adds the
    rest of the space, collapsing with it) ---------- */
-html.cn #pricing > .cn-operator {
+html.cn #pricing > .cn-operator,
+html.cn #about > .cn-operator {
   margin-inline: auto;
 }
 
@@ -1211,9 +1212,10 @@ html.cn #pricing > .support-box { margin-top: clamp(var(--cn-12), 2.5rem + 2vw, 
    "CyberNet AI is operated under Marks Events FZ LLE" as a readable 14-15px banner: a navy pill with
    a cyan hairline, the brand shield (a CSS mask of an inline SVG) in cyan at its start, the entity name
    in white. Centred, prominent, calm. Under 560px the entity takes its own line (02-components) and the
-   pill softens to a card. About carries the same sentence as a quiet footnote at the very end of the
-   page instead (45-about.css, "operator footnote"); #about's note must never pick this banner up. */
-html.cn #pricing > .cn-operator {
+   pill softens to a card. About opens with the same pill (owner, 18 Nov 2026), so every rule here
+   names both pages; plain selector lists, because the old Android WebViews do not know :is(). */
+html.cn #pricing > .cn-operator,
+html.cn #about > .cn-operator {
   --cn-op-mark: var(--cn-mark-sm);
   position: relative;
   box-sizing: border-box;
@@ -1236,29 +1238,35 @@ html.cn #pricing > .cn-operator {
   text-transform: none;
   text-wrap: balance;
 }
-html.cn #pricing > .cn-operator::before {
+html.cn #pricing > .cn-operator::before,
+html.cn #about > .cn-operator::before {
   content: "";
   position: absolute;
+  top: 50%;
+  left: clamp(18px, 3vw, 24px);
   inset-block-start: 50%;
   inset-inline-start: clamp(18px, 3vw, 24px);
   width: 28px;
   height: 30px;
-  translate: 0 -50%;
+  transform: translateY(-50%);   /* not `translate`: old Android WebViews ignore it */
   background: var(--cn-cyan);
   -webkit-mask: var(--cn-op-mark) center / contain no-repeat;
   mask: var(--cn-op-mark) center / contain no-repeat;
 }
-html.cn #pricing > .cn-operator strong {
+html.cn #pricing > .cn-operator strong,
+html.cn #about > .cn-operator strong {
   color: var(--cn-text);
   font-weight: 650;
 }
 @media (max-width: 559.98px) {
-  html.cn #pricing > .cn-operator {
+  html.cn #pricing > .cn-operator,
+  html.cn #about > .cn-operator {
     border-radius: 22px;
     padding: 12px 16px 12px 54px;
     text-align: start;
   }
-  html.cn #pricing > .cn-operator::before { inset-inline-start: 14px; width: 26px; height: 28px; }
+  html.cn #pricing > .cn-operator::before,
+  html.cn #about > .cn-operator::before { left: 14px; inset-inline-start: 14px; width: 26px; height: 28px; }
 }
 
 /* ---------- plan cards: the hairline and one soft lift; Pro has its cyan edge (above) ---------- */
@@ -1273,8 +1281,10 @@ html.cn #pricing .plan-select-btn { border-color: var(--cn-line-ctl); }
 }
 
 @media (forced-colors: active) {
-  html.cn #pricing > .cn-operator { border: 2px solid CanvasText; }
-  html.cn #pricing > .cn-operator::before { forced-color-adjust: none; background: CanvasText; }
+  html.cn #pricing > .cn-operator,
+  html.cn #about > .cn-operator { border: 2px solid CanvasText; }
+  html.cn #pricing > .cn-operator::before,
+  html.cn #about > .cn-operator::before { forced-color-adjust: none; background: CanvasText; }
 }
 
 /* ==========================================================================

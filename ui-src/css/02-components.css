@@ -383,9 +383,9 @@ html.cn .cn-sr {
 
 /* ------------------------------------------------------------------------------------------
    Operator line ("CyberNet AI is operated under Marks Events FZ LLE"): the first child of #pricing
-   and the last child of #about. The base look is a readable banner: 14-15px sans text in a navy
-   pill with a cyan hairline. 50-pricing.css adds the shield mark on Pricing; 45-about.css turns it
-   into a quiet footnote at the end of About.
+   and of #about (owner, 18 Nov 2026: the same pill opens both pages). The base look is a readable
+   banner: 14-15px sans text in a navy pill with a cyan hairline. 50-pricing.css adds the shield mark
+   and the final look for both pages.
    ------------------------------------------------------------------------------------------ */
 html.cn .cn-operator {
   display: block;
@@ -417,10 +417,11 @@ html.cn .cn-operator strong {
   html.cn .cn-operator { border-radius: 22px; }
   html.cn .cn-operator strong { display: block; }
 }
-/* It is Pricing's top line, so that page sits closer under the header than a page title would;
-   the head below then lands where the other pages' titles do. Selected by id, not by :has() on
-   .page (no :has() on page-sized subjects; DESIGN.md, Performance). About opens on its headline. */
-html.cn #pricing.page {
+/* It is the top line of Pricing and About, so those pages sit closer under the header than a page
+   title would; the head below then lands where the other pages' titles do. Selected by id, not by
+   :has() on .page (no :has() on page-sized subjects; DESIGN.md, Performance). */
+html.cn #pricing.page,
+html.cn #about.page {
   padding-block-start: clamp(16px, .5rem + 1vw, 24px);
 }
 

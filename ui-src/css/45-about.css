@@ -59,11 +59,11 @@ html.cn #about {
 html.cn #about.page { --cn-glow-x: 30%; }
 html.cn[dir="rtl"] #about.page { --cn-glow-x: 70%; }
 
-/* ---------- the page's top: About opens on its headline (the operator note is a footnote at the end,
-   see "operator footnote" below), so it takes the same top padding as the other inner pages.
-   02-components.css gives #about and #pricing a short top padding for the banner Pricing still opens
-   with; here About goes back to the shared inner-page value (01-base.css). ---------- */
-html.cn section#about.page { padding-block-start: clamp(40px, 1rem + 3vw, 72px); }
+/* ---------- the page's top: the operator pill, exactly as on Pricing (owner, 18 Nov 2026). Its look
+   lives with Pricing's (50-pricing.css, "the operator banner"), and 02-components.css gives both
+   pages the short top padding, so the pill sits at the same offset under the header on both. The
+   space under it matches the top margin of Pricing's head. ---------- */
+html.cn section#about > .cn-operator { margin-bottom: clamp(var(--cn-8), 1.5rem + 2vw, var(--cn-12)); }
 
 /* ---------- 1. Head: label row, a large light headline with one bold word, the shield ---------- */
 html.cn #about .about-top {
@@ -619,63 +619,10 @@ html.cn #about { --cn-support-mt: var(--cn-ab-sp); }
   html.cn #about .about-value p { max-width: none; }
 }
 
-/* ---------- operator footnote: the last thing in #about, right before the footer ----------
-   "CyberNet AI is operated under Marks Events FZ LLE" is a quiet centred line under a hairline, with the
-   brand shield as a small cyan mark in front: not the banner Pricing opens with. It is selected by id so it
-   wins over the base banner look (02-components.css) and #about never picks up the Pricing banner
-   (50-pricing.css is scoped to #pricing). The entity stays on one line (nowrap) and the sentence balances
-   around it; no pill, border-box or fill, nothing that competes with the support box above. */
-html.cn #about > .cn-operator {
-  --cn-op-mark: var(--cn-mark-xs);
-  position: static;
-  display: block;
-  box-sizing: border-box;
-  width: auto;
-  max-inline-size: 860px;
-  margin: clamp(48px, 6vw, 88px) auto 0;
-  padding: clamp(18px, 2.4vw, 24px) 0 0;
-  border: 0;
-  border-block-start: 1px solid var(--cn-line);
-  border-radius: 0;
-  background: none;
-  box-shadow: none;
-  color: var(--cn-text-2);
-  font-family: var(--cn-font);
-  font-size: .8125rem;
-  font-weight: 450;
-  line-height: 1.55;
-  letter-spacing: 0;
-  text-align: center;
-  text-wrap: balance;
-}
-html.cn #about > .cn-operator::before {
-  content: "";
-  display: inline-block;
-  inline-size: 16px;
-  block-size: 17px;
-  margin-inline-end: 8px;
-  vertical-align: -3px;
-  background: var(--cn-cyan);
-  -webkit-mask: var(--cn-op-mark) center / contain no-repeat;
-  mask: var(--cn-op-mark) center / contain no-repeat;
-}
-html.cn #about > .cn-operator strong {
-  display: inline;
-  color: var(--cn-text);
-  font-weight: 600;
-  white-space: nowrap;
-}
-@media (max-width: 559.98px) {
-  html.cn #about > .cn-operator { border-radius: 0; text-align: center; }
-  html.cn #about > .cn-operator strong { display: inline; }
-}
-
 /* ---------- modes ---------- */
 @media (forced-colors: active) {
   html.cn #about .fetch-panel::before,
   html.cn #about .about-values::before { background: none; padding-inline-start: 0; }
-  html.cn #about > .cn-operator { border-block-start-color: CanvasText; }
-  html.cn #about > .cn-operator::before { forced-color-adjust: none; background: CanvasText; }
 }
 
 /* ---------- 9. v5 motion (owner: pages; v5 SPEC 7.17) ----------
