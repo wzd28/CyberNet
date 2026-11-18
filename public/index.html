@@ -121,7 +121,7 @@
   <link rel="stylesheet" href="/cybernet-howto.css?v=20260905-1" />
   <link id="cybernetBusinessTeamStylesheet" rel="stylesheet" href="/cybernet-business-team.css?v=20260927-2" />
   <link rel="stylesheet" href="/cybernet-consent.css?v=20260927-2" />
-  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261118-g12" />
+  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261118-g13" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=20261029-m1">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=20261029-m1">
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=20261029-m1">
@@ -745,7 +745,7 @@
       <div data-web-only id="authCodeBox" class="cn-code-box" hidden>
         <form id="authCodeForm" class="auth-form active-auth-form" method="post" action="/" novalidate>
           <label for="authCode">6-digit code</label>
-          <input type="text" id="authCode" name="one-time-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" minlength="6" maxlength="10" placeholder="123456" required aria-describedby="authCodeHint authCodeError" />
+          <input type="text" id="authCode" name="one-time-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" minlength="6" maxlength="10" placeholder="123456" required aria-describedby="authModalIntro authCodeHint authCodeError" />
           <p class="cn-field-hint" id="authCodeHint">It’s in the same email as the confirmation link. Either one works.</p>
           <p class="cn-field-error" id="authCodeError" hidden></p>
           <button type="submit" class="primary-btn full" id="authCodeBtn">Confirm and sign in</button>

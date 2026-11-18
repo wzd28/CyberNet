@@ -688,6 +688,10 @@ html.cn #home .cn-foryou-list b { display: block; color: #f5f7fa; font-weight: 6
 html.cn #home .cn-foryou-list span { display: block; margin-top: 4px; color: #cbd3df; font-size: .94rem; line-height: 1.5; }
 @media (max-width: 860px) {
   html.cn #home .cn-foryou-inner { grid-template-columns: minmax(0, 1fr); }
+}
+/* Under 1200px the list reaches the bright side of the band, so the scrim is even across it (the boxes
+   used to carry their own dark fill there). */
+@media (max-width: 1199.98px) {
   html.cn #home > .cn-teams > .cn-teams-scrim { background: linear-gradient(180deg, rgba(6, 10, 20, .86), rgba(6, 10, 20, .8)); }
 }
 @media (max-width: 480px) {
