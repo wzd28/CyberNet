@@ -57,20 +57,19 @@
         Promise.all([f.load(a),f.load(b)]).then(go,go);
       });
     };
-    /* Sign-in gate (63-gate.css; the stage and its controller open #authModal; owner, 28 Oct 2026):
-       with no saved Supabase session, html.cn-gate shows the gate from the first frame on every page.
-       Not when the address carries a sign-in return (email link, Google, invite): script.js finishes
-       that first, and the gate locks afterwards only if it did not sign the visitor in. Signed-in
-       visitors go straight to the page; the old boot intro is gone. Blocked storage: no gate. */
+    /* No sign-in wall (18 Nov 2026, reverses the 28 Oct gate; owner's growth brief, step 3: "let them get
+       one real result free"). Every signed-out visitor lands on the normal site (Home, or the page in the
+       address) and is a guest from the first frame (cn-guest=1): 3 free Quick Scans in this browser
+       (script.js counts them in cn-guest-scans), then the sign-up card. Analysis AI and Recovery still ask
+       for an account. html.cn-gate is never set any more; the gate's card is the normal sign-in card. */
     /* Try-first landing (owner, 17 Nov 2026): a signed-out visitor with free guest scans left (<3) who
-       arrives with ?try=1 or from an ad (utm_source, ttclid, fbclid or gclid in the address) gets the guest
-       choice made for them (cn-guest=1) before the gate line below runs, so the gate never shows. On / they
-       land on Quick Scan (window.CN_tryLand, script.js tryFirstLanding; cn-deep hides Home meanwhile and
-       the intro is skipped); a deep link keeps its own page. Never on a sign-in return or /accept-invite. */
+       arrives on / with ?try=1 or from an ad (utm_source, ttclid, fbclid or gclid in the address) lands on
+       Quick Scan (window.CN_tryLand, script.js tryFirstLanding; cn-deep hides Home meanwhile and the intro
+       is skipped); a deep link keeps its own page. Never on a sign-in return or /accept-invite. */
     var tryLand=false;
-    try{var q=new URLSearchParams(location.search),ls=localStorage;if((q.get("try")==="1"||q.get("utm_source")||q.get("ttclid")||q.get("fbclid")||q.get("gclid"))&&!/access_token|refresh_token|token_hash|error_description|[?&#]code=|type=recovery/.test(location.search+location.hash)&&!/^\/accept-invite/.test(location.pathname)&&!ls.getItem("sb-ndtcxippbufqzwcxkyjd-auth-token")&&(Number(ls.getItem("cn-guest-scans"))||0)<3){ls.setItem("cn-guest","1");tryLand=location.pathname==="/";window.CN_tryLand=tryLand}}catch(e){tryLand=false}
-    try{if(!/access_token|refresh_token|token_hash|error_description|[?&#]code=|type=recovery/.test(location.search+location.hash)&&!/^\/accept-invite/.test(location.pathname)&&!localStorage.getItem("sb-ndtcxippbufqzwcxkyjd-auth-token")&&!(localStorage.getItem("cn-guest")==="1"&&(Number(localStorage.getItem("cn-guest-scans"))||0)<3))r.classList.add("cn-gate")}catch(e){}
-    try{if(location.pathname==="/"&&!tryLand&&!r.classList.contains("cn-gate")&&!r.classList.contains("cn-still")&&!matchMedia("(prefers-reduced-motion: reduce)").matches&&(localStorage.getItem("cn-fx")||"").indexOf("-exposure")<0&&!sessionStorage.getItem("cn-intro")){sessionStorage.setItem("cn-intro","1");r.classList.add("cn-intro","cn-intro-hold");hold()}}catch(e){r.classList.remove("cn-intro-hold")}
+    try{var ls=localStorage;if(!ls.getItem("sb-ndtcxippbufqzwcxkyjd-auth-token"))ls.setItem("cn-guest","1")}catch(e){}
+    try{var q=new URLSearchParams(location.search);if((q.get("try")==="1"||q.get("utm_source")||q.get("ttclid")||q.get("fbclid")||q.get("gclid"))&&!/access_token|refresh_token|token_hash|error_description|[?&#]code=|type=recovery/.test(location.search+location.hash)&&!/^\/accept-invite/.test(location.pathname)&&!ls.getItem("sb-ndtcxippbufqzwcxkyjd-auth-token")&&(Number(ls.getItem("cn-guest-scans"))||0)<3){tryLand=location.pathname==="/";window.CN_tryLand=tryLand}}catch(e){tryLand=false}
+    try{if(location.pathname==="/"&&!tryLand&&!r.classList.contains("cn-still")&&!matchMedia("(prefers-reduced-motion: reduce)").matches&&(localStorage.getItem("cn-fx")||"").indexOf("-exposure")<0&&!sessionStorage.getItem("cn-intro")){sessionStorage.setItem("cn-intro","1");r.classList.add("cn-intro","cn-intro-hold");hold()}}catch(e){r.classList.remove("cn-intro-hold")}
     if(tryLand||/^\/(quick-scan|analysis-ai|recovery|learn|pricing|about)\/?$/.test(location.pathname)){
       r.classList.add("cn-deep");
       var t=0,done=function(){clearTimeout(t);r.classList.remove("cn-deep")};
@@ -560,6 +559,9 @@
         } else go();
       }
       function lock() {
+        /* No sign-in wall any more (18 Nov 2026): a signed-out visitor keeps the page. The old rules are
+           kept below this line for reference only. */
+        return;
         /* no storage (nothing can stay signed in), an invite (its own dialog leads to sign-in) or a
            sign-in library that never loaded: no gate */
         if (r.classList.contains("cn-gate") || !storage() || guestOK() || /^\/accept-invite/.test(location.pathname) || !w.supabase) return;
@@ -612,7 +614,8 @@
         var b = e.target && e.target.closest ? e.target.closest("#cnGateGuest") : null;
         if (!b) return;
         try { w.localStorage.setItem("cn-guest", "1"); } catch (err) {}
-        if (!gated()) return;
+        /* no wall (18 Nov 2026): the card simply closes and script.js opens Quick Scan (the button's data-page) */
+        if (!gated()) { var cl = d.getElementById("closeAuth"); if (modal.classList.contains("show") && cl) cl.click(); return; }
         clear(); skipping = false;
         var close = d.getElementById("closeAuth");
         r.classList.remove("cn-gate", "cn-gate-out");
@@ -647,7 +650,7 @@
         <h2 id="authModalTitle" data-web-only>Register to Start Scanning for Free</h2>
         <!--@ios <h2 id="authModalTitle">Stay secure.</h2> @end-ios-->
         <p id="authModalIntro" data-web-only>Check suspicious links and messages in seconds.</p>
-        <button type="button" class="cn-gate-guest" id="cnGateGuest" data-page="cybernet" data-web-only>Or try 3 free Quick Scans first</button>
+        <button type="button" class="cn-gate-guest" id="cnGateGuest" data-page="cybernet" data-web-only>Or check a message first, free and without an account</button>
         <!--@ios <p id="authModalIntro">Sign in to get AI explanations and Recovery plans. Check, Scan QR and Share work without an account.</p> @end-ios-->
       </div>
       <!-- Notices about a link the visitor came back from (expired, already used, cancelled). script.js fills it; empty means hidden. -->
@@ -3165,7 +3168,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" defer></script>
   <script src="/config.js?v=20260830-3" defer></script>
   <script src="/legacy/cybernet-engine.js?v=20261030-d1" defer></script>
-  <script src="/legacy/script.js?v=20261118-g1" defer></script>
+  <script src="/legacy/script.js?v=20261118-g3" defer></script>
   <script src="/legacy/cybernet-account-api-upgrade.js?v=20261028-1" defer></script>
   <script src="/cybernet-howto.js?v=20261019-1" defer></script>
 <script src="/legacy/cybernet-business-team.js?v=20261028-1" defer></script>

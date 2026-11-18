@@ -596,7 +596,9 @@ document.addEventListener("DOMContentLoaded",()=>{
   /* ─── Dialog views: login | signup | reset (ask for a reset link) | recovery (choose a new password) ─── */
   const AUTH_HEADINGS={
     // Owner, 29 Oct 2026: the card itself carries the pitch and invites a free sign-up.
-/*@web*/    login:["Register to Start Scanning for Free","Check suspicious links and messages in seconds."],/*@end-web*/ // owner, 6 Nov 2026: direct
+/*@web*/    login:["Register to Start Scanning for Free","Check suspicious links and messages in seconds."], // owner, 6 Nov 2026: direct
+    // No sign-in wall (18 Nov 2026): a visitor reaches this tab after a free check, so it says what an account adds
+    signup:["Create your free account","Save your checks, get the full AI explanation, and start a Recovery plan if something already went wrong."],/*@end-web*/
     /*@ios login:["Stay secure.","Sign in to get AI explanations and Recovery plans. Check, Scan QR and Share work without an account."], @end-ios*/
     reset:["Reset your password","Enter the email you use for CyberNet AI. We'll send you a link to choose a new password."],
     recovery:["Choose a new password","Pick a new password for your CyberNet AI account. You'll stay signed in on this device."]
@@ -2240,10 +2242,12 @@ document.addEventListener("DOMContentLoaded",()=>{
     return{label:"Low Visible Risk",cls:"risk-tag-safe"};
   }
 
-/*@web*/  /* Guest Quick Scans (owner, 2 Nov 2026): a visitor who taps "Try 3 free Quick Scans" on the sign-in
-     gate can run three Quick Scans (text, link or image) in this browser before creating an account. Quick
+/*@web*/  /* Guest Quick Scans (owner, 2 Nov 2026; for every signed-out visitor since 18 Nov 2026, when the sign-in
+     wall went): three Quick Scans (text, link or image) in this browser before creating an account. Quick
      Scan runs in the browser, so nothing is counted on the server: the count is kept in localStorage
-     (cn-guest-scans). The gate's head snippet and controller (index.html) read the same two keys. */
+     (cn-guest-scans). The head snippet (index.html) sets cn-guest=1 for every signed-out visitor. After
+     the third result the card under it says it was the last free check; the next scan opens the sign-up
+     card with a notice (never over a result the visitor is still reading). */
   const GUEST_SCANS=3;
   function guestChosen(){try{return localStorage.getItem("cn-guest")==="1"}catch{return false}}
   function guestScansLeft(){try{return guestChosen()?Math.max(0,GUEST_SCANS-(Number(localStorage.getItem("cn-guest-scans"))||0)):0}catch{return 0}}
@@ -2251,7 +2255,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   function guestCanScan(){return isSignedIn()||guestScansLeft()>0}
   function askForAccount(){
     openAuthModal("signup");
-    if(guestChosen())setAuthNotice(`You've used your ${GUEST_SCANS} free scans`,"Create a free account to keep scanning. It takes a few seconds.","info");
+    if(guestChosen())setAuthNotice(`You've used your ${GUEST_SCANS} free checks`,"Thanks for trying CyberNet AI. Create a free account to keep checking messages and links. It takes a few seconds.","info");
   }
   // Under a guest's result: how many free scans are left, with the way to an account
   function guestNote(box){

@@ -104,25 +104,30 @@ if (gm) {
     return { wall: cls.has("cn-gate"), land: Boolean(win.CN_tryLand), guest: data["cn-guest"] === "1", deep: cls.has("cn-deep"), intro: cls.has("cn-intro") };
   }
   const W = "https://cybernetai.app";
-  check("no parameter: wall as today", gate(W + "/"), { wall: true, land: false, guest: false, deep: false, intro: false });
+  // No sign-in wall (18 Nov 2026): never html.cn-gate; every signed-out visitor is a guest from the first frame.
+  check("no parameter: no wall, guest, Home with its intro", gate(W + "/"), { wall: false, land: false, guest: true, deep: false, intro: true });
   check("?try=1 lands on Quick Scan, no wall", gate(W + "/?try=1"), { wall: false, land: true, guest: true, deep: true, intro: false });
   check("checklist button link", gate(W + "/?try=1&utm_source=checklist&utm_medium=web&utm_campaign=bf2026").land, true);
   for (const p of ["utm_source=tiktok", "ttclid=abc", "fbclid=abc", "gclid=abc"]) check("ad param " + p, gate(W + "/?" + p), { wall: false, land: true, guest: true, deep: true, intro: false });
-  check("empty ttclid: wall", gate(W + "/?ttclid=").wall, true);
-  check("?try=0: wall", gate(W + "/?try=0").wall, true);
-  check("utm_medium alone: wall", gate(W + "/?utm_medium=paid").wall, true);
+  check("empty ttclid: Home, no landing", gate(W + "/?ttclid="), { wall: false, land: false, guest: true, deep: false, intro: true });
+  check("?try=0: Home", gate(W + "/?try=0").land, false);
+  check("utm_medium alone: Home", gate(W + "/?utm_medium=paid").land, false);
   check("2 scans used: still lands", gate(W + "/?try=1", { "cn-guest-scans": "2" }).land, true);
-  check("3 scans used: wall returns", gate(W + "/?utm_source=tiktok", { "cn-guest-scans": "3" }), { wall: true, land: false, guest: false, deep: false, intro: false });
-  check("3 scans used, already a guest: wall", gate(W + "/?try=1", { "cn-guest": "1", "cn-guest-scans": "3" }).wall, true);
-  check("signed in: no wall, no landing", gate(W + "/?try=1", { [SB]: "{}" }), { wall: false, land: false, guest: false, deep: false, intro: true });
-  check("deep link /pricing: no wall, keeps its page", gate(W + "/pricing?utm_source=tiktok"), { wall: false, land: false, guest: true, deep: true, intro: false });
-  check("deep link /learn/x: no wall, no landing", gate(W + "/learn?gclid=1"), { wall: false, land: false, guest: true, deep: true, intro: false });
-  check("/accept-invite untouched", gate(W + "/accept-invite?utm_source=x&token_hash=t"), { wall: false, land: false, guest: false, deep: false, intro: false });
-  check("/accept-invite without token untouched", gate(W + "/accept-invite?try=1").guest, false);
+  check("3 scans used: Home, no wall", gate(W + "/?utm_source=tiktok", { "cn-guest-scans": "3" }), { wall: false, land: false, guest: true, deep: false, intro: true });
+  check("3 scans used, already a guest: no wall", gate(W + "/?try=1", { "cn-guest": "1", "cn-guest-scans": "3" }).wall, false);
+  check("signed in: no wall, no landing, not a guest", gate(W + "/?try=1", { [SB]: "{}" }), { wall: false, land: false, guest: false, deep: false, intro: true });
+  check("deep link /pricing: keeps its page", gate(W + "/pricing?utm_source=tiktok"), { wall: false, land: false, guest: true, deep: true, intro: false });
+  check("deep link /quick-scan: no wall", gate(W + "/quick-scan"), { wall: false, land: false, guest: true, deep: true, intro: false });
+  check("deep link /learn: no wall, no landing", gate(W + "/learn?gclid=1"), { wall: false, land: false, guest: true, deep: true, intro: false });
+  check("/accept-invite: no wall, no landing", gate(W + "/accept-invite?utm_source=x&token_hash=t"), { wall: false, land: false, guest: true, deep: false, intro: false });
   for (const cb of ["/?try=1#access_token=a", "/?utm_source=x&code=abc", "/?try=1&type=recovery", "/?try=1&token_hash=t", "/?try=1&error_description=x"])
-    check("auth callback untouched " + cb, gate(W + cb), { wall: false, land: false, guest: false, deep: false, intro: true });
+    check("auth callback: no landing " + cb, gate(W + cb), { wall: false, land: false, guest: true, deep: false, intro: true });
+  check("the snippet never sets the wall class", /classList\.add\("cn-gate"\)/.test(gm[1]), false);
 }
 check("script.js: / with CN_tryLand opens Quick Scan", /\/\*@web\*\/else if\(window\.CN_tryLand\)\{tryFirstLanding\(\)\}\/\*@end-web\*\//.test(script), true);
+// The gate controller in #authModal never locks the page any more.
+const ctl = html.match(/function lock\(\) \{([\s\S]*?)\n      \}/);
+check("gate controller: lock() returns first", Boolean(ctl) && /^\s*\/\*[\s\S]*?\*\/\s*return;/.test(ctl[1]), true);
 check("script.js: tryFirstLanding switches to cybernet", /function tryFirstLanding\(\)\{\s*switchPage\("cybernet",\{skipUrlUpdate:true\}\)/.test(script), true);
 
 console.log(`signup-source: ${pass} passed, ${fail} failed`);
