@@ -1363,6 +1363,12 @@ document.addEventListener("DOMContentLoaded", () => {
       noteAccount(appState.user);
     } catch (e) {
     }
+    if (!appState.user) {
+      try {
+        localStorage.setItem("cn-guest", "1");
+      } catch (e) {
+      }
+    }
     await refreshAccountStatus();
     try {
       window.dispatchEvent(new CustomEvent("cybernet:session", { detail: { userId: ((_a2 = appState.user) == null ? void 0 : _a2.id) || null } }));

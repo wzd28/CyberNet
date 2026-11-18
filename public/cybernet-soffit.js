@@ -357,7 +357,8 @@
       u2f("iMouse", mouse.x, mouse.y);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     }
-    function run() { if (!raf && !dead && visible && !doc.hidden) { prevT = 0; raf = win.requestAnimationFrame(frame); } }
+    /* resize on every (re)start: the window may have changed while Home was hidden (a rotation, a resize) */
+    function run() { if (!raf && !dead && visible && !doc.hidden) { resize(); prevT = 0; raf = win.requestAnimationFrame(frame); } }
     function stop() { if (raf) { win.cancelAnimationFrame(raf); raf = 0; } }
 
     function fail() {

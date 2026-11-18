@@ -1265,7 +1265,9 @@ document.addEventListener("DOMContentLoaded",()=>{
     appState.session=session||null;
     appState.user=session?.user||null;
 /*@web*/    try{tagNewGoogleAccount(appState.user)}catch{}/*@end-web*/
-/*@web*/    try{noteAccount(appState.user)}catch{}/*@end-web*/
+/*@web*/    try{noteAccount(appState.user)}catch{}
+    // signed out (a stale saved session, or a sign-out): a guest again, with whatever free checks are left
+    if(!appState.user){try{localStorage.setItem("cn-guest","1")}catch{}}/*@end-web*/
     await refreshAccountStatus();
     /* Lets the Recovery case list and the legal-acceptance recorder follow sign-in and sign-out. */
     try{window.dispatchEvent(new CustomEvent("cybernet:session",{detail:{userId:appState.user?.id||null}}))}catch{}
