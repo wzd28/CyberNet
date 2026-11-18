@@ -121,7 +121,7 @@
   <link rel="stylesheet" href="/cybernet-howto.css?v=20260905-1" />
   <link id="cybernetBusinessTeamStylesheet" rel="stylesheet" href="/cybernet-business-team.css?v=20260927-2" />
   <link rel="stylesheet" href="/cybernet-consent.css?v=20260927-2" />
-  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261118-g4" />
+  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261118-g5" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=20261029-m1">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=20261029-m1">
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=20261029-m1">
@@ -738,6 +738,23 @@
         <p class="cn-field-error" id="authNewPasswordConfirmError" hidden></p>
         <button type="submit" class="primary-btn full" id="updatePasswordBtn">Update password</button>
       </form>
+      <!-- Sign-up by code (18 Nov 2026, web only): after Create Free Account, the confirmation email carries a
+           6-digit code next to the link, so a visitor inside the TikTok or Instagram app (where the link opens in
+           another browser) finishes here. script.js shows it; supabase.auth.verifyOtp signs them in. Outside
+           #authSignupForm on purpose: the legal module and the app's own layer hook that form and its button. -->
+      <div data-web-only id="authCodeBox" class="cn-code-box" hidden>
+        <form id="authCodeForm" class="auth-form active-auth-form" method="post" action="/" novalidate>
+          <label for="authCode">Enter the 6-digit code we emailed you</label>
+          <input type="text" id="authCode" name="one-time-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" minlength="6" maxlength="10" placeholder="123456" required aria-describedby="authCodeHint authCodeError" />
+          <p class="cn-field-hint" id="authCodeHint">It’s in the same email as the confirmation link. Either one works.</p>
+          <p class="cn-field-error" id="authCodeError" hidden></p>
+          <button type="submit" class="primary-btn full" id="authCodeBtn">Confirm and sign in</button>
+        </form>
+        <div class="auth-helper-row">
+          <button type="button" class="auth-text-btn" id="authCodeResendBtn">Send a new code</button>
+          <button type="button" class="auth-text-btn" id="authCodeBackBtn">Use a different email</button>
+        </div>
+      </div>
       <div id="authMessage" class="auth-message" aria-live="polite"></div>
       <div id="authMessageActions" class="cn-auth-actions" hidden></div>
       <small data-web-only>Secure account access powered by Supabase. New accounts start on CyberNet AI Free.</small>
@@ -3168,7 +3185,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" defer></script>
   <script src="/config.js?v=20260830-3" defer></script>
   <script src="/legacy/cybernet-engine.js?v=20261030-d1" defer></script>
-  <script src="/legacy/script.js?v=20261118-g4" defer></script>
+  <script src="/legacy/script.js?v=20261118-g5" defer></script>
   <script src="/legacy/cybernet-account-api-upgrade.js?v=20261028-1" defer></script>
   <script src="/cybernet-howto.js?v=20261019-1" defer></script>
 <script src="/legacy/cybernet-business-team.js?v=20261028-1" defer></script>

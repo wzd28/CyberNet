@@ -130,5 +130,15 @@ const ctl = html.match(/function lock\(\) \{([\s\S]*?)\n      \}/);
 check("gate controller: lock() returns first", Boolean(ctl) && /^\s*\/\*[\s\S]*?\*\/\s*return;/.test(ctl[1]), true);
 check("script.js: tryFirstLanding switches to cybernet", /function tryFirstLanding\(\)\{\s*switchPage\("cybernet",\{skipUrlUpdate:true\}\)/.test(script), true);
 
+// Sign-up by code (18 Nov 2026): web only, outside the sign-up form, verifyOtp with the email type.
+const codeRegion = script.match(/\/\*@web\*\/  \/\* Sign-up by code[\s\S]*?\/\*@end-web\*\//);
+check("code step is one web region", Boolean(codeRegion), true);
+check("code step: verifyOtp({email, token, type:\"email\"})", Boolean(codeRegion) && codeRegion[0].includes('verifyOtp({email:codeEmail,token,type:"email"})'), true);
+check("code step: no verifyOtp outside the web region", (script.match(/await appState\.supabase\.auth\.verifyOtp\(/g) || []).length, 1);
+check("code step: shown after a sign-up without a session", /showCodeStep\(email\);\/\*@end-web\*\//.test(script), true);
+const box = html.match(/<div data-web-only id="authCodeBox"[\s\S]*?<\/div>\s*<\/div>/);
+check("#authCodeBox is data-web-only", Boolean(box), true);
+check("#authCodeBox is not inside #authSignupForm", html.indexOf('id="authCodeBox"') > html.indexOf("</form>", html.indexOf('id="authSignupForm"')), true);
+check("code field: one-time-code, numeric", Boolean(box) && /autocomplete="one-time-code"/.test(box[0]) && /inputmode="numeric"/.test(box[0]), true);
 console.log(`signup-source: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

@@ -513,3 +513,14 @@ html.cn #authModal .cn-gate-guest:focus-visible { outline: 2px solid #22d3ee; ou
 .cn-save-card .cn-save-later:hover { color: var(--cn-text, #f5f7fa); }
 .cn-save-card .cn-save-later:focus-visible { outline: 2px solid #22d3ee; outline-offset: 2px; border-radius: 8px; }
 @media (max-width: 480px) { .cn-save-card .cn-save-actions .primary-btn { flex: 1 1 100%; } }
+
+/* Sign-up by code (index.html #authCodeBox, script.js showCodeStep, 18 Nov 2026; web only) */
+html.cn #authModal .cn-code-box[hidden] { display: none; }
+html.cn #authModal .cn-code-box { margin-top: 4px; }
+html.cn #authModal .cn-code-box #authCode {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 1.35rem;
+  letter-spacing: .35em;
+  text-align: center;
+}
+html.cn #authModal .cn-code-box .auth-helper-row { margin-top: 10px; }
