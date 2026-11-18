@@ -1020,9 +1020,14 @@ document.addEventListener("DOMContentLoaded",()=>{
     const qsUsageText=document.getElementById("quickScanUsageText");
     const qsUsageBar=document.getElementById("quickScanUsageBar");
     const qsUsageReset=document.getElementById("quickScanUsageReset");
-    if(qsUsageText)qsUsageText.textContent=!signedIn?"— / 5":qsUnlimited?`${qsUsed} / Unlimited`:`${qsUsed} / ${qsFallbackLimit}`;
-    if(qsUsageBar)qsUsageBar.style.width=`${signedIn&&!qsUnlimited?Math.min(100,(qsUsed/qsFallbackLimit)*100):0}%`;
-    if(qsUsageReset)qsUsageReset.textContent=qsUnlimited?"Unlimited":"Resets daily";
+    /* Signed out (18 Nov 2026): the meter shows the 3 free checks without an account (cn-guest-scans, the same
+       count checkQuickScanQuota keeps), not the Free plan's 5 a day, which needs an account. */
+    let qsGuestUsed=0;try{qsGuestUsed=Math.min(3,Number(localStorage.getItem("cn-guest-scans"))||0)}catch{}
+    const qsUsageLabel=document.querySelector("#quickScanUsageCard .usage-meter-labels span");
+    if(qsUsageLabel)qsUsageLabel.textContent=signedIn?"Daily Quick Scans":"Free checks without an account";
+    if(qsUsageText)qsUsageText.textContent=!signedIn?`${qsGuestUsed} / 3`:qsUnlimited?`${qsUsed} / Unlimited`:`${qsUsed} / ${qsFallbackLimit}`;
+    if(qsUsageBar)qsUsageBar.style.width=`${!signedIn?Math.round(qsGuestUsed/3*100):signedIn&&!qsUnlimited?Math.min(100,(qsUsed/qsFallbackLimit)*100):0}%`;
+    if(qsUsageReset)qsUsageReset.textContent=!signedIn?"A free account adds 5 a day":qsUnlimited?"Unlimited":"Resets daily";
 
     // Recovery Mode's own usage meter (separate limit, separate reset time)
     const recUsed=Number(appState.recoveryUsage?.used)||0;
@@ -1309,12 +1314,14 @@ document.addEventListener("DOMContentLoaded",()=>{
   window.addEventListener("pageshow",event=>{if(event.persisted)endGoogleBusy()});
   /* In-app browsers (Instagram, TikTok, LinkedIn, Facebook, Messenger, Snapchat) often cannot complete Google
      sign-in: Google blocks it there. Email comes first in these browsers (18 Nov 2026): the Google button and
-     its note move under the email forms, behind an "or continue with Google" divider. Google stays available. */
-  const inAppBrowser=/FBAN|FBAV|FB_IAB|Instagram|musical_ly|BytedanceWebview|TikTok|LinkedInApp|Snapchat/i.test(navigator.userAgent||"");
+     its note move under the email forms, behind an "or continue with Google" divider. Google stays available.
+     "; wv)" is any Android app's built-in WebView (the ad network's landing views among them), where Google
+     refuses sign-in outright (disallowed_useragent). */
+  const inAppBrowser=/FBAN|FBAV|FB_IAB|Instagram|musical_ly|BytedanceWebview|TikTok|LinkedInApp|Snapchat|; wv\)/i.test(navigator.userAgent||"");
   if(googleAuthBtn&&inAppBrowser){
     const note=document.createElement("p");
     note.className="auth-inapp-note";
-    note.textContent="Inside the Instagram, TikTok or LinkedIn app, Google sign-in may not open. Use email sign-in, or open cybernetai.app in Safari or Chrome.";
+    note.textContent="Inside an app’s built-in browser (TikTok, Instagram, LinkedIn and others), Google sign-in may not open. Use email sign-in, or open cybernetai.app in Safari or Chrome.";
     googleAuthBtn.insertAdjacentElement("afterend",note);
     const wrap=document.getElementById("googleAuthWrap"),divider=wrap?.querySelector(".auth-divider");
     const after=document.getElementById("authCodeBox")||document.getElementById("authNewPasswordForm");
@@ -2351,7 +2358,8 @@ document.addEventListener("DOMContentLoaded",()=>{
   function guestChosen(){try{return localStorage.getItem("cn-guest")==="1"}catch{return false}}
   function guestScansLeft(){try{return guestChosen()?Math.max(0,GUEST_SCANS-(Number(localStorage.getItem("cn-guest-scans"))||0)):0}catch{return 0}}
   function guestScanUsed(){try{localStorage.setItem("cn-guest-scans",String((Number(localStorage.getItem("cn-guest-scans"))||0)+1))}catch{}}
-  function guestCanScan(){return isSignedIn()||guestScansLeft()>0}
+  function exampleScanFresh(){const t=Number(window.CN_exampleScan)||0;return t>0&&Date.now()-t<8000}
+  function guestCanScan(){return isSignedIn()||exampleScanFresh()||guestScansLeft()>0}
   function askForAccount(){
     const offer=document.getElementById("cnGateGuest");if(offer)offer.hidden=true;
     openAuthModal("signup");
@@ -2370,7 +2378,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     card.className="cn-save-card";
     card.setAttribute("role","group");
     card.setAttribute("aria-labelledby","cnSaveCardHead");
-    card.innerHTML=`<p class="cn-save-head" id="cnSaveCardHead">${left>0?"Want the full AI explanation of this message?":"That was your last free check without an account"}</p>
+    card.innerHTML=`<p class="cn-save-head" id="cnSaveCardHead">${left>0?"Want the full AI explanation of this message?":"You've used your 3 free checks without an account"}</p>
       <p class="cn-save-text">A free account adds Analysis AI, which explains the warning signs in plain words (3 a day), 5 Quick Scans a day and a Recovery plan if something already went wrong.</p>
       <p class="cn-guest-left">${left>0?`${left} free check${left===1?"":"s"} left without an account.`:"Create a free account to keep checking. It takes a few seconds."}</p>
       <div class="cn-save-actions"><button type="button" class="primary-btn" data-guest-signup>Create a free account</button><button type="button" class="cn-save-later" data-guest-later>Not now</button></div>`;
@@ -2388,9 +2396,14 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(guest)guestNote(box);
   }
   async function checkQuickScanQuota(){
+    /* A Try chip on Home (20-scanbox.js) runs our own example: for a guest it does not use a free check, even
+       with none left, since nothing of the visitor's is checked. The mark is read once and lapses after 8 s. */
+    const example=exampleScanFresh();window.CN_exampleScan=0;
     if(!isSignedIn()){
+      if(example)return{allowed:true,guest:true,example:true};
       if(guestScansLeft()<=0)return{allowed:false,message:"You've used your free scans. Create a free account to keep scanning."};
       guestScanUsed();
+      updateAccountUI();
       return{allowed:true,guest:true};
     }
     try{

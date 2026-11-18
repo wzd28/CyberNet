@@ -1136,9 +1136,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const qsUsageText = document.getElementById("quickScanUsageText");
     const qsUsageBar = document.getElementById("quickScanUsageBar");
     const qsUsageReset = document.getElementById("quickScanUsageReset");
-    if (qsUsageText) qsUsageText.textContent = !signedIn ? "— / 5" : qsUnlimited ? `${qsUsed} / Unlimited` : `${qsUsed} / ${qsFallbackLimit}`;
-    if (qsUsageBar) qsUsageBar.style.width = `${signedIn && !qsUnlimited ? Math.min(100, qsUsed / qsFallbackLimit * 100) : 0}%`;
-    if (qsUsageReset) qsUsageReset.textContent = qsUnlimited ? "Unlimited" : "Resets daily";
+    let qsGuestUsed = 0;
+    try {
+      qsGuestUsed = Math.min(3, Number(localStorage.getItem("cn-guest-scans")) || 0);
+    } catch (e) {
+    }
+    const qsUsageLabel = document.querySelector("#quickScanUsageCard .usage-meter-labels span");
+    if (qsUsageLabel) qsUsageLabel.textContent = signedIn ? "Daily Quick Scans" : "Free checks without an account";
+    if (qsUsageText) qsUsageText.textContent = !signedIn ? `${qsGuestUsed} / 3` : qsUnlimited ? `${qsUsed} / Unlimited` : `${qsUsed} / ${qsFallbackLimit}`;
+    if (qsUsageBar) qsUsageBar.style.width = `${!signedIn ? Math.round(qsGuestUsed / 3 * 100) : signedIn && !qsUnlimited ? Math.min(100, qsUsed / qsFallbackLimit * 100) : 0}%`;
+    if (qsUsageReset) qsUsageReset.textContent = !signedIn ? "A free account adds 5 a day" : qsUnlimited ? "Unlimited" : "Resets daily";
     const recUsed = Number((_f2 = appState.recoveryUsage) == null ? void 0 : _f2.used) || 0;
     const recServerLimit = Number((_g = appState.recoveryUsage) == null ? void 0 : _g.limit);
     const recHasServerLimit = Number.isFinite(recServerLimit) && recServerLimit > 0;
@@ -1433,11 +1440,11 @@ document.addEventListener("DOMContentLoaded", () => {
   window.addEventListener("pageshow", (event) => {
     if (event.persisted) endGoogleBusy();
   });
-  const inAppBrowser = /FBAN|FBAV|FB_IAB|Instagram|musical_ly|BytedanceWebview|TikTok|LinkedInApp|Snapchat/i.test(navigator.userAgent || "");
+  const inAppBrowser = /FBAN|FBAV|FB_IAB|Instagram|musical_ly|BytedanceWebview|TikTok|LinkedInApp|Snapchat|; wv\)/i.test(navigator.userAgent || "");
   if (googleAuthBtn && inAppBrowser) {
     const note = document.createElement("p");
     note.className = "auth-inapp-note";
-    note.textContent = "Inside the Instagram, TikTok or LinkedIn app, Google sign-in may not open. Use email sign-in, or open cybernetai.app in Safari or Chrome.";
+    note.textContent = "Inside an app’s built-in browser (TikTok, Instagram, LinkedIn and others), Google sign-in may not open. Use email sign-in, or open cybernetai.app in Safari or Chrome.";
     googleAuthBtn.insertAdjacentElement("afterend", note);
     const wrap = document.getElementById("googleAuthWrap"), divider = wrap == null ? void 0 : wrap.querySelector(".auth-divider");
     const after = document.getElementById("authCodeBox") || document.getElementById("authNewPasswordForm");
@@ -2604,8 +2611,12 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (e) {
     }
   }
+  function exampleScanFresh() {
+    const t = Number(window.CN_exampleScan) || 0;
+    return t > 0 && Date.now() - t < 8e3;
+  }
   function guestCanScan() {
-    return isSignedIn() || guestScansLeft() > 0;
+    return isSignedIn() || exampleScanFresh() || guestScansLeft() > 0;
   }
   function askForAccount() {
     const offer = document.getElementById("cnGateGuest");
@@ -2622,7 +2633,7 @@ document.addEventListener("DOMContentLoaded", () => {
     card.className = "cn-save-card";
     card.setAttribute("role", "group");
     card.setAttribute("aria-labelledby", "cnSaveCardHead");
-    card.innerHTML = `<p class="cn-save-head" id="cnSaveCardHead">${left > 0 ? "Want the full AI explanation of this message?" : "That was your last free check without an account"}</p>
+    card.innerHTML = `<p class="cn-save-head" id="cnSaveCardHead">${left > 0 ? "Want the full AI explanation of this message?" : "You've used your 3 free checks without an account"}</p>
       <p class="cn-save-text">A free account adds Analysis AI, which explains the warning signs in plain words (3 a day), 5 Quick Scans a day and a Recovery plan if something already went wrong.</p>
       <p class="cn-guest-left">${left > 0 ? `${left} free check${left === 1 ? "" : "s"} left without an account.` : "Create a free account to keep checking. It takes a few seconds."}</p>
       <div class="cn-save-actions"><button type="button" class="primary-btn" data-guest-signup>Create a free account</button><button type="button" class="cn-save-later" data-guest-later>Not now</button></div>`;
@@ -2641,9 +2652,13 @@ document.addEventListener("DOMContentLoaded", () => {
     if (guest) guestNote(box);
   }
   async function checkQuickScanQuota() {
+    const example = exampleScanFresh();
+    window.CN_exampleScan = 0;
     if (!isSignedIn()) {
+      if (example) return { allowed: true, guest: true, example: true };
       if (guestScansLeft() <= 0) return { allowed: false, message: "You've used your free scans. Create a free account to keep scanning." };
       guestScanUsed();
+      updateAccountUI();
       return { allowed: true, guest: true };
     }
     try {

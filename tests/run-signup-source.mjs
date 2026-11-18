@@ -140,5 +140,21 @@ const box = html.match(/<div data-web-only id="authCodeBox"[\s\S]*?<\/div>\s*<\/
 check("#authCodeBox is data-web-only", Boolean(box), true);
 check("#authCodeBox is not inside #authSignupForm", html.indexOf('id="authCodeBox"') > html.indexOf("</form>", html.indexOf('id="authSignupForm"')), true);
 check("code field: one-time-code, numeric", Boolean(box) && /autocomplete="one-time-code"/.test(box[0]) && /inputmode="numeric"/.test(box[0]), true);
+// In-app browsers put email first (18 Nov 2026). Generic Android WebViews ("; wv)", the ad network's landing
+// views) count too, since Google refuses sign-in there; ordinary Chrome on Android and iPhone Safari do not.
+const inApp = script.match(/const inAppBrowser=(\/.*?\/i)\.test\(navigator\.userAgent/);
+check("in-app regex found", Boolean(inApp), true);
+if (inApp) {
+  const re = vm.runInNewContext(inApp[1]);
+  const ua = {
+    "Android WebView (ad landing)": ["Mozilla/5.0 (Linux; Android 9; SM-J600F Build/PPR1.180610.011; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/69.0.3497.100 Mobile Safari/537.36", true],
+    "TikTok Android": ["Mozilla/5.0 (Linux; Android 12; SM-A125F Build/SP1A.210812.016; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/110.0.5481.153 Mobile Safari/537.36 trill_310404 BytedanceWebview/d8a21c6", true],
+    "Instagram iPhone": ["Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 300.0.0.0", true],
+    "Chrome Android": ["Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36", false],
+    "Safari iPhone": ["Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1", false],
+    "Chrome desktop": ["Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36", false]
+  };
+  for (const [name, [s, want]] of Object.entries(ua)) check("in-app: " + name, re.test(s), want);
+}
 console.log(`signup-source: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

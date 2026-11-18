@@ -560,6 +560,17 @@ html.cn #home .hero-content .cn-hero-teams-link {
   text-decoration: underline; text-decoration-color: rgba(103, 232, 249, .4); text-underline-offset: 4px;
 }
 html.cn #home .hero-content .cn-hero-teams-link:hover { text-decoration-color: currentColor; }
+/* "For teams" is the business entry in the first view: an outlined pill, still 44px tall, so the hero does not grow */
+html.cn #home .hero-content .cn-hero-teams-link.is-biz {
+  padding: 0 16px;
+  border: 1px solid rgba(103, 232, 249, .5);
+  border-radius: 999px;
+  background: rgba(34, 211, 238, .1);
+  color: #e6fbff;
+  text-decoration: none;
+}
+html.cn #home .hero-content .cn-hero-teams-link.is-biz > span { margin-left: 6px; }
+html.cn #home .hero-content .cn-hero-teams-link.is-biz:hover { background: rgba(34, 211, 238, .18); border-color: #67e8f9; }
 html.cn #home .hero-content .cn-hero-teams-link:focus-visible { outline: 2px solid #22d3ee; outline-offset: 2px; border-radius: 8px; }
 html.cn #home .hero-content .cn-hero-teams-sep { margin: 0 8px; color: var(--cn-text-3, #8a95a7); }
 
@@ -574,8 +585,12 @@ html.cn #home > .cn-foryou {
   margin-inline:
     max(var(--cn-gutter-l, 16px), calc((100% - var(--cn-max-wide, 1360px)) / 2))
     max(var(--cn-gutter-r, 16px), calc((100% - var(--cn-max-wide, 1360px)) / 2));
-  border-radius: var(--cn-r-band, clamp(28px, 1rem + 3vw, 56px));
   scroll-margin-top: 88px;
+}
+/* the band radius token is a clamp(): only where clamp() works, or Chrome 69 drops the radius to 0 */
+@supports (width: clamp(1px, 1px, 1px)) {
+  html.cn #home > .cn-teams,
+  html.cn #home > .cn-foryou { border-radius: var(--cn-r-band, clamp(28px, 1rem + 3vw, 56px)); }
 }
 html.cn #home > .cn-teams {
   isolation: isolate;
@@ -640,10 +655,30 @@ html.cn #home .cn-teams-list li {
   background: rgba(6, 10, 20, .62);
   -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
 }
+/* over the live gradient the cards drop the blur (it would re-run on every frame); a touch more fill instead */
+html.cn #home > .cn-teams.is-live .cn-teams-list li {
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+  background: rgba(6, 10, 20, .7);
+}
 html.cn #home .cn-teams-list h3 { margin: 0; color: #f5f7fa; font-size: 1.02rem; font-weight: 650; line-height: 1.3; }
 html.cn #home .cn-teams-list p { margin: 6px 0 0; color: #b8c2d0; font-size: .94rem; line-height: 1.5; }
 html.cn #home .cn-teams-actions { display: flex; flex-wrap: wrap; margin-top: 16px; margin-top: clamp(14px, .5rem + 1.5vw, 26px); }
 html.cn #home .cn-teams-actions > button { min-height: 48px; margin: 10px 12px 0 0; }
+/* the secondary button can sit over the bright cyan corner of the band: a dark fill keeps its text readable */
+html.cn #home .cn-teams-actions > .secondary-btn {
+  border-color: rgba(148, 163, 184, .42);
+  background: rgba(6, 10, 20, .78);
+  color: #f5f7fa;
+}
+html.cn #home .cn-teams-actions > .secondary-btn:hover { background: rgba(6, 10, 20, .9); }
+html.cn #home .cn-teams-price {
+  margin: 22px 0 0;
+  margin: clamp(18px, .75rem + 1.2vw, 28px) 0 0;
+  color: #cbd3df;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+html.cn #home .cn-teams-price b { color: #f5f7fa; font-weight: 650; }
 
 html.cn #home > .cn-foryou {
   border: 1px solid var(--cn-line-2, rgba(148, 163, 184, .24));
@@ -676,3 +711,33 @@ html.cn #authModal.cn-code-step .cn-gate-guest { display: none !important; }
 /* The nav has no room for "For individuals" between the phone sheet (< 1024px) and about 1360px: the
    Sign In button was pushed off the pill at 1280. There the hero's own "For individuals" link leads to #for-you. */
 @media (min-width: 1024px) and (max-width: 1359.98px) { html.cn .navbar #navForYouBtn { display: none; } }
+
+/* Phones (18 Nov 2026, conversion review): a first-time visitor sees the cookie bar, so the paste box and
+   "Check a message free" must sit above it at 390x844. The globe steps down on phones (web only: this partial
+   is not in the iPhone app, which keeps 20-hero.css's sizes), and the cookie bar gets slimmer: the same words,
+   the Privacy Policy link and two equal buttons, with the question run into the text. */
+@media (max-width: 599.98px) {
+  html.cn #home .cn-hero4 { --h4-scene: min(58cqi, 220px); --h4-overlap: .14; }
+  html.cn #home #heroLearnFeaturesBtn { margin-block-start: 6px; }
+  html.cn .cn-consent { gap: 8px; padding: 10px 12px; }
+  html.cn .cn-consent-copy { font-size: 12.5px; line-height: 1.4; }
+  html.cn .cn-consent-title { display: inline; font-size: 13.5px; line-height: 1.4; }
+  html.cn .cn-consent-title::after { content: " "; }
+  html.cn .cn-consent-text { display: inline; margin-top: 0 !important; font-size: 12.5px; line-height: 1.4; }
+}
+@media (max-width: 599.98px) and (max-height: 700px) {
+  html.cn #home .cn-hero4 { --h4-scene: min(48cqi, 26vh); --h4-overlap: .12; }
+}
+@supports (height: 1svh) {
+  @media (max-width: 599.98px) and (max-height: 700px) {
+    html.cn #home .cn-hero4 { --h4-scene: min(48cqi, 26svh); }
+  }
+}
+
+/* Short phones (360x640 and the like) with the cookie bar showing: there is no room for the globe at its
+   short-phone size, the paste box and the bar together, so until a choice is made the globe is a small mark
+   and the "Learn how" pill waits (it is also in the menu). Both come back the moment the bar closes. */
+@media (max-width: 599.98px) and (max-height: 700px) {
+  html.cn.cn-consent-visible #home .cn-hero4 { --h4-scene: min(24cqi, 10vh); --h4-overlap: .1; }
+  html.cn.cn-consent-visible #home #heroLearnFeaturesBtn { display: none; }
+}

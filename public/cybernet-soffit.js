@@ -11,8 +11,9 @@
    - size and pointer come from the band's own box, not the window;
    - no WebGL2, a weak device, Save-Data, reduced motion or the site's Pause motion (html.cn-still):
      nothing is created and the band keeps its static CSS gradient (63-gate.css);
-   - it starts only when the band comes within 300 px of the viewport, and the frame loop really stops
-     (no requestAnimationFrame at all) while the band is off-screen or the tab is hidden;
+   - it starts only when the band comes within 100 px of the viewport (then at the next idle moment), and the
+     frame loop really stops (no requestAnimationFrame at all) while the band is off-screen, the tab is hidden,
+     the page is scrolling or the phone menu sheet covers it;
    - device pixel ratio capped at 1 (CONFIG.maxDpr), as the prompt says;
    - a lost WebGL context, a compile error or a failed first frame: the canvas is removed, the CSS
      gradient stays. Nothing is ever thrown to the page.
@@ -336,10 +337,22 @@
     }
     win.addEventListener("resize", onResize, { passive: true });
 
-    var visible = false, raf = 0, prevT = 0, clock = 0, dead = false;
+    var visible = false, raf = 0, prevT = 0, clock = 0, dead = false, waitingStill = false;
+    var C = win.CN || null;
+    /* like the hero globe: hold the frame while the page scrolls or the phone menu sheet covers the page,
+       and carry on when it is still / uncovered (whenStill and onCover call run() again) */
+    function held() { return !!(C && ((C.covered && C.covered()) || (C.scrolling && C.scrolling()))); }
     function frame(now) {
       raf = 0;
       if (dead || !visible || doc.hidden) { prevT = 0; return; }
+      if (held()) {
+        prevT = 0;
+        if (C.scrolling && C.scrolling() && C.whenStill && !waitingStill) {
+          waitingStill = true;
+          C.whenStill(function () { waitingStill = false; run(); });
+        }
+        return;
+      }
       raf = win.requestAnimationFrame(frame);
       var raw = prevT ? now - prevT : 16.7;
       prevT = now;
@@ -380,6 +393,7 @@
       new IntersectionObserver(function (es) { visible = es[0].isIntersecting; if (visible) run(); else stop(); }, { threshold: 0 }).observe(band);
     } else { visible = true; run(); }
     doc.addEventListener("visibilitychange", function () { if (doc.hidden) stop(); else run(); });
+    if (C && C.onCover) C.onCover(function (on) { if (on) stop(); else run(); });
     /* Pause motion (07-aurora.js) or the OS setting turning on later: the last frame stays, the loop stops */
     if (win.CN && win.CN.onMotion) win.CN.onMotion(function (reduced) { if (reduced) { dead = true; stop(); } });
     if (win.MutationObserver) new MutationObserver(function () { if (doc.documentElement.classList.contains("cn-still")) { dead = true; stop(); } })
@@ -390,11 +404,14 @@
     var band = doc.querySelector("[data-cn-soffit]");
     if (!band || !allowed()) return;
     if (!("IntersectionObserver" in win)) { start(band); return; }
+    /* within 100 px of the viewport, and then when the browser is idle: on a desktop the band sits just
+       under the fold, so this keeps its context, compile and first draw away from the hero globe's start */
     var io = new IntersectionObserver(function (es) {
       if (!es[0].isIntersecting) return;
       io.disconnect();
-      start(band);
-    }, { rootMargin: "300px 0px" });
+      if (win.requestIdleCallback) win.requestIdleCallback(function () { start(band); }, { timeout: 1200 });
+      else setTimeout(function () { start(band); }, 200);
+    }, { rootMargin: "100px 0px" });
     io.observe(band);
   }
   if (doc.readyState === "loading") doc.addEventListener("DOMContentLoaded", init);

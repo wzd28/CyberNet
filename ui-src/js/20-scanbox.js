@@ -171,6 +171,9 @@
       openQuickScan(startBtn);
       whenQuickScan(function () {
         busy = false;
+        /* marks the next Quick Scan as this example, so on the website it does not use one of a guest's
+           free checks (script.js checkQuickScanQuota reads and clears it; it lapses after 8 s) */
+        win.CN_exampleScan = Date.now();
         if (kind === "qr") scanImage(blob); else scanText(EXAMPLES[kind], kind);
       });
       setTimeout(function () { busy = false; }, 4200);
