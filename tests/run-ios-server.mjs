@@ -906,6 +906,76 @@ const plansLib = await import(pathToFileURL(path.join(root, "netlify/lib/plans.m
   check("account-status web with the header: unchanged (plan pro, billing fields, no appPlan)", w.data.profile.plan === "pro" && "subscriptionStatus" in w.data.profile && !("appPlan" in w.data.profile) && noCors(w), w.data.profile);
 }
 
+// ══════════ rate limits and the AI cost ceiling (lib/abuse-guard.mjs, brief step 9) ══════════
+{
+  const quotaKeys = () => rpcCalls("consume_api_quota").map((c) => c.body.p_key);
+  const openaiCalls = () => calls.filter((c) => c.host === "openai");
+  // A fresh documentation address per request, so analyze's per-instance memory
+  // limit (40 per 10 minutes per address) never mixes with the checks above.
+  let n = 0;
+  const run = async (handler, request) => {
+    const response = await handler(request, { ...context, ip: `198.51.100.${++n}` });
+    const text = await response.text();
+    let data = null;
+    try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+    return { status: response.status, data, headers: response.headers };
+  };
+  // Normal requests: the guard runs, nothing is refused, and no raw address is stored.
+  for (const [label, opts] of [["app", { ios: true, origin: APP }], ["web", {}]]) {
+    reset();
+    const r = await run(fn.analyze, req("/api/analyze", { token: "t-review", body: IMAGE, ...opts }));
+    const keys = quotaKeys();
+    check(`guard analyze ${label}: 200 with the AI answer, per-IP + per-account + ceiling counted`, r.status === 200 && r.data.aiUsed === true && keys.some((k) => /^g:analyze:ip60:[0-9a-f]{4}$/.test(k)) && keys.some((k) => k === `g:analyze:u60:${USERS["t-review"].id}`) && keys.includes("g:ai:calls:day"), { status: r.status, keys });
+    check(`guard analyze ${label}: no IP address in any quota key`, !keys.some((k) => k.includes("198.51.100.")), keys);
+    if (label === "app") check("guard analyze app: CORS kept, consent still checked before any reservation", corsOk(r) && rpcCalls("has_ai_consent").length === 1);
+  }
+  // Per-connection burst limit: 429 before any allowance is reserved or OpenAI is called.
+  reset({ quotaDenied: "g:analyze:ip" });
+  let r = await run(fn.analyze, req("/api/analyze", { token: "t-review", ios: true, origin: APP, body: IMAGE }));
+  check("guard analyze burst (IP): 429 rate_limited, nothing reserved, no OpenAI call, CORS kept", r.status === 429 && r.data.code === "rate_limited" && !rpcCalls("consume_analysis_app").length && !openaiCalls().length && corsOk(r), { status: r.status, data: r.data });
+  reset({ quotaDenied: "g:analyze:u60:" });
+  r = await run(fn.analyze, req("/api/analyze", { token: "t-free", body: IMAGE }));
+  check("guard analyze burst (account): 429 rate_limited, nothing reserved", r.status === 429 && r.data.code === "rate_limited" && !rpcCalls("consume_analysis").length, r.data);
+  // The ceiling: the rule engine answers and the allowance is refunded.
+  reset({ quotaDenied: "g:ai:calls:day" });
+  r = await run(fn.analyze, req("/api/analyze", { token: "t-free", body: IMAGE }));
+  check("guard ceiling analyze: 200 from the rule engine, no OpenAI call, allowance refunded", r.status === 200 && r.data.aiUsed === false && !openaiCalls().length && rpcCalls("refund_analysis").length === 1 && r.data.usage.used === 0, { status: r.status, aiUsed: r.data?.aiUsed, usage: r.data?.usage });
+  check("guard ceiling analyze: logged for the owner", logged.some((l) => l.includes("cn_ai_ceiling")));
+  reset({ quotaDenied: "g:ai:calls:day" });
+  r = await run(fn.analyze, req("/api/analyze", { token: "t-review", ios: true, origin: APP, body: IMAGE }));
+  check("guard ceiling analyze app: the app still gets a result (200, CORS)", r.status === 200 && r.data.analysis && !openaiCalls().length && corsOk(r), r.status);
+  // Admin accounts on the website: no guard, no ceiling (unchanged bypass).
+  reset({ quotaDenied: "g:" });
+  r = await run(fn.analyze, req("/api/analyze", { token: "t-admin", body: IMAGE }));
+  check("guard analyze web admin: not limited", r.status === 200 && !quotaKeys().length, quotaKeys());
+  // The quota service down: fail open.
+  reset();
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (input, init) => (String(typeof input === "string" ? input : input.url).includes("/rpc/consume_api_quota") ? json({ message: "down" }, 503) : realFetch(input, init));
+  r = await run(fn.analyze, req("/api/analyze", { token: "t-review", ios: true, origin: APP, body: IMAGE }));
+  globalThis.fetch = realFetch;
+  check("guard analyze: quota service down = fail open (200 with AI)", r.status === 200 && r.data.aiUsed === true, r.status);
+  // Oversized bodies are refused before sign-in is checked or anything is reserved.
+  reset();
+  const big = new Request(`${SITE}/api/analyze`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer t-free" }, body: new ReadableStream({ start(c) { const chunk = new TextEncoder().encode("x".repeat(1_000_000)); for (let i = 0; i < 7; i++) c.enqueue(chunk); c.close(); } }), duplex: "half" });
+  r = await run(fn.analyze, big);
+  check("guard analyze: a 7 MB body with no Content-Length is refused with 413, nothing called", r.status === 413 && !calls.length, { status: r.status, calls: calls.length });
+  // Recovery Mode and updates.
+  reset({ quotaDenied: "g:recovery-mode:ip" });
+  r = await run(fn["recovery-mode"], req("/api/recovery-mode", { token: "t-review", ios: true, origin: APP, body: INCIDENT }));
+  check("guard recovery-mode burst: 429, no case reserved, CORS kept", r.status === 429 && r.data.code === "rate_limited" && !rpcCalls("consume_recovery_case_app").length && corsOk(r), r.data);
+  reset();
+  r = await run(fn["recovery-mode"], req("/api/recovery-mode", { token: "t-review", ios: true, origin: APP, body: INCIDENT }));
+  check("guard recovery-mode app: unaffected when within the limits", r.status === 200 && quotaKeys().some((k) => k.startsWith("g:recovery-mode:")), r.status);
+  reset({ quotaDenied: "g:recovery-update:u60:", caseOwner: USERS["t-free"].id });
+  r = await run(fn["recovery-update"], req("/api/recovery-update", { token: "t-free", body: UPDATE }));
+  check("guard recovery-update burst: 429, no update reserved", r.status === 429 && r.data.code === "rate_limited" && !rpcCalls("consume_recovery_update").length, r.data);
+  // Link pictures: per-connection limit added, per-account caps unchanged.
+  reset({ quotaDenied: "g:screenshot-preview:ip" });
+  r = await run(fn["screenshot-preview"], req("/api/screenshot-preview", { token: "t-review", ios: true, origin: APP, body: { url: "https://example.com" } }));
+  check("guard screenshot-preview burst: 429 before the per-account caps", r.status === 429 && r.data.code === "rate_limited" && !quotaKeys().some((k) => k.startsWith("shot:")), { status: r.status, keys: quotaKeys() });
+}
+
 console.log(`ios server: ${checks - failures}/${checks} checks passed`);
 if (failures) {
   console.log(`(${logged.length} lines the functions logged; last 5:)\n  ${logged.slice(-5).join("\n  ").slice(0, 2000)}`);

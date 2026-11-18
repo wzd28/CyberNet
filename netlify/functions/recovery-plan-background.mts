@@ -8,6 +8,7 @@ import {
 import { runAiUpdate, sanitizeUpdate, writeUpdatedVersion } from "./recovery-update.mts";
 import { rekeyPlan, planActions as listPlanActions, buildTaskRows, supersededTaskKeys, taskKeyInList } from "../lib/recovery-tasks.mjs";
 import { reportError } from "../lib/report-error.mjs";
+import { allowAiCall } from "../lib/abuse-guard.mjs";
 
 // Builds the AI recovery plan (or AI update) after the user's request has
 // already returned. Netlify runs this as a background function: the caller
@@ -195,6 +196,10 @@ export default async function handler(request: Request): Promise<Response> {
     console.error("CyberNet Recovery background job failed", { kind: job.kind, caseId: job.caseId, error });
     await reportError(error, { fn: "recovery-plan-background", label: "Recovery background job failed" });
   }
+  // A ceiling alert from lib/abuse-guard.mjs (time-boxed, never throws) is
+  // finished before the job ends, since nothing else would wait for it.
+  const ceilingReport = (allowAiCall as any).lastReport;
+  if (ceilingReport) await ceilingReport;
 
   return new Response("ok");
 }
