@@ -355,6 +355,12 @@ export default webOnly(async request => {
       );
     }
 
+    // Refused before anything is reserved: the body is read only after the
+    // reservation below, so an oversized one used to cost an analysis first.
+    if (Number(request.headers.get("content-length") || 0) > MAX_REQUEST_CHARS) {
+      return json({ error: "The analysis request is too large." }, 413);
+    }
+
     ({ user } = await verifyUser(request));
 
     // Team members use the shared team pool and their activity goes in the

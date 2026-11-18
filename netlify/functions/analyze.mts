@@ -6,6 +6,7 @@ import { fetchWithJwtRetry, RETRY_TIGHT } from "../lib/supabase-retry.mjs";
 import { withCors, isIOS, honoursWebPlans } from "../lib/cors.mjs";
 import { appTierFor, consumeAnalysisApp, APP_MESSAGES, appLimitsFor, loadWebPlan, reserveAnalysisForApp, refundAnalysisForApp } from "../lib/app-tier.mjs";
 import { aiConsentGate } from "../lib/ai-consent.mjs";
+import { burstGuard, allowAiCall, clientAddress, readJsonCapped } from "../lib/abuse-guard.mjs";
 // The rule set Quick Scan runs in the browser. It registers itself on
 // globalThis, so the page, this function and the tests all read one copy.
 import "../../public/cybernet-engine.js";
@@ -1360,12 +1361,10 @@ async function handler(request: Request, context: any): Promise<Response> {
   const contentLength = Number(request.headers.get("content-length") || 0);
   if (contentLength > 6_000_000) return json({ error: "Request is too large" }, 413);
 
-  let body: any;
-  try {
-    body = await request.json();
-  } catch {
-    return json({ error: "Invalid JSON body" }, 400);
-  }
+  // Capped while it streams in (lib/abuse-guard.mjs), not only by the declared length.
+  const read = await readJsonCapped(request, 6_000_000);
+  if (!read.ok) return read.status === 413 ? json({ error: "Request is too large" }, 413) : json({ error: "Invalid JSON body" }, 400);
+  const body: any = read.body;
 
   const mode: "quick" | "investigation" = body?.mode === "investigation" || body?.type === "investigation" ? "investigation" : "quick";
   if (ios && mode === "investigation") return json({ error: APP_MESSAGES.investigationNotInApp, code: "NOT_AVAILABLE_IN_APP" }, 403);
@@ -1381,7 +1380,7 @@ async function handler(request: Request, context: any): Promise<Response> {
   const user = await verifySupabaseUser(request);
   if (!user) return json({ error: "Sign in or create a free account before running secure analysis.", code: "sign_in_required" }, 401);
 
-  const ipKey = `ip:${String(context?.ip || "unknown")}`;
+  const ipKey = `ip:${clientAddress(request, context)}`;
   if (!fallbackMemoryRateLimit(ipKey, mode === "investigation" ? 12 : 40)) {
     return json({ error: "Too many requests from this connection. Please try again later.", code: "rate_limited" }, 429);
   }
@@ -1408,7 +1407,9 @@ async function handler(request: Request, context: any): Promise<Response> {
   let usagePromise: Promise<UsageReservation> | null = null;
   let appRule: { pool: string; limit: number } | null = null;
   if (!admin) {
-    const [withinLimit, teamResult, planResult] = await Promise.all([
+    // burstGuard: per-connection and per-account per-minute limits (lib/abuse-guard.mjs, fails open).
+    const [burst, withinLimit, teamResult, planResult] = await Promise.all([
+      burstGuard("analyze", { request, context, userId: user.id }),
       serviceFetch("/rest/v1/rpc/check_protect_rate_limit", {
         method: "POST",
         body: JSON.stringify({ p_key: `analyze:${mode}:${user.id}`, p_window_seconds: 600, p_max_requests: mode === "investigation" ? 12 : 40 }),
@@ -1418,6 +1419,7 @@ async function handler(request: Request, context: any): Promise<Response> {
         ? loadWebPlan(serviceFetch, user.id).then((value) => ({ value, error: null as unknown }), (error) => ({ value: "free", error }))
         : Promise.resolve({ value: "free", error: null as unknown }),
     ]);
+    if (burst) return json(burst.body, burst.status);
     if (withinLimit === false) {
       return json({ error: "Too many requests. Please try again later.", code: "rate_limited" }, 429);
     }
@@ -1496,6 +1498,13 @@ async function handler(request: Request, context: any): Promise<Response> {
   const aiRoute = decideAiRoute(serverEvidence, mode, ios ? "free" : usage.plan, type === "image" && imageData.startsWith("data:image/"));
 
   try {
+    // The global daily OpenAI ceiling (cost circuit breaker, lib/abuse-guard.mjs).
+    // When it trips the rule engine answers and, as aiAttempted stays false, the
+    // person's allowance is refunded below. The owner's admin accounts (website)
+    // are not counted, like every other limit here.
+    if (!admin && aiRoute.call && aiRoute.model && env("OPENAI_API_KEY") && !(await allowAiCall("analyze", context))) {
+      aiRoute.call = false;
+    }
     if (aiRoute.call && aiRoute.model) {
       aiAttempted = Boolean(env("OPENAI_API_KEY"));
       const ai = await runAiAnalysis({ mode, type, content, imageData, browserHint, history: chatContext, serverEvidence, caseData, model: aiRoute.model });

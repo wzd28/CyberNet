@@ -5,6 +5,7 @@ import { fetchWithJwtRetry, RETRY_STANDARD } from "../lib/supabase-retry.mjs";
 import { withCors, isIOS, honoursWebPlans } from "../lib/cors.mjs";
 import { appTierFor, consumeRecoveryCaseApp, recoveryCaseLimitMessage, appLimitsFor, loadWebPlan, reserveRecoveryCaseForApp } from "../lib/app-tier.mjs";
 import { aiConsentGate } from "../lib/ai-consent.mjs";
+import { burstGuard, allowAiCall, readJsonCapped } from "../lib/abuse-guard.mjs";
 
 declare const Netlify: {
   env: {
@@ -471,6 +472,9 @@ async function runAiRecoveryPlan(args: {
 }, options: { timeoutMs?: number } = {}) {
   const apiKey = env("OPENAI_API_KEY");
   if (!apiKey) return null;
+  // The global daily OpenAI ceiling (lib/abuse-guard.mjs): when it has tripped
+  // the rule-based plan stays current, exactly as when no key is configured.
+  if (!(await allowAiCall("recovery-plan"))) return null;
 
   const client = new OpenAI({
     apiKey,
@@ -881,12 +885,10 @@ async function handler(request: Request, context: any): Promise<Response> {
   const contentLength = Number(request.headers.get("content-length") || 0);
   if (contentLength > 2_000_000) return json({ error: "Request is too large" }, 413);
 
-  let body: any;
-  try {
-    body = await request.json();
-  } catch {
-    return json({ error: "Invalid JSON body" }, 400);
-  }
+  // Capped while it streams in (lib/abuse-guard.mjs), not only by the declared length.
+  const read = await readJsonCapped(request, 2_000_000);
+  if (!read.ok) return read.status === 413 ? json({ error: "Request is too large" }, 413) : json({ error: "Invalid JSON body" }, 400);
+  const body: any = read.body;
 
   const rawDescription = String(body?.description || "").slice(0, MAX_DESCRIPTION_CHARS);
   if (!rawDescription.trim()) return json({ error: "Please describe what happened before submitting." }, 400);
@@ -906,6 +908,12 @@ async function handler(request: Request, context: any): Promise<Response> {
   if (ios) {
     const blocked = await aiConsentGate(serviceFetch, user.id);
     if (blocked) return json(blocked.body, blocked.status);
+  }
+
+  // Per-connection and per-account per-minute limits (lib/abuse-guard.mjs, fails open).
+  if (ios || !isAdminUser(user)) {
+    const burst = await burstGuard("recovery-mode", { request, context, userId: user.id });
+    if (burst) return json(burst.body, burst.status);
   }
 
   let usage;

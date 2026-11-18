@@ -7,6 +7,7 @@ import { fetchWithJwtRetry, RETRY_STANDARD } from "../lib/supabase-retry.mjs";
 import { withCors, isIOS, honoursWebPlans } from "../lib/cors.mjs";
 import { appTierFor, consumeRecoveryUpdateApp, recoveryCooldownMessage, APP_MESSAGES, appLimitsFor, loadWebPlan, reserveRecoveryUpdateForApp } from "../lib/app-tier.mjs";
 import { aiConsentGate } from "../lib/ai-consent.mjs";
+import { burstGuard, allowAiCall, readJsonCapped } from "../lib/abuse-guard.mjs";
 
 declare const Netlify: {
   env: {
@@ -141,6 +142,9 @@ async function runAiUpdate(args: {
 }, options: { timeoutMs?: number } = {}) {
   const apiKey = env("OPENAI_API_KEY");
   if (!apiKey) return null;
+  // The global daily OpenAI ceiling (lib/abuse-guard.mjs): when it has tripped
+  // the update is recorded without the AI rewrite, as when no key is configured.
+  if (!(await allowAiCall("recovery-update"))) return null;
 
   const client = new OpenAI({
     apiKey,
@@ -385,12 +389,10 @@ async function handler(request: Request, context: any): Promise<Response> {
   const contentLength = Number(request.headers.get("content-length") || 0);
   if (contentLength > 1_000_000) return json({ error: "Request is too large" }, 413);
 
-  let body: any;
-  try {
-    body = await request.json();
-  } catch {
-    return json({ error: "Invalid JSON body" }, 400);
-  }
+  // Capped while it streams in (lib/abuse-guard.mjs), not only by the declared length.
+  const read = await readJsonCapped(request, 1_000_000);
+  if (!read.ok) return read.status === 413 ? json({ error: "Request is too large" }, 413) : json({ error: "Invalid JSON body" }, 400);
+  const body: any = read.body;
 
   const caseId = String(body?.caseId || "").trim();
   const rawUpdateText = String(body?.updateText || "").slice(0, MAX_UPDATE_CHARS);
@@ -412,6 +414,11 @@ async function handler(request: Request, context: any): Promise<Response> {
   }
 
   const admin = !ios && isAdminUser(user);
+  // Per-connection and per-account per-minute limits (lib/abuse-guard.mjs, fails open).
+  if (!admin) {
+    const burst = await burstGuard("recovery-update", { request, context, userId: user.id });
+    if (burst) return json(burst.body, burst.status);
+  }
   // The case row and the team check do not depend on each other. A failed team
   // check is held until the usage step below, where it has always been reported.
   // Without X-CyberNet-Plans the app reads no team and no plan (App tier).

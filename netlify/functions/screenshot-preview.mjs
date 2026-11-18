@@ -5,6 +5,7 @@ import { lookup as dnsLookup } from "node:dns/promises";
 // a picture when it taps "Show a picture of this page" (same per-account caps).
 // The website keeps it for Pro and Business accounts.
 import { withCors, allowedOrigin } from "../lib/cors.mjs";
+import { burstGuard, readJsonCapped } from "../lib/abuse-guard.mjs";
 
 // Every preview spends a paid GetScreenshot credit (or the shared keyless
 // Microlink allowance), so each account gets a short-burst and a daily cap.
@@ -223,7 +224,7 @@ export async function buildPreview(safeUrl, { apiKey, deadline = previewDeps.now
   }
 }
 
-export default withCors(async (request) => {
+export default withCors(async (request, context) => {
   if (request.method !== "POST") {
     return json({ error: "Method not allowed." }, 405);
   }
@@ -251,16 +252,20 @@ export default withCors(async (request) => {
 
   const apiKey = process.env.GETSCREENSHOT_API_KEY || globalThis.Netlify?.env?.get?.("GETSCREENSHOT_API_KEY");
 
-  let body;
-  try {
-    body = await request.json();
-  } catch {
-    return json({ error: "Invalid request." }, 400);
-  }
+  // The body is one link: anything over 16 KB is refused while it streams in.
+  const read = await readJsonCapped(request, 16_000);
+  if (!read.ok) return json({ error: read.status === 413 ? "Request is too large." : "Invalid request." }, read.status === 413 ? 413 : 400);
+  const body = read.body;
 
   const safeUrl = normalizeUrl(body?.url);
   if (!safeUrl) {
     return json({ error: "That link can't be previewed safely." }, 400);
+  }
+
+  // Per-connection limits (lib/abuse-guard.mjs) on top of the per-account ones below.
+  if (!isAdmin) {
+    const burst = await burstGuard("screenshot-preview", { request, context });
+    if (burst) return json(burst.body, burst.status);
   }
 
   if (!isAdmin) {
