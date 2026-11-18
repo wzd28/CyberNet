@@ -2254,18 +2254,32 @@ document.addEventListener("DOMContentLoaded",()=>{
   function guestScanUsed(){try{localStorage.setItem("cn-guest-scans",String((Number(localStorage.getItem("cn-guest-scans"))||0)+1))}catch{}}
   function guestCanScan(){return isSignedIn()||guestScansLeft()>0}
   function askForAccount(){
+    const offer=document.getElementById("cnGateGuest");if(offer)offer.hidden=true;
     openAuthModal("signup");
     if(guestChosen())setAuthNotice(`You've used your ${GUEST_SCANS} free checks`,"Thanks for trying CyberNet AI. Create a free account to keep checking messages and links. It takes a few seconds.","info");
   }
-  // Under a guest's result: how many free scans are left, with the way to an account
+  /* Under a guest's result (18 Nov 2026, growth brief step 4): a compact card right under the verdict and its
+     plain summary, never over it. What a free account adds (only what Free really has: 3 Analysis AI
+     explanations and 5 Quick Scans a day, 1 Recovery case), how many free checks are left, "Create a free
+     account" (opens the sign-up card, which counts signup_open) and "Not now" (removes the card for this
+     result). A new result draws a new card; each result has at most one. */
   function guestNote(box){
     if(isSignedIn()||!box||!guestChosen())return;
+    box.querySelector(".cn-save-card")?.remove();
     const left=guestScansLeft();
-    const p=document.createElement("p");
-    p.className="cn-guest-left";
-    p.innerHTML=`${left>0?`${left} free scan${left===1?"":"s"} left.`:"That was your last free scan."} <button type="button" class="inline-link-btn" data-guest-signup>Create a free account</button> to keep scanning.`;
-    p.querySelector("[data-guest-signup]").addEventListener("click",()=>openAuthModal("signup"));
-    box.appendChild(p);
+    const card=document.createElement("div");
+    card.className="cn-save-card";
+    card.setAttribute("role","group");
+    card.setAttribute("aria-labelledby","cnSaveCardHead");
+    card.innerHTML=`<p class="cn-save-head" id="cnSaveCardHead">${left>0?"Want the full AI explanation of this message?":"That was your last free check without an account"}</p>
+      <p class="cn-save-text">A free account adds Analysis AI, which explains the warning signs in plain words (3 a day), 5 Quick Scans a day and a Recovery plan if something already went wrong.</p>
+      <p class="cn-guest-left">${left>0?`${left} free check${left===1?"":"s"} left without an account.`:"Create a free account to keep checking. It takes a few seconds."}</p>
+      <div class="cn-save-actions"><button type="button" class="primary-btn" data-guest-signup>Create a free account</button><button type="button" class="cn-save-later" data-guest-later>Not now</button></div>`;
+    card.querySelector("[data-guest-signup]").addEventListener("click",()=>openAuthModal("signup"));
+    card.querySelector("[data-guest-later]").addEventListener("click",()=>{card.remove()});
+    const summary=box.querySelector(".plain-summary");
+    if(summary&&summary.parentNode)summary.insertAdjacentElement("afterend",card);
+    else box.appendChild(card);
   }
   /* After every Quick Scan result: the funnel step (guest or account) and the GA4 scan event. */
   function afterQuickScan(box,type){

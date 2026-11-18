@@ -2483,17 +2483,31 @@ document.addEventListener("DOMContentLoaded", () => {
     return isSignedIn() || guestScansLeft() > 0;
   }
   function askForAccount() {
+    const offer = document.getElementById("cnGateGuest");
+    if (offer) offer.hidden = true;
     openAuthModal("signup");
     if (guestChosen()) setAuthNotice(`You've used your ${GUEST_SCANS} free checks`, "Thanks for trying CyberNet AI. Create a free account to keep checking messages and links. It takes a few seconds.", "info");
   }
   function guestNote(box) {
+    var _a2;
     if (isSignedIn() || !box || !guestChosen()) return;
+    (_a2 = box.querySelector(".cn-save-card")) == null ? void 0 : _a2.remove();
     const left = guestScansLeft();
-    const p = document.createElement("p");
-    p.className = "cn-guest-left";
-    p.innerHTML = `${left > 0 ? `${left} free scan${left === 1 ? "" : "s"} left.` : "That was your last free scan."} <button type="button" class="inline-link-btn" data-guest-signup>Create a free account</button> to keep scanning.`;
-    p.querySelector("[data-guest-signup]").addEventListener("click", () => openAuthModal("signup"));
-    box.appendChild(p);
+    const card = document.createElement("div");
+    card.className = "cn-save-card";
+    card.setAttribute("role", "group");
+    card.setAttribute("aria-labelledby", "cnSaveCardHead");
+    card.innerHTML = `<p class="cn-save-head" id="cnSaveCardHead">${left > 0 ? "Want the full AI explanation of this message?" : "That was your last free check without an account"}</p>
+      <p class="cn-save-text">A free account adds Analysis AI, which explains the warning signs in plain words (3 a day), 5 Quick Scans a day and a Recovery plan if something already went wrong.</p>
+      <p class="cn-guest-left">${left > 0 ? `${left} free check${left === 1 ? "" : "s"} left without an account.` : "Create a free account to keep checking. It takes a few seconds."}</p>
+      <div class="cn-save-actions"><button type="button" class="primary-btn" data-guest-signup>Create a free account</button><button type="button" class="cn-save-later" data-guest-later>Not now</button></div>`;
+    card.querySelector("[data-guest-signup]").addEventListener("click", () => openAuthModal("signup"));
+    card.querySelector("[data-guest-later]").addEventListener("click", () => {
+      card.remove();
+    });
+    const summary = box.querySelector(".plain-summary");
+    if (summary && summary.parentNode) summary.insertAdjacentElement("afterend", card);
+    else box.appendChild(card);
   }
   function afterQuickScan(box, type) {
     const guest = !isSignedIn();

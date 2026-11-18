@@ -473,6 +473,8 @@ html.cn.cn-still.cn-gate .cn-gate-shield { stroke-dasharray: none; stroke-dashof
 /* Guest Quick Scans (owner, 2 Nov 2026): the card's offer, shown only on the gate, and the line under a
    guest's result (script.js guestNote) */
 html.cn #authModal .cn-gate-guest { display: none; }
+/* No wall (18 Nov 2026): the offer also shows on the normal sign-up card while free checks are left */
+html.cn #authModal[data-auth-view="signup"] .cn-gate-guest:not([hidden]),
 html.cn.cn-gate #authModal .cn-gate-guest:not([hidden]) {
   display: block;
   min-height: 44px;
@@ -487,6 +489,27 @@ html.cn.cn-gate #authModal .cn-gate-guest:not([hidden]) {
   text-underline-offset: 3px;
   cursor: pointer;
 }
-html.cn.cn-gate #authModal .cn-gate-guest:focus-visible { outline: 2px solid #22d3ee; outline-offset: 2px; border-radius: 8px; }
+html.cn #authModal .cn-gate-guest:focus-visible { outline: 2px solid #22d3ee; outline-offset: 2px; border-radius: 8px; }
 .cn-guest-left { margin: 14px 0 0; font-size: .92rem; color: #b3bccb; }
 
+/* The card under a guest's Quick Scan result (script.js guestNote, 18 Nov 2026): compact, under the
+   verdict and its summary, never over them. Web only (63-gate.css is not in the iPhone app). */
+.cn-save-card {
+  margin: 18px 0 6px;
+  padding: 16px 18px;
+  border: 1px solid var(--cn-cyan-line, rgba(34, 211, 238, .36));
+  border-radius: var(--cn-r-card, 20px);
+  background: linear-gradient(180deg, rgba(34, 211, 238, .08), rgba(34, 211, 238, .02));
+}
+.cn-save-card .cn-save-head { margin: 0; font-weight: 650; font-size: 1.02rem; line-height: 1.35; color: var(--cn-text, #f5f7fa); }
+.cn-save-card .cn-save-text { margin: 6px 0 0; font-size: .92rem; line-height: 1.5; color: var(--cn-text-2, #aab4c3); }
+.cn-save-card .cn-guest-left { margin: 8px 0 0; font-size: .86rem; color: var(--cn-text-3, #8a95a7); }
+.cn-save-card .cn-save-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 12px; }
+.cn-save-card .cn-save-actions .primary-btn { min-height: 44px; padding: 0 20px; }
+.cn-save-card .cn-save-later {
+  min-height: 44px; padding: 0 6px; border: 0; background: transparent;
+  color: var(--cn-text-2, #aab4c3); font: inherit; font-size: .92rem; text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
+}
+.cn-save-card .cn-save-later:hover { color: var(--cn-text, #f5f7fa); }
+.cn-save-card .cn-save-later:focus-visible { outline: 2px solid #22d3ee; outline-offset: 2px; border-radius: 8px; }
+@media (max-width: 480px) { .cn-save-card .cn-save-actions .primary-btn { flex: 1 1 100%; } }
