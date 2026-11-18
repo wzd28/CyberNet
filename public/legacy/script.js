@@ -693,7 +693,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (googleAuthWrap) {
       googleAuthWrap.hidden = !tabbed;
       const divider = document.getElementById("googleAuthDivider");
-      if (divider && tabbed) divider.textContent = view === "signup" ? "or sign up with email" : "or sign in with email";
+      if (divider && tabbed) divider.textContent = (authModal == null ? void 0 : authModal.classList.contains("cn-inapp")) ? "or continue with Google" : view === "signup" ? "or sign up with email" : "or sign in with email";
     }
     const [title, intro] = AUTH_HEADINGS[view] || AUTH_HEADINGS.login;
     if (authTitleEl && authTitleEl.textContent !== title) authTitleEl.textContent = title;
@@ -1407,11 +1407,22 @@ document.addEventListener("DOMContentLoaded", () => {
   window.addEventListener("pageshow", (event) => {
     if (event.persisted) endGoogleBusy();
   });
-  if (googleAuthBtn && /FBAN|FBAV|FB_IAB|Instagram|musical_ly|BytedanceWebview|TikTok|LinkedInApp|Snapchat/i.test(navigator.userAgent || "")) {
+  const inAppBrowser = /FBAN|FBAV|FB_IAB|Instagram|musical_ly|BytedanceWebview|TikTok|LinkedInApp|Snapchat/i.test(navigator.userAgent || "");
+  if (googleAuthBtn && inAppBrowser) {
     const note = document.createElement("p");
     note.className = "auth-inapp-note";
     note.textContent = "Inside the Instagram, TikTok or LinkedIn app, Google sign-in may not open. Use email sign-in, or open cybernetai.app in Safari or Chrome.";
     googleAuthBtn.insertAdjacentElement("afterend", note);
+    const wrap = document.getElementById("googleAuthWrap"), divider = wrap == null ? void 0 : wrap.querySelector(".auth-divider");
+    const after = document.getElementById("authCodeBox") || document.getElementById("authNewPasswordForm");
+    if (wrap && after) {
+      after.insertAdjacentElement("afterend", wrap);
+      if (divider) wrap.insertBefore(divider, wrap.firstChild);
+      wrap.classList.add("is-secondary");
+      authModal == null ? void 0 : authModal.classList.add("cn-inapp");
+      const label = document.getElementById("googleAuthDivider");
+      if (label) label.textContent = "or continue with Google";
+    }
   }
   if (googleAuthBtn) googleAuthBtn.addEventListener("click", async () => {
     if (!appState.supabase) {

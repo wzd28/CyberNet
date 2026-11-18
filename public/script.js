@@ -623,7 +623,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 /*@web*/    if(googleAuthWrap){
       googleAuthWrap.hidden=!tabbed;
       const divider=document.getElementById("googleAuthDivider");
-      if(divider&&tabbed)divider.textContent=view==="signup"?"or sign up with email":"or sign in with email";
+      if(divider&&tabbed)divider.textContent=authModal?.classList.contains("cn-inapp")?"or continue with Google":view==="signup"?"or sign up with email":"or sign in with email";
     }/*@end-web*/
     const [title,intro]=AUTH_HEADINGS[view]||AUTH_HEADINGS.login;
     if(authTitleEl&&authTitleEl.textContent!==title)authTitleEl.textContent=title;
@@ -1297,12 +1297,25 @@ document.addEventListener("DOMContentLoaded",()=>{
   function endGoogleBusy(){clearTimeout(googleBusyTimer);if(googleBusyDone){googleBusyDone();googleBusyDone=null}}
   /* Coming back from Google with the browser's Back button restores the page from cache with the button still busy. */
   window.addEventListener("pageshow",event=>{if(event.persisted)endGoogleBusy()});
-  /* In-app browsers (Instagram, TikTok, LinkedIn, Facebook) often cannot complete Google sign-in. */
-  if(googleAuthBtn&&/FBAN|FBAV|FB_IAB|Instagram|musical_ly|BytedanceWebview|TikTok|LinkedInApp|Snapchat/i.test(navigator.userAgent||"")){
+  /* In-app browsers (Instagram, TikTok, LinkedIn, Facebook, Messenger, Snapchat) often cannot complete Google
+     sign-in: Google blocks it there. Email comes first in these browsers (18 Nov 2026): the Google button and
+     its note move under the email forms, behind an "or continue with Google" divider. Google stays available. */
+  const inAppBrowser=/FBAN|FBAV|FB_IAB|Instagram|musical_ly|BytedanceWebview|TikTok|LinkedInApp|Snapchat/i.test(navigator.userAgent||"");
+  if(googleAuthBtn&&inAppBrowser){
     const note=document.createElement("p");
     note.className="auth-inapp-note";
     note.textContent="Inside the Instagram, TikTok or LinkedIn app, Google sign-in may not open. Use email sign-in, or open cybernetai.app in Safari or Chrome.";
     googleAuthBtn.insertAdjacentElement("afterend",note);
+    const wrap=document.getElementById("googleAuthWrap"),divider=wrap?.querySelector(".auth-divider");
+    const after=document.getElementById("authCodeBox")||document.getElementById("authNewPasswordForm");
+    if(wrap&&after){
+      after.insertAdjacentElement("afterend",wrap);
+      if(divider)wrap.insertBefore(divider,wrap.firstChild);
+      wrap.classList.add("is-secondary");
+      authModal?.classList.add("cn-inapp");
+      const label=document.getElementById("googleAuthDivider");
+      if(label)label.textContent="or continue with Google";
+    }
   }
   if(googleAuthBtn)googleAuthBtn.addEventListener("click",async()=>{
     if(!appState.supabase){setAuthMessage(authSetupMessage(),"error");return}

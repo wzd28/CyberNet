@@ -524,3 +524,7 @@ html.cn #authModal .cn-code-box #authCode {
   text-align: center;
 }
 html.cn #authModal .cn-code-box .auth-helper-row { margin-top: 10px; }
+
+/* In-app browsers (TikTok, Instagram, Facebook...; script.js, 18 Nov 2026): email first, Google under it */
+html.cn #authModal.cn-inapp #googleAuthWrap { margin: 16px 0 4px; }
+html.cn #authModal.cn-inapp #googleAuthWrap .auth-divider { margin: 0 0 12px; }
