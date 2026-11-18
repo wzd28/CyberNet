@@ -633,7 +633,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       const divider=document.getElementById("googleAuthDivider");
       if(divider&&tabbed)divider.textContent=authModal?.classList.contains("cn-inapp")?"or continue with Google":view==="signup"?"or sign up with email":"or sign in with email";
     }/*@end-web*/
-    const [title,intro]=AUTH_HEADINGS[view]||AUTH_HEADINGS.login;
+    const [title,intro]=/*@web*/view==="signup"&&authModal?.classList.contains("cn-code-step")?codeHeadings():/*@end-web*/AUTH_HEADINGS[view]||AUTH_HEADINGS.login;
     if(authTitleEl&&authTitleEl.textContent!==title)authTitleEl.textContent=title;
     const introText=view==="recovery"&&recoveryEmail?`Pick a new password for ${recoveryEmail}. You'll stay signed in on this device.`:intro;
     if(authIntroEl&&authIntroEl.textContent!==introText)authIntroEl.textContent=introText;
@@ -1458,7 +1458,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       }
       lastSignupEmail=email;
       hidePasswords(signupForm);
-/*@web*/      setAuthMessage(`Almost done. We emailed ${email}. Enter the 6-digit code from that email below, or open the link in it, and you'll be signed in. If it isn't in your inbox in a minute or two, check your spam folder.`,"success");
+/*@web*/      setAuthMessage("If the email isn't in your inbox in a minute or two, check your spam folder.");
       showCodeStep(email);/*@end-web*//*@ios setAuthMessage(`Almost done. We sent a confirmation link to ${email}. Open it, then come back to the app and tap I've confirmed, sign me in. If it isn't in your inbox in a minute or two, check your spam folder.`,"success",[{label:"I've confirmed, sign me in",run:async()=>{const{error}=await appState.supabase.auth.signInWithPassword({email,password});if(error){setAuthMessage(friendlyAuthError(error,"login"),"error");return}setAuthMessage("You're signed in.","success");closeAuthModal();showAuthToast("Email confirmed. You're signed in.")}}]); @end-ios*/
       if(signupResendBtn){signupResendBtn.hidden=false;startCooldown(signupResendBtn,60,left=>`Resend available in ${left}s`)}
     }catch(error){setAuthMessage(friendlyAuthError(error,"signup"),"error")}
@@ -1477,6 +1477,9 @@ document.addEventListener("DOMContentLoaded",()=>{
      (supabase-js also accepts "signup"). The code length is the project's Email OTP length (6 by default),
      so 6 to 10 digits are accepted. */
   var codeEmail="";
+  /* The code step's own heading (design pass, 18 Nov 2026): the card says what happened and where the code
+     went, above the field, instead of repeating the sign-up pitch with the address in a line under the button. */
+  function codeHeadings(){return ["Check your email",`We sent a 6-digit code to ${codeEmail}.`]}
   function showCodeStep(email){
     const box=document.getElementById("authCodeBox"),form=document.getElementById("authSignupForm");
     if(!box)return;
@@ -1485,6 +1488,11 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(form)form.hidden=Boolean(codeEmail);
     // the code step is the only thing on the card: no Google button, no "check a message first" offer (63-gate.css)
     document.getElementById("authModal")?.classList.toggle("cn-code-step",Boolean(codeEmail));
+    if(authView==="signup"){
+      const [title,intro]=codeEmail?codeHeadings():AUTH_HEADINGS.signup;
+      if(authTitleEl&&authTitleEl.textContent!==title)authTitleEl.textContent=title;
+      if(authIntroEl&&authIntroEl.textContent!==intro)authIntroEl.textContent=intro;
+    }
     const resend=document.getElementById("signupResendBtn");
     if(resend&&codeEmail)resend.hidden=true;
     const field=document.getElementById("authCode");
@@ -1619,10 +1627,11 @@ document.addEventListener("DOMContentLoaded",()=>{
   function showSecondPlanChoice(message,cycle,plan){
     showPricingNotice(message);
     if(!pricingNotice)return;
+    pricingNotice.classList.add("cn-notice-ask");
     const actions=document.createElement("div");
     actions.className="cn-notice-actions";
     const go=document.createElement("button");
-    go.type="button";go.className="cn-notice-btn cn-notice-btn-primary";go.textContent="Continue";
+    go.type="button";go.className="cn-notice-btn cn-notice-btn-primary";go.textContent="Continue to checkout";
     go.addEventListener("click",()=>startCheckout(cycle,plan,true));
     const manage=document.createElement("button");
     manage.type="button";manage.className="cn-notice-btn";manage.textContent="Manage billing";

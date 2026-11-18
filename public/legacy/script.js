@@ -715,7 +715,13 @@ document.addEventListener("DOMContentLoaded", () => {
       const divider = document.getElementById("googleAuthDivider");
       if (divider && tabbed) divider.textContent = (authModal == null ? void 0 : authModal.classList.contains("cn-inapp")) ? "or continue with Google" : view === "signup" ? "or sign up with email" : "or sign in with email";
     }
-    const [title, intro] = AUTH_HEADINGS[view] || AUTH_HEADINGS.login;
+    const [title, intro] = (
+      /*@web*/
+      view === "signup" && (authModal == null ? void 0 : authModal.classList.contains("cn-code-step")) ? codeHeadings() : (
+        /*@end-web*/
+        AUTH_HEADINGS[view] || AUTH_HEADINGS.login
+      )
+    );
     if (authTitleEl && authTitleEl.textContent !== title) authTitleEl.textContent = title;
     const introText = view === "recovery" && recoveryEmail ? `Pick a new password for ${recoveryEmail}. You'll stay signed in on this device.` : intro;
     if (authIntroEl && authIntroEl.textContent !== introText) authIntroEl.textContent = introText;
@@ -1624,7 +1630,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       lastSignupEmail = email;
       hidePasswords(signupForm);
-      setAuthMessage(`Almost done. We emailed ${email}. Enter the 6-digit code from that email below, or open the link in it, and you'll be signed in. If it isn't in your inbox in a minute or two, check your spam folder.`, "success");
+      setAuthMessage("If the email isn't in your inbox in a minute or two, check your spam folder.");
       showCodeStep(email);
       if (signupResendBtn) {
         signupResendBtn.hidden = false;
@@ -1643,6 +1649,9 @@ document.addEventListener("DOMContentLoaded", () => {
     sendConfirmationEmail(email, signupResendBtn);
   });
   var codeEmail = "";
+  function codeHeadings() {
+    return ["Check your email", `We sent a 6-digit code to ${codeEmail}.`];
+  }
   function showCodeStep(email) {
     var _a2;
     const box = document.getElementById("authCodeBox"), form = document.getElementById("authSignupForm");
@@ -1651,6 +1660,11 @@ document.addEventListener("DOMContentLoaded", () => {
     box.hidden = !codeEmail;
     if (form) form.hidden = Boolean(codeEmail);
     (_a2 = document.getElementById("authModal")) == null ? void 0 : _a2.classList.toggle("cn-code-step", Boolean(codeEmail));
+    if (authView === "signup") {
+      const [title, intro] = codeEmail ? codeHeadings() : AUTH_HEADINGS.signup;
+      if (authTitleEl && authTitleEl.textContent !== title) authTitleEl.textContent = title;
+      if (authIntroEl && authIntroEl.textContent !== intro) authIntroEl.textContent = intro;
+    }
     const resend = document.getElementById("signupResendBtn");
     if (resend && codeEmail) resend.hidden = true;
     const field = document.getElementById("authCode");
@@ -1814,12 +1828,13 @@ document.addEventListener("DOMContentLoaded", () => {
   function showSecondPlanChoice(message, cycle, plan) {
     showPricingNotice(message);
     if (!pricingNotice) return;
+    pricingNotice.classList.add("cn-notice-ask");
     const actions = document.createElement("div");
     actions.className = "cn-notice-actions";
     const go = document.createElement("button");
     go.type = "button";
     go.className = "cn-notice-btn cn-notice-btn-primary";
-    go.textContent = "Continue";
+    go.textContent = "Continue to checkout";
     go.addEventListener("click", () => startCheckout(cycle, plan, true));
     const manage = document.createElement("button");
     manage.type = "button";
