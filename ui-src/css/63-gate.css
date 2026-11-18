@@ -741,3 +741,29 @@ html.cn #authModal.cn-code-step .cn-gate-guest { display: none !important; }
   html.cn.cn-consent-visible #home .cn-hero4 { --h4-scene: min(24cqi, 10vh); --h4-overlap: .1; }
   html.cn.cn-consent-visible #home #heroLearnFeaturesBtn { display: none; }
 }
+
+/* Pricing notice with a question in it (checkout guard, 18 Nov 2026): "Continue" and "Manage billing" are real
+   buttons appended under the message. Margins rather than gap, and :focus beside :focus-visible, for old Chrome. */
+html.cn #pricing .pricing-notice .cn-notice-actions { margin-top: 10px; }
+html.cn #pricing .pricing-notice .cn-notice-btn {
+  display: inline-block;
+  min-height: 44px;
+  margin: 4px 5px;
+  padding: 10px 18px;
+  border: 1px solid var(--cn-line);
+  border-radius: var(--cn-r-ctl);
+  background: transparent;
+  color: var(--cn-text);
+  font: inherit;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+}
+html.cn #pricing .pricing-notice .cn-notice-btn-primary {
+  border-color: var(--cn-text);
+  background: var(--cn-text);
+  color: var(--cn-bg);
+}
+html.cn #pricing .pricing-notice .cn-notice-btn:focus { outline: 2px solid var(--cn-text); outline-offset: 2px; }
+html.cn #pricing .pricing-notice .cn-notice-btn:focus:not(:focus-visible) { outline: none; }
+html.cn #pricing .pricing-notice .cn-notice-btn:focus-visible { outline: 2px solid var(--cn-text); outline-offset: 2px; }

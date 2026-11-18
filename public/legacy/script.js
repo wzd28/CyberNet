@@ -1811,7 +1811,31 @@ document.addEventListener("DOMContentLoaded", () => {
     const tier = Number(active == null ? void 0 : active.dataset.seatTier) || 5;
     return [5, 10, 20].includes(tier) ? tier : 5;
   }
-  async function startCheckout(cycle = "monthly", plan = "pro") {
+  function showSecondPlanChoice(message, cycle, plan) {
+    showPricingNotice(message);
+    if (!pricingNotice) return;
+    const actions = document.createElement("div");
+    actions.className = "cn-notice-actions";
+    const go = document.createElement("button");
+    go.type = "button";
+    go.className = "cn-notice-btn cn-notice-btn-primary";
+    go.textContent = "Continue";
+    go.addEventListener("click", () => startCheckout(cycle, plan, true));
+    const manage = document.createElement("button");
+    manage.type = "button";
+    manage.className = "cn-notice-btn";
+    manage.textContent = "Manage billing";
+    manage.addEventListener("click", openBillingPortal);
+    actions.appendChild(go);
+    actions.appendChild(manage);
+    pricingNotice.appendChild(actions);
+    try {
+      go.focus();
+    } catch (e) {
+    }
+  }
+  async function startCheckout(cycle = "monthly", plan = "pro", confirmSecondPlan = false) {
+    const confirmed = confirmSecondPlan === true;
     const btn = plan === "pro" ? proPlanBtn : null;
     const businessBtns = plan === "business" ? [businessPlanBtn].filter(Boolean) : [];
     if (!isSignedIn()) {
@@ -1824,16 +1848,14 @@ document.addEventListener("DOMContentLoaded", () => {
       showPricingNotice(`Create a free account first, then choose ${plan === "business" ? "Business" : "Pro"} again.`);
       return;
     }
-    if (plan === "business" && effectivePlanName() === "business") {
-      showPricingNotice("CyberNet AI Business is already active on this account.", "success");
+    if (plan === "pro" && planTier() === "pro") {
+      showPricingNotice("CyberNet AI Pro is already active on this account.", "success");
       return;
     }
-    if (plan === "pro" && isPro()) {
-      showPricingNotice(isBusiness() ? "Your Business plan already includes everything in Pro." : "CyberNet AI Pro is already active on this account.", "success");
-      return;
+    if (!confirmed) {
+      cnFunnel("checkout_open");
+      track("begin_checkout", { plan, cycle });
     }
-    cnFunnel("checkout_open");
-    track("begin_checkout", { plan, cycle });
     try {
       sessionStorage.setItem("cn-checkout-plan", JSON.stringify({ plan, cycle }));
       sessionStorage.removeItem("cn-purchase-sent");
@@ -1847,9 +1869,19 @@ document.addEventListener("DOMContentLoaded", () => {
       const response = await fetch("/api/create-checkout-session", {
         method: "POST",
         headers: authHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify(plan === "business" ? { cycle, plan, seatTier } : { cycle, plan })
+        body: JSON.stringify({ cycle, plan, ...plan === "business" ? { seatTier } : {}, ...confirmed ? { confirmSecondPlan: true } : {} })
       });
       const data = await response.json().catch(() => ({}));
+      if (response.status === 409 && data.error) {
+        if (data.code === "CONFIRM_SECOND_PLAN") {
+          showSecondPlanChoice(data.error, cycle, plan);
+          return;
+        }
+        if (["ALREADY_SUBSCRIBED", "PAYMENT_PAST_DUE", "TEAM_MEMBER"].includes(data.code)) {
+          showPricingNotice(data.error);
+          return;
+        }
+      }
       if (!response.ok) throw new Error(data.error || "Stripe Checkout is not configured yet.");
       if (!data.url) throw new Error("Stripe did not return a Checkout URL.");
       if (plan === "business") {
