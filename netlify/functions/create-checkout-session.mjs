@@ -6,7 +6,8 @@ import {
   getProfile,
   updateProfile,
   effectivePlan,
-  serviceFetch
+  serviceFetch,
+  getActiveTeamMembership
 } from "../lib/supabase.mjs";
 import { reportError } from "../lib/report-error.mjs";
 // Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
@@ -56,6 +57,111 @@ async function getOrCreateCustomer(stripe, user, profile) {
   return customerId;
 }
 
+// ── One paid plan per person ──
+// Stripe statuses where a subscription is still alive and will (or may) bill
+// again. past_due and unpaid are included: Stripe keeps retrying the card, so a
+// second checkout would leave two subscriptions billing the same person.
+const LIVE_SUBSCRIPTION_STATUSES = ["active", "trialing", "past_due", "unpaid"];
+const MANAGE_BILLING = "Account → Manage Billing";
+
+function planName(plan) {
+  return plan === "business" ? "Business" : "Pro";
+}
+
+function alreadySubscribed(plan, status) {
+  if (status === "past_due" || status === "unpaid") {
+    return json({
+      error:
+        `Your CyberNet AI ${planName(plan)} plan has a payment that didn't go through. ` +
+        `Update your card from ${MANAGE_BILLING} to keep it. Starting a new checkout would charge you twice.`,
+      code: "PAYMENT_PAST_DUE"
+    }, 409);
+  }
+
+  return json({
+    error:
+      `You already have an active CyberNet AI ${planName(plan)} plan, so a second checkout would charge you twice. ` +
+      `Manage it from ${MANAGE_BILLING}, or email support@cybernetai.app to switch plans.`,
+    code: "ALREADY_SUBSCRIBED"
+  }, 409);
+}
+
+async function readRows(response, message) {
+  const rows = await response.json().catch(() => null);
+  // Fail closed: an outage must never read as "this person has no plan".
+  if (!response.ok || !Array.isArray(rows)) {
+    const error = new Error(message);
+    error.status = 503;
+    throw error;
+  }
+  return rows;
+}
+
+// What the database already knows: the profile's own subscription (Pro), a
+// Business team this person owns and pays for, or a team that covers them.
+// Returns a 409 Response, or null when a new checkout is safe.
+async function existingPlanBlock(user, profile) {
+  const ownStatus = String(profile.subscription_status || "");
+
+  if (profile.stripe_subscription_id && LIVE_SUBSCRIPTION_STATUSES.includes(ownStatus)) {
+    return alreadySubscribed("pro", ownStatus);
+  }
+
+  const owned = await readRows(
+    await serviceFetch(
+      `/rest/v1/business_accounts?owner_user_id=eq.${encodeURIComponent(user.id)}` +
+      `&subscription_status=in.(${LIVE_SUBSCRIPTION_STATUSES.join(",")})` +
+      "&select=id,subscription_status"
+    ),
+    "Could not check your current plan. Please try again in a moment."
+  );
+
+  if (owned[0]) {
+    return alreadySubscribed("business", String(owned[0].subscription_status || ""));
+  }
+
+  const membership = await getActiveTeamMembership(user.id);
+
+  if (membership?.role === "owner") {
+    return alreadySubscribed("business", "active");
+  }
+
+  if (membership) {
+    return json({
+      error:
+        "Your Business team already covers you, so there's nothing to buy. " +
+        "If you want a plan of your own, ask your team owner to remove you from the team first.",
+      code: "TEAM_MEMBER"
+    }, 409);
+  }
+
+  return null;
+}
+
+// What Stripe knows: the database can lag behind it (a delayed or failed
+// webhook right after paying), so a customer who already exists in Stripe is
+// checked there too. Read-only.
+async function stripePlanBlock(stripe, profile) {
+  const customerId = profile.stripe_customer_id || "";
+  if (!customerId) return null;
+
+  let subscriptions;
+  try {
+    subscriptions = await stripe.subscriptions.list({ customer: customerId, limit: 100 });
+  } catch (error) {
+    if (error?.code === "resource_missing") return null;
+    throw error;
+  }
+
+  const live = (subscriptions?.data || []).find((sub) =>
+    LIVE_SUBSCRIPTION_STATUSES.includes(String(sub.status || ""))
+  );
+  if (!live) return null;
+
+  const lookupKey = String(live.items?.data?.[0]?.price?.lookup_key || "");
+  return alreadySubscribed(lookupKey.includes("business") ? "business" : "pro", String(live.status));
+}
+
 export default webOnly(async (request) => {
   if (request.method !== "POST") {
     return json({ error: "Method not allowed." }, 405);
@@ -90,11 +196,11 @@ export default webOnly(async (request) => {
     debugCycle = cycle;
     debugTargetPlan = targetPlan;
 
+    const blocked = await existingPlanBlock(user, profile);
+    if (blocked) return blocked;
+
     if (currentPlan === targetPlan) {
-      return json(
-        { error: `CyberNet AI ${targetPlan === "business" ? "Business" : "Pro"} is already active.` },
-        409
-      );
+      return alreadySubscribed(targetPlan, "active");
     }
 
     const seatTier = targetPlan === "business" ? (Number(body.seatTier) || 5) : null;
@@ -124,6 +230,8 @@ export default webOnly(async (request) => {
 
     const stripe = new Stripe(secret);
 
+    const stripeBlocked = await stripePlanBlock(stripe, profile);
+    if (stripeBlocked) return stripeBlocked;
 
     const prices = await stripe.prices.list({
       lookup_keys: [lookupKey],
