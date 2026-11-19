@@ -340,9 +340,9 @@ html.cn header.navbar #mobileMenu.mobile-menu {
   justify-content: center;
   gap: 8px;
   width: auto;
-  height: 42px;
+  height: 44px;              /* 19 Nov 2026: a full 44px tap target (was 42) */
   min-width: 0 !important;
-  min-height: 42px !important;
+  min-height: 44px !important;
   margin-inline-start: auto;
   padding: 0 17px 0 14px !important;
   border: 0 !important;

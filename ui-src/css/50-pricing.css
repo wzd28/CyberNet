@@ -187,7 +187,7 @@ html.cn #pricing .toggle-option {
   transition: color var(--cn-dur-2) var(--cn-ease-out);
 }
 
-html.cn #pricing .toggle-option.active { color: var(--cn-text); }
+html.cn #pricing .toggle-option.active { color: var(--cn-text); font-weight: 600; }
 
 html.cn #pricing .toggle-option:focus-visible {
   outline: none;
@@ -204,23 +204,13 @@ html.cn #pricing .toggle-thumb {
   inline-size: var(--cn-pr-seg);
   height: auto;
   border-radius: calc(var(--cn-r-ctl) - var(--cn-1));
-  background: var(--cn-surface-3);
-  box-shadow: inset 0 0 0 1px var(--cn-line-2), 0 1px 2px rgba(0, 0, 0, .45), 0 6px 14px -8px rgba(0, 0, 0, .8);
-  transition: transform var(--cn-t-overlay) var(--cn-ease-expo);
+  /* 19 Nov 2026 (Apple pass): a native segmented control: one light raised thumb, a soft neutral
+     shadow, no ring and no cyan dot (the owner pointed at the dot), 240 ms on a spring-like curve */
+  background: rgba(255, 255, 255, .10);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .35);
+  transition: transform 240ms cubic-bezier(.32, .72, 0, 1);
 }
-
-/* The one cyan mark: a 4px dot under the active label (as in the header nav). */
-html.cn #pricing .toggle-thumb::after {
-  content: "";
-  position: absolute;
-  bottom: 5px;
-  left: 50%;
-  inline-size: 4px;
-  block-size: 4px;
-  margin-left: -2px;
-  border-radius: 50%;
-  background: var(--cn-cyan);
-}
+html.cn #pricing .toggle-thumb::after { content: none; }
 
 /* One mechanism only: `transform`. The legacy sheet (public/style.css) moves the thumb with
    transform: translateX(100px); a second move through the `translate` property stacked on top of it
@@ -310,16 +300,17 @@ html.cn #pricing .pricing-grid.pricing-grid-three {
   background: none;
 }
 
-/* Three columns: the cards sit on one tray (radius 28 = card 20 + 8 padding, so the corners nest). */
+/* Three columns. 19 Nov 2026 (Apple pass): no tray around the cards any more (a framed box around
+   three framed cards read as a double frame); the cards stand on the page, 16px apart. */
 @media (min-width: 1024px) {
   html.cn #pricing .pricing-grid.pricing-grid-three {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: var(--cn-2);
+    gap: var(--cn-4, 16px);
     max-inline-size: var(--cn-max);
-    padding: var(--cn-2) !important;
-    border: 1px solid var(--cn-line);
-    border-radius: var(--cn-r-panel);
-    background: var(--cn-bg-2);
+    padding: 0 !important;
+    border: 0;
+    border-radius: 0;
+    background: none;
   }
 }
 
@@ -1300,7 +1291,7 @@ html.cn #pricing .plan-select-btn { border-color: var(--cn-line-ctl); }
   html.cn #pricing .pricing-grid-three .price-card {
     isolation: isolate;
     /* keep the legacy .reveal entrance (01-base.css) in the list */
-    transition: opacity .7s var(--cn-ease-out), transform .8s var(--cn-ease-out), border-color 440ms var(--cn-ease-settle);
+    transition: opacity 240ms var(--cn-ease-out), transform 320ms var(--cn-ease-out), border-color 440ms var(--cn-ease-settle);
   }
   html.cn #pricing .pricing-grid-three .price-card::after {
     content: "";

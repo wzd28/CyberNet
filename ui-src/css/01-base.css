@@ -278,8 +278,10 @@ html.cn[dir="rtl"] :is(#cybernet, #cybernetai).page { --cn-glow-x: 72%; }
       05-motion.css, driven by 05-reveal.js / CN.motion.reveal.
    ------------------------------------------------------------------------------------------ */
 html.cn :where(.page) .reveal {
-  transform: translateY(18px);
-  transition: opacity .7s var(--cn-ease-out), transform .8s var(--cn-ease-out);
+  /* 19 Nov 2026 (Apple pass): 8px over 240/320 ms (was 18px over .7/.8 s), so a page or a Quick
+     Scan tab settles in about a third of a second instead of most of one */
+  transform: translateY(8px);
+  transition: opacity 240ms var(--cn-ease-out), transform 320ms var(--cn-ease-out);
 }
 html.cn :where(.page) .reveal.show {
   opacity: 1;
@@ -378,6 +380,19 @@ html.cn .secondary-btn:not(:disabled):active {
   translate: none;
   transition-duration: var(--cn-t-tap);
   transition-timing-function: var(--cn-ease-press);
+}
+/* Press feedback where the individual "scale" property is unknown (Chrome before 104: the old
+   Android WebViews the ads bring in), so a tap there still answers at once (19 Nov 2026). Plain
+   selector list, no :is(), so Chrome 69 reads it. */
+@supports not (scale: 1) {
+  html.cn .primary-btn:not(:disabled):active,
+  html.cn .secondary-btn:not(:disabled):active,
+  html.cn .cn-chip:active,
+  html.cn #openAuth:active,
+  html.cn #mobileMenu:active,
+  html.cn .detect-tab:active,
+  html.cn .toggle-option:active,
+  html.cn .auth-tab:active { opacity: .78; }
 }
 html.cn .primary-btn:disabled,
 html.cn .secondary-btn:disabled,

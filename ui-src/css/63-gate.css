@@ -604,9 +604,11 @@ html.cn #home > .cn-teams {
   background-color: #060a14;
   /* the static picture: the same palette as the shader (navy, deep blue, cyan, a little white light) */
   background-image:
-    radial-gradient(70% 90% at 88% 8%, rgba(34, 211, 238, .30), rgba(34, 211, 238, 0) 60%),
-    radial-gradient(45% 55% at 96% 0%, rgba(255, 255, 255, .10), rgba(255, 255, 255, 0) 70%),
-    radial-gradient(90% 110% at 70% 30%, rgba(15, 76, 138, .65), rgba(15, 76, 138, 0) 70%),
+    /* 19 Nov 2026 (Apple pass): quieter light (cyan .30 -> .10, blue .65 -> .25), so the right of
+       the panel no longer reads as an empty teal slab */
+    radial-gradient(70% 90% at 88% 8%, rgba(34, 211, 238, .10), rgba(34, 211, 238, 0) 60%),
+    radial-gradient(45% 55% at 96% 0%, rgba(255, 255, 255, .06), rgba(255, 255, 255, 0) 70%),
+    radial-gradient(90% 110% at 70% 30%, rgba(15, 76, 138, .25), rgba(15, 76, 138, 0) 70%),
     linear-gradient(160deg, #0a1d3f 0%, #060a14 62%);
 }
 html.cn #home > .cn-teams > .cn-soffit-canvas {
@@ -618,7 +620,7 @@ html.cn #home > .cn-teams > .cn-soffit-canvas {
 html.cn #home > .cn-teams.is-live > .cn-soffit-canvas { opacity: 1; }
 html.cn #home > .cn-teams > .cn-teams-scrim {
   position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: -1; pointer-events: none;
-  background: linear-gradient(100deg, rgba(6, 10, 20, .9) 0%, rgba(6, 10, 20, .88) 62%, rgba(6, 10, 20, .22) 100%);
+  background: linear-gradient(100deg, rgba(6, 10, 20, .9) 0%, rgba(6, 10, 20, .88) 62%, rgba(6, 10, 20, .5) 100%);
 }
 html.cn #home .cn-teams-inner,
 html.cn #home .cn-foryou-inner {
@@ -632,8 +634,8 @@ html.cn #home .cn-foryou h2 {
   max-width: 22ch;
   color: #f5f7fa;
   font-size: 2rem;
-  font-size: clamp(1.75rem, 1.1rem + 2.4vw, 3rem);
-  font-weight: 600; line-height: 1.08; letter-spacing: -.01em;
+  font-size: clamp(1.75rem, 1.3rem + 2vw, 3.25rem);   /* = --cn-step-h2, the h2 of every other Home band (19 Nov 2026); written out so Chrome 69 keeps the 2rem above */
+  font-weight: 600; line-height: 1.08; letter-spacing: var(--cn-track-h2);
   text-wrap: balance;
 }
 html.cn #home .cn-teams-lead,

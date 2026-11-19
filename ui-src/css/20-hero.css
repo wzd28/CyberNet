@@ -659,7 +659,7 @@ html.cn #home #cnScanBox .hero-buttons .secondary-btn {
 html.cn #home #cnScanBox .hero-buttons .primary-btn {
   gap: 10px;
   padding-inline: 20px 7px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 10px 26px -14px rgba(34, 211, 238, .6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 1px 2px rgba(0, 0, 0, .3), 0 8px 18px -10px rgba(0, 0, 0, .5);
 }
 /* Start scanning: a button-in-button, the arrow in its own still disc */
 html.cn #home #cnScanBox .hero-buttons .primary-btn::after {

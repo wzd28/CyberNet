@@ -171,6 +171,14 @@ html.cn #about .cn-about-tag {
 @media (max-width: 63.99rem) {
   html.cn #about .cn-about-tag { margin-block-start: var(--cn-1); font-size: .875rem; }
 }
+/* phones (19 Nov 2026, Apple pass): one corner label (the second one wrapped onto a line of its
+   own), and a smaller shield that keeps 24px clear of the headline instead of tucking under it */
+@media (max-width: 760px) {
+  html.cn #about .cn-about-edrow > .cn-edlabel--end { display: none; }
+}
+@media (max-width: 599.98px) {
+  html.cn #about .cn-about-mark { inline-size: 120px; margin-block-start: var(--cn-6); }
+}
 /* landscape phones: the headline and the shield side by side, sized by the screen's height */
 @media (orientation: landscape) and (max-height: 500px) and (min-width: 600px) {
   html.cn #about .about-top {

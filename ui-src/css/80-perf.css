@@ -43,7 +43,7 @@ html.cn .page {
   animation: none;
 }
 html.cn.cn-navigated .page.active-page:not(.leaving) {
-  animation: cn-page-in 480ms var(--cn-ease-settle) backwards;
+  animation: cn-page-in 260ms var(--cn-ease-settle) backwards;
 }
 html.cn.cn-navigated .page.leaving {
   opacity: 0;
@@ -52,7 +52,7 @@ html.cn.cn-navigated .page.leaving {
 }
 /* the tools (Quick Scan, Analysis AI, Recovery) are working pages: in over 160 ms, no wait */
 html.cn.cn-navigated :is(#cybernet, #cybernetai, #recovery).active-page:not(.leaving) { animation-duration: 160ms; }
-@keyframes cn-page-in { from { opacity: .35; translate: 0 12px; } }
+@keyframes cn-page-in { from { opacity: .6; translate: 0 6px; } }   /* 19 Nov 2026: 260 ms from .6 / 6px (was 480 ms from .35 / 12px) */
 @keyframes cn-page-out { from { opacity: 1; translate: none; } }
 
 /* ------------------------------------------------------------------------------------------

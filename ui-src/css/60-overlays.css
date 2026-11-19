@@ -417,22 +417,13 @@ html.cn #authModal .auth-tab {
   transition: background-color var(--cn-dur-2) var(--cn-ease-out), color var(--cn-dur-1) ease;
 }
 
+/* 19 Nov 2026 (Apple pass): the same segmented thumb as the Pricing switch (50-pricing.css):
+   light raised fill, soft neutral shadow, no ring, no cyan dot */
 html.cn #authModal .auth-tab.active {
-  border-color: var(--cn-line);
-  background: var(--cn-surface-3);
+  border-color: transparent;
+  background: rgba(255, 255, 255, .10);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .35);
   color: var(--cn-text);
-}
-
-html.cn #authModal .auth-tab.active::after {
-  content: "";
-  position: absolute;
-  inset-inline: 0;
-  bottom: 5px;
-  width: 4px;
-  height: 4px;
-  margin-inline: auto;
-  border-radius: 50%;
-  background: var(--cn-cyan);
 }
 
 html.cn #authModal .auth-tab:focus-visible {
