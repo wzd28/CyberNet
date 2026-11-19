@@ -223,8 +223,15 @@ document.addEventListener("DOMContentLoaded",()=>{
       if(pageName==="about")setTimeout(()=>animateHeroStats("#about"),300);
     };
     if(current&&!options.instant&&!calm){
+      /* 19 Nov 2026: the swap (and its layout of the new page) waits until the leaving frame has been
+         painted, so a slow CPU shows the reaction to the tap at once instead of freezing on the old
+         page; the 140 ms still counts from the tap. The 400 ms timer covers a tab with no frames. */
       current.classList.add("leaving");
-      setTimeout(finish,140);
+      const t0=Date.now();
+      let done=false;
+      const go=()=>{if(done)return;done=true;finish()};
+      requestAnimationFrame(()=>{setTimeout(go,Math.max(0,140-(Date.now()-t0)))});
+      setTimeout(go,400);
     }else{
       finish();
     }

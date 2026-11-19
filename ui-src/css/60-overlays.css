@@ -2423,7 +2423,6 @@ html.cn .cn-consent-text a:focus-visible {
    section canvases is a compositor pass for no gain (the page behind is locked and mostly covered). */
 
 /* ---------- 17b. Active segments: one raised slate look for every tab strip in a dialog ---------- */
-html.cn :is(#authModal .auth-tab.active),
 html.cn :is(#accountDetailsModal .cn-account-tab.active),
 html.cn :is(#howtoVideoModal .video-modal-tab.active),
 html.cn :is(#howtoVideoModal .hw-tab.is-active),

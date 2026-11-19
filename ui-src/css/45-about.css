@@ -63,7 +63,7 @@ html.cn[dir="rtl"] #about.page { --cn-glow-x: 70%; }
    lives with Pricing's (50-pricing.css, "the operator banner"), and 02-components.css gives both
    pages the short top padding, so the pill sits at the same offset under the header on both. The
    space under it matches the top margin of Pricing's head. ---------- */
-html.cn section#about > .cn-operator { margin-bottom: clamp(var(--cn-8), 1.5rem + 2vw, var(--cn-12)); }
+html.cn section#about > .cn-operator { margin-bottom: 40px; margin-bottom: clamp(32px, 1.5rem + 2vw, 48px); }   /* plain px: a var() inside clamp() resets to 0 on Chrome 69 */
 
 /* ---------- 1. Head: label row, a large light headline with one bold word, the shield ---------- */
 html.cn #about .about-top {

@@ -1283,6 +1283,7 @@ html.cn :is(#cybernet, #cybernetai) .plain-action {
   padding: var(--cn-2) 0 0;
   border: 0;
   border-radius: 0;
+  background: none;   /* one sheet with the verdict card: no inset slab (17.3 below no longer lists it) */
   color: var(--cn-text);
   font-size: .9375rem;
   line-height: 1.55;
@@ -2853,7 +2854,6 @@ html.cn :is(#cybernet, #cybernetai) .verdict-headline-icon {
   background: color-mix(in srgb, var(--cn-v) 16%, transparent);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cn-v) 40%, transparent);
 }
-html.cn :is(#cybernet, #cybernetai) .plain-action,
 html.cn :is(#cybernet, #cybernetai) .verdict-note,
 html.cn :is(#cybernet, #cybernetai) .diagnostic-note,
 html.cn :is(#cybernet, #cybernetai) .dest-preview,

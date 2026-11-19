@@ -1212,8 +1212,11 @@ html.cn #about > .cn-operator {
   box-sizing: border-box;
   display: block;
   width: fit-content;
+  max-width: 100%;   /* Chrome 69 has no min()/clamp(): plain values first, the fluid ones override */
   max-inline-size: min(100%, 700px);
+  margin: 0 auto 36px;
   margin: 0 auto clamp(28px, 3.4vw, 44px);
+  padding: 13px 26px 13px 64px;
   padding: 13px clamp(20px, 3vw, 30px) 13px clamp(58px, 7vw, 68px);
   border: 1px solid var(--cn-cyan-line);
   border-radius: var(--cn-r-pill);
@@ -1221,6 +1224,7 @@ html.cn #about > .cn-operator {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05), 0 12px 24px -18px rgba(0, 0, 0, .7);
   color: var(--cn-text-2);
   font-family: var(--cn-font);
+  font-size: .9375rem;
   font-size: clamp(.875rem, .82rem + .25vw, .9375rem);
   font-weight: 500;
   line-height: 1.45;
@@ -1234,6 +1238,7 @@ html.cn #about > .cn-operator::before {
   content: "";
   position: absolute;
   top: 50%;
+  left: 24px;   /* Chrome 69: no clamp() */
   left: clamp(18px, 3vw, 24px);
   inset-block-start: 50%;
   inset-inline-start: clamp(18px, 3vw, 24px);

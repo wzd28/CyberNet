@@ -250,7 +250,17 @@ document.addEventListener("DOMContentLoaded", () => {
     };
     if (current && !options.instant && !calm) {
       current.classList.add("leaving");
-      setTimeout(finish, 140);
+      const t0 = Date.now();
+      let done = false;
+      const go = () => {
+        if (done) return;
+        done = true;
+        finish();
+      };
+      requestAnimationFrame(() => {
+        setTimeout(go, Math.max(0, 140 - (Date.now() - t0)));
+      });
+      setTimeout(go, 400);
     } else {
       finish();
     }
