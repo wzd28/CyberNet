@@ -150,7 +150,7 @@
     var coarse = !CN.finePointer(), lite = coarse || weak();
     var G = null, state = "idle"; /* idle | loading | ready | dead */
     var visible = false, held = false, loaded = false, queued = false, deepTimer = 0, pageSeen = false, switchedAt = -1e9;
-    var frameMs = ((!coarse && weak()) || midPhone()) ? FRAME_LITE : FRAME_FULL, dirty = true, stageH = 600, scrollY = 0;
+    var frameMs = ((!coarse && weak()) || midPhone()) ? FRAME_LITE : FRAME_FULL, dirty = true, stageH = 600, scrollY = 0, scrollStale = false;
     var slow = { n: 0, sum: 0, warm: 0, last: 0, level: 0 };
     var ro = null, offs = [], liveAt = 0;
     var disc = null;            /* the globe on screen: centre and radius, CSS px in the canvas */
@@ -250,8 +250,11 @@
         if (poster) ro.observe(poster);
       } else win.addEventListener("resize", function () { dirty = true; }, { passive: true });
       if (!coarse && stage) dragSetup();
-      /* the scroll tilt reads a cached offset, so a frame never touches the DOM */
-      var onScroll = function () { scrollY = win.pageYOffset || root.scrollTop || 0; };
+      /* the scroll tilt reads a cached offset. 19 Nov 2026 (smoothness pass): the scroll event only
+         marks it stale and the next drawn frame reads it once; reading it in the event forced a
+         style and layout flush on every scroll event even with the globe far off screen (509 ms of
+         a 4 s scroll down Home on a slow phone). */
+      var onScroll = function () { scrollStale = true; };
       win.addEventListener("scroll", onScroll, { passive: true });
       offs.push(function () { win.removeEventListener("scroll", onScroll); });
       /* v5 Exposure (html.cn-intro, the first Home view of a session): the live globe crossfades
@@ -407,6 +410,7 @@
         G.pitch *= Math.exp(-s * 2.2);
       }
       /* eased, so the tilt glides to the new scroll position after a held stretch */
+      if (scrollStale) { scrollStale = false; scrollY = win.pageYOffset || 0; }
       tilt += (clamp(scrollY / Math.max(1, stageH), 0, 1) * ramp - tilt) * (1 - Math.exp(-stepMs / 160));
       G.scroll = tilt;
       try { G.frame(s * ramp); } catch (e) { fail(e); }

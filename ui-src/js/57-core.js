@@ -181,7 +181,10 @@
      ScrollTrigger busy on every glide frame and put Quick Scan over the 2% dropped-frame gate. */
   function scrub(m) {
     var M = CN.motion, p = m.p;
-    if (!M || !p.closest("#home")) return;
+    /* 19 Nov 2026 (smoothness pass): Home uses the one-shot too. The scrub wrote every line's
+       opacity and transform on each scrolled frame (375 style writes in a 3 s scroll), the same
+       cost that took the scrubs off the inner pages. The one-shot is compositor-only. */
+    if (!M || !p.closest("#home") || !M.feature || !M.feature("manifestoScrub")) return;
     m.h = M.scrub(p, {
       start: "top 80%", end: "bottom 50%",
       build: function (tl) {

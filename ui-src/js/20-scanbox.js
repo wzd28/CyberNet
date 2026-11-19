@@ -107,8 +107,15 @@
     var busy = false, handing = false, motionPaused = false;
 
     /* ---- c) auto-grow, two to five rows ---- */
-    function resize() {
-      input.style.height = "";
+    /* 19 Nov 2026 (smoothness pass): while the text only grows, the height is never cleared first
+       (clearing it and reading it back cost two layouts per key); it is cleared only when text was
+       removed, the window resized or the box emptied. Once at five rows, growing text costs nothing. */
+    var lastLen = 0, atMax = false;
+    function resize(e) {
+      var len = input.value.length, grew = !!e && e.type === "input" && len >= lastLen;
+      lastLen = len;
+      if (grew && atMax) return;
+      if (!grew) { input.style.height = ""; atMax = false; }
       if (!input.value) { input.style.overflowY = ""; return; }
       var cs = win.getComputedStyle(input);
       var max = parseFloat(cs.maxHeight);
@@ -117,6 +124,7 @@
       if (!isFinite(max) || max <= 0) max = need;
       input.style.height = Math.min(need, max) + "px";
       input.style.overflowY = need > max ? "auto" : "";
+      atMax = need >= max;
     }
     input.addEventListener("input", resize);
     win.addEventListener("resize", function () { if (input.value) resize(); }, { passive: true });

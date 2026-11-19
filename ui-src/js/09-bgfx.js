@@ -61,6 +61,7 @@
   var touch = !CN.finePointer();
   // 30 fps everywhere (a steady cadence; 20 made the pulses step on phones).
   var FRAME_MS = 1000 / 30;
+  var BAND_MS = 9000;  /* motion per page visit for the inner pages' band */
   // Canvas density: the screen's own, up to 2 (desktop) / 2.5 (touch), capped per band canvas.
   var DPR_MAX = touch ? 2.5 : 2, MAX_PX = touch ? 1.1e6 : 2.2e6;
   // Sharp 1 CSS px hairlines; touch screens get a little more strength so the light still reads.
@@ -201,7 +202,7 @@
       b.top = top; b.h = hh;
       if (hh < 2) { b.cv.style.display = "none"; continue; }
       if (b.cv.style.display) b.cv.style.display = "";
-      var s = Math.min(dpr, DPR_MAX);
+      var s = Math.min(dpr, f.name === "page" ? 1.25 : DPR_MAX);  /* the inner pages' band is soft and masked: 1.25x is plenty (19 Nov 2026) */
       if (f.quality > 0) s *= Math.pow(.85, f.quality);
       s = Math.min(s, Math.sqrt(MAX_PX / (f.w * hh)));
       var bw = Math.max(2, Math.round(f.w * s)), bh = Math.max(2, Math.round(hh * s));
@@ -455,6 +456,11 @@
     scrollT = setTimeout(function () { scrolling = false; }, 360);
   }
   function frozen() { return touch || CN.reduced() || CN.saveData(); }
+  /* rest = the visitor is typing on the page; tired = the inner pages' band has moved long enough
+     on this visit of the page (19 Nov 2026, smoothness pass: it drew 30 frames a second for as
+     long as the top of the page was open, the largest steady cost on a weak laptop). Both keep
+     the frame they are on. */
+  function resting(f) { return !!(f.rest || f.tired); }
   function frame(now) {
     raf = 0;
     if (!running) return;
@@ -463,7 +469,7 @@
     clock += dt / 1000;
     for (var i = 0; i < fields.length; i++) {
       var f = fields[i];
-      if (f.on && !f.rest) draw(f, clock, false);
+      if (f.on && !resting(f)) draw(f, clock, false);
     }
     timer = setTimeout(ask, Math.max(0, FRAME_MS - 8 - (CN.now() - now)));
   }
@@ -490,9 +496,9 @@
     var any = false;
     for (var i = 0; i < fields.length; i++) {
       var f = fields[i];
-      if (f.on && !f.rest) any = true;
+      if (f.on && !resting(f)) any = true;
       // A layer that comes into view while motion is off gets one calm frame, then rests.
-      if (f.on && !f.drawn && (frozen() || f.rest)) draw(f, clock, true);
+      if (f.on && !f.drawn && (frozen() || resting(f))) draw(f, clock, true);
     }
     if (any && !frozen() && !CN.hidden() && !CN.covered()) start(); else stop();
   }
@@ -504,7 +510,7 @@
       var r = f.wrap.getBoundingClientRect();
       size(f, Math.round(r.width), Math.round(r.height));
       if (f.w) { measure(f); layoutBands(f); }
-      if (f.on && (frozen() || f.rest)) draw(f, clock, true);
+      if (f.on && (frozen() || resting(f))) draw(f, clock, true);
     }) : null;
     if (ro) {
       ro.observe(f.wrap);
@@ -552,6 +558,11 @@
         var show = !!id && id !== "home";
         band.wrap.style.display = show ? "" : "none";
         band.pulses.length = 0;
+        /* each opened page gets BAND_MS of motion, then the band rests on its frame */
+        clearTimeout(band.tiredT);
+        band.tired = false;
+        if (show) band.tiredT = setTimeout(function () { band.tired = true; update(); }, BAND_MS);
+        update();
       });
       // While the visitor types in a field on the page, the band rests (calm, and no frames).
       var typing = function (e) {

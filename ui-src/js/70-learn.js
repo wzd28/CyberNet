@@ -8,7 +8,7 @@
    CN.motion.scrollTo (Lenis when it drives, else native, instant under reduced motion).
    v5 entrances for the inner pages (owner: pages), armed once at onReady through CN.motion.reveal
    (one-shot, IntersectionObserver; on screen at the first report = shown at once, never hidden;
-   reduced / Pause = final): each Learn module's lesson cards settle 50 ms apart, Quick Scan's
+   reduced / Pause = final): each Learn module's lesson grid settles as one block, Quick Scan's
    example rows 70 ms apart, and About's stats row, story rows and "At a glance" lines are
    triggers whose hairlines draw and whose text settles (45-about.css keys on .is-in). */
 (function () {
@@ -24,7 +24,10 @@
 
   CN.onReady(function () {
     if (M) {
-      M.reveal("#learn .rm-nodes", "stagger", { step: 50 });
+      /* each module's lesson grid settles as one block (19 Nov 2026, smoothness pass: the 106 cards
+         used to rise one by one, and with every card its own running animation, a fast scroll
+         down Learn dropped about half its frames on a slow phone) */
+      M.reveal("#learn .rm-nodes", "settle");
       M.reveal("#cybernet .scan-list", "stagger");
       M.reveal("#about .about-stats-row, #about .about-block, #about .fetch-body", "trigger");
     }
