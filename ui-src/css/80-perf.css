@@ -34,8 +34,8 @@ html.cn #recovery #recoveryIntake.reveal {
    Legacy runs pageFade (opacity 0 -> 1) on every page, including the very first one, which
    delays the first paint of the hero and of deep-linked pages. Now the first page paints at once;
    after the visitor navigates (05-reveal.js sets html.cn-navigated on a [data-page] click or
-   back/forward), the leaving page lifts away inside script.js's fixed 300 ms swap (200 ms exit
-   ease, resting hidden until script.js swaps) and the new one settles in over 480 ms from
+   back/forward), the leaving page lifts away inside script.js's 140 ms swap (140 ms exit ease;
+   18 Nov: was a 200 ms exit inside a 300 ms wait, so a tap is answered 160 ms sooner) and the new one settles in over 480 ms from
    opacity .35, so it is a paint candidate from its first frame. The folio rule draws across the
    top meanwhile (05-motion.css). Backwards fill only: nothing lingers once it has run.
    ------------------------------------------------------------------------------------------ */
@@ -48,7 +48,7 @@ html.cn.cn-navigated .page.active-page:not(.leaving) {
 html.cn.cn-navigated .page.leaving {
   opacity: 0;
   translate: 0 -8px;
-  animation: cn-page-out 200ms var(--cn-ease-exit) backwards;
+  animation: cn-page-out 140ms var(--cn-ease-exit) backwards;
 }
 /* the tools (Quick Scan, Analysis AI, Recovery) are working pages: in over 160 ms, no wait */
 html.cn.cn-navigated :is(#cybernet, #cybernetai, #recovery).active-page:not(.leaving) { animation-duration: 160ms; }

@@ -128,7 +128,7 @@ check("script.js: / with CN_tryLand opens Quick Scan", /\/\*@web\*\/else if\(win
 // The gate controller in #authModal never locks the page any more.
 const ctl = html.match(/function lock\(\) \{([\s\S]*?)\n      \}/);
 check("gate controller: lock() returns first", Boolean(ctl) && /^\s*\/\*[\s\S]*?\*\/\s*return;/.test(ctl[1]), true);
-check("script.js: tryFirstLanding switches to cybernet", /function tryFirstLanding\(\)\{\s*switchPage\("cybernet",\{skipUrlUpdate:true\}\)/.test(script), true);
+check("script.js: tryFirstLanding switches to cybernet", /function tryFirstLanding\(\)\{\s*switchPage\("cybernet",\{skipUrlUpdate:true(?:,instant:true)?\}\)/.test(script), true);
 
 // Sign-up by code (18 Nov 2026): web only, outside the sign-up form, verifyOtp with the email type.
 const codeRegion = script.match(/\/\*@web\*\/  \/\* Sign-up by code[\s\S]*?\/\*@end-web\*\//);

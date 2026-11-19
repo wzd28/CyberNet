@@ -163,6 +163,20 @@
   [headers.values]
     Cache-Control = "no-cache"
 
+# Pictures of the UI layer (the 3D renders and the photos). Every reference to them carries ?v=
+# (index.html and ui-src/css; checked 18 Nov 2026), so a changed picture gets a new address and a
+# repeat visit can use the cached file at once instead of asking the server about each one first.
+# When a picture changes, bump its ?v= as always. Only .webp: scripts and styles keep revalidating.
+[[headers]]
+  for = "/ui/3d/*.webp"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/ui/img/*.webp"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
 # Self-hosted fonts (ui-src/css/00-fonts.css). Every file name carries its version, and a changed
 # file gets a new name, so a repeat visit can use the cached file at once instead of revalidating
 # it first (a revalidation round trip is what would let the first frame paint in the fallback).

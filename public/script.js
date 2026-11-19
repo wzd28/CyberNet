@@ -202,18 +202,29 @@ document.addEventListener("DOMContentLoaded",()=>{
     moveNavIndicator(pageName);
     document.querySelectorAll(".nav-tabs .nav-link").forEach(btn=>{btn.classList.toggle("active",btn.dataset.page===pageName)});
     if(navbar)navbar.classList.remove("open");
+    /* Smoothness pass (18 Nov 2026):
+       - The swap waits for the leaving page's exit only (cn-page-out, 140 ms in 80-perf.css); it used to
+         wait 300 ms behind a 200 ms exit, so every navigation showed the new page later than it had to.
+       - No exit plays under reduced motion or Pause motion, and none on the first route of a visit
+         (options.instant: a deep link or the try-first landing, where Home was never shown), so
+         those swap at once instead of waiting behind a page nobody sees.
+       - scrollTo forces a full layout of the new page; it only runs when the page is scrolled. On
+         the first route it never runs: index.html's head already shows the routed page, and a
+         visitor who started reading must not be thrown back to the top. */
+    let calm=false;
+    try{calm=document.documentElement.classList.contains("cn-still")||matchMedia("(prefers-reduced-motion: reduce)").matches}catch{}
     const finish=()=>{
       pages.forEach(p=>p.classList.remove("active-page","leaving"));
       target.classList.add("active-page");
-      window.scrollTo({top:0,behavior:"auto"});
+      if(!options.instant&&(window.pageYOffset||document.documentElement.scrollTop||0)>0)window.scrollTo({top:0,behavior:"auto"});
       setTimeout(runRevealAnimation,60);
       if(pageName==="home")setTimeout(animateWowCounters,450);
       if(pageName==="home")setTimeout(()=>animateHeroStats("#home"),300);
       if(pageName==="about")setTimeout(()=>animateHeroStats("#about"),300);
     };
-    if(current){
+    if(current&&!options.instant&&!calm){
       current.classList.add("leaving");
-      setTimeout(finish,300);
+      setTimeout(finish,140);
     }else{
       finish();
     }
@@ -232,7 +243,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   /* ─── Route to the right page based on the URL when the site first loads ─── */
   const initialRoutePage=pageForCurrentPath();
   if(initialRoutePage&&initialRoutePage!=="home"){
-    switchPage(initialRoutePage,{skipUrlUpdate:true});
+    switchPage(initialRoutePage,{skipUrlUpdate:true,instant:true});
   }/*@web*/else if(window.CN_tryLand){tryFirstLanding()}/*@end-web*//*@ios else{switchPage("cybernet",{skipUrlUpdate:true})} @end-ios*/
 /*@web*/  /* Try-first landing (owner, 17 Nov 2026): the head snippet in index.html sets window.CN_tryLand when a
      signed-out visitor with free guest scans left arrives on / from an ad or a ?try=1 link. It has already
@@ -240,7 +251,7 @@ document.addEventListener("DOMContentLoaded",()=>{
      "Or try 3 free Quick Scans first", with the paste box ready (focused only where there is a mouse, so a
      phone keyboard does not cover the page). The address becomes /quick-scan, query and hash kept. */
   function tryFirstLanding(){
-    switchPage("cybernet",{skipUrlUpdate:true});
+    switchPage("cybernet",{skipUrlUpdate:true,instant:true});
     try{history.replaceState({page:"cybernet"},"",PAGE_PATHS.cybernet+window.location.search+window.location.hash)}catch{}
     const box=document.getElementById("cyberTextInput");
     try{if(box&&matchMedia("(pointer: fine)").matches)setTimeout(()=>{try{box.focus({preventScroll:true})}catch{}},400)}catch{}

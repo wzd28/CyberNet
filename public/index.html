@@ -35,10 +35,14 @@
   <meta name="theme-color" content="#160d42" />
   <meta name="ahrefs-site-verification" content="f91bf5f9cc3131a0f67f4880e83a0f06eb6bb66a204164dc0887aaf87f37cd0a">
   <!-- Deep links (/pricing, /learn, ...) load with #home as the active page, and script.js only
-       switches to the routed page ~300 ms after DOMContentLoaded. Keep Home hidden until it stops
-       being the active page (4 s fallback), so the Home hero does not flash first. Keep this above
+       switches to the routed page once every deferred script before it has run. Until then Home is
+       taken out (4 s fallback), so the Home hero does not flash first, and (18 Nov 2026, smoothness
+       pass) the routed page itself is shown from the first paint: the head snippet below sets
+       html.cn-at-<page id> next to html.cn-deep, and the rule here displays that page the way
+       .active-page would. Before, a visitor on /quick-scan or /pricing looked at an empty page until
+       the scripts had run. Both classes go once script.js has made the page active. Keep this above
        every stylesheet: an inline script after a stylesheet waits for that stylesheet to load. -->
-  <style data-web-only>html.cn.cn-deep #home.active-page{visibility:hidden}</style>
+  <style data-web-only>html.cn.cn-deep #home.active-page{display:none}html.cn-at-cybernet #cybernet,html.cn-at-cybernetai #cybernetai,html.cn-at-recovery #recovery,html.cn-at-learn #learn,html.cn-at-pricing #pricing,html.cn-at-about #about{display:block;content-visibility:visible}</style>
   <script data-web-only id="cnGateHead">
   (function(){
     var d=document,r=d.documentElement;
@@ -71,8 +75,9 @@
     try{var q=new URLSearchParams(location.search);if((q.get("try")==="1"||q.get("utm_source")||q.get("ttclid")||q.get("fbclid")||q.get("gclid"))&&!/access_token|refresh_token|token_hash|error_description|[?&#]code=|type=recovery/.test(location.search+location.hash)&&!/^\/accept-invite/.test(location.pathname)&&!ls.getItem("sb-ndtcxippbufqzwcxkyjd-auth-token")&&(Number(ls.getItem("cn-guest-scans"))||0)<3){tryLand=location.pathname==="/";window.CN_tryLand=tryLand}}catch(e){tryLand=false}
     try{if(location.pathname==="/"&&!tryLand&&!r.classList.contains("cn-still")&&!matchMedia("(prefers-reduced-motion: reduce)").matches&&(localStorage.getItem("cn-fx")||"").indexOf("-exposure")<0&&!sessionStorage.getItem("cn-intro")){sessionStorage.setItem("cn-intro","1");r.classList.add("cn-intro","cn-intro-hold");hold()}}catch(e){r.classList.remove("cn-intro-hold")}
     if(tryLand||/^\/(quick-scan|analysis-ai|recovery|learn|pricing|about)\/?$/.test(location.pathname)){
-      r.classList.add("cn-deep");
-      var t=0,done=function(){clearTimeout(t);r.classList.remove("cn-deep")};
+      var at="cn-at-"+(tryLand?"cybernet":{"quick-scan":"cybernet","analysis-ai":"cybernetai"}[location.pathname.replace(/\//g,"")]||location.pathname.replace(/\//g,""));
+      r.classList.add("cn-deep");r.classList.add(at);
+      var t=0,done=function(){clearTimeout(t);r.classList.remove("cn-deep");r.classList.remove(at)};
       d.addEventListener("DOMContentLoaded",function(){
         var h=d.getElementById("home");
         if(!h||!h.classList.contains("active-page")||!window.MutationObserver){done();return}
@@ -121,7 +126,7 @@
   <link rel="stylesheet" href="/cybernet-howto.css?v=20260905-1" />
   <link id="cybernetBusinessTeamStylesheet" rel="stylesheet" href="/cybernet-business-team.css?v=20260927-2" />
   <link rel="stylesheet" href="/cybernet-consent.css?v=20260927-2" />
-  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261118-h2" />
+  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261118-h3" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=20261029-m1">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=20261029-m1">
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=20261029-m1">
@@ -3235,7 +3240,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" defer></script>
   <script src="/config.js?v=20260830-3" defer></script>
   <script src="/legacy/cybernet-engine.js?v=20261030-d1" defer></script>
-  <script src="/legacy/script.js?v=20261118-g13" defer></script>
+  <script src="/legacy/script.js?v=20261118-h1" defer></script>
   <script src="/legacy/cybernet-account-api-upgrade.js?v=20261028-1" defer></script>
   <script src="/cybernet-howto.js?v=20261019-1" defer></script>
 <script src="/legacy/cybernet-business-team.js?v=20261028-1" defer></script>
@@ -3247,7 +3252,7 @@
   <script src="/legacy/cybernet-onboarding.js?v=20261028-1" defer></script>
   <!-- After script.js and cybernet-account-api-upgrade.js (CyberNetAccount, account modal); admin-only, gated on the server. -->
   <script src="/legacy/cybernet-admin-feedback.js?v=20261028-1" defer></script>
-  <script src="/ui/cybernet-ui.js?v=20261118-g10" defer></script>
+  <script src="/ui/cybernet-ui.js?v=20261118-h1" defer></script>
   <!-- The For teams band's WebGL2 gradient (Soffit, getlayers.ai; 18 Nov 2026). Web only, after the UI layer (it reads window.CN). -->
   <script data-web-only src="/cybernet-soffit.js?v=20261118-g10" defer></script>
 </body>

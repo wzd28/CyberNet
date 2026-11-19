@@ -234,18 +234,23 @@ document.addEventListener("DOMContentLoaded", () => {
       btn.classList.toggle("active", btn.dataset.page === pageName);
     });
     if (navbar) navbar.classList.remove("open");
+    let calm = false;
+    try {
+      calm = document.documentElement.classList.contains("cn-still") || matchMedia("(prefers-reduced-motion: reduce)").matches;
+    } catch (e) {
+    }
     const finish = () => {
       pages.forEach((p) => p.classList.remove("active-page", "leaving"));
       target.classList.add("active-page");
-      window.scrollTo({ top: 0, behavior: "auto" });
+      if (!options.instant && (window.pageYOffset || document.documentElement.scrollTop || 0) > 0) window.scrollTo({ top: 0, behavior: "auto" });
       setTimeout(runRevealAnimation, 60);
       if (pageName === "home") setTimeout(animateWowCounters, 450);
       if (pageName === "home") setTimeout(() => animateHeroStats("#home"), 300);
       if (pageName === "about") setTimeout(() => animateHeroStats("#about"), 300);
     };
-    if (current) {
+    if (current && !options.instant && !calm) {
       current.classList.add("leaving");
-      setTimeout(finish, 300);
+      setTimeout(finish, 140);
     } else {
       finish();
     }
@@ -279,12 +284,12 @@ document.addEventListener("DOMContentLoaded", () => {
   if (mobileMenu && navbar) mobileMenu.addEventListener("click", () => navbar.classList.toggle("open"));
   const initialRoutePage = pageForCurrentPath();
   if (initialRoutePage && initialRoutePage !== "home") {
-    switchPage(initialRoutePage, { skipUrlUpdate: true });
+    switchPage(initialRoutePage, { skipUrlUpdate: true, instant: true });
   } else if (window.CN_tryLand) {
     tryFirstLanding();
   }
   function tryFirstLanding() {
-    switchPage("cybernet", { skipUrlUpdate: true });
+    switchPage("cybernet", { skipUrlUpdate: true, instant: true });
     try {
       history.replaceState({ page: "cybernet" }, "", PAGE_PATHS.cybernet + window.location.search + window.location.hash);
     } catch (e) {

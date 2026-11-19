@@ -82,7 +82,7 @@
   var SETTLE_MS = 1400;       /* after Home is opened from another page */
   var DPR_FINE = 1.5, DPR_COARSE = 2;
   var MAX_PX_FINE = 2000000, MAX_PX_WEAK = 1200000, MAX_PX_COARSE = 1800000;
-  var FRAME_FULL = 1000 / 60, FRAME_LITE = 1000 / 30;  /* desktop; touch screens and weak machines */
+  var FRAME_FULL = 1000 / 60, FRAME_LITE = 1000 / 30;  /* full; weak machines and mid-range Android phones */
   var LINK_WAIT_MS = 400, LINK_GIVEUP_MS = 10000;
   var HOLD_MS = 450, RAMP_MS = 1100;  /* the poster frame holds, then time eases in */
   /* after load + idle (phones give their own start-up a little longer) */
@@ -100,6 +100,11 @@
      Owner, 10 Nov 2026: the globe turns on phones too, sharp (DPR 2) and at 60 fps. iPhones report few
      cores whatever the model, so the core count no longer decides; the governor still steps down. */
   function lowEnd() { var mem = navigator.deviceMemory; return !CN.finePointer() && typeof mem === "number" && mem > 0 && mem <= 2; }
+  /* a mid-range phone (the browser reports 4 GB or less; Chromium/Android only, so iPhones and the
+     stronger Androids keep 60 fps): the globe starts at 30 fps there, which leaves the main thread
+     twice the room for taps and scrolling (18 Nov 2026, smoothness pass). The core count is not
+     used on phones (see above). */
+  function midPhone() { var mem = navigator.deviceMemory; return !CN.finePointer() && typeof mem === "number" && mem > 0 && mem <= 4; }
   var idle = win.requestIdleCallback ? function (f) { win.requestIdleCallback(f, { timeout: 1200 }); } : function (f) { setTimeout(f, 150); };
   /* idle slices for the build and the shader compiles, so a tap is never kept waiting long */
   function idleTask(f) {
@@ -145,7 +150,7 @@
     var coarse = !CN.finePointer(), lite = coarse || weak();
     var G = null, state = "idle"; /* idle | loading | ready | dead */
     var visible = false, held = false, loaded = false, queued = false, deepTimer = 0, pageSeen = false, switchedAt = -1e9;
-    var frameMs = (!coarse && weak()) ? FRAME_LITE : FRAME_FULL, dirty = true, stageH = 600, scrollY = 0;
+    var frameMs = ((!coarse && weak()) || midPhone()) ? FRAME_LITE : FRAME_FULL, dirty = true, stageH = 600, scrollY = 0;
     var slow = { n: 0, sum: 0, warm: 0, last: 0, level: 0 };
     var ro = null, offs = [], liveAt = 0;
     var disc = null;            /* the globe on screen: centre and radius, CSS px in the canvas */

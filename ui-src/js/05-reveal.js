@@ -33,7 +33,7 @@
      .cn-edlabel (not --dot / --plain), on .cn-eyebrow without a live dot and on the support box
      label; settle on the support boxes, fade on the limits note.
    - The folio turn (flag "folio"): <cn-folio> draws a 1px cyan rule across the top during
-     script.js's 300 ms page swap (data-turn="out", then "in"); data attributes, never classes
+     script.js's 140 ms page swap (data-turn="out", then "in"); data attributes, never classes
      (the legacy body observers watch class). Nothing else replays on a switch (the masthead
      replay was cut at the finish, 18 Oct: a page shows at once).
    - html.cn-navigated on the first [data-page] click or back/forward (80-perf.css page swap), and

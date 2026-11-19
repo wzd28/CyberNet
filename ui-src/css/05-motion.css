@@ -55,7 +55,7 @@ html.cn cn-folio {
 }
 html.cn[dir="rtl"] cn-folio { transform-origin: 100% 50%; }
 html.cn cn-folio[data-turn] { display: block; }
-html.cn cn-folio[data-turn="out"] { animation: cn-folio-out 300ms var(--cn-ease-swap) backwards; }
+html.cn cn-folio[data-turn="out"] { animation: cn-folio-out 140ms var(--cn-ease-swap) backwards; }   /* = script.js's page swap */
 html.cn cn-folio[data-turn="in"] { opacity: 0; animation: cn-fade-out 260ms var(--cn-ease-exit) backwards; }
 @keyframes cn-folio-out { from { opacity: 0; scale: 0 1; } }
 @keyframes cn-fade-out { from { opacity: 1; } }

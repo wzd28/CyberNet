@@ -1965,6 +1965,11 @@ html.cn .cn-consent {
   border: 1px solid rgba(34, 211, 238, .34);
   border-radius: var(--cn-r-card);
   background: #0c1220;
+  /* The bar is fixed over the scrolling page: the legacy sheet's backdrop blur (cybernet-consent.css)
+     made the browser re-blur what is behind it on every scroll frame, for a ground that is solid
+     anyway (18 Nov 2026, smoothness pass). */
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
   box-shadow: 0 22px 44px -26px rgba(0, 0, 0, .85), inset 0 1px 0 rgba(255, 255, 255, .06);
   color: var(--cn-consent-text);
   font-family: var(--cn-font);
