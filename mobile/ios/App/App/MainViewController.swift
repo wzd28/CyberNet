@@ -71,6 +71,7 @@ final class MainViewController: CAPBridgeViewController, UITabBarDelegate {
         // @iap
         // In-app purchase builds only: the StoreKit plugin (CNStore) is registered here. A CN_NO_IAP=1 build
         // (mobile/scripts/add-share-extension.cjs) cuts this block out and leaves StoreKitPlugin.swift out of the project.
+        bridge?.registerPluginInstance(StoreKitPlugin())
         // @end-iap
 
         #if DEBUG
