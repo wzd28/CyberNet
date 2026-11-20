@@ -1,4 +1,5 @@
 import { json, verifyUser, getProfile, effectivePlan, getActiveTeamMembership, serviceFetch, isAdminUser } from "../lib/supabase.mjs";
+import { withEntitlement } from "../lib/entitlement.mjs";
 import { reportError } from "../lib/report-error.mjs";
 import { lookup as dnsLookup } from "node:dns/promises";
 // The iPhone app uses it too (owner, 11 Nov 2026): any signed-in app account gets
@@ -243,6 +244,8 @@ export default withCors(async (request, context) => {
   const fromApp = Boolean(allowedOrigin(request));
   if (!isAdmin && !fromApp) {
     const profile = await getProfile(user).catch(() => ({}));
+    // Stripe plan OR paid-up Apple Pro (lib/entitlement.mjs; profile rule before the 1.1 migration).
+    await withEntitlement(profile, user.id).catch(() => null);
     const plan = effectivePlan(profile);
     const onTeam = plan === "business" || Boolean(profile?.isTeamMember) || (await isActiveTeamMember(user.id));
     if (plan !== "pro" && !onTeam) {

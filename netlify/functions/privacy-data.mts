@@ -267,6 +267,26 @@ async function cancelBilling(profile, teams, personalOpen) {
   }
 }
 
+// An Apple subscription (Pro bought in the iPhone app) that is still running
+// and set to renew. The server cannot cancel it (only the person can, in
+// iPhone Settings), so it never blocks deletion: the reply only carries
+// appleSubscriptionOpen so the app and the website can remind the person.
+// Any failure here reads as "not known" (null) and deletion goes on.
+async function appleSubscriptionOpen(userId: string): Promise<boolean | null> {
+  try {
+    const rows = await rest(
+      `apple_subscriptions?user_id=eq.${id(userId)}&revoked_at=is.null&select=expires_at,grace_expires_at,auto_renew`,
+      { method: "GET", code: "APPLE_LOOKUP_FAILED", optional: true }
+    );
+    const now = Date.now();
+    return (Array.isArray(rows) ? rows : []).some((row) =>
+      row.auto_renew !== false &&
+      (Date.parse(row.expires_at) > now || Date.parse(row.grace_expires_at || "") > now));
+  } catch {
+    return null;
+  }
+}
+
 async function deleteAccount(user, body = {}) {
   const uid = id(user.id);
 
@@ -279,6 +299,8 @@ async function deleteAccount(user, body = {}) {
     "TEAM_LOOKUP_FAILED"
   );
   const teams = Array.isArray(owned) ? owned : [];
+  // Read before the rows cascade away with the account; never blocks.
+  const appleOpen = await appleSubscriptionOpen(user.id);
 
   // Step 1: billing. A paid plan no longer blocks deletion; it is cancelled
   // now, with no refund for unused time (the deletion screen says so).
@@ -349,13 +371,13 @@ async function deleteAccount(user, body = {}) {
     }
   }
 
-  return json({ deleted: true, closedTeams: teams.length, cancelledSubscriptions: cancelledNow, appleTokensRevoked });
+  return json({ deleted: true, closedTeams: teams.length, cancelledSubscriptions: cancelledNow, appleTokensRevoked, appleSubscriptionOpen: appleOpen });
 }
 
 async function exportData(user) {
   const uid = id(user.id);
   const code = "EXPORT_FAILED";
-  const [profile, usage, history, acceptances, recoveryCases, recoveryUsage, quickscanUsage, teamMemberships, ownedTeams, checkoutErrors, usageCounters, feedback, aiConsents] = await Promise.all([
+  const [profile, usage, history, acceptances, recoveryCases, recoveryUsage, quickscanUsage, teamMemberships, ownedTeams, checkoutErrors, usageCounters, feedback, aiConsents, appleSubscriptions] = await Promise.all([
     getProfile(user.id, code),
     getRows("daily_usage", user.id, code),
     getRows("scan_history", user.id, code),
@@ -368,7 +390,10 @@ async function exportData(user) {
     getRows("checkout_debug_log", user.id, code),
     get(`api_rate_limits?rate_key=like.*${uid}&select=rate_key,window_started_at,request_count,updated_at`, code),
     rest(`feedback?user_id=eq.${uid}&select=created_at,category,message,email,page,status`, { method: "GET", code, optional: true }),
-    rest(`ai_consents?user_id=eq.${uid}&select=consent_version,platform,provider,granted_at,withdrawn_at,user_agent`, { method: "GET", code, optional: true })
+    rest(`ai_consents?user_id=eq.${uid}&select=consent_version,platform,provider,granted_at,withdrawn_at,user_agent`, { method: "GET", code, optional: true }),
+    // Apple subscriptions bought in the iPhone app (no appAccountToken: it is
+    // only an audit copy of an id).
+    rest(`apple_subscriptions?user_id=eq.${uid}&select=original_transaction_id,product_id,environment,purchase_date,original_purchase_date,expires_at,grace_expires_at,auto_renew,auto_renew_product_id,status,revoked_at,created_at,updated_at`, { method: "GET", code, optional: true })
   ]);
   const caseIds = (Array.isArray(recoveryCases) ? recoveryCases : []).map(c => c.id).filter(Boolean);
   const inList = caseIds.map(encodeURIComponent).join(",");
@@ -395,7 +420,8 @@ async function exportData(user) {
       checkoutErrors: checkoutErrors || [],
       usageCounters: usageCounters || [],
       feedback: feedback || [],
-      aiConsents: aiConsents || []
+      aiConsents: aiConsents || [],
+      appleSubscriptions: appleSubscriptions || []
     }
   });
 }

@@ -13,7 +13,8 @@ const logged = [];
 console.error = (...args) => logged.push(args.map(String).join(" "));
 
 let calls = [];
-let answer = () => new Response(null, { status: 204, headers: { "Content-Range": "*/42" } });
+const DEFAULT_ANSWER = () => new Response(null, { status: 204, headers: { "Content-Range": "*/42" } });
+let answer = DEFAULT_ANSWER;
 globalThis.fetch = async (input, init = {}) => {
   const url = new URL(String(input));
   calls.push({ method: String(init.method || "GET").toUpperCase(), path: url.pathname, query: decodeURIComponent(url.search), headers: init.headers || {} });
@@ -70,6 +71,27 @@ check("schedule is daily, no URL", mod.config?.schedule === "@daily" && !("path"
   ENV = {};
   const r = await mod.cleanupRateLimits();
   check("no Supabase settings: fails without a request", r.status === "failed" && !calls.some((c) => c.method === "DELETE"), { r, calls });
+}
+
+{
+  // Apple notification ids (iPhone app 1.1): kept 90 days, like the counters.
+  calls = [];
+  ENV = fullEnv();
+  answer = DEFAULT_ANSWER;
+  const now = Date.parse("2026-10-18T00:00:00Z");
+  console.log = () => {};
+  const r = await mod.cleanupAppleNotifications?.({ now });
+  console.log = quiet.log;
+  const del = calls.find((c) => c.method === "DELETE");
+  check("apple_notifications: one DELETE of rows received 90+ days ago", calls.length === 1 && del?.path === "/rest/v1/apple_notifications" && del?.query === "?received_at=lt.2026-07-20T00:00:00.000Z", calls);
+  check("apple_notifications: reported", r?.status === "done", r);
+  calls = [];
+  answer = () => new Response('{"code":"PGRST205"}', { status: 404 });
+  const missing = await mod.cleanupAppleNotifications?.({ now });
+  check("apple_notifications before the 1.1 migration (404): skipped, not failed", missing?.status === "skipped", missing);
+  answer = DEFAULT_ANSWER;
+  const response = await mod.default();
+  check("the scheduled handler also cleans apple_notifications", calls.some((c) => c.path === "/rest/v1/apple_notifications"), calls);
 }
 
 console.error = quiet.error;

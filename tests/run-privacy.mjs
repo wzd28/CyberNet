@@ -189,6 +189,7 @@ function install(db = {}) {
     if (method === "GET" && target.startsWith("/rest/v1/recovery_tasks?")) return respond(200, [{ case_id: CASE, title: "Call the bank" }]);
     if (method === "GET" && target.startsWith(`/rest/v1/business_members?user_id=eq.${USER}`)) return respond(200, [{ business_account_id: OTHER_TEAM, role: "member", status: "active" }]);
     if (method === "GET" && target.startsWith(`/rest/v1/ai_consents?user_id=eq.${USER}`)) return respond(200, [{ consent_version: "2026-11-ios-1", platform: "ios", provider: "openai", granted_at: "2026-11-01T00:00:00Z", withdrawn_at: null, user_agent: "Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 CyberNetAI-iOS/1.0.0" }]);
+    if (method === "GET" && target.startsWith(`/rest/v1/apple_subscriptions?user_id=eq.${USER}`)) return respond(200, state.apple || []);
     if (method === "GET") return respond(200, []);
     if (method === "DELETE") {
       const hit = Object.entries(state.deleted).find(([prefix]) => target.startsWith(prefix));
@@ -658,6 +659,29 @@ check("export: the stored user agent of each AI consent is included", /CyberNetA
 install({ fail: { "GET /rest/v1/ai_consents": 404 } });
 r = await call({ action: "export" });
 check("export: missing ai_consents table reads as empty", r.status === 200 && Array.isArray(r.data.data.aiConsents) && r.data.data.aiConsents.length === 0, r.status);
+
+// ── 13b. Apple subscriptions (Pro bought in the iPhone app) ──
+const future = new Date(Date.now() + 20 * 86400e3).toISOString();
+const appleRow = { original_transaction_id: "2000000100000001", product_id: "app.cybernetai.pro.monthly", environment: "Sandbox", expires_at: future, grace_expires_at: null, auto_renew: true, status: "active" };
+ENV = fullEnv();
+install({ apple: [appleRow] });
+r = await call({ action: "delete-account", confirmation: "DELETE" });
+check("delete with an active Apple subscription: deleted, appleSubscriptionOpen true", r.status === 200 && r.data.deleted === true && r.data.appleSubscriptionOpen === true, r);
+check("delete with Apple: nothing is sent to Apple or Stripe to cancel it", appleCalls.length === 0 && !stripeCalls.some(c => c.method === "DELETE"), { appleCalls, stripeCalls });
+install({ apple: [{ ...appleRow, auto_renew: false }] });
+r = await call({ action: "delete-account", confirmation: "DELETE" });
+check("delete with Apple renewal turned off: appleSubscriptionOpen false", r.status === 200 && r.data.appleSubscriptionOpen === false, r.data);
+install({ fail: { "GET /rest/v1/apple_subscriptions": 500 } });
+r = await call({ action: "delete-account", confirmation: "DELETE" });
+check("delete when the Apple lookup fails: still deleted (never blocked), flag unknown", r.status === 200 && r.data.deleted === true && r.data.appleSubscriptionOpen === null, r);
+install({ fail: { "GET /rest/v1/apple_subscriptions": 404 } });
+r = await call({ action: "delete-account", confirmation: "DELETE" });
+check("delete before the 1.1 migration (no table): deleted, flag false", r.status === 200 && r.data.deleted === true && r.data.appleSubscriptionOpen === false, r);
+install({ apple: [appleRow] });
+r = await call({ action: "export" });
+const appleExport = calls.find(c => c.target.startsWith(`/rest/v1/apple_subscriptions?user_id=eq.${USER}&select=original_transaction_id`));
+check("export: Apple subscriptions included", r.status === 200 && r.data.data.appleSubscriptions?.[0]?.product_id === "app.cybernetai.pro.monthly", r.data?.data?.appleSubscriptions);
+check("export: the Apple query is this user's rows and never selects app_account_token", Boolean(appleExport) && !appleExport.target.includes("app_account_token") && !appleExport.target.includes("select=*"), appleExport?.target);
 
 // ── 14. legal-acceptance: the same key fallback ──
 async function accept(env) {

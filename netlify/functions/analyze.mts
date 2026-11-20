@@ -3,7 +3,7 @@ import { redactForTeamLog } from "../lib/team-log.mjs";
 import { DEFAULT_MODEL, DEFAULT_MINI_MODEL, modelParams, createResponse, autoReplaceEnabled, retirementOf } from "../lib/ai-models.mjs";
 import { reportError } from "../lib/report-error.mjs";
 import { fetchWithJwtRetry, RETRY_TIGHT } from "../lib/supabase-retry.mjs";
-import { withCors, isIOS, honoursWebPlans } from "../lib/cors.mjs";
+import { withCors, isIOS, honoursWebPlans, isIapBuild } from "../lib/cors.mjs";
 import { appTierFor, consumeAnalysisApp, APP_MESSAGES, appLimitsFor, loadWebPlan, reserveAnalysisForApp, refundAnalysisForApp } from "../lib/app-tier.mjs";
 import { aiConsentGate } from "../lib/ai-consent.mjs";
 import { burstGuard, allowAiCall, clientAddress, readJsonCapped } from "../lib/abuse-guard.mjs";
@@ -1424,7 +1424,7 @@ async function handler(request: Request, context: any): Promise<Response> {
       return json({ error: "Too many requests. Please try again later.", code: "rate_limited" }, 429);
     }
     team = teamResult.value;
-    if (webPlans) appRule = appLimitsFor(user, { plan: planResult.value, team }).analyses;
+    if (webPlans) appRule = appLimitsFor(user, { plan: planResult.value, team, iap: isIapBuild(request) }).analyses;
     // The reservation round trip starts here; the deterministic evidence below
     // is computed while it is in flight and only used once it has allowed.
     usagePromise = teamResult.error || planResult.error

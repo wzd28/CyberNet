@@ -9,6 +9,11 @@ import { reportError } from "../lib/report-error.mjs";
 // Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
 // management, admin): requests from the app get 403 (netlify/lib/cors.mjs).
 import { webOnly } from "../lib/cors.mjs";
+import { loadEntitlement } from "../lib/entitlement.mjs";
+
+export const BILLED_BY_APPLE_MESSAGE =
+  "Your CyberNet AI Pro subscription is billed by Apple, so it is managed on your iPhone: " +
+  "Settings > your name > Subscriptions, or at apps.apple.com/account/subscriptions.";
 
 function env(name) {
   try {
@@ -38,6 +43,13 @@ export default webOnly(async (request) => {
     const customerId = profile.stripe_customer_id || "";
 
     if (!customerId) {
+      // Pro bought in the iPhone app: Stripe has nothing to manage. Never
+      // cancels anything; it only says where the subscription is managed.
+      const entitlement = await loadEntitlement(user.id, { profile });
+      if (entitlement.appleActive) {
+        return json({ error: BILLED_BY_APPLE_MESSAGE, code: "BILLED_BY_APPLE" }, 409);
+      }
+
       return json(
         {
           error:

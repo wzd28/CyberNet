@@ -51,6 +51,8 @@ function reset(next = {}) {
     memberships: [],     // business_members rows (with embedded business_accounts)
     stripeSubs: [],      // what Stripe lists for the customer
     stripeDown: false,
+    applePro: false,          // an active Apple Pro subscription (entitlement_of)
+    entitlementStatus: 0,     // non-zero: entitlement_of answers this HTTP status
     supabaseDown: false,
     membersDown: false,
     rest: [],
@@ -62,6 +64,9 @@ function reset(next = {}) {
 function jsonResponse(data, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json" } });
 }
+
+// The plan lookup public.entitlement_of is a read even though it is a POST.
+const isWrite = (c) => c.method !== "GET" && c.path !== "/rest/v1/rpc/entitlement_of";
 
 // ── Supabase stub ──
 globalThis.fetch = async (input, init = {}) => {
@@ -89,6 +94,13 @@ globalThis.fetch = async (input, init = {}) => {
     return jsonResponse([], 201);
   }
   if (url.pathname === "/rest/v1/checkout_debug_log") return jsonResponse([], 201);
+  if (url.pathname === "/rest/v1/rpc/entitlement_of") {
+    if (state.entitlementStatus) return jsonResponse({ message: "x", code: "PGRST202" }, state.entitlementStatus);
+    const p = state.profile;
+    const stripe = ["active", "trialing"].includes(p.subscription_status) && ["pro", "business"].includes(p.plan) ? p.plan : "free";
+    return jsonResponse([{ plan: stripe !== "free" ? stripe : state.applePro ? "pro" : "free", stripe_active: stripe !== "free", apple_active: Boolean(state.applePro),
+      apple_original_transaction_id: state.applePro ? "1000" : null, apple_product_id: state.applePro ? "app.cybernetai.pro.monthly" : null }]);
+  }
   return jsonResponse([]);
 };
 
@@ -224,7 +236,7 @@ const is409 = (r, code) => r.status === 409 && r.data.code === code && typeof r.
   let session = state.stripe.find((c) => c.path === "/v1/checkout/sessions");
   check("Pro buying Business with the flag: the session is for the Business price on the same customer",
     decodeURIComponent(session?.body || "").includes("price_cybernet_ai_business_monthly") && decodeURIComponent(session?.body || "").includes("customer=cus_pro"), session);
-  check("Pro buying Business with the flag: the Pro profile is not touched", !state.rest.some((c) => c.method !== "GET"), state.rest);
+  check("Pro buying Business with the flag: the Pro profile is not touched", !state.rest.some(isWrite), state.rest);
 
   // A profile that itself names Business (granted by hand) is Business, not Pro.
   reset({ profile: { ...proProfile("active"), plan: "business" } });
@@ -430,8 +442,42 @@ const is409 = (r, code) => r.status === 409 && r.data.code === code && typeof r.
   for (const [code, next, body] of quiet) {
     reset(next);
     r = await buy(body);
-    check(`${code}: writes no checkout_debug_log row and nothing else`, is409(r, code) && r.debugLogs === 0 && !state.rest.some((c) => c.method !== "GET"), { r, rest: state.rest });
+    check(`${code}: writes no checkout_debug_log row and nothing else`, is409(r, code) && r.debugLogs === 0 && !state.rest.some(isWrite), { r, rest: state.rest });
   }
+}
+
+// ══════════ Apple Pro bought in the iPhone app (entitlement_of) ══════════
+{
+  reset({ applePro: true });
+  let r = await buy(PRO);
+  check("Apple Pro buying Pro: 409 ALREADY_SUBSCRIBED_APPLE", is409(r, "ALREADY_SUBSCRIBED_APPLE") && r.sessions === 0 && r.stripeCalls === 0, r);
+  check("Apple Pro buying Pro: message points to iPhone Settings, not Manage billing", r.data.error?.includes("iPhone Settings") && !r.data.error?.includes("Manage billing"), r.data);
+
+  reset({ applePro: true });
+  r = await buy({ ...PRO, confirmSecondPlan: true });
+  check("Apple Pro buying Pro with the flag: still refused", is409(r, "ALREADY_SUBSCRIBED_APPLE") && r.sessions === 0, r);
+
+  reset({ applePro: true });
+  r = await buy(BIZ);
+  check("Apple Pro buying Business: CONFIRM_SECOND_PLAN with Apple wording", is409(r, "CONFIRM_SECOND_PLAN") && r.data.viaApple === true &&
+    r.data.error.includes("keeps billing through Apple") && r.data.error.includes("iPhone Settings") && r.sessions === 0, r.data);
+
+  reset({ applePro: true });
+  r = await buy({ ...BIZ, confirmSecondPlan: true });
+  check("Apple Pro buying Business with the flag: checkout opens", r.status === 200 && r.sessions === 1, r);
+  check("Apple Pro buying Business: nothing is cancelled or written", !state.rest.some(isWrite) || state.rest.filter(isWrite).every((c) => c.path === "/rest/v1/checkout_debug_log" || c.path === "/rest/v1/profiles"), state.rest.filter(isWrite));
+
+  reset({ applePro: true, profile: proProfile("active") });
+  r = await buy(PRO);
+  check("Stripe Pro + Apple Pro buying Pro: refused as a duplicate", r.status === 409 && ["ALREADY_SUBSCRIBED", "ALREADY_SUBSCRIBED_APPLE"].includes(r.data.code), r);
+
+  reset({ entitlementStatus: 500 });
+  r = await buy(PRO);
+  check("entitlement lookup outage: fails closed (503), no checkout", r.status === 503 && r.sessions === 0, r);
+
+  reset({ entitlementStatus: 404 });
+  r = await buy(PRO);
+  check("before the 1.1 migration (entitlement_of missing): checkout works as before", r.status === 200 && r.sessions === 1, r);
 }
 
 // ══════════ nothing the checkout guard does can cancel or change a plan ══════════

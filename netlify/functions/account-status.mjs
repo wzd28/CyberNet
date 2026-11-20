@@ -10,7 +10,8 @@ import {
   serviceFetch
 } from "../lib/supabase.mjs";
 import { reportError } from "../lib/report-error.mjs";
-import { withCors, isIOS, honoursWebPlans } from "../lib/cors.mjs";
+import { withCors, isIOS, honoursWebPlans, isIapBuild } from "../lib/cors.mjs";
+import { withEntitlement, appBilling, webBilling } from "../lib/entitlement.mjs";
 import { appTierFor, appLimitsFor, nextUtcMidnight, recoveryNextReset } from "../lib/app-tier.mjs";
 import { hasAiConsent, AI_CONSENT_VERSION } from "../lib/ai-consent.mjs";
 
@@ -136,7 +137,8 @@ async function teamRecoveryCasesUsed(businessAccountId) {
 }
 
 async function appStatusWithPlans(request, user, profile, { analysisRows, recoveryRows, team, consent }) {
-  const rules = appLimitsFor(user, { plan: effectivePlan(profile), team });
+  const iap = isIapBuild(request);
+  const rules = appLimitsFor(user, { plan: effectivePlan(profile), team, iap });
   const [teamAnalyses, teamCases] = await Promise.all([
     team && rules.analyses.pool === "team" ? getTeamUsage(team.businessAccountId, rules.analyses.limit) : null,
     team && rules.recoveryCases.pool === "team" ? teamRecoveryCasesUsed(team.businessAccountId) : null
@@ -158,7 +160,10 @@ async function appStatusWithPlans(request, user, profile, { analysisRows, recove
       plan: "app",
       appPlan: rules.appPlan,
       isTeamMember: Boolean(team && team.role !== "owner"),
-      teamRole: team?.role || null
+      teamRole: team?.role || null,
+      // App 1.1 on only (X-CyberNet-IAP: 1): what the Pro screen needs. No
+      // prices, no URLs, never the word "business" (lib/entitlement.mjs).
+      ...(iap ? { billing: appBilling(profile.entitlement, { userId: user.id, team }) } : {})
     },
     usage: {
       used,
@@ -187,6 +192,9 @@ async function handler(request) {
   try {
     const { user } = await verifyUser(request);
     const profile = await getProfile(user);
+    // Stripe plan OR paid-up Apple Pro (public.entitlement_of); falls back to
+    // the profile rule until the 1.1 migration has been run.
+    await withEntitlement(profile, user.id);
     if (isIOS(request)) return await appStatus(request, user, profile);
     const isAdmin = isAdminUser(user);
     const team = isAdmin ? null : await getActiveTeamMembership(user.id);
@@ -219,7 +227,10 @@ async function handler(request) {
         billingInterval:
           profile.billing_interval || "",
         isTeamMember: Boolean(team),
-        teamRole: team?.role || null
+        teamRole: team?.role || null,
+        // "stripe" | "apple" | "both" | "team" | null, and the Apple dates
+        // while Apple Pro is active: the account panel shows "Billed by Apple".
+        ...webBilling(profile.entitlement, { team })
       },
       usage,
       history

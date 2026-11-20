@@ -2,7 +2,7 @@ import OpenAI from "openai";
 import { DEFAULT_MODEL, DEFAULT_MINI_MODEL, modelParams, createResponse, autoReplaceEnabled } from "../lib/ai-models.mjs";
 import { reportError } from "../lib/report-error.mjs";
 import { fetchWithJwtRetry, RETRY_STANDARD } from "../lib/supabase-retry.mjs";
-import { withCors, isIOS, honoursWebPlans } from "../lib/cors.mjs";
+import { withCors, isIOS, honoursWebPlans, isIapBuild } from "../lib/cors.mjs";
 import { appTierFor, consumeRecoveryCaseApp, recoveryCaseLimitMessage, appLimitsFor, loadWebPlan, reserveRecoveryCaseForApp } from "../lib/app-tier.mjs";
 import { aiConsentGate } from "../lib/ai-consent.mjs";
 import { burstGuard, allowAiCall, readJsonCapped } from "../lib/abuse-guard.mjs";
@@ -932,7 +932,7 @@ async function handler(request: Request, context: any): Promise<Response> {
       ]);
       team = teamRow;
       usage = webPlans
-        ? await reserveRecoveryCaseForApp(serviceFetch, user.id, appLimitsFor(user, { plan: webPlan, team }).recoveryCases, team)
+        ? await reserveRecoveryCaseForApp(serviceFetch, user.id, appLimitsFor(user, { plan: webPlan, team, iap: isIapBuild(request) }).recoveryCases, team)
         : ios
           ? await consumeRecoveryCaseApp(serviceFetch, user.id, appTierFor(user).recoveryCasesPerDay)
           : team

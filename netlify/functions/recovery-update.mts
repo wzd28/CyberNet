@@ -4,7 +4,7 @@ import { modelParams, createResponse, autoReplaceEnabled } from "../lib/ai-model
 import { rekeyPlan, planActions, buildTaskRows, supersededTaskKeys, taskKeyInList } from "../lib/recovery-tasks.mjs";
 import { reportError } from "../lib/report-error.mjs";
 import { fetchWithJwtRetry, RETRY_STANDARD } from "../lib/supabase-retry.mjs";
-import { withCors, isIOS, honoursWebPlans } from "../lib/cors.mjs";
+import { withCors, isIOS, honoursWebPlans, isIapBuild } from "../lib/cors.mjs";
 import { appTierFor, consumeRecoveryUpdateApp, recoveryCooldownMessage, APP_MESSAGES, appLimitsFor, loadWebPlan, reserveRecoveryUpdateForApp } from "../lib/app-tier.mjs";
 import { aiConsentGate } from "../lib/ai-consent.mjs";
 import { burstGuard, allowAiCall, readJsonCapped } from "../lib/abuse-guard.mjs";
@@ -462,7 +462,7 @@ async function handler(request: Request, context: any): Promise<Response> {
       if (webPlans) {
         const webPlan = await planCheck;
         if (webPlan.error) throw webPlan.error;
-        const rule = appLimitsFor(user, { plan: webPlan.plan, team: team.onTeam }).recoveryUpdates;
+        const rule = appLimitsFor(user, { plan: webPlan.plan, team: team.onTeam, iap: isIapBuild(request) }).recoveryUpdates;
         usage = await reserveRecoveryUpdateForApp(serviceFetch, user.id, rule);
       } else if (ios) {
         const tier = appTierFor(user);

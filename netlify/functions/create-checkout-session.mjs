@@ -13,6 +13,7 @@ import { reportError } from "../lib/report-error.mjs";
 // Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
 // management, admin): requests from the app get 403 (netlify/lib/cors.mjs).
 import { webOnly } from "../lib/cors.mjs";
+import { loadEntitlement } from "../lib/entitlement.mjs";
 
 function env(name) {
   try {
@@ -75,6 +76,9 @@ async function getOrCreateCustomer(stripe, user, profile) {
 //   member of someone else's team buying Business → 409 TEAM_MEMBER (one person
 //                                cannot be in two teams, so the new team would
 //                                be paid for and never set up)
+//   Pro while Apple Pro is active (bought in the iPhone app)
+//                              → 409 ALREADY_SUBSCRIBED_APPLE (an exact duplicate
+//                                billed by Apple; Manage billing cannot manage it)
 //   a different tier           → 409 CONFIRM_SECOND_PLAN until the request
 //                                carries confirmSecondPlan: true, then checkout
 //                                opens normally
@@ -113,6 +117,18 @@ function refuseDuplicate(plan, pastDue) {
   }, 409);
 }
 
+const APPLE_MANAGE = "iPhone Settings > your name > Subscriptions";
+
+function refuseAppleDuplicate() {
+  return json({
+    error:
+      "You already have CyberNet AI Pro through the App Store on your iPhone, so buying it here would charge you twice. " +
+      `Manage it in ${APPLE_MANAGE}.`,
+    code: "ALREADY_SUBSCRIBED_APPLE",
+    currentPlan: "Pro"
+  }, 409);
+}
+
 function refuseTeamMember() {
   return json({
     error:
@@ -122,12 +138,15 @@ function refuseTeamMember() {
   }, 409);
 }
 
-function askToConfirm(currentPlan, targetPlan, viaTeam) {
+function askToConfirm(currentPlan, targetPlan, viaTeam, viaApple = false) {
   const current = planName(currentPlan);
   const target = planName(targetPlan);
 
   return json({
-    error: viaTeam
+    error: viaApple
+      ? `Your CyberNet AI ${current} plan from the App Store keeps billing through Apple until you cancel it in ${APPLE_MANAGE}. ` +
+        `Buying ${target} here adds a second subscription; it does not replace or cancel ${current}. Continue anyway?`
+      : viaTeam
       ? `Your team's CyberNet AI Business plan already covers you. Buying ${target} adds a subscription of your own; ` +
         "it does not change your team. Continue anyway?"
       : `You already have CyberNet AI ${current}. Buying ${target} adds a second subscription; it does not replace ${current}. ` +
@@ -135,7 +154,8 @@ function askToConfirm(currentPlan, targetPlan, viaTeam) {
     code: "CONFIRM_SECOND_PLAN",
     currentPlan: current,
     targetPlan: target,
-    viaTeam: Boolean(viaTeam)
+    viaTeam: Boolean(viaTeam),
+    viaApple: Boolean(viaApple)
   }, 409);
 }
 
@@ -187,6 +207,12 @@ async function plansInDatabase(user, profile) {
     plans.push({ tier: "business", status: "active" });
   }
 
+  // Apple Pro bought in the iPhone app (public.entitlement_of). Strict: an
+  // outage answers 503, never "no plan". Before the 1.1 migration exists the
+  // lookup answers 404 and nothing is added (today's behaviour).
+  const entitlement = await loadEntitlement(user.id, { profile, strict: true });
+  if (entitlement.appleActive) plans.push({ tier: "pro", status: "active", source: "apple" });
+
   return { plans, teamMember: Boolean(membership) && membership.role !== "owner" };
 }
 
@@ -224,6 +250,7 @@ function checkoutBlock({ plans, teamMember }, targetPlan, confirmed) {
   const sameTier = plans.filter((p) => p.tier === targetPlan);
 
   if (sameTier.length) {
+    if (sameTier.every((p) => p.source === "apple")) return refuseAppleDuplicate();
     // A healthy duplicate is reported as such; otherwise the card needs fixing.
     return refuseDuplicate(targetPlan, sameTier.every((p) => PAST_DUE_STATUSES.includes(p.status)));
   }
@@ -232,8 +259,8 @@ function checkoutBlock({ plans, teamMember }, targetPlan, confirmed) {
 
   if (confirmed) return null;
 
-  const other = plans.find((p) => p.tier !== targetPlan);
-  if (other) return askToConfirm(other.tier, targetPlan, false);
+  const other = plans.find((p) => p.tier !== targetPlan && p.source !== "apple") || plans.find((p) => p.tier !== targetPlan);
+  if (other) return askToConfirm(other.tier, targetPlan, false, other.source === "apple");
   if (teamMember) return askToConfirm("business", targetPlan, true);
 
   return null;

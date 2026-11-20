@@ -10,6 +10,7 @@ import {
   getActiveTeamMembership
 } from "../lib/supabase.mjs";
 import { modelParams, byokModel } from "../lib/ai-models.mjs";
+import { withEntitlement } from "../lib/entitlement.mjs";
 import { reportError } from "../lib/report-error.mjs";
 // Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
 // management, admin): requests from the app get 403 (netlify/lib/cors.mjs).
@@ -377,6 +378,8 @@ export default webOnly(async request => {
     if (profileResult.error) throw profileResult.error;
 
     const profile = profileResult.value;
+    // Stripe plan OR paid-up Apple Pro (lib/entitlement.mjs; profile rule before the 1.1 migration).
+    await withEntitlement(profile, user.id);
     const plan = effectivePlan(profile);
 
     reservation = await consumeAnalysis(user.id);

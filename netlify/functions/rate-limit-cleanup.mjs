@@ -56,8 +56,38 @@ export async function cleanupRateLimits({ now = Date.now(), timeoutMs = 20_000 }
   }
 }
 
+// public.apple_notifications (iPhone app 1.1): the ids of App Store Server
+// Notifications already handled, so a repeated delivery is not processed
+// twice. No payload, no user id; Apple retries for at most 72 hours, so 90
+// days is plenty. Before the 1.1 migration the table is missing (404): skipped.
+export async function cleanupAppleNotifications({ now = Date.now(), timeoutMs = 10_000 } = {}) {
+  if (env("RATE_LIMIT_CLEANUP").toLowerCase() === "off") return { status: "disabled" };
+  const cutoff = new Date(now - KEEP_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  try {
+    const response = await serviceFetch(`/rest/v1/apple_notifications?received_at=lt.${encodeURIComponent(cutoff)}`, {
+      method: "DELETE",
+      headers: { Prefer: "return=minimal, count=exact" },
+      signal: AbortSignal.timeout(timeoutMs)
+    });
+    if (response.status === 404) return { status: "skipped", cutoff };
+    if (!response.ok) {
+      console.error("CyberNet apple_notifications cleanup failed", response.status);
+      reportError(`Apple notification cleanup failed (HTTP ${response.status})`, { fn: "rate-limit-cleanup", label: "Old Apple notification ids were not deleted" });
+      return { status: "failed", httpStatus: response.status, cutoff };
+    }
+    const deleted = deletedCount(response);
+    console.log("CyberNet apple_notifications cleanup", JSON.stringify({ cutoff, deleted }));
+    return { status: "done", deleted, cutoff };
+  } catch (error) {
+    console.error("CyberNet apple_notifications cleanup failed", error?.message || error);
+    reportError(error, { fn: "rate-limit-cleanup", label: "Old Apple notification ids were not deleted" });
+    return { status: "failed", cutoff };
+  }
+}
+
 export default async () => {
   const result = await cleanupRateLimits();
+  result.appleNotifications = await cleanupAppleNotifications();
   return new Response(JSON.stringify(result), {
     status: result.status === "failed" ? 500 : 200,
     headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" }

@@ -87,6 +87,25 @@ async function sendCheckinEmail(email, caseTitle, caseId, siteUrl) {
   }
 }
 
+// Pro bought in the iPhone app counts as Pro here too (public.apple_pro_user_ids,
+// iPhone app 1.1). An account that is ALSO on a website Business plan stays in
+// the Business run only, so nobody gets two check-ins. Before the 1.1 migration
+// (404) or on any error, the Stripe Pro list is used alone.
+async function withApplePro(stripeProIds) {
+  try {
+    const appleRes = await serviceFetch("/rest/v1/rpc/apple_pro_user_ids", { method: "POST", body: JSON.stringify({ p_limit: 1000 }) }, RETRY);
+    if (!appleRes.ok) return stripeProIds;
+    const appleIds = (await appleRes.json().catch(() => [])).map((row) => row?.user_id).filter(Boolean);
+    if (!appleIds.length) return stripeProIds;
+    const bizRes = await serviceFetch("/rest/v1/profiles?select=id&plan=eq.business&subscription_status=in.(active,trialing)&limit=1000", {}, RETRY);
+    if (!bizRes.ok) return stripeProIds;
+    const business = new Set((await bizRes.json().catch(() => [])).map((p) => p.id));
+    return [...new Set([...stripeProIds, ...appleIds.filter((id) => !business.has(id))])];
+  } catch {
+    return stripeProIds;
+  }
+}
+
 async function checkinForPlan(plan, thresholdMinutes, siteUrl) {
   const cutoff = new Date(Date.now() - thresholdMinutes * 60 * 1000).toISOString();
 
@@ -101,7 +120,8 @@ async function checkinForPlan(plan, thresholdMinutes, siteUrl) {
     return { checked: 0, sent: 0, skipped: 0 };
   }
   const users = await profilesRes.json();
-  const userIds = users.map((p) => p.id).filter(Boolean);
+  let userIds = users.map((p) => p.id).filter(Boolean);
+  if (plan === "pro") userIds = await withApplePro(userIds);
   if (!userIds.length) return { checked: 0, sent: 0, skipped: 0 };
 
   const idList = userIds.join(",");
