@@ -70,7 +70,9 @@ async function handleOne(user, item, index, reason) {
   } catch (error) {
     if (!(error instanceof AppleJwsError) || error.code === "root_not_configured") throw error;
     console.warn(`apple-verify ${reason}: refused (${error.code})`);
-    return { ...nothing, status: "invalid", finish: true };
+    // verify_error: the check itself failed (not a verdict on the signature),
+    // so the app keeps the transaction and sends it again on the next sync.
+    return { ...nothing, status: "invalid", finish: error.code !== "verify_error" };
   }
   if (!decoded.ok) {
     console.warn(`apple-verify ${reason}: not ours (${decoded.reason})`);

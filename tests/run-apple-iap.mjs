@@ -410,6 +410,29 @@ check("alg none: invalid", res.data.results[0].status === "invalid", res.data);
 const hs = `${Buffer.from(JSON.stringify({ alg: "HS256", x5c: chain.x5c })).toString("base64url")}.${p}.${s}`;
 res = await verify("t-w", "launch", [{ jws: hs }]);
 check("alg HS256: invalid", res.data.results[0].status === "invalid", res.data);
+// Definite refusals (signature, chain, algorithm) are finished; an unexpected
+// error INSIDE the library (not a VerificationException) is not a verdict:
+// the transaction stays unfinished and comes back on the next sync (review fix).
+check("alg HS256: finished for good", res.data.results[0].finish === true, res.data);
+{
+  const { SignedDataVerifier } = (await import("@apple/app-store-server-library")).default ?? (await import("@apple/app-store-server-library"));
+  const original = SignedDataVerifier.prototype.verifyAndDecodeTransaction;
+  SignedDataVerifier.prototype.verifyAndDecodeTransaction = async function () { throw new TypeError("library bug"); };
+  try {
+    res = await verify("t-w", "launch", [{ jws: tx({ appAccountToken: U.W, originalTransactionId: "2000000100000205", transactionId: "3000000000000205" }) }]);
+  } finally {
+    SignedDataVerifier.prototype.verifyAndDecodeTransaction = original;
+  }
+  check("unexpected library error: invalid, NOT finished, no row", res.status === 200 && res.data.results[0].status === "invalid" && res.data.results[0].finish === false && !(await row("2000000100000205")), res.data);
+  const originalNote = SignedDataVerifier.prototype.verifyAndDecodeNotification;
+  SignedDataVerifier.prototype.verifyAndDecodeNotification = async function () { throw new TypeError("library bug"); };
+  try {
+    res = await notify(note("DID_RENEW", { appAccountToken: U.W, originalTransactionId: "2000000100000205", transactionId: "3000000000000206" }));
+  } finally {
+    SignedDataVerifier.prototype.verifyAndDecodeNotification = originalNote;
+  }
+  check("notification, unexpected library error: 500 so Apple retries", res.status === 500 && !(await row("2000000100000205")), res);
+}
 
 // notifications: production app id, other app, bad signature
 r = await notify(note("DID_RENEW", { appAccountToken: U.W, originalTransactionId: "2000000100000101", transactionId: "3000000000000102", environment: "Production", purchaseDate: now + 1000, expiresDate: now + 50 * DAY }, { environment: "Production", signedDate: now + 1000 }));

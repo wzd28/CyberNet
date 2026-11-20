@@ -154,6 +154,12 @@ export default async function handler(request) {
         reportError("Apple root certificate is not embedded; notifications cannot be verified", { fn: "apple-notifications", label: "Apple root certificate missing" });
         return json({ error: "Not available right now." }, 500);
       }
+      if (error.code === "verify_error") {
+        // The check itself failed (not a verdict on the signature): Apple retries.
+        console.error("CyberNet apple-notifications: the signature check failed unexpectedly", error.message);
+        reportError(error, { fn: "apple-notifications", label: "Apple notification could not be checked" });
+        return json({ error: "Try again later." }, 500);
+      }
       if (error.code === "wrong_app") {
         console.error("CyberNet apple-notifications: a notification for our bundle carries another app id");
         reportError("Apple notification carries an unexpected app id", { fn: "apple-notifications", label: "Apple notification app id mismatch" });

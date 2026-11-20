@@ -126,7 +126,11 @@ function translate(error) {
     if (status === 4) return new AppleJwsError("bad_environment", "Unexpected environment.");
     return new AppleJwsError("bad_signature", "The signature or certificate chain is not Apple's.");
   }
-  return new AppleJwsError("bad_signature", "The signed data could not be verified.");
+  // Not a VerificationException: an unexpected runtime or parser error inside
+  // the library, not a verdict about the signature. The caller keeps a
+  // StoreKit transaction unfinished (apple-verify) or asks Apple to retry
+  // (apple-notifications) instead of refusing it for good.
+  return new AppleJwsError("verify_error", "The signed data could not be checked right now.");
 }
 
 const iso = (ms) => {

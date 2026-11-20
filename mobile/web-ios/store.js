@@ -180,7 +180,10 @@
     return { ok: true, results, entitlement };
   }
   const appleActive = done => Boolean(done?.entitlement?.apple?.active) || ["apple", "both"].includes(done?.entitlement?.source);
-  const anyStatus = (done, status) => (done?.results || []).some(r => r?.status === status);
+  // "invalid" with finish:false (the server's check itself failed, not a verdict) is not a refusal:
+  // the transaction stays unfinished and is sent again, so it reads as "not confirmed yet".
+  const anyStatus = (done, status) => (done?.results || []).some(r => r?.status === status && !(status === "invalid" && r.finish === false));
+  const retrying = done => (done?.results || []).some(r => r?.status === "invalid" && r.finish === false);
 
   /* ================================================================ the paywall sheet */
   let open = null;       // { panel, done } while the paywall is up
@@ -436,6 +439,7 @@
       if (appleActive(outcome.done)) { say(TEXT.restored, "success"); haptic("SUCCESS"); if (!open) toast(TEXT.restored, "success"); return; }
       if (anyStatus(outcome.done, "wrong_account")) { say(TEXT.wrongAccount, "warn"); return; }
       if (anyStatus(outcome.done, "invalid") || anyStatus(outcome.done, "not_ours")) { say(TEXT.refused, "error"); return; }
+      if (retrying(outcome.done)) { say(TEXT.unconfirmed, "warn"); return; }
       say(TEXT.nothingToRestore);
     } catch (error) {
       if (/CANCELED/.test(String(error?.code || ""))) { say(""); return; }
