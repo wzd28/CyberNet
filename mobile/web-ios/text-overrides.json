@@ -1,5 +1,21 @@
 {
   "_": "Copy changes for shared web files whose build markers belong to another area. Each rule: find (exact text) or pattern (a regular expression), replace, min/max matches (a rule outside its range fails the build), why. Better: /*@web*/ and /*@ios*/ regions in the file itself; then delete the rule here (it will stop matching and fail the build as a reminder).",
+  "index.html": [
+    {
+      "find": "Something is broken or wrong (website, account, a scan result)",
+      "replace": "Something is broken or wrong (app, account, a scan result)",
+      "min": 1,
+      "max": 1,
+      "why": "1.1 bug 7 / design 10: website wording in the app (support form)"
+    },
+    {
+      "find": "send a structured report through the survey",
+      "replace": "send us a report with the feedback form",
+      "min": 1,
+      "max": 10,
+      "why": "1.1 bug 7: it is the feedback form, not a survey"
+    }
+  ],
   "cybernet-privacy-controls.js": [
     {
       "find": " To cancel a paid plan and keep your account, use Manage Billing on the Account Info tab.",

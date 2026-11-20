@@ -115,11 +115,15 @@
             "Check the account directly through the official app.",
             "Never share passwords or one-time codes.",
           ], "hw-list-safe")}`,
-          callout: {
+          callout: /*@web*/{
             kind: "ok",
             title: "Free plan gets 5 of these a day",
             body: "Quick Scans are separate from AI analyses. Pro removes the limit entirely.",
-          },
+          }/*@end-web*//*@ios {
+            kind: "ok",
+            title: "No daily limit on your iPhone",
+            body: "Quick Scan runs on your iPhone, needs no account and never uses your daily AI explanations.",
+          } @end-ios*/,
         },
       ],
     },
@@ -162,15 +166,21 @@
           heading: "Watch your daily allowance",
           body:
             "AI analyses are metered because each one costs real processing. The counter sits above the box so you always know where you stand.",
-          visual: `<div class="hw-meter-row">
+          visual: /*@web*/`<div class="hw-meter-row">
               <div class="hw-meter"><span class="hw-meter-label">Free</span><div class="hw-meter-track"><span style="width:33%"></span></div><b>1 / 3 today</b></div>
               <div class="hw-meter"><span class="hw-meter-label">Pro</span><div class="hw-meter-track"><span style="width:13%"></span></div><b>2 / 15 today</b></div>
-            </div>`,
-          callout: {
+            </div>`/*@end-web*//*@ios `<div class="hw-meter-row">
+              <div class="hw-meter"><span class="hw-meter-label">Today</span><div class="hw-meter-track"><span style="width:33%"></span></div><b>1 / 3 used</b></div>
+            </div>` @end-ios*/,
+          callout: /*@web*/{
             kind: "ok",
             title: "Resets at midnight UTC",
             body: "Business teams share one larger pool across everyone on the account.",
-          },
+          }/*@end-web*//*@ios {
+            kind: "ok",
+            title: "Needs an account",
+            body: "Analysis AI and Recovery need a CyberNet AI account. Quick Scan, Scan QR and Learn work without one.",
+          } @end-ios*/,
         },
       ],
     },

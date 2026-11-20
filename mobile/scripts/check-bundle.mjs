@@ -85,8 +85,8 @@ export const IAP_WORD_FILES = { "cybernet-privacy-controls.js": ["subscription"]
 // Files that may exist in the bundle at all.
 export const ALLOWED_FILES = [
   /^index\.html$/, /^legal\/(terms|privacy|acceptable-use)\.html$/,
-  /^(style|cybernet-legal)\.css$/,
-  /^(config|cybernet-engine|cybernet-errors|cybernet-compat|script|cybernet-privacy-controls)\.js$/,
+  /^(style|cybernet-legal|cybernet-howto)\.css$/,
+  /^(config|cybernet-engine|cybernet-errors|cybernet-compat|script|cybernet-privacy-controls|cybernet-howto)\.js$/,
   /^ios\/(cn-ios-boot|ios|cn-analytics|legal-page)\.js$/, /^ios\/ios\.css$/,
   /^vendor\/(supabase|jsQR|capacitor)\.js$/, /^vendor\/(three|hero3d-kit)\.min\.js$/,
   /^ui\/cybernet-ui\.(css|js)$/, /^ui\/cybernet-ui-legal\.css$/,

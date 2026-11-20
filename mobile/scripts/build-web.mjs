@@ -98,10 +98,11 @@ export const JS_FILES = [
   "cybernet-errors.js",
   "config.js",
   "script.js",
-  "cybernet-privacy-controls.js"
+  "cybernet-privacy-controls.js",
+  "cybernet-howto.js" // the how-to walkthroughs (1.1 bug 1); its /*@ios*/ copy names no plan
 ];
 export const ENGINE = "cybernet-engine.js";
-export const CSS_FILES = ["style.css", "cybernet-legal.css"];
+export const CSS_FILES = ["style.css", "cybernet-legal.css", "cybernet-howto.css"];
 
 // How each <script src> / stylesheet of public/index.html maps into the bundle. Keys are the path with
 // the leading "/", "legacy/" and "?v=" removed. null = deliberately not in the app (reason given).
@@ -116,7 +117,7 @@ export const SCRIPT_MAP = {
   "ui/cybernet-ui.js": "ui/cybernet-ui.js",
   "cybernet-consent.js": null,            // Google Analytics cookie bar: the app has its own, ATT-gated (ios/cn-analytics.js)
   "cybernet-account-api-upgrade.js": null, // web Account modal: plans, billing, BYOK (ios.js has the Account screen)
-  "cybernet-howto.js": null,               // home-page how-to player; its openers are web-only
+  "cybernet-howto.js": "cybernet-howto.js", // the Home pill opens the same how-to guide as on the website (1.1 bug 1)
   "cybernet-business-team.js": null,       // Business purchase and management (B14)
   "cybernet-final-ui-fix.js": null,        // web Account modal tabs, mojibake repair, web mobile menu
   "cybernet-legal-upgrade.js": null,       // web Legal Center + checkout consent; ios.js has the app's legal layer
@@ -128,7 +129,7 @@ export const STYLE_MAP = {
   "cybernet-legal.css": "cybernet-legal.css",
   "ui/cybernet-ui.css": "ui/cybernet-ui.css",
   "cybernet-account-api-upgrade.css": null,
-  "cybernet-howto.css": null,
+  "cybernet-howto.css": "cybernet-howto.css",
   "cybernet-business-team.css": null,
   "cybernet-consent.css": null
 };
@@ -137,7 +138,7 @@ export const STYLE_MAP = {
 // website's Home page is the app's first tab (owner, 10 Nov 2026): its hero, threats, demo, flow and reel styles and the demo and
 // reel modules ship. The app's launch stage has its own rules in ios.css (the website gate's, copied); 63-gate.css stays out.
 export const UI_EXCLUDE = {
-  js: ["25-live.js", "09-bgfx.js", "65-press.js"],
+  js: ["25-live.js", "09-bgfx.js", "65-press.js", "60-typewriter.js"], // 60-typewriter: no typing caret on app titles (1.1 design item 5)
   css: ["22-live.css", "45-about.css", "50-pricing.css", "63-gate.css", "04-bgfx.css"]
 };
 // iOS-only files (mobile/web-ios -> www/ios). Order of the scripts = order in the page.
@@ -860,8 +861,9 @@ async function main() {
   await rm(OUT, { recursive: true, force: true });
   await mkdir(OUT, { recursive: true });
 
-  const indexSource = applyIapRegions(await readText(path.join(pub, "index.html")), NO_IAP, "public/index.html");
   const overrides = await readJson(path.join(webIos, "text-overrides.json"));
+  // index.html copy that only the app changes (rules under "index.html" in text-overrides.json, applied to the source)
+  const indexSource = applyTextOverrides(applyIapRegions(await readText(path.join(pub, "index.html")), NO_IAP, "public/index.html"), "index.html", forMode(overrides["index.html"]));
   const versions = await legalVersions();
 
   const counts = await buildSharedJs(overrides);

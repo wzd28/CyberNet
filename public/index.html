@@ -766,7 +766,22 @@
       <!--@ios <small>Secure account access powered by Supabase. Accounts are free.</small> @end-ios-->
     </div>
   </div>
-  <!-- HOW-TO VIDEO MODAL -->
+  <!-- HOW-TO VIDEO MODAL. The iPhone app ships the walkthrough too (app 1.1, bug 1): its copy below has the same ids,
+       a Done button in the corner and no video controls or placeholder. -->
+  <!--@ios <div id="howtoVideoModal" class="modal video-modal video-modal-fullscreen cn-ios-howto" aria-hidden="true">
+    <div class="video-player-shell" role="dialog" aria-modal="true" aria-labelledby="howtoVideoTitle">
+      <div class="video-player-topbar">
+        <h3 id="howtoVideoTitle">How to use Quick Scan</h3>
+        <button class="video-exit-btn" id="closeHowtoVideo" type="button">Done</button>
+      </div>
+      <div class="video-modal-tabs" id="howtoVideoTabs" role="group" aria-label="Choose a feature">
+        <button class="video-modal-tab active" type="button" data-video="protect">Quick Scan</button>
+        <button class="video-modal-tab" type="button" data-video="cybernetai">Analysis AI</button>
+        <button class="video-modal-tab" type="button" data-video="recovery">Recovery</button>
+      </div>
+      <div class="video-modal-player" id="howtoVideoPlayer"></div>
+    </div>
+  </div> @end-ios-->
   <div data-web-only id="howtoVideoModal" class="modal video-modal video-modal-fullscreen" aria-hidden="true">
     <div class="video-player-shell" role="dialog" aria-modal="true" aria-labelledby="howtoVideoTitle">
       <div class="video-player-topbar">
@@ -935,7 +950,7 @@
               Learn how to use each feature
               <svg viewBox="0 0 24 24" width="13" height="13" fill="none" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
-            <!--@ios <button class="pill hero-learn-pill hero-learn-pill-filled" type="button" data-page="learn">
+            <!--@ios <button class="pill hero-learn-pill hero-learn-pill-filled" id="heroLearnFeaturesBtn" type="button">
               Learn how to use each feature
               <svg viewBox="0 0 24 24" width="13" height="13" fill="none" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button> @end-ios-->
@@ -1157,13 +1172,13 @@
           </figure>
           <figure class="cn-tile cn-tile--b cn-tile--qr reveal">
             <div class="cn-qr">
-              <a data-web-only class="cn-qr-code" href="https://cybernetai.app" aria-label="QR code that opens cybernetai.app"><img src="/ui/img/qr-cybernetai.svg?v=20261014-5" alt="QR code that opens cybernetai.app" width="232" height="232" loading="lazy" decoding="async" /></a><!--@ios <span class="cn-qr-code"><img src="/ui/img/qr-cybernetai.svg?v=20261014-5" alt="A QR code for a real website address" width="232" height="232" loading="lazy" decoding="async" /></span> @end-ios-->
+              <a data-web-only class="cn-qr-code" href="https://cybernetai.app" aria-label="QR code that opens cybernetai.app"><img src="/ui/img/qr-cybernetai.svg?v=20261014-5" alt="QR code that opens cybernetai.app" width="232" height="232" loading="lazy" decoding="async" /></a><!--@ios <span class="cn-qr-code"><img src="/ui/img/qr-app-demo.svg?v=20261120-1" alt="A real QR code that opens the CyberNet AI QR code demo page" width="232" height="232" loading="lazy" decoding="async" /></span> @end-ios-->
               <ul class="cn-qr-links" aria-label="A real link next to a lookalike">
                 <li class="is-real"><span class="cn-qr-tag">Real</span><a data-web-only href="https://cybernetai.app">cybernetai.app</a><!--@ios <span>cybernetai.app</span> @end-ios--></li>
                 <li class="is-fake"><span class="cn-qr-tag">Lookalike</span><span class="cn-qr-fake">cybernetai-app.invalid</span></li>
               </ul>
             </div>
-            <figcaption><b>Lookalike links and QR codes</b><span>Addresses that copy a real brand, one letter at a time. This code is real: it opens cybernetai.app.</span></figcaption>
+            <figcaption><b>Lookalike links and QR codes</b><span data-web-only>Addresses that copy a real brand, one letter at a time. This code is real: it opens cybernetai.app.</span><!--@ios <span>Addresses that copy a real brand, one letter at a time. This code is real: it opens a CyberNet AI demo page.</span> @end-ios--></figcaption>
           </figure>
           <figure class="cn-tile cn-tile--c reveal">
             <picture><source media="(max-width: 700px)" srcset="/ui/img/threat-ai-4x5-800.webp?v=20261014-5 800w, /ui/img/threat-ai-4x5-1200.webp?v=20261014-5 1200w" sizes="100vw" /><img src="/ui/img/threat-ai-800.webp?v=20261014-5" srcset="/ui/img/threat-ai-800.webp?v=20261014-5 800w, /ui/img/threat-ai-1600.webp?v=20261014-5 1600w" sizes="(max-width: 620px) 100vw, (max-width: 1020px) 46vw, (max-width: 1440px) 50vw, 720px" width="1600" height="1067" loading="lazy" decoding="async" alt="A glowing AI chip on a circuit board in cool cyan light" /></picture>
@@ -3242,7 +3257,7 @@
   <script src="/legacy/cybernet-engine.js?v=20261030-d1" defer></script>
   <script src="/legacy/script.js?v=20261120-iap1" defer></script>
   <script src="/legacy/cybernet-account-api-upgrade.js?v=20261120-iap1" defer></script>
-  <script src="/cybernet-howto.js?v=20261019-1" defer></script>
+  <script src="/cybernet-howto.js?v=20261120-1" defer></script>
 <script src="/legacy/cybernet-business-team.js?v=20261028-1" defer></script>
   <script src="/legacy/cybernet-final-ui-fix.js?v=20261028-1" defer></script>
       <script src="/legacy/cybernet-legal-upgrade.js?v=20261120-iap1" defer></script>
