@@ -58,7 +58,7 @@ try {
     check("no remote script tags", scripts.every(s => !/^(https?:)?\/\//.test(s)), scripts.join(", "));
     check("web-only scripts are not loaded", !scripts.some(s => /consent|business-team|account-api-upgrade|onboarding|legal-upgrade|final-ui-fix|admin-feedback/.test(s)), scripts.join(", "));
     // 1.1 bug 1: the how-to walkthroughs ship (the Home pill opens them), with no plan, price or Business wording
-    check("How-to guide (bug 1): cybernet-howto.js and .css are loaded, the modal is in the page with a Done button and three tabs, and the Home pill opens it (no data-page)", scripts.includes("cybernet-howto.js") && /href="cybernet-howto\.css"/.test(html) && /id="howtoVideoModal"/.test(html) && /id="closeHowtoVideo" type="button">Done</.test(html) && (html.match(/data-video="(protect|cybernetai|recovery)"/g) || []).length === 3 && /id="heroLearnFeaturesBtn"/.test(html) && !/id="heroLearnFeaturesBtn"[^>]*data-page/.test(html) && !/coming soon|videoPlayerControls/i.test(html));
+    check("How-to guide (bug 1): cybernet-howto.js and .css are loaded, the modal is in the page with its close button (ios.js turns it into the User Guide's X) and three tabs, and the Home pill opens it (no data-page)", scripts.includes("cybernet-howto.js") && /href="cybernet-howto\.css"/.test(html) && /id="howtoVideoModal"/.test(html) && /id="closeHowtoVideo" type="button">Done</.test(html) && (html.match(/data-video="(protect|cybernetai|recovery)"/g) || []).length === 3 && /id="heroLearnFeaturesBtn"/.test(html) && !/id="heroLearnFeaturesBtn"[^>]*data-page/.test(html) && !/coming soon|videoPlayerControls/i.test(html));
     { const howto = await read("cybernet-howto.js"); check("How-to guide (bug 1): the app copy names no plan, Business or Pro, and says Analysis AI and Recovery need an account", !/Business|\bPro\b|Free plan|upgrade/i.test(howto) && /Analysis AI and Recovery need a CyberNet AI account/.test(howto), howto.match(/.{40}(Business|\bPro\b|Free plan).{40}/i)?.[0]); }
     check("CSP meta present", /<meta http-equiv="Content-Security-Policy" content="default-src 'self' capacitor:\/\/localhost;/.test(html));
     check("title is CyberNet AI", /<title>CyberNet AI<\/title>/.test(html));
@@ -134,6 +134,24 @@ try {
     if (getDanger) check("a low-scoring text reads LOW RISK", getDanger(4, { kind: "text" }).headline === "LOW RISK" && getDanger(40, { kind: "text" }).headline === "SCAM");
     const iosJs = await read("ios/ios.js");
     check("no NOT A SCAM headline anywhere in the app", !/NOT A SCAM|Not A Scam/.test(script + iosJs + html));
+
+    // Owner, 21 Nov 2026: the Home pill opens a User Guide that covers every feature with numbered steps (ios.js GUIDE),
+    // and every surface closes with a round X at its top right (sheets, the legal sheet, the guide, a Quick Scan verdict).
+    {
+      const ast = acorn.parse(iosJs, { ecmaVersion: "latest", sourceType: "script" });
+      const decl = find(n => n.type === "VariableDeclaration" && n.declarations.some(d => d.id?.name === "GUIDE"), ast);
+      let guide = null;
+      try { guide = new Function(`${iosJs.slice(decl.start, decl.end)}\nreturn GUIDE;`)(); } catch (error) { check("User Guide: GUIDE can be run", false, error?.message); }
+      const topics = (guide || []).flatMap(g => g.topics);
+      const ids = topics.map(t => t.id);
+      const words = JSON.stringify(guide || []);
+      check("User Guide: a topic for every feature (message, link, picture, QR, Share, Analysis AI, Recovery, Learn, Account), each with at least 3 numbered steps and a button that opens it", ["text", "link", "image", "qr", "share", "ai", "recovery", "learn", "account"].every(id => ids.includes(id)) && topics.every(t => t.steps.length >= 3 && t.title && t.lead && t.go?.label && (t.go.page || t.go.action)), ids.join(","));
+      const sold = /\bPro\b|Business|\bFree\b|\bplans?\b|price|upgrade|subscri|purchase|\bbuy\b|NOT A SCAM|100% safe/i;
+      const plain = words.replace(/\b(a )?step-by-step plan\b|\bthe plan\b|\ba calm plan\b|\brecovery plan\b/gi, " "); // Recovery's own plan is not a price plan
+      check("User Guide: no plan name, price, purchase or website-only wording; it says Analysis AI and Recovery need an account; app verdict words only", !sold.test(plain) && /Analysis AI and Recovery need a CyberNet AI account/.test(words), plain.match(new RegExp(`.{30}(${sold.source}).{30}`, "i"))?.[0]);
+      check("User Guide: built in the how-to sheet, its Close becomes the X (aria-label Close), opened by the Home pill", /close\.className\s*=\s*"cn-ios-sheet-x cn-ios-head-x"/.test(iosJs) && /close\.setAttribute\("aria-label",\s*"Close"\)/.test(iosJs) && /#heroLearnFeaturesBtn, \[data-video\]/.test(iosJs) && /buildGuide\(\);/.test(iosJs));
+      check("Close X: every sheet that can be dismissed, the legal sheet and a Quick Scan verdict have a round X labelled Close; the legal sheet has no Done", /class="cn-ios-sheet-x" data-sheet-dismiss aria-label="Close"/.test(iosJs) && /class="cn-ios-sheet-x cn-ios-head-x" data-legal-close aria-label="Close"/.test(iosJs) && /cn-ios-sheet-x cn-ios-result-x/.test(iosJs) && !/data-legal-close>Done</.test(iosJs));
+    }
 
     // Owner, TestFlight build 1: the Check tab offers both Quick Scan and Analysis AI. A segmented control
     // (ios.js section 2) switches the two pages. The markup is cut out of ios.js with acorn and rendered
@@ -1103,10 +1121,10 @@ try {
 
       // ---- 6a. the QR scanner closing puts the tab bar's highlight back
       {
-        const mkScan = (scanBarcode, hasScanner = true) => {
+        const mkScan = (scanBarcode, hasScanner = true, mac = false) => {
           const log = [];
-          const go = run(["startQrScan"], ["P", "showCameraHelp", "showQrVerdict", "syncTabs", "report"], "startQrScan",
-            () => (hasScanner ? { scanBarcode } : null), (...a) => log.push(`help:${a[0].slice(0, 22)}${a[1] ? ":settings" : ""}`), (...a) => log.push(`verdict:${a.join(",")}`), () => log.push("sync"), (e, where) => log.push(`report:${where}`));
+          const go = run(["startQrScan"], ["P", "showCameraHelp", "showQrVerdict", "syncTabs", "report", "pointerOnly"], "startQrScan",
+            () => (hasScanner ? { scanBarcode } : null), (...a) => log.push(`help:${a[0].slice(0, 22)}${a[1] ? ":settings" : ""}`), (...a) => log.push(`verdict:${a.join(",")}`), () => log.push("sync"), (e, where) => log.push(`report:${where}`), () => mac);
           return { go, log };
         };
         const cancel = mkScan(async () => { throw Object.assign(new Error("scan cancelled"), { code: "OS-PLUG-BARC-0006" }); });
@@ -1121,8 +1139,14 @@ try {
         await broken.go();
         const none = mkScan(null, false);
         await none.go();
+        // on a Mac (no touch screen, a fine pointer) the photo picker comes first: the scanner is never started and nothing is reported
+        let macStarted = false;
+        const mac = mkScan(async () => { macStarted = true; return { ScanResult: "" }; }, true, true);
+        await mac.go();
+        check("QR scanner on a Mac: no camera is started and no error is reported; the photo picker help opens", !macStarted && mac.log.join("|").startsWith("help:Choose a photo or a s") && !mac.log.some(l => l.startsWith("report")), mac.log);
+        check("QR scanner on a Mac: it is a Mac only with no touch points and a fine pointer that hovers", fnText("pointerOnly").includes('navigator.maxTouchPoints===0&&w.matchMedia("(hover:hover)and(pointer:fine)").matches'), fnText("pointerOnly"));
         check("QR scanner closed: cancelled and an empty result sync the tab bar at once; a result, a refusal and an error open a sheet (which syncs when it is closed)",
-          cancel.log.join("|") === "sync" && empty.log.join("|") === "sync" && scanned.log.join("|") === "verdict:https://parcel-redeliver-help.invalid/pay,qr" && denied.log.join("|").startsWith("help:CyberNet AI doesn't ha") && !denied.log.includes("sync") && broken.log.join("|").startsWith("report:qr scan|help:The scanner couldn't") && none.log.join("|").startsWith("help:The camera scanner is"), [cancel.log, empty.log, scanned.log, denied.log, broken.log, none.log]);
+          cancel.log.join("|") === "sync" && empty.log.join("|") === "sync" && scanned.log.join("|") === "verdict:https://parcel-redeliver-help.invalid/pay,qr" && denied.log.join("|").startsWith("help:CyberNet AI doesn't ha") && !denied.log.includes("sync") && broken.log.join("|").startsWith("report:qr scan|help:The camera isn't avail") && none.log.join("|").startsWith("help:The camera scanner is"), [cancel.log, empty.log, scanned.log, denied.log, broken.log, none.log]);
         check("QR scanner closed: the result sheet and the camera help sheet sync the tab bar when they close, and a code that cannot be checked syncs too",
           /\}\)\.then\(\(\)=>syncTabs\(\)\);?\}$/.test(fnText("showQrVerdict")) && /\.then\(choice=>\{syncTabs\(\);/.test(fnText("showCameraHelp")) && /Thiscodecouldnotbechecked\."\);syncTabs\(\);return/.test(fnText("showQrVerdict")) && /couldnotload\.Pleaserestarttheapp\."\);syncTabs\(\);return/.test(fnText("showQrVerdict")));
         check("Tab bar: a page view is counted when the page changes, not each time the highlight is put back", /page!==lastPageViewed\)\{lastPageViewed=page;w\.CNAnalytics\.page\(/.test(fnText("syncTabs")));

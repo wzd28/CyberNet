@@ -1382,7 +1382,7 @@
     const node = el(`<div class="cn-ios-legal-sheet" id="cnLegalSheet" role="dialog" aria-modal="true" aria-label="${esc(title)}">
         <div class="cn-ios-legal-head">
           <h2 class="cn-ios-legal-title">${esc(title)}</h2>
-          <button type="button" class="cn-ios-link-btn" data-legal-close>Done</button>
+          <button type="button" class="cn-ios-sheet-x cn-ios-head-x" data-legal-close aria-label="Close">${CLOSE_X}</button>
         </div>
         <iframe class="cn-ios-legal-frame" title="Legal document" src="legal/${file}.html?embedded=1${hash ? `#${encodeURIComponent(hash)}` : ""}"></iframe>
       </div>`);
@@ -1402,7 +1402,7 @@
       if (sheetStack[sheetStack.length - 1] !== node) return;
       if (e.key === "Escape" || e.key === "Esc") { e.stopImmediatePropagation(); close(); }
       if (e.key === "Tab") {
-        const f = $("button, iframe", node);
+        const f = $$("button, iframe", node);
         if (!f.length) return;
         if (e.shiftKey && d.activeElement === f[0]) { e.preventDefault(); f[f.length - 1].focus(); }
         else if (!e.shiftKey && d.activeElement === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
@@ -1698,6 +1698,9 @@
   async function startQrScan() {
     const scanner = P("CapacitorBarcodeScanner");
     if (!scanner) { showCameraHelp("The camera scanner is part of the CyberNet AI app. You can choose a photo of a QR code instead."); return; }
+    // On a Mac (the iPhone app on Apple silicon) there is no rear camera and no touch screen: the photo picker comes first,
+    // with no error (owner, 21 Nov 2026: "make it a MacBook app as well").
+    if (pointerOnly()) { showCameraHelp("Choose a photo or a screenshot of the QR code, and CyberNet AI checks it."); return; }
     try {
       const result = await scanner.scanBarcode({
         hint: 0, scanInstructions: "Point at a QR code. Nothing opens until you choose.", scanButton: false, scanText: " ",
@@ -1711,8 +1714,13 @@
       if (/0006\b|cancel/i.test(text)) { syncTabs(); return; } // the native bar is still on Scan QR: back to the page that is open
       if (/0007\b|camera access|permission/i.test(text)) { showCameraHelp("CyberNet AI doesn't have access to the camera. You can allow it in Settings, or choose a photo of the QR code instead.", true); return; }
       report(error, "qr scan");
-      showCameraHelp("The scanner couldn't start. You can choose a photo of the QR code instead.");
+      showCameraHelp("The camera isn't available right now. Choose a photo or a screenshot of the QR code instead.");
     }
+  }
+  // No touch screen and a fine pointer that hovers: the app is running on a Mac. Both must hold, so an iPhone or an iPad
+  // with a trackpad (which still has touch points) never takes the Mac path.
+  function pointerOnly() {
+    try { return navigator.maxTouchPoints === 0 && w.matchMedia("(hover: hover) and (pointer: fine)").matches; } catch { return false; }
   }
   function showCameraHelp(text, settings = false) {
     sheet({
@@ -2055,10 +2063,31 @@
         const b = el('<button type="button" class="cn-ios-link-btn cn-ios-report-btn">Report a problem with this result</button>');
         b.addEventListener("click", () => reportProblem(area.kind, area.kind === "recovery" ? lastCaseId : ""));
         host.appendChild(b);
+        if (area.kind === "quick_scan") addNewCheckX(box);
         const tone = /result-has-danger|verdict-headline-danger/.test(box.className + r.innerHTML.slice(0, 400)) ? "ERROR" : /uncertain/.test(box.className + r.innerHTML.slice(0, 400)) ? "WARNING" : "SUCCESS";
         if (area.kind !== "recovery") haptic(tone);
       }
     }
+  }
+  // Owner, 21 Nov 2026 (the close X): a Quick Scan verdict fills the screen once it is scrolled into view, so it gets the
+  // same round X at its top right. It clears the result and the text or link that was checked and puts the person back at
+  // the box, ready for a new check (an image stays chosen: the photo picker is one tap away).
+  const RESULT_INPUT = { cyberTextResult: "cyberTextInput", cyberLinkResult: "cyberLinkInput", cyberImageResult: "" };
+  const RESULT_EMPTY = { cyberTextResult: "Your text scam result will appear here.", cyberLinkResult: "Your link scam result will appear here.", cyberImageResult: "Your image scam result will appear here." };
+  function addNewCheckX(box) {
+    if (!(box.id in RESULT_INPUT) || $(":scope > .cn-ios-result-x", box)) return;
+    const x = el(`<button type="button" class="cn-ios-sheet-x cn-ios-result-x" aria-label="Close this result and start a new check">${CLOSE_X}</button>`);
+    x.addEventListener("click", () => {
+      const field = RESULT_INPUT[box.id] ? $(`#${RESULT_INPUT[box.id]}`) : null;
+      box.className = "result-box";
+      box.textContent = RESULT_EMPTY[box.id];
+      if (field) { field.value = ""; field.dispatchEvent(new Event("input", { bubbles: true })); }
+      const panel = box.closest(".detect-main") || box;
+      const top = w.scrollY + panel.getBoundingClientRect().top - (($(".navbar")?.getBoundingClientRect().bottom) || 0) - 12;
+      w.scrollTo({ top: Math.max(0, top), behavior: motionOff() ? "auto" : "smooth" });
+      try { (field || panel.querySelector("button, input"))?.focus({ preventScroll: true }); } catch { /* ignore */ }
+    });
+    box.prepend(x);
   }
   // 1.1 bug 4: what the report sheet says when it cannot reach CyberNet AI (instead of the web view's "Load failed")
   const REPORT_OFFLINE = `You're offline, so the report can't be sent. Try again when you're connected, or email ${SUPPORT}.`;
@@ -2197,14 +2226,168 @@
   }
   // 1.1 bug 1: the how-to guide is a full-screen sheet in the app too; the native tab bar steps aside while it is open
   // (it would cover the guide's Back / Next row), and comes back when it closes.
+  // Owner, 21 Nov 2026: "Learn how to use these features: fix it to actually lead you to an instruction manual like the
+  // website". The Home pill opens the app's user guide: an Apple-style help page (a large title, grouped topics with
+  // icons, and for each topic numbered steps, tips and a button that opens the feature). It covers every feature the app
+  // has, in the app's own words (no plans or prices). It lives in the how-to guide's full-screen sheet (#howtoVideoModal),
+  // so script.js still opens and closes it (the pill, Escape, the Close X) and watchHowto() keeps the tab bar aside.
+  const GUIDE_ICON = {
+    text: '<path d="M5 5.5h14a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5h-7l-4.5 3.5V16.5H5A1.5 1.5 0 0 1 3.5 15V7A1.5 1.5 0 0 1 5 5.5Z"/><path d="M7.5 9.5h9M7.5 12.5h6"/>',
+    link: '<path d="M10 14a4 4 0 0 0 5.66 0l2.83-2.83a4 4 0 0 0-5.66-5.66L11.5 6.84"/><path d="M14 10a4 4 0 0 0-5.66 0l-2.83 2.83a4 4 0 0 0 5.66 5.66l1.33-1.33"/>',
+    image: '<rect x="3.5" y="5" width="17" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="m4 17 5-4.5 3.5 3 3-2.5 4.5 4"/>',
+    qr: '<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M8 8h3v3H8zM13 13h3v3h-3zM13 8h3M8 13v3"/>',
+    share: '<path d="M12 3.5v11M8 7.5l4-4 4 4"/><path d="M8.5 10.5H6.5a1 1 0 0 0-1 1v7.5a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-7.5a1 1 0 0 0-1-1h-2"/>',
+    ai: '<path d="M11 3.5c.6 4 2.6 6 6.5 6.5-3.9.6-5.9 2.6-6.5 6.5-.6-3.9-2.6-5.9-6.5-6.5 3.9-.5 5.9-2.5 6.5-6.5Z"/><path d="M18.5 15c.3 1.6 1 2.3 2.5 2.5-1.5.3-2.2 1-2.5 2.5-.3-1.5-1-2.2-2.5-2.5 1.5-.2 2.2-.9 2.5-2.5Z"/>',
+    recovery: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.5"/><path d="m6 6 3.5 3.5M18 6l-3.5 3.5M6 18l3.5-3.5M18 18l-3.5-3.5"/>',
+    learn: '<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5zM20 5.5A1.5 1.5 0 0 0 18.5 4H13v16h5.5a1.5 1.5 0 0 0 1.5-1.5z"/>',
+    account: '<circle cx="12" cy="9" r="3.6"/><path d="M5.5 19.2c1.3-3 3.7-4.4 6.5-4.4s5.2 1.4 6.5 4.4"/><circle cx="12" cy="12" r="9"/>'
+  };
+  const GUIDE = [
+    { group: "Check something", topics: [
+      { id: "text", icon: "text", tint: "blue", title: "Check a message", sub: "A text, email or DM",
+        lead: "Quick Scan checks a message on your iPhone in about a second. It needs no account, and the message is not sent to an AI.",
+        steps: ["Tap Check at the bottom of the screen. Quick Scan is selected at the top.", "Tap Text detection.", "Copy the whole message, including any links. Then touch and hold the box and tap Paste.", "Tap Start the analysis.", "Read the answer at the top of the result: SCAM or LOW RISK. Under it you see why, and What to do next.", "To check something else, tap the X at the top right of the result."],
+        tips: [["Never paste secrets", "Leave out passwords, one-time codes, card numbers and recovery phrases."], ["Want it explained?", "Analysis AI explains a message in plain language. See Analysis AI below."]],
+        go: { label: "Check a message", page: "cybernet", tab: "text" } },
+      { id: "link", icon: "link", tint: "teal", title: "Check a link", sub: "A web address on its own",
+        lead: "Check a link before you open it. Quick Scan looks at where the address really goes.",
+        steps: ["Tap Check, then Link detection.", "Touch and hold the link where you found it and tap Copy Link (or Copy).", "Touch and hold the box, tap Paste, then tap Start the analysis.", "Read the answer: SCAM, LOW RISK or, for a link right on the edge, CAN'T CONFIRM.", "If the answer is not LOW RISK, don't open the link. Go to the company's app or website yourself."],
+        tips: [["LOW RISK is not a promise", "It means CyberNet AI found no warning signs, not that the link is certain to be harmless. If a link asks for a password or a payment, go to the company's app or website yourself."]],
+        go: { label: "Check a link", page: "cybernet", tab: "link" } },
+      { id: "image", icon: "image", tint: "green", title: "Check a screenshot or photo", sub: "A picture of a message or a QR code",
+        lead: "Quick Scan finds a QR code inside a picture and checks it. To read the words in a screenshot, use Analysis AI.",
+        steps: ["Tap Check, then Image detection.", "Tap the box to choose a screenshot or photo.", "Quick Scan checks any QR code in the picture and tells you what it found.", "If the picture has no QR code, it tells you so. For the words in a screenshot, send it to Analysis AI."],
+        tips: [["Cover private details first", "Before you send a screenshot for an AI explanation, crop out names, account numbers and codes."]],
+        go: { label: "Check a picture", page: "cybernet", tab: "image" } },
+      { id: "qr", icon: "qr", tint: "orange", title: "Scan a QR code", sub: "With the camera, or from a photo",
+        lead: "Check a QR code before you act on it. Nothing opens until you choose.",
+        steps: ["Tap Scan QR at the bottom of the screen.", "The first time, allow CyberNet AI to use the camera.", "Point the camera at the code. The result opens by itself.", "Read the answer and what the code holds (a web link, Wi-Fi, a contact or plain text).", "Choose what to do: Get an AI explanation, Scan another, Copy, or Open in Safari. A risky link asks you again before it opens.", "Tap the X at the top right to close the result."],
+        tips: [["No camera?", "On a Mac, or if the camera is off for CyberNet AI, choose a photo of the QR code instead. A screenshot works too."]],
+        go: { label: "Scan a QR code", action: "scan" } },
+      { id: "share", icon: "share", tint: "indigo", title: "Share to CyberNet AI", sub: "Check from Safari, Mail or Photos",
+        lead: "Send a link, a picture or text to CyberNet AI from another app, without copying it first.",
+        steps: ["Turn it on once: in Safari, Mail or Photos, tap Share.", "Scroll the row of apps to the end, tap More, and turn on CyberNet AI.", "From then on, tap Share and choose CyberNet AI. You get a quick check right there.", "Open CyberNet AI if you want an AI explanation of what you shared."],
+        tips: [["A text message?", "Messages can't share a text to other apps. Copy it and paste it into Check."]],
+        go: { label: "Show me how to turn it on", action: "share-help" } }
+    ] },
+    { group: "Get help after a scam", topics: [
+      { id: "ai", icon: "ai", tint: "purple", title: "Analysis AI", sub: "An AI explanation in plain language",
+        lead: "Analysis AI reads a message, a link or a screenshot and explains in plain language what looks wrong and what to do.",
+        steps: ["Tap Check, then Analysis AI at the top. Sign in if you are asked: Analysis AI needs an account.", "Paste the message or link into the box. To add a screenshot, tap the attach button.", "Check what will be sent, then tap Send.", "The first time, CyberNet AI asks before anything is sent for an AI explanation. Tap Allow to go on.", "Read the explanation: the answer, the evidence, and what to do next. It is saved under Saved explanations."],
+        tips: [["A daily number", "You get a set number of AI explanations each day. The count is at the top of the page."], ["Your choice", "You can turn AI analysis off at any time in Account."]],
+        go: { label: "Open Analysis AI", page: "cybernetai" } },
+      { id: "recovery", icon: "recovery", tint: "red", title: "Recovery Mode", sub: "A step-by-step plan after a scam",
+        lead: "If something already went wrong, Recovery turns it into a calm plan: what to do now, what to secure next, and what to watch for.",
+        steps: ["Tap Recovery at the bottom of the screen. Sign in if you are asked: Recovery needs an account.", "Under What happened?, describe it in your own words.", "Pick the incident type, when it happened and your country or region, and tick what applies (for example, I entered my password).", "Tap Start Recovery.", "Work through the plan from the top: it is ordered by what matters most. Tick each step when it is done.", "Your case is saved under Your Recovery cases, so you can come back to it."],
+        tips: [["Never include secrets", "No passwords, codes, card numbers or recovery phrases."], ["Reminders", "In Account, turn on Recovery reminders to get a reminder after 1, 3 and 7 days."]],
+        go: { label: "Open Recovery", page: "recovery" } }
+    ] },
+    { group: "Learn and settings", topics: [
+      { id: "learn", icon: "learn", tint: "yellow", title: "Learn", sub: "Short lessons on staying safe",
+        lead: "The Learn Center has short lessons on scams, passwords, privacy and what to do after an attack. It needs no account.",
+        steps: ["Tap Learn at the bottom of the screen.", "Start at the top and follow the roadmap, or tap a topic such as Scams or Passwords.", "Open a lesson to read it, with examples and tips.", "Looking for something? Type it in Find something specific."],
+        tips: [],
+        go: { label: "Open Learn", page: "learn" } },
+      { id: "account", icon: "account", tint: "gray", title: "Account and privacy", sub: "Your data, reminders and help",
+        lead: "Account holds your privacy choices, your data and help.",
+        steps: ["Tap Account at the bottom of the screen.", "Under Privacy & Data, turn AI analysis on or off, export your data, clear saved history or delete your account.", "Under Notifications, turn Recovery reminders on or off.", "Under Help, contact support, turn on Share to CyberNet AI, or see the welcome tips again."],
+        tips: [["No account?", "Quick Scan, Scan QR, Share and Learn work without one. Analysis AI and Recovery need a CyberNet AI account."]],
+        go: { label: "Open Account", page: "account" } }
+    ] }
+  ];
+  const GUIDE_TOPICS = GUIDE.flatMap(g => g.topics);
+  // the website's walkthrough keys (script.js openHowtoVideo) map onto the guide's topics
+  const GUIDE_FROM_KEY = { protect: "", cybernetai: "ai", recovery: "recovery" };
+  const guideIcon = (t, cls = "") => `<span class="cn-guide-icon cn-guide-${t.tint}${cls}" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${GUIDE_ICON[t.icon]}</svg></span>`;
+  const CHEVRON = '<svg class="cn-guide-chev" viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  let guide = null; // { modal, bar, body, back, barTitle } once built
+  function buildGuide() {
+    const modal = $("#howtoVideoModal");
+    const shell = modal?.querySelector(".video-player-shell");
+    const close = $("#closeHowtoVideo");
+    if (!modal || !shell || !close || guide) return;
+    // The website's title, tabs and player stay in the page for script.js, out of sight: the guide replaces them.
+    const legacy = el('<div class="cn-guide-legacy" hidden></div>');
+    [...shell.children].forEach(c => legacy.appendChild(c));
+    close.className = "cn-ios-sheet-x cn-ios-head-x";
+    close.setAttribute("aria-label", "Close");
+    close.innerHTML = CLOSE_X;
+    const bar = el(`<div class="cn-guide-bar">
+        <button type="button" class="cn-guide-back" data-guide-back hidden><svg viewBox="0 0 24 24" width="20" height="20" fill="none" aria-hidden="true"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Guide</button>
+        <p class="cn-guide-bar-title" aria-hidden="true"></p>
+      </div>`);
+    bar.appendChild(close);
+    const body = el('<div class="cn-guide-body" id="cnGuide"></div>');
+    shell.setAttribute("aria-labelledby", "cnGuideTitle");
+    shell.classList.add("cn-guide");
+    shell.append(bar, body, legacy);
+    guide = { modal, shell, bar, body, back: bar.querySelector("[data-guide-back]"), barTitle: bar.querySelector(".cn-guide-bar-title") };
+    guide.back.addEventListener("click", () => showGuide(""));
+    body.addEventListener("click", e => {
+      const row = e.target.closest?.("[data-guide-topic]");
+      if (row) { showGuide(row.getAttribute("data-guide-topic")); return; }
+      const go = e.target.closest?.("[data-guide-go]");
+      if (go) guideGo(GUIDE_TOPICS.find(t => t.id === go.getAttribute("data-guide-go")));
+    });
+    // the large title hands over to the small one in the bar once it scrolls under it, as in a navigation bar
+    shell.addEventListener("scroll", () => { guide.bar.classList.toggle("is-scrolled", shell.scrollTop > 44); }, { passive: true });
+  }
+  function showGuide(id) {
+    if (!guide) return;
+    const topic = GUIDE_TOPICS.find(t => t.id === id);
+    guide.back.hidden = !topic;
+    guide.barTitle.textContent = topic ? topic.title : "User Guide";
+    guide.bar.classList.remove("is-scrolled");
+    guide.body.innerHTML = topic ? guideTopicHtml(topic) : guideIndexHtml();
+    guide.shell.scrollTop = 0;
+    const title = $("#cnGuideTitle", guide.body);
+    try { title?.focus({ preventScroll: true }); } catch { /* ignore */ }
+  }
+  function guideIndexHtml() {
+    return `<h2 class="cn-guide-title" id="cnGuideTitle" tabindex="-1">User Guide</h2>
+      <p class="cn-guide-lead">How to use each part of CyberNet AI, step by step.</p>
+      ${GUIDE.map(g => `<h3 class="cn-guide-group">${esc(g.group)}</h3>
+        <ul class="cn-guide-list" role="list">${g.topics.map(t => `<li><button type="button" class="cn-guide-row" data-guide-topic="${t.id}">${guideIcon(t)}<span class="cn-guide-row-text"><span class="cn-guide-row-title">${esc(t.title)}</span><span class="cn-guide-row-sub">${esc(t.sub)}</span></span>${CHEVRON}</button></li>`).join("")}</ul>`).join("")}
+      <p class="cn-guide-foot">Still stuck? Write to ${esc(SUPPORT)}.</p>`;
+  }
+  function guideTopicHtml(t) {
+    return `<div class="cn-guide-hero">${guideIcon(t, " cn-guide-icon-lg")}<h2 class="cn-guide-title" id="cnGuideTitle" tabindex="-1">${esc(t.title)}</h2></div>
+      <p class="cn-guide-lead">${esc(t.lead)}</p>
+      <h3 class="cn-guide-group">Steps</h3>
+      <ol class="cn-guide-steps">${t.steps.map(s => `<li>${esc(s)}</li>`).join("")}</ol>
+      ${t.tips.map(([h, p]) => `<div class="cn-guide-tip"><p class="cn-guide-tip-title">${esc(h)}</p><p>${esc(p)}</p></div>`).join("")}
+      <button type="button" class="primary-btn full cn-guide-go" data-guide-go="${t.id}">${esc(t.go.label)}</button>`;
+  }
+  // The topic's button closes the guide and opens the feature (a guest asked for Analysis AI or Recovery gets the sign-in card).
+  function guideGo(t) {
+    if (!t) return;
+    $("#closeHowtoVideo")?.click();
+    later(() => {
+      const g = t.go;
+      if (g.action === "scan") { startQrScan(); return; }
+      if (g.action === "share-help") { showShareHelp(); return; }
+      if (g.page === "cybernetai") { if (!requireAccount("cybernetai")) arrive("cybernetai"); return; }
+      if (g.page === "cybernet" && $("#cnIosSeg")) pickCheckMode("cybernet"); else navigate(g.page);
+      if (g.tab) later(() => { $(`.detect-tab[data-tab="${g.tab}"]`)?.click(); scrollToTop(); }, 400);
+    }, 60);
+  }
+  // Which topic was asked for: the pill opens the guide's contents; a walkthrough key (if one is ever used) opens its topic.
+  let guideAsk = "";
+  d.addEventListener("click", e => {
+    const t = e.target.closest?.("#heroLearnFeaturesBtn, [data-video]");
+    if (t && !t.closest("#howtoVideoModal")) guideAsk = t.id === "heroLearnFeaturesBtn" ? "" : (GUIDE_FROM_KEY[t.getAttribute("data-video")] ?? "");
+  }, true);
+
   function watchHowto() {
     const modal = $("#howtoVideoModal");
     if (!modal) return;
+    buildGuide();
     let open = false;
     new MutationObserver(() => {
       const now = modal.classList.contains("show");
       if (now === open) return;
       open = now;
+      if (now) { showGuide(guideAsk); guideAsk = ""; }
       inertBehind(now);
       if (!nativeTabs) return;
       if (now) nativeTabs.setHidden({ hidden: true }).catch(() => {});

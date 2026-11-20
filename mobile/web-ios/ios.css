@@ -59,6 +59,15 @@ html.cn-ios .recovery-dashboard { -webkit-user-select: text; user-select: text; 
 @media (hover: none) {
   html.cn-ios .tilt-card { transform: none !important; }
 }
+/* On a Mac (the iPhone app on Apple silicon) there is a pointer: every control shows the hand, and the app's own rows,
+   tabs and text buttons answer hover. Only where the pointer can hover, so an iPhone never keeps a stuck hover. */
+html.cn-ios :is(button, [role="button"], [role="tab"], label[for], summary, .cn-ios-tab) { cursor: pointer; }
+html.cn-ios :is(button, [role="button"]):disabled { cursor: default; }
+@media (hover: hover) and (pointer: fine) {
+  html.cn-ios .cn-ios-tab:not(.is-active):hover { color: var(--cn-ios-text); }
+  html.cn-ios .cn-ios-link-btn:not(:disabled):hover { opacity: .78; }
+  html.cn-ios .cn-ios-group > .cn-ios-row-btn:hover { background: rgba(255, 255, 255, .04); }
+}
 /* 44 x 44 pt touch targets for the small controls the website has. */
 html.cn-ios .close-modal,
 html.cn-ios .cn-pw-toggle,
@@ -977,6 +986,29 @@ html.cn.cn-ios :is(#cnDeleteAccountModal, .modal) > .modal-card {
   max-height: calc(100dvh - max(12px, env(safe-area-inset-top, 0px)) - 24px - var(--cn-tabbar-h));
   overflow-y: auto;
 }
+/* Owner, 21 Nov 2026 (the close X): a card that scrolls inside (sign-in, feedback, Delete account on an SE) kept its round
+   Close at the card's top, so it scrolled away with the text. Here it is a sticky float with no room of its own, 13 px from
+   the card's top and right edges (the website's place) at rest and while the card scrolls. The cards' padding is 24 px top
+   and 20 px right in every app modal. */
+html.cn.cn-ios .modal .modal-card > .close-modal {
+  position: -webkit-sticky;
+  position: sticky;
+  top: -12px; /* WebKit and Blink measure a sticky offset from the scroller's content box: 24 px padding - 12 */
+  inset-inline-end: auto;
+  float: right;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  margin: -12px -8px -28px 8px;
+  background: rgb(30, 40, 58);
+  border-color: rgba(148, 163, 184, .34);
+  color: #eef4fb;
+  touch-action: manipulation;
+}
+@media (hover: hover) and (pointer: fine) { html.cn.cn-ios .modal .modal-card > .close-modal:hover { background: rgb(44, 56, 78); } }
+/* the sign-in dialog's Sign In / Create Account switch: 44 pt tall in the app (the website's is 40 px) */
+html.cn.cn-ios #authModal .auth-tab { min-height: 44px; }
 /* after a deletion the launch card says so itself (ios.js signInCard); the website's notice would sit under it */
 html.cn-ios.cn-deleted-told #cnAccountDeletedNotice { display: none; }
 
@@ -1062,29 +1094,39 @@ html.cn-ios #cybernetai > .feature-page-header > :is(h1, p:not(.cn-ios-disclaime
 .cn-ios-sheet { position: relative; padding-top: 26px; transition: transform .25s cubic-bezier(.32, .72, 0, 1); }
 .cn-ios-sheet-backdrop.is-open .cn-ios-sheet { transition-duration: .4s; }
 .cn-ios-sheet-grab { position: absolute; top: 7px; left: 50%; width: 36px; height: 5px; margin-left: -18px; border-radius: 3px; background: rgba(148, 163, 184, .45); }
+/* Owner, 21 Nov 2026: "add an X on the top right to close, it's better and easier to notice". The X stays pinned to the
+   sheet's top right while a long sheet (a QR verdict on an iPhone SE) scrolls: a sticky float that takes no room
+   (its margin box has no height), 10 px from the sheet's top and right edges at rest and while scrolled. The fill is
+   opaque enough that text scrolling under it never shows through. */
 .cn-ios-sheet-x {
   appearance: none;
   -webkit-appearance: none;
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 2;
+  position: -webkit-sticky;
+  position: sticky;
+  top: -16px; /* a sticky offset counts from the sheet's content box (26 px padding): 10 px from the sheet's edge */
+  float: right;
+  z-index: 3;
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
-  margin: 0;
+  width: 32px;
+  height: 32px;
+  margin: -16px -10px -48px 8px; /* sheet padding: 26 px top, 20 px right */
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: rgba(148, 163, 184, .18);
-  color: var(--cn-ios-text-2);
+  background: rgb(35, 45, 64);
+  box-shadow: 0 0 0 1px rgba(148, 163, 184, .28), 0 4px 12px rgba(0, 0, 0, .35);
+  color: #eef4fb;
   cursor: pointer;
+  touch-action: manipulation;
   -webkit-user-select: none;
   user-select: none;
+  transition: background-color .12s ease, transform .12s ease;
 }
-.cn-ios-sheet-x::after { content: ""; position: absolute; inset: -7px; } /* 44 pt touch area */
-.cn-ios-sheet-x:active { background: rgba(148, 163, 184, .3); }
+.cn-ios-sheet-x::after { content: ""; position: absolute; inset: -6px; } /* 44 pt touch area */
+.cn-ios-sheet-x svg { width: 15px; height: 15px; }
+.cn-ios-sheet-x:active { background: rgb(52, 64, 86); transform: scale(.94); }
+@media (hover: hover) and (pointer: fine) { .cn-ios-sheet-x:hover { background: rgb(48, 60, 82); } }
 .cn-ios-sheet-x:focus-visible { outline: 2px solid var(--cn-ios-accent); outline-offset: 2px; }
 /* titles and kickers leave room for the Close button */
 .cn-ios-sheet > .cn-ios-sheet-title,
@@ -1152,6 +1194,169 @@ html.cn-ios #howtoVideoModal .video-modal-tab { min-height: 44px; }
 html.cn-ios #howtoVideoModal .video-modal-tabs { align-self: stretch; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 html.cn-ios #howtoVideoModal .hw-btn { min-height: 44px; }
 
+/* Owner, 21 Nov 2026: the User Guide (ios.js buildGuide), an Apple help page in the how-to sheet. A navigation bar with
+   Back and the Close X that turns into a material when the page scrolls under it, a large title, inset grouped topic
+   rows with Settings-style icon tiles, and for each topic its numbered steps, tips and one button that opens the feature. */
+html.cn-ios #howtoVideoModal .video-player-shell.cn-guide {
+  --cn-guide-row: rgb(19, 27, 43);
+  --cn-guide-sep: rgba(148, 163, 184, .16);
+  display: block;
+  padding: 0 0 calc(env(safe-area-inset-bottom, 0px) + 28px);
+  background: var(--cn-bg, #060a14);
+  scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 56px);
+}
+.cn-guide-legacy[hidden] { display: none !important; }
+.cn-guide-bar {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: calc(env(safe-area-inset-top, 0px) + 6px) max(10px, env(safe-area-inset-right, 0px)) 6px max(6px, env(safe-area-inset-left, 0px));
+  border-bottom: 1px solid transparent;
+  transition: background-color .2s ease, border-color .2s ease;
+}
+.cn-guide-bar.is-scrolled {
+  background: rgba(6, 10, 20, .82);
+  -webkit-backdrop-filter: saturate(160%) blur(18px);
+  backdrop-filter: saturate(160%) blur(18px);
+  border-bottom-color: var(--cn-ios-line);
+}
+@media (prefers-reduced-transparency: reduce) { .cn-guide-bar.is-scrolled { background: rgb(6, 10, 20); -webkit-backdrop-filter: none; backdrop-filter: none; } }
+.cn-guide-bar > .cn-ios-head-x { grid-column: 3; justify-self: end; margin: 0; }
+.cn-guide-back {
+  grid-column: 1;
+  justify-self: start;
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 44px;
+  padding: 0 10px 0 2px;
+  border: 0;
+  background: none;
+  color: var(--cn-ios-accent);
+  font: 400 17px/1 var(--cn-font, -apple-system, system-ui, sans-serif);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.cn-guide-back[hidden] { display: none; }
+.cn-guide-back:active { opacity: .55; }
+.cn-guide-bar-title {
+  grid-column: 2;
+  margin: 0;
+  max-width: 58vw;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 17px;
+  line-height: 22px;
+  font-weight: 600;
+  color: var(--cn-ios-text);
+  opacity: 0;
+  transition: opacity .2s ease;
+}
+.cn-guide-bar.is-scrolled .cn-guide-bar-title { opacity: 1; }
+.cn-guide-body { max-width: 640px; margin: 0 auto; padding: 4px max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); }
+.cn-guide-title {
+  margin: 0;
+  font-size: 34px;
+  line-height: 41px;
+  font-weight: 700;
+  letter-spacing: -.012em;
+  color: var(--cn-ios-text);
+  outline: none;
+  text-wrap: balance;
+}
+.cn-guide-lead { margin: 8px 0 0; font-size: 17px; line-height: 24px; color: var(--cn-ios-text-2); }
+.cn-guide-group { margin: 28px 4px 8px; font-size: 15px; line-height: 20px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--cn-ios-text-2); }
+.cn-guide-list { margin: 0; padding: 0; list-style: none; border-radius: 14px; overflow: hidden; background: var(--cn-guide-row); }
+.cn-guide-list > li { margin: 0; padding: 0; }
+.cn-guide-row {
+  position: relative;
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 60px;
+  margin: 0;
+  padding: 10px 14px;
+  border: 0;
+  background: none;
+  color: var(--cn-ios-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: background-color .1s ease;
+}
+.cn-guide-list > li + li > .cn-guide-row::before { content: ""; position: absolute; top: 0; left: 58px; right: 0; height: 1px; background: var(--cn-guide-sep); }
+.cn-guide-row:active { background: rgba(255, 255, 255, .07); }
+.cn-guide-row:focus-visible { outline: 2px solid var(--cn-ios-accent); outline-offset: -2px; border-radius: 14px; }
+.cn-guide-row-text { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.cn-guide-row-title { font-size: 17px; line-height: 22px; font-weight: 500; }
+.cn-guide-row-sub { font-size: 14px; line-height: 19px; color: var(--cn-ios-text-2); }
+.cn-guide-chev { flex: none; color: rgba(148, 163, 184, .7); }
+.cn-guide-icon { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; color: #fff; }
+.cn-guide-icon svg { width: 19px; height: 19px; }
+.cn-guide-icon-lg { width: 56px; height: 56px; border-radius: 14px; }
+.cn-guide-icon-lg svg { width: 32px; height: 32px; }
+/* the iOS dark system colors */
+.cn-guide-blue { background: #0a84ff; }
+.cn-guide-teal { background: #0d9fb8; }
+.cn-guide-green { background: #248a3d; }
+.cn-guide-orange { background: #c76a00; }
+.cn-guide-indigo { background: #5e5ce6; }
+.cn-guide-purple { background: #9a3fc9; }
+.cn-guide-red { background: #d7382f; }
+.cn-guide-yellow { background: #ffd60a; color: #3d3000; }
+.cn-guide-gray { background: #636366; }
+.cn-guide-hero { display: grid; gap: 14px; justify-items: start; padding-top: 4px; }
+.cn-guide-steps { margin: 0; padding: 4px 16px; list-style: none; counter-reset: cn-step; border-radius: 14px; background: var(--cn-guide-row); }
+.cn-guide-steps > li {
+  position: relative;
+  counter-increment: cn-step;
+  margin: 0;
+  padding: 12px 0 12px 42px;
+  font-size: 17px;
+  line-height: 24px;
+  color: var(--cn-ios-text);
+}
+.cn-guide-steps > li + li { border-top: 1px solid var(--cn-guide-sep); }
+.cn-guide-steps > li::before {
+  content: counter(cn-step);
+  position: absolute;
+  left: 0;
+  top: 12px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(34, 211, 238, .16);
+  color: var(--cn-ios-accent);
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.cn-guide-tip { margin: 12px 0 0; padding: 14px 16px; border-radius: 14px; background: var(--cn-guide-row); }
+.cn-guide-tip p { margin: 0; font-size: 15px; line-height: 21px; color: var(--cn-ios-text-2); }
+.cn-guide-tip .cn-guide-tip-title { margin: 0 0 4px; font-size: 15px; font-weight: 600; color: var(--cn-ios-text); }
+.cn-guide-go { margin-top: 24px; min-height: 50px; }
+.cn-guide-foot { margin: 24px 4px 0; font-size: 14px; line-height: 20px; color: var(--cn-ios-text-2); }
+@media (hover: hover) and (pointer: fine) {
+  .cn-guide-row:hover { background: rgba(255, 255, 255, .05); }
+  .cn-guide-back:hover { opacity: .75; }
+}
+@media (prefers-reduced-motion: reduce) { .cn-guide-bar, .cn-guide-bar-title, .cn-guide-row { transition: none; } }
+
 /* bug 6: the Home pill (now with the website's id, so it has its look and 44 px hit area) */
 html.cn-ios #home #heroLearnFeaturesBtn { touch-action: manipulation; -webkit-user-select: none; user-select: none; }
 
@@ -1172,8 +1377,13 @@ html.cn-ios #cybernet .feature-page-header > p:not(.cn-ios-disclaimer) { display
 html.cn.cn-ios #cnMain > #cybernet .feature-page-header > p.cn-ios-disclaimer { max-width: 34em; margin: 6px 0 0; font-size: 13px; line-height: 18px; color: var(--cn-ios-text-2); }
 /* bug 1: without the native bar (browser checks), the web tab bar steps aside for the how-to guide too */
 html.cn-ios:has(#howtoVideoModal.show) #cnIosTabbar { display: none; }
-/* design 6: the legal sheet's header names the document, with Done on the right */
-.cn-ios-legal-head { align-items: center; justify-content: space-between; gap: 12px; }
+/* design 6: the legal sheet's header names the document, with the Close X on the right (owner, 21 Nov 2026: X, not Done) */
+.cn-ios-legal-head { align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; }
+/* the X on a Quick Scan verdict (ios.js addNewCheckX): top right of the result card */
+html.cn-ios #cybernet .result-box:has(> .cn-ios-result-x) { position: relative; }
+.cn-ios-sheet-x.cn-ios-result-x { position: absolute; top: 12px; right: 12px; float: none; margin: 0; }
+/* the X in a fixed header (legal sheet, how-to guide): the sheet X's look, in the header's flow */
+.cn-ios-sheet-x.cn-ios-head-x { position: relative; top: auto; float: none; flex: none; margin: 0 4px 0 0; }
 .cn-ios-legal-title { flex: 1; min-width: 0; margin: 0 0 0 6px; font-size: 17px; line-height: 22px; font-weight: 600; color: var(--cn-ios-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* sticky sheets have no Close button or grabber, so they keep their own top padding */
 .cn-ios-sheet:not(:has(> .cn-ios-sheet-x)) { padding-top: 22px; }
