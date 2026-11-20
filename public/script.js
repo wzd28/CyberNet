@@ -2066,7 +2066,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       setFeedbackMessage("Thank you. Your message reached CyberNet support. If you gave an email, we will reply there.","success");
     }catch(error){
       console.error("CyberNet feedback submission failed",error);
-      setFeedbackMessage(`The survey could not be sent. Email ${SUPPORT_EMAIL} directly.`,"error");
+      setFeedbackMessage(/*@web*/`The survey could not be sent. Email ${SUPPORT_EMAIL} directly.`/*@end-web*//*@ios `The feedback could not be sent. Email ${SUPPORT_EMAIL} directly.` @end-ios*/,"error");
     }finally{
       if(button)button.disabled=false;
     }
