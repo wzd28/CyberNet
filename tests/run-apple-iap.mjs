@@ -240,6 +240,9 @@ r = await verify("t-a", "purchase", [{ jws: tx({ appAccountToken: U.A, originalT
 check("purchase: applied, finish", r.status === 200 && r.data.results[0].status === "applied" && r.data.results[0].finish === true, r.data);
 check("purchase: entitlement says Apple, no buying", r.data.entitlement?.source === "apple" && r.data.entitlement.canPurchase === false && r.data.entitlement.purchaseBlockedReason === "active_apple" && r.data.entitlement.appAccountToken === U.A, r.data.entitlement);
 check("purchase: test purchase marked Sandbox, renews", r.data.entitlement.apple?.environment === "Sandbox" && r.data.entitlement.apple.autoRenew === true && r.data.entitlement.apple.active === true, r.data.entitlement.apple);
+const e0 = r.data.entitlement;
+check("purchase: flat Apple fields (server.md §6) mirror the nested ones", e0.appleProductId === "app.cybernetai.pro.monthly" && e0.appleExpiresAt === e0.apple.expiresAt &&
+  e0.appleAutoRenew === true && e0.appleInGrace === false && e0.appleEnvironment === "Sandbox", e0);
 check("purchase: plan_of = pro", (await planOf(U.A)) === "pro");
 check("purchase: no JWS, transaction id or user id in the logs", !logs.some((l) => l.includes(OT) || l.includes(U.A) || l.includes("eyJ")), logs.filter((l) => l.includes(OT) || l.includes(U.A)));
 
@@ -452,7 +455,7 @@ if (esbuild) {
   for (const entry of ["netlify/functions/apple-verify.mjs", "netlify/functions/apple-notifications.mjs"]) {
     const out = await esbuild.build({ entryPoints: [path.join(root, entry)], bundle: true, platform: "node", format: "esm", write: false, logLevel: "silent", target: "node20" });
     const size = out.outputFiles[0].contents.length;
-    check(`${entry} bundles with esbuild (${Math.round(size / 1024)} KB)`, size > 0 && size < 5 * 1024 * 1024, size);
+    check(`${entry} resolves every import (esbuild, ${Math.round(size / 1024)} KB; Netlify itself ships it with nft and node_modules)`, size > 0 && size < 5 * 1024 * 1024, size);
   }
 }
 

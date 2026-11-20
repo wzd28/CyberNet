@@ -683,6 +683,13 @@ const appleExport = calls.find(c => c.target.startsWith(`/rest/v1/apple_subscrip
 check("export: Apple subscriptions included", r.status === 200 && r.data.data.appleSubscriptions?.[0]?.product_id === "app.cybernetai.pro.monthly", r.data?.data?.appleSubscriptions);
 check("export: the Apple query is this user's rows and never selects app_account_token", Boolean(appleExport) && !appleExport.target.includes("app_account_token") && !appleExport.target.includes("select=*"), appleExport?.target);
 
+install({ apple: [appleRow] });
+r = await call({ action: "delete-check" });
+check("delete-check: reports the open Apple subscription, changes nothing", r.status === 200 && r.data.appleSubscription?.open === true && writes().length === 0, { r, writes: writes() });
+install({ fail: { "GET /rest/v1/apple_subscriptions": 500 } });
+r = await call({ action: "delete-check" });
+check("delete-check when the lookup fails: 200, open unknown (null)", r.status === 200 && r.data.appleSubscription?.open === null, r);
+
 // ── 14. legal-acceptance: the same key fallback ──
 async function accept(env) {
   ENV = env;

@@ -454,6 +454,13 @@ async function handler(request) {
       return json({ cleared: true });
     }
 
+    // Read-only: is an Apple subscription still renewing? Shown before the
+    // final delete confirmation (Apple's account-deletion guidance). Never
+    // blocks anything; null = could not tell.
+    if (action === "delete-check") {
+      return json({ appleSubscription: { open: await appleSubscriptionOpen(user.id) } });
+    }
+
     if (action === "delete-account") {
       if (String(body?.confirmation || "") !== "DELETE") return reply("CONFIRMATION_REQUIRED", 400);
       return await deleteAccount(user, body);

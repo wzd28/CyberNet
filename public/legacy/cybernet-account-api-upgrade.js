@@ -697,7 +697,7 @@
       if (planEl) planEl.textContent = details.label;
       if (badgeEl) badgeEl.textContent = details.badge;
       const billingSource = String(profile.billingSource || "");
-      const appleOnly = billingSource === "apple";
+      const appleOnly = billingSource === "apple" && !details.business;
       if (statusEl) {
         statusEl.textContent = appleOnly ? appleStatusText(profile.apple) : details.pro ? friendlyStatus(profile.subscriptionStatus) : "Free account";
       }

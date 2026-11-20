@@ -105,6 +105,8 @@ async function handleOne(user, item, index, reason) {
     source: reason === "purchase" ? "purchase" : "app"
   });
   const status = transactionStatus(applied, tx);
+  // A chain with no appAccountToken claimed by an app sync (CRITIC #9): logged, never silent.
+  if (!tx.appAccountToken && status === "applied") console.warn(`apple-verify ${reason}: ${tx.productId} claimed without an account token`);
   if (status === "not_linked") console.warn(`apple-verify ${reason}: ${tx.productId} not_linked (no account token on a purchase call)`);
   else console.log(`apple-verify ${reason}: ${tx.productId} ${status}`);
   return { ...ids, status, finish: status !== "not_linked" };

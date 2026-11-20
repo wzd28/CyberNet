@@ -109,6 +109,12 @@ export function appBilling(entitlement, { userId, team = null, now = Date.now() 
     purchaseBlockedReason,
     alsoBilledElsewhere: appleActive && (Boolean(ent.stripeActive) || team?.role === "owner"),
     appAccountToken: String(userId || "").toLowerCase(),
+    // The same Apple details, flat (the names in the server design, server.md §6).
+    appleProductId: apple ? apple.productId : null,
+    appleExpiresAt: apple ? apple.expiresAt : null,
+    appleAutoRenew: apple ? apple.autoRenew : null,
+    appleInGrace: apple ? apple.inGrace : false,
+    appleEnvironment: apple ? apple.environment : null,
     apple
   };
 }

@@ -866,7 +866,8 @@
       // Pro bought in the iPhone app is billed by Apple (account-status
       // billingSource "apple" / "both"); Stripe's status says nothing about it.
       const billingSource = String(profile.billingSource || "");
-      const appleOnly = billingSource === "apple";
+      // A Business plan (website, Stripe) keeps its own status and Manage Billing.
+      const appleOnly = billingSource === "apple" && !details.business;
       if (statusEl) {
         statusEl.textContent = appleOnly
           ? appleStatusText(profile.apple)
