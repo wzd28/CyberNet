@@ -16,13 +16,20 @@
 // on every /api call. Only those requests get the account's website plan in
 // the app (lib/app-tier.mjs appLimitsFor). An app request without it (build 5
 // and earlier) keeps the fixed App tier, unchanged.
+//
+// isIapBuild(): app 1.1 on (builds with Apple In-App Purchase) also send
+// `X-CyberNet-IAP: 1` next to `X-CyberNet-Plans: 1`. Only those requests get
+// billing data (account-status profile.billing) and the 1.1 plan rule (any
+// plan above Pro shows as Pro; PLAN D2). These headers are a version switch,
+// NOT a security control: anyone can send them, so nothing that needs trust
+// depends on them (purchases are trusted only through Apple's signature).
 
 export const APP_ORIGIN = "capacitor://localhost";
 const ALLOWED = new Set([APP_ORIGIN]);
 
 const CORS_HEADERS = Object.freeze({
   "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Authorization, Content-Type, X-CyberNet-Platform, X-CyberNet-App-Version, X-CyberNet-Plans",
+  "Access-Control-Allow-Headers": "Authorization, Content-Type, X-CyberNet-Platform, X-CyberNet-App-Version, X-CyberNet-Plans, X-CyberNet-IAP",
   "Access-Control-Max-Age": "600"
 });
 
@@ -44,6 +51,11 @@ export function isIOS(request) {
 export function honoursWebPlans(request) {
   if (!isIOS(request)) return false;
   return String(request.headers.get("x-cybernet-plans") || "").trim() === "1";
+}
+
+export function isIapBuild(request) {
+  if (!honoursWebPlans(request)) return false;
+  return String(request.headers.get("x-cybernet-iap") || "").trim() === "1";
 }
 
 // Copies the response with the CORS headers added. The body is passed on as a
@@ -86,6 +98,22 @@ export function webOnly(handler) {
   return async function webOnlyWrapped(request, context) {
     if (isIOS(request)) {
       return new Response(JSON.stringify({ error: NOT_IN_APP_MESSAGE, code: "NOT_AVAILABLE_IN_APP" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" }
+      });
+    }
+    return handler(request, context);
+  };
+}
+
+// The opposite of webOnly: only the iPhone app may call it (apple-verify).
+// The website gets 403. Like the headers above, this is not a security
+// control (the platform header can be forged); it only keeps the website
+// from calling an endpoint that has no use there.
+export function iosOnly(handler) {
+  return async function iosOnlyWrapped(request, context) {
+    if (!isIOS(request)) {
+      return new Response(JSON.stringify({ error: "This is only available in the CyberNet AI iPhone app.", code: "APP_ONLY" }), {
         status: 403,
         headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" }
       });

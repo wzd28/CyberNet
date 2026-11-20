@@ -189,13 +189,25 @@ export async function consumeRecoveryUpdateApp(serviceFetch, userId, limit, cool
 // "team" means the *_business SQL functions (the website's own team path);
 // "own" means the *_app functions with the limit given here. The review/admin
 // allowance replaces a counter's rule wherever it is more generous.
-export function appLimitsFor(user, { plan = "free", team = null } = {}) {
+//
+// iap (app 1.1 on, isIapBuild in ./cors.mjs; PLAN D2 / CRITIC #1): the app
+// sells Pro only, so a plan above Pro (a Business team, as owner or member, or
+// a Business profile) is shown and charged as Pro: appPlan "pro" with Pro's
+// numbers on the person's OWN counters. The word "business" never reaches an
+// IAP build. Older builds and the website keep the precedence above.
+export function appLimitsFor(user, { plan = "free", team = null, iap = false } = {}) {
   const allowance = appTierFor(user) === APP_TIER_ALLOWANCE ? APP_TIER_ALLOWANCE : null;
   let appPlan;
   let analyses;
   let recoveryCases;
   let recoveryUpdates;
-  if (team) {
+  if (iap && (team || plan === "business")) {
+    const limits = PLAN_LIMITS.pro;
+    appPlan = "pro";
+    analyses = { pool: "own", limit: limits.analysesPerDay };
+    recoveryCases = { pool: "own", limit: limits.recoveryCasesPerDay };
+    recoveryUpdates = { pool: "own", limit: limits.recoveryUpdatesPerDay, cooldownSeconds: limits.recoveryUpdateCooldownSeconds };
+  } else if (team) {
     appPlan = "business";
     analyses = { pool: "team", limit: Number(team.dailyPoolLimit) || 0 };
     recoveryCases = { pool: "team", limit: Number(team.recoveryPoolLimit) || 0 };
@@ -221,9 +233,16 @@ export function appLimitsFor(user, { plan = "free", team = null } = {}) {
   return { appPlan, analyses, recoveryCases, recoveryUpdates };
 }
 
-// The account's own website plan, read with the calling function's
-// serviceFetch (the .mts functions keep their own timeouts and retries).
+// The account's own plan, read with the calling function's serviceFetch (the
+// .mts functions keep their own timeouts and retries): public.plan_of, i.e. the
+// website plan OR a paid-up Apple Pro subscription. Before the owner has run
+// the 1.1 migration plan_of does not exist (404): then the old profile rule.
 export async function loadWebPlan(serviceFetch = defaultServiceFetch, userId) {
+  const viaRpc = await serviceFetch("/rest/v1/rpc/plan_of", { method: "POST", body: JSON.stringify({ p_user_id: userId }) }).catch(() => null);
+  if (viaRpc?.ok) {
+    const plan = await viaRpc.json().catch(() => null);
+    if (plan === "free" || plan === "pro" || plan === "business") return plan;
+  }
   const response = await serviceFetch(`/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=plan,subscription_status`);
   const rows = await response.json().catch(() => []);
   if (!response.ok) throw new Error(rows?.message || "Could not load the account's plan.");

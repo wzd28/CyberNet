@@ -82,6 +82,7 @@ function fixtureTables() {
   t.api_rate_limits = [{ rate_key: "ip:1.2.3.4", count: 3, window_start: "2026-10-18T00:00:00+00:00" }];
   t.checkout_debug_log = [];
   t.feedback = [];
+  t.apple_subscriptions = [{ original_transaction_id: "2000000100000001", user_id: uid(1), product_id: "app.cybernetai.pro.monthly", environment: "Sandbox", expires_at: "2026-12-01T00:00:00+00:00", status: "active" }];
   t.client_errors = [{ id: 2, message: "extra table row" }, { id: 1, message: "first" }];
   return t;
 }
@@ -236,8 +237,8 @@ try {
   // ── Config of the two functions ──
   check("weekly-schedule", weekly.config?.schedule === "@weekly" && !("path" in weekly.config), weekly.config);
   check("now-path", now.config?.path === "/api/backup-now" && !("schedule" in now.config), now.config);
-  check("table-list", lib.TABLES.length === 16 && new Set(lib.TABLES.map((t) => t.name)).size === 16 && lib.TABLES.every((t) => t.key.length), lib.TABLES.map((t) => t.name));
-  check("rate-limits-excluded", JSON.stringify(lib.EXCLUDED_TABLES) === '["api_rate_limits"]' && !lib.TABLES.some((t) => t.name === "api_rate_limits"), lib.EXCLUDED_TABLES);
+  check("table-list", lib.TABLES.length === 17 && new Set(lib.TABLES.map((t) => t.name)).size === 17 && lib.TABLES.some((t) => t.name === "apple_subscriptions" && t.key.join() === "original_transaction_id") && lib.TABLES.every((t) => t.key.length), lib.TABLES.map((t) => t.name));
+  check("rate-limits-excluded", JSON.stringify(lib.EXCLUDED_TABLES) === '["api_rate_limits","apple_notifications"]' && !lib.TABLES.some((t) => lib.EXCLUDED_TABLES.includes(t.name)), lib.EXCLUDED_TABLES);
   check("restore-order-fk", ["business_accounts", "business_members", "recovery_cases", "recovery_versions", "recovery_tasks"].map((n) => lib.TABLES.findIndex((t) => t.name === n)).every((v, i, a) => !i || v > a[i - 1]), lib.TABLES.map((t) => t.name));
 
   // ── Refusal without a passphrase: nothing read, nothing sent ──

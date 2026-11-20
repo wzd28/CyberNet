@@ -78,7 +78,10 @@ export const TABLES = [
   { name: "recovery_versions", key: ["id"], identity: "id" },
   { name: "recovery_tasks", key: ["id"], identity: "id" },
   { name: "checkout_debug_log", key: ["id"], identity: "id", identityAlways: true },
-  { name: "feedback", key: ["id"] }
+  { name: "feedback", key: ["id"] },
+  // Apple Pro subscriptions bought in the iPhone app (1.1). Restoring them keeps
+  // paying customers on Pro without waiting for the app to sync again.
+  { name: "apple_subscriptions", key: ["original_transaction_id"] }
 ];
 
 // Public tables that are deliberately left out of the backup:
@@ -87,12 +90,17 @@ export const TABLES = [
 //                    again), and the table can grow faster than the weekly
 //                    job could read it. Old rows are removed by
 //                    netlify/functions/rate-limit-cleanup.mjs.
-export const EXCLUDED_TABLES = ["api_rate_limits"];
+//   apple_notifications  ids of App Store notifications already handled
+//                    (duplicate check), no payload and no user id; kept 90
+//                    days, also removed by rate-limit-cleanup.mjs. A restore
+//                    without them only means Apple's next retry is handled again,
+//                    which is harmless (the ordering rules ignore old data).
+export const EXCLUDED_TABLES = ["api_rate_limits", "apple_notifications"];
 
 // The newest database migration when TABLES was last checked. Bump it
 // together with TABLES. The manifest also carries a fingerprint of the
 // live columns, so a schema change since then is visible in the backup.
-export const SCHEMA_VERSION = "20261021135311_explicit_grants";
+export const SCHEMA_VERSION = "20261121120000_apple_iap_pro";
 
 // Account fields kept for each sign-in account. This is an allowlist on
 // purpose: password hashes, confirmation and recovery tokens and anything

@@ -107,6 +107,11 @@ export async function serviceFetch(path, options = {}, retry = RETRY_STANDARD) {
 }
 
 export function effectivePlan(profile = {}) {
+  // An entitlement attached by lib/entitlement.mjs (withEntitlement) wins: it is
+  // the same rule plus a paid-up Apple Pro subscription (public.entitlement_of).
+  const attached = profile?.entitlement?.plan;
+  if (attached === "pro" || attached === "business" || attached === "free") return attached;
+
   const active = ["active", "trialing"].includes(
     String(profile.subscription_status || "")
   );

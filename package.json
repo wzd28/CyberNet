@@ -11,7 +11,7 @@
     "build:legacy": "node scripts/build-legacy.mjs",
     "check:legacy": "node scripts/build-legacy.mjs --check",
     "deploy": "netlify deploy --prod --dir=public --functions=netlify/functions",
-    "test": "node tests/run-engine.mjs && node tests/run-recovery.mjs && node tests/run-models.mjs && node tests/run-auth-messages.mjs && node tests/run-privacy.mjs && node tests/run-errors.mjs && node tests/run-error-hooks.mjs && node tests/run-onboarding.mjs && node tests/run-legal-copy.mjs && node tests/run-backup.mjs && node tests/run-rate-limit-cleanup.mjs && node tests/run-supabase-retry.mjs && node tests/run-feedback.mjs && node tests/run-preview.mjs && node tests/run-ios-server.mjs && node tests/run-ios-migration.mjs && node tests/run-signup-source.mjs && node tests/run-code-step.mjs && node tests/run-funnel.mjs && node tests/run-rate-limits.mjs && node tests/run-checkout-guard.mjs && node tests/run-ui-css.mjs && node scripts/build-legacy.mjs --check && node scripts/build-ui.mjs --check",
+    "test": "node tests/run-engine.mjs && node tests/run-recovery.mjs && node tests/run-models.mjs && node tests/run-auth-messages.mjs && node tests/run-privacy.mjs && node tests/run-errors.mjs && node tests/run-error-hooks.mjs && node tests/run-onboarding.mjs && node tests/run-legal-copy.mjs && node tests/run-backup.mjs && node tests/run-rate-limit-cleanup.mjs && node tests/run-supabase-retry.mjs && node tests/run-feedback.mjs && node tests/run-preview.mjs && node tests/run-ios-server.mjs && node tests/run-ios-migration.mjs && node tests/run-ios-migration-apple.mjs && node tests/run-apple-iap.mjs && node tests/run-signup-source.mjs && node tests/run-code-step.mjs && node tests/run-funnel.mjs && node tests/run-rate-limits.mjs && node tests/run-checkout-guard.mjs && node tests/run-ui-css.mjs && node scripts/build-legacy.mjs --check && node scripts/build-ui.mjs --check",
     "test:feedback": "node tests/run-feedback.mjs",
     "test:preview": "node tests/run-preview.mjs",
     "test:engine": "node tests/run-engine.mjs",
@@ -19,7 +19,7 @@
     "test:models": "node tests/run-models.mjs",
     "test:auth": "node tests/run-auth-messages.mjs",
     "test:privacy": "node tests/run-privacy.mjs",
-    "test:ios-server": "node tests/run-ios-server.mjs && node tests/run-ios-migration.mjs",
+    "test:ios-server": "node tests/run-ios-server.mjs && node tests/run-ios-migration.mjs && node tests/run-ios-migration-apple.mjs && node tests/run-apple-iap.mjs",
     "test:errors": "node tests/run-errors.mjs && node tests/run-error-hooks.mjs",
     "test:onboarding": "node tests/run-onboarding.mjs",
     "test:legal": "node tests/run-legal-copy.mjs",
@@ -29,9 +29,11 @@
     "test:code-step": "node tests/run-code-step.mjs",
     "test:funnel": "node tests/run-funnel.mjs",
     "test:checkout-guard": "node tests/run-checkout-guard.mjs",
-    "test:rate-limits": "node tests/run-rate-limits.mjs"
+    "test:rate-limits": "node tests/run-rate-limits.mjs",
+    "test:apple-iap": "node tests/run-ios-migration-apple.mjs && node tests/run-apple-iap.mjs"
   },
   "dependencies": {
+    "@apple/app-store-server-library": "3.1.0",
     "@netlify/functions": "5.3.0",
     "openai": "6.49.0",
     "stripe": "22.4.0"
