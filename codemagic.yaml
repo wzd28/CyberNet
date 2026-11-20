@@ -56,6 +56,7 @@ workflows:
         script: |
           set -euo pipefail
           npx cap sync ios
+          node scripts/add-share-extension.cjs   # writes the CN_NO_IAP variant of the project when the flag is set
           node scripts/add-share-extension.cjs --check
       - name: Lint plists and privacy manifests
         script: |
@@ -169,6 +170,9 @@ workflows:
         certificates:
           - cybernet_dist              # Apple Distribution
       vars:
+        # App 1.1 build 10 ships WITHOUT in-app purchases (plan M1 / critic #5): build-web.mjs keeps the "no purchases" app
+        # and add-share-extension.cjs leaves StoreKit out of the binary. Remove this line for the first in-app purchase build.
+        CN_NO_IAP: "1"
         XCODE_PROJECT: mobile/ios/App/App.xcodeproj
         XCODE_SCHEME: App
         BUNDLE_ID: app.cybernetai
@@ -189,6 +193,7 @@ workflows:
           npm run build:web
           npm run check:bundle
           npx cap sync ios
+          node scripts/add-share-extension.cjs   # writes the CN_NO_IAP variant of the project when the flag is set
           node scripts/add-share-extension.cjs --check
       - name: Signing for the app and the Share Extension (profiles from ios_signing above)
         script: xcode-project use-profiles --project "$XCODE_PROJECT"

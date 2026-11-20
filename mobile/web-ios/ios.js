@@ -64,7 +64,8 @@
     return new Promise(resolve => {
       $(`#${id}`)?.remove();
       const back = d.activeElement;
-      const chrome = `<div class="cn-ios-sheet-grab" aria-hidden="true"></div>${sticky ? "" : `<button type="button" class="cn-ios-sheet-x" data-sheet-dismiss aria-label="Close">${CLOSE_X}</button>`}`;
+      // a sticky sheet (the launch card, a step that must be answered) has neither: it cannot be dismissed
+      const chrome = sticky ? "" : `<div class="cn-ios-sheet-grab" aria-hidden="true"></div><button type="button" class="cn-ios-sheet-x" data-sheet-dismiss aria-label="Close">${CLOSE_X}</button>`;
       const node = el(`<div class="cn-ios-sheet-backdrop" id="${id}"><div class="cn-ios-sheet" role="dialog" aria-modal="true" aria-label="${esc(label)}" tabindex="-1">${chrome}${html}</div></div>`);
       const panel = node.firstElementChild;
       sheetStack.push(node);
@@ -1256,12 +1257,16 @@
 
   /* ================================================================ 8. legal pages and the sign-up acceptance */
   const LEGAL_FILES = { terms: "terms", privacy: "privacy", acceptable: "acceptable-use", "acceptable-use": "acceptable-use" };
+  // 1.1 design item 6: the legal sheet names its document in the header (it only had "Done")
+  const LEGAL_TITLES = { terms: "Terms of Service", privacy: "Privacy Policy", "acceptable-use": "Acceptable Use Policy" };
   function openLegal(doc = "privacy", hash = "") {
     const file = LEGAL_FILES[doc] || "privacy";
     $("#cnLegalSheet")?.remove();
     const back = d.activeElement;
-    const node = el(`<div class="cn-ios-legal-sheet" id="cnLegalSheet" role="dialog" aria-modal="true" aria-label="Legal">
+    const title = LEGAL_TITLES[file] || "Legal";
+    const node = el(`<div class="cn-ios-legal-sheet" id="cnLegalSheet" role="dialog" aria-modal="true" aria-label="${esc(title)}">
         <div class="cn-ios-legal-head">
+          <h2 class="cn-ios-legal-title">${esc(title)}</h2>
           <button type="button" class="cn-ios-link-btn" data-legal-close>Done</button>
         </div>
         <iframe class="cn-ios-legal-frame" title="Legal document" src="legal/${file}.html?embedded=1${hash ? `#${encodeURIComponent(hash)}` : ""}"></iframe>
