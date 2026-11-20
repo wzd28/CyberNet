@@ -227,6 +227,29 @@ check("Google words are allowed for ios/ios.js alone", wordHits("Sign in with Go
   await rm(dir, { recursive: true, force: true });
 }
 
+/* ---------- 1.1 paywall (ios/store.js): the scoped purchase words, the steering strings, the IAP-only file ---------- */
+{
+  const S = "ios/store.js";
+  check("paywall gate: Pro is a whole word (Protect, Process, Profile never count)", wordHits("Protect your account. Process it. Profile.", { file: "ios/ios.js" }).length === 0 && wordHits("Get Pro", { file: "ios/ios.js" }).includes("Pro"));
+  check("paywall gate: ios/store.js may say Pro, subscription, per month and per year in an IAP bundle", wordHits("Manage subscription for Pro, about $1 per month or per year", { file: S, iap: true }).filter(w => w !== "$").length === 0, wordHits("Manage subscription for Pro, about $1 per month or per year", { file: S, iap: true }));
+  check("paywall gate: the same words fail in ios/store.js when the bundle is not an IAP one, and in any other file", wordHits("Get Pro", { file: S }).includes("Pro") && wordHits("Get Pro", { file: "ios/ios.js", iap: true }).includes("Pro") && wordHits("Manage subscription", { file: "index.html", iap: true }).includes("subscription"));
+  check("paywall gate: prices, upgrade, checkout, Stripe and free trial stay forbidden in ios/store.js", ["$9.99 a month", "95.90", "Upgrade now", "checkout", "stripe", "Start your free trial", "pricing"].every(t => wordHits(t, { file: S, iap: true }).length > 0));
+  check("paywall gate: the three steering strings are forbidden everywhere (critic #13)", ["Manage on the website", "https://cybernetai.app/account", "apps.apple.com/account/subscriptions"].every(t => wordHits(t, { file: S, iap: true }).length > 0 && wordHits(t, { file: "ios/ios.js" }).length > 0));
+  const dir = await mkdtemp(path.join(os.tmpdir(), "cn-pro-test-"));
+  const store = 'const EULA="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/";const t="Get Pro";const m="Manage subscription";';
+  const write = async (files) => { await rm(dir, { recursive: true, force: true }); for (const [rel, text] of Object.entries(files)) { await mkdir(path.dirname(path.join(dir, rel)), { recursive: true }); await writeFile(path.join(dir, rel), text); } };
+  await write({ ...CLEAN, "index.html": CLEAN["index.html"].replace("<title>", '<meta name="cn-build" content="iap"><title>'), [S]: store });
+  const ok = await checkBundle({ dir, iap: true });
+  check("paywall gate: an IAP bundle with ios/store.js (Pro words, Apple's EULA link) passes", ok.hits.filter(h => h.rule !== "exemption").length === 0, ok.hits.filter(h => h.rule !== "exemption"));
+  await write({ ...CLEAN, "index.html": CLEAN["index.html"].replace("<title>", '<meta name="cn-build" content="iap"><title>'), [S]: store, "ios/ios.js": 'const u="https://www.apple.com/legal/";' });
+  const host = await checkBundle({ dir, iap: true });
+  check("paywall gate: www.apple.com is allowed in ios/store.js only", host.hits.some(h => h.rule === "remote-host" && h.file === "ios/ios.js") && !host.hits.some(h => h.file === S), host.hits);
+  await write({ ...CLEAN, "index.html": CLEAN["index.html"].replace("<title>", '<meta name="cn-build" content="no-iap"><title>'), [S]: "const x=1;" });
+  const noIap = await checkBundle({ dir, iap: false });
+  check("paywall gate: ios/store.js in a no-IAP bundle fails, even with no purchase word in it", noIap.hits.some(h => h.rule === "no-iap" && h.file === S), noIap.hits);
+  await rm(dir, { recursive: true, force: true });
+}
+
 /* ---------- CSS pruning ---------- */
 {
   const css = `a{color:red}html.cn #cnGate .x{color:blue}#pricing .p,.keep{margin:0}@media (min-width:1px){#about h1{x:1}.y{z:2}}@keyframes k{0%{opacity:0}}.page:not(#home){display:block}.c::before{content:"}{"}`;

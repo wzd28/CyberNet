@@ -49,7 +49,9 @@ export const WORDS = [
   "malware clues", "file checks", "protection scan", "scan for malware", "detect malware", "malicious activity", "malicious-download",
   'webcontentsdebuggingenabled":true',
   // plan names: the app has one tier for every account (BUILD-PLAN §8.2, §11.4 step 9)
-  "cybernet ai free", "free plan", "analysis ai free", "team plan"
+  "cybernet ai free", "free plan", "analysis ai free", "team plan",
+  // no steering to the website (1.1 critic #13, App Review 3.1.1 / 3.1.3): the app never sends anyone to manage or buy elsewhere
+  "manage on the website", "cybernetai.app/account", "apps.apple.com/account/subscriptions"
 ];
 // The only places a listed word may appear: these exact phrases are removed before matching.
 export const ALLOWED_PHRASES = [
@@ -69,7 +71,7 @@ export const PLAN_NOTICE_FILE = "ios/ios.js";
 export const PLAN_NOTICE_STRINGS = []; // owner, 11 Nov 2026 (option A): no plan names in the app at all
 export const FORBIDDEN_IDENTIFIERS = ["startCheckout", "openBillingPortal", "showPricingNotice", "initPricingToggle", "signInWithOAuth", "googleAuthBtn", "byokAnalyze"];
 // Terms no exemption may ever cover.
-const NEVER_EXEMPT = ["stripe", "checkout", "customer-portal", "create-checkout-session", "manage billing", "billing portal", "upgrade", "pricing", "data-upgrade-now", "view pro", "pro plan", "business plan", "per month", "/month", "per year", "$9.99", "95.90", "$40", "subscription", "free trial", "google", "signinwithoauth", "jsdelivr", "unpkg", "three@", "googletagmanager", "gtag", "Pro"];
+const NEVER_EXEMPT = ["stripe", "checkout", "customer-portal", "create-checkout-session", "manage billing", "billing portal", "upgrade", "pricing", "data-upgrade-now", "view pro", "pro plan", "business plan", "per month", "/month", "per year", "$9.99", "95.90", "$40", "subscription", "free trial", "google", "signinwithoauth", "jsdelivr", "unpkg", "three@", "googletagmanager", "gtag", "Pro", "manage on the website", "cybernetai.app/account", "apps.apple.com/account/subscriptions"];
 const DEBUG_MARKERS = ["CN_DEMO_SCREEN", "CN_ENGINE_SELFTEST", "cn-debug-errors"];
 // The purchase mode (CN_NO_IAP, build-web.mjs; 1.1 plan critic #5). A bundle names its mode in <meta name="cn-build">.
 // A --no-iap bundle (build 10, and the fallback build) must carry nothing of the App Store purchase: no StoreKit
@@ -79,15 +81,25 @@ export const NO_IAP_NEEDLES = ["CNStore", "StoreKit", "X-CyberNet-IAP", "apple-v
 export const NO_IAP_LEGAL_WORDS = ["subscriptions in the app", "app store subscription", "billed by apple", "cancel at least 24 hours"];
 // In an IAP bundle a few files may name the App Store subscription (word "subscription" only; prices, upgrade and checkout
 // words stay forbidden): the account-deletion notice (an App Store subscription is not cancelled by deleting the account,
-// App Review 5.1.1(v)). The paywall step adds its own files here.
-export const IAP_WORD_FILES = { "cybernet-privacy-controls.js": ["subscription"] };
+// App Review 5.1.1(v)); and ios/store.js, the one file that holds the Pro paywall, the Account Pro rows, the limit-meter
+// entry and the Manage subscription step (1.1). The word Pro is matched as a whole word (see PRO below), so Protect and Process
+// never count. Prices stay forbidden there too: every price on screen is StoreKit's own text, read at run time.
+export const IAP_WORD_FILES = {
+  "cybernet-privacy-controls.js": ["subscription"],
+  "ios/store.js": ["subscription", "per month", "per year", "Pro"]
+};
+// Files that exist only in an in-app purchase bundle (a CN_NO_IAP=1 bundle with one of them fails the gate).
+export const IAP_ONLY_FILES = [/^ios\/store\.js$/];
+// Hosts only ios/store.js may name: Apple's standard Terms of Use (EULA), which the paywall links to (App Review 3.1.2).
+const STORE_FILE = "ios/store.js";
+const STORE_HOSTS = ["www.apple.com"];
 
 // Files that may exist in the bundle at all.
 export const ALLOWED_FILES = [
   /^index\.html$/, /^legal\/(terms|privacy|acceptable-use)\.html$/,
   /^(style|cybernet-legal|cybernet-howto)\.css$/,
   /^(config|cybernet-engine|cybernet-errors|cybernet-compat|script|cybernet-privacy-controls|cybernet-howto)\.js$/,
-  /^ios\/(cn-ios-boot|ios|cn-analytics|legal-page)\.js$/, /^ios\/ios\.css$/,
+  /^ios\/(cn-ios-boot|ios|cn-analytics|legal-page|store)\.js$/, /^ios\/ios\.css$/,
   /^vendor\/(supabase|jsQR|capacitor)\.js$/, /^vendor\/(three|hero3d-kit)\.min\.js$/,
   /^ui\/cybernet-ui\.(css|js)$/, /^ui\/cybernet-ui-legal\.css$/,
   /^ui\/fonts\/[\w.-]+\.woff2$/, /^ui\/fonts\/OFL\.txt$/,
@@ -143,7 +155,7 @@ export function wordHits(text, { file = "", legal = false, debug = false, iap = 
     out.push(w);
   }
   if (legal && !iap) for (const w of NO_IAP_LEGAL_WORDS) if (wordRegex(w).test(t)) out.push(w);
-  if (!legal && PRO.test(t)) out.push("Pro");
+  if (!legal && PRO.test(t) && !(iap && IAP_WORD_FILES[file]?.includes("Pro"))) out.push("Pro");
   return out;
 }
 
@@ -153,7 +165,7 @@ function hostsIn(text) {
 function hostAllowed(host, file) {
   // reserved names (RFC 2606/6761): examples only, never contacted
   if (/\.invalid$/.test(host) || /^(www\.)?example\.(com|org|net)$/.test(host)) return true;
-  const list = file === ANALYTICS ? [...HOSTS, ...ANALYTICS_HOSTS] : HOSTS;
+  const list = file === ANALYTICS ? [...HOSTS, ...ANALYTICS_HOSTS] : file === STORE_FILE ? [...HOSTS, ...STORE_HOSTS] : HOSTS;
   return list.some(h => host === h || host.endsWith("." + h) && h !== "www.w3.org");
 }
 
@@ -190,6 +202,7 @@ export async function checkBundle({ dir = path.join(mobile, "www"), debug = fals
   for (const rel of files) {
     const allowed = ALLOWED_FILES.some(re => re.test(rel)) || (debug && DEBUG_FILES.some(re => re.test(rel)));
     if (!allowed) add({ file: rel, line: 0, rule: "allow-list", term: "", literal: "", detail: "file is not on the bundle allow-list" });
+    else if (!iap && IAP_ONLY_FILES.some(re => re.test(rel))) add({ file: rel, line: 0, rule: "no-iap", term: rel, literal: "", detail: "an in-app purchase file in a bundle built without in-app purchases (CN_NO_IAP=1)" });
   }
 
   for (const rel of files) {

@@ -641,6 +641,15 @@
           const r = data?.recoveryUsage;
           const s = state();
           if (s && r && Number(r.casesLimit) > 0) s.recoveryUsage = { used: Number(r.casesUsed) || 0, limit: Number(r.casesLimit) };
+          /*@iap*/
+          // App 1.1 (in-app purchase builds): script.js keeps a fixed list of profile fields, so the app plan and the billing
+          // facts are copied here for ios/store.js. They name the account they belong to (billing.appAccountToken = the user id),
+          // and store.js uses them only while that account is the one signed in.
+          if (s) {
+            const p = data?.profile || {};
+            s.cnBilling = { uid: String(p.billing?.appAccountToken || s.user?.id || "").toLowerCase(), appPlan: p.appPlan === "pro" ? "pro" : "free", billing: p.billing || null, at: Date.now() };
+          }
+          /*@end-iap*/
         } catch { /* not JSON: script.js reports it */ }
       }
       return res;
@@ -1122,13 +1131,14 @@
   let gateOpen = false;  // the launch card is up: a shared item waits until it is answered (launch ends with checkInbox)
   // Resolves "signed-in", "guest" (the launch card's link, or Escape on it) or "cancel" (a guest's card).
   // launch: the gate (sticky: only its choices close it). overStage: it rises over the motion stage.
-  function signInCard({ page = null, launch = false, overStage = false } = {}) {
+  // title / lead: a caller's own reason line (store.js: why buying needs an account, 1.1 decision D3).
+  function signInCard({ page = null, launch = false, overStage = false, title: askTitle = "", lead: askLead = "" } = {}) {
     if (cardOpen) return cardOpen;
     // the first launch card after a deletion confirms it (the website's notice would sit under the card)
     const deleted = launch && !!w.CN_ACCOUNT_DELETED && !root.classList.contains("cn-deleted-told");
     if (deleted) root.classList.add("cn-deleted-told");
-    const title = deleted ? "Your account has been deleted" : page ? `Sign in to use ${ACCOUNT_PAGES[page]}` : "Sign in to CyberNet AI";
-    const lead = deleted ? DELETED_LEAD : (page && ACCOUNT_LEADS[page]) || GATE_LEAD;
+    const title = deleted ? "Your account has been deleted" : askTitle || (page ? `Sign in to use ${ACCOUNT_PAGES[page]}` : "Sign in to CyberNet AI");
+    const lead = deleted ? DELETED_LEAD : askLead || (page && ACCOUNT_LEADS[page]) || GATE_LEAD;
     cardOpen = sheet({
       id: "cnSignIn",
       label: title,
@@ -2193,6 +2203,11 @@
     } catch (error) { report(error, "start"); }
   }
 
-  w.CNIos = Object.freeze({ version: VERSION, openLegal, startQrScan, showQrVerdict, askConsent, showIntro, checkInbox, reportProblem, navigate });
+  w.CNIos = Object.freeze({
+    version: VERSION, openLegal, startQrScan, showQrVerdict, askConsent, showIntro, checkInbox, reportProblem, navigate,
+    // shared with the app's other files (1.1: ios/store.js)
+    P, sheet, toast, haptic, tick, esc, report, store, state, signedIn, authHeaders, signInCard, openExternal, activePage, motionOff,
+    isOffline: () => offline
+  });
   onReady(start);
 })();

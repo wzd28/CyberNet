@@ -417,7 +417,7 @@ try {
         const acct = parse(card.signInChoicesHtml("cnAcct"));
         check("Sign-in card: the message line is above the buttons on the card (so they stay where the finger is) and under them on the Account tab; one line each", order(launch) === "msg|apple" && order(guest) === "msg|apple" && order(acct) === "apple|msg", [order(launch), order(guest), order(acct)]);
         const leads = pages ? Object.keys(pages).map(k => card.ACCOUNT_LEADS[k]) : [];
-        check("Sign-in card: a guest's card says what its page does instead of repeating its heading; the launch card keeps the approved line", leads.length === 2 && leads.every(l => l && !/^Sign in/i.test(l)) && textOf(guest.find(n => /gate-lead/.test(attr(n, "class") || ""))) === card.ACCOUNT_LEADS.cybernetai && /constlead=deleted\?DELETED_LEAD:\(?page&&ACCOUNT_LEADS\[page\]\)?\|\|GATE_LEAD/.test(fnText("signInCard")), leads);
+        check("Sign-in card: a guest's card says what its page does instead of repeating its heading; the launch card keeps the approved line", leads.length === 2 && leads.every(l => l && !/^Sign in/i.test(l)) && textOf(guest.find(n => /gate-lead/.test(attr(n, "class") || ""))) === card.ACCOUNT_LEADS.cybernetai && /constlead=deleted\?DELETED_LEAD:(?:askLead\|\|)?\(?page&&ACCOUNT_LEADS\[page\]\)?\|\|GATE_LEAD/.test(fnText("signInCard")), leads);
         check("Sign-in card: no inline script and no remote file in the markup", !launch.some(n => n.tagName === "script" || /^https?:/.test(attr(n, "src") || attr(n, "href") || "")));
         // wording: App Review 2.3.1(a) (REJECTION-RISKS B2); the gate's own word list runs over every string the card and the hints show
         const strings = [card.GATE_LEAD, card.GUEST_LABEL, card.GUEST_NOTE, "Sign in to CyberNet AI", "Sign in to use Analysis AI", "Sign in to use Recovery", "Not now", ...launch.concat(guest).map(n => n.childNodes.filter(c => c.nodeName === "#text").map(c => c.value).join(" ")),
@@ -1275,6 +1275,36 @@ try {
       check("IAP build: Privacy names the App Store purchase data and drops 'The app has no purchases'", /a subscription is bought through the App Store, and Apple processes the payment/.test(iapPrivacy) && /Subscriptions and advertising\./.test(iapPrivacy) && !/has no purchases/.test(iapPrivacy) && /has no purchases/.test(noPrivacy));
       check("Delete dialog (bug 13): the IAP build says deleting the account does not cancel an App Store subscription; the no-IAP build does not mention it", /Deleting your account does not cancel an App Store subscription/.test(iapPc) && !/App Store subscription/.test(noPc));
       check("Gate: purchase markers and StoreKit names are refused in a no-IAP bundle", gate.NO_IAP_NEEDLES.includes("CNStore") && gate.NO_IAP_NEEDLES.includes("X-CyberNet-IAP") && !/@iap|@end-iap|@no-iap/.test(iapIndex + iapTerms + noIndex + noTerms));
+      // ---- 1.1 paywall and StoreKit (ios/store.js, StoreKitPlugin.swift)
+      {
+        const exists = (dir, rel) => existsSync(path.join(dir, ...rel.split("/")));
+        const scriptsOf = h => [...h.matchAll(/<script(?: [^>]*)?src="([^"]+)"/g)].map(m => m[1]);
+        const iapScripts = scriptsOf(iapIndex), noScripts = scriptsOf(noIndex);
+        check("Paywall: ios/store.js ships in the IAP bundle only, after ios.js and before the analytics module (still last)", exists(outIap, "ios/store.js") && !exists(out, "ios/store.js") && iapScripts.indexOf("ios/store.js") > iapScripts.indexOf("ios/ios.js") && iapScripts[iapScripts.length - 1] === "ios/cn-analytics.js" && !noScripts.includes("ios/store.js"), iapScripts.join(", "));
+        const [iapBoot, noBoot, iapIos, noIos, storeOut] = await Promise.all([readIn(outIap, "ios/cn-ios-boot.js"), readIn(out, "ios/cn-ios-boot.js"), readIn(outIap, "ios/ios.js"), readIn(out, "ios/ios.js"), readIn(outIap, "ios/store.js")]);
+        check("Paywall: the IAP build sends X-CyberNet-Plans and X-CyberNet-IAP; the no-IAP build sends neither (1.0's one App tier)", /X-CyberNet-Plans/.test(iapBoot) && /X-CyberNet-IAP/.test(iapBoot) && !/X-CyberNet-Plans|X-CyberNet-IAP/.test(noBoot));
+        check("Paywall: ios.js copies the billing facts (cnBilling) in the IAP build only, and names no StoreKit plugin in either", /cnBilling/.test(iapIos) && !/cnBilling/.test(noIos) && !/CNStore|StoreKit/.test(iapIos + noIos));
+        check("Paywall: the Account Pro slot is in the IAP page only", /id="cnAcctPro"/.test(iapIndex) && !/cnAcctPro/.test(noIndex));
+        const swift = await readFile(path.join(mobile, "native", "App", "Plugins", "StoreKitPlugin.swift"), "utf8");
+        const server = await import(pathToFileURL(path.join(root, "netlify", "lib", "apple-products.mjs")).href);
+        const idsIn = text => [...new Set([...text.matchAll(/"(app\.cybernetai\.[\w.]+)"/g)].map(m => m[1]))].sort();
+        const storeSrc = await readFile(path.join(mobile, "web-ios", "store.js"), "utf8");
+        check("Paywall: the product ids are the same two Pro ids in StoreKitPlugin.swift, store.js and netlify/lib/apple-products.mjs", JSON.stringify(idsIn(swift)) === JSON.stringify([...server.PRO_PRODUCT_IDS].sort()) && JSON.stringify(idsIn(storeSrc)) === JSON.stringify([...server.PRO_PRODUCT_IDS].sort()) && server.PRO_PRODUCT_IDS.length === 2, `${idsIn(swift)} | ${idsIn(storeSrc)}`);
+        const plans = await import(pathToFileURL(path.join(root, "netlify", "lib", "plans.mjs")).href);
+        const lim = /const LIMITS = Object\.freeze\(\{ free: \{ ai: (\d+), cases: (\d+) \}, pro: \{ ai: (\d+), cases: (\d+), waitHours: (\d+) \} \}\)/.exec(storeSrc);
+        const L = plans.PLAN_LIMITS;
+        check("Paywall: the benefit numbers equal netlify/lib/plans.mjs (Free 3 / 1, Pro 15 / 3, updates 2 hours apart)", lim && +lim[1] === L.free.analysesPerDay && +lim[2] === L.free.recoveryCasesPerDay && +lim[3] === L.pro.analysesPerDay && +lim[4] === L.pro.recoveryCasesPerDay && +lim[5] * 3600 === L.pro.recoveryUpdateCooldownSeconds, lim?.[0]);
+        check("Paywall (3.1.2): Apple's standard EULA, the Privacy Policy, Restore Purchases, the auto-renewal terms (24 hours, Settings > Subscriptions) and the sign-in reason are in the shipped file", storeOut.includes("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/") && /Terms of Use/.test(storeOut) && /Privacy Policy/.test(storeOut) && /Restore Purchases/.test(storeOut) && /at least 24 hours before the current period ends/.test(storeOut) && /tap your name, then Subscriptions/.test(storeOut) && /so it also works on the website/.test(storeOut));
+        check("Paywall: no typed price, no trial, no Business and no link to buy or manage anywhere else in store.js", !/\$\s?\d|\d[.,]\d\d\b|free trial|\bbusiness\b|stripe|checkout|pricing|cybernetai\.app\/(account|pricing)|apps\.apple\.com|manage on the website/i.test(storeSrc.replace(/https:\/\/www\.apple\.com\/legal\/internet-services\/itunes\/dev\/stdeula\//, "")), storeSrc.match(/.{30}(\$\s?\d|free trial|\bbusiness\b|stripe|checkout|pricing).{30}/i)?.[0]);
+        check("Paywall: finish only on the server's finish:true, matched by the result's index; success read from the entitlement", /r\?\.finish !== true/.test(storeSrc) && /items\[Number\(r\?\.index\)\]/.test(storeSrc) && /entitlement\?\.apple\?\.active/.test(storeSrc) && !/status === "applied"/.test(storeSrc));
+        check("Paywall: never opened at launch (only Get Pro, the meters' entry and window.CNPro.open)", (storeSrc.match(/openPaywall\(/g) || []).length === 2 && /if \(what === "open"\) openPaywall\(\)/.test(storeSrc));
+        check("Paywall: the silent sync makes no server call when Apple holds nothing (critic #2)", /if \(!found\.length\) \{ if \(due\)/.test(storeSrc));
+        check("StoreKit (Swift): iOS 17's purchase(confirmIn:) only behind #available, Ask to Buy is pending, updates kept until the page listens, never auto-finished", /#available\(iOS 17\.0, \*\)/.test(swift) && /case \.pending:\s*call\.resolve\(\["status": "pending"\]\)/.test(swift) && /retainUntilConsumed: true/.test(swift) && /override public func load\(\)[\s\S]*Transaction\.updates/.test(swift) && !/finish\(\)[\s\S]{0,80}received/.test(swift) && /CAPPluginMethod\(name: "refundRequest"/.test(swift) && /CAPPluginMethod\(name: "canMakePayments"/.test(swift));
+        const main = await readFile(path.join(mobile, "native", "App", "MainViewController.swift"), "utf8");
+        check("StoreKit (Swift): CNStore is registered inside the // @iap block only", /\/\/ @iap[\s\S]*registerPluginInstance\(StoreKitPlugin\(\)\)[\s\S]*\/\/ @end-iap/.test(main) && (main.match(/StoreKitPlugin\(\)/g) || []).length === 1);
+        const pi = await readFile(path.join(mobile, "native", "App", "PrivacyInfo.xcprivacy"), "utf8");
+        check("Privacy manifest: Purchase History is collected, linked, not tracking, for App Functionality", /NSPrivacyCollectedDataTypePurchaseHistory<\/string>\s*<key>NSPrivacyCollectedDataTypeLinked<\/key>\s*<true\/>\s*<key>NSPrivacyCollectedDataTypeTracking<\/key>\s*<false\/>/.test(pi));
+      }
     }
   }
 } finally {

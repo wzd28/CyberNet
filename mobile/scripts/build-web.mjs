@@ -143,8 +143,10 @@ export const UI_EXCLUDE = {
 };
 // iOS-only files (mobile/web-ios -> www/ios). Order of the scripts = order in the page.
 export const IOS_HEAD_SCRIPTS = ["vendor/capacitor.js", "ios/cn-ios-boot.js"]; // classic, before everything
-export const IOS_TAIL_SCRIPTS = ["ios/ios.js", "ios/cn-analytics.js"];          // deferred, after script.js
-const IOS_JS = ["cn-ios-boot.js", "ios.js", "cn-analytics.js", "legal-page.js"];
+// ios/store.js (the Pro paywall and In-App Purchase, 1.1) ships in in-app purchase builds only: a CN_NO_IAP=1 bundle has
+// no file of it at all. It runs after ios.js (it uses window.CNIos) and before the analytics module, which stays last.
+export const IOS_TAIL_SCRIPTS = NO_IAP ? ["ios/ios.js", "ios/cn-analytics.js"] : ["ios/ios.js", "ios/store.js", "ios/cn-analytics.js"]; // deferred, after script.js
+const IOS_JS = ["cn-ios-boot.js", "ios.js", ...(NO_IAP ? [] : ["store.js"]), "cn-analytics.js", "legal-page.js"];
 const IOS_DEBUG_JS = ["debug.js"];
 
 export const API_ORIGIN = "https://cybernetai.app";

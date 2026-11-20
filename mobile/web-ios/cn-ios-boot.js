@@ -105,6 +105,12 @@
       var headers = new Headers(options.headers || (typeof input === "object" && input ? input.headers : undefined));
       headers.set("X-CyberNet-Platform", "ios");
       headers.set("X-CyberNet-App-Version", VERSION);
+      /*@iap*/
+      // App 1.1 with in-app purchases: the server's Pro limits for a paid account (X-CyberNet-Plans) and the App Store
+      // billing facts the Pro screen needs (X-CyberNet-IAP). A CN_NO_IAP=1 build sends neither: 1.0's one App tier.
+      headers.set("X-CyberNet-Plans", "1");
+      headers.set("X-CyberNet-IAP", "1");
+      /*@end-iap*/
       options.headers = headers;
       if (!options.method && typeof input === "object" && input && input.method) options.method = input.method;
       var timer = 0;
