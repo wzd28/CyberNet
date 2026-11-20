@@ -108,7 +108,8 @@
     productsLoad = (async () => {
       try {
         const allowed = await CNStore.canMakePayments().catch(() => ({ allowed: true }));
-        const res = await CNStore.products({ ids: PRO_IDS });
+        // StoreKit normally answers in well under a second; a store that never answers must not leave the sheet loading
+        const res = await Promise.race([CNStore.products({ ids: PRO_IDS }), new Promise((_, no) => setTimeout(() => no(Object.assign(new Error("timeout"), { code: "NOT_AVAILABLE" })), 15000))]);
         const list = Array.isArray(res?.products) ? res.products : [];
         products = new Map(list.filter(p => PRO_IDS.includes(p?.id) && p.displayPrice).map(p => [p.id, p]));
         productsState = !products.size ? "failed" : allowed?.allowed === false ? "blocked" : "ready";
@@ -244,9 +245,9 @@
     return `<button type="button" class="cn-ios-link-btn cn-pro-restore" data-pro-act="restore"${busy ? " disabled" : ""}>Restore</button>
       ${head}${benefitsHtml()}${price}
       <p class="cn-pro-note" data-tone="${esc(tone)}" role="status" aria-live="polite"${msg ? "" : " hidden"}>${esc(msg)}</p>
-      <div class="cn-ios-sheet-actions">
+      ${wrong ? "" : `<div class="cn-ios-sheet-actions">
         <button type="button" class="primary-btn full cn-pro-cta" data-pro-act="buy"${ready && !busy ? "" : " disabled"}${busy === "purchase" ? ' aria-busy="true"' : ""}>${esc(label)}</button>
-      </div>
+      </div>`}
       <p class="cn-pro-why">${esc(TEXT.account)}</p>
       <p class="cn-pro-terms">${esc(TEXT.terms)}</p>
       <p class="cn-pro-links"><button type="button" class="cn-ios-link-btn" data-pro-act="eula">Terms of Use</button><span aria-hidden="true">·</span><button type="button" class="cn-ios-link-btn" data-pro-act="privacy">Privacy Policy</button><span aria-hidden="true">·</span><button type="button" class="cn-ios-link-btn" data-pro-act="restore"${busy ? " disabled" : ""}>Restore Purchases</button></p>`;
