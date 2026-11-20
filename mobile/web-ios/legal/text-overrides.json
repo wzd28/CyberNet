@@ -2,7 +2,15 @@
   "_": "Copy changes for the in-app legal pages (legal/*.html), applied to the built page. Same rule format as web-ios/text-overrides.json. Each one keeps the meaning; owner to review.",
   "privacy.html": [
     {
-      "find": "<p><strong>No purchases or advertising.</strong> The app has no purchases and shows no advertising. Apple handles your App Store account and the download under Apple’s own privacy policy; CyberNet does not receive your Apple payment details.</p>",
+      "find": "<p><strong>Purchases and advertising.</strong> The app shows no advertising. Versions of the app that offer in-app purchases sell one optional subscription, CyberNet AI Pro, through the App Store, billed by Apple (see Payments below); other versions have no purchases. Apple handles your App Store account, any purchase and the download under Apple’s own privacy policy; CyberNet does not receive your Apple payment details.</p>",
+      "replace": "<p><strong>No purchases or advertising.</strong> The app has no purchases and shows no advertising. Apple handles your App Store account and the download under Apple’s own privacy policy; CyberNet does not receive your Apple payment details.</p>",
+      "min": 1,
+      "max": 1,
+      "iap": false,
+      "why": "the website paragraph covers app versions with and without purchases; builds without in-app purchases keep the approved 1.0 wording"
+    },
+    {
+      "find": "<p><strong>Purchases and advertising.</strong> The app shows no advertising. Versions of the app that offer in-app purchases sell one optional subscription, CyberNet AI Pro, through the App Store, billed by Apple (see Payments below); other versions have no purchases. Apple handles your App Store account, any purchase and the download under Apple’s own privacy policy; CyberNet does not receive your Apple payment details.</p>",
       "replace": "<p><strong>Subscriptions and advertising.</strong> The app shows no advertising. Its only purchase is the optional Pro subscription, which the App Store sells and Apple bills; CyberNet does not receive your Apple payment details, only the purchase records described under Payments. Apple handles your App Store account, purchases and the download under Apple’s own privacy policy.</p>",
       "min": 1,
       "max": 1,
