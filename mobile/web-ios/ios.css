@@ -322,11 +322,13 @@ html.cn-still .cn-ios-sheet, html.cn-still .cn-ios-sheet-backdrop, html.cn-still
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: safe center;
   overflow-y: auto;
   overscroll-behavior-y: contain;
   padding: 0 24px 8px;
 }
+/* centred in the page; auto margins (not justify-content: safe center, which older WebKit may drop) fall to 0 when it overflows */
+.cn-onb-page > :first-child { margin-top: auto; }
+.cn-onb-page > :last-child { margin-bottom: auto; }
 .cn-onb-art {
   position: relative;
   flex: 0 0 auto;
@@ -456,6 +458,7 @@ html.cn-ios .cn-onb-buttons > button:active { transform: scale(.97); }
 .cn-onb-rows i { height: 30px; border-radius: 10px; background: rgba(255, 255, 255, .05); }
 /* Analysis AI and Recovery */
 .cn-onb-art-duo { flex-direction: row; gap: 14px; }
+.cn-onb-art-duo > * { scale: 1; } /* two tiles side by side: each scaled on its own centre would overlap; their size already follows the width */
 .cn-onb-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; width: clamp(108px, 30vw, 136px); aspect-ratio: 1; box-sizing: border-box; border-radius: 24px; background: linear-gradient(180deg, rgba(34, 211, 238, .12), rgba(34, 211, 238, .03)); border: 1px solid rgba(34, 211, 238, .25); }
 .cn-onb-tile svg { width: 38px; height: 38px; fill: none; stroke: var(--cn-ios-accent); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .cn-onb-tile b { font-size: .85rem; font-weight: 600; color: var(--cn-ios-text); }
