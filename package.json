@@ -30,7 +30,8 @@
     "test:funnel": "node tests/run-funnel.mjs",
     "test:checkout-guard": "node tests/run-checkout-guard.mjs",
     "test:rate-limits": "node tests/run-rate-limits.mjs",
-    "test:apple-iap": "node tests/run-ios-migration-apple.mjs && node tests/run-apple-iap.mjs"
+    "test:apple-iap": "node tests/run-ios-migration-apple.mjs && node tests/run-apple-iap.mjs",
+    "check:iap-release": "node scripts/check-iap-release.mjs"
   },
   "dependencies": {
     "@apple/app-store-server-library": "3.1.0",

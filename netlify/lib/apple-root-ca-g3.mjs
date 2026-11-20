@@ -25,7 +25,7 @@
 //        openssl x509 -inform der -in AppleRootCA-G3.cer -noout -fingerprint -sha256
 //   3. Replace the placeholder with the base64 of the DER bytes (one line):
 //        base64 -w0 AppleRootCA-G3.cer      (or: node -e "console.log(require('fs').readFileSync('AppleRootCA-G3.cer').toString('base64'))")
-//   4. Run: node tests/run-apple-iap.mjs
+//   4. Run: node tests/run-apple-iap.mjs  and  npm run check:iap-release (fails while the placeholder is here)
 //
 // If the fingerprint on Apple's page differs from the constant below, the
 // constant (written from the planner's notes) is wrong: fix the constant, not
