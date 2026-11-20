@@ -766,12 +766,26 @@
     const age = Date.now() - Number(store.get(GUEST_KEY)); // no key: Number(null) is 0, an age of 56 years
     return Number.isFinite(age) && age >= 0 && age < GUEST_MEMORY;
   }
+  // 1.1 onboarding (owner, 21 Nov 2026: "proper instructions and logo"): a welcome page with the app's mark, one page per
+  // feature with a small picture and numbered steps, then what an account adds. INTRO is the feature pages (a test runs it
+  // on its own, so it stays a plain literal); the pictures are in INTRO_ART, keyed by id.
   const INTRO = [
     // `guest` is added for someone who is not signed in: it would read oddly right after the sign-in card
-    { title: "Check a text or link", text: "Paste a message or a link into Check. CyberNet AI reads it on your iPhone and shows the warning signs.", guest: " No account needed." },
-    { title: "Scan a QR code before you open it", text: "Scan QR shows where a code really goes. Nothing opens until you choose." },
-    { title: "Share to CyberNet AI", text: "In Safari, Mail or Photos, tap Share and choose CyberNet AI. If you don't see it, scroll the app row to More and turn on CyberNet AI. For a text message, copy it and paste it into Check." }
+    { id: "check", title: "Check a text or link", text: "CyberNet AI reads it on your iPhone and shows the warning signs.", guest: " No account needed.",
+      steps: ["Copy the message or link.", "Open Check and paste it into the box.", "Tap Start the analysis."] },
+    { id: "qr", title: "Scan a QR code before you open it", text: "See where a code really goes. Nothing opens until you choose.",
+      steps: ["Tap Scan QR in the tab bar.", "Point the camera at the code, or choose a photo of it.", "Read where it goes, then decide."] },
+    { id: "share", title: "Share to CyberNet AI", text: "Send a page, an email or a photo from the app you're in.",
+      steps: ["In Safari, Mail or Photos, tap Share.", "Choose CyberNet AI.", "Don't see it? Scroll the row to More and turn on CyberNet AI."],
+      tip: "For a text message, copy it and paste it into Check." }
   ];
+  const INTRO_WELCOME = { title: "Welcome to CyberNet AI", text: "Spot the warning signs of a scam in messages, links and QR codes, before you tap." };
+  const INTRO_ACCOUNT = {
+    title: "Analysis AI and Recovery",
+    text: "Analysis AI explains the warning signs in plain words. Recovery gives you a plan, step by step, if something already went wrong.",
+    guest: "Both need a free account. You can sign in from Account at any time.",
+    member: "You're signed in, so both are ready."
+  };
 
   /* ---- 7a. the motion intro ---- */
   // The website's sign-in gate intro, the same markup, the same rules and the same clock (owner, 10 Nov 2026: "the loading
@@ -943,37 +957,127 @@
     try { introStage = mountStage(false); } catch (error) { report(error, "intro stage"); introPlain = true; }
   }
 
-  /* ---- 7b. the three steps ---- */
+  /* ---- 7b. the welcome pages ---- */
+  // A tall sheet with pages side by side: swipe (native scroll snap) or Back / Next, Skip at the top right, Return / Escape /
+  // the arrow keys on a Mac. Only the page in view can be reached by VoiceOver and Tab (the others are inert); a polite line
+  // says "2 of 5" and the title when the page changes. The pictures are decoration (aria-hidden): the steps say the same.
+  // The app icon, drawn (AppIcon-512@2x.png: the cyan shield and padlock on navy), so it is sharp at any size
+  const INTRO_ICON = '<svg class="cn-onb-icon" viewBox="0 0 1024 1024" aria-hidden="true"><defs><radialGradient id="cnOnbBg" cx="50%" cy="42%" r="70%"><stop offset="0" stop-color="#0f2a3a"/><stop offset="1" stop-color="#060b14"/></radialGradient><linearGradient id="cnOnbFg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6ee9fb"/><stop offset="1" stop-color="#22d3ee"/></linearGradient></defs><rect width="1024" height="1024" rx="228" fill="url(#cnOnbBg)"/><path d="M512 176c88 56 176 82 268 90v254c0 170-118 280-268 350-150-70-268-180-268-350V266c92-8 180-34 268-90Z" fill="none" stroke="url(#cnOnbFg)" stroke-width="48" stroke-linejoin="round"/><path d="M436 472v-44a76 76 0 0 1 152 0v44" fill="none" stroke="url(#cnOnbFg)" stroke-width="40"/><rect x="384" y="472" width="256" height="196" rx="32" fill="url(#cnOnbFg)"/><path d="M512 523a27 27 0 0 1 15 49l7 48h-44l7-48a27 27 0 0 1 15-49Z" fill="#060b14"/></svg>';
+  const INTRO_ART = {
+    welcome: `<div class="cn-onb-art cn-onb-art-welcome"><i class="cn-onb-halo"></i>${INTRO_ICON}</div>`,
+    check: `<div class="cn-onb-art"><div class="cn-onb-card">
+        <div class="cn-onb-card-head"><span class="cn-onb-seg is-on">Quick Scan</span><span class="cn-onb-seg">Analysis AI</span></div>
+        <div class="cn-onb-msg">Your parcel is on hold. Pay the fee today: <b>parcel-redelivery.invalid/pay</b></div>
+        <div class="cn-onb-card-foot"><span class="cn-onb-run">Start the analysis</span><span class="cn-onb-verdict cn-onb-pop"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7 7 17"/></svg>SCAM</span></div>
+      </div></div>`,
+    qr: `<div class="cn-onb-art"><div class="cn-onb-finder">
+        <i class="cn-onb-corner"></i><i class="cn-onb-corner"></i><i class="cn-onb-corner"></i><i class="cn-onb-corner"></i>
+        <svg class="cn-onb-qr" viewBox="0 0 21 21" aria-hidden="true"><path d="M0 0h7v7H0zM2 2v3h3V2zM14 0h7v7h-7zM16 2v3h3V2zM0 14h7v7H0zM2 16v3h3v-3z" fill-rule="evenodd"/><path d="M9 0h2v2H9zM9 3h1v3H9zM11 4h2v2h-2zM8 8h3v1H8zM12 8h1v3h-1zM14 9h3v1h-3zM18 8h3v2h-3zM9 10h2v2H9zM0 9h2v2H0zM3 8h2v1H3zM4 10h3v1H4zM14 11h2v2h-2zM17 11h1v3h-1zM19 12h2v1h-2zM8 13h2v2H8zM11 14h3v1h-3zM9 16h1v3H9zM11 17h2v1h-2zM12 19h3v2h-3zM15 15h2v2h-2zM18 15h3v1h-3zM19 17h2v4h-2zM16 18h2v1h-2zM8 20h2v1H8z"/></svg>
+        <i class="cn-onb-beam"></i>
+      </div><div class="cn-onb-link cn-onb-pop"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg><span>account-verify.invalid</span><em>Not opened</em></div></div>`,
+    share: `<div class="cn-onb-art"><div class="cn-onb-share">
+        <span class="cn-onb-grab"></span>
+        <div class="cn-onb-apps">
+          <span class="cn-onb-app"><i></i><b></b></span>
+          <span class="cn-onb-app"><i></i><b></b></span>
+          <span class="cn-onb-app is-us cn-onb-pop">${INTRO_ICON}<b>CyberNet AI</b></span>
+          <span class="cn-onb-app is-more"><i><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/></svg></i><b>More</b></span>
+        </div>
+        <div class="cn-onb-rows"><i></i><i></i></div>
+      </div></div>`,
+    account: `<div class="cn-onb-art cn-onb-art-duo">
+        <div class="cn-onb-tile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5.5h14a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5h-7l-4.5 3.5v-3.5H5A1.5 1.5 0 0 1 3.5 15V7A1.5 1.5 0 0 1 5 5.5Z"/><path d="M8 10h8M8 13h5"/></svg><b>Analysis AI</b></div>
+        <div class="cn-onb-tile cn-onb-pop"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.5"/><path d="m6 6 3.5 3.5M18 6l-3.5 3.5M6 18l3.5-3.5M18 18l-3.5-3.5"/></svg><b>Recovery</b></div>
+      </div>`
+  };
+  // The pages in order, worded for whoever is looking (a guest hears "No account needed." and what an account adds)
+  function introPages(member) {
+    return [
+      { id: "welcome", title: INTRO_WELCOME.title, text: INTRO_WELCOME.text, steps: [] },
+      ...INTRO.map(p => ({ ...p, text: p.text + (member ? "" : p.guest || "") })),
+      { id: "account", title: INTRO_ACCOUNT.title, text: INTRO_ACCOUNT.text, steps: [], tip: member ? INTRO_ACCOUNT.member : INTRO_ACCOUNT.guest }
+    ];
+  }
+  function introPageHtml(page, i, count) {
+    const steps = page.steps.length ? `<ol class="cn-onb-steps">${page.steps.map(s => `<li>${esc(s)}</li>`).join("")}</ol>` : "";
+    const tip = page.tip ? `<p class="cn-onb-tip">${esc(page.tip)}</p>` : "";
+    return `<section class="cn-onb-page cn-onb-page-${page.id}" role="group" aria-label="${i + 1} of ${count}: ${esc(page.title)}" data-onb-page="${i}">
+        ${INTRO_ART[page.id] || ""}
+        <div class="cn-onb-copy">
+          <h2 class="cn-onb-title"${i === 0 ? ' id="cnIntroTitle"' : ""}>${esc(page.title)}</h2>
+          <p class="cn-onb-lead">${esc(page.text)}</p>
+          ${steps}${tip}
+        </div>
+      </section>`;
+  }
   function introSheet(overStage) {
+    const pages = introPages(signedIn());
+    const last = pages.length - 1;
     let step = 0;
     return sheet({
       id: "cnIntro",
       label: "Welcome to CyberNet AI",
       sticky: true,
-      html: `<div class="cn-ios-intro">
-          <p class="cn-ios-intro-step" aria-live="polite"></p>
-          <h2 class="cn-ios-sheet-title" id="cnIntroTitle"></h2>
-          <p class="cn-ios-intro-text"></p>
-          <div class="cn-ios-intro-dots" aria-hidden="true">${INTRO.map(() => "<i></i>").join("")}</div>
-        </div>
-        <div class="cn-ios-sheet-actions cn-ios-intro-actions">
-          <button type="button" class="primary-btn full" data-intro="next" data-autofocus>Next</button>
-          <button type="button" class="cn-ios-link-btn" data-sheet-value="skip">Skip</button>
+      html: `<div class="cn-onb">
+          <div class="cn-onb-top">
+            <button type="button" class="cn-ios-link-btn cn-onb-skip" data-sheet-value="skip">Skip</button>
+          </div>
+          <p class="cn-ix-sr" aria-live="polite" data-onb-say></p>
+          <div class="cn-onb-track" data-onb-track>${pages.map((p, i) => introPageHtml(p, i, pages.length)).join("")}</div>
+          <div class="cn-onb-foot">
+            <div class="cn-onb-dots" aria-hidden="true">${pages.map(() => "<i></i>").join("")}</div>
+            <div class="cn-onb-buttons">
+              <button type="button" class="secondary-btn cn-onb-back" data-intro="back">Back</button>
+              <button type="button" class="primary-btn cn-onb-next" data-intro="next" data-autofocus>Next</button>
+            </div>
+          </div>
         </div>`,
       onOpen(panel, done) {
         if (overStage) riseOverStage(panel); // rises slowly over the bright stage instead of dimming it
-        const paint = () => {
-          panel.querySelector(".cn-ios-intro-step").textContent = `${step + 1} of ${INTRO.length}`;
-          panel.querySelector("#cnIntroTitle").textContent = INTRO[step].title;
-          panel.querySelector(".cn-ios-intro-text").textContent = INTRO[step].text + (signedIn() ? "" : INTRO[step].guest || "");
-          panel.querySelectorAll(".cn-ios-intro-dots i").forEach((dot, i) => dot.classList.toggle("is-on", i === step));
-          panel.querySelector('[data-intro="next"]').textContent = step === INTRO.length - 1 ? "Get started" : "Next";
+        panel.classList.add("cn-onb-sheet");
+        const track = panel.querySelector("[data-onb-track]");
+        const els = [...panel.querySelectorAll(".cn-onb-page")];
+        const back = panel.querySelector('[data-intro="back"]'), next = panel.querySelector('[data-intro="next"]');
+        const paint = (say = false) => {
+          els.forEach((page, i) => {
+            const here = i === step;
+            page.inert = !here;
+            page.toggleAttribute("aria-hidden", !here);
+            page.classList.toggle("is-here", here);
+          });
+          panel.querySelectorAll(".cn-onb-dots i").forEach((dot, i) => dot.classList.toggle("is-on", i === step));
+          next.textContent = step === last ? "Get started" : "Next";
+          if (step === 0 && d.activeElement === back) next.focus({ preventScroll: true });
+          back.hidden = step === 0;
+          if (say) panel.querySelector("[data-onb-say]").textContent = `${step + 1} of ${pages.length}. ${pages[step].title}`;
         };
-        paint();
+        const go = to => {
+          step = Math.max(0, Math.min(last, to));
+          track.scrollTo({ left: step * track.clientWidth, behavior: motionOff() ? "auto" : "smooth" });
+          paint(true);
+        };
+        // a swipe: the page is the one the track settles on (no scrollend on iOS 16, so every scroll is read)
+        let settle = 0;
+        track.addEventListener("scroll", () => {
+          clearTimeout(settle);
+          settle = setTimeout(() => {
+            const at = Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
+            if (at !== step && at >= 0 && at <= last) { step = at; paint(true); }
+          }, 90);
+        }, { passive: true });
+        // a Mac window that is resized keeps the same page in view
+        try { new ResizeObserver(() => { track.scrollLeft = step * track.clientWidth; }).observe(track); } catch { /* ignore */ }
         panel.addEventListener("click", e => {
-          if (!e.target.closest('[data-intro="next"]')) return;
-          if (step < INTRO.length - 1) { step++; paint(); } else done("done");
+          if (e.target.closest('[data-intro="back"]')) go(step - 1);
+          else if (e.target.closest('[data-intro="next"]')) { if (step < last) go(step + 1); else done("done"); }
         });
+        panel.addEventListener("keydown", e => {
+          if (sheetStack[sheetStack.length - 1] !== panel.parentNode) return;
+          if (e.key === "ArrowRight") { e.preventDefault(); go(step + 1); }
+          else if (e.key === "ArrowLeft") { e.preventDefault(); go(step - 1); }
+          else if (e.key === "Escape" || e.key === "Esc") { e.preventDefault(); done("skip"); } // a Mac keyboard: Escape is Skip
+        });
+        paint();
       }
     });
   }
