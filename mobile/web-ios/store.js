@@ -365,8 +365,19 @@
     note = { text: "", tone: "" };
     paint();
     try {
-      // Right before Apple's sheet: the server's latest word on this account (critic #10: never a second Pro).
-      try { await account()?.refreshAccountStatus?.(); } catch { /* facts() below */ }
+      // Right before Apple's sheet: the server's latest word on this account (critic #10: never a second Pro). It must be
+      // a reply from after this tap: script.js keeps the last good status when a refresh fails, so an older one is not enough.
+      const tappedAt = Date.now();
+      try { await account()?.refreshAccountStatus?.(); } catch { /* checked below */ }
+      if (!(Number(state()?.cnBilling?.at) >= tappedAt)) { say("Pro can't be bought right now. Check your connection and try again.", "warn"); return; }
+      // Then the Apple Account's own Pro, awaited (critic #2): a Pro already on this Apple Account that the server links to
+      // another CyberNet account, or that turns out active here, stops the purchase. No call when Apple holds none.
+      const held = ((await CNStore.currentEntitlements())?.transactions || []).filter(t => t?.jws);
+      if (held.length) {
+        const known = await exclusive(() => verify(held, "launch"));
+        if (!known.ok) { say("Pro can't be bought right now. Check your connection and try again.", "warn"); return; }
+        if (linkedElsewhere() || appleActive(known)) return; // the sheet now shows that state
+      }
       const f = facts();
       if (!canBuy(f) || linkedElsewhere()) {
         if (!f.known || !f.billing) say("Pro can't be bought right now. Please try again in a moment.", "warn");
