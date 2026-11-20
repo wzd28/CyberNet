@@ -777,7 +777,15 @@ html.cn-ios #cnPrivacyMessage:empty { display: none; }
 /* The privacy dialogs and sign-in card sit above the tab bar. */
 html.cn-ios .modal { z-index: 1500; }
 html.cn-ios .modal { padding-bottom: calc(24px + var(--cn-tabbar-h)); }
-html.cn-ios .modal .modal-card { max-height: calc(100% - env(safe-area-inset-top, 0px) - max(var(--cn-tabbar-h), env(safe-area-inset-bottom, 0px)) - 24px); overflow-y: auto; }
+/* The card fits between the status bar and the modal's bottom padding (24px + tab bar), so a tall dialog (Delete
+   account on an SE) scrolls inside instead of pushing its Close button off the top of the screen. */
+html.cn-ios .modal { padding-top: max(12px, env(safe-area-inset-top, 0px)); }
+/* :is() with an id so this beats the website's 92vh sheet rule (60-overlays.css, html.cn :is(#authModal, …, .modal) > .modal-card) */
+html.cn.cn-ios :is(#cnDeleteAccountModal, .modal) > .modal-card {
+  max-height: calc(100vh - max(12px, env(safe-area-inset-top, 0px)) - 24px - var(--cn-tabbar-h));
+  max-height: calc(100dvh - max(12px, env(safe-area-inset-top, 0px)) - 24px - var(--cn-tabbar-h));
+  overflow-y: auto;
+}
 /* after a deletion the launch card says so itself (ios.js signInCard); the website's notice would sit under it */
 html.cn-ios.cn-deleted-told #cnAccountDeletedNotice { display: none; }
 
@@ -853,6 +861,10 @@ html.cn-ios #cnMain > .page:not(#home) .feature-page-header h1 {
 }
 html.cn-ios #cnMain > .page:not(#home) .feature-page-header h1 b { font-weight: inherit; }
 html.cn-ios #cnMain > .page:not(#home) .feature-page-header > p:not(.cn-ios-disclaimer) { font-size: 1rem; line-height: 1.45; color: var(--cn-ios-text-2); }
+/* Analysis AI: without the eyebrow row the glass globe would sit on the lead line. In the app it is smaller, starts
+   level with the title, and the title and lead keep clear of it. */
+html.cn-ios #cybernetai > .feature-page-header > .cn-tl-orb { width: 72px; inset-block-start: -4px; }
+html.cn-ios #cybernetai > .feature-page-header > :is(h1, p:not(.cn-ios-disclaimer)) { padding-inline-end: 76px; }
 
 /* design 6: iOS sheets. A grabber, a 44 pt Close button in the header corner, the iOS sheet curve (about .4 s in, .25 s
    out), and the same fade-only fallback under Reduce Motion. No drag physics in 1.1. */
@@ -1111,3 +1123,4 @@ html.cn-ios:has(#howtoVideoModal.show) #cnIosTabbar { display: none; }
 html.cn-still .cn-pro-skel, html.cn-still .cn-pro-done-tick { animation: none; }
 @media (prefers-reduced-transparency: reduce) { .cn-ios-sheet.cn-pro-sheet { background: var(--cn-pro-bg); } }
 /*@end-iap*/
+html.cn-ios .cn-privacy-note[hidden] { display: none; }

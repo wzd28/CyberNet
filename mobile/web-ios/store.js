@@ -571,7 +571,11 @@
   async function deleteStep() {
     const modal = $("#cnDeleteAccountModal");
     if (!modal) return;
+    // The static "Paying through the App Store?" note (text-overrides.json) says the same as the box below, so it
+    // is hidden while the box is shown and shown again whenever the box is not.
+    const staticNote = [...modal.querySelectorAll(".cn-privacy-note")].find(p => /^Paying through the App Store/.test(p.querySelector("strong")?.textContent || ""));
     $("#cnDeleteProStep", modal)?.remove();
+    if (staticNote) staticNote.hidden = false;
     let renewing = false;
     const f = facts();
     if (standing(f) === "apple") renewing = f.billing?.apple?.autoRenew !== false;
@@ -587,7 +591,11 @@
     box.className = "cn-pro-delete";
     box.innerHTML = `<p><strong>Pro is billed by Apple.</strong> ${esc(TEXT.deleteNote)}</p><button type="button" class="secondary-btn full" data-pro-row="manage">Manage subscription</button>`;
     box.addEventListener("click", e => { if (e.target.closest("[data-pro-row=manage]")) manage(); });
-    modal.querySelector(".cn-privacy-confirm")?.insertAdjacentElement("beforebegin", box);
+    $("#cnDeleteProStep", modal)?.remove(); // two quick opens: only the last check's box stays
+    const anchor = modal.querySelector(".cn-privacy-confirm");
+    if (!anchor) return;
+    anchor.insertAdjacentElement("beforebegin", box);
+    if (staticNote) staticNote.hidden = true;
   }
 
   /* ================================================================ start */

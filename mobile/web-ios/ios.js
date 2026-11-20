@@ -1271,7 +1271,8 @@
   const LEGAL_TITLES = { terms: "Terms of Service", privacy: "Privacy Policy", "acceptable-use": "Acceptable Use Policy" };
   function openLegal(doc = "privacy", hash = "") {
     const file = LEGAL_FILES[doc] || "privacy";
-    $("#cnLegalSheet")?.remove();
+    const old = $("#cnLegalSheet");
+    if (old) { old.cnClose?.(); old.remove(); }
     const back = d.activeElement;
     const title = LEGAL_TITLES[file] || "Legal";
     const node = el(`<div class="cn-ios-legal-sheet" id="cnLegalSheet" role="dialog" aria-modal="true" aria-label="${esc(title)}">
@@ -1281,8 +1282,28 @@
         </div>
         <iframe class="cn-ios-legal-frame" title="Legal document" src="legal/${file}.html?embedded=1${hash ? `#${encodeURIComponent(hash)}` : ""}"></iframe>
       </div>`);
-    const close = () => { node.classList.remove("is-open"); later(() => node.remove(), 220); d.removeEventListener("keydown", onKey, true); try { back?.focus?.({ preventScroll: true }); } catch { /* ignore */ } };
-    const onKey = e => { if (e.key === "Escape" || e.key === "Esc") { e.stopImmediatePropagation(); close(); } };
+    // Part of the sheet stack (review fix): opened over the paywall, only the legal sheet answers Escape and Tab.
+    sheetStack.push(node);
+    let closed = false;
+    const close = () => {
+      if (closed) return;
+      closed = true;
+      const at = sheetStack.indexOf(node);
+      if (at >= 0) sheetStack.splice(at, 1);
+      node.classList.remove("is-open"); later(() => node.remove(), 220); d.removeEventListener("keydown", onKey, true);
+      try { back?.focus?.({ preventScroll: true }); } catch { /* ignore */ }
+    };
+    node.cnClose = close;
+    const onKey = e => {
+      if (sheetStack[sheetStack.length - 1] !== node) return;
+      if (e.key === "Escape" || e.key === "Esc") { e.stopImmediatePropagation(); close(); }
+      if (e.key === "Tab") {
+        const f = $("button, iframe", node);
+        if (!f.length) return;
+        if (e.shiftKey && d.activeElement === f[0]) { e.preventDefault(); f[f.length - 1].focus(); }
+        else if (!e.shiftKey && d.activeElement === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
+      }
+    };
     node.querySelector("[data-legal-close]").addEventListener("click", close);
     d.addEventListener("keydown", onKey, true);
     d.body.appendChild(node);
