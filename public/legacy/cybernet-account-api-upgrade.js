@@ -600,7 +600,7 @@
       if ((apple == null ? void 0 : apple.autoRenew) === false) return `Billed by Apple, ends ${date}${test}`;
       return `Billed by Apple, current period until ${date}${test}`;
     }
-    function renderAppleBilling(billingSource, apple) {
+    function renderAppleBilling(billingSource, apple, business) {
       const modal2 = document.getElementById("accountDetailsModal") || document;
       let note = document.getElementById("accountAppleBillingNote");
       if (billingSource !== "apple" && billingSource !== "both") {
@@ -616,7 +616,7 @@
         actions.insertAdjacentElement("beforebegin", note);
       }
       note.hidden = false;
-      note.textContent = billingSource === "both" ? "You're paying for Pro twice: here and through the App Store. To stop one, use Manage Billing here, or on your iPhone go to Settings > your name > Subscriptions. " : "Your Pro subscription is billed by Apple. Manage or cancel it on your iPhone: Settings > your name > Subscriptions, or at ";
+      note.textContent = billingSource === "both" && business ? "You also have CyberNet AI Pro through the App Store, billed separately by Apple. Your Business plan already includes Pro features, so you may not need both. Manage Business with Manage Billing here; manage the App Store subscription on your iPhone in Settings > your name > Subscriptions. " : billingSource === "both" ? "You're paying for Pro twice: here and through the App Store. To stop one, use Manage Billing here, or on your iPhone go to Settings > your name > Subscriptions. " : "Your Pro subscription is billed by Apple. Manage or cancel it on your iPhone: Settings > your name > Subscriptions, or at ";
       const link = document.createElement("a");
       link.href = "https://apps.apple.com/account/subscriptions";
       link.target = "_blank";
@@ -701,7 +701,7 @@
       if (statusEl) {
         statusEl.textContent = appleOnly ? appleStatusText(profile.apple) : details.pro ? friendlyStatus(profile.subscriptionStatus) : "Free account";
       }
-      renderAppleBilling(billingSource, profile.apple);
+      renderAppleBilling(billingSource, profile.apple, details.business);
       if (usageEl) {
         usageEl.textContent = `${used} of ${limit} used today • ${remaining} remaining`;
       }
