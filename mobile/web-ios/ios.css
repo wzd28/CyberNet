@@ -815,3 +815,156 @@ html.cn #home > .cn-demo .cn-demo-copy h2 > span { color: var(--cn-text-2); }
 .cn-ios-shot { margin: 10px 0 12px; }
 .cn-ios-shot-img, html.cn-ios .dest-shot img { display: block; width: 100%; height: auto; border-radius: 12px; border: 1px solid rgba(255, 255, 255, .1); }
 html.cn-ios .dest-shot-btn { width: 100%; min-height: 44px; }
+
+/* ================================================================ app 1.1 (bugs and design, plan sections 3B and 3C) */
+/* design 3: a tab change is instant. The website scrolls smoothly (style.css), so every new page used to show at the old
+   page's offset and then glide up; each tab now keeps its own position (ios.js goTab). */
+html.cn-ios { scroll-behavior: auto !important; }
+
+/* bug 2: the offline notice is a solid strip that can be read over anything under it (it was 12% amber over the logo) */
+.cn-ios-offline {
+  background: #2b2207;
+  background: color-mix(in srgb, #2b2207 92%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  backdrop-filter: blur(14px) saturate(140%);
+  border-color: rgba(245, 183, 64, .55);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .45);
+  font-weight: 600;
+}
+@media (prefers-reduced-transparency: reduce) { .cn-ios-offline { background: #2b2207; -webkit-backdrop-filter: none; backdrop-filter: none; } }
+
+/* design 4: one segmented-control style. The Quick Scan | Analysis AI switch uses the same neutral raised thumb as the
+   Text / Link / Image tabs below it; cyan is kept for actions. */
+.cn-ios-seg-thumb { background: rgba(255, 255, 255, .14); box-shadow: 0 1px 2px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .08); }
+.cn-ios-seg-btn[aria-selected="true"] { color: var(--cn-ios-text); }
+@media (prefers-contrast: more) { .cn-ios-seg-thumb { background: rgba(255, 255, 255, .26); outline: 1px solid rgba(255, 255, 255, .5); } }
+
+/* design 5: app-style page titles. No editorial eyebrow row and no "try the other tool" line on the app's tabs (the Check
+   switch does that); the title is one large-title style, 34/41 bold. The one-line "not antivirus" note stays. */
+html.cn-ios #cnMain > .page:not(#home) .feature-page-header .cn-edrow,
+html.cn-ios #cnMain > .page:not(#home) .feature-page-header > .cn-edlabel,
+html.cn-ios #cybernet .feature-page-header .feature-crosslink { display: none; }
+html.cn-ios #cnMain > .page:not(#home) .feature-page-header h1 {
+  font-size: 34px;
+  line-height: 41px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  margin-top: 0;
+}
+html.cn-ios #cnMain > .page:not(#home) .feature-page-header h1 b { font-weight: inherit; }
+html.cn-ios #cnMain > .page:not(#home) .feature-page-header > p:not(.cn-ios-disclaimer) { font-size: 1rem; line-height: 1.45; color: var(--cn-ios-text-2); }
+
+/* design 6: iOS sheets. A grabber, a 44 pt Close button in the header corner, the iOS sheet curve (about .4 s in, .25 s
+   out), and the same fade-only fallback under Reduce Motion. No drag physics in 1.1. */
+.cn-ios-sheet { position: relative; padding-top: 26px; transition: transform .25s cubic-bezier(.32, .72, 0, 1); }
+.cn-ios-sheet-backdrop.is-open .cn-ios-sheet { transition-duration: .4s; }
+.cn-ios-sheet-grab { position: absolute; top: 7px; left: 50%; width: 36px; height: 5px; margin-left: -18px; border-radius: 3px; background: rgba(148, 163, 184, .45); }
+.cn-ios-sheet-x {
+  appearance: none;
+  -webkit-appearance: none;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(148, 163, 184, .18);
+  color: var(--cn-ios-text-2);
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.cn-ios-sheet-x::after { content: ""; position: absolute; inset: -7px; } /* 44 pt touch area */
+.cn-ios-sheet-x:active { background: rgba(148, 163, 184, .3); }
+.cn-ios-sheet-x:focus-visible { outline: 2px solid var(--cn-ios-accent); outline-offset: 2px; }
+/* titles and kickers leave room for the Close button */
+.cn-ios-sheet > .cn-ios-sheet-title,
+.cn-ios-sheet > .cn-ios-sheet-kicker { padding-right: 40px; }
+@media (prefers-reduced-motion: reduce) { .cn-ios-sheet { transform: none !important; opacity: 0; transition: opacity .2s ease !important; } .cn-ios-sheet-backdrop.is-open .cn-ios-sheet { opacity: 1; } }
+html.cn-still .cn-ios-sheet { transform: none !important; opacity: 0; transition: opacity .2s ease !important; }
+html.cn-still .cn-ios-sheet-backdrop.is-open .cn-ios-sheet { opacity: 1; }
+
+/* design 8: the QR verdict's actions. "Get an AI explanation" leads; Copy and Open in Safari are quiet text buttons, and
+   Open in Safari is last and red when the code looks risky. */
+.cn-ios-qr-actions { gap: 8px; }
+.cn-ios-quiet-row { display: flex; justify-content: center; gap: 28px; }
+.cn-ios-quiet-row .cn-ios-link-btn { min-width: 88px; }
+.cn-ios-danger-link { color: var(--cn-danger, #ff8a8a) !important; }
+.cn-ios-report-link { font-size: .88rem; color: var(--cn-ios-text-2); font-weight: 500; }
+/* URLs break at their own punctuation, never mid-word where avoidable */
+.cn-ios-qr-target, html.cn-ios .result-box .dest-url, html.cn-ios .result-box code { overflow-wrap: anywhere; word-break: normal; }
+
+/* design 9: Account as an iOS grouped list. Rows that open something are white with a chevron; actions keep the accent;
+   every row darkens while pressed. Sign out sits on its own at the bottom (partials/account.html). */
+.cn-ios-group > .cn-ios-row-btn {
+  position: relative;
+  box-sizing: border-box;
+  width: calc(100% + 28px);
+  margin: 0 -14px;
+  padding-left: 14px;
+  padding-right: 14px;
+  transition: background-color .1s ease;
+}
+.cn-ios-group > .cn-ios-row-btn:active { background: rgba(255, 255, 255, .06); }
+.cn-ios-group > .cn-ios-row-btn[data-ios-nav] { color: var(--cn-ios-text); padding-right: 36px; }
+.cn-ios-group > .cn-ios-row-btn[data-ios-nav]::after {
+  content: "";
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  margin-top: -4px;
+  border-right: 2px solid rgba(148, 163, 184, .7);
+  border-top: 2px solid rgba(148, 163, 184, .7);
+  transform: rotate(45deg);
+}
+.cn-ios-group > .cn-ios-row-btn:first-child { border-radius: 16px 16px 0 0; }
+.cn-ios-group > .cn-ios-row-btn:last-child { border-radius: 0 0 16px 16px; }
+.cn-ios-group-signout { padding: 0 14px; }
+.cn-ios-group-signout .secondary-btn { color: var(--cn-danger, #ff8a8a); }
+
+/* bug 1: the how-to guide in the app is a full-screen sheet under the status bar, with a 44 pt Done and 44 pt tabs */
+html.cn-ios #howtoVideoModal.video-modal-fullscreen { align-items: stretch; padding: 0; }
+html.cn-ios #howtoVideoModal .video-player-shell {
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  max-width: none;
+  border-radius: 0;
+  border: 0;
+  padding: calc(env(safe-area-inset-top, 0px) + 10px) 18px calc(env(safe-area-inset-bottom, 0px) + 14px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+html.cn-ios #howtoVideoModal .video-exit-btn { min-height: 44px; padding: 0 16px; font-size: 17px; font-weight: 600; color: var(--cn-ios-accent); border-color: transparent; }
+html.cn-ios #howtoVideoModal .video-modal-tab { min-height: 44px; }
+html.cn-ios #howtoVideoModal .video-modal-tabs { align-self: stretch; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+html.cn-ios #howtoVideoModal .hw-btn { min-height: 44px; }
+
+/* bug 6: the Home pill (now with the website's id, so it has its look and 44 px hit area) */
+html.cn-ios #home #heroLearnFeaturesBtn { touch-action: manipulation; -webkit-user-select: none; user-select: none; }
+
+/* design 10: no keyboard idea on the iPhone (the Return key adds a new line) */
+html.cn-ios #cybernetai .chat-messages:has(> .chat-bubble:only-child)::after { content: "Text · Links · Screenshots"; content: "Text · Links · Screenshots" / ""; }
+
+/* design 12: while the daily counts load, the meters show a quiet bar instead of "— / —" */
+html.cn-ios .cn-ios-loading { display: inline-block; min-width: 3.2em; height: .9em; border-radius: 6px; background: rgba(148, 163, 184, .18); color: transparent !important; vertical-align: -1px; animation: cn-ios-pulse 1.4s ease-in-out infinite; }
+@keyframes cn-ios-pulse { 50% { opacity: .55; } }
+@media (prefers-reduced-motion: reduce) { html.cn-ios .cn-ios-loading { animation: none; } }
+html.cn-still .cn-ios-loading { animation: none; }
+.cn-ios-empty { margin: 10px 0 0; color: var(--cn-ios-text-2); font-size: .92rem; line-height: 1.45; }
+.cn-ios-prompts { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px; }
+.cn-ios-prompts .cn-chip { position: relative; min-height: 36px; }
+/* design 5 (Check): the switch's hint already says what Quick Scan does, so the lead goes and the "not antivirus" note
+   is one quiet footnote line; the text box starts higher on the first screen */
+html.cn-ios #cybernet .feature-page-header > p:not(.cn-ios-disclaimer) { display: none; }
+html.cn.cn-ios #cnMain > #cybernet .feature-page-header > p.cn-ios-disclaimer { max-width: 34em; margin: 6px 0 0; font-size: 13px; line-height: 18px; color: var(--cn-ios-text-2); }
+/* bug 1: without the native bar (browser checks), the web tab bar steps aside for the how-to guide too */
+html.cn-ios:has(#howtoVideoModal.show) #cnIosTabbar { display: none; }

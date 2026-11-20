@@ -56,7 +56,10 @@ try {
     check("ios.js after script.js and the privacy controls", scripts.indexOf("ios/ios.js") > scripts.indexOf("script.js") && scripts.indexOf("ios/ios.js") > scripts.indexOf("cybernet-privacy-controls.js"), scripts.join(", "));
     check("analytics module is the last script", scripts[scripts.length - 1] === "ios/cn-analytics.js", scripts.join(", "));
     check("no remote script tags", scripts.every(s => !/^(https?:)?\/\//.test(s)), scripts.join(", "));
-    check("web-only scripts are not loaded", !scripts.some(s => /consent|business-team|account-api-upgrade|onboarding|legal-upgrade|final-ui-fix|howto|admin-feedback/.test(s)), scripts.join(", "));
+    check("web-only scripts are not loaded", !scripts.some(s => /consent|business-team|account-api-upgrade|onboarding|legal-upgrade|final-ui-fix|admin-feedback/.test(s)), scripts.join(", "));
+    // 1.1 bug 1: the how-to walkthroughs ship (the Home pill opens them), with no plan, price or Business wording
+    check("How-to guide (bug 1): cybernet-howto.js and .css are loaded, the modal is in the page with a Done button and three tabs, and the Home pill opens it (no data-page)", scripts.includes("cybernet-howto.js") && /href="cybernet-howto\.css"/.test(html) && /id="howtoVideoModal"/.test(html) && /id="closeHowtoVideo" type="button">Done</.test(html) && (html.match(/data-video="(protect|cybernetai|recovery)"/g) || []).length === 3 && /id="heroLearnFeaturesBtn"/.test(html) && !/id="heroLearnFeaturesBtn"[^>]*data-page/.test(html) && !/coming soon|videoPlayerControls/i.test(html));
+    { const howto = await read("cybernet-howto.js"); check("How-to guide (bug 1): the app copy names no plan, Business or Pro, and says Analysis AI and Recovery need an account", !/Business|\bPro\b|Free plan|upgrade/i.test(howto) && /Analysis AI and Recovery need a CyberNet AI account/.test(howto), howto.match(/.{40}(Business|\bPro\b|Free plan).{40}/i)?.[0]); }
     check("CSP meta present", /<meta http-equiv="Content-Security-Policy" content="default-src 'self' capacitor:\/\/localhost;/.test(html));
     check("title is CyberNet AI", /<title>CyberNet AI<\/title>/.test(html));
     check("no SEO / manifest / preconnect tags", !/og:|twitter:|rel="manifest"|rel="preconnect"|ld\+json|canonical/.test(html));
@@ -190,20 +193,25 @@ try {
         const decl = find(n => n.type === "VariableDeclaration" && n.declarations.some(d => d.id?.name === "lastCheckPage"), iosAst);
         let gt = null;
         try {
-          gt = new Function("TABS", "navigate", "startQrScan", "activePage", "isCheckPage", "scrollToTop", `${iosSrc(decl)}\n${iosSrc(find(n => n.type === "FunctionDeclaration" && n.id?.name === "goTab", iosAst))}\nreturn { goTab, remember: page => { lastCheckPage = page; } };`);
+          gt = new Function("TABS", "navigate", "startQrScan", "activePage", "isCheckPage", "scrollToTop", "PAGE_TAB", "rememberScroll", `let tabReturn = null;\n${iosSrc(decl)}\n${iosSrc(find(n => n.type === "FunctionDeclaration" && n.id?.name === "goTab", iosAst))}\nreturn { goTab, remember: page => { lastCheckPage = page; }, pending: () => tabReturn };`);
         } catch (error) { check("goTab can be run", false, error.message); }
         if (gt) {
           const tabs = [{ id: "check", page: "cybernet" }, { id: "scan", page: null }, { id: "recovery", page: "recovery" }, { id: "learn", page: "learn" }];
           const run = (current, last, tab) => {
             const log = [];
-            const { goTab, remember } = gt(tabs, p => log.push(`navigate:${p}`), () => log.push("qr"), () => current, p => p === "cybernet" || p === "cybernetai", () => log.push("top"));
+            const PAGE_TAB = { home: "home", cybernet: "check", cybernetai: "check", recovery: "recovery", learn: "learn", account: "account" };
+            const { goTab, remember, pending } = gt(tabs, p => log.push(`navigate:${p}`), () => log.push("qr"), () => current, p => p === "cybernet" || p === "cybernetai", () => log.push("top"), PAGE_TAB, () => log.push("remember"));
             if (last) remember(last);
             goTab(tab);
-            return log.join(",");
+            run.pending = pending();
+            return log.filter(x => x !== "remember").join(",") + (log.includes("remember") ? "+remember" : "");
           };
+          // 1.1 design item 3: every tab keeps its scroll position (remembered on the way out, restored on the way back) and
+          // tapping the open tab again scrolls it to the top
+          check("Tabs (1.1): leaving a tab remembers its scroll position and asks for the new tab's to be restored; the open tab again scrolls to the top", run("learn", null, "recovery") === "navigate:recovery+remember" && run.pending?.tab === "recovery" && run("learn", null, "learn") === "top" && run("recovery", null, "recovery") === "top");
           check("Check tab: tapped again on Analysis AI it stays there and scrolls to the top (it does not jump to Quick Scan)", run("cybernetai", null, "check") === "top" && run("cybernet", null, "check") === "top");
-          check("Check tab: from another tab it returns to the Check page that was open last (Quick Scan by default)", run("learn", "cybernetai", "check") === "navigate:cybernetai" && run("account", null, "check") === "navigate:cybernet" && run("recovery", "cybernet", "check") === "navigate:cybernet");
-          check("Check tab: the other tabs and Scan QR work as before", run("cybernetai", null, "recovery") === "navigate:recovery" && run("cybernet", null, "learn") === "navigate:learn" && run("cybernet", null, "scan") === "qr");
+          check("Check tab: from another tab it returns to the Check page that was open last (Quick Scan by default)", run("learn", "cybernetai", "check") === "navigate:cybernetai+remember" && run("account", null, "check") === "navigate:cybernet+remember" && run("recovery", "cybernet", "check") === "navigate:cybernet+remember");
+          check("Check tab: the other tabs and Scan QR work as before", run("cybernetai", null, "recovery") === "navigate:recovery+remember" && run("cybernet", null, "learn") === "navigate:learn+remember" && run("cybernet", null, "scan") === "qr");
         }
         check("Check tab: the open Check page is remembered whenever the tabs are synced, and the scroll respects reduced motion", /if\(isCheckPage\(page\)\)lastCheckPage=page/.test(fnBody("syncTabs")) && /w\.scrollTo\(\{top:0,behavior:motionOff\(\)\?"auto":"smooth"\}\)/.test(fnBody("scrollToTop")), fnBody("scrollToTop"));
       }

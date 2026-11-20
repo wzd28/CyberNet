@@ -55,14 +55,22 @@
     toast.t = setTimeout(() => { box.className = "cn-ios-toast"; }, 3600);
   }
 
-  // A bottom sheet (dialog). resolve(value) closes it. Escape / the backdrop resolve(null) unless sticky.
+  // A bottom sheet (dialog). resolve(value) closes it. Escape / the backdrop / the Close button at the top right resolve(null)
+  // unless sticky. 1.1 (design item 6): an iOS grabber on top and a 44 pt Close button in the header corner; sheets stack, and
+  // only the top one answers Escape and Tab (bug 10: Escape used to close the sheet underneath first).
+  const sheetStack = [];
+  const CLOSE_X = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
   function sheet({ id, label, html, sticky = false, onOpen }) {
     return new Promise(resolve => {
       $(`#${id}`)?.remove();
       const back = d.activeElement;
-      const node = el(`<div class="cn-ios-sheet-backdrop" id="${id}"><div class="cn-ios-sheet" role="dialog" aria-modal="true" aria-label="${esc(label)}" tabindex="-1">${html}</div></div>`);
+      const chrome = `<div class="cn-ios-sheet-grab" aria-hidden="true"></div>${sticky ? "" : `<button type="button" class="cn-ios-sheet-x" data-sheet-dismiss aria-label="Close">${CLOSE_X}</button>`}`;
+      const node = el(`<div class="cn-ios-sheet-backdrop" id="${id}"><div class="cn-ios-sheet" role="dialog" aria-modal="true" aria-label="${esc(label)}" tabindex="-1">${chrome}${html}</div></div>`);
       const panel = node.firstElementChild;
+      sheetStack.push(node);
       const done = value => {
+        const at = sheetStack.indexOf(node);
+        if (at >= 0) sheetStack.splice(at, 1);
         d.removeEventListener("keydown", onKey, true);
         node.classList.remove("is-open");
         later(() => node.remove(), 220);
@@ -70,6 +78,7 @@
         resolve(value);
       };
       const onKey = e => {
+        if (sheetStack[sheetStack.length - 1] !== node) return; // a sheet above this one answers first
         if ((e.key === "Escape" || e.key === "Esc") && !sticky) { e.stopImmediatePropagation(); done(null); }
         if (e.key === "Tab") {
           const f = $$('button:not([disabled]), [href], input:not([disabled]), textarea, select, [tabindex]:not([tabindex="-1"])', panel).filter(x => x.offsetParent !== null);
@@ -80,6 +89,7 @@
       };
       node.addEventListener("click", e => {
         if (e.target === node && !sticky) done(null);
+        if (e.target.closest?.("[data-sheet-dismiss]") && !sticky) { done(null); return; }
         const b = e.target.closest?.("[data-sheet-value]");
         if (b && node.contains(b)) done(b.getAttribute("data-sheet-value"));
       });
@@ -103,7 +113,7 @@
   }
 
   async function copyText(text) {
-    try { await navigator.clipboard.writeText(text); toast("Copied."); return; } catch { /* fall back */ }
+    try { await navigator.clipboard.writeText(text); toast("Copied."); haptic("SUCCESS"); return; } catch { /* fall back */ }
     const area = el("<textarea readonly></textarea>");
     area.value = text; d.body.appendChild(area); area.select();
     try { d.execCommand("copy"); toast("Copied."); } catch { toast("Copying is not available here."); }
@@ -181,18 +191,43 @@
     $(`.nav-tabs .nav-link[data-page="${page}"]`)?.click();
   }
   function scrollToTop() { w.scrollTo({ top: 0, behavior: motionOff() ? "auto" : "smooth" }); }
+  // Like UITabBarController (1.1 design item 3): every tab keeps its own scroll position, and coming back to a tab
+  // shows it where it was left, at once (ios.css turns the website's smooth scrolling off, so the page swap never
+  // glides). Tapping the open tab again scrolls it to the top. In-page links still open a page at its top.
+  const tabScroll = {};
+  let tabReturn = null; // { tab, until }: the tab tap whose page swap should restore that tab's position
+  function rememberScroll() { tabScroll[PAGE_TAB[activePage()] || "check"] = w.scrollY || 0; }
+  function restoreScroll(page) {
+    const tab = PAGE_TAB[page];
+    if (!tabReturn || tabReturn.tab !== tab || Date.now() > tabReturn.until) { tabReturn = null; return; }
+    tabReturn = null;
+    const y = tabScroll[tab] || 0;
+    if (y > 0) requestAnimationFrame(() => w.scrollTo({ top: y, behavior: "auto" }));
+  }
   function goTab(id) {
     const tab = TABS.find(t => t.id === id);
     if (!tab) return;
     if (id === "scan") { startQrScan(); return; }
-    if (id === "check") {
-      // like a native tab: tapping it again keeps the open page (Quick Scan or Analysis AI) and scrolls it
-      // to the top; coming from another tab returns to the page the Check tab was left on
-      if (isCheckPage(activePage())) { scrollToTop(); return; }
-      navigate(lastCheckPage);
-      return;
-    }
+    const here = PAGE_TAB[activePage()];
+    if (here === id) { scrollToTop(); return; } // the open tab again: to the top (Check keeps Quick Scan or Analysis AI)
+    rememberScroll();
+    tabReturn = { tab: id, until: Date.now() + 1500 };
+    if (id === "check") { navigate(lastCheckPage); return; } // back to the page the Check tab was left on
     navigate(tab.page);
+  }
+  // 1.1 bug 8: the website's in-page buttons (data-page) switch pages directly, so a guest saw Analysis AI or Recovery
+  // behind the sign-in card and was sent back on "Not now". A guest's tap on one is caught before script.js sees it:
+  // the card comes first and the page stays where it is, as with the tab bar.
+  function guardAccountLinks() {
+    d.addEventListener("click", e => {
+      const b = e.target.closest?.("[data-page]");
+      if (!b || b.closest("#cnIosTabbar, #cnIosSeg")) return;
+      const page = b.getAttribute("data-page");
+      if (!needsAccount(page)) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      requireAccount(page);
+    }, true);
   }
   function activePage() { return $(".page.active-page")?.id || "cybernet"; }
 
@@ -232,6 +267,7 @@
       const from = last;
       last = now;
       syncTabs();
+      restoreScroll(now);
       // Safety net: the tab bar and the Check switch ask before they navigate, but the website's own in-page
       // buttons (data-page) switch pages directly. A guest who lands on a page that needs an account gets the
       // card; cancelling goes back to where they came from.
@@ -1547,17 +1583,34 @@
         <div class="cn-ios-sheet-actions">
           <button type="button" class="primary-btn full" data-sheet-value="photo" data-autofocus>Choose a photo of a QR code</button>
           ${settings ? '<button type="button" class="secondary-btn full" data-sheet-value="settings">Open Settings</button>' : ""}
-          <button type="button" class="cn-ios-link-btn" data-sheet-value="close">Close</button>
-        </div>`
+        </div>`,
+      // 1.1 bug 9: WebKit opens a file picker only inside the tap itself, so the picker opens here, in the tap; the photo then
+      // goes to Quick Scan's Image tab as if it had been chosen there.
+      onOpen(panel) {
+        panel.querySelector('[data-sheet-value="photo"]')?.addEventListener("click", () => pickQrPhoto(), true);
+      }
     }).then(choice => {
       syncTabs();
       if (choice === "settings") openExternal("app-settings:");
-      if (choice === "photo") {
-        navigate("cybernet");
-        $('.detect-tab[data-tab="image"]')?.click();
-        later(() => $("#cyberImageInput")?.click(), 350);
-      }
     });
+  }
+  function pickQrPhoto() {
+    const picker = el('<input type="file" accept="image/*" hidden>');
+    d.body.appendChild(picker);
+    picker.addEventListener("change", () => {
+      const file = picker.files?.[0];
+      picker.remove();
+      if (!file) return;
+      navigate("cybernet");
+      later(() => {
+        $('.detect-tab[data-tab="image"]')?.click();
+        const field = $("#cyberImageInput");
+        if (!field) return;
+        try { const dt = new DataTransfer(); dt.items.add(file); field.files = dt.files; } catch (error) { report(error, "qr photo"); return; }
+        field.dispatchEvent(new Event("change", { bubbles: true }));
+      }, 380);
+    }, { once: true });
+    picker.click();
   }
   function verdictOf(result) {
     const E = w.CyberNetEngine;
@@ -1606,15 +1659,16 @@
           ${plain.lead ? `<p class="plain-lead">${esc(plain.lead)}</p>` : ""}
           <ul class="plain-points">${(plain.points || []).slice(0, 3).map(p => `<li>${esc(p)}</li>`).join("")}</ul>
           ${plain.action ? `<p class="plain-action"><strong>What to do:</strong> ${esc(plain.action)}</p>` : ""}
-          <p class="cn-ios-disclaimer-small">It is not antivirus software, and no scanner can promise something is 100% safe.</p>
+          <p class="cn-ios-disclaimer-small">${/100% safe/i.test(plain.action || "") ? "It is not antivirus software." : "It is not antivirus software, and no scanner can promise something is 100% safe."}</p>
         </div>
-        <div class="cn-ios-sheet-actions">
-          ${link ? `<button type="button" class="${v.tone === "safe" ? "primary-btn" : "secondary-btn"} full" data-qr="open">Open in Safari</button>` : ""}
-          <button type="button" class="secondary-btn full" data-qr="copy">Copy</button>
+        <div class="cn-ios-sheet-actions cn-ios-qr-actions">
+          <button type="button" class="primary-btn full" data-qr="ai" data-autofocus>Get an AI explanation</button>
           ${kind === "qr" ? '<button type="button" class="secondary-btn full" data-qr="again">Scan another</button>' : ""}
-          <button type="button" class="secondary-btn full" data-qr="ai">Get an AI explanation</button>
-          <button type="button" class="cn-ios-link-btn" data-qr="report">Report a problem with this result</button>
-          <button type="button" class="cn-ios-link-btn" data-sheet-value="close" data-autofocus>Close</button>
+          <div class="cn-ios-quiet-row">
+            <button type="button" class="cn-ios-link-btn" data-qr="copy">Copy</button>
+            ${link ? `<button type="button" class="cn-ios-link-btn${v.tone === "safe" ? "" : " cn-ios-danger-link"}" data-qr="open">Open in Safari</button>` : ""}
+          </div>
+          <button type="button" class="cn-ios-link-btn cn-ios-report-link" data-qr="report">Report a problem with this result</button>
         </div>`,
       onOpen(panel, done) {
         panel.addEventListener("click", async e => {
@@ -1819,6 +1873,12 @@
     let bar = $("#cnOfflineBar");
     if (off && !bar) { bar = el('<div id="cnOfflineBar" class="cn-ios-offline" role="status">You\'re offline. Quick Scan, QR and Learn still work.</div>'); d.body.appendChild(bar); }
     if (bar) bar.hidden = !off;
+    root.classList.toggle("cn-ios-is-offline", off);
+    // an open report sheet follows the connection (bug 4)
+    const send = $('#cnReportSheet [data-report="send"]'), line = $("#cnReportSheet .cn-ios-sheet-error");
+    if (send) send.disabled = off;
+    if (line && off) { line.textContent = REPORT_OFFLINE; line.hidden = false; }
+    if (line && !off && line.textContent === REPORT_OFFLINE) line.hidden = true;
     for (const sel of AI_BUTTONS) {
       const b = $(sel);
       if (!b) continue;
@@ -1860,6 +1920,8 @@
       }
     }
   }
+  // 1.1 bug 4: what the report sheet says when it cannot reach CyberNet AI (instead of the web view's "Load failed")
+  const REPORT_OFFLINE = `You're offline, so the report can't be sent. Try again when you're connected, or email ${SUPPORT}.`;
   function reportProblem(kind, resultId) {
     sheet({
       id: "cnReportSheet",
@@ -1869,9 +1931,9 @@
           <label for="cnReportText">What looks wrong? (optional)</label>
           <textarea id="cnReportText" maxlength="1500" rows="4" placeholder="For example: this is a real message from my bank."></textarea>
           <p class="cn-ios-note">The message or link you checked is not attached. Never include passwords, codes or card numbers.</p>
-          <p class="cn-ios-sheet-error" role="alert" hidden></p>
+          <p class="cn-ios-sheet-error" role="alert"${offline ? "" : " hidden"}>${offline ? esc(REPORT_OFFLINE) : ""}</p>
         </div>
-        <div class="cn-ios-sheet-actions"><button type="button" class="primary-btn full" data-report="send" data-autofocus>Send report</button>
+        <div class="cn-ios-sheet-actions"><button type="button" class="primary-btn full" data-report="send" data-autofocus${offline ? " disabled" : ""}>Send report</button>
         <button type="button" class="cn-ios-link-btn" data-sheet-value="close">Cancel</button></div>`,
       onOpen(panel, done) {
         panel.addEventListener("click", async e => {
@@ -1879,6 +1941,7 @@
           if (!b) return;
           b.disabled = true;
           const error = panel.querySelector(".cn-ios-sheet-error");
+          if (offline) { error.textContent = REPORT_OFFLINE; error.hidden = false; return; }
           try {
             const res = await fetch("/api/feedback", {
               method: "POST",
@@ -1889,7 +1952,13 @@
             if (!res.ok) throw new Error(data.error || `Email ${SUPPORT} instead.`);
             done("sent");
             toast("Thank you. Your report reached CyberNet support.");
-          } catch (err) { error.textContent = err.message || "The report could not be sent."; error.hidden = false; b.disabled = false; }
+          } catch (err) {
+            // a network failure is a TypeError ("Load failed" in WebKit, "Failed to fetch" elsewhere): never show the raw text
+            const net = err instanceof TypeError || offline;
+            error.textContent = net ? REPORT_OFFLINE : (err.message || `The report could not be sent. Email ${SUPPORT} instead.`);
+            error.hidden = false;
+            b.disabled = !!offline;
+          }
         });
       }
     });
@@ -1908,6 +1977,52 @@
     if (saved && /^Sign in/.test(saved.textContent.trim())) saved.textContent = "Your saved explanations appear here.";
   }
 
+  // 1.1 design item 12: empty and loading states. Analysis AI offers three example prompts until the first message (a tap
+  // only fills the box; nothing is sent until Send); Recovery says plainly when there is no case yet; a count that is still
+  // loading ("—" or "— / —") shows a quiet bar instead of dashes; Recovery's reset time is the iPhone's local time.
+  const AI_PROMPTS = ["Is this parcel text real?", "Check a link someone sent me", "Someone says they're from my bank"];
+  function emptyStates() {
+    const bubble = $("#chatMessages .chat-bubble-ai");
+    if (bubble && !$("#cnIosPrompts")) {
+      const row = el(`<div class="cn-ios-prompts" id="cnIosPrompts" role="group" aria-label="Example questions">${AI_PROMPTS.map(p => `<button type="button" class="cn-chip" data-ios-prompt>${esc(p)}</button>`).join("")}</div>`);
+      row.addEventListener("click", e => {
+        const b = e.target.closest("[data-ios-prompt]");
+        const input = $("#chatInput");
+        if (!b || !input) return;
+        input.value = b.textContent;
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        try { input.focus({ preventScroll: true }); } catch { input.focus(); }
+        tick();
+      });
+      bubble.after(row);
+      const messages = $("#chatMessages");
+      const sync = () => { row.hidden = $$(".chat-bubble", messages).length > 1; };
+      new MutationObserver(sync).observe(messages, { childList: true });
+      sync();
+    }
+    const dash = $("#recoveryDashboard");
+    const head = $("#recovery .feature-page-header");
+    if (dash && head && !$("#cnIosNoCase")) {
+      const note = el('<p class="cn-ios-empty" id="cnIosNoCase">No cases yet. Describe what happened below, and Recovery gives you a plan, step by step.</p>');
+      head.appendChild(note);
+      const sync = () => { note.hidden = !dash.hidden; };
+      new MutationObserver(sync).observe(dash, { attributes: true, attributeFilter: ["hidden"] });
+      sync();
+    }
+    const reset = $("#recoveryUsageCaseReset");
+    if (reset && /GST/.test(reset.textContent)) {
+      // the server's day starts at 12:00 in the UAE (UTC+4), which is 08:00 UTC
+      let at = "";
+      try { at = new Date(Date.UTC(2026, 0, 1, 8, 0)).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); } catch { /* keep the words */ }
+      reset.textContent = at ? `Resets every day at ${at}` : "Resets every day at noon, UAE time";
+    }
+    const counts = ["#cnAcctAi", "#cnAcctRec", "#recoveryUsageCaseText", "#aiUsageText", "#analysisAiHeaderUsageText"].map(s => $(s)).filter(Boolean);
+    const paint = n => n.classList.toggle("cn-ios-loading", /^[—–-]\s*(\/\s*[—–-])?$/.test(n.textContent.trim()));
+    for (const n of counts) {
+      new MutationObserver(() => paint(n)).observe(n, { childList: true, characterData: true, subtree: true });
+      paint(n);
+    }
+  }
   // The "not antivirus" line on the Check screen (B2), and press feedback / tab states that the
   // website's 65-press.js gives (not in the app's UI build).
   function addCheckDisclaimer() {
@@ -1915,8 +2030,53 @@
     if (!head || $("#cnIosDisclaimer")) return;
     head.appendChild(el('<p class="cn-ios-disclaimer" id="cnIosDisclaimer">CyberNet AI helps you judge suspicious messages, links and QR codes. It is not antivirus software, and no scanner can promise something is 100% safe.</p>'));
   }
+  // 1.1 bug 3: Home's "Try" chips and "Start scanning" open Check and run the scan, but the verdict is drawn far below the
+  // fold. Once it has painted, the verdict is scrolled up under the bar and the Check switch (at once under Reduce Motion).
+  const SCAN_RESULTS = ["#cyberTextResult", "#cyberLinkResult", "#cyberImageResult"];
+  function scrollToResult(box) {
+    const bar = $(".navbar")?.getBoundingClientRect().bottom || 0;
+    const seg = $("#cnIosSegWrap");
+    const top = Math.max(bar, seg && !seg.hidden ? seg.getBoundingClientRect().bottom : 0);
+    const y = w.scrollY + box.getBoundingClientRect().top - Math.max(0, top) - 12;
+    w.scrollTo({ top: Math.max(0, y), behavior: motionOff() ? "auto" : "smooth" });
+  }
+  function followHomeScans() {
+    d.addEventListener("click", e => {
+      if (!e.target.closest?.("#cnScanBox [data-cn-try], #cnScanBox .hero-buttons button")) return;
+      const boxes = SCAN_RESULTS.map(s => $(s)).filter(Boolean);
+      const before = new Map(boxes.map(b => [b, b.innerHTML]));
+      const t0 = Date.now();
+      const mo = new MutationObserver(() => {
+        const box = boxes.find(b => b.innerHTML !== before.get(b) && b.offsetParent !== null && b.querySelector(".scan-report, .diagnostic-report, .verdict-headline"));
+        if (box) { mo.disconnect(); later(() => scrollToResult(box), 80); }
+        else if (Date.now() - t0 > 6000) mo.disconnect();
+      });
+      boxes.forEach(b => mo.observe(b, { childList: true, subtree: true }));
+      later(() => mo.disconnect(), 6500);
+    });
+  }
+  // 1.1 bug 1: the how-to guide is a full-screen sheet in the app too; the native tab bar steps aside while it is open
+  // (it would cover the guide's Back / Next row), and comes back when it closes.
+  function watchHowto() {
+    const modal = $("#howtoVideoModal");
+    if (!modal) return;
+    let open = false;
+    new MutationObserver(() => {
+      const now = modal.classList.contains("show");
+      if (now === open) return;
+      open = now;
+      inertBehind(now);
+      if (!nativeTabs) return;
+      if (now) nativeTabs.setHidden({ hidden: true }).catch(() => {});
+      else if (!barByCard && !$("#cnIntroStage")) nativeTabs.setHidden({ hidden: false }).catch(() => {});
+    }).observe(modal, { attributes: true, attributeFilter: ["class"] });
+    // the guide's own tabs get the selection tick of a native segmented control
+    modal.addEventListener("click", e => { if (e.target.closest?.(".video-modal-tab:not(.active)")) tick(); });
+  }
   function pressStates() {
     d.addEventListener("touchstart", () => {}, { passive: true });
+    // 1.1 design item 11: a selection tick when the inner Text / Link / Image tabs change, like a native segmented control
+    d.addEventListener("click", e => { if (e.target.closest?.(".detect-tabs .detect-tab:not(.active)")) tick(); });
     const groups = [[".detect-tabs", ".detect-tab", "What to scan"], [".auth-tabs", ".auth-tab", "Sign in or create an account"], [".recovery-timeline-tabs", ".recovery-timeline-tab", "Recovery timeline"]];
     for (const [g, item, name] of groups) {
       const group = $(g);
@@ -1974,6 +2134,10 @@
       accountReady(5000).then(watchSignIn); // needs the Supabase client, which script.js builds after this file first runs
       tidyAnalysisAi();
       addCheckDisclaimer();
+      guardAccountLinks();
+      followHomeScans();
+      emptyStates();
+      watchHowto();
       pressStates();
       dynamicType();
       watchNetwork();

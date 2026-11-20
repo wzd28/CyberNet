@@ -1,7 +1,7 @@
 <!-- The app's Account screen (BUILD-PLAN §7.7). Inserted into <main> by mobile/scripts/build-web.mjs;
      ios.js fills and wires it. A guest sees #cnAcctSignIn: the same three ways in as the sign-in card (Sign in
      with Apple, email, Create account). The buttons with cnPrivacy* ids are the ones cybernet-privacy-controls.js
-     marks busy while it exports, clears or deletes. The Notifications group (Recovery reminders) is for a signed-in
+     marks busy while it exports, clears or deletes. Sign out sits on its own at the bottom, as in the Settings app (1.1). The Notifications group (Recovery reminders) is for a signed-in
      person only, like Recovery itself. -->
 <section id="account" class="page cn-ios-account" aria-labelledby="cnAccountTitle">
   <div class="feature-page-header">
@@ -19,7 +19,6 @@
     <div class="cn-ios-row"><span>AI explanations today</span><strong id="cnAcctAi">&mdash;</strong></div>
     <div class="cn-ios-row"><span>Recovery cases today</span><strong id="cnAcctRec">&mdash;</strong></div>
     <p class="cn-ios-note" id="cnAcctTeam" hidden>You are a member of a team. Your AI explanations and Recovery activity are shown to your team&rsquo;s owner in their activity log. Check, Scan QR and the Share sheet stay on your iPhone and are never logged.</p>
-    <button type="button" class="secondary-btn full" data-ios-action="sign-out">Sign out</button>
   </div>
 
   <h2 class="cn-ios-group-title" data-ios-signed-in hidden>Privacy &amp; data</h2>
@@ -47,22 +46,26 @@
   <div class="cn-ios-group">
     <div class="cn-ios-row"><span>App usage statistics</span><strong id="cnTrackingState">&mdash;</strong></div>
     <p class="cn-ios-note">Shared only if you allowed tracking when CyberNet AI asked. They never include what you check. You can change this in the Settings app, under Privacy &amp; Security, then Tracking.</p>
-    <button type="button" class="cn-ios-row cn-ios-row-btn" data-ios-action="tracking-settings">Open Settings</button>
+    <button type="button" class="cn-ios-row cn-ios-row-btn" data-ios-action="tracking-settings" data-ios-nav>Open Settings</button>
   </div>
 
   <h2 class="cn-ios-group-title">Help</h2>
   <div class="cn-ios-group">
-    <button type="button" class="cn-ios-row cn-ios-row-btn" data-ios-action="support">Contact support</button>
+    <button type="button" class="cn-ios-row cn-ios-row-btn" data-ios-action="support" data-ios-nav>Contact support</button>
     <button type="button" class="cn-ios-row cn-ios-row-btn" data-ios-action="copy-support">Copy the support email: support@cybernetai.app</button>
-    <button type="button" class="cn-ios-row cn-ios-row-btn" data-ios-action="share-help">Turn on Share to CyberNet AI</button>
-    <button type="button" class="cn-ios-row cn-ios-row-btn" data-ios-action="intro">Show the welcome tips again</button>
+    <button type="button" class="cn-ios-row cn-ios-row-btn" data-ios-action="share-help" data-ios-nav>Turn on Share to CyberNet AI</button>
+    <button type="button" class="cn-ios-row cn-ios-row-btn" data-ios-action="intro" data-ios-nav>Show the welcome tips again</button>
   </div>
 
   <h2 class="cn-ios-group-title">Legal</h2>
   <div class="cn-ios-group">
-    <button type="button" class="cn-ios-row cn-ios-row-btn" data-ios-action="legal" data-doc="privacy">Privacy Policy</button>
-    <button type="button" class="cn-ios-row cn-ios-row-btn" data-ios-action="legal" data-doc="terms">Terms of Service</button>
-    <button type="button" class="cn-ios-row cn-ios-row-btn" data-ios-action="legal" data-doc="acceptable">Acceptable Use Policy</button>
+    <button type="button" class="cn-ios-row cn-ios-row-btn" data-ios-action="legal" data-doc="privacy" data-ios-nav>Privacy Policy</button>
+    <button type="button" class="cn-ios-row cn-ios-row-btn" data-ios-action="legal" data-doc="terms" data-ios-nav>Terms of Service</button>
+    <button type="button" class="cn-ios-row cn-ios-row-btn" data-ios-action="legal" data-doc="acceptable" data-ios-nav>Acceptable Use Policy</button>
+  </div>
+
+  <div class="cn-ios-group-signout" data-ios-signed-in hidden>
+    <button type="button" class="secondary-btn full" data-ios-action="sign-out">Sign out</button>
   </div>
 
   <p class="cn-ios-operator">CyberNet AI is operated by Marks Events FZ LLE. Support: support@cybernetai.app. Version <span data-ios-version>__CN_APP_VERSION__</span>.</p>
