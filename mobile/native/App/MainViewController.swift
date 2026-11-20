@@ -42,11 +42,19 @@ final class MainViewController: CAPBridgeViewController, UITabBarDelegate {
     /// Height of a standard iPhone tab bar above the home-indicator area, in points.
     private static let barContentHeight: CGFloat = 49
 
+    /// Brand colours (ui-src/DESIGN.md): cyan for the selected tab, a muted slate for the others, the navy page.
+    private static let accentColor = UIColor(red: 0x22 / 255, green: 0xD3 / 255, blue: 0xEE / 255, alpha: 1)
+    private static let mutedColor = UIColor(red: 0x8A / 255, green: 0x95 / 255, blue: 0xA7 / 255, alpha: 1)
+    private static let pageColor = UIColor(red: 0x06 / 255, green: 0x0A / 255, blue: 0x14 / 255, alpha: 1)
+
     private let tabBar = UITabBar()
     private var keyboardIsVisible = false
     private var hiddenByPage = false
     private var publishedMetrics: (height: Int, hidden: Bool)?
     private var loadingObservation: NSKeyValueObservation?
+    /// True once the current page has finished loading. A window event sent before that reaches a page whose
+    /// Capacitor runtime is not there yet, which logged a "JS Eval error" at every launch (1.1 bug 21).
+    private var pageLoaded = false
 
     // MARK: - Capacitor
 
@@ -60,6 +68,10 @@ final class MainViewController: CAPBridgeViewController, UITabBarDelegate {
         bridge?.registerPluginInstance(AppleSignInPlugin())
         bridge?.registerPluginInstance(WebAuthPlugin())
         bridge?.registerPluginInstance(TabBarPlugin())
+        // @iap
+        // In-app purchase builds only: the StoreKit plugin (CNStore) is registered here. A CN_NO_IAP=1 build
+        // (mobile/scripts/add-share-extension.cjs) cuts this block out and leaves StoreKitPlugin.swift out of the project.
+        // @end-iap
 
         #if DEBUG
         // Capacitor installs its own WKUserContentController after webViewConfiguration(for:), so
@@ -75,6 +87,10 @@ final class MainViewController: CAPBridgeViewController, UITabBarDelegate {
 
     override func viewDidLoad() {
         super.viewDidLoad() // starts loading the web page
+        // The app is dark only (the web layer sets color-scheme: dark); the native chrome follows it in every system
+        // appearance, so a Light Mode iPhone never shows a light bar under the navy page.
+        overrideUserInterfaceStyle = .dark
+        view.backgroundColor = Self.pageColor
         installTabBar()
 
         let center = NotificationCenter.default
@@ -87,9 +103,11 @@ final class MainViewController: CAPBridgeViewController, UITabBarDelegate {
         // process), send the bar metrics to the new page. The observation lasts as long as this
         // controller, which lives as long as the app.
         loadingObservation = webView?.observe(\.isLoading, options: [.new]) { [weak self] _, change in
-            guard change.newValue == false else { return }
+            let loading = change.newValue ?? false
             DispatchQueue.main.async {
-                self?.publishTabBarMetrics(force: true)
+                guard let self else { return }
+                self.pageLoaded = !loading
+                if !loading { self.publishTabBarMetrics(force: true) }
             }
         }
     }
@@ -104,7 +122,10 @@ final class MainViewController: CAPBridgeViewController, UITabBarDelegate {
     private func installTabBar() {
         tabBar.delegate = self
         tabBar.items = Self.tabs.enumerated().map { index, tab in
-            let item = UITabBarItem(title: tab.title, image: UIImage(systemName: tab.symbol), tag: index)
+            let image = UIImage(systemName: tab.symbol)
+            // the selected tab shows the filled symbol where SF Symbols has one (qrcode.viewfinder has none)
+            let item = UITabBarItem(title: tab.title, image: image, selectedImage: UIImage(systemName: tab.symbol + ".fill") ?? image)
+            item.tag = index
             item.accessibilityLabel = tab.title
             item.accessibilityHint = tab.hint
             item.accessibilityIdentifier = "tab-\(tab.id)"
@@ -112,6 +133,7 @@ final class MainViewController: CAPBridgeViewController, UITabBarDelegate {
         }
         // the app opens on Check, the second tab (ios.js highlights the page's tab as soon as it has loaded)
         tabBar.selectedItem = tabBar.items?.first(where: { $0.accessibilityIdentifier == "tab-check" }) ?? tabBar.items?.first
+        applyBrandAppearance()
         tabBar.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(tabBar)
         NSLayoutConstraint.activate([
@@ -121,6 +143,27 @@ final class MainViewController: CAPBridgeViewController, UITabBarDelegate {
             tabBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor,
                                         constant: -Self.barContentHeight)
         ])
+    }
+
+    /// A dark material bar with the CyberNet cyan for the selected tab (1.1 design item 1). Both appearances are set, so
+    /// the bar looks the same whether or not content scrolls under it (UIKit, iOS 15+ API; the app targets iOS 16).
+    private func applyBrandAppearance() {
+        tabBar.overrideUserInterfaceStyle = .dark
+        let appearance = UITabBarAppearance()
+        appearance.configureWithDefaultBackground()
+        appearance.backgroundEffect = UIBlurEffect(style: .systemChromeMaterialDark)
+        appearance.backgroundColor = Self.pageColor.withAlphaComponent(0.72)
+        appearance.shadowColor = UIColor(red: 148 / 255, green: 163 / 255, blue: 184 / 255, alpha: 0.14)
+        for layout in [appearance.stackedLayoutAppearance, appearance.inlineLayoutAppearance, appearance.compactInlineLayoutAppearance] {
+            layout.normal.iconColor = Self.mutedColor
+            layout.normal.titleTextAttributes = [.foregroundColor: Self.mutedColor]
+            layout.selected.iconColor = Self.accentColor
+            layout.selected.titleTextAttributes = [.foregroundColor: Self.accentColor]
+        }
+        tabBar.standardAppearance = appearance
+        tabBar.scrollEdgeAppearance = appearance
+        tabBar.tintColor = Self.accentColor
+        tabBar.unselectedItemTintColor = Self.mutedColor
     }
 
     func tabBar(_ tabBar: UITabBar, didSelect item: UITabBarItem) {
@@ -157,6 +200,7 @@ final class MainViewController: CAPBridgeViewController, UITabBarDelegate {
     }
 
     private func publishTabBarMetrics(force: Bool = false) {
+        guard pageLoaded else { return } // the load observer publishes as soon as the page is there
         let metrics = tabBarMetrics()
         if !force, let last = publishedMetrics, last == metrics { return }
         publishedMetrics = metrics

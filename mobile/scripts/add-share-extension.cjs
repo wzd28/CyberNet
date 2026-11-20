@@ -28,6 +28,12 @@
   extension's engine bridge (engine.html) against the real engine in Node.
 
   Re-running `npx cap add ios` resets the project: run this script again afterwards.
+
+  CN_NO_IAP=1 (env): a build without in-app purchases (app 1.1 plan, critic #5; build 10 and the fallback build).
+  The StoreKit plugin (IAP_ONLY_SWIFT) is left out of the copy and the Xcode project, and every
+  `// @iap` ... `// @end-iap` block in a copied Swift file (MainViewController's CNStore registration) is cut out.
+  --check then proves both are absent. Without the flag (the default) they are copied as they are. Codemagic sets the
+  same env var for build-web.mjs and this script, so the web bundle and the binary always agree.
 */
 
 const fs = require('fs');
@@ -51,6 +57,22 @@ const plist = require(require.resolve('plist', { paths: [cliDir] }));
 const xml2js = require(require.resolve('xml2js', { paths: [cliDir] }));
 
 const CHECK = process.argv.includes('--check');
+const NO_IAP = process.env.CN_NO_IAP === '1';
+const IAP_ONLY_SWIFT = ['StoreKitPlugin.swift'];
+const iapOnly = (name) => IAP_ONLY_SWIFT.includes(path.basename(name));
+// Swift sources: `// @iap` ... `// @end-iap` blocks (whole lines) are cut out of --no-iap builds; markers stay otherwise.
+function iapSource(file, content) {
+  if (!NO_IAP || !file.endsWith('.swift')) return content;
+  const out = [];
+  let skipping = false;
+  for (const line of Buffer.from(content).toString('utf8').split('\n')) {
+    if (/^\s*\/\/ @iap\b/.test(line)) { if (skipping) problems.push(`${file}: nested // @iap`); skipping = true; continue; }
+    if (/^\s*\/\/ @end-iap\b/.test(line)) { if (!skipping) problems.push(`${file}: // @end-iap without // @iap`); skipping = false; continue; }
+    if (!skipping) out.push(line);
+  }
+  if (skipping) problems.push(`${file}: // @iap is never closed`);
+  return Buffer.from(out.join('\n'), 'utf8');
+}
 const ICONS = process.argv.includes('--icons');
 const BRAND = path.join(NATIVE, 'brand'); // icon sources; rendered with --icons, never copied
 const ICON_PNG = path.join(IOS_APP, 'App', 'Assets.xcassets', 'AppIcon.appiconset', 'AppIcon-512@2x.png');
@@ -87,6 +109,9 @@ const APP_PLIST_KEYS = {
   // The iOS 26 floating bar does not fit that on home-button iPhones (SE) or on iPad, where its labels
   // ran over the icons (CI screenshots, 1 Nov 2026). 1.0 keeps the standard bar; 1.1 moves to the new one.
   UIDesignRequiresCompatibility: true,
+  // The app is dark only (1.1 design item 1): the native chrome (tab bar, sheets, alerts) never turns light under the navy page.
+  // The Share Extension has its own Info.plist and stays system-adaptive.
+  UIUserInterfaceStyle: 'Dark',
 };
 const APP_PLIST_REMOVED = ['UISupportedInterfaceOrientations~ipad'];
 const ALLOWED_USAGE_KEYS = ['NSCameraUsageDescription', 'NSUserTrackingUsageDescription'];
@@ -119,6 +144,7 @@ function nativeCopies() {
   // [source under mobile/native, destination under mobile/ios/App]
   return listFiles(NATIVE)
     .filter((file) => !path.basename(file).startsWith('.') && !file.startsWith(BRAND + path.sep))
+    .filter((file) => !(NO_IAP && iapOnly(file)))
     .map((file) => {
       const rel = path.relative(NATIVE, file).split(path.sep).join('/');
       return [file, rel];
@@ -130,7 +156,7 @@ const deletes = []; // copied files whose source was removed from mobile/native
 function planCopies() {
   for (const [source, rel] of nativeCopies()) {
     const dest = path.join(IOS_APP, ...rel.split('/'));
-    const content = fs.readFileSync(source);
+    const content = iapSource(rel, fs.readFileSync(source));
     if (!fs.existsSync(dest) || !sameContent(dest, fs.readFileSync(dest), content)) {
       writes.push([dest, content]);
     }
@@ -140,7 +166,7 @@ function planCopies() {
     const iosDir = path.join(IOS_APP, ...dir.split('/'));
     if (!fs.existsSync(iosDir)) continue;
     for (const name of fs.readdirSync(iosDir).filter((n) => n.endsWith('.swift'))) {
-      if (!fs.existsSync(path.join(NATIVE, ...dir.split('/'), name))) deletes.push(path.join(iosDir, name));
+      if (!fs.existsSync(path.join(NATIVE, ...dir.split('/'), name)) || (NO_IAP && iapOnly(name))) deletes.push(path.join(iosDir, name));
     }
   }
 }
@@ -321,7 +347,7 @@ function editProject() {
     buildFile('PBXSourcesBuildPhase', appSources, 'Sources', fileRef(appGroupId, name, swift), name);
   }
   const pluginsGroupId = childGroup(appGroupId, 'Plugins');
-  const pluginFiles = fs.readdirSync(path.join(NATIVE, 'App', 'Plugins')).filter((name) => name.endsWith('.swift')).sort();
+  const pluginFiles = fs.readdirSync(path.join(NATIVE, 'App', 'Plugins')).filter((name) => name.endsWith('.swift') && !(NO_IAP && iapOnly(name))).sort();
   for (const name of pluginFiles) {
     buildFile('PBXSourcesBuildPhase', appSources, 'Sources', fileRef(pluginsGroupId, name, swift), name);
   }
@@ -686,6 +712,16 @@ function validateFiles() {
   if (!storyboard.includes('customClass="MainViewController"')) problems.push('Main.storyboard does not use MainViewController');
   const sceneDelegate = fs.readFileSync(path.join(IOS_APP, 'App', 'SceneDelegate.swift'), 'utf8');
   if (!sceneDelegate.includes('MainViewController()')) problems.push('SceneDelegate does not create MainViewController');
+
+  // CN_NO_IAP=1: nothing of the App Store purchase is compiled in (App Review 2.3.1 / 2.5.19: no dormant purchase code).
+  if (NO_IAP) {
+    for (const name of IAP_ONLY_SWIFT) {
+      if (fs.existsSync(path.join(IOS_APP, 'App', 'Plugins', name))) problems.push(`CN_NO_IAP=1: ${name} must not be in mobile/ios (run the script without --check)`);
+      if (fs.readFileSync(PBX_PATH, 'utf8').includes(name)) problems.push(`CN_NO_IAP=1: project.pbxproj still compiles ${name}`);
+    }
+    const main = fs.readFileSync(path.join(IOS_APP, 'App', 'MainViewController.swift'), 'utf8');
+    if (/CNStore|StoreKitPlugin|\/\/ @(end-)?iap\b/.test(main)) problems.push('CN_NO_IAP=1: MainViewController.swift still has its // @iap block (CNStore registration)');
+  }
 
   // App icon: 1024 x 1024 and no alpha channel (App Store Connect rejects icons with alpha).
   const icon = fs.existsSync(ICON_PNG) ? pngInfo(ICON_PNG) : null;
