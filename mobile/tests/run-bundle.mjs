@@ -18,9 +18,12 @@ const root = path.resolve(mobile, "..");
 let pass = 0, fail = 0;
 const check = (name, ok, detail) => { if (ok) pass++; else { fail++; console.log(`FAIL ${name}${detail ? `: ${String(detail).slice(0, 300)}` : ""}`); } };
 
+// The main checks run on a bundle built WITHOUT in-app purchases (CN_NO_IAP=1: build 10 and the fallback build keep 1.0's
+// "no purchases" app); the in-app purchase build's differences are checked at the end on a second bundle.
 const out = await mkdtemp(path.join(os.tmpdir(), "cn-ios-bundle-"));
+const outIap = await mkdtemp(path.join(os.tmpdir(), "cn-ios-bundle-iap-"));
 try {
-  const r = spawnSync(process.execPath, [path.join(mobile, "scripts", "build-web.mjs"), `--out=${out}`], { cwd: root, encoding: "utf8" });
+  const r = spawnSync(process.execPath, [path.join(mobile, "scripts", "build-web.mjs"), `--out=${out}`], { cwd: root, encoding: "utf8", env: { ...process.env, CN_NO_IAP: "1" } });
   check("build-web.mjs builds and the gate passes", r.status === 0, (r.stderr || r.stdout).trim().split("\n").slice(-8).join("\n"));
   if (r.status === 0) {
     const read = rel => readFile(path.join(out, ...rel.split("/")), "utf8");
@@ -1243,8 +1246,32 @@ try {
       check("Legal overrides: every rule has min and max (the new ones exactly 1..1, so a changed website sentence fails the build); the old Google rules stay at 0..1", Object.entries(rules).filter(([k]) => k !== "_").every(([, list]) => list.every(r => Number.isInteger(r.min) && (Number.isInteger(r.max)) && r.min >= 0 && r.max <= 1 && r.why)) && Object.values(rules).filter(Array.isArray).flat().filter(r => r.min === 1).length >= 40, Object.values(rules).filter(Array.isArray).flat().filter(r => r.min !== 1 || r.max !== 1).map(r => r.find || r.pattern));
     }
   }
+
+  // ---- the in-app purchase build (the default) against the no-IAP one (1.1 plan critic #5, bugs 12 and 13)
+  {
+    const env = { ...process.env }; delete env.CN_NO_IAP;
+    const r2 = spawnSync(process.execPath, [path.join(mobile, "scripts", "build-web.mjs"), `--out=${outIap}`], { cwd: root, encoding: "utf8", env });
+    check("IAP build: build-web.mjs builds the default (in-app purchase) bundle and the gate passes", r2.status === 0, (r2.stderr || r2.stdout).trim().split("\n").slice(-8).join("\n"));
+    if (r2.status === 0) {
+      const readIn = (dir, rel) => readFile(path.join(dir, ...rel.split("/")), "utf8");
+      const gate = await import(pathToFileURL(path.join(mobile, "scripts", "check-bundle.mjs")).href);
+      const [noTerms, noPrivacy, noIndex, noPc, iapTerms, iapPrivacy, iapIndex, iapPc] = await Promise.all([
+        readIn(out, "legal/terms.html"), readIn(out, "legal/privacy.html"), readIn(out, "index.html"), readIn(out, "cybernet-privacy-controls.js"),
+        readIn(outIap, "legal/terms.html"), readIn(outIap, "legal/privacy.html"), readIn(outIap, "index.html"), readIn(outIap, "cybernet-privacy-controls.js")]);
+      check("Build mode: each bundle names its mode (cn-build meta) and the gate reads it", gate.bundleMode(noIndex) === "no-iap" && gate.bundleMode(iapIndex) === "iap");
+      const r3 = await gate.checkBundle({ dir: out, iap: true });
+      check("Build mode: the gate refuses a no-IAP bundle checked as an IAP one (and the other way round)", r3.hits.some(h => h.rule === "build-mode") && (await gate.checkBundle({ dir: outIap, iap: false })).hits.some(h => h.rule === "build-mode"));
+      check("No-IAP build: Terms keep 'No purchases in the app' (10-14 and the iPhone section), and no App Store subscription wording anywhere in the legal pages", /<h2>10–14\. No purchases in the app<\/h2>/.test(noTerms) && /No purchases in the app\.<\/strong>/.test(noTerms) && !/Subscriptions in the app|App Store subscription|Billed by Apple/i.test(noTerms + noPrivacy));
+      check("IAP build: Terms 10-14 become 'Subscriptions in the app' with auto-renewal (24 hours), Settings > Subscriptions, Apple refunds, one account, and deletion does not cancel it (R2-R4)", /<h2>10–14\. Subscriptions in the app<\/h2>/.test(iapTerms) && /<a href="#plans">10–14\. Subscriptions in the app<\/a>/.test(iapTerms) && /at least 24 hours before the current period ends/.test(iapTerms) && /tap your name, then Subscriptions/.test(iapTerms) && /Refunds for App Store purchases are handled by Apple/.test(iapTerms) && /Deleting your CyberNet AI account does not cancel an App Store subscription/.test(iapTerms) && !/No purchases in the app|no paid plans and no purchases/.test(iapTerms));
+      check("IAP build: no price, no link out and no web-purchase pointer in the subscription section", !/\$|per month|per year|9\.99|95\.9|pricing|checkout|cybernetai\.app\/(pricing|account)/i.test(iapTerms.slice(iapTerms.indexOf('id="plans"'), iapTerms.indexOf('id="plans"') + 4000)));
+      check("IAP build: Privacy names the App Store purchase data and drops 'The app has no purchases'", /a subscription is bought through the App Store, and Apple processes the payment/.test(iapPrivacy) && /Subscriptions and advertising\./.test(iapPrivacy) && !/has no purchases/.test(iapPrivacy) && /has no purchases/.test(noPrivacy));
+      check("Delete dialog (bug 13): the IAP build says deleting the account does not cancel an App Store subscription; the no-IAP build does not mention it", /Deleting your account does not cancel an App Store subscription/.test(iapPc) && !/App Store subscription/.test(noPc));
+      check("Gate: purchase markers and StoreKit names are refused in a no-IAP bundle", gate.NO_IAP_NEEDLES.includes("CNStore") && gate.NO_IAP_NEEDLES.includes("X-CyberNet-IAP") && !/@iap|@end-iap|@no-iap/.test(iapIndex + iapTerms + noIndex + noTerms));
+    }
+  }
 } finally {
   await rm(out, { recursive: true, force: true });
+  await rm(outIap, { recursive: true, force: true });
 }
 console.log(`ios bundle: ${pass}/${pass + fail} checks passed`);
 if (fail) process.exit(1);

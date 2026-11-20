@@ -2,6 +2,14 @@
   "_": "Copy changes for the in-app legal pages (legal/*.html), applied to the built page. Same rule format as web-ios/text-overrides.json. Each one keeps the meaning; owner to review.",
   "privacy.html": [
     {
+      "find": "<p><strong>No purchases or advertising.</strong> The app has no purchases and shows no advertising. Apple handles your App Store account and the download under Apple’s own privacy policy; CyberNet does not receive your Apple payment details.</p>",
+      "replace": "<p><strong>Subscriptions and advertising.</strong> The app shows no advertising. Its only purchase is the optional Pro subscription, which the App Store sells and Apple bills; CyberNet does not receive your Apple payment details, only the purchase records described under Payments. Apple handles your App Store account, purchases and the download under Apple’s own privacy policy.</p>",
+      "min": 1,
+      "max": 1,
+      "iap": true,
+      "why": "1.1 legal R2: the website's iPhone paragraph says the app has no purchases; IAP builds say what is bought and what CyberNet receives"
+    },
+    {
       "find": "How CyberNet handles account data, submitted evidence, AI processing, connected API keys, browser storage, billing records, legal acceptance, retention, export, and deletion rights.",
       "replace": "How CyberNet handles account data, submitted evidence, AI processing, browser storage, legal acceptance, retention, export, and deletion rights.",
       "min": 1,
@@ -107,7 +115,17 @@
       "replace": "<h3>Payments on the website</h3>\n<p>The app has no purchases. If your account has a paid plan from our website, Stripe processes the payments and returns customer, subscription, invoice, and status information for that plan, and deleting your account cancels the plan (section 12). For a team plan, billing information belongs to the team owner’s account; members do not have access to it.</p>",
       "min": 1,
       "max": 1,
+      "iap": false,
       "why": "App Review 3.1.1 / 3.1.3(b) / 2.3.1: the iPhone copy describes only what the free app does. section 3: no plan names, no unlocking"
+    },
+    {
+      "pattern": "<h3>Payments</h3>\\s*<p>Stripe processes payment details[\\s\\S]*?</p>",
+      "flags": "g",
+      "replace": "<h3>Payments</h3>\n<p><strong>In the iPhone app,</strong> a subscription is bought through the App Store, and Apple processes the payment. CyberNet AI never receives your card or bank details. Apple tells CyberNet AI which subscription was bought, its transaction and renewal identifiers, when it started, when it renews or ends, and whether it was refunded or cancelled, so the plan can be applied to your account on the iPhone and on the website. CyberNet AI keeps these records for as long as your account exists and as the law requires. <strong>On the website,</strong> Stripe processes the payments for a plan bought there and returns customer, subscription, invoice, and status information for that plan, and deleting your account cancels a plan bought on the website (section 12). For a team plan, billing information belongs to the team owner’s account; members do not have access to it.</p>",
+      "min": 1,
+      "max": 1,
+      "iap": true,
+      "why": "1.1 legal R2 (App Store subscriptions): the iPhone copy names the purchase data Apple shares; no prices, no link to buy elsewhere"
     },
     {
       "find": "<li>enforce Free and Pro limits, save eligible history, and provide downloads;</li>",

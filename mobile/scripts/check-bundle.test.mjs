@@ -10,7 +10,7 @@ import os from "node:os";
 import { fileURLToPath } from "node:url";
 import { checkBundle, wordHits, checkMetadata } from "./check-bundle.mjs";
 import * as gatePlan from "./check-bundle.mjs";
-import { applyRegions, pruneCss, applyTextOverrides } from "./build-web.mjs";
+import { applyRegions, applyIapRegions, pruneCss, applyTextOverrides } from "./build-web.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 let pass = 0, fail = 0;
@@ -197,6 +197,33 @@ check("Google words are allowed for ios/ios.js alone", wordHits("Sign in with Go
   check("metadata: 'no tracking' fails (the app tracks after Allow)", track.some(h => h.term === "tracking"), track);
   const outside = await md(`## 8. Notes\nGuidance outside a fenced block may mention Stripe pricing.\n`);
   check("metadata: only the fenced copy is checked", outside.length === 0, outside);
+  await rm(dir, { recursive: true, force: true });
+}
+
+/* ---------- purchase mode (CN_NO_IAP; 1.1 plan critic #5) ---------- */
+{
+  const noIap = (src) => applyIapRegions(src, true, "t");
+  const iap = (src) => applyIapRegions(src, false, "t");
+  const html = "a<!--@iap-->B<!--@end-iap--><!--@no-iap-->C<!--@end-no-iap-->d";
+  check("iap regions: an IAP build keeps @iap, drops @no-iap and every marker", iap(html) === "aBd", iap(html));
+  check("iap regions: a no-IAP build drops @iap, keeps @no-iap", noIap(html) === "aCd", noIap(html));
+  const js = "x();/*@iap*/CNStore.buy();/*@end-iap*//*@no-iap*/none();/*@end-no-iap*/y();";
+  check("iap regions: JS blocks follow the same rule", iap(js) === "x();CNStore.buy();y();" && noIap(js) === "x();none();y();", [iap(js), noIap(js)]);
+  for (const bad of ["<!--@iap-->x", "x<!--@end-iap-->", "<!--@iap--><!--@no-iap-->x<!--@end-no-iap--><!--@end-iap-->", "/*@iap*/x<!--@end-no-iap-->"]) {
+    let threw = false;
+    try { applyIapRegions(bad, true, "t"); } catch { threw = true; }
+    check(`iap regions: malformed ${JSON.stringify(bad)} fails the build`, threw);
+  }
+  check("gate: the account-deletion notice may say 'subscription' in an IAP bundle only", wordHits("does not cancel an App Store subscription", { file: "cybernet-privacy-controls.js", iap: true }).length === 0 && wordHits("does not cancel an App Store subscription", { file: "cybernet-privacy-controls.js" }).includes("subscription") && wordHits("an App Store subscription", { file: "ios/ios.js", iap: true }).includes("subscription"));
+  check("gate: no-IAP legal pages refuse App Store subscription wording; IAP legal pages allow it", wordHits("10–14. Subscriptions in the app", { legal: true }).length > 0 && wordHits("10–14. Subscriptions in the app", { legal: true, iap: true }).length === 0);
+  check("gate: bundleMode reads the cn-build meta", gatePlan.bundleMode('<meta name="cn-build" content="no-iap">') === "no-iap" && gatePlan.bundleMode('<meta name="cn-build" content="iap">') === "iap" && gatePlan.bundleMode("<html>") === null);
+  const dir = await mkdtemp(path.join(os.tmpdir(), "cn-iap-test-"));
+  const files = { ...CLEAN, "index.html": CLEAN["index.html"].replace("<title>", '<meta name="cn-build" content="no-iap"><title>'), "script.js": CLEAN["script.js"] + 'const h={"X-CyberNet-IAP":"1"};' };
+  for (const [rel, text] of Object.entries(files)) { await mkdir(path.dirname(path.join(dir, rel)), { recursive: true }); await writeFile(path.join(dir, rel), text); }
+  const r = await checkBundle({ dir, iap: false });
+  check("gate: a no-IAP bundle with a purchase header fails", r.hits.some(h => h.rule === "no-iap" && h.term === "X-CyberNet-IAP"), r.hits);
+  const m = await checkBundle({ dir, iap: true });
+  check("gate: a bundle checked in the other mode than it was built fails", m.hits.some(h => h.rule === "build-mode"), m.hits);
   await rm(dir, { recursive: true, force: true });
 }
 

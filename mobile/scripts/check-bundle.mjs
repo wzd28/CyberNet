@@ -71,10 +71,20 @@ export const FORBIDDEN_IDENTIFIERS = ["startCheckout", "openBillingPortal", "sho
 // Terms no exemption may ever cover.
 const NEVER_EXEMPT = ["stripe", "checkout", "customer-portal", "create-checkout-session", "manage billing", "billing portal", "upgrade", "pricing", "data-upgrade-now", "view pro", "pro plan", "business plan", "per month", "/month", "per year", "$9.99", "95.90", "$40", "subscription", "free trial", "google", "signinwithoauth", "jsdelivr", "unpkg", "three@", "googletagmanager", "gtag", "Pro"];
 const DEBUG_MARKERS = ["CN_DEMO_SCREEN", "CN_ENGINE_SELFTEST", "cn-debug-errors"];
+// The purchase mode (CN_NO_IAP, build-web.mjs; 1.1 plan critic #5). A bundle names its mode in <meta name="cn-build">.
+// A --no-iap bundle (build 10, and the fallback build) must carry nothing of the App Store purchase: no StoreKit
+// plugin call, no purchase header, no verify endpoint, and its legal pages keep the "no purchases" wording (they name no
+// App Store subscription; the website's Stripe subscriptions may still be named as processor data).
+export const NO_IAP_NEEDLES = ["CNStore", "StoreKit", "X-CyberNet-IAP", "apple-verify", "@iap", "@end-iap", "@no-iap", "@end-no-iap"];
+export const NO_IAP_LEGAL_WORDS = ["subscriptions in the app", "app store subscription", "billed by apple", "cancel at least 24 hours"];
+// In an IAP bundle a few files may name the App Store subscription (word "subscription" only; prices, upgrade and checkout
+// words stay forbidden): the account-deletion notice (an App Store subscription is not cancelled by deleting the account,
+// App Review 5.1.1(v)). The paywall step adds its own files here.
+export const IAP_WORD_FILES = { "cybernet-privacy-controls.js": ["subscription"] };
 
 // Files that may exist in the bundle at all.
 export const ALLOWED_FILES = [
-  /^index\.html$/, /^offline\.html$/, /^legal\/(terms|privacy|acceptable-use)\.html$/,
+  /^index\.html$/, /^legal\/(terms|privacy|acceptable-use)\.html$/,
   /^(style|cybernet-legal)\.css$/,
   /^(config|cybernet-engine|cybernet-errors|cybernet-compat|script|cybernet-privacy-controls)\.js$/,
   /^ios\/(cn-ios-boot|ios|cn-analytics|legal-page)\.js$/, /^ios\/ios\.css$/,
@@ -119,7 +129,7 @@ const LEGAL_RES = LEGAL_WORDS.map(w => [w, wordRegex(w)]);
 const PRO = /\b(?:Pro|PRO)\b/;
 
 const DEBUG_WORDS = ["cn_demo_screen", "cn_engine_selftest"];
-export function wordHits(text, { file = "", legal = false, debug = false } = {}) {
+export function wordHits(text, { file = "", legal = false, debug = false, iap = false } = {}) {
   if (!legal && file === PLAN_NOTICE_FILE && PLAN_NOTICE_STRINGS.includes(String(text))) return [];
   let t = String(text);
   for (const re of ALLOWED_PHRASES) t = t.replace(re, " ");
@@ -129,8 +139,10 @@ export function wordHits(text, { file = "", legal = false, debug = false } = {})
     if (file === ANALYTICS && ANALYTICS_WORDS.includes(w)) continue;
     if (file === GOOGLE_SIGNIN && GOOGLE_SIGNIN_WORDS.includes(w)) continue;
     if (debug && file === "ios/debug.js" && DEBUG_WORDS.includes(w)) continue;
+    if (iap && !legal && IAP_WORD_FILES[file]?.includes(w)) continue;
     out.push(w);
   }
+  if (legal && !iap) for (const w of NO_IAP_LEGAL_WORDS) if (wordRegex(w).test(t)) out.push(w);
   if (!legal && PRO.test(t)) out.push("Pro");
   return out;
 }
@@ -146,7 +158,12 @@ function hostAllowed(host, file) {
 }
 
 /* ------------------------------------------------------------------ the check */
-export async function checkBundle({ dir = path.join(mobile, "www"), debug = false, exemptionsFile = path.join(here, "gate-exemptions.json") } = {}) {
+export function bundleMode(indexHtml) {
+  const m = /<meta name="cn-build" content="(iap|no-iap)">/.exec(String(indexHtml || ""));
+  return m ? m[1] : null;
+}
+// iap: the mode the caller expects (true / false), or undefined to take the bundle's own word for it.
+export async function checkBundle({ dir = path.join(mobile, "www"), debug = false, iap: expectIap, exemptionsFile = path.join(here, "gate-exemptions.json") } = {}) {
   const acorn = await importDep("acorn");
   const P5 = await importDep("parse5");
   const exemptions = existsSync(exemptionsFile) ? JSON.parse(await readFile(exemptionsFile, "utf8")) : [];
@@ -166,6 +183,10 @@ export async function checkBundle({ dir = path.join(mobile, "www"), debug = fals
 
   const files = await listFiles(dir);
   const present = new Set(files);
+  const mode = present.has("index.html") ? bundleMode(await readFile(path.join(dir, "index.html"), "utf8")) : null;
+  if (present.has("index.html") && !mode && expectIap !== undefined) hits.push({ file: "index.html", line: 0, rule: "build-mode", term: "", detail: 'no <meta name="cn-build"> (rebuild with build-web.mjs)' });
+  if (mode && expectIap !== undefined && (mode === "iap") !== expectIap) hits.push({ file: "index.html", line: 0, rule: "build-mode", term: mode, detail: `the bundle was built as "${mode}" but is checked as "${expectIap ? "iap" : "no-iap"}" (CN_NO_IAP)` });
+  const iap = mode ? mode === "iap" : expectIap === true; // a bundle that does not say is checked as the stricter no-IAP one
   for (const rel of files) {
     const allowed = ALLOWED_FILES.some(re => re.test(rel)) || (debug && DEBUG_FILES.some(re => re.test(rel)));
     if (!allowed) add({ file: rel, line: 0, rule: "allow-list", term: "", literal: "", detail: "file is not on the bundle allow-list" });
@@ -189,6 +210,12 @@ export async function checkBundle({ dir = path.join(mobile, "www"), debug = fals
         if (at >= 0) add({ file: rel, line: lineAt(text, at), rule: "debug", term: needle, literal: "", detail: "debug hook in a release bundle" });
       }
       if (/webContentsDebuggingEnabled"?\s*:\s*true/i.test(text)) add({ file: rel, line: 0, rule: "debug", term: "webContentsDebuggingEnabled", literal: "", detail: "web inspector enabled in a release bundle" });
+    }
+    if (!iap && !vendor && !engine) {
+      for (const needle of NO_IAP_NEEDLES) {
+        const at = text.indexOf(needle);
+        if (at >= 0) add({ file: rel, line: lineAt(text, at), rule: "no-iap", term: needle, literal: "", detail: `"${needle}" in a bundle built without in-app purchases (CN_NO_IAP=1)` });
+      }
     }
     if (rel.endsWith(".js")) checkJs(text, rel, { engine, vendor });
     else if (rel.endsWith(".html")) checkHtml(text, rel, { legal });
@@ -224,7 +251,7 @@ export async function checkBundle({ dir = path.join(mobile, "www"), debug = fals
       }
       for (const m of value.matchAll(IPV4)) add({ file: rel, line, rule: "ip-literal", term: m[0], literal: value, detail: `IP literal ${m[0]} (App Review uses IPv6-only networks)` });
       if (engine || vendor) continue;
-      for (const w of wordHits(value, { file: rel, debug })) add({ file: rel, line, rule: "word", term: w, literal: value, detail: `"${w}" in ${JSON.stringify(value.length > 140 ? value.slice(0, 140) + "…" : value)}` });
+      for (const w of wordHits(value, { file: rel, debug, iap })) add({ file: rel, line, rule: "word", term: w, literal: value, detail: `"${w}" in ${JSON.stringify(value.length > 140 ? value.slice(0, 140) + "…" : value)}` });
     }
   }
 
@@ -293,7 +320,7 @@ export async function checkBundle({ dir = path.join(mobile, "www"), debug = fals
     const text = String(value);
     if (!text.trim()) return;
     for (const m of text.matchAll(IPV4)) add({ file: rel, line, rule: "ip-literal", term: m[0], literal: text.trim(), detail: `IP literal ${m[0]}` });
-    for (const w of wordHits(text, { file: rel, legal })) add({ file: rel, line, rule: legal ? "legal-word" : "word", term: w, literal: text.trim(), detail: `"${w}" in ${prefix}${JSON.stringify(text.trim().slice(0, 140))}` });
+    for (const w of wordHits(text, { file: rel, legal, iap })) add({ file: rel, line, rule: legal ? "legal-word" : "word", term: w, literal: text.trim(), detail: `"${w}" in ${prefix}${JSON.stringify(text.trim().slice(0, 140))}` });
   }
 
   /* ---------- CSS ---------- */
@@ -369,7 +396,8 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       return;
     }
     const dir = dirArg ? path.resolve(dirArg.slice(6)) : path.join(mobile, "www");
-    const { hits, files } = await checkBundle({ dir, debug: argv.includes("--debug") });
+    const iap = process.env.CN_NO_IAP === "1" ? false : argv.includes("--iap") ? true : undefined;
+    const { hits, files } = await checkBundle({ dir, debug: argv.includes("--debug"), iap });
     if (hits.length) { console.error(`[check-bundle] FAILED for ${path.relative(root, dir) || dir}:`); printHits(hits); process.exit(1); }
     console.log(`[check-bundle] passed: ${files} files in ${path.relative(root, dir) || dir}${argv.includes("--debug") ? " (debug bundle)" : ""}.`);
   })().catch(error => { console.error(`[check-bundle] ${error.stack || error}`); process.exit(1); });

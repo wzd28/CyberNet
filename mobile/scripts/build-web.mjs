@@ -7,6 +7,10 @@
 //   --out=<dir>        write somewhere else than mobile/www (tests)
 //   --skip-ui-check    do not insist that public/ui is up to date with ui-src (local experiments only)
 //   --no-gate          build only (the gate still runs in CI and in `npm run check:bundle`)
+//   CN_NO_IAP=1 (env)  or --no-iap: a build WITHOUT in-app purchases (1.1 plan §5, critic #5): every
+//                      <!--@iap-->...<!--@end-iap--> and /*@iap*/.../*@end-iap*/ block is DELETED and every
+//                      @no-iap block kept (the default, an IAP build, does the opposite). The legal pages then keep
+//                      the "no purchases" wording, and the gate checks the bundle in that mode. Build 10 uses it.
 //
 // What it does, in order (each step fails the build loudly instead of shipping something half done):
 //  1. public/ui must be current (`node scripts/build-ui.mjs --check`).
@@ -55,6 +59,7 @@ const webIos = path.join(mobile, "web-ios");
 const argv = process.argv.slice(2);
 const args = new Set(argv);
 const DEBUG = args.has("--debug");
+export const NO_IAP = process.env.CN_NO_IAP === "1" || args.has("--no-iap");
 const outArg = argv.find(a => a.startsWith("--out="));
 const OUT = outArg ? path.resolve(outArg.slice(6)) : path.join(mobile, "www");
 const log = (...m) => console.log("[build-web]", ...m);
@@ -194,6 +199,35 @@ export function applyRegions(src, label = "source") {
   return { code: out, count };
 }
 
+// The purchase flag (CN_NO_IAP). Blocks are plain comments in the source, so the files work unbuilt:
+//   HTML:  <!--@iap-->...<!--@end-iap-->   <!--@no-iap-->...<!--@end-no-iap-->
+//   JS/CSS: /*@iap*/...\/*@end-iap*/       /*@no-iap*/...\/*@end-no-iap*/
+// noIap: true deletes the @iap blocks and keeps the @no-iap ones; false does the opposite. The markers
+// themselves always go. Unbalanced or nested blocks fail the build.
+const IAP_MARKER = /<!--@(no-)?iap-->|<!--@end-(no-)?iap-->|\/\*@(no-)?iap\*\/|\/\*@end-(no-)?iap\*\//g;
+export function applyIapRegions(src, noIap, label = "source") {
+  let out = "", i = 0, open = null, openedAt = 0;
+  for (const m of src.matchAll(IAP_MARKER)) {
+    const tok = m[0], at = m.index;
+    const end = tok.includes("@end-");
+    const kind = /no-iap/.test(tok) ? "no-iap" : "iap";
+    if (!end) {
+      if (open) fail(`${label}:${lineAt(src, at)}: ${tok} opened inside an @${open} block (line ${lineAt(src, openedAt)}); blocks cannot nest.`);
+      out += src.slice(i, at); open = kind; openedAt = at; i = at + tok.length;
+    } else {
+      if (open !== kind) fail(`${label}:${lineAt(src, at)}: ${tok} without an open @${kind} block.`);
+      const body = src.slice(i, at);
+      const keep = kind === "iap" ? !noIap : noIap;
+      if (keep) out += body;
+      open = null; i = at + tok.length;
+    }
+  }
+  if (open) fail(`${label}:${lineAt(src, openedAt)}: the @${open} block is never closed.`);
+  return out + src.slice(i);
+}
+// text-overrides rules may say "iap": true (IAP builds only) or "iap": false (--no-iap builds only).
+const forMode = rules => (rules || []).filter(r => r.iap === undefined || r.iap === !NO_IAP);
+
 // Fallback copy changes for shared files whose markers belong to another area (mobile/web-ios/text-overrides.json):
 // { "<file>": [ { "find": "text" | "pattern": "regex", "flags": "g", "replace": "...", "min": 1, "max": 1, "why": "..." } ] }
 export function applyTextOverrides(code, file, rules = []) {
@@ -323,9 +357,9 @@ async function buildSharedJs(overrides) {
     // The website file must still parse with its markers in place (they are plain comments there).
     try { acorn.parse(src, { ecmaVersion: "latest", sourceType: "script" }); }
     catch (error) { fail(`public/${name} does not parse as it stands (${error.message}).`); }
-    const { code, count } = applyRegions(src, `public/${name}`);
+    const { code, count } = applyRegions(applyIapRegions(src, NO_IAP, `public/${name}`), `public/${name}`);
     counts[name] = count;
-    const changed = applyTextOverrides(code, name, overrides[name]);
+    const changed = applyTextOverrides(code, name, forMode(overrides[name]));
     await write(name, await minifyJs(changed, `www/${name}`));
   }
   // The engine, byte for byte.
@@ -478,14 +512,14 @@ async function buildUi() {
 
 async function buildIosFiles(appVersion) {
   for (const name of [...IOS_JS, ...(DEBUG ? IOS_DEBUG_JS : [])]) {
-    let code = await readText(path.join(webIos, name));
+    let code = applyIapRegions(await readText(path.join(webIos, name)), NO_IAP, `web-ios/${name}`);
     code = code.replaceAll("__CN_APP_VERSION__", appVersion);
     await write(`ios/${name}`, await minifyJs(code, `www/ios/${name}`));
   }
-  await write("ios/ios.css", await minifyCss(await readText(path.join(webIos, "ios.css")), "www/ios/ios.css"));
+  await write("ios/ios.css", await minifyCss(applyIapRegions(await readText(path.join(webIos, "ios.css")), NO_IAP, "web-ios/ios.css"), "www/ios/ios.css"));
   for (const name of CSS_FILES) await write(name, await minifyCss(await readText(path.join(pub, name)), `www/${name}`));
-  // The page the native shell shows if the bundle itself cannot load (BUILD-PLAN §7.11).
-  await write("offline.html", await readText(path.join(webIos, "offline.html")));
+  // (1.1: web-ios/offline.html is gone. Nothing ever loaded it: capacitor.config.ts has no server.errorPath and the app
+  // works offline from its own bundle.)
   // debug bundles: the engine parity fixtures for ios/debug.js's self-test
   if (DEBUG) await write("ios/engine-fixtures.json", await readFile(path.join(mobile, "tests", "engine-fixtures.json")));
 }
@@ -538,7 +572,8 @@ async function buildIndex(source, versions, appVersion) {
   const charset = kept.filter(n => n.tagName === "meta" && hasAttr(n, "charset"));
   const rest = kept.filter(n => !charset.includes(n));
   const csp = elt(`<meta http-equiv="Content-Security-Policy" content="${CSP}">`);
-  const extraMeta = fragment(`<meta name="format-detection" content="telephone=no, email=no, address=no"><meta name="color-scheme" content="dark">`).filter(isEl);
+  // cn-build: the purchase mode this bundle was built in; the gate checks the bundle against it
+  const extraMeta = fragment(`<meta name="format-detection" content="telephone=no, email=no, address=no"><meta name="color-scheme" content="dark"><meta name="cn-build" content="${NO_IAP ? "no-iap" : "iap"}">`).filter(isEl);
   const boot = IOS_HEAD_SCRIPTS.map(src => elt(`<script src="${src}"></script>`));
   const styles = rest.filter(n => n.tagName === "link");
   const lastStyle = styles[styles.length - 1];
@@ -584,7 +619,7 @@ async function buildIndex(source, versions, appVersion) {
   }
   const main = byId(doc, "cnMain");
   if (!main) fail("index.html: <main id=\"cnMain\"> is missing.");
-  const accountPartial = (await readText(path.join(webIos, "partials", "account.html")))
+  const accountPartial = applyIapRegions(await readText(path.join(webIos, "partials", "account.html")), NO_IAP, "partials/account.html")
     .replaceAll("__CN_APP_VERSION__", appVersion);
   appendNodes(main, fragment(accountPartial).filter(n => n.nodeName !== "#comment"));
   // The nav needs a button for the Account page so script.js wires it like the others (hidden: the tab
@@ -696,7 +731,7 @@ async function buildLegal(versions) {
       const content = first(shell, n => hasClass(n, "cn-legal-content"));
       const sections = TERMS_REMOVED.map(id => byId(doc, id));
       if (sections.some(s => !s)) fail(`legal: terms.html no longer has sections #${TERMS_REMOVED.join(", #")}; update TERMS_REMOVED in build-web.mjs.`);
-      const replacement = fragment(await readText(path.join(partials, "terms-no-purchases.html")));
+      const replacement = fragment(await readText(path.join(partials, NO_IAP ? "terms-no-purchases.html" : "terms-apple-subscriptions.html")));
       replaceNode(sections[0], replacement);
       for (const s of sections.slice(1)) detach(s);
       if (!content) fail("legal: terms.html has no .cn-legal-content.");
@@ -705,7 +740,7 @@ async function buildLegal(versions) {
     if (existsSync(iphone)) {
       const content = first(shell, n => hasClass(n, "cn-legal-content"));
       const contact = byId(doc, "contact");
-      const nodes = fragment((await readText(iphone)).replaceAll("__CN_LEGAL_VERSION__", versions.legal));
+      const nodes = fragment(applyIapRegions(await readText(iphone), NO_IAP, path.basename(iphone)).replaceAll("__CN_LEGAL_VERSION__", versions.legal));
       if (contact && contact.parentNode) insertAt(contact.parentNode, contact.parentNode.childNodes.indexOf(contact), nodes);
       else if (content) appendNodes(content, nodes);
       else fail(`legal: nowhere to put the iPhone app section in ${file}.`);
@@ -720,7 +755,7 @@ async function buildLegal(versions) {
         if (id && !byId(doc, id)) { const next = a.nextSibling; detach(a); if (next && next.nodeName === "#text" && !next.value.trim()) detach(next); }
       }
       const plans = file === "terms.html" ? first(toc, n => n.tagName === "a" && attrOf(n, "href") === "#plans") : null;
-      if (plans) setText(plans, "10–14. No purchases in the app");
+      if (plans) setText(plans, NO_IAP ? "10–14. No purchases in the app" : "10–14. Subscriptions in the app");
       if (byId(doc, "iphone-app")) appendNodes(toc, fragment('<a href="#iphone-app">The iPhone app</a>'));
     }
     // links: only #anchors, the support mailbox and the other legal pages survive
@@ -739,7 +774,7 @@ async function buildLegal(versions) {
     setAttr(html, "class", ((attrOf(html, "class") || "") + " cn-ios cn-ios-legal").trim());
     insertAt(body, 0, fragment(bar));
     let markup = P5.serialize(doc);
-    markup = applyTextOverrides(markup, `legal/${file}`, textRules[file] || []);
+    markup = applyTextOverrides(markup, `legal/${file}`, forMode(textRules[file]));
     await write(out, markup);
   }
 }
@@ -825,7 +860,7 @@ async function main() {
   await rm(OUT, { recursive: true, force: true });
   await mkdir(OUT, { recursive: true });
 
-  const indexSource = await readText(path.join(pub, "index.html"));
+  const indexSource = applyIapRegions(await readText(path.join(pub, "index.html")), NO_IAP, "public/index.html");
   const overrides = await readJson(path.join(webIos, "text-overrides.json"));
   const versions = await legalVersions();
 
@@ -861,11 +896,11 @@ async function main() {
   log(`regions: ${regionSummary || "none"}`);
   log(`vendored: supabase-js ${vendor.supabase}, jsQR ${vendor.jsqr}, Capacitor ${vendor.capacitor}`);
   log(`assets copied: ${assets.length}`);
-  log(`app version ${appVersion}${DEBUG ? " (DEBUG bundle: never submit)" : ""}; legal ${versions.legal}, privacy ${versions.privacy}`);
+  log(`app version ${appVersion}${DEBUG ? " (DEBUG bundle: never submit)" : ""}; ${NO_IAP ? "NO in-app purchases (CN_NO_IAP=1)" : "in-app purchase build"}; legal ${versions.legal}, privacy ${versions.privacy}`);
 
   if (!args.has("--no-gate")) {
     const { checkBundle, printHits } = await import(pathToFileURL(path.join(here, "check-bundle.mjs")).href);
-    const result = await checkBundle({ dir: OUT, debug: DEBUG });
+    const result = await checkBundle({ dir: OUT, debug: DEBUG, iap: !NO_IAP });
     if (result.hits.length) {
       printHits(result.hits);
       fail(`the gate found ${result.hits.length} problem(s) in ${path.relative(root, OUT) || OUT}.`);

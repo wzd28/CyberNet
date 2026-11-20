@@ -27,7 +27,16 @@
       "replace": "<p class=\"cn-privacy-note\"><strong>A paid plan from our website?</strong> If this account has a paid plan from our website, deleting the account cancels it immediately and there is no refund for the rest of the billing period. Anything CyberNet AI keeps on this iPhone is removed too.</p>",
       "min": 0,
       "max": 1,
+      "iap": false,
       "why": "owner answer 7 / BUILD-PLAN 7.7: warn without naming a plan, price or billing screen"
+    },
+    {
+      "find": "<p class=\"cn-privacy-note\"><strong>Paying for Pro or Business?</strong> Deleting your account cancels the plan immediately. Paid access ends now and there is no refund for the rest of the billing period. To keep it until the period ends, cancel in Manage Billing instead and delete your account after that date. Anything saved in this browser is cleared too.</p>",
+      "replace": "<p class=\"cn-privacy-note\"><strong>Paying through the App Store?</strong> Deleting your account does not cancel an App Store subscription. Cancel it first in the Settings app: tap your name, then Subscriptions. Otherwise Apple keeps charging you.</p><p class=\"cn-privacy-note\"><strong>A paid plan from our website?</strong> If this account has a paid plan from our website, deleting the account cancels it immediately and there is no refund for the rest of the billing period. Anything CyberNet AI keeps on this iPhone is removed too.</p>",
+      "min": 0,
+      "max": 1,
+      "why": "1.1 bug 13 / App Review 5.1.1(v): deleting the account never cancels an App Store subscription, so the dialog says so before Delete (deletion is never blocked). IAP builds only.",
+      "iap": true
     },
     {
       "find": "that Stripe must keep by law",
