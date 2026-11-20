@@ -1959,7 +1959,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const tier = Number(active == null ? void 0 : active.dataset.seatTier) || 5;
     return [5, 10, 20].includes(tier) ? tier : 5;
   }
-  function showSecondPlanChoice(message, cycle, plan) {
+  function showSecondPlanChoice(message, cycle, plan, viaApple) {
     showPricingNotice(message);
     if (!pricingNotice) return;
     pricingNotice.classList.add("cn-notice-ask");
@@ -1976,7 +1976,7 @@ document.addEventListener("DOMContentLoaded", () => {
     manage.textContent = "Manage billing";
     manage.addEventListener("click", openBillingPortal);
     actions.appendChild(go);
-    actions.appendChild(manage);
+    if (!viaApple) actions.appendChild(manage);
     pricingNotice.appendChild(actions);
     try {
       go.focus();
@@ -2023,10 +2023,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await response.json().catch(() => ({}));
       if (response.status === 409 && data.error) {
         if (data.code === "CONFIRM_SECOND_PLAN") {
-          showSecondPlanChoice(data.error, cycle, plan);
+          showSecondPlanChoice(data.error, cycle, plan, data.viaApple === true);
           return;
         }
-        if (["ALREADY_SUBSCRIBED", "PAYMENT_PAST_DUE", "TEAM_MEMBER"].includes(data.code)) {
+        if (["ALREADY_SUBSCRIBED", "ALREADY_SUBSCRIBED_APPLE", "PAYMENT_PAST_DUE", "TEAM_MEMBER"].includes(data.code)) {
           showPricingNotice(data.error);
           return;
         }

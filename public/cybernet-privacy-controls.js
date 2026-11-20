@@ -680,7 +680,44 @@
     clearAlert(modal);
     syncConfirm(modal);
     openDialog(modal, opener || byId("cnPrivacyDeleteBtn"));
+    /*@web*/showAppleDeleteNote(modal);/*@end-web*/
   }
+/*@web*/
+  // Pro bought in the iPhone app is billed by Apple. We cannot cancel it (only
+  // the person can, on their iPhone), so before deleting, the dialog says so
+  // (Apple's account-deletion guidance). Deletion is never blocked by it, and a
+  // failed check simply shows nothing. Website only: the app has its own step.
+  async function showAppleDeleteNote(modal) {
+    const old = modal.querySelector("#cnDeleteAppleNote");
+    if (old) old.hidden = true;
+    if (preview) return;
+    const token = await accessToken();
+    if (!token) return;
+    let profile = null;
+    try {
+      const response = await fetch("/api/account-status", { headers: { Accept: "application/json", Authorization: `Bearer ${token}` }, cache: "no-store" });
+      if (response.ok) profile = (await response.json().catch(() => ({})))?.profile || null;
+    } catch { profile = null; }
+    const source = String(profile?.billingSource || "");
+    if ((source !== "apple" && source !== "both") || profile?.apple?.autoRenew === false) return;
+    let note = old;
+    if (!note) {
+      note = document.createElement("p");
+      note.id = "cnDeleteAppleNote";
+      note.className = "cn-privacy-note";
+      modal.querySelector(".cn-privacy-confirm")?.insertAdjacentElement("beforebegin", note);
+    }
+    const strong = document.createElement("strong");
+    strong.textContent = "Pro billed by Apple?";
+    const link = document.createElement("a");
+    link.href = "https://apps.apple.com/account/subscriptions";
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = "apps.apple.com/account/subscriptions";
+    note.replaceChildren(strong, " Your Pro subscription from the App Store keeps renewing through Apple until you cancel it. Deleting your account does not cancel it. Cancel it first on your iPhone (Settings > your name > Subscriptions) or at ", link, ". You can still delete your account now.");
+    note.hidden = false;
+  }
+/*@end-web*/
 
   async function confirmDelete() {
     const modal = deleteDialog();

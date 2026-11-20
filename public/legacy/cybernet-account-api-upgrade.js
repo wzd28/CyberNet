@@ -582,6 +582,52 @@
       const status = String(value || "inactive").replaceAll("_", " ").trim();
       return status ? status.charAt(0).toUpperCase() + status.slice(1) : "Inactive";
     }
+    function appleDate(value) {
+      const time = Date.parse(value || "");
+      if (!Number.isFinite(time)) return "";
+      try {
+        return new Date(time).toLocaleDateString(void 0, { year: "numeric", month: "long", day: "numeric" });
+      } catch (e) {
+        return new Date(time).toISOString().slice(0, 10);
+      }
+    }
+    function appleStatusText(apple) {
+      const date = appleDate(apple == null ? void 0 : apple.expiresAt);
+      const test = (apple == null ? void 0 : apple.environment) === "Sandbox" ? " (test purchase)" : "";
+      if (apple == null ? void 0 : apple.inGrace) return `Billed by Apple: payment issue, Apple is retrying${test}`;
+      if (!date) return `Billed by Apple${test}`;
+      if ((apple == null ? void 0 : apple.autoRenew) === true) return `Billed by Apple, renews ${date}${test}`;
+      if ((apple == null ? void 0 : apple.autoRenew) === false) return `Billed by Apple, ends ${date}${test}`;
+      return `Billed by Apple, current period until ${date}${test}`;
+    }
+    function renderAppleBilling(billingSource, apple) {
+      const modal2 = document.getElementById("accountDetailsModal") || document;
+      let note = document.getElementById("accountAppleBillingNote");
+      if (billingSource !== "apple" && billingSource !== "both") {
+        if (note) note.hidden = true;
+        return;
+      }
+      if (!note) {
+        const actions = modal2.querySelector(".cybernet-account-actions");
+        if (!actions) return;
+        note = document.createElement("p");
+        note.id = "accountAppleBillingNote";
+        note.className = "cybernet-account-message";
+        actions.insertAdjacentElement("beforebegin", note);
+      }
+      note.hidden = false;
+      note.textContent = billingSource === "both" ? "You're paying for Pro twice: here and through the App Store. To stop one, use Manage Billing here, or on your iPhone go to Settings > your name > Subscriptions. " : "Your Pro subscription is billed by Apple. Manage or cancel it on your iPhone: Settings > your name > Subscriptions, or at ";
+      const link = document.createElement("a");
+      link.href = "https://apps.apple.com/account/subscriptions";
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = "apps.apple.com/account/subscriptions";
+      if (billingSource === "both") {
+        note.append("Apple: ", link, ".");
+      } else {
+        note.append(link, ".");
+      }
+    }
     function planDetails(account) {
       const profile = (account == null ? void 0 : account.profile) || {};
       const plan = String(profile.plan || "").toLowerCase();
@@ -650,15 +696,18 @@
       if (emailEl) emailEl.textContent = email;
       if (planEl) planEl.textContent = details.label;
       if (badgeEl) badgeEl.textContent = details.badge;
+      const billingSource = String(profile.billingSource || "");
+      const appleOnly = billingSource === "apple";
       if (statusEl) {
-        statusEl.textContent = details.pro ? friendlyStatus(profile.subscriptionStatus) : "Free account";
+        statusEl.textContent = appleOnly ? appleStatusText(profile.apple) : details.pro ? friendlyStatus(profile.subscriptionStatus) : "Free account";
       }
+      renderAppleBilling(billingSource, profile.apple);
       if (usageEl) {
         usageEl.textContent = `${used} of ${limit} used today • ${remaining} remaining`;
       }
       if (usageBar) usageBar.style.transform = `scaleX(${percent / 100})`;
       const teamMemberOnly = Boolean(profile.isTeamMember) && profile.teamRole !== "owner";
-      if (manageButton) manageButton.hidden = !details.pro || teamMemberOnly;
+      if (manageButton) manageButton.hidden = !details.pro || teamMemberOnly || appleOnly;
       if (upgradeButton) {
         upgradeButton.hidden = details.pro;
         upgradeButton.textContent = "View Pro Plans";

@@ -1738,7 +1738,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 
   /* A second plan (Pro next to Business, or the other way round) is the customer's choice: the server asks
      first (409 CONFIRM_SECOND_PLAN) and this puts the question, with two real buttons, in the pricing notice. */
-  function showSecondPlanChoice(message,cycle,plan){
+  function showSecondPlanChoice(message,cycle,plan,viaApple){
     showPricingNotice(message);
     if(!pricingNotice)return;
     pricingNotice.classList.add("cn-notice-ask");
@@ -1750,7 +1750,8 @@ document.addEventListener("DOMContentLoaded",()=>{
     const manage=document.createElement("button");
     manage.type="button";manage.className="cn-notice-btn";manage.textContent="Manage billing";
     manage.addEventListener("click",openBillingPortal);
-    actions.appendChild(go);actions.appendChild(manage);
+    /* Pro billed by Apple is managed in iPhone Settings, not in the Stripe portal. */
+    actions.appendChild(go);if(!viaApple)actions.appendChild(manage);
     pricingNotice.appendChild(actions);
     try{go.focus()}catch{}
   }
@@ -1781,8 +1782,8 @@ document.addEventListener("DOMContentLoaded",()=>{
       });
       const data=await response.json().catch(()=>({}));
       if(response.status===409&&data.error){
-        if(data.code==="CONFIRM_SECOND_PLAN"){showSecondPlanChoice(data.error,cycle,plan);return}
-        if(["ALREADY_SUBSCRIBED","PAYMENT_PAST_DUE","TEAM_MEMBER"].includes(data.code)){showPricingNotice(data.error);return}
+        if(data.code==="CONFIRM_SECOND_PLAN"){showSecondPlanChoice(data.error,cycle,plan,data.viaApple===true);return}
+        if(["ALREADY_SUBSCRIBED","ALREADY_SUBSCRIBED_APPLE","PAYMENT_PAST_DUE","TEAM_MEMBER"].includes(data.code)){showPricingNotice(data.error);return}
       }
       if(!response.ok)throw new Error(data.error||"Stripe Checkout is not configured yet.");
       if(!data.url)throw new Error("Stripe did not return a Checkout URL.");

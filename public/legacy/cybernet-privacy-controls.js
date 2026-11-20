@@ -623,6 +623,40 @@
     clearAlert(modal);
     syncConfirm(modal);
     openDialog(modal, opener || byId("cnPrivacyDeleteBtn"));
+    showAppleDeleteNote(modal);
+  }
+  async function showAppleDeleteNote(modal) {
+    var _a, _b, _c;
+    const old = modal.querySelector("#cnDeleteAppleNote");
+    if (old) old.hidden = true;
+    if (preview) return;
+    const token = await accessToken();
+    if (!token) return;
+    let profile = null;
+    try {
+      const response = await fetch("/api/account-status", { headers: { Accept: "application/json", Authorization: `Bearer ${token}` }, cache: "no-store" });
+      if (response.ok) profile = ((_a = await response.json().catch(() => ({}))) == null ? void 0 : _a.profile) || null;
+    } catch (e) {
+      profile = null;
+    }
+    const source = String((profile == null ? void 0 : profile.billingSource) || "");
+    if (source !== "apple" && source !== "both" || ((_b = profile == null ? void 0 : profile.apple) == null ? void 0 : _b.autoRenew) === false) return;
+    let note = old;
+    if (!note) {
+      note = document.createElement("p");
+      note.id = "cnDeleteAppleNote";
+      note.className = "cn-privacy-note";
+      (_c = modal.querySelector(".cn-privacy-confirm")) == null ? void 0 : _c.insertAdjacentElement("beforebegin", note);
+    }
+    const strong = document.createElement("strong");
+    strong.textContent = "Pro billed by Apple?";
+    const link = document.createElement("a");
+    link.href = "https://apps.apple.com/account/subscriptions";
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = "apps.apple.com/account/subscriptions";
+    note.replaceChildren(strong, " Your Pro subscription from the App Store keeps renewing through Apple until you cancel it. Deleting your account does not cancel it. Cancel it first on your iPhone (Settings > your name > Subscriptions) or at ", link, ". You can still delete your account now.");
+    note.hidden = false;
   }
   async function confirmDelete() {
     var _a, _b, _c;
