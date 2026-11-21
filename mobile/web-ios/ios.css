@@ -34,6 +34,16 @@ html.cn-ios .navbar .mobile-menu,
 html.cn-ios .navbar .nav-actions,
 html.cn-ios .nav-indicator { display: none !important; }
 html.cn-ios .navbar .brand { pointer-events: none; }
+/* Social links (owner, 21 Nov 2026): LinkedIn, TikTok and Instagram at the right of the top bar, on Home only. They open
+   in Safari (the external-link handler); none of them sells anything, so App Review 3.1.1 is not involved. */
+html.cn-ios .navbar .cn-ios-social { display: none; }
+html.cn-ios.cn-ios-on-home .navbar .cn-ios-social { display: flex; align-items: center; gap: 4px; margin-inline-start: auto; }
+html.cn-ios .navbar .cn-ios-social-btn { position: relative; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; color: var(--cn-ios-text-2, #a9b6c8); background: rgba(148, 163, 184, .1); box-shadow: inset 0 0 0 1px rgba(148, 163, 184, .18); -webkit-tap-highlight-color: transparent; transition: background-color .12s ease, color .12s ease, transform .12s ease; }
+html.cn-ios .navbar .cn-ios-social-btn::after { content: ""; position: absolute; inset: -4px; } /* 44 pt touch area */
+html.cn-ios .navbar .cn-ios-social-btn svg { width: 17px; height: 17px; }
+html.cn-ios .navbar .cn-ios-social-btn:active { transform: scale(.94); color: var(--cn-ios-accent); background: rgba(34, 211, 238, .14); }
+html.cn-ios .navbar .cn-ios-social-btn:focus-visible { outline: 2px solid var(--cn-ios-accent); outline-offset: 2px; }
+@media (hover: hover) and (pointer: fine) { html.cn-ios .navbar .cn-ios-social-btn:hover { color: var(--cn-ios-accent); } }
 /* Background canvases and the old particle layer are off in the app (battery, App Review 2.4.2). */
 html.cn-ios #particleCanvas { display: none !important; }
 
@@ -1118,6 +1128,13 @@ html.cn-ios #cnMain > .page:not(#home) .feature-page-header > p:not(.cn-ios-disc
    level with the title, and the title and lead keep clear of it. */
 html.cn-ios #cybernetai > .feature-page-header > .cn-tl-orb { width: 72px; inset-block-start: -4px; }
 html.cn-ios #cybernetai > .feature-page-header > :is(h1, p:not(.cn-ios-disclaimer)) { padding-inline-end: 76px; }
+/* Quick Scan (owner, 21 Nov 2026: "next to Quick Scan the logo is not there... it looks too plain"): the 3D shield in the
+   same place and size as Analysis AI's globe. App only; the website keeps its scan box as the page's hero. */
+html.cn-ios #cybernet > .feature-page-header > .cn-qs-orb { position: absolute; z-index: -1; inset-block-start: -8px; inset-inline-end: 0; width: 58px; margin: 0; pointer-events: none; }
+html.cn-ios #cybernet > .feature-page-header > .cn-qs-orb > img { display: block; width: 100%; height: auto; filter: drop-shadow(0 8px 18px rgba(34, 211, 238, .22)); }
+html.cn-ios #cybernet > .feature-page-header > :is(h1, p:not(.cn-ios-disclaimer)) { padding-inline-end: 76px; }
+@media (max-width: 359.98px) { html.cn-ios #cybernet > .feature-page-header > .cn-qs-orb { display: none; } }
+@media (forced-colors: active) { html.cn-ios #cybernet > .feature-page-header > .cn-qs-orb { display: none; } }
 
 /* design 6: iOS sheets. A grabber, a 44 pt Close button in the header corner, the iOS sheet curve (about .4 s in, .25 s
    out), and the same fade-only fallback under Reduce Motion. No drag physics in 1.1. */

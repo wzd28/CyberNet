@@ -192,18 +192,20 @@
     $(`.nav-tabs .nav-link[data-page="${page}"]`)?.click();
   }
   function scrollToTop() { w.scrollTo({ top: 0, behavior: motionOff() ? "auto" : "smooth" }); }
-  // Like UITabBarController (1.1 design item 3): every tab keeps its own scroll position, and coming back to a tab
-  // shows it where it was left, at once (ios.css turns the website's smooth scrolling off, so the page swap never
-  // glides). Tapping the open tab again scrolls it to the top. In-page links still open a page at its top.
+  // Tab bar (owner, 21 Nov 2026): every tab opens at its top, at once (ios.css turns the website's smooth scrolling off,
+  // so the page swap never glides). Tapping the open tab again scrolls it to the top. tabScroll is kept for diagnostics only.
   const tabScroll = {};
-  let tabReturn = null; // { tab, until }: the tab tap whose page swap should restore that tab's position
+  let tabReturn = null; // { tab, until }: the tab tap whose page swap should open that tab at its top
   function rememberScroll() { tabScroll[PAGE_TAB[activePage()] || "check"] = w.scrollY || 0; }
   function restoreScroll(page) {
     const tab = PAGE_TAB[page];
     if (!tabReturn || tabReturn.tab !== tab || Date.now() > tabReturn.until) { tabReturn = null; return; }
     tabReturn = null;
-    const y = tabScroll[tab] || 0;
-    if (y > 0) requestAnimationFrame(() => w.scrollTo({ top: y, behavior: "auto" }));
+    // Owner, 21 Nov 2026: "whenever you click home, it takes you to the top of the homepage; check, the top of check".
+    // A tab always opens at its top (the website's pages share one scroll, so without this a tab opened where the
+    // last page was left).
+    w.scrollTo({ top: 0, behavior: "auto" });
+    requestAnimationFrame(() => w.scrollTo({ top: 0, behavior: "auto" }));
   }
   function goTab(id) {
     const tab = TABS.find(t => t.id === id);
@@ -264,6 +266,7 @@
     const page = activePage();
     const tab = PAGE_TAB[page] || "check";
     if (isCheckPage(page)) lastCheckPage = page;
+    d.documentElement.classList.toggle("cn-ios-on-home", page === "home"); // the social links show on Home only
     $$("#cnIosTabbar [data-ios-tab]").forEach(b => {
       const on = b.getAttribute("data-ios-tab") === tab;
       b.classList.toggle("is-active", on);
