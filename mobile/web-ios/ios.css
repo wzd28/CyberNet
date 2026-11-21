@@ -418,6 +418,17 @@ html.cn-ios .cn-onb-buttons > button:active { transform: scale(.97); }
   .cn-ios-sheet-backdrop:not(.cn-ix-over) .cn-onb-art { height: 124px; --onb-art-scale: .85; }
   .cn-ios-sheet-backdrop:not(.cn-ix-over) .cn-onb-share-head { display: none; }
 }
+/* shorter still (iPhone Duo's outer screen: 678 pt with a taller top inset): the pictures give up a little more room */
+@media (max-height: 700px) and (min-width: 420px) {
+  .cn-onb-sheet { --onb-art-scale: .8; }
+  .cn-onb-share-head { display: none; }
+  .cn-onb-lead { margin-top: 6px; }
+  .cn-onb-steps { margin-top: 12px; }
+  .cn-onb-steps li { padding-block: 7px; }
+  .cn-onb-title { margin-top: 4px; }
+  .cn-onb-dots { margin-bottom: 8px; }
+  .cn-onb-art:has(.cn-onb-share) { height: 136px; } /* the share card is short once its heading is hidden */
+}
 @media (min-height: 880px) {
   .cn-onb-sheet { --onb-art-scale: 1.12; }
 }

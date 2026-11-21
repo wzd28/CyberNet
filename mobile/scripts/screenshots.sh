@@ -54,6 +54,7 @@ DEVICES=(
   "iPhone 17 Pro|required|1206x2622"
   "iPhone 17e|required|"
   "iPhone SE (3rd generation)|optional|"
+  "iPhone Duo|optional|"
   "iPad Air 13-inch|optional|"
 )
 

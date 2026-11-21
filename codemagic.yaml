@@ -26,8 +26,8 @@ workflows:
       tag_patterns:
         - pattern: 'ios-sim-*'
     environment:
-      xcode: "26.6"        # pinned (iOS 26 SDK): "Xcode 26 or later", and iPhone Duo runs the app in
-                           # compatibility mode. Never latest/edge (BUILD-PLAN §1, §3).
+      xcode: "27.2"        # pinned (iOS 27.2 SDK, Apple ITMS-90725: iOS 27 SDK required from April 2027). On iPhone Duo
+                           # the app now fills the inner screen (checked at 626x890 pt). Never latest/edge.
       node: 22
     scripts:
       - name: Site build tools (esbuild + acorn at the root lockfile versions, without the 1,188-package netlify-cli tree)
@@ -161,7 +161,7 @@ workflows:
     integrations:
       app_store_connect: CyberNet ASC   # Codemagic Developer Portal integration (key name, not the key)
     environment:
-      xcode: "26.6"        # same pin as ios-simulator
+      xcode: "27.2"        # same pin as ios-simulator
       node: 22
       ios_signing:
         provisioning_profiles:
