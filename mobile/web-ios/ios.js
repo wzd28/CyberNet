@@ -2104,7 +2104,7 @@
   const RESULT_EMPTY = { cyberTextResult: "Your text scam result will appear here.", cyberLinkResult: "Your link scam result will appear here.", cyberImageResult: "Your image scam result will appear here." };
   function addNewCheckX(box) {
     if (!(box.id in RESULT_INPUT) || $(":scope > .cn-ios-result-x", box)) return;
-    const x = el(`<button type="button" class="cn-ios-sheet-x cn-ios-result-x" aria-label="Close this result and start a new check">${CLOSE_X}<span aria-hidden="true">New check</span></button>`);
+    const x = el(`<button type="button" class="cn-ios-sheet-x cn-ios-result-x" aria-label="Close this result and start a new check">${CLOSE_X}</button>`);
     x.addEventListener("click", () => {
       const field = RESULT_INPUT[box.id] ? $(`#${RESULT_INPUT[box.id]}`) : null;
       box.className = "result-box";
@@ -2274,7 +2274,7 @@
     { group: "Check something", topics: [
       { id: "text", icon: "text", tint: "blue", title: "Check a message", sub: "A text, email or DM",
         lead: "Quick Scan checks a message on your iPhone in about a second. It needs no account, and the message is not sent to an AI.",
-        steps: ["Tap Check at the bottom of the screen. Quick Scan is selected at the top.", "Tap Text detection.", "Copy the whole message, including any links. Then touch and hold the box and tap Paste.", "Tap Start the analysis.", "Read the answer at the top of the result: SCAM or LOW RISK. Under it you see why, and What to do next.", "To check something else, tap New check at the top right of the result."],
+        steps: ["Tap Check at the bottom of the screen. Quick Scan is selected at the top.", "Tap Text detection.", "Copy the whole message, including any links. Then touch and hold the box and tap Paste.", "Tap Start the analysis.", "Read the answer at the top of the result: SCAM or LOW RISK. Under it you see why, and What to do next.", "To check something else, tap the X at the top right of the result."],
         tips: [["Never paste secrets", "Leave out passwords, one-time codes, card numbers and recovery phrases."], ["Want it explained?", "Analysis AI explains a message in plain language. See Analysis AI below."]],
         go: { label: "Check a message", page: "cybernet", tab: "text" } },
       { id: "link", icon: "link", tint: "teal", title: "Check a link", sub: "A web address on its own",
