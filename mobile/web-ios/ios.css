@@ -401,6 +401,11 @@ html.cn-ios .cn-onb-buttons > button { display: flex; align-items: center; justi
 html.cn-ios .cn-onb-buttons > button:active { transform: scale(.97); }
 .cn-onb-back[hidden] { display: none; }
 .cn-onb-next { flex: 1; }
+/* no stage (a link or a shared item opened the app): the tab bar stays under the sheet, so on every size the pictures are
+   a little smaller and the pages start higher */
+.cn-ios-sheet-backdrop:not(.cn-ix-over) .cn-onb-sheet { --onb-art-scale: .9; }
+.cn-ios-sheet-backdrop:not(.cn-ix-over) .cn-onb-page { padding-top: 4px; }
+.cn-ios-sheet-backdrop:not(.cn-ix-over) .cn-onb-art { height: clamp(124px, 19dvh, 200px); }
 /* a short screen (iPhone SE, a small Mac window): the pictures a little smaller, the rows a little tighter */
 @media (max-height: 740px) {
   .cn-onb-sheet { --onb-art-scale: .88; }
