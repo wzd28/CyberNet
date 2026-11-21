@@ -231,6 +231,20 @@
     }, true);
   }
   function activePage() { return $(".page.active-page")?.id || "cybernet"; }
+  // Focus goes back to `node` when it is still on screen and reachable, else to the open page's heading (so VoiceOver and
+  // the keyboard never land on the page's body after a sheet or the guide closes).
+  function focusBack(node) {
+    try {
+      const ok = n => n && n.isConnected && !n.closest("[inert]") && n.offsetParent !== null;
+      if (ok(node)) { node.focus({ preventScroll: true }); if (d.activeElement === node) return; }
+      if (d.activeElement && d.activeElement !== d.body && ok(d.activeElement)) return;
+      const page = $(".page.active-page");
+      const head = page && $("h1, h2", page);
+      if (!ok(head)) return;
+      if (!head.hasAttribute("tabindex")) head.setAttribute("tabindex", "-1");
+      head.focus({ preventScroll: true });
+    } catch { /* ignore */ }
+  }
 
   function buildWebTabbar() {
     if (nativeTabs || $("#cnIosTabbar")) return;
@@ -775,15 +789,15 @@
       steps: ["Copy the message or link.", "Open Check and paste it into the box.", "Tap Start the analysis."] },
     { id: "qr", title: "Scan a QR code before you open it", text: "See where a code really goes. Nothing opens until you choose.",
       steps: ["Tap Scan QR in the tab bar.", "Point the camera at the code, or choose a photo of it.", "Read where it goes, then decide."] },
-    { id: "share", title: "Share to CyberNet AI", text: "Send a page, an email or a photo from the app you're in.",
-      steps: ["In Safari, Mail or Photos, tap Share.", "Choose CyberNet AI.", "Don't see it? Scroll the row to More and turn on CyberNet AI."],
+    { id: "share", title: "Share to CyberNet AI", text: "Send a page, a link or a photo from the app you're in.",
+      steps: ["In Safari or Photos, tap Share.", "Choose CyberNet AI.", "Don't see it? Scroll the row to More and turn on CyberNet AI."],
       tip: "For a text message, copy it and paste it into Check." }
   ];
   const INTRO_WELCOME = { title: "Welcome to CyberNet AI", text: "Spot the warning signs of a scam in messages, links and QR codes, before you tap." };
   const INTRO_ACCOUNT = {
     title: "Analysis AI and Recovery",
     text: "Analysis AI explains the warning signs in plain words. Recovery gives you a plan, step by step, if something already went wrong.",
-    guest: "Both need a free account. You can sign in from Account at any time.",
+    guest: "Both need a CyberNet AI account. You can sign in from Account at any time.",
     member: "You're signed in, so both are ready."
   };
 
@@ -977,13 +991,11 @@
       </div><div class="cn-onb-link cn-onb-pop"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg><span>account-verify.invalid</span><em>Not opened</em></div></div>`,
     share: `<div class="cn-onb-art"><div class="cn-onb-share">
         <span class="cn-onb-grab"></span>
+        <span class="cn-onb-share-head">Share</span>
         <div class="cn-onb-apps">
-          <span class="cn-onb-app"><i></i><b></b></span>
-          <span class="cn-onb-app"><i></i><b></b></span>
           <span class="cn-onb-app is-us cn-onb-pop">${INTRO_ICON}<b>CyberNet AI</b></span>
           <span class="cn-onb-app is-more"><i><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/></svg></i><b>More</b></span>
         </div>
-        <div class="cn-onb-rows"><i></i><i></i></div>
       </div></div>`,
     account: `<div class="cn-onb-art cn-onb-art-duo">
         <div class="cn-onb-tile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5.5h14a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5h-7l-4.5 3.5v-3.5H5A1.5 1.5 0 0 1 3.5 15V7A1.5 1.5 0 0 1 5 5.5Z"/><path d="M8 10h8M8 13h5"/></svg><b>Analysis AI</b></div>
@@ -1020,6 +1032,7 @@
       sticky: true,
       html: `<div class="cn-onb">
           <div class="cn-onb-top">
+            <button type="button" class="cn-ios-link-btn cn-onb-back" data-intro="back">Back</button>
             <button type="button" class="cn-ios-link-btn cn-onb-skip" data-sheet-value="skip">Skip</button>
           </div>
           <p class="cn-ix-sr" aria-live="polite" data-onb-say></p>
@@ -1027,7 +1040,6 @@
           <div class="cn-onb-foot">
             <div class="cn-onb-dots" aria-hidden="true">${pages.map(() => "<i></i>").join("")}</div>
             <div class="cn-onb-buttons">
-              <button type="button" class="secondary-btn cn-onb-back" data-intro="back">Back</button>
               <button type="button" class="primary-btn cn-onb-next" data-intro="next" data-autofocus>Next</button>
             </div>
           </div>
@@ -1038,6 +1050,7 @@
         const track = panel.querySelector("[data-onb-track]");
         const els = [...panel.querySelectorAll(".cn-onb-page")];
         const back = panel.querySelector('[data-intro="back"]'), next = panel.querySelector('[data-intro="next"]');
+        const skip = panel.querySelector(".cn-onb-skip");
         const paint = (say = false) => {
           els.forEach((page, i) => {
             const here = i === step;
@@ -1047,8 +1060,11 @@
           });
           panel.querySelectorAll(".cn-onb-dots i").forEach((dot, i) => dot.classList.toggle("is-on", i === step));
           next.textContent = step === last ? "Get started" : "Next";
-          if (step === 0 && d.activeElement === back) next.focus({ preventScroll: true });
+          if ((step === 0 && d.activeElement === back) || (step === last && d.activeElement === skip)) next.focus({ preventScroll: true });
           back.hidden = step === 0;
+          // on the last page Get started does what Skip does: Skip is hidden, and keeps its room so the row does not move
+          skip.classList.toggle("is-gone", step === last);
+          skip.inert = step === last;
           if (say) panel.querySelector("[data-onb-say]").textContent = `${step + 1} of ${pages.length}. ${pages[step].title}`;
         };
         const go = to => {
@@ -1057,7 +1073,7 @@
           paint(true);
         };
         // a swipe: the page is the one the track settles on (no scrollend on iOS 16, so every scroll is read)
-        let settle = 0;
+        let settle = 0, resizer = null;
         track.addEventListener("scroll", () => {
           clearTimeout(settle);
           settle = setTimeout(() => {
@@ -1066,17 +1082,22 @@
           }, 90);
         }, { passive: true });
         // a Mac window that is resized keeps the same page in view
-        try { new ResizeObserver(() => { track.scrollLeft = step * track.clientWidth; }).observe(track); } catch { /* ignore */ }
+        try { resizer = new ResizeObserver(() => { track.scrollLeft = step * track.clientWidth; }); resizer.observe(track); } catch { /* ignore */ }
         panel.addEventListener("click", e => {
           if (e.target.closest('[data-intro="back"]')) go(step - 1);
-          else if (e.target.closest('[data-intro="next"]')) { if (step < last) go(step + 1); else done("done"); }
+          else if (e.target.closest('[data-intro="next"]')) { if (step < last) go(step + 1); else finish("done"); }
         });
-        panel.addEventListener("keydown", e => {
+        // On the document (capture), not the panel: on a Mac a click on the dimmed area takes focus out of the sheet, and the keys
+        // must still work. Only while this sheet is the top one; removed when it closes.
+        const onKeys = e => {
+          if (!sheetStack.includes(panel.parentNode)) { d.removeEventListener("keydown", onKeys, true); return; } // closed by Skip
           if (sheetStack[sheetStack.length - 1] !== panel.parentNode) return;
           if (e.key === "ArrowRight") { e.preventDefault(); go(step + 1); }
           else if (e.key === "ArrowLeft") { e.preventDefault(); go(step - 1); }
-          else if (e.key === "Escape" || e.key === "Esc") { e.preventDefault(); done("skip"); } // a Mac keyboard: Escape is Skip
-        });
+          else if (e.key === "Escape" || e.key === "Esc") { e.preventDefault(); finish("skip"); } // a Mac keyboard: Escape is Skip
+        };
+        const finish = value => { d.removeEventListener("keydown", onKeys, true); try { resizer?.disconnect(); } catch { /* ignore */ } done(value); };
+        d.addEventListener("keydown", onKeys, true);
         paint();
       }
     });
@@ -1100,6 +1121,7 @@
         return await introSheet(!!stage);
       } finally {
         if (stage) await stage.leave();
+        later(() => focusBack(null), 60); // the steps' opener (the stage, the card) is gone
       }
     })().then(value => { store.set(INTRO_KEY, String(Date.now())); return value; });
     const clear = () => { introRun = null; };
@@ -1140,7 +1162,10 @@
   }
   // launch: the gate (the guest way out is the link under the card); otherwise a guest's card, which simply closes
   function signInCardHtml({ title, launch, lead }) {
-    return `<div class="cn-ios-gate">
+    // a guest's card can be dismissed ("Not now"), so it has the same grabber and X as every other sheet (the X is a
+    // [data-gate] choice, so finish() runs); the launch gate keeps only its choices and the guest link (5.1.1(v))
+    const chrome = launch ? "" : `<div class="cn-ios-sheet-grab" aria-hidden="true"></div><button type="button" class="cn-ios-sheet-x" data-gate="cancel" aria-label="Close">${CLOSE_X}</button>`;
+    return `${chrome}<div class="cn-ios-gate">
         <h2 class="cn-ios-sheet-title" id="cnSignInTitle">${esc(title)}</h2>
         <p class="cn-ios-gate-lead">${esc(lead)}</p>
         ${SIGNIN_MSG}
@@ -1713,7 +1738,10 @@
       const text = `${error?.code || ""} ${error?.message || ""}`;
       if (/0006\b|cancel/i.test(text)) { syncTabs(); return; } // the native bar is still on Scan QR: back to the page that is open
       if (/0007\b|camera access|permission/i.test(text)) { showCameraHelp("CyberNet AI doesn't have access to the camera. You can allow it in Settings, or choose a photo of the QR code instead.", true); return; }
-      report(error, "qr scan");
+      // a Mac whose web view still reports touch points lands here when it has no rear camera: a quiet fallback, no error report
+      let macLike = false;
+      try { macLike = w.matchMedia("(hover: hover) and (pointer: fine)").matches; } catch { /* ignore */ }
+      if (!macLike) report(error, "qr scan");
       showCameraHelp("The camera isn't available right now. Choose a photo or a screenshot of the QR code instead.");
     }
   }
@@ -2076,7 +2104,7 @@
   const RESULT_EMPTY = { cyberTextResult: "Your text scam result will appear here.", cyberLinkResult: "Your link scam result will appear here.", cyberImageResult: "Your image scam result will appear here." };
   function addNewCheckX(box) {
     if (!(box.id in RESULT_INPUT) || $(":scope > .cn-ios-result-x", box)) return;
-    const x = el(`<button type="button" class="cn-ios-sheet-x cn-ios-result-x" aria-label="Close this result and start a new check">${CLOSE_X}</button>`);
+    const x = el(`<button type="button" class="cn-ios-sheet-x cn-ios-result-x" aria-label="Close this result and start a new check">${CLOSE_X}<span aria-hidden="true">New check</span></button>`);
     x.addEventListener("click", () => {
       const field = RESULT_INPUT[box.id] ? $(`#${RESULT_INPUT[box.id]}`) : null;
       box.className = "result-box";
@@ -2246,7 +2274,7 @@
     { group: "Check something", topics: [
       { id: "text", icon: "text", tint: "blue", title: "Check a message", sub: "A text, email or DM",
         lead: "Quick Scan checks a message on your iPhone in about a second. It needs no account, and the message is not sent to an AI.",
-        steps: ["Tap Check at the bottom of the screen. Quick Scan is selected at the top.", "Tap Text detection.", "Copy the whole message, including any links. Then touch and hold the box and tap Paste.", "Tap Start the analysis.", "Read the answer at the top of the result: SCAM or LOW RISK. Under it you see why, and What to do next.", "To check something else, tap the X at the top right of the result."],
+        steps: ["Tap Check at the bottom of the screen. Quick Scan is selected at the top.", "Tap Text detection.", "Copy the whole message, including any links. Then touch and hold the box and tap Paste.", "Tap Start the analysis.", "Read the answer at the top of the result: SCAM or LOW RISK. Under it you see why, and What to do next.", "To check something else, tap New check at the top right of the result."],
         tips: [["Never paste secrets", "Leave out passwords, one-time codes, card numbers and recovery phrases."], ["Want it explained?", "Analysis AI explains a message in plain language. See Analysis AI below."]],
         go: { label: "Check a message", page: "cybernet", tab: "text" } },
       { id: "link", icon: "link", tint: "teal", title: "Check a link", sub: "A web address on its own",
@@ -2264,9 +2292,9 @@
         steps: ["Tap Scan QR at the bottom of the screen.", "The first time, allow CyberNet AI to use the camera.", "Point the camera at the code. The result opens by itself.", "Read the answer and what the code holds (a web link, Wi-Fi, a contact or plain text).", "Choose what to do: Get an AI explanation, Scan another, Copy, or Open in Safari. A risky link asks you again before it opens.", "Tap the X at the top right to close the result."],
         tips: [["No camera?", "On a Mac, or if the camera is off for CyberNet AI, choose a photo of the QR code instead. A screenshot works too."]],
         go: { label: "Scan a QR code", action: "scan" } },
-      { id: "share", icon: "share", tint: "indigo", title: "Share to CyberNet AI", sub: "Check from Safari, Mail or Photos",
+      { id: "share", icon: "share", tint: "indigo", title: "Share to CyberNet AI", sub: "Check from Safari, Photos and more",
         lead: "Send a link, a picture or text to CyberNet AI from another app, without copying it first.",
-        steps: ["Turn it on once: in Safari, Mail or Photos, tap Share.", "Scroll the row of apps to the end, tap More, and turn on CyberNet AI.", "From then on, tap Share and choose CyberNet AI. You get a quick check right there.", "Open CyberNet AI if you want an AI explanation of what you shared."],
+        steps: ["Turn it on once: in Safari or Photos, tap Share.", "Scroll the row of apps to the end, tap More, and turn on CyberNet AI.", "From then on, tap Share and choose CyberNet AI. You get a quick check right there.", "Open CyberNet AI if you want an AI explanation of what you shared."],
         tips: [["A text message?", "Messages can't share a text to other apps. Copy it and paste it into Check."]],
         go: { label: "Show me how to turn it on", action: "share-help" } }
     ] },
@@ -2290,7 +2318,7 @@
         go: { label: "Open Learn", page: "learn" } },
       { id: "account", icon: "account", tint: "gray", title: "Account and privacy", sub: "Your data, reminders and help",
         lead: "Account holds your privacy choices, your data and help.",
-        steps: ["Tap Account at the bottom of the screen.", "Under Privacy & Data, turn AI analysis on or off, export your data, clear saved history or delete your account.", "Under Notifications, turn Recovery reminders on or off.", "Under Help, contact support, turn on Share to CyberNet AI, or see the welcome tips again."],
+        steps: ["Tap Account at the bottom of the screen.", "When you're signed in: under Privacy & data, turn AI analysis on or off, export your data, clear saved history or delete your account.", "When you're signed in: under Notifications, turn Recovery reminders on or off.", "Under Help, contact support, turn on Share to CyberNet AI, or see the welcome tips again."],
         tips: [["No account?", "Quick Scan, Scan QR, Share and Learn work without one. Analysis AI and Recovery need a CyberNet AI account."]],
         go: { label: "Open Account", page: "account" } }
     ] }
@@ -2372,10 +2400,10 @@
     }, 60);
   }
   // Which topic was asked for: the pill opens the guide's contents; a walkthrough key (if one is ever used) opens its topic.
-  let guideAsk = "";
+  let guideAsk = "", guideFrom = null;
   d.addEventListener("click", e => {
     const t = e.target.closest?.("#heroLearnFeaturesBtn, [data-video]");
-    if (t && !t.closest("#howtoVideoModal")) guideAsk = t.id === "heroLearnFeaturesBtn" ? "" : (GUIDE_FROM_KEY[t.getAttribute("data-video")] ?? "");
+    if (t && !t.closest("#howtoVideoModal")) { guideAsk = t.id === "heroLearnFeaturesBtn" ? "" : (GUIDE_FROM_KEY[t.getAttribute("data-video")] ?? ""); guideFrom = t; }
   }, true);
 
   function watchHowto() {
@@ -2387,8 +2415,10 @@
       const now = modal.classList.contains("show");
       if (now === open) return;
       open = now;
-      if (now) { showGuide(guideAsk); guideAsk = ""; }
+      if (now) { showGuide(guideAsk); guideAsk = ""; if (!guideFrom && d.activeElement !== d.body) guideFrom = d.activeElement; }
       inertBehind(now);
+      // VoiceOver and the keyboard come back to what opened the guide (a tap on WebKit does not focus a button)
+      if (!now) { const from = guideFrom; guideFrom = null; later(() => focusBack(from), 60); }
       if (!nativeTabs) return;
       if (now) nativeTabs.setHidden({ hidden: true }).catch(() => {});
       else if (!barByCard && !$("#cnIntroStage")) nativeTabs.setHidden({ hidden: false }).catch(() => {});

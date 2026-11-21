@@ -300,8 +300,13 @@ html.cn-still .cn-ios-sheet, html.cn-still .cn-ios-sheet-backdrop, html.cn-still
 /* over the stage the tab bar is hidden (mountStage), so only the home indicator is kept clear */
 .cn-ios-sheet-backdrop.cn-ix-over .cn-ios-sheet.cn-onb-sheet { padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
 .cn-onb { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-.cn-onb-top { display: flex; justify-content: flex-end; min-height: 44px; padding: 2px max(8px, env(safe-area-inset-right, 0px)) 0 8px; }
-.cn-ios-link-btn.cn-onb-skip { min-width: 64px; padding: 8px 14px; color: var(--cn-ios-text-2); font-size: 1rem; }
+.cn-onb-top { display: flex; align-items: center; min-height: 44px; padding: 2px max(8px, env(safe-area-inset-right, 0px)) 0 max(8px, env(safe-area-inset-left, 0px)); }
+/* Back (top left) and Skip (top right) are quiet text buttons of the same size, so Next / Get started keeps its full width
+   on every page. Skip is hidden (not removed) on the last page, where Get started does the same thing. */
+.cn-ios-link-btn:is(.cn-onb-skip, .cn-onb-back) { min-width: 64px; min-height: 44px; padding: 8px 14px; color: var(--cn-ios-text-2); font-size: 1rem; }
+.cn-ios-link-btn.cn-onb-back { color: var(--cn-ios-accent); }
+.cn-ios-link-btn.cn-onb-skip { margin-left: auto; }
+.cn-onb-skip.is-gone { visibility: hidden; }
 .cn-onb-track {
   flex: 1;
   min-height: 0;
@@ -324,10 +329,12 @@ html.cn-still .cn-ios-sheet, html.cn-still .cn-ios-sheet-backdrop, html.cn-still
   align-items: center;
   overflow-y: auto;
   overscroll-behavior-y: contain;
-  padding: 0 24px 8px;
+  padding: clamp(8px, 3dvh, 28px) 24px 8px;
 }
-/* centred in the page; auto margins (not justify-content: safe center, which older WebKit may drop) fall to 0 when it overflows */
-.cn-onb-page > :first-child { margin-top: auto; }
+/* The feature pages start at the same height (the picture box has a fixed height), so the titles do not jump up and down
+   while swiping; the spare room falls below the steps. Only the welcome page is centred. Auto margins (not
+   justify-content: safe center, which older WebKit may drop) fall to 0 when a page overflows. */
+.cn-onb-page-welcome > :first-child { margin-top: auto; }
 .cn-onb-page > :last-child { margin-bottom: auto; }
 .cn-onb-art {
   position: relative;
@@ -387,30 +394,31 @@ html.cn-still .cn-ios-sheet, html.cn-still .cn-ios-sheet-backdrop, html.cn-still
 /* the controls: the dots, then Back and Next / Get started */
 .cn-onb-foot { padding: 8px 20px 0; }
 .cn-onb-dots { display: flex; justify-content: center; gap: 7px; margin: 0 0 14px; }
-.cn-onb-dots i { width: 7px; height: 7px; border-radius: 4px; background: rgba(148, 163, 184, .32); transition: width .3s var(--onb-ease), background-color .3s ease; }
+.cn-onb-dots i { width: 7px; height: 7px; border-radius: 4px; background: rgba(148, 163, 184, .5); transition: width .3s var(--onb-ease), background-color .3s ease; }
 .cn-onb-dots i.is-on { width: 20px; background: var(--cn-ios-accent); }
-.cn-onb-buttons { display: flex; gap: 10px; max-width: 25rem; margin: 0 auto; }
+.cn-onb-buttons { display: flex; max-width: 25rem; margin: 0 auto; }
 html.cn-ios .cn-onb-buttons > button { display: flex; align-items: center; justify-content: center; min-height: 50px; margin: 0; padding-inline: 20px; box-sizing: border-box; font-size: 1.02rem; transition: transform .12s ease-out; }
 html.cn-ios .cn-onb-buttons > button:active { transform: scale(.97); }
-.cn-onb-back { flex: 0 0 auto; min-width: 100px; }
 .cn-onb-back[hidden] { display: none; }
 .cn-onb-next { flex: 1; }
 /* a short screen (iPhone SE, a small Mac window): the pictures a little smaller, the rows a little tighter */
 @media (max-height: 740px) {
   .cn-onb-sheet { --onb-art-scale: .88; }
+  .cn-onb-page { padding-top: 4px; }
   .cn-onb-title { margin-top: 8px; font-size: 1.42rem; }
   .cn-onb-steps { margin-top: 14px; }
   .cn-onb-steps li { padding-block: 9px; }
   .cn-onb-dots { margin-bottom: 12px; }
   /* no stage (a link or a shared item opened the app): the tab bar stays, so the pictures give up a little more */
-  .cn-ios-sheet-backdrop:not(.cn-ix-over) .cn-onb-art { height: 112px; --onb-art-scale: .7; }
-  .cn-ios-sheet-backdrop:not(.cn-ix-over) .cn-onb-rows { display: none; }
+  .cn-ios-sheet-backdrop:not(.cn-ix-over) .cn-onb-art { height: 124px; --onb-art-scale: .85; }
+  .cn-ios-sheet-backdrop:not(.cn-ix-over) .cn-onb-share-head { display: none; }
 }
 @media (min-height: 880px) {
   .cn-onb-sheet { --onb-art-scale: 1.12; }
 }
 @media (hover: hover) and (pointer: fine) {
   .cn-ios-link-btn.cn-onb-skip:hover { color: var(--cn-ios-text); }
+  .cn-ios-link-btn.cn-onb-back:hover { opacity: .8; }
 }
 
 /* the pictures (aria-hidden; the text says the same) */
@@ -421,13 +429,13 @@ html.cn-ios .cn-onb-buttons > button:active { transform: scale(.97); }
 /* Check */
 .cn-onb-card { width: min(100%, 300px); box-sizing: border-box; padding: 12px; border-radius: 18px; text-align: left; background: linear-gradient(180deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, .025)); border: 1px solid var(--cn-ios-line); box-shadow: 0 22px 44px -18px rgba(0, 0, 0, .7); }
 .cn-onb-card-head { display: flex; padding: 3px; border-radius: 999px; background: rgba(2, 6, 14, .5); }
-.cn-onb-seg { flex: 1; padding: 5px 0; border-radius: 999px; text-align: center; font-size: .72rem; font-weight: 600; color: var(--cn-ios-text-2); }
+.cn-onb-seg { flex: 1; padding: 5px 0; border-radius: 999px; text-align: center; font-size: .75rem; font-weight: 600; color: var(--cn-ios-text-2); }
 .cn-onb-seg.is-on { background: var(--cn-ios-accent); color: #04121a; }
 .cn-onb-msg { margin: 10px 0; padding: 10px 12px; border-radius: 12px; background: rgba(2, 6, 14, .5); border: 1px solid var(--cn-ios-line); font-size: .8rem; line-height: 1.42; color: var(--cn-ios-text-2); }
-.cn-onb-msg b { display: block; margin-top: 2px; font-family: var(--cn-font-mono, ui-monospace, "SF Mono", Menlo, monospace); font-weight: 600; font-size: .74rem; color: var(--cn-ios-text); word-break: break-all; }
+.cn-onb-msg b { display: block; margin-top: 2px; font-family: var(--cn-font-mono, ui-monospace, "SF Mono", Menlo, monospace); font-weight: 600; font-size: .75rem; color: var(--cn-ios-text); word-break: break-all; }
 .cn-onb-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.cn-onb-run { padding: 6px 12px; border-radius: 999px; background: var(--cn-ios-accent); color: #04121a; font-size: .72rem; font-weight: 700; }
-.cn-onb-verdict { display: inline-flex; align-items: center; gap: 5px; padding: 5px 11px 5px 7px; border-radius: 999px; background: rgba(251, 113, 133, .14); border: 1px solid rgba(251, 113, 133, .5); color: #fda4af; font-size: .74rem; font-weight: 800; letter-spacing: .08em; }
+.cn-onb-run { padding: 6px 12px; border-radius: 999px; background: var(--cn-ios-accent); color: #04121a; font-size: .75rem; font-weight: 700; }
+.cn-onb-verdict { display: inline-flex; align-items: center; gap: 5px; padding: 5px 11px 5px 7px; border-radius: 999px; background: rgba(251, 113, 133, .14); border: 1px solid rgba(251, 113, 133, .5); color: #fda4af; font-size: .75rem; font-weight: 800; letter-spacing: .08em; }
 .cn-onb-verdict svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; }
 /* Scan QR */
 .cn-onb-finder { position: relative; width: clamp(104px, 17dvh, 148px); aspect-ratio: 1; display: grid; place-items: center; }
@@ -440,22 +448,20 @@ html.cn-ios .cn-onb-buttons > button:active { transform: scale(.97); }
 .cn-onb-beam { position: absolute; left: 10%; right: 10%; top: 50%; height: 2px; border-radius: 2px; background: var(--cn-ios-accent); box-shadow: 0 0 12px 2px rgba(34, 211, 238, .55); opacity: 0; }
 .cn-onb-link { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; box-sizing: border-box; margin-top: 14px; padding: 8px 10px 8px 12px; border-radius: 12px; background: var(--cn-ios-row-bg); border: 1px solid var(--cn-ios-line); }
 .cn-onb-link svg { flex: 0 0 auto; width: 16px; height: 16px; fill: none; stroke: var(--cn-ios-accent); stroke-width: 2; stroke-linecap: round; }
-.cn-onb-link span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--cn-font-mono, ui-monospace, "SF Mono", Menlo, monospace); font-size: .74rem; font-weight: 600; color: var(--cn-ios-text); }
-.cn-onb-link em { flex: 0 0 auto; padding: 3px 8px; border-radius: 999px; background: rgba(255, 255, 255, .07); font-style: normal; font-size: .68rem; font-weight: 600; color: var(--cn-ios-text-2); }
+.cn-onb-link span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--cn-font-mono, ui-monospace, "SF Mono", Menlo, monospace); font-size: .75rem; font-weight: 600; color: var(--cn-ios-text); }
+.cn-onb-link em { flex: 0 0 auto; padding: 3px 8px; border-radius: 999px; background: rgba(255, 255, 255, .07); font-style: normal; font-size: .75rem; font-weight: 600; color: var(--cn-ios-text-2); }
 /* Share */
 .cn-onb-share { width: min(100%, 300px); box-sizing: border-box; padding: 8px 14px 14px; border-radius: 20px; background: #131c2c; border: 1px solid var(--cn-ios-line); box-shadow: 0 22px 44px -18px rgba(0, 0, 0, .7); }
 .cn-onb-grab { display: block; width: 36px; height: 5px; margin: 0 auto 12px; border-radius: 3px; background: rgba(148, 163, 184, .4); }
-.cn-onb-apps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.cn-onb-app { display: flex; flex-direction: column; align-items: center; gap: 7px; min-width: 0; }
-.cn-onb-app > i, .cn-onb-app > svg { width: 50px; height: 50px; border-radius: 12px; }
+.cn-onb-share-head { display: block; margin: 0 0 12px; text-align: center; font-size: .8rem; font-weight: 600; color: var(--cn-ios-text-2); }
+.cn-onb-apps { display: flex; justify-content: center; gap: 28px; }
+.cn-onb-app { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; }
+.cn-onb-app > i, .cn-onb-app > svg { width: 60px; height: 60px; border-radius: 14px; }
 .cn-onb-app > i { display: grid; place-items: center; background: rgba(255, 255, 255, .08); }
-.cn-onb-app > b { display: block; width: 34px; height: 6px; border-radius: 3px; background: rgba(148, 163, 184, .24); }
-.cn-onb-app.is-us > b, .cn-onb-app.is-more > b { width: auto; height: auto; background: none; font-size: .64rem; font-weight: 600; line-height: 1.2; white-space: nowrap; color: var(--cn-ios-text); }
+.cn-onb-app > b { font-size: .8rem; font-weight: 600; line-height: 1.2; white-space: nowrap; color: var(--cn-ios-text); }
 .cn-onb-app.is-more > b { color: var(--cn-ios-text-2); }
 .cn-onb-app.is-us > svg { outline: 2px solid var(--cn-ios-accent); outline-offset: 3px; }
-.cn-onb-app.is-more svg { width: 22px; height: 22px; fill: var(--cn-ios-text-2); }
-.cn-onb-rows { display: grid; gap: 6px; margin-top: 14px; }
-.cn-onb-rows i { height: 30px; border-radius: 10px; background: rgba(255, 255, 255, .05); }
+.cn-onb-app.is-more svg { width: 26px; height: 26px; fill: var(--cn-ios-text-2); }
 /* Analysis AI and Recovery */
 .cn-onb-art-duo { flex-direction: row; gap: 14px; }
 .cn-onb-art-duo > * { scale: 1; } /* two tiles side by side: each scaled on its own centre would overlap; their size already follows the width */
@@ -999,17 +1005,22 @@ html.cn.cn-ios .modal .modal-card > .close-modal {
   top: -12px; /* WebKit and Blink measure a sticky offset from the scroller's content box: 24 px padding - 12 */
   inset-inline-end: auto;
   float: right;
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
-  min-height: 40px;
-  margin: -12px -8px -28px 8px;
-  background: rgb(30, 40, 58);
-  border-color: rgba(148, 163, 184, .34);
+  /* the same X as the sheets' (.cn-ios-sheet-x): 32 px, the same fill and ring, a 44 pt touch area */
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  margin: -12px -6px -20px 8px;
+  background: rgb(35, 45, 64);
+  border: 0;
+  box-shadow: 0 0 0 1px rgba(148, 163, 184, .28), 0 4px 12px rgba(0, 0, 0, .35);
   color: #eef4fb;
   touch-action: manipulation;
 }
-@media (hover: hover) and (pointer: fine) { html.cn.cn-ios .modal .modal-card > .close-modal:hover { background: rgb(44, 56, 78); } }
+html.cn.cn-ios .modal .modal-card > .close-modal::after { inset: -6px; }
+html.cn.cn-ios .modal .modal-card > .close-modal:active { background: rgb(52, 64, 86); }
+html.cn.cn-ios .modal .modal-card > .close-modal:focus-visible { outline: 2px solid var(--cn-ios-accent); outline-offset: 2px; }
+@media (hover: hover) and (pointer: fine) { html.cn.cn-ios .modal .modal-card > .close-modal:hover { background: rgb(48, 60, 82); } }
 /* the sign-in dialog's Sign In / Create Account switch: 44 pt tall in the app (the website's is 40 px) */
 html.cn.cn-ios #authModal .auth-tab { min-height: 44px; }
 /* after a deletion the launch card says so itself (ios.js signInCard); the website's notice would sit under it */
@@ -1106,14 +1117,14 @@ html.cn-ios #cybernetai > .feature-page-header > :is(h1, p:not(.cn-ios-disclaime
   -webkit-appearance: none;
   position: -webkit-sticky;
   position: sticky;
-  top: -16px; /* a sticky offset counts from the sheet's content box (26 px padding): 10 px from the sheet's edge */
+  top: -4px; /* a sticky offset counts from the sheet's content box (26 px padding): 22 px from the sheet's edge, level with the title */
   float: right;
   z-index: 3;
   display: grid;
   place-items: center;
   width: 32px;
   height: 32px;
-  margin: -16px -10px -48px 8px; /* sheet padding: 26 px top, 20 px right */
+  margin: -4px -10px -60px 8px; /* sheet padding: 26 px top, 20 px right; the margin box has no height */
   padding: 0;
   border: 0;
   border-radius: 50%;
@@ -1215,6 +1226,7 @@ html.cn-ios #howtoVideoModal .video-player-shell.cn-guide {
   z-index: 4;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-rows: 44px; /* the same height with or without Back, so the X does not move when a topic opens */
   align-items: center;
   gap: 8px;
   padding: calc(env(safe-area-inset-top, 0px) + 6px) max(10px, env(safe-area-inset-right, 0px)) 6px max(6px, env(safe-area-inset-left, 0px));
@@ -1384,10 +1396,14 @@ html.cn-ios:has(#howtoVideoModal.show) #cnIosTabbar { display: none; }
 .cn-ios-legal-head { align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; }
 /* the X on a Quick Scan verdict (ios.js addNewCheckX): top right of the result card */
 html.cn-ios #cybernet .result-box:has(> .cn-ios-result-x) { position: relative; }
-.cn-ios-sheet-x.cn-ios-result-x { position: absolute; top: 12px; right: 12px; float: none; margin: 0; }
+/* not a round X: the verdict's own badge can be a round red X, so this one says what it does ("New check") */
+/* in its own row above the verdict, so a long verdict word (CAN'T CONFIRM) never runs under it */
+.cn-ios-sheet-x.cn-ios-result-x { position: relative; top: auto; float: none; display: flex; align-items: center; gap: 6px; width: max-content; height: 32px; margin: -6px -6px 10px auto; padding: 0 13px 0 11px; border-radius: 999px; font: 600 14px/1 var(--cn-font, ui-sans-serif, system-ui, -apple-system, sans-serif); color: var(--cn-ios-accent); white-space: nowrap; }
+.cn-ios-sheet-x.cn-ios-result-x svg { width: 12px; height: 12px; }
 /* the X in a fixed header (legal sheet, how-to guide): the sheet X's look, in the header's flow */
 .cn-ios-sheet-x.cn-ios-head-x { position: relative; top: auto; float: none; flex: none; margin: 0 4px 0 0; }
-.cn-ios-legal-title { flex: 1; min-width: 0; margin: 0 0 0 6px; font-size: 17px; line-height: 22px; font-weight: 600; color: var(--cn-ios-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* centred like an iOS navigation title (the left padding balances the X on the right) */
+.cn-ios-legal-title { flex: 1; min-width: 0; margin: 0; padding-left: 36px; text-align: center; font-size: 17px; line-height: 22px; font-weight: 600; color: var(--cn-ios-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* sticky sheets have no Close button or grabber, so they keep their own top padding */
 .cn-ios-sheet:not(:has(> .cn-ios-sheet-x)) { padding-top: 22px; }
 
