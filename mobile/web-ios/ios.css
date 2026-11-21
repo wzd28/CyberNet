@@ -1149,7 +1149,7 @@ html.cn-ios #cybernetai > .feature-page-header > :is(h1, p:not(.cn-ios-disclaime
 .cn-ios-sheet-x:focus-visible { outline: 2px solid var(--cn-ios-accent); outline-offset: 2px; }
 /* titles and kickers leave room for the Close button */
 .cn-ios-sheet > .cn-ios-sheet-title,
-.cn-ios-sheet > .cn-ios-sheet-kicker { padding-right: 40px; }
+.cn-ios-sheet > .cn-ios-sheet-kicker { padding-right: 40px; min-height: 30px; margin-bottom: 10px; } /* the red or green verdict box starts below the pinned X */
 @media (prefers-reduced-motion: reduce) { .cn-ios-sheet { transform: none !important; opacity: 0; transition: opacity .2s ease !important; } .cn-ios-sheet-backdrop.is-open .cn-ios-sheet { opacity: 1; } }
 html.cn-still .cn-ios-sheet { transform: none !important; opacity: 0; transition: opacity .2s ease !important; }
 html.cn-still .cn-ios-sheet-backdrop.is-open .cn-ios-sheet { opacity: 1; }
