@@ -213,7 +213,42 @@ export async function getProfile(user) {
     }
   }
 
-  return rows[0];
+  const row = rows[0];
+  const better = row ? betterProfileName(row.full_name, user) : "";
+  if (better) {
+    // Repairs the name only; a failure keeps the old name (the account still loads).
+    const fix = await serviceFetch(`/rest/v1/profiles?id=eq.${encodeURIComponent(user.id)}`, {
+      method: "PATCH",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify({ full_name: better })
+    }).catch(() => null);
+    if (fix?.ok) row.full_name = better;
+  }
+
+  return row;
+}
+
+// Owner, 21 Nov 2026: Sign in with Apple accounts showed the first part of the email instead of the person's name.
+// The database creates the profile the moment the account is created, before the app has Apple's name, so it falls
+// back to the email's local part (supabase/schema.sql handle_new_user). The app then saves Apple's name in the
+// account's metadata. When the saved name is still only that fallback ("" / "User" / the email's local part) and the
+// metadata has a real name, returns the real name (at most 120 characters); otherwise "". A name the person set
+// themselves is never replaced.
+export function betterProfileName(current, user) {
+  const meta = user?.user_metadata || {};
+  const real = String(
+    meta.full_name ||
+    meta.name ||
+    [meta.first_name, meta.last_name].filter(Boolean).join(" ") ||
+    ""
+  ).replace(/\s+/g, " ").trim().slice(0, 120);
+  if (!real) return "";
+  const now = String(current || "").trim();
+  const local = String(user?.email || "").split("@")[0].trim();
+  const isFallback = !now || now.toLowerCase() === "user" || (local && now.toLowerCase() === local.toLowerCase());
+  if (!isFallback || real.toLowerCase() === now.toLowerCase()) return "";
+  if (local && real.toLowerCase() === local.toLowerCase()) return "";
+  return real;
 }
 
 function nextUtcReset() {
