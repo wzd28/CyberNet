@@ -153,7 +153,11 @@ export const API_ORIGIN = "https://cybernetai.app";
 export const SUPABASE_ORIGIN = "https://ndtcxippbufqzwcxkyjd.supabase.co";
 // Google Analytics: loaded ONLY by ios/cn-analytics.js and only after App Tracking Transparency says
 // "authorized" (owner, 29 Oct 2026). The CSP must still name it, since a meta CSP cannot be widened later.
-const GA_SCRIPT_ORIGIN = "https://www.googletagmanager.com";
+// APP-1 (security audit Nov 2026): only Google's gtag path, not the whole host. The host also
+// serves any Tag Manager container (/gtm.js?id=GTM-...), which an injected tag could name to run
+// code of its choosing despite the CSP. gtag.js and the destination scripts it adds live under
+// /gtag/. ('unsafe-inline' stays until the inline scripts are hashed and tested on a device.)
+const GA_SCRIPT_ORIGIN = "https://www.googletagmanager.com/gtag/";
 const GA_CONNECT = ["https://*.google-analytics.com", "https://*.analytics.google.com", "https://www.googletagmanager.com"];
 export const CSP = [
   "default-src 'self' capacitor://localhost",

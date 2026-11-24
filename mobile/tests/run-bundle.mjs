@@ -494,6 +494,8 @@ try {
         for (const u of ["shortcuts://run-shortcut?name=x", "itms-services://?action=download-manifest", "whatsapp://send", "javascript:alert(1)"]) await openRun(u);
         check("APP-3 openExternal: web, mail, phone, SMS and Settings open; other schemes are refused", opened.join(",") === "https://cybernetai.app/help,mailto:support@cybernetai.app,tel:+97100000000,sms:+97100000000,app-settings:", opened);
 
+        const cspSrc = await readFile(path.join(mobile, "scripts", "build-web.mjs"), "utf8");
+        check("APP-1 the app CSP allows Google's gtag path only, not every Tag Manager container", cspSrc.includes('const GA_SCRIPT_ORIGIN = "https://www.googletagmanager.com/gtag/";'));
         check("APP-4 the deletion's Apple call carries a nonce, like sign-in", /apple\.signIn\(\{scopes:\[\],nonce:awaitsha256Hex\(randomNonce\(\)\)\}\)/.test(fnText("withAppleCode")));
       }
 
