@@ -107,6 +107,58 @@
   to = "/black-friday-scam-checklist.html"
   status = 200
 
+# Scam guide pages (growth, 24 Nov 2026): plain standalone pages on the checklist shell, shared as pretty URLs.
+# Each is in public/sitemap.xml; tests/run-guides.mjs checks page, redirect and sitemap agree.
+[[redirects]]
+  from = "/scam-text-checker"
+  to = "/scam-text-checker.html"
+  status = 200
+
+[[redirects]]
+  from = "/scam-text-checker/"
+  to = "/scam-text-checker.html"
+  status = 200
+
+[[redirects]]
+  from = "/parcel-delivery-scam-text"
+  to = "/parcel-delivery-scam-text.html"
+  status = 200
+
+[[redirects]]
+  from = "/parcel-delivery-scam-text/"
+  to = "/parcel-delivery-scam-text.html"
+  status = 200
+
+[[redirects]]
+  from = "/toll-fine-scam-text"
+  to = "/toll-fine-scam-text.html"
+  status = 200
+
+[[redirects]]
+  from = "/toll-fine-scam-text/"
+  to = "/toll-fine-scam-text.html"
+  status = 200
+
+[[redirects]]
+  from = "/qr-code-scam"
+  to = "/qr-code-scam.html"
+  status = 200
+
+[[redirects]]
+  from = "/qr-code-scam/"
+  to = "/qr-code-scam.html"
+  status = 200
+
+[[redirects]]
+  from = "/is-this-link-safe"
+  to = "/is-this-link-safe.html"
+  status = 200
+
+[[redirects]]
+  from = "/is-this-link-safe/"
+  to = "/is-this-link-safe.html"
+  status = 200
+
 # People type these by hand. Send them to the home page with the sign-in card open.
 [[redirects]]
   from = "/login"
