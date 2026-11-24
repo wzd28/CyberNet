@@ -609,7 +609,8 @@ check("apple: revoked only after the account was deleted", (() => {
 // revoked (so nothing is left behind), but the answer says the account's own grant was not.
 install({ appleSub: "000999.someone-else.0001" });
 r = await call({ action: "delete-account", confirmation: "DELETE", appleAuthorizationCode: APPLE_CODE }, { token: "apple-user-token" });
-check("apple: a different Apple ID on the device -> deleted, its new grant revoked, reported as not revoked", r.status === 200 && r.data.deleted === true && r.data.appleTokensRevoked === false && appleCalls.some(c => c.path === "/auth/revoke"), { r, appleCalls });
+// SRV-AUTH-17 (security audit Nov 2026): the other Apple ID is no longer revoked (that would sign its owner out of their own account).
+check("apple: a different Apple ID on the device -> deleted, nothing revoked, reported as not revoked", r.status === 200 && r.data.deleted === true && r.data.appleTokensRevoked === false && !appleCalls.some(c => c.path === "/auth/revoke"), { r, appleCalls });
 {
   const siwa = await import(pathToFileURL(path.join(root, "netlify/lib/apple-siwa.mjs")).href);
   check("apple: appleSubOf reads the identity's Apple id", siwa.appleSubOf({ identities: [{ provider: "email", id: "x" }, { provider: "apple", id: "p-1", identity_data: { sub: "s-1" } }] }) === "s-1" && siwa.appleSubOf({ identities: [{ provider: "apple", id: "p-2" }] }) === "p-2" && siwa.appleSubOf({ identities: [] }) === "");
