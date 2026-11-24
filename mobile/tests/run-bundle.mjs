@@ -456,6 +456,46 @@ try {
       check("Launch: sign out (the page reloads) and a deleted account (storage cleared, page reloads) come back as a later launch, signed out: the short gate", gate(false, false, false) === "short");
       const pcJs = await read("cybernet-privacy-controls.js");
       check("Launch: sign out reloads the app, and neither it nor the account clean-up forgets the intro (so it is the short gate, never the first-launch motion again)", /w\.location\.replace\("index\.html"\)/.test(fnText("signOut")) && !/INTRO_KEY/.test(fnText("signOut") + fnText("nativeCleanupAfterDeletion")) && !/store\.del\(INTRO_KEY\)/.test(squash(iosJs)) && /if\(\/\^cybernet\/i\.test\(key\)\)/.test(pcJs) && /INTRO_KEY\s*=\s*"cn-ios-intro-1"/.test(iosJs));
+      // Security audit Nov 2026 (APP-6, APP-9, APP-3, APP-4): run the real functions with stubs.
+      {
+        const signOutRun = async (logoutError) => {
+          const log = [];
+          const sb = { auth: { signOut: async (opts) => { log.push(`signOut:${opts?.scope || "global"}`); return opts?.scope ? {} : { error: logoutError } ; } } };
+          const plugins = { SecureSession: { clear: async () => log.push("keychain") }, SharedInbox: { clear: async () => log.push("inbox") }, Preferences: { clear: async () => log.push("prefs") } };
+          const w = { location: { replace: (to) => log.push(`go:${to}`) } };
+          const store = { del: (k) => log.push(`del:${k}`) };
+          await run(["signOut"], ["cancelReminders", "supabase", "report", "P", "w", "store", "ACCEPTANCE_KEY"], "signOut()",
+            async () => log.push("reminders"), () => sb, () => {}, (n) => plugins[n], w, store, "acc");
+          return log;
+        };
+        const offline = await signOutRun(new Error("Failed to fetch"));
+        check("APP-6 sign out offline: the local session is ended too, and the Keychain copy and shared inbox are cleared before the reload", offline.join(",") === "reminders,signOut:global,signOut:local,keychain,inbox,prefs,del:acc,go:index.html", offline);
+        const online = await signOutRun(null);
+        check("APP-6 twin: a normal sign out makes one logout call and the same clean-up", online.join(",") === "reminders,signOut:global,keychain,inbox,prefs,del:acc,go:index.html", online);
+
+        const files = [];
+        const fsStub = { writeFile: async ({ path: p }) => { files.push(`write:${p}`); return { uri: `file:///cache/${p}` }; }, deleteFile: async ({ path: p }) => files.push(`delete:${p}`) };
+        const shareRun = async (shareFn, name) => {
+          files.length = 0;
+          await run(["safeFileName", "shareFile"], ["P", "toast", "report", "FileReader"], "shareFile(Promise.resolve('blob'), " + JSON.stringify(name) + ")",
+            (n) => (n === "Filesystem" ? fsStub : { share: shareFn }), () => {}, () => {},
+            class { readAsDataURL() { this.result = "data:x;base64,QQ=="; this.onload(); } });
+          return files.slice();
+        };
+        const shared = await shareRun(async () => {}, "cybernet-data.json");
+        check("APP-9 the exported file is deleted after the share sheet closes", shared.join(",") === "write:cybernet-data.json,delete:cybernet-data.json", shared);
+        const cancelled = await shareRun(async () => { throw new Error("Share canceled"); }, "../../Documents/x.json");
+        check("APP-9 a cancelled share is cleaned up too, and a path in the name cannot leave Caches", cancelled.join(",") === "write:x.json,delete:x.json", cancelled);
+
+        const opened = [];
+        const openRun = (url) => run(["EXTERNAL_SCHEMES", "externalAllowed", "openExternal"], ["P", "report", "w"], `openExternal(${JSON.stringify(url)})`,
+          () => ({ openUrl: async ({ url: u }) => opened.push(u) }), () => {}, { open: () => {} });
+        for (const u of ["https://cybernetai.app/help", "mailto:support@cybernetai.app", "tel:+97100000000", "sms:+97100000000", "app-settings:"]) await openRun(u);
+        for (const u of ["shortcuts://run-shortcut?name=x", "itms-services://?action=download-manifest", "whatsapp://send", "javascript:alert(1)"]) await openRun(u);
+        check("APP-3 openExternal: web, mail, phone, SMS and Settings open; other schemes are refused", opened.join(",") === "https://cybernetai.app/help,mailto:support@cybernetai.app,tel:+97100000000,sms:+97100000000,app-settings:", opened);
+
+        check("APP-4 the deletion's Apple call carries a nonce, like sign-in", /apple\.signIn\(\{scopes:\[\],nonce:awaitsha256Hex\(randomNonce\(\)\)\}\)/.test(fnText("withAppleCode")));
+      }
 
       const accountReady = run(["accountReady"], ["account"], "accountReady", (() => { const t0 = Date.now(); return () => (Date.now() - t0 > 40 ? {} : undefined); })());
       check("Launch: it waits for script.js to build the account (window.CyberNetAccount comes after this file first runs), and gives up after the time it was given", (await accountReady(1000)) === true && (await run(["accountReady"], ["account"], "accountReady", () => undefined)(60)) === false);
@@ -755,7 +795,7 @@ try {
         const refusedExchange = await attempt({ back: `${callback}?code=${CODE}`, network: reply(400, { code: 400, error_code: "validation_failed", msg: `bad code ${CODE}` }) });
         check("Google: a code Supabase refuses says it did not finish, is reported by name only (the provider's text can carry the code), and signs nobody in", failedEnd(refusedExchange) && exchanges(refusedExchange).length === 1 && refusedExchange.reports.length === 1 && !String(refusedExchange.reports[0].error.message).includes(CODE), [refusedExchange.said, refusedExchange.reports.map(r => r.error.message)]);
         const tokens = await attempt({ back: `${callback}#access_token=AT&refresh_token=RT&token_type=bearer` });
-        check("Google: tokens in the return address (the implicit form) are taken with setSession, no code trade", tokens.results[0] === true && exchanges(tokens).length === 0 && tokens.sets.length === 1 && tokens.sets[0].access_token === "AT" && tokens.sets[0].refresh_token === "RT", tokens.sets);
+        check("Google: tokens in the return address (the implicit form) are refused, no session set (APP-5, login CSRF)", tokens.results[0] === false && exchanges(tokens).length === 0 && tokens.sets.length === 0, tokens.sets);
         const wrong = await Promise.all([`https://evil.example/auth-callback?code=${CODE}`, `app.cybernetai://elsewhere?code=${CODE}`, callback, "not a url"].map(back => attempt({ back })));
         check("Google: a return to any other address, or with neither a code nor tokens, signs nobody in and trades nothing", wrong.every(r => failedEnd(r) && exchanges(r).length === 0), wrong.map(r => r.said));
         const doubled = await attempt({ back: `${callback}?code=${CODE}`, sheet: async () => { await sleep(40); return { url: `${callback}?code=${CODE}` }; }, twice: true });

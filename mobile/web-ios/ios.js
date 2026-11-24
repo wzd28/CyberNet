@@ -105,7 +105,18 @@
     });
   }
 
+  // APP-3 (security audit Nov 2026): only web, mail, phone and SMS links and
+  // the app's own Settings page leave the app; any other scheme (shortcuts:,
+  // itms-services:, another app's scheme) is refused, so a crafted link or an
+  // injected call to window.CNOpenExternal cannot launch another app.
+  const EXTERNAL_SCHEMES = new Set(["https:", "http:", "mailto:", "tel:", "sms:"]);
+  function externalAllowed(url) {
+    const value = String(url || "").trim();
+    if (value === "app-settings:") return true;
+    try { return EXTERNAL_SCHEMES.has(new URL(value).protocol.toLowerCase()); } catch { return false; }
+  }
   async function openExternal(url) {
+    if (!externalAllowed(url)) { report(new Error("Refused to open a link with an unsupported scheme"), "openExternal"); return; }
     const launcher = P("AppLauncher");
     try {
       if (launcher) { await launcher.openUrl({ url }); return; }
@@ -504,10 +515,27 @@
     w.addEventListener("cybernet:account-ui", () => { if (activePage() === "account") renderAccount(); });
   }
 
+  // APP-6 (security audit Nov 2026): signing out always ends the session on
+  // this iPhone, even offline (supabase-js keeps the stored session when the
+  // logout request fails, so the local scope is used then), and also clears the
+  // Keychain copy and anything shared into the app, so the next person to sign
+  // in on this phone is not offered the previous person's items.
   async function signOut() {
     await cancelReminders();
-    try { await supabase()?.auth.signOut(); } catch (error) { report(error, "signOut"); }
+    const sb = supabase();
+    try {
+      const result = await sb?.auth.signOut();
+      if (result?.error) {
+        try { await sb.auth.signOut({ scope: "local" }); } catch (error) { report(error, "signOutLocal"); }
+      }
+    } catch (error) {
+      report(error, "signOut");
+      try { await sb?.auth.signOut({ scope: "local" }); } catch { /* ignore */ }
+    }
+    try { await P("SecureSession")?.clear?.(); } catch { /* ignore */ }
+    try { await P("SharedInbox")?.clear?.(); } catch { /* ignore */ }
     try { await P("Preferences")?.clear(); } catch { /* ignore */ }
+    try { store.del(ACCEPTANCE_KEY); } catch { /* ignore */ }
     w.location.replace("index.html");
   }
 
@@ -694,7 +722,10 @@
     if (!apple) return init;
     toast("Confirm with Apple so Sign in with Apple is disconnected too.");
     try {
-      const res = await apple.signIn({ scopes: [] });
+      // APP-4 (security audit Nov 2026): a nonce here too, like sign-in, so no
+      // call of the native plugin produces an ID token without replay binding
+      // (only the authorization code is used for the revocation).
+      const res = await apple.signIn({ scopes: [], nonce: await sha256Hex(randomNonce()) });
       const code = res?.authorizationCode || res?.response?.authorizationCode || "";
       if (code) body.appleAuthorizationCode = code;
     } catch (error) { report(error, "apple code for deletion"); /* deletion goes ahead; revocation is best effort */ }
@@ -743,8 +774,18 @@
     }
     return nativeAnchorClick.call(this);
   };
+  // APP-9 (security audit Nov 2026): one plain file name (no folders, no
+  // "..", so nothing is written outside Caches), and the temporary copy is
+  // deleted once the share sheet closes (saved, shared or cancelled). Saving
+  // to Files copies the file before share() resolves.
+  function safeFileName(name) {
+    const base = String(name || "").split(/[\\/]/).pop().replace(/[^A-Za-z0-9._ -]/g, "_").replace(/^\.+/, "").slice(0, 120);
+    return base || "cybernet-export";
+  }
   async function shareFile(blobPromise, filename) {
     const fs = P("Filesystem"), share = P("Share");
+    const path = safeFileName(filename);
+    let written = null;
     try {
       const blob = await blobPromise;
       if (!fs || !share) { toast("Saving files works in the CyberNet AI app."); return; }
@@ -754,12 +795,16 @@
         reader.onerror = () => reject(reader.error);
         reader.readAsDataURL(blob);
       });
-      const written = await fs.writeFile({ path: filename, data, directory: "CACHE", recursive: true });
-      await share.share({ title: filename, url: written.uri, dialogTitle: "Save or share" });
+      written = await fs.writeFile({ path, data, directory: "CACHE", recursive: true });
+      await share.share({ title: path, url: written.uri, dialogTitle: "Save or share" });
     } catch (error) {
       if (/cancel/i.test(String(error?.message || error))) return;
       report(error, "shareFile");
       toast("The file could not be saved. Please try again.");
+    } finally {
+      if (written && fs) {
+        try { await fs.deleteFile({ path, directory: "CACHE" }); } catch { /* already gone */ }
+      }
     }
   }
 
@@ -1673,7 +1718,11 @@
     if (url.protocol !== `${GOOGLE_SCHEME}:` || url.host !== "auth-callback") return { error: "bad_return" };
     const query = url.searchParams, hash = new URLSearchParams(url.hash.replace(/^#/, ""));
     const pick = key => hash.get(key) || query.get(key) || "";
-    return { code: query.get("code") || "", access: hash.get("access_token") || "", refresh: hash.get("refresh_token") || "", error: pick("error") };
+    // APP-5 (security audit Nov 2026): only the PKCE code is taken. Tokens in the
+    // return address (the implicit form) are never needed with flowType "pkce",
+    // and taking them would let a crafted callback sign the person into someone
+    // else's account (login CSRF).
+    return { code: query.get("code") || "", error: pick("error") };
   }
   let googleBusy = false; // a sheet is up, or its answer is being taken: another tap starts nothing
   let googleClient = null; // the extra PKCE client, made on the first tap
@@ -1704,7 +1753,7 @@
         const res = await oauth.auth.exchangeCodeForSession(back.code, data.flowId ? { flowId: data.flowId } : undefined);
         if (res.error) throw res.error;
         tokens = res.data?.session;
-      } else if (back.access && back.refresh) tokens = { access_token: back.access, refresh_token: back.refresh };
+      }
       if (!tokens?.access_token || !tokens?.refresh_token) throw new Error("Google sign-in came back without a session.");
       const { error: setError } = await sb.auth.setSession({ access_token: tokens.access_token, refresh_token: tokens.refresh_token });
       if (setError) throw setError;
