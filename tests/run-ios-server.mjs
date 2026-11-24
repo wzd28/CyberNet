@@ -612,7 +612,18 @@ for (const [token, limit] of [["t-free", 3], ["t-pro", 3], ["t-member", 3], ["t-
   const WHSEC = "whsec_run_ios_server_fake";
   ENV.STRIPE_SECRET_KEY = "sk_test_run_ios_server_fake";
   ENV.STRIPE_WEBHOOK_SECRET = WHSEC;
-  const webhook = (await load("netlify/functions/stripe-webhook.mjs", "ios-stripe-webhook.test.mjs")).default;
+  const webhookMod = await load("netlify/functions/stripe-webhook.mjs", "ios-stripe-webhook.test.mjs");
+  const webhook = webhookMod.default;
+  // No network: the webhook re-reads subscriptions from Stripe (PAY-2); this fake knows none,
+  // so it answers "no such subscription" and the webhook uses the event's own copy.
+  webhookMod.webhookDeps.stripe = (secret) => {
+    const real = new Stripe(secret);
+    real.subscriptions = {
+      retrieve: async () => { throw Object.assign(new Error("No such subscription"), { statusCode: 404, code: "resource_missing" }); },
+      list: async () => ({ object: "list", data: [], has_more: false })
+    };
+    return real;
+  };
   const signer = new Stripe("sk_test_run_ios_server_fake");
   const deliver = async (type, status) => {
     reset();
