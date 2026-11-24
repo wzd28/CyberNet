@@ -324,18 +324,29 @@ for (const kind of ["incomplete", "refusal", "garbage"]) {
 
 // AI-8: the scammer's own number or link is never given back as advice
 {
-  const lure = { ...STUB_ANALYSIS, verdict: "suspicious", score: 60, actions: ["Call +971 50 123 4567 to verify your account.", "Do not call +971 50 123 4567.", "Change your password."] };
+  const lure = { ...STUB_ANALYSIS, verdict: "suspicious", score: 60, actions: ["Call +971 50 123 4567 to verify your account.", "Call +971 50 123 4567 to report the fraud.", "Do not call +971 50 123 4567.", "Block +971 50 123 4567 and delete the message.", "Change your password."] };
   reset({ ai: lure });
   const r = await run(analyze, req("/api/analyze", { token: "t-free", body: { type: "text", content: "Your account is locked. Call +971 50 123 4567 now." } }));
   const acts = r.data?.analysis?.actions || [];
   check("AI-8 an action to call the number from the message is dropped", !acts.some((a) => /^Call \+971/.test(a)) && acts.some((a) => /official app/.test(a)), acts);
-  check("AI-8 twin: the warning line and ordinary advice stay", acts.includes("Do not call +971 50 123 4567.") && acts.includes("Change your password."), acts);
+  check("AI-8 'call their number to report the fraud' is dropped too", !acts.some((a) => /to report the fraud/.test(a)), acts);
+  check("AI-8 twin: the warning lines and ordinary advice stay", acts.includes("Do not call +971 50 123 4567.") && acts.includes("Block +971 50 123 4567 and delete the message.") && acts.includes("Change your password."), acts);
 }
 
 export { check, reset, run, req, state, calls, rpcCalls, quotaKeys, USERS, SITE, APP, json, load, ENV, logged };
 
 // More sections are appended below this line by later fixes.
 // @@SECTIONS@@
+
+// AI-4 (page): a follow-up answer is only shown as one when the local engine
+// does not itself warn about the new text.
+{
+  const { readFileSync } = await import("node:fs");
+  const src = readFileSync(path.join(root, "public/script.js"), "utf8");
+  check("AI-4 page: follow-up view needs the local engine not to warn", /const followUp=Boolean\(deep\?\.isFollowUp\)&&!localWarns;/.test(src) && /localWarns=\["suspicious","malicious"\]\.includes/.test(src));
+  const legacy = readFileSync(path.join(root, "public/legacy/script.js"), "utf8");
+  check("AI-4 page: the legacy build carries the same rule", legacy.includes("localWarns"));
+}
 
 // ══════════ BYOK, key checks, addresses, admin (AI-6, SRV-7, SRV-8, SRV-AUTH-5) ══════════
 {

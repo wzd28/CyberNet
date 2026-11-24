@@ -3366,10 +3366,12 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const [deep] = await Promise.all([requestDeepAnalysis(type, serverContent, local, imageData, chatHistory.slice(-6)), minWait]);
       if (stopDiagnostic) stopDiagnostic();
-      const result = (deep == null ? void 0 : deep.isFollowUp) ? { ...deep, scamType: `Follow-up · ${deep.scamType}` } : mergeAnalysis(local, deep);
+      const localWarns = ["suspicious", "malicious"].includes(String((local == null ? void 0 : local.verdict) || ""));
+      const followUp = Boolean(deep == null ? void 0 : deep.isFollowUp) && !localWarns;
+      const result = followUp ? { ...deep, scamType: `Follow-up · ${deep.scamType}` } : mergeAnalysis(local, deep ? { ...deep, isFollowUp: false } : deep);
       if (type === "link") result.previewUrl = /^https?:\/\//i.test(content) ? content : `https://${content}`;
-      if (deep == null ? void 0 : deep.teamLogId) reportTeamActivity({ kind: "analysis_shown", logId: deep.teamLogId, shown: { score: clamp(Math.round(result.score)), label: deep.isFollowUp ? "FOLLOW-UP" : getDanger(result.score, result).headline, threatType: result.scamType } });
-      result.previewHtml = (deep == null ? void 0 : deep.isFollowUp) ? "" : type === "link" ? renderLinkPreview(result.previewUrl, local) : type === "image" && decodedQrForDisplay ? renderQrPreview(decodedQrForDisplay, qrKind, qrResult) : renderLinksFound(local.links || []);
+      if (deep == null ? void 0 : deep.teamLogId) reportTeamActivity({ kind: "analysis_shown", logId: deep.teamLogId, shown: { score: clamp(Math.round(result.score)), label: followUp ? "FOLLOW-UP" : getDanger(result.score, result).headline, threatType: result.scamType } });
+      result.previewHtml = followUp ? "" : type === "link" ? renderLinkPreview(result.previewUrl, local) : type === "image" && decodedQrForDisplay ? renderQrPreview(decodedQrForDisplay, qrKind, qrResult) : renderLinksFound(local.links || []);
       chatHistory.push({ role: "user", text: (type === "image" ? "[image attached] " : "") + String(content || "").slice(0, 600) }, { role: "assistant", text: `${getDanger(result.score, result).headline} ${clamp(Math.round(result.score))}/100 · ${result.scamType}. ${String(result.note || "").slice(0, 320)}` });
       if (chatHistory.length > 8) chatHistory.splice(0, chatHistory.length - 8);
       if (inner) {

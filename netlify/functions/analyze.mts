@@ -1430,10 +1430,12 @@ function wasBilled(error: unknown): boolean {
 // AI-8: an AI action item that tells the person to contact a phone number,
 // link or address taken from the submission itself (the scammer's details) is
 // dropped, and a fixed "official channels only" line is added. Lines that warn
-// ("do not call", "block", "report") stay. Only AI answers are touched, so the
-// rule engine's own output is unchanged.
+// ("do not call", "block the number", "delete the message") stay. "report" and
+// "without" are not treated as warnings, because "Call <their number> to report
+// the fraud" is exactly the lure. Only AI answers are touched, so the rule
+// engine's own output is unchanged.
 const CONTACT_VERB = /\b(?:call|ring|dial|phone|text|sms|message|whatsapp|contact|reach|reply|respond|email|e-mail|write to|visit|go to|open|click|tap|log ?in|sign ?in|verify (?:at|on|via))\b/i;
-const SAFE_WORDING = /\b(?:not|never|don't|dont|avoid|ignore|block|report|delete|do not|without)\b/i;
+const SAFE_WORDING = /\b(?:not|never|don't|dont|avoid|ignore|block|delete|do not)\b/i;
 const OFFICIAL_CHANNELS_LINE = "Contact the company only through its official app, its website typed by hand, or the number on your card or statement, never through details in this message.";
 export function stripContactLures(analysis: any, content: string, caseData: { context: string; artifacts: Artifact[] }, evidence: LocalEvidence): void {
   const source = boundRuns([content, caseData.context, ...caseData.artifacts.map((a) => a.content)].join("\n"));
