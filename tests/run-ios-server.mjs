@@ -366,7 +366,7 @@ for (const [token, limit] of Object.entries(EXPECT_LIMIT)) {
   check("analyze web without any consent row: unaffected", r.status === 200 && !rpcCalls("has_ai_consent").length, r.status);
   reset();
   r = await run(fn.analyze, req("/api/analyze", { token: "t-pro", ios: true, body: { mode: "investigation", caseData: { title: "x", context: "y", artifacts: [{ type: "text", content: "hello" }] } } }));
-  check("analyze app investigation: 403, nothing called", r.status === 403 && r.data.code === "NOT_AVAILABLE_IN_APP" && calls.length === 0 && !PLAN_WORDS.test(r.data.error), r.data);
+  check("analyze app investigation: 403, nothing called but the sign-in check", r.status === 403 && r.data.code === "NOT_AVAILABLE_IN_APP" && calls.every((c) => c.path === "/auth/v1/user") && !PLAN_WORDS.test(r.data.error), r.data);
   reset({ allowApp: false });
   r = await run(fn.analyze, req("/api/analyze", { token: "t-pro", ios: true, body: IMAGE }));
   check("analyze app limit: 429 with a neutral message (no plan names)", r.status === 429 && r.data.code === "daily_limit_reached" && r.data.error === tier.APP_MESSAGES.aiLimit && !PLAN_WORDS.test(r.data.error) && r.data.usage.plan === "app", r.data);
@@ -959,7 +959,7 @@ const plansLib = await import(pathToFileURL(path.join(root, "netlify/lib/plans.m
   reset();
   const big = new Request(`${SITE}/api/analyze`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer t-free" }, body: new ReadableStream({ start(c) { const chunk = new TextEncoder().encode("x".repeat(1_000_000)); for (let i = 0; i < 7; i++) c.enqueue(chunk); c.close(); } }), duplex: "half" });
   r = await run(fn.analyze, big);
-  check("guard analyze: a 7 MB body with no Content-Length is refused with 413, nothing called", r.status === 413 && !calls.length, { status: r.status, calls: calls.length });
+  check("guard analyze: a 7 MB body with no Content-Length is refused with 413, nothing called but the sign-in check (audit SRV-AUTH-13: sign-in first)", r.status === 413 && calls.every((c) => c.path === "/auth/v1/user"), { status: r.status, calls: calls.length });
   // Recovery Mode and updates.
   reset({ quotaDenied: "g:recovery-mode:ip" });
   r = await run(fn["recovery-mode"], req("/api/recovery-mode", { token: "t-review", ios: true, origin: APP, body: INCIDENT }));
