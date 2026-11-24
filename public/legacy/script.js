@@ -2845,7 +2845,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   function appLinkHtml(ct) {
     if (!appLinkAllowed()) return "";
-    return `<p class="cn-app-line"><a class="cn-app-link" href="${APP_STORE_URL}?ct=${ct}" target="_blank" rel="noopener" data-cn-app="${ct}">Get the free iPhone app</a><span>Check a text right from the Share button, or scan a QR code with your camera.</span></p>`;
+    return `<p class="cn-app-line"><a class="cn-app-link" href="${APP_STORE_URL}?ct=${ct}" target="_blank" rel="noopener" data-cn-app="${ct}">Get the free iPhone app</a><span>Check a link or screenshot right from the Share button, or scan a QR code with your camera.</span></p>`;
   }
   document.addEventListener("click", (e) => {
     const a = e.target && e.target.closest ? e.target.closest("a[data-cn-app]") : null;
