@@ -108,7 +108,19 @@ async function handleOne(user, item, index, reason) {
   });
   const status = transactionStatus(applied, tx);
   // A chain with no appAccountToken claimed by an app sync (CRITIC #9): logged, never silent.
-  if (!tx.appAccountToken && status === "applied") console.warn(`apple-verify ${reason}: ${tx.productId} claimed without an account token`);
+  // SRV-AUTH-15 / PAY-7 (security audit Nov 2026): also sent to the owner's alerts (a fixed
+  // message, no ids, so one alert per 6 hours at most), because whoever presents such a JWS
+  // first owns the chain.
+  if (!tx.appAccountToken && status === "applied") {
+    console.warn(`apple-verify ${reason}: ${tx.productId} claimed without an account token`);
+    reportError(new Error("Apple subscription claimed without an account token"), { fn: "apple-verify", label: "Token-less Apple subscription linked to the signed-in account (check it is the buyer)" });
+  }
+  // PAY-6: a Sandbox (TestFlight / sandbox tester) purchase recorded for an account; it only
+  // gives Pro when the account is on public.iap_sandbox_allowlist. Made visible to the owner.
+  if (tx.environment === "Sandbox" && status === "applied") {
+    console.warn(`apple-verify ${reason}: Sandbox purchase recorded`);
+    reportError(new Error("Sandbox Apple purchase recorded on the live server"), { fn: "apple-verify", label: "Sandbox purchase (Pro only for allow-listed accounts)" });
+  }
   if (status === "not_linked") console.warn(`apple-verify ${reason}: ${tx.productId} not_linked (no account token on a purchase call)`);
   else console.log(`apple-verify ${reason}: ${tx.productId} ${status}`);
   return { ...ids, status, finish: status !== "not_linked" };

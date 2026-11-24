@@ -81,6 +81,10 @@ for (const [key, id] of Object.entries(U)) {
   await q("insert into auth.users (id, email) values ($1, $2)", [id, `${key.toLowerCase()}@example.test`]);
   await q("insert into public.profiles (id, full_name, plan, subscription_status) values ($1, $2, 'free', 'inactive') on conflict (id) do nothing", [id, key]);
 }
+// The test purchases below are Sandbox-signed. Since the security audit (Nov 2026, SRV-AUTH-3 / PAY-6)
+// Sandbox rows only entitle allow-listed accounts (supabase/migrations/20261124120000_security_iap_sandbox_allowlist.sql),
+// so the test accounts are on the list, as the App Review demo account will be. The list itself is checked at the end.
+for (const [key, id] of Object.entries(U)) if (key !== "GONE") await q("insert into public.iap_sandbox_allowlist (user_id, note) values ($1, 'test') on conflict (user_id) do nothing", [id]);
 await q("update public.profiles set plan = 'pro', subscription_status = 'active', stripe_customer_id = 'cus_x', stripe_subscription_id = 'sub_x' where id = $1", [U.STRIPE]);
 await q("update public.profiles set plan = 'business', subscription_status = 'active' where id = $1", [U.BIZ]);
 const TEAMS = {
@@ -487,6 +491,32 @@ if (esbuild) {
     const size = out.outputFiles[0].contents.length;
     check(`${entry} resolves every import (esbuild, ${Math.round(size / 1024)} KB; Netlify itself ships it with nft and node_modules)`, size > 0 && size < 5 * 1024 * 1024, size);
   }
+}
+
+// ── SRV-AUTH-3 / PAY-6 (security audit Nov 2026): Sandbox only entitles allow-listed accounts ──
+{
+  const T = "bbbbbbbb-0000-4000-8000-0000000000aa";
+  await q("insert into auth.users (id, email) values ($1, 'tester@example.test') on conflict (id) do nothing", [T]);
+  await q("insert into public.profiles (id, full_name, plan, subscription_status) values ($1, 'T', 'free', 'inactive') on conflict (id) do nothing", [T]);
+  await q("insert into public.apple_subscriptions (original_transaction_id, user_id, product_id, environment, expires_at) values ('990000000000001', $1, 'app.cybernetai.pro.monthly', 'Sandbox', now() + interval '1 day')", [T]);
+  let e = (await q("select * from public.entitlement_of($1)", [T]))[0];
+  check("SRV-AUTH-3 a TestFlight/sandbox purchase by a non-listed account is recorded but gives no Pro", e.plan === "free" && e.apple_active === false && e.apple_environment === "Sandbox", e);
+  await q("insert into public.iap_sandbox_allowlist (user_id, note) values ($1, 'review')", [T]);
+  e = (await q("select * from public.entitlement_of($1)", [T]))[0];
+  check("SRV-AUTH-3 twin: the allow-listed App Review account gets Pro from a Sandbox purchase", e.plan === "pro" && e.apple_active === true, e);
+  await q("delete from public.iap_sandbox_allowlist where user_id = $1", [T]);
+  await q("insert into public.apple_subscriptions (original_transaction_id, user_id, product_id, environment, expires_at) values ('990000000000002', $1, 'app.cybernetai.pro.yearly', 'Production', now() + interval '30 days')", [T]);
+  e = (await q("select * from public.entitlement_of($1)", [T]))[0];
+  check("SRV-AUTH-3 twin: a real (Production) purchase always gives Pro", e.plan === "pro" && e.apple_active === true && e.apple_environment === "Production", e);
+  let rerun = true;
+  try {
+    const sandboxSql = read("supabase/migrations/20261124120000_security_iap_sandbox_allowlist.sql");
+    await db.exec(sandboxSql);
+    await db.exec(sandboxSql);
+  } catch (error) { rerun = error.message; }
+  check("SRV-AUTH-3 the migration can run again (idempotent)", rerun === true && (await q("select count(*)::int n from public.iap_sandbox_allowlist"))[0].n >= 8, rerun);
+  const grants = await q("select grantee, privilege_type from information_schema.role_table_grants where table_name = 'iap_sandbox_allowlist' and grantee in ('anon', 'authenticated')");
+  check("SRV-AUTH-3 the allow-list is not readable by the browser roles", grants.length === 0, grants);
 }
 
 await db.close();
