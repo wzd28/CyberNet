@@ -3134,7 +3134,7 @@ document.addEventListener("DOMContentLoaded", () => {
       "Local QR and file checks complete. Use Analysis AI for a deeper, AI-assisted check."
     ), previewHtml: decoded.qrData ? renderQrPreview(decoded.qrData, qrKind, qrResult) : "" });
     prependScan("imageScanList", file.name, result);
-    afterQuickScan(cyberImageResult, "image", result);
+    afterQuickScan(cyberImageResult, "image", decoded.qrData ? result : null);
     reportTeamActivity({ kind: "quick_scan", scanType: "image", content: "", fileName: file.name, qr: decoded.qrData ? { kind: qrKind, data: decoded.qrData } : null, result: quickScanLogResult(result, { needsDeepScan: !decoded.qrData }) });
   }
   if (cyberDropZone) cyberDropZone.addEventListener("click", (e) => {

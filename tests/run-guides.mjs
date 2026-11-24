@@ -152,7 +152,9 @@ for (const g of GUIDES) {
   check("script.js: shareWarning reads nothing from the checked content", !/result\.(text|content|links|url|input)|\.value\b/.test(body));
   check("script.js: share only under a SCAM verdict", /riskMeta\(result\)\.label!=="Scam"\)return/.test(body));
   check("script.js: SHARE_URL lands on Quick Scan with a share tag", /SHARE_URL="https:\/\/cybernetai\.app\/\?try=1&utm_source=share&utm_medium=verdict"/.test(js));
-  for (const call of ["cyberTextResult", "cyberLinkResult", "cyberImageResult"]) check(`script.js: afterQuickScan(${call}) passes the result`, new RegExp(`afterQuickScan\\(${call},[^)]*,result\\)`).test(js));
+  for (const call of ["cyberTextResult", "cyberLinkResult"]) check(`script.js: afterQuickScan(${call}) passes the result`, new RegExp(`afterQuickScan\\(${call},[^)]*,result\\)`).test(js));
+  // A picture with no QR code shows no verdict (showReport sends it to Analysis AI), so there is nothing to share.
+  check("script.js: a picture without a QR code gets no warn-a-friend button", js.includes('afterQuickScan(cyberImageResult,"image",decoded.qrData?result:null)'));
   const reSrc = (/const EU_TIME_ZONES=\/(.+)\/;\n/.exec(js) || [])[1];
   check("script.js: EU time-zone pattern found", !!reSrc);
   if (reSrc) {

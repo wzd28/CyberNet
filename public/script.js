@@ -2758,7 +2758,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     // the filename alone. Opted in here, not inside analyzeImageRules, because
     // the Analysis AI page reuses that function for its own pre-analysis.
     showReport(cyberImageResult,result.score,result.scamType,result.reasons,result.advice,{...result,needsDeepScan:!decoded.qrData,note:/*@web*/"Local QR and file checks complete. Use Analysis AI for a deeper, AI-assisted check."/*@end-web*//*@ios "Check on your iPhone complete. Use Analysis AI for a deeper, AI-assisted check." @end-ios*/,previewHtml:decoded.qrData?renderQrPreview(decoded.qrData,qrKind,qrResult):""});
-    prependScan("imageScanList",file.name,result);/*@web*/afterQuickScan(cyberImageResult,"image",result);/*@end-web*/
+    prependScan("imageScanList",file.name,result);/*@web*/afterQuickScan(cyberImageResult,"image",decoded.qrData?result:null);/*@end-web*/
     reportTeamActivity({kind:"quick_scan",scanType:"image",content:"",fileName:file.name,qr:decoded.qrData?{kind:qrKind,data:decoded.qrData}:null,result:quickScanLogResult(result,{needsDeepScan:!decoded.qrData})});
   }
 /*@web*/  if(cyberDropZone)cyberDropZone.addEventListener("click",e=>{if(!guestCanScan()){e.preventDefault();askForAccount()}});/*@end-web*/
