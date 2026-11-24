@@ -84,7 +84,7 @@ const toml = read("netlify.toml");
   check("csp: jsDelivr is not allowed as a whole host", !sources.includes("https://cdn.jsdelivr.net") && !sources.includes("https://cdn.jsdelivr.net/"), scriptSrc);
   check("csp: still self, Cloudflare Insights and GTM", sources.includes("'self'") && sources.includes("https://static.cloudflareinsights.com") && sources.includes("https://www.googletagmanager.com"));
   // Every jsDelivr script the site loads is listed exactly (a version bump must update the CSP too).
-  const files = ["public/index.html", "public/app/reset.html", "public/privacy.html", "public/terms.html", "public/support.html", "public/refunds.html", "public/acceptable-use.html", "public/404.html", "public/black-friday-scam-checklist.html", "ui-src/js/10-hero3d.js", "public/ui/cybernet-ui.js", "public/script.js", "public/legacy/script.js"].filter(f => existsSync(path.join(root, f)));
+  const files = ["public/index.html", "public/app/reset.html", "public/privacy.html", "public/terms.html", "public/support.html", "public/refunds.html", "public/acceptable-use.html", "public/404.html", "public/black-friday-scam-checklist.html", "public/scam-text-checker.html", "public/parcel-delivery-scam-text.html", "public/toll-fine-scam-text.html", "public/qr-code-scam.html", "public/is-this-link-safe.html", "ui-src/js/10-hero3d.js", "public/ui/cybernet-ui.js", "public/script.js", "public/legacy/script.js"].filter(f => existsSync(path.join(root, f)));
   const used = new Set();
   for (const f of files) for (const m of read(f).matchAll(/https:\/\/cdn\.jsdelivr\.net\/(?:npm|gh)\/[^"'\s)`]+/g)) used.add(m[0]);
   check("csp: the site loads exactly the two expected jsDelivr files", used.size === 2, [...used]);
