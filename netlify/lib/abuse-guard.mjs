@@ -68,6 +68,17 @@ export const GUARD_RULES = {
   "screenshot-preview": {
     ip: [{ window: 60, max: 20 }, { window: 3600, max: 120 }],
     user: []
+  },
+  // AI-6 / SRV-7: the two endpoints that take a visitor's own OpenAI key. They
+  // spend nothing of ours, but without a limit they work as a checker for
+  // stolen keys. A real person checks one key and runs a few analyses.
+  "byok-analyze": {
+    ip: [{ window: 60, max: 20 }, { window: 3600, max: 60 }],
+    user: [{ window: 60, max: 5 }]
+  },
+  "validate-openai-key": {
+    ip: [{ window: 60, max: 20 }, { window: 3600, max: 60 }],
+    user: [{ window: 600, max: 10 }, { window: 86400, max: 30 }]
   }
 };
 
@@ -203,14 +214,76 @@ export async function burstGuard(fn, { request, context, userId } = {}) {
   }
 }
 
+/* ---------- 1b. per-account AI limits (security pass, Nov 2026) ---------- */
+
+// AI-2: a per-account daily count of OpenAI calls that a refund never lowers.
+// The daily plan allowance is refunded whenever no AI answer came back, so on
+// its own it does not bound how many (billed) calls one account can cause.
+// The numbers sit far above any plan's daily allowance (Free 3-5, Pro 15, the
+// App Review account's raised 50), so
+// a real person never meets them; team pools are shared, hence the higher
+// paid number. Fails open, like every quota here.
+export const USER_AI_CALLS_PER_DAY = Object.freeze({ free: 60, paid: 400 });
+
+// true when this account may make one more OpenAI call today (and counts it).
+export async function allowUserAiCall(userId, { paid = false } = {}) {
+  if (!userId) return true;
+  try {
+    const max = paid ? USER_AI_CALLS_PER_DAY.paid : USER_AI_CALLS_PER_DAY.free;
+    const answer = await guardDeps.consume(`g:aicalls:day:${userId}`, 86400, max);
+    return !(answer && answer.allowed === false);
+  } catch {
+    return true;
+  }
+}
+
+// AI-2: refunds for a call OpenAI did answer (and bill), but whose answer was
+// unusable (cut off, refused, unparseable, timed out), are capped per account
+// per day. Real outages (no answer at all) are refunded as before.
+export const BILLED_REFUNDS_PER_DAY = 3;
+export async function allowBilledRefund(userId) {
+  if (!userId) return true;
+  try {
+    const answer = await guardDeps.consume(`g:refund:day:${userId}`, 86400, BILLED_REFUNDS_PER_DAY);
+    return !(answer && answer.allowed === false);
+  } catch {
+    return true;
+  }
+}
+
 /* ---------- 2. the global daily OpenAI ceiling ---------- */
+
+// SRV-5: Free and App-tier callers also share a sub-ceiling (this share of the
+// whole ceiling), checked first, so a farm of free accounts cannot use up the
+// AI answers paying customers rely on. The global key stays the hard bound.
+export const FREE_CEILING_SHARE = 0.65;
+export const AI_FREE_CEILING_KEY = "g:ai:calls:day:free";
 
 // true when an OpenAI call may be made now. Counts the call when it allows it.
 // allowAiCall.lastReport holds the newest alert promise, so a background
 // function (no waitUntil) can await it before it ends.
-export async function allowAiCall(fn, context) {
+// options.freeTier: the caller is on Free or the App tier (see SRV-5 above).
+export async function allowAiCall(fn, context, { freeTier = false } = {}) {
   const ceiling = aiCeiling();
   if (!ceiling) return true;
+  if (freeTier) {
+    const freeCeiling = Math.max(1, Math.floor(ceiling * FREE_CEILING_SHARE));
+    let free = null;
+    try {
+      free = await guardDeps.consume(AI_FREE_CEILING_KEY, AI_CEILING_WINDOW, freeCeiling);
+    } catch {
+      free = null;
+    }
+    if (free && free.allowed === false) {
+      try {
+        console.error(JSON.stringify({ tag: "cn_ai_free_ceiling", fn, ceiling: freeCeiling }));
+      } catch { /* ignore */ }
+      allowAiCall.lastReport = reportError(new Error(`Free-tier AI call ceiling reached (${freeCeiling} calls in 24 hours)`), {
+        fn, label: "Free-tier AI answers paused (paid plans unaffected)", context
+      });
+      return false;
+    }
+  }
   let answer = null;
   try {
     answer = await guardDeps.consume(AI_CEILING_KEY, AI_CEILING_WINDOW, ceiling);

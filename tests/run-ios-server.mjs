@@ -366,7 +366,8 @@ for (const [token, limit] of Object.entries(EXPECT_LIMIT)) {
   check("analyze web without any consent row: unaffected", r.status === 200 && !rpcCalls("has_ai_consent").length, r.status);
   reset();
   r = await run(fn.analyze, req("/api/analyze", { token: "t-pro", ios: true, body: { mode: "investigation", caseData: { title: "x", context: "y", artifacts: [{ type: "text", content: "hello" }] } } }));
-  check("analyze app investigation: 403, nothing called", r.status === 403 && r.data.code === "NOT_AVAILABLE_IN_APP" && calls.length === 0 && !PLAN_WORDS.test(r.data.error), r.data);
+  // SRV-AUTH-13: the session is checked before the body is read, so the only call is the sign-in check.
+  check("analyze app investigation: 403, nothing called but the sign-in check", r.status === 403 && r.data.code === "NOT_AVAILABLE_IN_APP" && calls.every((c) => c.path === "/auth/v1/user") && !PLAN_WORDS.test(r.data.error), r.data);
   reset({ allowApp: false });
   r = await run(fn.analyze, req("/api/analyze", { token: "t-pro", ios: true, body: IMAGE }));
   check("analyze app limit: 429 with a neutral message (no plan names)", r.status === 429 && r.data.code === "daily_limit_reached" && r.data.error === tier.APP_MESSAGES.aiLimit && !PLAN_WORDS.test(r.data.error) && r.data.usage.plan === "app", r.data);
@@ -940,7 +941,8 @@ const plansLib = await import(pathToFileURL(path.join(root, "netlify/lib/plans.m
   reset({ quotaDenied: "g:ai:calls:day" });
   r = await run(fn.analyze, req("/api/analyze", { token: "t-free", body: IMAGE }));
   check("guard ceiling analyze: 200 from the rule engine, no OpenAI call, allowance refunded", r.status === 200 && r.data.aiUsed === false && !openaiCalls().length && rpcCalls("refund_analysis").length === 1 && r.data.usage.used === 0, { status: r.status, aiUsed: r.data?.aiUsed, usage: r.data?.usage });
-  check("guard ceiling analyze: logged for the owner", logged.some((l) => l.includes("cn_ai_ceiling")));
+  // The prefix also denies the free-tier share (SRV-5), which a Free account meets first.
+  check("guard ceiling analyze: logged for the owner", logged.some((l) => l.includes("cn_ai_ceiling") || l.includes("cn_ai_free_ceiling")));
   reset({ quotaDenied: "g:ai:calls:day" });
   r = await run(fn.analyze, req("/api/analyze", { token: "t-review", ios: true, origin: APP, body: IMAGE }));
   check("guard ceiling analyze app: the app still gets a result (200, CORS)", r.status === 200 && r.data.analysis && !openaiCalls().length && corsOk(r), r.status);
@@ -955,11 +957,11 @@ const plansLib = await import(pathToFileURL(path.join(root, "netlify/lib/plans.m
   r = await run(fn.analyze, req("/api/analyze", { token: "t-review", ios: true, origin: APP, body: IMAGE }));
   globalThis.fetch = realFetch;
   check("guard analyze: quota service down = fail open (200 with AI)", r.status === 200 && r.data.aiUsed === true, r.status);
-  // Oversized bodies are refused before sign-in is checked or anything is reserved.
+  // Oversized bodies are refused while they stream in, before anything is reserved (the sign-in check now comes first, SRV-AUTH-13).
   reset();
   const big = new Request(`${SITE}/api/analyze`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer t-free" }, body: new ReadableStream({ start(c) { const chunk = new TextEncoder().encode("x".repeat(1_000_000)); for (let i = 0; i < 7; i++) c.enqueue(chunk); c.close(); } }), duplex: "half" });
   r = await run(fn.analyze, big);
-  check("guard analyze: a 7 MB body with no Content-Length is refused with 413, nothing called", r.status === 413 && !calls.length, { status: r.status, calls: calls.length });
+  check("guard analyze: a 7 MB body with no Content-Length is refused with 413, nothing called but the sign-in check", r.status === 413 && calls.every((c) => c.path === "/auth/v1/user"), { status: r.status, calls: calls.length });
   // Recovery Mode and updates.
   reset({ quotaDenied: "g:recovery-mode:ip" });
   r = await run(fn["recovery-mode"], req("/api/recovery-mode", { token: "t-review", ios: true, origin: APP, body: INCIDENT }));
