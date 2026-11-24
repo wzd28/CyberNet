@@ -115,6 +115,13 @@ https.request = (options) => {
 
 function stripeAnswer({ method, path: p }) {
   if (state.stripeDown) return [500, { error: { type: "api_error", message: "Stripe is down" } }];
+  // stripe-webhook re-reads a subscription by id (security audit Nov 2026, PAY-2); one this fake
+  // does not hold answers 404, and the webhook then uses the event's own copy.
+  const one = method === "GET" && /^\/v1\/subscriptions\/([^/?]+)/.exec(p);
+  if (one) {
+    const found = (state.stripeSubs || []).find((s) => s.id === decodeURIComponent(one[1]));
+    return found ? [200, found] : [404, { error: { type: "invalid_request_error", code: "resource_missing", message: "No such subscription" } }];
+  }
   if (method === "GET" && p.startsWith("/v1/subscriptions")) return [200, { object: "list", data: state.stripeSubs, has_more: false }];
   if (method === "GET" && p.startsWith("/v1/prices")) {
     const key = decodeURIComponent(p).match(/lookup_keys\[0\]=([^&]+)/)?.[1] || "";
@@ -469,7 +476,8 @@ const is409 = (r, code) => r.status === 409 && r.data.code === code && typeof r.
   let status = await deliver("customer.subscription.created", sub("sub_new_pro", "active", "cybernet_ai_pro_monthly"));
   const patch = state.rest.find((r) => r.method === "PATCH" && r.path === "/rest/v1/profiles");
   check("webhook: a Pro subscription still grants Pro on the profile", status === 200 && patch?.body?.plan === "pro" && patch.body.subscription_status === "active" && patch.body.stripe_subscription_id === "sub_new_pro", { status, patch });
-  check("webhook: a Pro subscription touches no team rows", !state.rest.some((r) => r.path === "/rest/v1/business_accounts"), state.rest);
+  // It may read business_accounts (PAY-5: was this subscription a team's before a switch?), never write.
+  check("webhook: a Pro subscription writes no team rows", !state.rest.some((r) => r.path === "/rest/v1/business_accounts" && r.method !== "GET"), state.rest);
 
   reset();
   status = await deliver("customer.subscription.created", sub("sub_new_biz", "active", "cybernet_ai_business_monthly"));
