@@ -41,7 +41,7 @@ const TARGET = "es2018";
 
 let esbuild, acorn;
 try { esbuild = await import("esbuild"); acorn = await import("acorn"); }
-catch { console.error("[build-legacy] esbuild and acorn come with netlify-cli: run `npm install` first."); process.exit(1); }
+catch { console.error("[build-legacy] esbuild and acorn are pinned devDependencies: run `npm install` first."); process.exit(1); }
 
 const stale = [];
 for (const name of SCRIPTS) {

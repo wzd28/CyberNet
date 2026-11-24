@@ -5,12 +5,12 @@
   "description": "CyberNet AI with Supabase accounts, Stripe subscriptions, defensive AI analysis, BYOK validation, and Netlify Functions.",
   "type": "module",
   "scripts": {
-    "dev": "netlify dev",
+    "dev": "npx --yes netlify-cli@27.20.1 dev",
     "build:ui": "node scripts/build-ui.mjs",
     "check:ui": "node scripts/build-ui.mjs --check",
     "build:legacy": "node scripts/build-legacy.mjs",
     "check:legacy": "node scripts/build-legacy.mjs --check",
-    "deploy": "netlify deploy --prod --dir=public --functions=netlify/functions",
+    "deploy": "npx --yes netlify-cli@27.20.1 deploy --prod --dir=public --functions=netlify/functions",
     "test": "node tests/run-engine.mjs && node tests/run-recovery.mjs && node tests/run-models.mjs && node tests/run-auth-messages.mjs && node tests/run-privacy.mjs && node tests/run-errors.mjs && node tests/run-error-hooks.mjs && node tests/run-onboarding.mjs && node tests/run-legal-copy.mjs && node tests/run-backup.mjs && node tests/run-rate-limit-cleanup.mjs && node tests/run-supabase-retry.mjs && node tests/run-feedback.mjs && node tests/run-preview.mjs && node tests/run-ios-server.mjs && node tests/run-ios-migration.mjs && node tests/run-ios-migration-apple.mjs && node tests/run-apple-iap.mjs && node tests/run-signup-source.mjs && node tests/run-code-step.mjs && node tests/run-funnel.mjs && node tests/run-rate-limits.mjs && node tests/run-checkout-guard.mjs && node tests/run-security-hardening.mjs && node tests/run-security-webhook.mjs && node tests/run-security-endpoints.mjs && node tests/run-ui-css.mjs && node scripts/build-legacy.mjs --check && node scripts/build-ui.mjs --check",
     "test:feedback": "node tests/run-feedback.mjs",
     "test:preview": "node tests/run-preview.mjs",
@@ -41,6 +41,8 @@
     "stripe": "22.4.0"
   },
   "devDependencies": {
-    "netlify-cli": "latest"
+    "@electric-sql/pglite": "0.3.16",
+    "acorn": "8.18.0",
+    "esbuild": "0.28.1"
   }
 }

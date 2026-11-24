@@ -18,7 +18,7 @@
 //                          The cookie bar can therefore live in any partial and still reach the
 //                          legal pages. Add a partial to LEGAL_PARTIALS when a standalone page needs it.
 //
-// Minification uses esbuild (shipped with netlify-cli in node_modules). It understands strings,
+// Minification uses esbuild (a pinned devDependency in package.json). It understands strings,
 // url() and comments, so text inside quotes (CSS `content`, data URIs, GLSL source) is never
 // rewritten. If esbuild is missing, a conservative string-aware fallback is used for CSS and the
 // JS is shipped with comments (a warning says so).

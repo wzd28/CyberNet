@@ -24,7 +24,7 @@
 //                                                       26 px small mark (top on whole rows at 1, 2, 3x)
 //   cybernet-shield.png     512  transparent  standard  height 466, top 23
 //   cybernet-mark.svg       the standard mark as a file (viewBox 0 0 24 26)
-//   With sharp installed (it comes with netlify-cli), the two old artworks get the new mark in place
+//   With sharp installed (`npm install --no-save sharp`; no longer pulled in by netlify-cli), the two old artworks get the new mark in place
 //   of the old one, everything else in them untouched:
 //   cybernet-logo.png       the round badge: the mark area (inside the black disc) is cleared to
 //                           black and the mark drawn there, height 194, top 89, centred at x 256,
