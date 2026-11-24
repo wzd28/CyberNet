@@ -361,7 +361,12 @@ check("Free in the IAP build: canPurchase, source null, token = user id", r.data
 // ── D2: anything above Pro shows as Pro in IAP builds, never "business" ──
 for (const [token, label, reason] of [["t-biz", "business profile", "active_outside"], ["t-owner", "team owner", "team"], ["t-member", "team member", "team"]]) {
   r = await status(token);
-  check(`D2 ${label}: appPlan pro with Pro's own limits`, r.data.profile.appPlan === "pro" && r.data.usage.limit === PLAN_LIMITS.pro.analysesPerDay && r.data.recoveryUsage.casesLimit === PLAN_LIMITS.pro.recoveryCasesPerDay, r.data);
+  // SRV-AUTH-2 (security audit Nov 2026): team members keep drawing on the team pool (the IAP headers can be forged,
+  // so they must not unlock a personal Pro allowance on top of it); a single-seat Business profile gets Pro's own limits.
+  const teamPool = label === "business profile" ? null : TEAMS[U.OWNER].business_accounts;
+  check(`D2 ${label}: appPlan pro; ${teamPool ? "the team pool's limits" : "Pro's own limits"}`, r.data.profile.appPlan === "pro" && (teamPool
+    ? r.data.usage.limit === teamPool.daily_pool_limit && r.data.recoveryUsage.casesLimit === teamPool.recovery_pool_limit
+    : r.data.usage.limit === PLAN_LIMITS.pro.analysesPerDay && r.data.recoveryUsage.casesLimit === PLAN_LIMITS.pro.recoveryCasesPerDay), r.data);
   check(`D2 ${label}: the word "business" never reaches the IAP build`, !/business/i.test(r.text), r.text.match(/.{30}business.{30}/i)?.[0]);
   check(`D2 ${label}: no buying (${reason})`, r.data.profile.billing.canPurchase === false && r.data.profile.billing.purchaseBlockedReason === reason, r.data.profile.billing);
   r = await status(token, { "X-CyberNet-Platform": "ios", "X-CyberNet-Plans": "1" });
@@ -370,7 +375,9 @@ for (const [token, label, reason] of [["t-biz", "business profile", "active_outs
 const owner = TEAMS[U.OWNER].business_accounts;
 const team = { businessAccountId: owner.id, role: "owner", dailyPoolLimit: owner.daily_pool_limit, recoveryPoolLimit: owner.recovery_pool_limit };
 let rules = tier.appLimitsFor({ email: "x@example.test" }, { plan: "free", team, iap: true });
-check("appLimitsFor iap + team: own pools with Pro numbers", rules.appPlan === "pro" && rules.analyses.pool === "own" && rules.recoveryCases.pool === "own" && rules.recoveryUpdates.pool === "own" && rules.analyses.limit === PLAN_LIMITS.pro.analysesPerDay, rules);
+check("appLimitsFor iap + team: the team pool (SRV-AUTH-2), shown as pro", rules.appPlan === "pro" && rules.analyses.pool === "team" && rules.recoveryCases.pool === "team" && rules.recoveryUpdates.pool === "team" && rules.analyses.limit === owner.daily_pool_limit, rules);
+rules = tier.appLimitsFor({ email: "x@example.test" }, { plan: "business", team: null, iap: true });
+check("appLimitsFor iap + single-seat business profile: Pro's own limits", rules.appPlan === "pro" && rules.analyses.pool === "own" && rules.analyses.limit === PLAN_LIMITS.pro.analysesPerDay, rules);
 rules = tier.appLimitsFor({ email: "x@example.test" }, { plan: "free", team, iap: false });
 check("appLimitsFor without iap: team pools as before", rules.appPlan === "business" && rules.analyses.pool === "team", rules);
 const callers = ["netlify/functions/analyze.mts", "netlify/functions/recovery-mode.mts", "netlify/functions/recovery-update.mts", "netlify/functions/account-status.mjs"];

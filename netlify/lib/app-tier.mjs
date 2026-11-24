@@ -201,7 +201,18 @@ export function appLimitsFor(user, { plan = "free", team = null, iap = false } =
   let analyses;
   let recoveryCases;
   let recoveryUpdates;
-  if (iap && (team || plan === "business")) {
+  if (iap && team) {
+    // SRV-AUTH-2 (security audit Nov 2026): the IAP headers can be sent by
+    // anyone, so a team member still draws on the shared team pool here (the
+    // pool the team paid for); only the word the app is shown changes to "pro"
+    // ("business" never reaches an IAP build). Before, every member got a
+    // personal Pro allowance on top of the pool.
+    appPlan = "pro";
+    analyses = { pool: "team", limit: Number(team.dailyPoolLimit) || 0 };
+    recoveryCases = { pool: "team", limit: Number(team.recoveryPoolLimit) || 0 };
+    recoveryUpdates = { pool: "team", limit: PLAN_LIMITS.businessTeam.recoveryUpdatesPerDay, cooldownSeconds: PLAN_LIMITS.businessTeam.recoveryUpdateCooldownSeconds };
+  } else if (iap && plan === "business") {
+    // A single-seat Business profile with no team: Pro's own-counter limits.
     const limits = PLAN_LIMITS.pro;
     appPlan = "pro";
     analyses = { pool: "own", limit: limits.analysesPerDay };
