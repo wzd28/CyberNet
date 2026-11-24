@@ -187,6 +187,9 @@ export default webOnly(async (request: Request) => {
       // or a duplicate pending invite (23505) when parallel requests race past
       // the checks above; both get the same answers as those checks.
       const message = String((payload as any)?.message || "");
+      if (/invite limit reached/i.test(message)) {
+        return json({ error: "Invite limit reached for today. Please try again tomorrow." }, 429);
+      }
       if (/team is full/i.test(message)) {
         return json({ error: `Team is full (${seatCap}/${seatCap} seats, including you). Remove a member, or email support@cybernetai.app to move up a tier.` }, 409);
       }
