@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import { smallJsonBody } from "../lib/abuse-guard.mjs";
 
 import {
   json,
@@ -10,6 +11,8 @@ import {
   getActiveTeamMembership
 } from "../lib/supabase.mjs";
 import { reportError } from "../lib/report-error.mjs";
+import { publicErrorBody } from "../lib/public-error.mjs";
+import { linkOrigin } from "../lib/site-url.mjs";
 // Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
 // management, admin): requests from the app get 403 (netlify/lib/cors.mjs).
 import { webOnly } from "../lib/cors.mjs";
@@ -165,6 +168,7 @@ async function readRows(response, message) {
   if (!response.ok || !Array.isArray(rows)) {
     const error = new Error(message);
     error.status = 503;
+    error.expose = true; // a friendly text of our own (lib/public-error.mjs)
     throw error;
   }
   return rows;
@@ -293,7 +297,9 @@ export default webOnly(async (request) => {
     debugUserId = user.id;
     const profile = await getProfile(user);
 
-    const body = await request.json().catch(() => ({}));
+    // SRV-11: a small JSON body, capped while it streams in.
+    const body = await smallJsonBody(request, 16_000);
+    if (body === null) return json({ error: "Request is too large." }, 413);
     const cycle = body.cycle === "yearly" ? "yearly" : "monthly";
     const targetPlan = body.plan === "business" ? "business" : "pro";
     debugCycle = cycle;
@@ -374,12 +380,11 @@ export default webOnly(async (request) => {
     const price = prices.data[0];
 
     if (!price) {
+      // PAY-10: the lookup key is named in the log only, not to the visitor.
+      console.error(`Stripe price '${lookupKey}' was not found. Check the ${cycle} lookup key in Stripe.`);
+      reportError(new Error("Stripe price for a checkout lookup key was not found"), { fn: "create-checkout-session", label: `Stripe price not found (${cycle}): check the lookup keys in Stripe` });
       return json(
-        {
-          error:
-            `Stripe price '${lookupKey}' was not found. ` +
-            `Check the ${cycle} lookup key in Stripe.`
-        },
+        { error: "This plan can't be bought right now. Please try again later or email support@cybernetai.app." },
         503
       );
     }
@@ -397,7 +402,9 @@ export default webOnly(async (request) => {
       profile
     );
 
-    const origin = new URL(request.url).origin;
+    // SRV-12: Stripe sends the buyer back to the site itself (deploy previews
+    // keep their own address for testing; lib/site-url.mjs).
+    const origin = linkOrigin(request);
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
@@ -454,33 +461,38 @@ export default webOnly(async (request) => {
     // A 401 here is a signed-out visitor, not a fault.
     reportError(error, { fn: "create-checkout-session", label: "Checkout session failed", status: error?.status });
 
-    try {
-      await serviceFetch("/rest/v1/checkout_debug_log", {
-        method: "POST",
-        body: JSON.stringify({
-          user_id: debugUserId,
-          lookup_key: debugLookupKey,
-          cycle: debugCycle,
-          target_plan: debugTargetPlan,
-          error_type: error.type || error.name || null,
-          error_code: error.code || null,
-          error_message: error.message || null,
-          error_raw: error.raw ? JSON.stringify(error.raw) : null
-        })
-      });
-    } catch (logError) {
-      console.error("Failed to write checkout debug log", logError);
-      reportError(logError, { fn: "create-checkout-session", label: "Checkout debug log write failed" });
+    // PAY-3 / DB-7: only a signed-in buyer's real failure is logged. A
+    // signed-out POST (401) or any other 4xx of ours writes nothing, so the
+    // endpoint can no longer be used to fill the table. Stripe's raw error
+    // body (request parameters, ids, sometimes an email) is not kept; the
+    // message is trimmed.
+    const ownStatus = Number(error?.status);
+    const expected = Number.isInteger(ownStatus) && ownStatus >= 400 && ownStatus < 500 && !error?.raw;
+    if (debugUserId && !expected) {
+      try {
+        await serviceFetch("/rest/v1/checkout_debug_log", {
+          method: "POST",
+          body: JSON.stringify({
+            user_id: debugUserId,
+            lookup_key: debugLookupKey,
+            cycle: debugCycle,
+            target_plan: debugTargetPlan,
+            error_type: String(error.type || error.name || "").slice(0, 80) || null,
+            error_code: String(error.code || "").slice(0, 80) || null,
+            error_message: String(error.message || "").slice(0, 500) || null,
+            error_raw: null
+          })
+        });
+      } catch (logError) {
+        console.error("Failed to write checkout debug log", logError);
+        reportError(logError, { fn: "create-checkout-session", label: "Checkout debug log write failed" });
+      }
     }
 
-    return json(
-      {
-        error:
-          error.message ||
-          "Could not create Stripe Checkout."
-      },
-      Number(error.statusCode || error.status) || 500
-    );
+    // PAY-10: our own 4xx and friendly texts are kept; Stripe and database
+    // messages stay in the log.
+    const failure = publicErrorBody(error, "Could not open checkout. Please try again or email support@cybernetai.app.");
+    return json(failure.body, failure.status);
   }
 });
 

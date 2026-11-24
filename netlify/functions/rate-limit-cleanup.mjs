@@ -85,9 +85,36 @@ export async function cleanupAppleNotifications({ now = Date.now(), timeoutMs = 
   }
 }
 
+// Security audit Nov 2026 (PAY-3 / DB-7): checkout_debug_log is a temporary
+// debugging table that nothing else trims. Rows older than 30 days go here,
+// in a separate DELETE, so a failure of one never stops the other.
+export const DEBUG_LOG_KEEP_DAYS = 30;
+export async function cleanupCheckoutDebugLog({ now = Date.now(), timeoutMs = 8_000 } = {}) {
+  if (env("RATE_LIMIT_CLEANUP").toLowerCase() === "off") return { status: "disabled" };
+  const cutoff = new Date(now - DEBUG_LOG_KEEP_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  try {
+    const response = await serviceFetch(`/rest/v1/checkout_debug_log?created_at=lt.${encodeURIComponent(cutoff)}`, {
+      method: "DELETE",
+      headers: { Prefer: "return=minimal, count=exact" },
+      signal: AbortSignal.timeout(timeoutMs)
+    });
+    if (!response.ok) {
+      console.error("CyberNet checkout debug log cleanup failed", response.status);
+      reportError(`Checkout debug log cleanup failed (HTTP ${response.status})`, { fn: "rate-limit-cleanup", label: "Old checkout debug rows were not deleted" });
+      return { status: "failed", httpStatus: response.status, cutoff };
+    }
+    return { status: "done", deleted: deletedCount(response), cutoff };
+  } catch (error) {
+    console.error("CyberNet checkout debug log cleanup failed", error?.message || error);
+    reportError(error, { fn: "rate-limit-cleanup", label: "Old checkout debug rows were not deleted" });
+    return { status: "failed", cutoff };
+  }
+}
+
 export default async () => {
   const result = await cleanupRateLimits();
   result.appleNotifications = await cleanupAppleNotifications();
+  result.checkoutDebugLog = (await cleanupCheckoutDebugLog()).status;
   return new Response(JSON.stringify(result), {
     status: result.status === "failed" ? 500 : 200,
     headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" }

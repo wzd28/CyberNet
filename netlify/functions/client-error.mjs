@@ -27,7 +27,7 @@ import { createHmac } from "node:crypto";
 import { reportError, scrubText, consumeQuota, CLIENT_FILE, CLIENT_UA } from "../lib/report-error.mjs";
 import { isIgnoredError, describeUserAgent, labelSupported } from "../lib/client-error-filters.mjs";
 import { withCors } from "../lib/cors.mjs";
-import { clientAddress } from "../lib/abuse-guard.mjs";
+import { clientAddress } from "../lib/abuse-guard.mjs"; // SRV-7: the visitor behind Cloudflare, not the shared edge address
 
 const MAX_BODY_BYTES = 8 * 1024;
 const PER_ADDRESS_PER_MINUTE = 10;
@@ -135,10 +135,7 @@ export function isNoise(report) {
 function addressBucket(request, context) {
   let address = "";
   try {
-    // SRV-7 / INFRA-3 (security audit Nov 2026): the real visitor address
-    // (cybernetai.app sits behind Cloudflare, so the connection address is a
-    // shared Cloudflare edge; lib/abuse-guard.mjs clientAddress handles that).
-    address = String(clientAddress(request, context) || "unknown").slice(0, 64);
+    address = clientAddress(request, context);
   } catch {
     address = "unknown";
   }

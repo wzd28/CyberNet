@@ -1,5 +1,6 @@
 import { json, verifyUser, getActiveTeamMembership, serviceFetch } from "../lib/supabase.mjs";
 import { reportError } from "../lib/report-error.mjs";
+import { publicErrorBody } from "../lib/public-error.mjs";
 // Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
 // management, admin): requests from the app get 403 (netlify/lib/cors.mjs).
 import { webOnly } from "../lib/cors.mjs";
@@ -203,7 +204,9 @@ export default webOnly(async (request: Request) => {
     return json({ feed });
   } catch (error: any) {
     reportError(error, { fn: "business-activity", label: "Team activity read failed", status: error?.status });
-    return json({ error: error.message || "Could not load team activity." }, Number(error.status) || 500);
+    // SRV-AUTH-11 / SRV-14: our own 4xx texts are kept; database text is not shown.
+    const failure = publicErrorBody(error, "Could not load team activity. Please try again in a moment.");
+    return json(failure.body, failure.status);
   }
 });
 

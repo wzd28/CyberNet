@@ -1,4 +1,5 @@
 import { json, verifyUser } from "../lib/supabase.mjs";
+import { smallJsonBody } from "../lib/abuse-guard.mjs";
 import { reportError } from "../lib/report-error.mjs";
 import { fetchWithJwtRetry, RETRY_STANDARD } from "../lib/supabase-retry.mjs";
 import { withCors } from "../lib/cors.mjs";
@@ -444,7 +445,9 @@ async function handler(request) {
       throw error;
     }
 
-    const body = await request.json().catch(() => ({}));
+    // SRV-11: a small JSON body, capped while it streams in.
+    const body: any = await smallJsonBody(request, 16_000);
+    if (body === null) return json({ error: "Request is too large." }, 413);
     const action = String(body?.action || "").trim().toLowerCase();
 
     if (action === "export") return await exportData(user);

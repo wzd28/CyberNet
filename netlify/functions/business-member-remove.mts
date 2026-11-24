@@ -1,5 +1,7 @@
 import { json, verifyUser, getActiveTeamMembership, serviceFetch } from "../lib/supabase.mjs";
+import { smallJsonBody } from "../lib/abuse-guard.mjs";
 import { reportError } from "../lib/report-error.mjs";
+import { publicErrorBody } from "../lib/public-error.mjs";
 // Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
 // management, admin): requests from the app get 403 (netlify/lib/cors.mjs).
 import { webOnly } from "../lib/cors.mjs";
@@ -15,10 +17,16 @@ export default webOnly(async (request: Request) => {
       return json({ error: "Only the team owner can remove teammates." }, 403);
     }
 
-    const body = await request.json().catch(() => ({}));
+    // SRV-11: a small JSON body, capped while it streams in.
+    const body: any = await smallJsonBody(request, 16_000);
+    if (body === null) return json({ error: "Request is too large." }, 413);
     const targetUserId = String(body.userId || "").trim();
 
     if (!targetUserId) return json({ error: "Missing userId." }, 400);
+    // SRV-AUTH-18: an account id is a UUID (as business-invite-cancel checks).
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetUserId)) {
+      return json({ error: "That person isn't an active member of your team." }, 404);
+    }
     if (targetUserId === user.id) {
       return json({ error: "The owner can't remove themselves this way — cancel the subscription instead." }, 400);
     }
@@ -44,7 +52,9 @@ export default webOnly(async (request: Request) => {
     return json({ ok: true });
   } catch (error: any) {
     reportError(error, { fn: "business-member-remove", label: "Teammate removal failed", status: error?.status });
-    return json({ error: error.message || "Could not remove the teammate." }, Number(error.status) || 500);
+    // SRV-AUTH-11 / SRV-14: our own 4xx texts are kept; database text is not shown.
+    const failure = publicErrorBody(error, "Could not remove the teammate. Please try again in a moment.");
+    return json(failure.body, failure.status);
   }
 });
 

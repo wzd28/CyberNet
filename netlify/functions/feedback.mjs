@@ -19,8 +19,8 @@
 import { createHmac } from "node:crypto";
 import { verifyUser, bearerToken } from "../lib/supabase.mjs";
 import { consumeQuota } from "../lib/report-error.mjs";
-import { clientAddress, readBodyText } from "../lib/abuse-guard.mjs";
 import { withCors } from "../lib/cors.mjs";
+import { clientAddress, readBodyText } from "../lib/abuse-guard.mjs"; // SRV-7 / SRV-11
 import {
   env, validateFeedback, uaSummary, storeFeedback, notifyFeedback,
   limits as feedbackLimits, MAX_BODY_BYTES
@@ -46,10 +46,7 @@ function reply(status, data, extraHeaders = {}) {
 function addressBucket(request, context) {
   let address = "unknown";
   try {
-    // SRV-7 / INFRA-3 (security audit Nov 2026): the real visitor address
-    // (cybernetai.app sits behind Cloudflare, so the connection address is a
-    // shared Cloudflare edge; lib/abuse-guard.mjs clientAddress handles that).
-    address = String(clientAddress(request, context) || "unknown").slice(0, 64);
+    address = clientAddress(request, context);
   } catch { /* keep "unknown" */ }
   const pepper = env("ERROR_REPORT_SALT") || env("SUPABASE_SERVICE_ROLE_KEY") || env("SUPABASE_SECRET_KEY") || "cybernet-feedback";
   return createHmac("sha256", pepper).update(`feedback:${address}`).digest("hex").slice(0, 24);
@@ -85,11 +82,7 @@ async function handler(request, context) {
   }
   // SRV-11: capped while it streams in (a chunked body has no Content-Length).
   const read = await readBodyText(request, MAX_BODY_BYTES);
-  if (!read.ok) {
-    return read.status === 413
-      ? reply(413, { error: "The message is too long." })
-      : reply(400, { error: "The feedback could not be read." });
-  }
+  if (!read.ok) return read.status === 413 ? reply(413, { error: "The message is too long." }) : reply(400, { error: "The feedback could not be read." });
   const text = read.text;
 
   let body;

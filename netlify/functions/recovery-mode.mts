@@ -7,6 +7,7 @@ import { withCors, isIOS, honoursWebPlans, isIapBuild } from "../lib/cors.mjs";
 import { appTierFor, consumeRecoveryCaseApp, recoveryCaseLimitMessage, appLimitsFor, loadWebPlan, reserveRecoveryCaseForApp } from "../lib/app-tier.mjs";
 import { aiConsentGate } from "../lib/ai-consent.mjs";
 import { burstGuard, allowAiCall, readJsonCapped } from "../lib/abuse-guard.mjs";
+import { linkOrigin } from "../lib/site-url.mjs";
 
 declare const Netlify: {
   env: {
@@ -1128,7 +1129,9 @@ async function triggerBackgroundJob(request: Request, context: any, job: Record<
   const candidates = [
     siteName && deployId ? `https://${deployId}--${siteName}.netlify.app` : "",
     siteName ? `https://${siteName}.netlify.app` : "",
-    new URL(request.url).origin,
+    // SRV-12: the request's own origin only when it is the site itself, a
+    // deploy preview or a local dev host (lib/site-url.mjs).
+    linkOrigin(request) === new URL(request.url).origin ? new URL(request.url).origin : "",
   ].filter((origin, index, all) => origin && all.indexOf(origin) === index);
 
   for (const origin of candidates) {

@@ -1,6 +1,8 @@
 import { json, verifyUser, getActiveTeamMembership, serviceFetch } from "../lib/supabase.mjs";
 import { redactForTeamLog } from "../lib/team-log.mjs";
 import { reportError } from "../lib/report-error.mjs";
+import { smallJsonBody } from "../lib/abuse-guard.mjs";
+import { publicErrorBody } from "../lib/public-error.mjs";
 import { withCors, isIOS } from "../lib/cors.mjs";
 
 // Quick Scan runs entirely in the visitor's browser, so the server never sees
@@ -156,7 +158,9 @@ async function handler(request: Request) {
     const contentLength = Number(request.headers.get("content-length") || 0);
     if (contentLength > 60_000) return json({ error: "Request too large." }, 413);
 
-    const body = await request.json().catch(() => ({}));
+    // SRV-11: capped while it streams in, not only by the declared length.
+    const body: any = await smallJsonBody(request, 60_000);
+    if (body === null) return json({ error: "Request too large." }, 413);
     // In the iPhone app, Quick Scan, QR and Share checks run on the phone and
     // nothing they read leaves it, so they are never logged (owner answer 8:
     // a member's AI results still reach the owner's log, through
@@ -167,7 +171,9 @@ async function handler(request: Request) {
     return json({ error: "Unknown activity kind." }, 400);
   } catch (error: any) {
     reportError(error, { fn: "team-activity", label: "Team activity log failed", status: error?.status });
-    return json({ error: error.message || "Could not record team activity." }, Number(error.status) || 500);
+    // SRV-AUTH-11 / SRV-14: our own 4xx texts are kept; database text is not shown.
+    const failure = publicErrorBody(error, "Could not record team activity. Please try again in a moment.");
+    return json(failure.body, failure.status);
   }
 }
 

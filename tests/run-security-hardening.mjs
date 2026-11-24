@@ -442,7 +442,7 @@ export { check, reset, run, req, state, calls, rpcCalls, quotaKeys, USERS, SITE,
   check("AI-6 BYOK over the burst limit: 429 before anything is reserved", r.status === 429 && rpcCalls("consume_analysis").length === 0, { status: r.status });
 
   const validate = (await load("netlify/functions/validate-openai-key.mts")).default;
-  reset({ quotaDenied: ["g:validate-openai-key:u600:"] });
+  reset({ quotaDenied: ["g:validate-openai-key:u3600:"] });
   r = await run(validate, req("/api/validate-openai-key", { token: "t-free", body: { apiKey: KEY } }));
   check("AI-6 key check: the per-account limit is durable (429 from the quota table)", r.status === 429, r);
   reset({ extraFetch: async (url) => (url.hostname === "api.openai.com" ? json({ data: [{ id: "gpt-6-luna" }] }) : null) });

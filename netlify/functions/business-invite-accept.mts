@@ -1,5 +1,7 @@
 import { json, verifyUser, getActiveTeamMembership, serviceFetch } from "../lib/supabase.mjs";
 import { reportError } from "../lib/report-error.mjs";
+import { publicErrorBody } from "../lib/public-error.mjs";
+import { readJsonCapped } from "../lib/abuse-guard.mjs";
 // Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
 // management, admin): requests from the app get 403 (netlify/lib/cors.mjs).
 import { webOnly } from "../lib/cors.mjs";
@@ -18,7 +20,10 @@ export default webOnly(async (request: Request) => {
 
   try {
     const { user } = await verifyUser(request);
-    const body = await request.json().catch(() => ({}));
+    // SRV-11: the body is one token; capped while it streams in.
+    const read = await readJsonCapped(request, 16_000);
+    if (!read.ok && read.status === 413) return json({ error: "Request is too large." }, 413);
+    const body: any = read.ok && read.body && typeof read.body === "object" ? read.body : {};
     const token = String(body.token || "").trim();
 
     if (!token) return json({ error: "Missing invite token." }, 400);
@@ -48,6 +53,28 @@ export default webOnly(async (request: Request) => {
     }
     if (String(user.email || "").toLowerCase() !== String(invite.email || "").toLowerCase()) {
       return json({ error: "This invite was sent to a different email address. Sign in with that email to accept it." }, 403);
+    }
+    // SRV-AUTH-6: the address must be confirmed, so nobody holding a forwarded
+    // link can sign up with the invitee's address and join in their name.
+    // Google and Apple sign-ins are always confirmed.
+    if (!user.email_confirmed_at && !user.confirmed_at) {
+      return json({ error: "Please confirm your email address first, then open the invite link again." }, 403);
+    }
+
+    // PAY-12 / DB-5: the seat count is checked again here, so invites sent in a
+    // burst cannot add more members than the team pays for (the owner counts).
+    const [teamRes, activeRes] = await Promise.all([
+      serviceFetch(`/rest/v1/business_accounts?id=eq.${encodeURIComponent(invite.business_account_id)}&select=seat_tier`),
+      serviceFetch(`/rest/v1/business_members?business_account_id=eq.${encodeURIComponent(invite.business_account_id)}&status=eq.active&select=id`),
+    ]);
+    const teamRows = await teamRes.json().catch(() => null);
+    const activeRows = await activeRes.json().catch(() => null);
+    if (!teamRes.ok || !activeRes.ok || !Array.isArray(teamRows) || !Array.isArray(activeRows)) {
+      throw Object.assign(new Error("Could not check the team's seats. Please try again in a moment."), { status: 503, expose: true });
+    }
+    const seatCap = ({ 5: 5, 10: 10, 20: 20 } as Record<number, number>)[Number(teamRows[0]?.seat_tier)] || 5;
+    if (activeRows.length >= seatCap) {
+      return json({ error: "This team is full. Ask the team owner to free a seat, then open the invite link again." }, 409);
     }
 
     // Claim the invite before creating the membership. The update only matches
@@ -127,7 +154,9 @@ export default webOnly(async (request: Request) => {
     return json({ ok: true });
   } catch (error: any) {
     reportError(error, { fn: "business-invite-accept", label: "Invite accept failed", status: error?.status });
-    return json({ error: error.message || "Could not accept the invite." }, Number(error.status) || 500);
+    // SRV-AUTH-11 / SRV-14: our own 4xx texts are kept; database text is not shown.
+    const failure = publicErrorBody(error, "Could not accept the invite. Please try again in a moment.");
+    return json(failure.body, failure.status);
   }
 });
 

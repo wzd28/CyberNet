@@ -14,6 +14,7 @@
 // field) is trusted. The table is read with the service role.
 
 import { verifyUser, isAdminUser, serviceFetch } from "../lib/supabase.mjs";
+import { readJsonCapped } from "../lib/abuse-guard.mjs";
 import { STATUSES } from "../lib/feedback.mjs";
 // Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
 // management, admin): requests from the app get 403 (netlify/lib/cors.mjs).
@@ -87,12 +88,10 @@ export default webOnly(async (request) => {
       });
     }
 
-    let body;
-    try {
-      body = await request.json();
-    } catch {
-      return reply(400, { error: "Send JSON: { id, status }." });
-    }
+    // SRV-11: capped while it streams in.
+    const read = await readJsonCapped(request, 16_000);
+    if (!read.ok) return read.status === 413 ? reply(413, { error: "Request is too large." }) : reply(400, { error: "Send JSON: { id, status }." });
+    const body = read.body;
     const id = String(body?.id || "");
     const status = String(body?.status || "");
     if (!UUID.test(id)) return reply(400, { error: "Unknown feedback id." });
