@@ -122,6 +122,10 @@ export default webOnly(async (request: Request) => {
       );
       const rejoined = await rejoinRes.json().catch(() => []);
       if (!rejoinRes.ok) {
+        // DB-5: the database seat guard (owner SQL) refuses a member past the seats.
+        if (/team is full/i.test(String((rejoined as any)?.message || ""))) {
+          throw Object.assign(new Error("This team is full. Ask the team owner to free a seat, then open the invite link again."), { status: 409 });
+        }
         throw new Error((rejoined as any)?.message || "Could not join the team.");
       }
 
@@ -138,6 +142,10 @@ export default webOnly(async (request: Request) => {
 
         if (!memberInsert.ok) {
           const payload = await memberInsert.json().catch(() => ({}));
+          // DB-5: the database seat guard (owner SQL) refuses a member past the seats.
+          if (/team is full/i.test(String((payload as any)?.message || ""))) {
+            throw Object.assign(new Error("This team is full. Ask the team owner to free a seat, then open the invite link again."), { status: 409 });
+          }
           throw new Error((payload as any)?.message || "Could not join the team.");
         }
       }
