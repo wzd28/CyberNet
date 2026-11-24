@@ -1,8 +1,9 @@
 node_modules/
 .netlify/
+# Every env file (security audit Nov 2026, SUP-8: a real key once sat in .env in history).
 .env
-.env.local
-.env.production
+.env.*
+!.env.example
 *.log
 .DS_Store
 .impeccable/
