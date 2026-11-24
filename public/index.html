@@ -811,13 +811,13 @@
         <!--@ios <p>Tell us what happened. Please never include passwords, one-time codes, card details, recovery phrases or identity documents.</p> @end-ios-->
       </div>
 
-      <form id="feedbackForm" name="cybernet-feedback" method="POST" data-netlify="true" netlify-honeypot="bot-field">
-        <input type="hidden" name="form-name" value="cybernet-feedback" />
+      <!-- Sent only through /api/feedback (script.js); Netlify Forms was removed in Nov 2026 (INFRA-9). The bot-field honeypot stays: the API reads it. -->
+      <form id="feedbackForm" name="cybernet-feedback" method="POST">
         <p class="feedback-honeypot" aria-hidden="true">
           <label>Leave this empty: <input name="bot-field" tabindex="-1" autocomplete="off" /></label>
         </p>
 
-        <!-- Not shown or required: /api/feedback stores no name. Kept (filled from the account) for the Netlify Forms fallback. -->
+        <!-- Not shown or required: /api/feedback stores no name. Was for the Netlify Forms fallback, removed Nov 2026; harmless and left in place. -->
         <div class="feedback-name-grid" hidden>
           <div>
             <label for="feedbackFirstName">First name</label>
@@ -3240,14 +3240,14 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" defer></script>
   <script src="/config.js?v=20260830-3" defer></script>
   <script src="/legacy/cybernet-engine.js?v=20261030-d1" defer></script>
-  <script src="/legacy/script.js?v=20261124-s1" defer></script>
-  <script src="/legacy/cybernet-account-api-upgrade.js?v=20261124-s1" defer></script>
+  <script src="/legacy/script.js?v=20261124-w1" defer></script>
+  <script src="/legacy/cybernet-account-api-upgrade.js?v=20261124-w1" defer></script>
   <script src="/cybernet-howto.js?v=20261019-1" defer></script>
-<script src="/legacy/cybernet-business-team.js?v=20261028-1" defer></script>
+<script src="/legacy/cybernet-business-team.js?v=20261124-w1" defer></script>
   <script src="/legacy/cybernet-final-ui-fix.js?v=20261028-1" defer></script>
       <script src="/legacy/cybernet-legal-upgrade.js?v=20261118-g1" defer></script>
   <!-- After script.js, cybernet-account-api-upgrade.js and cybernet-final-ui-fix.js (account modal tabs). -->
-  <script src="/legacy/cybernet-privacy-controls.js?v=20261029-ios1" defer></script>
+  <script src="/legacy/cybernet-privacy-controls.js?v=20261124-w1" defer></script>
   <!-- After script.js (cybernet:session event, appState). -->
   <script src="/legacy/cybernet-onboarding.js?v=20261028-1" defer></script>
   <!-- After script.js and cybernet-account-api-upgrade.js (CyberNetAccount, account modal); admin-only, gated on the server. -->

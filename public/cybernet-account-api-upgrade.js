@@ -1009,6 +1009,11 @@
           throw new Error(data.error || "Billing portal is unavailable.");
         }
 
+        // WEB-8 (security audit Nov 2026): only follow a Stripe / same-site URL (helper in script.js).
+        if (typeof window.cnIsBillingUrl === "function" && !window.cnIsBillingUrl(data.url)) {
+          throw new Error("Billing portal is unavailable.");
+        }
+
         window.location.assign(data.url);
       } catch (error) {
         setMessage(

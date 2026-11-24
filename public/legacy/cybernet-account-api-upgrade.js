@@ -804,6 +804,9 @@
         if (!response.ok || !data.url) {
           throw new Error(data.error || "Billing portal is unavailable.");
         }
+        if (typeof window.cnIsBillingUrl === "function" && !window.cnIsBillingUrl(data.url)) {
+          throw new Error("Billing portal is unavailable.");
+        }
         window.location.assign(data.url);
       } catch (error) {
         setMessage(

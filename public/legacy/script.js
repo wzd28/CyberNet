@@ -1983,6 +1983,19 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (e) {
     }
   }
+  function isBillingUrl(value) {
+    if (typeof value !== "string" || !value) return false;
+    try {
+      const u = new URL(value, window.location.origin);
+      if (u.origin === window.location.origin) return true;
+      if (u.protocol !== "https:") return false;
+      const h = u.hostname.toLowerCase();
+      return h === "stripe.com" || h.endsWith(".stripe.com") || h === "cybernetai.app" || h.endsWith(".cybernetai.app");
+    } catch (e) {
+      return false;
+    }
+  }
+  window.cnIsBillingUrl = isBillingUrl;
   async function startCheckout(cycle = "monthly", plan = "pro", confirmSecondPlan = false) {
     const confirmed = confirmSecondPlan === true;
     const btn = plan === "pro" ? proPlanBtn : null;
@@ -2032,7 +2045,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
       if (!response.ok) throw new Error(data.error || "Stripe Checkout is not configured yet.");
-      if (!data.url) throw new Error("Stripe did not return a Checkout URL.");
+      if (!data.url || !isBillingUrl(data.url)) throw new Error("Stripe did not return a Checkout URL.");
       if (plan === "business") {
         try {
           sessionStorage.setItem("cybernet_pending_business_checkout", "1");
@@ -2056,6 +2069,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const response = await fetch("/api/customer-portal", { method: "POST", headers: authHeaders({ "Content-Type": "application/json" }) });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "Billing portal unavailable.");
+      if (!isBillingUrl(data.url)) throw new Error("Billing portal unavailable.");
       window.location.assign(data.url);
     } catch (error) {
       showPricingNotice(friendlyNetworkError(error) || error.message || "The billing page isn't available right now. Please try again in a moment.", "error");
@@ -2296,14 +2310,7 @@ document.addEventListener("DOMContentLoaded", () => {
       } catch (error) {
         console.warn("CyberNet feedback endpoint unavailable", error);
       }
-      if (!saved) {
-        const response = await fetch("/", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams(formData).toString()
-        });
-        if (!response.ok) throw new Error(`Submission failed with ${response.status}`);
-      }
+      if (!saved) throw new Error("Feedback endpoint unavailable");
       feedbackForm.reset();
       prefillFeedback();
       setFeedbackMessage("Thank you. Your message reached CyberNet support. If you gave an email, we will reply there.", "success");
@@ -2941,7 +2948,7 @@ document.addEventListener("DOMContentLoaded", () => {
     jsQRLoader = new Promise((resolve, reject) => {
       const script = document.createElement("script");
       script.src = /*@web*/
-      "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js";
+      "/ui/vendor/jsQR-1.4.0.js";
       script.async = true;
       script.onload = () => resolve(window.jsQR);
       script.onerror = () => {
@@ -3809,10 +3816,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     if (startBtn) startBtn.addEventListener("click", startRecoveryCase);
     function riskClass(risk) {
-      return `recovery-risk-${risk || "medium"}`;
+      return `recovery-risk-${["low", "medium", "high", "critical"].includes(risk) ? risk : "medium"}`;
     }
     function priorityClass(priority) {
-      return `recovery-priority-${priority || "normal"}`;
+      return `recovery-priority-${["critical", "high", "normal"].includes(priority) ? priority : "normal"}`;
     }
     function renderActionItem(action, options = {}) {
       var _a2;
