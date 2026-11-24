@@ -465,6 +465,29 @@ export { check, reset, run, req, state, calls, rpcCalls, quotaKeys, USERS, SITE,
   reset({ quotaDenied: ["g:ai:calls:day:free"] });
   check("SRV-5 twin: a paid caller is not stopped by the free share", (await guard.allowAiCall("recovery-plan", undefined, {})) === true && !quotaKeys().includes("g:ai:calls:day:free"), quotaKeys());
 
+  // SRV-AUTH-17: the Apple ID is checked before anything is revoked.
+  {
+    const siwa = await load("netlify/lib/apple-siwa.mjs");
+    const { generateKeyPairSync } = await import("node:crypto");
+    const { privateKey } = generateKeyPairSync("ec", { namedCurve: "P-256" });
+    const config = { teamId: "TEAM", keyId: "KEY", clientId: "app.cybernetai", privateKey: privateKey.export({ type: "pkcs8", format: "pem" }) };
+    const idToken = (sub) => `x.${Buffer.from(JSON.stringify({ sub })).toString("base64url")}.y`;
+    const appleRun = async (sub, expectedSub) => {
+      const paths = [];
+      reset({ extraFetch: async (url) => {
+        if (url.hostname !== "appleid.apple.com") return null;
+        paths.push(url.pathname);
+        return url.pathname === "/auth/token" ? json({ refresh_token: "r", id_token: idToken(sub) }) : new Response(null, { status: 200 });
+      } });
+      const result = await siwa.revokeAppleTokens("c".repeat(40), config, { expectedSub });
+      return { result, paths };
+    };
+    let a = await appleRun("other-apple-id", "account-apple-id");
+    check("SRV-AUTH-17 a different Apple ID is not revoked (no /auth/revoke call)", a.result.reason === "different_apple_id" && !a.paths.includes("/auth/revoke"), a);
+    a = await appleRun("account-apple-id", "account-apple-id");
+    check("SRV-AUTH-17 twin: the account's own Apple ID is revoked", a.result.revoked === true && a.paths.includes("/auth/revoke"), a);
+  }
+
   const supa = await load("netlify/lib/supabase.mjs");
   check("SRV-AUTH-5 isAdminUser: an unconfirmed admin address is not admin", supa.isAdminUser({ email: "admin@example.com", email_confirmed_at: null }) === false);
   check("SRV-AUTH-5 twin: the confirmed admin is", supa.isAdminUser({ email: "admin@example.com", email_confirmed_at: CONFIRMED }) === true);

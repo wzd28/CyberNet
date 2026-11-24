@@ -109,10 +109,13 @@ async function post(path, form) {
 //
 // expectedSub: Apple's user id for the account being deleted (appleSubOf).
 // The code the app sends is issued for the Apple ID signed in on the device,
-// which can differ from the one the account was created with. Then the grant
-// just created by that code is still revoked (it must not be left behind),
-// but the answer is { revoked: false, reason: "different_apple_id" }, because
-// the account's own grant is still listed in the person's Apple settings.
+// which can differ from the one the account was created with. Then the answer
+// is { revoked: false, reason: "different_apple_id" }, because the account's
+// own grant is still listed in the person's Apple settings.
+// SRV-AUTH-17 (security audit Nov 2026): the Apple ID is compared BEFORE
+// anything is revoked. Revoking that other Apple ID's tokens would sign its
+// owner (for example someone else on a shared iPhone) out of their own
+// CyberNet account; the grant the exchange created for them is left alone.
 export async function revokeAppleTokens(authorizationCode, config = appleConfig(), { expectedSub = "" } = {}) {
   const code = cleanAuthorizationCode(authorizationCode);
   if (!code) return { revoked: false, reason: "no_code" };
@@ -129,6 +132,9 @@ export async function revokeAppleTokens(authorizationCode, config = appleConfig(
     if (!exchange.ok) return { revoked: false, reason: `token_${exchange.status}_${String(tokens?.error || "error").slice(0, 40)}` };
     const token = tokens.refresh_token || tokens.access_token;
     if (!token) return { revoked: false, reason: "no_token" };
+    const expected = String(expectedSub || "").trim();
+    const actual = idTokenSub(tokens.id_token);
+    if (expected && actual && actual !== expected) return { revoked: false, reason: "different_apple_id" };
     const revoke = await post("/auth/revoke", {
       client_id: config.clientId,
       client_secret: clientSecret,
@@ -136,9 +142,6 @@ export async function revokeAppleTokens(authorizationCode, config = appleConfig(
       token_type_hint: tokens.refresh_token ? "refresh_token" : "access_token"
     });
     if (!revoke.ok) return { revoked: false, reason: `revoke_${revoke.status}` };
-    const expected = String(expectedSub || "").trim();
-    const actual = idTokenSub(tokens.id_token);
-    if (expected && actual && actual !== expected) return { revoked: false, reason: "different_apple_id" };
     return { revoked: true };
   } catch (error) {
     return { revoked: false, reason: `error_${String(error?.name || "Error").slice(0, 40)}` };

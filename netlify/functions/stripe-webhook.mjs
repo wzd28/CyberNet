@@ -439,7 +439,9 @@ export default async (request) => {
       // PAY-11: tell the owner; never cancel anything automatically. Only the
       // Stripe customer id is named.
       const object = event.data.object || {};
-      const customerId = customerIdFrom(object) || "(unknown customer)";
+      // A dispute object has no customer field: name its charge instead, so
+      // separate disputes stay separate alerts.
+      const customerId = customerIdFrom(object) || String(object.charge?.id || object.charge || object.payment_intent?.id || object.payment_intent || object.id || "(unknown)");
       await Promise.resolve(reportError(new Error(`Stripe ${event.type === "charge.refunded" ? "refund" : "dispute"} for ${customerId}`), {
         fn: "stripe-webhook",
         label: event.type === "charge.refunded"

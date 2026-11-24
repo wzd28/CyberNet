@@ -17,12 +17,13 @@ function clean(value, max = 500) {
   return String(value || "").trim().slice(0, max);
 }
 
-// SRV-17: a document version is a date (2026-10-29). The page and the app send
-// their own (terms and privacy can differ), so a real one is kept; any other
-// label falls back to the server's current version.
+// SRV-17: a document version is a short label such as a date (2026-10-29).
+// The page and the app send their own (terms and privacy can differ), so a
+// real one is kept; anything else (spaces, long text) falls back to the
+// server's current version.
 function version(value) {
   const v = clean(value, 40);
-  return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : CURRENT_VERSION;
+  return /^[A-Za-z0-9._-]{1,40}$/.test(v) ? v : CURRENT_VERSION;
 }
 
 // SRV-AUTH-13 / SRV-17: at most 20 recorded acceptances per account per hour
