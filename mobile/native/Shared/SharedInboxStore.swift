@@ -55,6 +55,9 @@ struct SharedInboxStore {
     static let maxAgeSeconds: Double = 24 * 60 * 60
     static let maxItems = 5 // keeps read() small: pictures cross the bridge as data URLs
     static let maxTextLength = 10_000
+    // APP-8 (security audit Nov 2026): a shared link or QR payload is capped too, so a huge one is
+    // never written into the App Group or pushed over the bridge on every launch.
+    static let maxURLLength = 4_096
 
     private let defaults: UserDefaults?
     private let folder: URL?
@@ -100,7 +103,7 @@ struct SharedInboxStore {
             do {
                 try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
                 try jpeg.write(to: folder.appendingPathComponent(name),
-                               options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+                               options: [.atomic, .completeFileProtection])  // APP-8: readable only while the phone is unlocked
                 imageFile = name
             } catch {
                 return nil
@@ -110,7 +113,7 @@ struct SharedInboxStore {
             id: id,
             kind: kind,
             text: text.map { String($0.prefix(Self.maxTextLength)) },
-            url: url,
+            url: url.map { String($0.prefix(Self.maxURLLength)) },
             imageFile: imageFile,
             createdAt: Date().timeIntervalSince1970 * 1000,
             localVerdict: verdict)
