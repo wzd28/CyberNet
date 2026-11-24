@@ -76,7 +76,7 @@ function openaiAnswer(body) {
 }
 
 globalThis.fetch = async (input, init = {}) => {
-  const url = new URL(typeof input === "string" ? input : input.url);
+  const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url);
   const method = String(init.method || (typeof input === "object" && input.method) || "GET").toUpperCase();
   const headers = new Headers(init.headers || {});
   let body;
@@ -337,6 +337,70 @@ export { check, reset, run, req, state, calls, rpcCalls, quotaKeys, USERS, SITE,
 
 // More sections are appended below this line by later fixes.
 // @@SECTIONS@@
+
+// ══════════ screenshot-preview (SRV-AUTH-1, SRV-1, AI-3, SRV-10) ══════════
+{
+  const shotMod = await load("netlify/functions/screenshot-preview.mjs");
+  const shot = shotMod.default;
+  shotMod.previewDeps.lookup = async () => [{ address: "93.184.216.34", family: 4 }];
+  let imageHost = [{ address: "93.184.216.34", family: 4 }];
+  shotMod.previewDeps.imageLookup = async () => imageHost;
+  let imageUrl = "https://cdn.microlink.test/shot.png";
+  let imageType = "image/png";
+  let providerHits = 0;
+  const providers = async (url) => {
+    if (url.hostname === "api.microlink.io") providerHits++;
+    if (url.hostname === "api.microlink.io") return json({ status: "success", statusCode: 200, data: { screenshot: { url: imageUrl } } });
+    if (url.hostname === "cdn.microlink.test") return new Response(new Uint8Array([137, 80, 78, 71]), { headers: { "content-type": imageType } });
+    return null;
+  };
+  const appShot = (token) => req("/api/screenshot-preview", { token, origin: APP, headers: { "X-CyberNet-Platform": "ios" }, body: { url: "https://example.com" } });
+
+  reset({ extraFetch: providers });
+  let r = await run(shot, appShot("t-free"));
+  check("SRV-AUTH-1 app path, Free account: still gets a picture", r.status === 200 && /^data:image\/png;base64,/.test(r.data?.screenshot || ""), { status: r.status, data: r.data });
+  const keys = quotaKeys();
+  check("SRV-AUTH-1 app path, Free account: its own app cap is checked before the shared pool", keys.indexOf(`shot:appuser:day:${USERS["t-free"].id}`) >= 0 && keys.indexOf(`shot:appuser:day:${USERS["t-free"].id}`) < keys.indexOf("shot:app:day"), keys);
+
+  reset({ extraFetch: providers, quotaDenied: ["shot:appuser:day:"] });
+  r = await run(shot, appShot("t-free"));
+  check("SRV-AUTH-1 over the per-account app cap: 429, the shared pool is not touched", r.status === 429 && !quotaKeys().includes("shot:app:day"), { status: r.status, keys: quotaKeys() });
+
+  reset({ extraFetch: providers });
+  r = await run(shot, appShot("t-pro"));
+  check("SRV-AUTH-1 twin: a Pro account in the app is not counted against the free pool", r.status === 200 && !quotaKeys().includes("shot:app:day") && !quotaKeys().some((k) => k.startsWith("shot:appuser:")), quotaKeys());
+
+  reset({ extraFetch: providers });
+  r = await run(shot, req("/api/screenshot-preview", { token: "t-free", body: { url: "https://example.com" } }));
+  check("SRV-AUTH-1 twin: a Free account on the website still gets 403", r.status === 403, r.status);
+
+  reset({ extraFetch: providers, supabase: async (call) => (call.path === "/rest/v1/rpc/consume_api_quota" ? json({ message: "down" }, 503) : null) });
+  providerHits = 0;
+  r = await run(shot, appShot("t-free"));
+  check("AI-3 quota service down: the free app path fails closed (no paid credit spent)", r.status === 429 && providerHits === 0, { status: r.status, providerHits });
+  reset({ extraFetch: providers, supabase: async (call) => (call.path === "/rest/v1/rpc/consume_api_quota" ? json({ message: "down" }, 503) : null) });
+  r = await run(shot, req("/api/screenshot-preview", { token: "t-pro", body: { url: "https://example.com" } }));
+  check("AI-3 twin: a Pro website account still gets its preview when the quota service is down", r.status === 200, r.status);
+
+  imageType = "image/svg+xml";
+  reset({ extraFetch: providers });
+  r = await run(shot, req("/api/screenshot-preview", { token: "t-pro", body: { url: "https://example.com" } }));
+  check("SRV-10 a non-picture content type from the provider is refused", r.status === 503 && !r.data?.screenshot, r);
+  imageType = "image/png";
+  imageUrl = "http://cdn.microlink.test/shot.png";
+  reset({ extraFetch: providers });
+  r = await run(shot, req("/api/screenshot-preview", { token: "t-pro", body: { url: "https://example.com" } }));
+  check("SRV-10 an http image address is refused", r.status === 503, r.status);
+  imageUrl = "https://cdn.microlink.test/shot.png";
+  imageHost = [{ address: "10.0.0.5", family: 4 }];
+  reset({ extraFetch: providers });
+  r = await run(shot, req("/api/screenshot-preview", { token: "t-pro", body: { url: "https://example.com" } }));
+  check("SRV-10 an image host that resolves to a private address is refused", r.status === 503, r.status);
+  imageHost = [{ address: "93.184.216.34", family: 4 }];
+  reset({ extraFetch: providers });
+  r = await run(shot, req("/api/screenshot-preview", { token: "t-pro", body: { url: "https://example.com" } }));
+  check("SRV-10 twin: a normal provider picture still comes through", r.status === 200 && /^data:image\/png;base64,/.test(r.data?.screenshot || ""), r.status);
+}
 
 // AI-4 (page): a follow-up answer is only shown as one when the local engine
 // does not itself warn about the new text.

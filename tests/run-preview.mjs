@@ -40,6 +40,7 @@ const mod = await import("../netlify/functions/screenshot-preview.mjs");
 let clock = Date.parse("2026-10-24T10:00:00Z");
 mod.previewDeps.now = () => clock;
 mod.previewDeps.dnsTimeoutMs = 40;
+mod.previewDeps.imageLookup = async () => [{ address: "93.184.216.34", family: 4 }];
 mod.previewDeps.lookup = async (host) => {
   lookups.push(host);
   const entry = dnsTable[host];

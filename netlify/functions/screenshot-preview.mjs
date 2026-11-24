@@ -14,10 +14,17 @@ const SHOT_PER_MINUTE = 6;
 const SHOT_PER_DAY = 60;
 // All app accounts together (owner, 11 Nov 2026: pictures for every signed-in app account).
 const APP_SHOTS_PER_DAY = 300;
+// SRV-AUTH-1 / SRV-1 / AI-3 (security audit Nov 2026): the app is recognised by
+// its Origin header, which a browser cannot forge but curl can. So a Free
+// account reaching the app path also has its own small daily cap, checked
+// before the shared pool, and one account (or a handful) can no longer use up
+// the pool for every real iPhone user. Pro and team accounts are not limited
+// by the app cap or the pool (they have the preview on the website anyway).
+const APP_SHOTS_PER_ACCOUNT_PER_DAY = 10;
 
-// Fails open: a quota-service outage must not take previews away from paying
-// users.
-async function consumeQuota(key, windowSeconds, max) {
+// Fails open by default: a quota-service outage must not take previews away
+// from paying users. failClosed is used for the free app path only (SRV-AUTH-16).
+async function consumeQuota(key, windowSeconds, max, { failClosed = false } = {}) {
   try {
     const r = await serviceFetch("/rest/v1/rpc/consume_api_quota", {
       method: "POST",
@@ -26,15 +33,36 @@ async function consumeQuota(key, windowSeconds, max) {
     if (!r.ok) {
       console.error("CyberNet screenshot quota check failed", r.status);
       reportError(`Quota check failed (HTTP ${r.status})`, { fn: "screenshot-preview", label: "Preview quota check failed" });
-      return true;
+      return !failClosed;
     }
     const d = await r.json().catch(() => null);
     return d?.allowed !== false;
   } catch (e) {
     console.error("CyberNet screenshot quota check failed", e?.message);
     reportError(e, { fn: "screenshot-preview", label: "Preview quota check failed" });
-    return true;
+    return !failClosed;
   }
+}
+
+// The plan check the website path makes, as a yes/no (never throws).
+async function hasPaidPreviewPlan(user) {
+  try {
+    const profile = await getProfile(user).catch(() => ({}));
+    await withEntitlement(profile, user.id).catch(() => null);
+    const plan = effectivePlan(profile);
+    return plan === "pro" || plan === "business" || Boolean(profile?.isTeamMember) || (await isActiveTeamMember(user.id));
+  } catch {
+    return false;
+  }
+}
+
+// The app path's extra accounting (see APP_SHOTS_PER_ACCOUNT_PER_DAY).
+async function appPreviewAllowed(user) {
+  if (await hasPaidPreviewPlan(user)) return true;
+  return (
+    (await consumeQuota(`shot:appuser:day:${user.id}`, 86400, APP_SHOTS_PER_ACCOUNT_PER_DAY, { failClosed: true })) &&
+    (await consumeQuota("shot:app:day", 86400, APP_SHOTS_PER_DAY, { failClosed: true }))
+  );
 }
 
 function isPrivateHost(host) {
@@ -75,6 +103,8 @@ function normalizeUrl(value) {
 // changes them). fetch is always the global one, so tests stub globalThis.fetch.
 export const previewDeps = {
   lookup: (host, options) => dnsLookup(host, options),
+  // The provider's image host (SRV-10); separate so tests can stub it alone.
+  imageLookup: (host, options) => dnsLookup(host, options),
   now: () => Date.now(),
   dnsTimeoutMs: 2_500
 };
@@ -88,13 +118,19 @@ function isPrivateAddress(address) {
   const mapped = a.match(/^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/);
   const v4 = (mapped ? mapped[1] : a).match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
   if (v4) {
-    const [o1, o2] = [Number(v4[1]), Number(v4[2])];
+    const [o1, o2, o3] = [Number(v4[1]), Number(v4[2]), Number(v4[3])];
     return o1 === 0 || o1 === 10 || o1 === 127 || o1 >= 224 ||
       (o1 === 169 && o2 === 254) || (o1 === 172 && o2 >= 16 && o2 <= 31) ||
-      (o1 === 192 && o2 === 168) || (o1 === 100 && o2 >= 64 && o2 <= 127);
+      (o1 === 192 && o2 === 168) || (o1 === 100 && o2 >= 64 && o2 <= 127) ||
+      // SRV-10: benchmarking (198.18/15), IETF protocol (192.0.0/24) and the
+      // documentation ranges (192.0.2/24, 198.51.100/24, 203.0.113/24).
+      (o1 === 198 && (o2 === 18 || o2 === 19)) || (o1 === 192 && o2 === 0 && (o3 === 0 || o3 === 2)) ||
+      (o1 === 198 && o2 === 51 && o3 === 100) || (o1 === 203 && o2 === 0 && o3 === 113);
   }
   if (!a.includes(":")) return true;
-  return a === "::" || a === "::1" || a.startsWith("::ffff:") || /^f[cd]/.test(a) || /^fe[89ab]/.test(a) || /^ff/.test(a);
+  // SRV-10: also NAT64 (64:ff9b::/96), 6to4 (2002::/16) and documentation (2001:db8::/32).
+  return a === "::" || a === "::1" || a.startsWith("::ffff:") || /^f[cd]/.test(a) || /^fe[89ab]/.test(a) || /^ff/.test(a) ||
+    a.startsWith("64:ff9b:") || a.startsWith("2002:") || a.startsWith("2001:db8:");
 }
 
 function dnsReason(code) {
@@ -275,8 +311,9 @@ export default withCors(async (request, context) => {
     const allowed =
       (await consumeQuota(`shot:min:${user.id}`, 60, SHOT_PER_MINUTE)) &&
       (await consumeQuota(`shot:day:${user.id}`, 86400, SHOT_PER_DAY)) &&
-      // app accounts are free to make: one shared daily ceiling for all app pictures bounds the credits they can spend
-      (!fromApp || (await consumeQuota("shot:app:day", 86400, APP_SHOTS_PER_DAY)));
+      // app accounts are free to make: a per-account app cap, then one shared daily
+      // ceiling for all free app pictures (shot:app:day), bound the credits they can spend
+      (!fromApp || (await appPreviewAllowed(user)));
     if (!allowed) {
       return json({ error: "Preview limit reached. Please try again later.", code: "rate_limited" }, 429);
     }
@@ -340,13 +377,65 @@ async function rasterwiseScreenshot(apiKey, safeUrl, remaining) {
 // Providers hand back a hosted image address; the bytes are fetched here and
 // given to the page as a data URL, because the page's Content-Security-Policy
 // only allows images from the site itself and inline data.
+// SRV-10 (security audit Nov 2026): the image address comes from the
+// provider's JSON, so it is treated as untrusted: https only, a host that does
+// not resolve to a private address, no redirects, a hard 2.5 MB cap while it
+// streams in, and only ordinary picture types in the data URL. The provider's
+// CDN hosts are not pinned (they are not known and may change).
+const MAX_SCREENSHOT_BYTES = 2_500_000;
+const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 async function imageToDataUrl(imageUrl, remaining) {
-  const image = await fetch(imageUrl, { signal: AbortSignal.timeout(Math.min(10_000, remaining())) });
+  let parsed;
+  try {
+    parsed = new URL(String(imageUrl));
+  } catch {
+    throw new Error("Screenshot address is not valid.");
+  }
+  if (parsed.protocol !== "https:" || isPrivateHost(parsed.hostname)) throw new Error("Screenshot address refused.");
+  const resolved = await resolveImageHost(parsed.hostname);
+  if (resolved.some(isPrivateAddress)) throw new Error("Screenshot address refused.");
+  const image = await fetch(parsed.href, { redirect: "error", signal: AbortSignal.timeout(Math.min(10_000, remaining())) });
   if (!image.ok) throw new Error(`Screenshot download failed (${image.status}).`);
-  const bytes = Buffer.from(await image.arrayBuffer());
-  if (bytes.length > 2_500_000) throw new Error("Screenshot too large to inline.");
-  const type = image.headers.get("content-type") || "image/jpeg";
+  if (Number(image.headers.get("content-length") || 0) > MAX_SCREENSHOT_BYTES) throw new Error("Screenshot too large to inline.");
+  const declared = String(image.headers.get("content-type") || "image/jpeg").split(";")[0].trim().toLowerCase();
+  const type = IMAGE_TYPES.has(declared) ? declared : declared === "image/jpg" ? "image/jpeg" : "";
+  if (!type) throw new Error("Screenshot is not a picture.");
+  const chunks = [];
+  let total = 0;
+  if (image.body) {
+    const reader = image.body.getReader();
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > MAX_SCREENSHOT_BYTES) {
+        reader.cancel().catch(() => {});
+        throw new Error("Screenshot too large to inline.");
+      }
+      chunks.push(Buffer.from(value.buffer, value.byteOffset, value.byteLength));
+    }
+  }
+  const bytes = Buffer.concat(chunks);
   return `data:${type};base64,${bytes.toString("base64")}`;
+}
+
+// The image host's addresses; [] when it cannot be resolved (the fetch then
+// fails on its own). Never throws.
+async function resolveImageHost(host) {
+  const h = String(host || "").replace(/^\[|\]$/g, "");
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(h) || h.includes(":")) return [h];
+  let timer;
+  try {
+    const answer = await Promise.race([
+      previewDeps.imageLookup(h, { all: true }),
+      new Promise((_, reject) => { timer = setTimeout(() => reject(new Error("timeout")), previewDeps.dnsTimeoutMs); })
+    ]);
+    return (Array.isArray(answer) ? answer : [answer]).map((e) => (typeof e === "string" ? e : e?.address)).filter(Boolean);
+  } catch {
+    return [];
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 // Keyless fallback, used when GetScreenshot is not configured, refuses a URL
