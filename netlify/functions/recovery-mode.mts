@@ -1,5 +1,6 @@
 import OpenAI from "openai";
-import { DEFAULT_MODEL, DEFAULT_MINI_MODEL, modelParams, createResponse, autoReplaceEnabled } from "../lib/ai-models.mjs";
+import { DEFAULT_MODEL, DEFAULT_MINI_MODEL, modelParams, createResponse, autoReplaceEnabled, safetyIdentifierFor } from "../lib/ai-models.mjs";
+import { timingSafeEqual } from "node:crypto";
 import { reportError } from "../lib/report-error.mjs";
 import { fetchWithJwtRetry, RETRY_STANDARD } from "../lib/supabase-retry.mjs";
 import { withCors, isIOS, honoursWebPlans } from "../lib/cors.mjs";
@@ -82,9 +83,31 @@ function clamp(value: unknown, min = 0, max = 100): number {
   return Math.max(min, Math.min(max, Math.round(Number(value) || 0)));
 }
 
-function uniqueStrings(value: unknown, max = 12): string[] {
+// itemMax (optional) also caps each string's length (security audit Nov 2026,
+// SRV-4 / AI-7: the count cap alone let a few huge strings reach the prompt).
+function uniqueStrings(value: unknown, max = 12, itemMax = 0): string[] {
   const items = Array.isArray(value) ? value : [];
-  return [...new Set(items.map(String).map((item) => item.trim()).filter(Boolean))].slice(0, max);
+  const trimmed = items.map(String).map((item) => item.trim()).map((item) => (itemMax > 0 ? item.slice(0, itemMax) : item));
+  return [...new Set(trimmed.filter(Boolean))].slice(0, max);
+}
+
+// The page's quick-answer checkboxes (clickedLink, sentMoney, sharedOtp ...):
+// rebuilt here as at most 20 short camelCase names with true/false values
+// (SRV-4 / AI-7). The body used to be forwarded as sent, so any nested object
+// (hundreds of KB of text) went into the trusted part of the prompt. A
+// pattern, not a fixed list, so a key the page or the app adds later is kept.
+const QUICK_ANSWER_KEY = /^[A-Za-z]{1,32}$/;
+function cleanQuickAnswers(value: unknown): Record<string, boolean> {
+  const out: Record<string, boolean> = Object.create(null);
+  if (!value || typeof value !== "object" || Array.isArray(value)) return out;
+  let count = 0;
+  for (const [key, answer] of Object.entries(value as Record<string, unknown>)) {
+    if (count >= 20) break;
+    if (!QUICK_ANSWER_KEY.test(key) || typeof answer !== "boolean") continue;
+    out[key] = answer;
+    count += 1;
+  }
+  return out;
 }
 
 // ─── Sensitive-secret redaction (never forwarded to the AI or stored) ───
@@ -459,6 +482,9 @@ Rules:
 Return only the required structured result.`;
 
 async function runAiRecoveryPlan(args: {
+  // The account the case belongs to, for OpenAI's safety identifier (a one-way
+  // hash; AI-12). Optional: older jobs in flight have none.
+  userId?: string;
   description: string;
   quickAnswers: Record<string, boolean>;
   incidentTypeHint: string;
@@ -489,14 +515,17 @@ async function runAiRecoveryPlan(args: {
     `DETERMINISTIC RISK FLOOR (must not go below): ${args.riskFloor}`,
     `DETERMINISTIC URGENCY FLOOR (must not go below): ${args.urgencyFloor}`,
     `INCIDENT TYPE HINT: ${args.incidentTypeHint}`,
-    `ACCOUNTS/SERVICES INVOLVED: ${args.accountsInvolved.join(", ") || "not specified"}`,
-    `APPROXIMATE INCIDENT TIME: ${args.incidentTime || "not specified"}`,
     `REGION: ${args.region || "not specified"}`,
-    `QUICK-ANSWER SIGNALS: ${JSON.stringify(args.quickAnswers)}`,
+    // Rebuilt server-side as true/false flags (cleanQuickAnswers).
+    `QUICK-ANSWER SIGNALS: ${JSON.stringify(cleanQuickAnswers(args.quickAnswers))}`,
     args.updateContext ? "MODE: case update — revise the plan given new information; preserve what's still relevant, remove what's resolved, add what's newly needed." : "MODE: new case",
     args.updateContext ? `PREVIOUSLY COMPLETED TASKS: ${JSON.stringify(args.updateContext.completedTaskTitles)}` : "",
     args.updateContext ? `USER UPDATE: ${args.updateContext.updateText}` : "",
     "<UNTRUSTED_EVIDENCE>",
+    // Typed by the person, so inside the untrusted block (AI-7), capped and
+    // redacted like the description.
+    `ACCOUNTS/SERVICES INVOLVED: ${uniqueStrings(args.accountsInvolved, 8, 80).join(", ") || "not specified"}`,
+    `APPROXIMATE INCIDENT TIME: ${String(args.incidentTime || "").slice(0, 60) || "not specified"}`,
     args.description,
     "</UNTRUSTED_EVIDENCE>",
   ].filter(Boolean).join("\n\n");
@@ -518,6 +547,7 @@ async function runAiRecoveryPlan(args: {
       baseOutputTokens: 3_500,
       cacheKey: "cybernet-recovery-plan-v1",
       customBaseUrl: Boolean(env("OPENAI_BASE_URL")),
+      safetyIdentifier: safetyIdentifierFor(args.userId || ""),
     }),
     instructions: recoveryInstructions,
     input: [{ role: "user", content: inputContent }],
@@ -886,6 +916,12 @@ async function handler(request: Request, context: any): Promise<Response> {
   const contentLength = Number(request.headers.get("content-length") || 0);
   if (contentLength > 2_000_000) return json({ error: "Request is too large" }, 413);
 
+  // Signed in first (security audit Nov 2026, SRV-AUTH-13): a signed-out caller
+  // no longer gets a 2 MB body read and parsed. Only the order of two errors
+  // changes for a signed-out request (401 instead of 400).
+  const user = await verifySupabaseUser(request);
+  if (!user) return json({ error: "Sign in or create a free account before starting Recovery Mode.", code: "sign_in_required" }, 401);
+
   // Capped while it streams in (lib/abuse-guard.mjs), not only by the declared length.
   const read = await readJsonCapped(request, 2_000_000);
   if (!read.ok) return read.status === 413 ? json({ error: "Request is too large" }, 413) : json({ error: "Invalid JSON body" }, 400);
@@ -895,16 +931,15 @@ async function handler(request: Request, context: any): Promise<Response> {
   if (!rawDescription.trim()) return json({ error: "Please describe what happened before submitting." }, 400);
 
   const { text: description, redactedCount } = redactSecrets(rawDescription);
-  const quickAnswers: Record<string, boolean> = typeof body?.quickAnswers === "object" && body.quickAnswers ? body.quickAnswers : {};
+  // SRV-4 / AI-7: true/false flags only, each account name capped, and every
+  // free-text field redacted like the description before it can reach the AI.
+  const quickAnswers = cleanQuickAnswers(body?.quickAnswers);
   const incidentTypeHint = String(body?.incidentType || "").slice(0, 80);
-  const accountsInvolved = uniqueStrings(body?.accountsInvolved, 8);
-  const incidentTime = String(body?.incidentTime || "").slice(0, 60);
-  const region = String(body?.region || "").slice(0, 80);
+  const accountsInvolved = uniqueStrings(body?.accountsInvolved, 8, 80).map((item) => redactSecrets(item).text);
+  const incidentTime = redactSecrets(String(body?.incidentTime || "").slice(0, 60)).text;
+  const region = redactSecrets(String(body?.region || "").slice(0, 80)).text;
   // A cut-off data URL is not a valid image, so an oversize one is dropped.
   const imageData = typeof body?.imageData === "string" && body.imageData.length <= MAX_IMAGE_DATA_CHARS ? body.imageData : "";
-
-  const user = await verifySupabaseUser(request);
-  if (!user) return json({ error: "Sign in or create a free account before starting Recovery Mode.", code: "sign_in_required" }, 401);
 
   if (ios) {
     const blocked = await aiConsentGate(serviceFetch, user.id);
@@ -967,6 +1002,7 @@ async function handler(request: Request, context: any): Promise<Response> {
       classifier,
       region,
       input: {
+        userId: user.id,
         description,
         quickAnswers,
         incidentTypeHint,
@@ -1034,18 +1070,40 @@ async function handler(request: Request, context: any): Promise<Response> {
 }
 
 // ─── Background AI plan job ───
-// The request signs the job with the service key, so the background endpoint
-// only ever runs work that one of these functions created.
+// The request signs the job, so the background endpoint only ever runs work
+// that one of these functions created. Security audit Nov 2026 (SRV-AUTH-8,
+// SRV-9, AI-15):
+//   - the signature covers "<issued-at ms>.<body>", sent with the
+//     X-CyberNet-Signed-At header, and a job older than 15 minutes (or more
+//     than 1 minute in the future) is refused, so a leaked job cannot be
+//     replayed later; 15 minutes leaves room for a delayed platform retry;
+//   - the comparison is constant-time;
+//   - the key is RECOVERY_JOB_SECRET when the owner has set it, otherwise the
+//     service key as before (nothing breaks before the variable exists).
+// recovery-mode, recovery-update and recovery-plan-background ship together,
+// so the signer and the checker always agree.
+const JOB_MAX_AGE_MS = 15 * 60_000;
+const JOB_MAX_SKEW_MS = 60_000;
+
 async function hmacHex(text: string): Promise<string> {
-  const secret = env("SUPABASE_SERVICE_ROLE_KEY") || env("SUPABASE_SECRET_KEY");
+  const secret = env("RECOVERY_JOB_SECRET") || env("SUPABASE_SERVICE_ROLE_KEY") || env("SUPABASE_SECRET_KEY");
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(text));
   return [...new Uint8Array(signature)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-async function verifyBackgroundSignature(body: string, signature: string): Promise<boolean> {
-  if (!signature || signature.length !== 64) return false;
-  return (await hmacHex(body)) === signature;
+async function signBackgroundJob(body: string, issuedAt = Date.now()): Promise<{ signature: string; signedAt: string }> {
+  const signedAt = String(Math.floor(issuedAt));
+  return { signature: await hmacHex(`${signedAt}.${body}`), signedAt };
+}
+
+async function verifyBackgroundSignature(body: string, signature: string, signedAt = "", now = Date.now()): Promise<boolean> {
+  if (!signature || signature.length !== 64 || !/^[0-9a-f]{64}$/.test(signature)) return false;
+  if (!/^\d{10,16}$/.test(signedAt)) return false;
+  const issued = Number(signedAt);
+  if (now - issued > JOB_MAX_AGE_MS || issued - now > JOB_MAX_SKEW_MS) return false;
+  const expected = await hmacHex(`${signedAt}.${body}`);
+  return timingSafeEqual(Buffer.from(expected, "utf8"), Buffer.from(signature, "utf8"));
 }
 
 async function triggerBackgroundJob(request: Request, context: any, job: Record<string, unknown>): Promise<boolean> {
@@ -1057,7 +1115,7 @@ async function triggerBackgroundJob(request: Request, context: any, job: Record<
     reportError(`Recovery background job too large (${utf8Length(body)} bytes)`, { fn: "recovery-mode", label: `Background ${String(job.kind)} job not started`, context });
     return false;
   }
-  const signature = await hmacHex(body);
+  const { signature, signedAt } = await signBackgroundJob(body);
 
   // The public domain sits behind Cloudflare, which challenges server-to-server
   // calls from the function's data-centre address; on production the trigger
@@ -1076,7 +1134,7 @@ async function triggerBackgroundJob(request: Request, context: any, job: Record<
     try {
       const response = await fetch(`${origin}/api/recovery-plan-background`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "X-CyberNet-Signature": signature },
+        headers: { "Content-Type": "application/json", "X-CyberNet-Signature": signature, "X-CyberNet-Signed-At": signedAt },
         body,
         signal: AbortSignal.timeout(8_000),
       });
@@ -1092,7 +1150,7 @@ async function triggerBackgroundJob(request: Request, context: any, job: Record<
   return false;
 }
 
-export { classifyIncident, runAiRecoveryPlan, sanitizePlan, serviceFetch, modelForRiskFloor, triggerBackgroundJob, verifyBackgroundSignature };
+export { classifyIncident, runAiRecoveryPlan, sanitizePlan, serviceFetch, modelForRiskFloor, triggerBackgroundJob, verifyBackgroundSignature, signBackgroundJob, cleanQuickAnswers, MAX_BACKGROUND_JOB_CHARS };
 export type { ClassifierResult };
 
 // CORS for the iPhone app only (netlify/lib/cors.mjs); website requests pass
