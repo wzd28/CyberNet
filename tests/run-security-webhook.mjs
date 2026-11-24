@@ -155,6 +155,22 @@ const profilePatch = () => writes("/rest/v1/profiles").find((c) => c.method === 
   r = await deliver("customer.subscription.created", sub("sub_B", "active", "cybernet_ai_business_monthly"));
   const patch = writes("/rest/v1/business_accounts")[0];
   check("PAY-2 re-subscribing after a cancel still reactivates the owner's team", r.status === 200 && patch?.method === "PATCH" && patch.body.stripe_subscription_id === "sub_B" && patch.body.subscription_status === "active", patch);
+  // An owner whose old plan went past due buys again: the new plan takes the team.
+  reset({ teamByOwner: { id: TEAM, stripe_subscription_id: "sub_A", subscription_status: "past_due" }, stripeSubs: [sub("sub_B", "active", "cybernet_ai_business_monthly")] });
+  r = await deliver("customer.subscription.created", sub("sub_B", "active", "cybernet_ai_business_monthly"));
+  const moved = writes("/rest/v1/business_accounts")[0];
+  check("PAY-2 a new active plan takes over a team whose old plan is past due", r.status === 200 && moved?.body?.stripe_subscription_id === "sub_B" && moved.body.subscription_status === "active", moved);
+  // A checkout whose subscription Stripe cannot find writes nothing and is retried.
+  reset({ profile: { id: USER, plan: "pro", subscription_status: "active", stripe_customer_id: "cus_hook", stripe_subscription_id: "sub_pro" } });
+  r = await deliver("checkout.session.completed", { id: "cs_1", object: "checkout.session", client_reference_id: USER, subscription: "sub_missing" });
+  check("PAY-2 checkout with an unknown subscription: 500 (retried), the profile is not touched", r.status === 500 && !profilePatch(), { r, p: profilePatch() });
+  reset({ profile: { id: USER, plan: "pro", subscription_status: "active", stripe_customer_id: "cus_hook", stripe_subscription_id: "sub_pro" } });
+  r = await deliver("invoice.payment_failed", { id: "in_9", object: "invoice", customer: "cus_hook", subscription: "sub_missing" });
+  check("PAY-4 a failed invoice whose subscription Stripe cannot find writes nothing", r.status === 500 && !profilePatch(), { r, p: profilePatch() });
+  // A checkout for a real subscription still grants Pro.
+  reset({ stripeSubs: [sub("sub_new", "active", "cybernet_ai_pro_monthly")] });
+  r = await deliver("checkout.session.completed", { id: "cs_2", object: "checkout.session", client_reference_id: USER, subscription: "sub_new" });
+  check("PAY-2 checkout for a real subscription still grants Pro", r.status === 200 && profilePatch()?.plan === "pro" && profilePatch()?.stripe_subscription_id === "sub_new", profilePatch());
   // Account deletion flow: a cancelled subscription with no team row creates nothing.
   reset({ stripeSubs: [sub("sub_gone", "canceled", "cybernet_ai_business_monthly")] });
   r = await deliver("customer.subscription.deleted", sub("sub_gone", "canceled", "cybernet_ai_business_monthly"));

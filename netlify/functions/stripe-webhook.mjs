@@ -151,13 +151,16 @@ function seatTierFromLookupKey(lookupKey) {
 
 // PAY-2: the subscription as Stripe has it now. A cancelled subscription
 // still retrieves (status "canceled"). Only "no such subscription" falls back
-// to the event's copy; any other failure throws, so Stripe retries later.
+// to the event's copy, and only when the event carried a whole subscription
+// (checkout and failed-invoice events pass just an id: then it throws, as the
+// old code did, so nothing is written and Stripe retries). Any other failure
+// throws too.
 async function currentSubscription(stripe, snapshot) {
   if (!snapshot?.id) return snapshot;
   try {
     return await stripe.subscriptions.retrieve(String(snapshot.id));
   } catch (error) {
-    if (error?.statusCode === 404 || error?.code === "resource_missing") return snapshot;
+    if ((error?.statusCode === 404 || error?.code === "resource_missing") && snapshot.status) return snapshot;
     throw error;
   }
 }
@@ -227,10 +230,14 @@ async function upsertBusinessAccount(userId, subscription) {
       `/rest/v1/business_accounts?owner_user_id=eq.${encodeURIComponent(effectiveUserId)}&select=id,stripe_subscription_id,subscription_status`
     ), "team lookup by owner");
     const owned = ownerRows[0];
-    // PAY-2: the owner's team is paid for by a different subscription that is
-    // still live: this event (an old or retried one) must not overwrite it.
-    if (owned && owned.stripe_subscription_id && owned.stripe_subscription_id !== subscriptionId &&
-      ["active", "trialing", "past_due", "unpaid"].includes(String(owned.subscription_status))) {
+    // PAY-2: this subscription (re-read from Stripe) has ended or is not paid,
+    // and the owner's team is held by a different subscription that is still
+    // live: an old or retried event must not overwrite it. A new subscription
+    // that is active or trialing always takes the team over (an owner whose
+    // old plan went past due may buy again: checkout allows it).
+    const incomingEntitled = ENTITLED.includes(status);
+    if (!incomingEntitled && owned && owned.stripe_subscription_id && owned.stripe_subscription_id !== subscriptionId &&
+      ["active", "trialing", "past_due", "unpaid", "paused"].includes(String(owned.subscription_status))) {
       return null;
     }
     accountId = owned?.id;
