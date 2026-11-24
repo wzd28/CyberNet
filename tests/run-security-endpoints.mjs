@@ -238,5 +238,20 @@ const quotaKeys = () => calls.filter((c) => c.path === "/rest/v1/rpc/consume_api
   check("SRV-AUTH-13 over 20 an hour: still a success, nothing inserted", r.status === 200 && r.data.recorded === true && !calls.some((c) => c.path === "/rest/v1/legal_acceptances"), r);
 }
 
+// ── AI-4 (page) / AI-10: client-side checks, on the source and the built legacy copy ──
+{
+  const fs = await import("node:fs");
+  for (const file of ["public/script.js", "public/legacy/script.js"]) {
+    const src = fs.readFileSync(path.join(root, file), "utf8");
+    check(`AI-4 ${file}: a follow-up answer is ignored when the page's own read is a warning`,
+      // The legacy build spells optional chaining out ("deep == null ? void 0 : deep.isFollowUp").
+      /const followUp\s*=\s*Boolean\(.{0,40}isFollowUp\)\s*&&\s*!\[\s*"suspicious",\s*"malicious"\s*\]\.includes\(.{0,40}verdict\)/.test(src) && /isFollowUp:\s*false\s*\}/.test(src));
+  }
+  for (const file of ["public/cybernet-account-api-upgrade.js", "public/legacy/cybernet-account-api-upgrade.js"]) {
+    const src = fs.readFileSync(path.join(root, file), "utf8");
+    check(`AI-10 ${file}: the OpenAI key is never written to sessionStorage`, !/sessionStorage\.setItem\(\s*KEY_STORAGE/.test(src) && /memoryKey = apiKey/.test(src), null);
+  }
+}
+
 quiet.log(`security endpoints: ${checks - failures}/${checks} checks passed`);
 if (failures) process.exit(1);

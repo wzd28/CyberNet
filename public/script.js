@@ -2970,11 +2970,14 @@ document.addEventListener("DOMContentLoaded",()=>{
       const [deep]=await Promise.all([requestDeepAnalysis(type,serverContent,local,imageData,chatHistory.slice(-6)),minWait]);
       if(stopDiagnostic)stopDiagnostic();
       // A follow-up question is answered about the earlier item, so the local
-      // engine's read of the question itself has nothing to add.
-      const result=deep?.isFollowUp?{...deep,scamType:`Follow-up · ${deep.scamType}`}:mergeAnalysis(local,deep);
+      // engine's read of the question itself has nothing to add. Unless that
+      // read is itself a warning (security audit Nov 2026, AI-4): a scam
+      // message pretending to be a follow-up then gets the normal report.
+      const followUp=Boolean(deep?.isFollowUp)&&!["suspicious","malicious"].includes(local?.verdict);
+      const result=followUp?{...deep,scamType:`Follow-up · ${deep.scamType}`}:{...mergeAnalysis(local,deep),isFollowUp:false};
       if(type==="link")result.previewUrl=/^https?:\/\//i.test(content)?content:`https://${content}`;
-      if(deep?.teamLogId)reportTeamActivity({kind:"analysis_shown",logId:deep.teamLogId,shown:{score:clamp(Math.round(result.score)),label:deep.isFollowUp?"FOLLOW-UP":getDanger(result.score,result).headline,threatType:result.scamType}});
-      result.previewHtml=deep?.isFollowUp?"":type==="link"?renderLinkPreview(result.previewUrl,local):type==="image"&&decodedQrForDisplay?renderQrPreview(decodedQrForDisplay,qrKind,qrResult):renderLinksFound(local.links||[]);
+      if(deep?.teamLogId)reportTeamActivity({kind:"analysis_shown",logId:deep.teamLogId,shown:{score:clamp(Math.round(result.score)),label:followUp?"FOLLOW-UP":getDanger(result.score,result).headline,threatType:result.scamType}});
+      result.previewHtml=followUp?"":type==="link"?renderLinkPreview(result.previewUrl,local):type==="image"&&decodedQrForDisplay?renderQrPreview(decodedQrForDisplay,qrKind,qrResult):renderLinksFound(local.links||[]);
       chatHistory.push({role:"user",text:(type==="image"?"[image attached] ":"")+String(content||"").slice(0,600)},{role:"assistant",text:`${getDanger(result.score,result).headline} ${clamp(Math.round(result.score))}/100 · ${result.scamType}. ${String(result.note||"").slice(0,320)}`});
       if(chatHistory.length>8)chatHistory.splice(0,chatHistory.length-8);
       if(inner){

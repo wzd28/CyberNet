@@ -5,12 +5,13 @@
   const MODEL_STORAGE = "cybernet_validated_openai_model";
   const KEY_SUFFIX_STORAGE = "cybernet_openai_key_suffix";
   const ORIGINAL_FETCH = window.fetch.bind(window);
+  let memoryKey = "";
+  try {
+    sessionStorage.removeItem(KEY_STORAGE);
+  } catch (e) {
+  }
   function getSessionKey() {
-    try {
-      return sessionStorage.getItem(KEY_STORAGE) || "";
-    } catch (e) {
-      return "";
-    }
+    return memoryKey;
   }
   function getSessionModel() {
     try {
@@ -20,6 +21,7 @@
     }
   }
   function clearSessionKey() {
+    memoryKey = "";
     try {
       sessionStorage.removeItem(KEY_STORAGE);
       sessionStorage.removeItem(MODEL_STORAGE);
@@ -884,8 +886,8 @@
             data.error || "OpenAI rejected the key or the key lacks API permission."
           );
         }
+        memoryKey = apiKey;
         try {
-          sessionStorage.setItem(KEY_STORAGE, apiKey);
           sessionStorage.setItem(
             MODEL_STORAGE,
             data.model || "gpt-5-mini"
