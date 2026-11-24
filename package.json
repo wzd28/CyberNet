@@ -30,7 +30,8 @@
     "test:funnel": "node tests/run-funnel.mjs",
     "test:checkout-guard": "node tests/run-checkout-guard.mjs",
     "test:rate-limits": "node tests/run-rate-limits.mjs",
-    "test:security": "node tests/run-security-hardening.mjs && node tests/run-security-webhook.mjs && node tests/run-security-endpoints.mjs && node tests/run-security-migrations.mjs && node tests/run-security-web.mjs"
+    "test:security": "node tests/run-security-hardening.mjs && node tests/run-security-webhook.mjs && node tests/run-security-endpoints.mjs && node tests/run-security-migrations.mjs && node tests/run-security-web.mjs",
+    "security:scan": "node scripts/security-scan.mjs"
   },
   "dependencies": {
     "@netlify/functions": "5.3.0",
