@@ -521,9 +521,10 @@ html.cn #authModal .cn-gate-guest:focus-visible { outline: 2px solid #22d3ee; ou
 /* The iPhone app line inside that card (script.js appLinkHtml, 24 Nov 2026; web only). A text link until the
    owner adds Apple's official badge artwork: never a home-made look-alike of the badge. */
 .cn-save-card .cn-app-line { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--cn-line, rgba(255, 255, 255, .1)); font-size: .88rem; line-height: 1.5; color: var(--cn-text-3, #8a95a7); }
-.cn-save-card .cn-app-link { display: inline-flex; align-items: center; min-height: 44px; margin-right: 10px; color: var(--cn-cyan, #22d3ee); font-weight: 650; font-size: .95rem; text-decoration: underline; text-underline-offset: 3px; }
+.cn-save-card .cn-app-link { display: inline-flex; align-items: center; min-height: 44px; color: var(--cn-cyan, #22d3ee); font-weight: 650; font-size: .95rem; text-decoration: underline; text-underline-offset: 3px; }
 .cn-save-card .cn-app-link:hover { color: #67e8f9; }
 .cn-save-card .cn-app-link:focus-visible { outline: 2px solid #22d3ee; outline-offset: 2px; border-radius: 6px; }
+.cn-save-card .cn-app-line span { display: block; }
 /* "Warn a friend or family member" under a SCAM verdict (script.js shareWarning, 24 Nov 2026; web only). */
 .cn-share-line { display: flex; flex-wrap: wrap; align-items: center; margin: 14px 0 0; }
 .cn-share-line > * { margin: 0 12px 6px 0; }
