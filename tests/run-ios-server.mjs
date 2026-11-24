@@ -670,7 +670,8 @@ for (const [token, limit] of [["t-free", 3], ["t-pro", 3], ["t-member", 3], ["t-
   const src = (f) => readFileSync(path.join(root, "netlify/functions", f), "utf8");
   for (const f of ["account-status.mjs", "analyze.mts", "recovery-mode.mts", "recovery-update.mts", "recovery-case.mts", "privacy-data.mts", "legal-acceptance.mts", "ai-consent.mjs", "client-error.mjs", "feedback.mjs", "team-activity.mts"]) {
     const s = src(f);
-    check(`source: ${f} default export is CORS-wrapped`, /export default withCors\(handler\);/.test(s));
+    // productionOnly (lib/deploy-guard.mjs, INFRA-1) may sit outside the CORS wrapper.
+    check(`source: ${f} default export is CORS-wrapped`, /export default (?:productionOnly\()?withCors\(handler\)\)?;/.test(s));
     const methods = /method:\s*\[([^\]]*)\]/.exec(s.slice(s.indexOf("export const config")));
     check(`source: ${f} route lets OPTIONS through`, !methods || /"OPTIONS"/.test(methods[1]), methods?.[1]);
   }
@@ -679,7 +680,7 @@ for (const [token, limit] of [["t-free", 3], ["t-pro", 3], ["t-member", 3], ["t-
   }
   // the picture of a page (owner, 11 Nov 2026): the app may ask for it, for any signed-in account; the website keeps Pro/Business
   const shot = src("screenshot-preview.mjs");
-  check("source: screenshot-preview is CORS-wrapped for the app, not web-only", /export default withCors\(/.test(shot) && !/webOnly\(/.test(shot));
+  check("source: screenshot-preview is CORS-wrapped for the app, not web-only", /export default (?:productionOnly\()?withCors\(/.test(shot) && !/webOnly\(/.test(shot));
   check("source: screenshot-preview skips the plan check only for app requests, and keeps the per-account caps for everyone but admins", /const fromApp = Boolean\(allowedOrigin\(request\)\);/.test(shot) && /if \(!paid && !fromApp\) \{\s*return json\(\{ error: "Link and QR previews are a Pro feature\." \}, 403\)/.test(shot) && /shot:app:day/.test(shot) && /shot:app:user:/.test(shot) && /if \(!isAdmin\) \{\s*const allowed =/.test(shot));
   const toml = readFileSync(path.join(root, "netlify.toml"), "utf8");
   const ignore = /^\s*ignore = '([^'\n]*)'\s*$/m.exec(toml)?.[1] || "";

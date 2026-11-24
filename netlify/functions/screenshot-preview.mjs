@@ -6,6 +6,7 @@ import { lookup as dnsLookup } from "node:dns/promises";
 // The website keeps it for Pro and Business accounts.
 import { withCors, allowedOrigin } from "../lib/cors.mjs";
 import { burstGuard, readJsonCapped } from "../lib/abuse-guard.mjs";
+import { productionOnly } from "../lib/deploy-guard.mjs"; // INFRA-1: 404 on deploy previews and branch deploys
 
 // Every preview spends a paid GetScreenshot credit (or the shared keyless
 // Microlink allowance), so each account gets a short-burst and a daily cap.
@@ -241,7 +242,7 @@ export async function buildPreview(safeUrl, { apiKey, deadline = previewDeps.now
   }
 }
 
-export default withCors(async (request, context) => {
+export default productionOnly(withCors(async (request, context) => {
   if (request.method !== "POST") {
     return json({ error: "Method not allowed." }, 405);
   }
@@ -329,7 +330,7 @@ export default withCors(async (request, context) => {
   }
   const www = outcome.wwwFallback ? { wwwFallback: true, requestedHost: outcome.requestedHost, shownHost: outcome.shownHost } : {};
   return json({ screenshot: outcome.screenshot, url: outcome.url, provider: outcome.provider, ...www });
-});
+}));
 
 async function isActiveTeamMember(userId) {
   try {

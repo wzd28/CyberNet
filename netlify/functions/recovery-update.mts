@@ -8,6 +8,7 @@ import { withCors, isIOS, honoursWebPlans } from "../lib/cors.mjs";
 import { appTierFor, consumeRecoveryUpdateApp, recoveryCooldownMessage, APP_MESSAGES, appLimitsFor, loadWebPlan, reserveRecoveryUpdateForApp } from "../lib/app-tier.mjs";
 import { aiConsentGate } from "../lib/ai-consent.mjs";
 import { burstGuard, allowAiCall, readJsonCapped } from "../lib/abuse-guard.mjs";
+import { productionOnly } from "../lib/deploy-guard.mjs"; // INFRA-1: 404 on deploy previews and branch deploys
 
 declare const Netlify: {
   env: {
@@ -632,7 +633,7 @@ export { runAiUpdate, sanitizeUpdate, progressFromTasks, writeUpdatedVersion, mo
 
 // CORS for the iPhone app only (netlify/lib/cors.mjs); website requests pass
 // through unchanged. OPTIONS is listed so the app's preflight reaches it.
-export default withCors(handler);
+export default productionOnly(withCors(handler));
 
 export const config = {
   path: "/api/recovery-update",

@@ -10,6 +10,7 @@ import { runAiUpdate, sanitizeUpdate, writeUpdatedVersion } from "./recovery-upd
 import { rekeyPlan, planActions as listPlanActions, buildTaskRows, supersededTaskKeys, taskKeyInList } from "../lib/recovery-tasks.mjs";
 import { reportError } from "../lib/report-error.mjs";
 import { allowAiCall, readBodyText } from "../lib/abuse-guard.mjs";
+import { productionOnly } from "../lib/deploy-guard.mjs"; // INFRA-1: 404 on deploy previews and branch deploys
 
 // Builds the AI recovery plan (or AI update) after the user's request has
 // already returned. Netlify runs this as a background function: the caller
@@ -179,7 +180,7 @@ async function runUpdate(job: UpdateJob) {
   if (reported) await reported;
 }
 
-export default async function handler(request: Request): Promise<Response> {
+async function handler(request: Request): Promise<Response> {
   if (request.method !== "POST") return new Response("Method not allowed", { status: 405 });
 
   // Read with a cap before the signature check (SRV-9): a real job is under
@@ -215,6 +216,8 @@ export default async function handler(request: Request): Promise<Response> {
 
   return new Response("ok");
 }
+
+export default productionOnly(handler);
 
 export const config = {
   path: "/api/recovery-plan-background",

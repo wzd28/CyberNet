@@ -11,6 +11,7 @@ import { linkOrigin } from "../lib/site-url.mjs";
 // Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
 // management, admin): requests from the app get 403 (netlify/lib/cors.mjs).
 import { webOnly } from "../lib/cors.mjs";
+import { productionOnly } from "../lib/deploy-guard.mjs"; // INFRA-1: 404 on deploy previews and branch deploys
 
 function env(name) {
   try {
@@ -20,7 +21,7 @@ function env(name) {
   }
 }
 
-export default webOnly(async (request) => {
+export default productionOnly(webOnly(async (request) => {
   if (request.method !== "POST") {
     return json({ error: "Method not allowed." }, 405);
   }
@@ -68,7 +69,7 @@ export default webOnly(async (request) => {
     const failure = publicErrorBody(error, "Could not open the billing portal. Please try again or email support@cybernetai.app.");
     return json(failure.body, failure.status);
   }
-});
+}));
 
 export const config = {
   path: "/api/customer-portal"

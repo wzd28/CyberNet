@@ -8,6 +8,7 @@ import { appTierFor, consumeRecoveryCaseApp, recoveryCaseLimitMessage, appLimits
 import { aiConsentGate } from "../lib/ai-consent.mjs";
 import { burstGuard, allowAiCall, readJsonCapped } from "../lib/abuse-guard.mjs";
 import { linkOrigin } from "../lib/site-url.mjs";
+import { productionOnly } from "../lib/deploy-guard.mjs"; // INFRA-1: 404 on deploy previews and branch deploys
 
 declare const Netlify: {
   env: {
@@ -1161,7 +1162,7 @@ export type { ClassifierResult };
 
 // CORS for the iPhone app only (netlify/lib/cors.mjs); website requests pass
 // through unchanged. OPTIONS is listed so the app's preflight reaches it.
-export default withCors(handler);
+export default productionOnly(withCors(handler));
 
 export const config = {
   path: "/api/recovery-mode",

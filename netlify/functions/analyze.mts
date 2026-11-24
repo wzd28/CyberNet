@@ -7,6 +7,7 @@ import { withCors, isIOS, honoursWebPlans } from "../lib/cors.mjs";
 import { appTierFor, consumeAnalysisApp, APP_MESSAGES, appLimitsFor, loadWebPlan, reserveAnalysisForApp, refundAnalysisForApp } from "../lib/app-tier.mjs";
 import { aiConsentGate } from "../lib/ai-consent.mjs";
 import { burstGuard, allowAiCall, clientAddress, readJsonCapped } from "../lib/abuse-guard.mjs";
+import { productionOnly } from "../lib/deploy-guard.mjs"; // INFRA-1: 404 on deploy previews and branch deploys
 // The rule set Quick Scan runs in the browser. It registers itself on
 // globalThis, so the page, this function and the tests all read one copy.
 import "../../public/cybernet-engine.js";
@@ -1832,7 +1833,7 @@ export { analyzeTextServer, analyzeLinkServer, verdictFromScore };
 
 // CORS for the iPhone app only (netlify/lib/cors.mjs); website requests pass
 // through unchanged. OPTIONS is listed so the app's preflight reaches it.
-export default withCors(handler);
+export default productionOnly(withCors(handler));
 
 export const config = {
   path: "/api/analyze",

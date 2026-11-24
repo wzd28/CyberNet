@@ -7,6 +7,7 @@ import { burstGuard, clientAddress, smallJsonBody } from "../lib/abuse-guard.mjs
 // Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
 // management, admin): requests from the app get 403 (netlify/lib/cors.mjs).
 import { webOnly } from "../lib/cors.mjs";
+import { productionOnly } from "../lib/deploy-guard.mjs"; // INFRA-1: 404 on deploy previews and branch deploys
 
 // In-memory backstop per warm instance (it was the only limit). The durable
 // limits are the burstGuard rules for "validate-openai-key" in
@@ -70,7 +71,7 @@ function chooseModel(modelIds) {
   ) || "";
 }
 
-export default webOnly(async (request, context) => {
+export default productionOnly(webOnly(async (request, context) => {
   if (request.method !== "POST") {
     return json({ error: "Method not allowed." }, 405);
   }
@@ -216,7 +217,7 @@ export default webOnly(async (request, context) => {
       Number(error?.status) || 500
     );
   }
-});
+}));
 
 export const config = {
   path: "/api/validate-openai-key"
