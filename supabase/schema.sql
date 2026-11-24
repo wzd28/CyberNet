@@ -533,7 +533,7 @@ returns table (
 )
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, pg_temp
 as $$
 declare
   v_plan text := 'free';
@@ -1016,7 +1016,7 @@ create or replace function public.consume_recovery_update_business(p_user_id uui
 returns table(allowed boolean, used integer, daily_limit integer, plan text, reset_at timestamptz, cooldown_seconds_remaining integer)
 language plpgsql
 security definer
-set search_path to 'public'
+set search_path = public, pg_temp
 as $$
 declare
   v_limit integer := 999;

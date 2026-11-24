@@ -224,6 +224,23 @@ const profilePatch = () => writes("/rest/v1/profiles").find((c) => c.method === 
   }
 }
 
+// A real Dispute object has no customer: the alert names its charge.
+{
+  reset();
+  const r = await deliver("charge.dispute.created", { id: "dp_1", object: "dispute", charge: "ch_disputed_1" });
+  // report-error.mjs scrubs Stripe ids from what it keeps, so the alert says "<stripe-id>"; the owner looks it up in Stripe.
+  check("PAY-11 a dispute without a customer still alerts", r.status === 200 && logged.some((l) => /Stripe dispute opened/.test(l) && /Stripe dispute for (<stripe-id>|ch_disputed_1)/.test(l)), logged.slice(-2));
+}
+
+// A declined first payment: the profile gets Stripe's "incomplete", which does
+// not count as a live plan for checkout, so the buyer can try again.
+{
+  reset({ profile: { id: USER, plan: "free", subscription_status: "inactive", stripe_customer_id: "cus_hook", stripe_subscription_id: "" },
+    stripeSubs: [sub("sub_first", "incomplete", "cybernet_ai_pro_monthly")] });
+  const r = await deliver("invoice.payment_failed", { id: "in_first", object: "invoice", customer: "cus_hook", subscription: "sub_first" });
+  check("PAY-4 a declined first payment: free, status incomplete (not past_due)", r.status === 200 && profilePatch()?.plan === "free" && profilePatch()?.subscription_status === "incomplete", profilePatch());
+}
+
 // ── PAY-10 / SRV-11: signature failures and oversized bodies ──
 {
   reset();

@@ -23,7 +23,49 @@
 -- postgres). Mirrored in supabase/schema.sql.
 --
 -- Undo:
---   re-run the handle_new_user block from git show b5cd2bf:supabase/schema.sql
+--   run the previous handle_new_user below (remove the leading "-- "),
+--   then the same revoke and grant lines as in this file:
+-- create or replace function public.handle_new_user()
+-- returns trigger
+-- language plpgsql
+-- security definer
+-- set search_path = public
+-- as $$
+-- begin
+--   insert into public.profiles (
+--     id,
+--     full_name,
+--     plan,
+--     subscription_status
+--   )
+--   values (
+--     new.id,
+--     coalesce(
+--       nullif(
+--         trim(
+--           concat_ws(
+--             ' ',
+--             new.raw_user_meta_data ->> 'first_name',
+--             new.raw_user_meta_data ->> 'last_name'
+--           )
+--         ),
+--         ''
+--       ),
+--       nullif(new.raw_user_meta_data ->> 'full_name', ''),
+--       split_part(coalesce(new.email, 'User'), '@', 1)
+--     ),
+--     'free',
+--     'inactive'
+--   )
+--   on conflict (id) do update
+--   set
+--     full_name = excluded.full_name,
+--     updated_at = now();
+--
+--   return new;
+-- end;
+-- $$;
+--   and set the search_path back:
 --   alter function public.consume_analysis(uuid) set search_path = public;
 --   alter function public.consume_analysis_business(uuid) set search_path = public;
 --   alter function public.consume_quickscan(uuid) set search_path = public;
