@@ -3,12 +3,13 @@ import {
   sanitizePlan,
   serviceFetch,
   verifyBackgroundSignature,
+  MAX_BACKGROUND_JOB_CHARS,
   type ClassifierResult,
 } from "./recovery-mode.mts";
 import { runAiUpdate, sanitizeUpdate, writeUpdatedVersion } from "./recovery-update.mts";
 import { rekeyPlan, planActions as listPlanActions, buildTaskRows, supersededTaskKeys, taskKeyInList } from "../lib/recovery-tasks.mjs";
 import { reportError } from "../lib/report-error.mjs";
-import { allowAiCall } from "../lib/abuse-guard.mjs";
+import { allowAiCall, readBodyText } from "../lib/abuse-guard.mjs";
 
 // Builds the AI recovery plan (or AI update) after the user's request has
 // already returned. Netlify runs this as a background function: the caller
@@ -116,14 +117,19 @@ async function writeAiStartVersion(caseId: string, plan: any) {
 }
 
 async function runStart(job: StartJob) {
+  // Once only (AI-15): a case that already has its AI plan (version 2 or
+  // later) is not planned again, so a repeated job costs no second AI call.
+  const existing = await loadCase(job.caseId);
+  if (existing && (Number(existing.current_version) || 1) > 1) return;
   let rawPlan: any = null;
   try {
-    rawPlan = await runAiRecoveryPlan(job.input, { timeoutMs: 120_000 });
+    rawPlan = await runAiRecoveryPlan({ ...job.input, userId: job.userId }, { timeoutMs: 120_000 });
   } catch (error) {
+    // Name, status and codes only (AI-14): an error message can quote the
+    // person's description. reportError scrubs what it keeps.
     console.error("CyberNet Recovery background plan generation failed", {
       caseId: job.caseId,
       name: error instanceof Error ? error.name : "UnknownError",
-      message: error instanceof Error ? error.message : "Unknown error",
       status: (error as any)?.status,
       code: (error as any)?.code,
       requestId: (error as any)?.request_id,
@@ -148,14 +154,14 @@ async function runUpdate(job: UpdateJob) {
   let reported: Promise<unknown> | null = null;
   try {
     rawUpdate = await runAiUpdate(
-      { previousPlan: job.previousPlan, completedTaskTitles: job.completedTaskTitles, updateText: job.updateText, riskFloor: job.riskFloor, region: job.region || String(caseRow.region || "") },
+      { previousPlan: job.previousPlan, completedTaskTitles: job.completedTaskTitles, updateText: job.updateText, riskFloor: job.riskFloor, region: job.region || String(caseRow.region || ""), userId: job.userId },
       { timeoutMs: 120_000 },
     );
   } catch (error) {
+    // Name, status and codes only (AI-14).
     console.error("CyberNet Recovery background update generation failed", {
       caseId: job.caseId,
       name: error instanceof Error ? error.name : "UnknownError",
-      message: error instanceof Error ? error.message : "Unknown error",
       status: (error as any)?.status,
       code: (error as any)?.code,
       requestId: (error as any)?.request_id,
@@ -175,9 +181,14 @@ async function runUpdate(job: UpdateJob) {
 export default async function handler(request: Request): Promise<Response> {
   if (request.method !== "POST") return new Response("Method not allowed", { status: 405 });
 
-  const body = await request.text();
+  // Read with a cap before the signature check (SRV-9): a real job is under
+  // MAX_BACKGROUND_JOB_CHARS bytes; anything much bigger is not one.
+  const read = await readBodyText(request, MAX_BACKGROUND_JOB_CHARS + 20_000);
+  if (!read.ok) return new Response("Too large", { status: read.status === 413 ? 413 : 400 });
+  const body = read.text;
   const signature = request.headers.get("x-cybernet-signature") || "";
-  if (!(await verifyBackgroundSignature(body, signature))) {
+  const signedAt = request.headers.get("x-cybernet-signed-at") || "";
+  if (!(await verifyBackgroundSignature(body, signature, signedAt))) {
     return new Response("Forbidden", { status: 403 });
   }
 
@@ -193,7 +204,7 @@ export default async function handler(request: Request): Promise<Response> {
     else if (job.kind === "update") await runUpdate(job);
     else return new Response("Unknown job", { status: 400 });
   } catch (error) {
-    console.error("CyberNet Recovery background job failed", { kind: job.kind, caseId: job.caseId, error });
+    console.error("CyberNet Recovery background job failed", { kind: job.kind, caseId: job.caseId, name: error instanceof Error ? error.name : "UnknownError", status: (error as any)?.status, code: (error as any)?.code });
     await reportError(error, { fn: "recovery-plan-background", label: "Recovery background job failed" });
   }
   // A ceiling alert from lib/abuse-guard.mjs (time-boxed, never throws) is

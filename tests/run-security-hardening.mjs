@@ -89,6 +89,10 @@ globalThis.fetch = async (input, init = {}) => {
     const answer = await state.extraFetch(url, method, body, headers);
     if (answer) return answer;
   }
+  if (url.pathname === "/api/recovery-plan-background") {
+    calls.push({ host: "background", headers: Object.fromEntries(headers.entries()), raw: init.body });
+    return new Response(null, { status: 202 });
+  }
   if (url.origin !== SUPABASE) throw new Error(`unexpected fetch ${url}`);
   const pathQ = decodeURIComponent(url.pathname + url.search);
   const call = { host: "supabase", method, path: pathQ, body, auth: headers.get("authorization") };
@@ -113,6 +117,8 @@ globalThis.fetch = async (input, init = {}) => {
       return json(true);
     case "consume_analysis":
       return json([{ allowed: true, used: 1, daily_limit: PROFILE[uid] ? 15 : 3, plan: PROFILE[uid] ? "pro" : "free" }]);
+    case "consume_recovery_case":
+      return json([{ allowed: true, used: 1, daily_limit: 1, plan: "free" }]);
     case "refund_analysis":
     case "refund_analysis_business":
       return new Response(null, { status: 204 });
@@ -126,6 +132,8 @@ globalThis.fetch = async (input, init = {}) => {
     const user = byId[userIn];
     return json(user ? [{ id: user.id, plan: "free", subscription_status: "inactive", ...(PROFILE[user.id] || {}) }] : []);
   }
+  if (url.pathname === "/rest/v1/recovery_cases" && method === "POST") return json([{ id: "case-1", current_version: 1 }], 201);
+  if (["/rest/v1/recovery_versions", "/rest/v1/recovery_tasks"].includes(url.pathname) && method === "POST") return new Response(null, { status: 201 });
   if (url.pathname === "/rest/v1/scan_history" && method === "POST") return json([{ id: 77 }], 201);
   if (["POST", "PATCH", "DELETE"].includes(method)) return new Response(null, { status: 201 });
   return json([]);
@@ -461,6 +469,61 @@ export { check, reset, run, req, state, calls, rpcCalls, quotaKeys, USERS, SITE,
   r = await run(feedback, chunked);
   check("SRV-11 feedback: a chunked oversized body is refused with 413", r.status === 413, r.status);
 }
+
+// ── SRV-4 / AI-7 / SRV-AUTH-13 / SRV-AUTH-8 / SRV-9 / AI-15: Recovery ──
+{
+  const recoveryMod = await import(pathToFileURL(path.join(root, "netlify/functions/recovery-mode.mts")).href);
+  const recovery = recoveryMod.default;
+  const { cleanQuickAnswers, signBackgroundJob, verifyBackgroundSignature } = recoveryMod;
+
+  reset();
+  let r = await run(recovery, req("/api/recovery-mode", { body: "{not json" }));
+  check("SRV-AUTH-13 recovery-mode signed out: 401 before the body is read", r.status === 401 && r.data.code === "sign_in_required", r);
+
+  const qa = cleanQuickAnswers({ sharedOtp: true, sentMoney: false, clickedLink: "yes", nested: { a: 1 }, "bad key": true, ["x".repeat(40)]: true, __proto__: { polluted: true } });
+  check("SRV-4 quick answers: true/false camelCase flags only", JSON.stringify(qa) === JSON.stringify({ sharedOtp: true, sentMoney: false }), qa);
+  const many = Object.fromEntries(Array.from({ length: 50 }, (_, i) => [`k${"abcdefghijklmnopqrstuvwxyz"[i % 26]}${"abcdefghijklmnopqrstuvwxyz"[Math.floor(i / 26)]}`, true]));
+  check("SRV-4 quick answers: at most 20", Object.keys(cleanQuickAnswers(many)).length === 20);
+
+  reset();
+  r = await run(recovery, req("/api/recovery-mode", { token: "t-free", body: {
+    description: "I clicked a link and entered my bank password, then they called asking for the code.",
+    quickAnswers: { clickedLink: true, sharedPassword: true, junk: "Z".repeat(200_000), deep: { x: "Y".repeat(10_000) } },
+    accountsInvolved: ["My bank " + "B".repeat(5_000), "card 4111 1111 1111 1111"],
+    incidentTime: "today", region: "United Arab Emirates" } }));
+  const job = calls.find((c) => c.host === "background");
+  check("SRV-4 recovery-mode still answers with the rule-based plan", r.status === 200 && r.data.caseId === "case-1", { status: r.status, data: r.data?.error });
+  check("SRV-4 the background job is small (junk quick answers dropped)", job && job.raw.length < 20_000, job?.raw?.length);
+  const parsed = job ? JSON.parse(job.raw) : {};
+  check("SRV-4 the job's quick answers are the two real flags", JSON.stringify(parsed.input?.quickAnswers) === JSON.stringify({ clickedLink: true, sharedPassword: true }), parsed.input?.quickAnswers);
+  check("AI-7 account names capped at 80 and redacted", (parsed.input?.accountsInvolved || []).every((a) => a.length <= 80) && !JSON.stringify(parsed.input?.accountsInvolved).includes("4111 1111"), parsed.input?.accountsInvolved);
+  check("AI-12 the job carries the account id for the safety identifier", parsed.input?.userId === USERS["t-free"].id);
+  check("SRV-AUTH-8 the trigger sends a timestamp header with the signature", /^\d{13}$/.test(job?.headers?.["x-cybernet-signed-at"] || "") && /^[0-9a-f]{64}$/.test(job?.headers?.["x-cybernet-signature"] || ""), job?.headers);
+  check("SRV-AUTH-8 the trigger's signature verifies", job && await verifyBackgroundSignature(job.raw, job.headers["x-cybernet-signature"], job.headers["x-cybernet-signed-at"]));
+
+  const body = JSON.stringify({ kind: "start", caseId: "c" });
+  const now = Date.now();
+  const fresh = await signBackgroundJob(body, now);
+  check("SRV-AUTH-8 a fresh signature verifies", await verifyBackgroundSignature(body, fresh.signature, fresh.signedAt, now + 1000));
+  check("SRV-AUTH-8 a tampered body is refused", !(await verifyBackgroundSignature(body + " ", fresh.signature, fresh.signedAt, now)));
+  check("SRV-AUTH-8 a changed timestamp is refused", !(await verifyBackgroundSignature(body, fresh.signature, String(now + 1), now)));
+  check("SRV-AUTH-8 no timestamp is refused (old body-only signatures)", !(await verifyBackgroundSignature(body, fresh.signature, "", now)));
+  check("SRV-AUTH-8 a 16-minute-old job is refused (replay)", !(await verifyBackgroundSignature(body, fresh.signature, fresh.signedAt, now + 16 * 60_000)));
+  check("SRV-AUTH-8 a job 14 minutes old still runs (platform retry)", await verifyBackgroundSignature(body, fresh.signature, fresh.signedAt, now + 14 * 60_000));
+  check("SRV-AUTH-8 a job dated 2 minutes ahead is refused", !(await verifyBackgroundSignature(body, fresh.signature, fresh.signedAt, now - 2 * 60_000)));
+  check("SRV-AUTH-8 a malformed signature is refused without throwing", !(await verifyBackgroundSignature(body, "z".repeat(64), fresh.signedAt, now)) && !(await verifyBackgroundSignature(body, "ab", fresh.signedAt, now)));
+  ENV.RECOVERY_JOB_SECRET = "stub-dedicated-job-secret";
+  check("SRV-AUTH-8 RECOVERY_JOB_SECRET, once set, is the key", !(await verifyBackgroundSignature(body, fresh.signature, fresh.signedAt, now)) && await verifyBackgroundSignature(body, (await signBackgroundJob(body, now)).signature, String(now), now));
+  delete ENV.RECOVERY_JOB_SECRET;
+
+  const background = (await import(pathToFileURL(path.join(root, "netlify/functions/recovery-plan-background.mts")).href)).default;
+  reset();
+  const bg = await background(new Request(`${SITE}/api/recovery-plan-background`, { method: "POST", headers: { "X-CyberNet-Signature": fresh.signature }, body }));
+  check("SRV-9 background job without its timestamp: 403", bg.status === 403, bg.status);
+  const huge = await background(new Request(`${SITE}/api/recovery-plan-background`, { method: "POST", body: "x".repeat(400_000) }));
+  check("SRV-9 an oversized body is refused before the signature check", huge.status === 413, huge.status);
+}
+
 
 console.log(`security hardening: ${checks - failures}/${checks} checks passed`);
 if (failures) process.exit(1);

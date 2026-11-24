@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { triggerBackgroundJob, modelForRiskFloor } from "./recovery-mode.mts";
-import { modelParams, createResponse, autoReplaceEnabled } from "../lib/ai-models.mjs";
+import { modelParams, createResponse, autoReplaceEnabled, safetyIdentifierFor } from "../lib/ai-models.mjs";
 import { rekeyPlan, planActions, buildTaskRows, supersededTaskKeys, taskKeyInList } from "../lib/recovery-tasks.mjs";
 import { reportError } from "../lib/report-error.mjs";
 import { fetchWithJwtRetry, RETRY_STANDARD } from "../lib/supabase-retry.mjs";
@@ -139,6 +139,8 @@ async function runAiUpdate(args: {
   updateText: string;
   riskFloor: string;
   region?: string;
+  // For OpenAI's safety identifier (a one-way hash; AI-12).
+  userId?: string;
 }, options: { timeoutMs?: number } = {}) {
   const apiKey = env("OPENAI_API_KEY");
   if (!apiKey) return null;
@@ -175,6 +177,7 @@ async function runAiUpdate(args: {
       baseOutputTokens: 5_000,
       cacheKey: "cybernet-recovery-update-v1",
       customBaseUrl: Boolean(env("OPENAI_BASE_URL")),
+      safetyIdentifier: safetyIdentifierFor(args.userId || ""),
     }),
     instructions: updateInstructions,
     input: [{ role: "user", content: [{ type: "input_text", text: contextText }] }],
@@ -391,6 +394,10 @@ async function handler(request: Request, context: any): Promise<Response> {
   const contentLength = Number(request.headers.get("content-length") || 0);
   if (contentLength > 1_000_000) return json({ error: "Request is too large" }, 413);
 
+  // Signed in first (security audit Nov 2026, SRV-AUTH-13), as in recovery-mode.
+  const user = await verifySupabaseUser(request);
+  if (!user) return json({ error: "Sign in before updating a Recovery case.", code: "sign_in_required" }, 401);
+
   // Capped while it streams in (lib/abuse-guard.mjs), not only by the declared length.
   const read = await readJsonCapped(request, 1_000_000);
   if (!read.ok) return read.status === 413 ? json({ error: "Request is too large" }, 413) : json({ error: "Invalid JSON body" }, 400);
@@ -406,9 +413,6 @@ async function handler(request: Request, context: any): Promise<Response> {
   const safeTaskKeys = completedTaskKeys.filter((k) => /^[a-z0-9-]{1,40}$/i.test(k));
 
   const { text: updateText, redactedCount } = redactSecrets(rawUpdateText);
-
-  const user = await verifySupabaseUser(request);
-  if (!user) return json({ error: "Sign in before updating a Recovery case.", code: "sign_in_required" }, 401);
 
   if (ios) {
     const blocked = await aiConsentGate(serviceFetch, user.id);
