@@ -285,19 +285,20 @@ export const AI_FREE_CEILING_KEY = "g:ai:calls:day:free";
 // true when an OpenAI call may be made now. Counts the call when it allows it.
 // allowAiCall.lastReport holds the newest alert promise, so a background
 // function (no waitUntil) can await it before it ends.
-// options.freeTier: the caller is on Free or the App tier (see SRV-5 above).
-export async function allowAiCall(fn, context, { freeTier = false } = {}) {
+// options.freeTier (or free, the website lane's name): the caller is on Free or
+// the App tier (see SRV-5 above).
+export async function allowAiCall(fn, context, { freeTier = false, free = false } = {}) {
   const ceiling = aiCeiling();
   if (!ceiling) return true;
-  if (freeTier) {
+  if (freeTier || free) {
     const freeCeiling = Math.max(1, Math.floor(ceiling * FREE_CEILING_SHARE));
-    let free = null;
+    let freeAnswer = null;
     try {
-      free = await guardDeps.consume(AI_FREE_CEILING_KEY, AI_CEILING_WINDOW, freeCeiling);
+      freeAnswer = await guardDeps.consume(AI_FREE_CEILING_KEY, AI_CEILING_WINDOW, freeCeiling);
     } catch {
-      free = null;
+      freeAnswer = null;
     }
-    if (free && free.allowed === false) {
+    if (freeAnswer && freeAnswer.allowed === false) {
       try {
         console.error(JSON.stringify({ tag: "cn_ai_free_ceiling", fn, ceiling: freeCeiling }));
       } catch { /* ignore */ }

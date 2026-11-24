@@ -2301,8 +2301,8 @@ commit;
 -- Read-only checks after this file: supabase/checks/20261121120000_apple_iap_pro_smoke.sql,
 -- then supabase/audit/grants-rls-audit.sql as usual.
 
--- ===== mirror of supabase/migrations/20261124120000_security_iap_sandbox_allowlist.sql =====
--- supabase/migrations/20261124120000_security_iap_sandbox_allowlist.sql
+-- ===== mirror of supabase/migrations/20261124130000_security_iap_sandbox_allowlist.sql =====
+-- supabase/migrations/20261124130000_security_iap_sandbox_allowlist.sql
 -- Security audit Nov 2026, SRV-AUTH-3 / PAY-6: Sandbox (TestFlight / sandbox
 -- tester) Apple purchases no longer give real Pro, except to accounts on a
 -- short allow-list (the App Review demo account and the owner's test accounts).

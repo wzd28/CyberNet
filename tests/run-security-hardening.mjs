@@ -459,6 +459,12 @@ export { check, reset, run, req, state, calls, rpcCalls, quotaKeys, USERS, SITE,
   check("SRV-8 netlify.app host: CF-Connecting-IP is not believed", guard.clientAddress(viaCf("cybernet-ai.netlify.app"), { ip: CF_EDGE }) === CF_EDGE);
   check("SRV-8 twin: a direct visitor is their own address", guard.clientAddress(new Request("https://cybernetai.app/api/x"), { ip: "198.51.100.7" }) === "198.51.100.7");
 
+  // SRV-5: Recovery plans and updates use the website lane's option name ({ free }).
+  reset({ quotaDenied: ["g:ai:calls:day:free"] });
+  check("SRV-5 allowAiCall { free: true } stops at the free share", (await guard.allowAiCall("recovery-plan", undefined, { free: true })) === false);
+  reset({ quotaDenied: ["g:ai:calls:day:free"] });
+  check("SRV-5 twin: a paid caller is not stopped by the free share", (await guard.allowAiCall("recovery-plan", undefined, {})) === true && !quotaKeys().includes("g:ai:calls:day:free"), quotaKeys());
+
   const supa = await load("netlify/lib/supabase.mjs");
   check("SRV-AUTH-5 isAdminUser: an unconfirmed admin address is not admin", supa.isAdminUser({ email: "admin@example.com", email_confirmed_at: null }) === false);
   check("SRV-AUTH-5 twin: the confirmed admin is", supa.isAdminUser({ email: "admin@example.com", email_confirmed_at: CONFIRMED }) === true);

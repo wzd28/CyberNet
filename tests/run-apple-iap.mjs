@@ -82,7 +82,7 @@ for (const [key, id] of Object.entries(U)) {
   await q("insert into public.profiles (id, full_name, plan, subscription_status) values ($1, $2, 'free', 'inactive') on conflict (id) do nothing", [id, key]);
 }
 // The test purchases below are Sandbox-signed. Since the security audit (Nov 2026, SRV-AUTH-3 / PAY-6)
-// Sandbox rows only entitle allow-listed accounts (supabase/migrations/20261124120000_security_iap_sandbox_allowlist.sql),
+// Sandbox rows only entitle allow-listed accounts (supabase/migrations/20261124130000_security_iap_sandbox_allowlist.sql),
 // so the test accounts are on the list, as the App Review demo account will be. The list itself is checked at the end.
 for (const [key, id] of Object.entries(U)) if (key !== "GONE") await q("insert into public.iap_sandbox_allowlist (user_id, note) values ($1, 'test') on conflict (user_id) do nothing", [id]);
 await q("update public.profiles set plan = 'pro', subscription_status = 'active', stripe_customer_id = 'cus_x', stripe_subscription_id = 'sub_x' where id = $1", [U.STRIPE]);
@@ -510,7 +510,7 @@ if (esbuild) {
   check("SRV-AUTH-3 twin: a real (Production) purchase always gives Pro", e.plan === "pro" && e.apple_active === true && e.apple_environment === "Production", e);
   let rerun = true;
   try {
-    const sandboxSql = read("supabase/migrations/20261124120000_security_iap_sandbox_allowlist.sql");
+    const sandboxSql = read("supabase/migrations/20261124130000_security_iap_sandbox_allowlist.sql");
     await db.exec(sandboxSql);
     await db.exec(sandboxSql);
   } catch (error) { rerun = error.message; }
