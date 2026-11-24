@@ -486,6 +486,8 @@ async function runAiRecoveryPlan(args: {
   // The account the case belongs to, for OpenAI's safety identifier (a one-way
   // hash; AI-12). Optional: older jobs in flight have none.
   userId?: string;
+  // A Free or App-tier case draws on the free share of the AI ceiling (SRV-5).
+  freeTier?: boolean;
   description: string;
   quickAnswers: Record<string, boolean>;
   incidentTypeHint: string;
@@ -501,7 +503,7 @@ async function runAiRecoveryPlan(args: {
   if (!apiKey) return null;
   // The global daily OpenAI ceiling (lib/abuse-guard.mjs): when it has tripped
   // the rule-based plan stays current, exactly as when no key is configured.
-  if (!(await allowAiCall("recovery-plan"))) return null;
+  if (!(await allowAiCall("recovery-plan", undefined, { free: Boolean(args.freeTier) }))) return null;
 
   const client = new OpenAI({
     apiKey,
@@ -1004,6 +1006,7 @@ async function handler(request: Request, context: any): Promise<Response> {
       region,
       input: {
         userId: user.id,
+        freeTier: !(usage.plan === "pro" || usage.plan === "business"),
         description,
         quickAnswers,
         incidentTypeHint,

@@ -410,6 +410,23 @@ for (const line of ["Constructor: x", "__proto__: x", "hasOwnProperty: x", "toSt
   check("SRV-9 an oversized body is refused before the signature check", huge.status === 413, huge.status);
 }
 
+// ── SRV-5: Free callers use a 65% share of the AI ceiling first ──
+{
+  reset();
+  await run(analyze, req("/api/analyze", { token: "t-free", body: { type: "text", content: AMBIGUOUS } }));
+  const free = rpc("consume_api_quota").find((c) => c.body.p_key === "g:ai:calls:day:free");
+  check("SRV-5 Free analysis: the free share (1300 of 2000) is checked before the total", free && free.body.p_max_requests === 1300 && quotaKeys().indexOf("g:ai:calls:day:free") < quotaKeys().indexOf("g:ai:calls:day"), quotaKeys());
+  reset();
+  await run(analyze, req("/api/analyze", { token: "t-pro", body: { type: "text", content: AMBIGUOUS } }));
+  check("SRV-5 Pro analysis: only the total ceiling", !quotaKeys().includes("g:ai:calls:day:free") && quotaKeys().includes("g:ai:calls:day"), quotaKeys());
+  reset({ quotaDenied: ["g:ai:calls:day:free"] });
+  let r = await run(analyze, req("/api/analyze", { token: "t-free", body: { type: "text", content: AMBIGUOUS } }));
+  check("SRV-5 free share used up: Free gets the rule engine and a refund", r.data.aiUsed === false && !openaiCalls().length && rpc("refund_analysis").length === 1);
+  reset({ quotaDenied: ["g:ai:calls:day:free"] });
+  r = await run(analyze, req("/api/analyze", { token: "t-pro", body: { type: "text", content: AMBIGUOUS } }));
+  check("SRV-5 free share used up: Pro still gets AI", openaiCalls().length === 1, quotaKeys());
+}
+
 export async function finish(label = "security hardening") {
   quiet.log(`${label}: ${checks - failures}/${checks} checks passed`);
   if (failures) {

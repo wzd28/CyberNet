@@ -38,6 +38,7 @@ type UpdateJob = {
   previousPlan: any;
   riskFloor: string;
   region?: string;
+  freeTier?: boolean;
 };
 
 async function loadCase(caseId: string) {
@@ -154,7 +155,7 @@ async function runUpdate(job: UpdateJob) {
   let reported: Promise<unknown> | null = null;
   try {
     rawUpdate = await runAiUpdate(
-      { previousPlan: job.previousPlan, completedTaskTitles: job.completedTaskTitles, updateText: job.updateText, riskFloor: job.riskFloor, region: job.region || String(caseRow.region || ""), userId: job.userId },
+      { previousPlan: job.previousPlan, completedTaskTitles: job.completedTaskTitles, updateText: job.updateText, riskFloor: job.riskFloor, region: job.region || String(caseRow.region || ""), userId: job.userId, freeTier: Boolean(job.freeTier) },
       { timeoutMs: 120_000 },
     );
   } catch (error) {

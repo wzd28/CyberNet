@@ -141,12 +141,14 @@ async function runAiUpdate(args: {
   region?: string;
   // For OpenAI's safety identifier (a one-way hash; AI-12).
   userId?: string;
+  // A Free or App-tier update draws on the free share of the AI ceiling (SRV-5).
+  freeTier?: boolean;
 }, options: { timeoutMs?: number } = {}) {
   const apiKey = env("OPENAI_API_KEY");
   if (!apiKey) return null;
   // The global daily OpenAI ceiling (lib/abuse-guard.mjs): when it has tripped
   // the update is recorded without the AI rewrite, as when no key is configured.
-  if (!(await allowAiCall("recovery-update"))) return null;
+  if (!(await allowAiCall("recovery-update", undefined, { free: Boolean(args.freeTier) }))) return null;
 
   const client = new OpenAI({
     apiKey,
@@ -525,6 +527,7 @@ async function handler(request: Request, context: any): Promise<Response> {
     previousPlan,
     riskFloor: caseRow.risk_level,
     region: String(caseRow.region || ""),
+    freeTier: !(usage.plan === "pro" || usage.plan === "business"),
   });
 
   if (!aiPending) {

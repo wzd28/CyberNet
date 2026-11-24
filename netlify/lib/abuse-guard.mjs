@@ -237,9 +237,35 @@ export async function burstGuard(fn, { request, context, userId } = {}) {
 // true when an OpenAI call may be made now. Counts the call when it allows it.
 // allowAiCall.lastReport holds the newest alert promise, so a background
 // function (no waitUntil) can await it before it ends.
-export async function allowAiCall(fn, context) {
+// { free: true } for Free and App-tier callers (security audit Nov 2026,
+// SRV-5): they share a sub-ceiling of 65% of the total, checked first, so a
+// farm of free accounts can no longer use up the whole day's AI calls and
+// leave paying customers on the rule engine. Paid plans keep the rest; the
+// total stays the hard bound for everyone. Fails open like the total.
+export const AI_FREE_SHARE = 0.65;
+export const AI_FREE_CEILING_KEY = "g:ai:calls:day:free";
+
+export async function allowAiCall(fn, context, { free = false } = {}) {
   const ceiling = aiCeiling();
   if (!ceiling) return true;
+  if (free) {
+    const freeCeiling = Math.max(1, Math.floor(ceiling * AI_FREE_SHARE));
+    let freeAnswer = null;
+    try {
+      freeAnswer = await guardDeps.consume(AI_FREE_CEILING_KEY, AI_CEILING_WINDOW, freeCeiling);
+    } catch {
+      freeAnswer = null;
+    }
+    if (freeAnswer && freeAnswer.allowed === false) {
+      try {
+        console.error(JSON.stringify({ tag: "cn_ai_ceiling_free", fn, ceiling: freeCeiling }));
+      } catch { /* ignore */ }
+      allowAiCall.lastReport = reportError(new Error(`Free AI call share reached (${freeCeiling} calls in 24 hours)`), {
+        fn, label: "Free accounts' AI share used up: free AI answers paused, paid plans unaffected", context
+      });
+      return false;
+    }
+  }
   let answer = null;
   try {
     answer = await guardDeps.consume(AI_CEILING_KEY, AI_CEILING_WINDOW, ceiling);

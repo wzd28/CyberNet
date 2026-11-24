@@ -1699,7 +1699,7 @@ async function handler(request: Request, context: any): Promise<Response> {
       const own = await consumeQuota(`aicalls:${user.id}`, 86400, perDay);
       if (own && own.allowed === false) aiRoute.call = false;
     }
-    if (!admin && aiRoute.call && aiRoute.model && env("OPENAI_API_KEY") && !(await allowAiCall("analyze", context))) {
+    if (!admin && aiRoute.call && aiRoute.model && env("OPENAI_API_KEY") && !(await allowAiCall("analyze", context, { free: usage.plan !== "pro" && usage.plan !== "business" }))) {
       aiRoute.call = false;
     }
     if (aiRoute.call && aiRoute.model) {
