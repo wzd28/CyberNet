@@ -10,6 +10,7 @@ import {
   serviceFetch
 } from "../lib/supabase.mjs";
 import { reportError } from "../lib/report-error.mjs";
+import { publicErrorBody } from "../lib/public-error.mjs";
 import { withCors, isIOS, honoursWebPlans } from "../lib/cors.mjs";
 import { appTierFor, appLimitsFor, nextUtcMidnight, recoveryNextReset } from "../lib/app-tier.mjs";
 import { hasAiConsent, AI_CONSENT_VERSION } from "../lib/ai-consent.mjs";
@@ -227,10 +228,9 @@ async function handler(request) {
   } catch (error) {
     // Expected answers (401 signed out) carry a 4xx status and are skipped.
     reportError(error, { fn: "account-status", label: "Account status failed", status: error?.status });
-    return json(
-      { error: error.message || "Account status failed." },
-      Number(error.status) || 500
-    );
+    // SRV-AUTH-11: the sign-in message (401) is kept; database text is not shown.
+    const failure = publicErrorBody(error, "Your account details couldn't be loaded. Please try again in a moment.");
+    return json(failure.body, failure.status);
   }
 }
 

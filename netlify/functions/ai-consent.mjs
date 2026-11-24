@@ -13,6 +13,7 @@
 // website does not ask for this consent in 1.0).
 
 import { json, verifyUser, serviceFetch } from "../lib/supabase.mjs";
+import { smallJsonBody } from "../lib/abuse-guard.mjs";
 import { withCors, isIOS } from "../lib/cors.mjs";
 import {
   AI_CONSENT_VERSION, AI_CONSENT_PROVIDER, platformOf,
@@ -58,7 +59,9 @@ async function handler(request) {
     }
 
     if (request.method === "POST") {
-      const body = await request.json().catch(() => ({}));
+      // SRV-11: a small JSON body, capped while it streams in.
+      const body = await smallJsonBody(request, 16_000);
+      if (body === null) return json({ error: "Request is too large." }, 413);
       const version = String(body?.version || "").trim().slice(0, 40);
       if (version !== AI_CONSENT_VERSION) {
         return json({

@@ -11,6 +11,7 @@ import {
 } from "../lib/supabase.mjs";
 import { modelParams, byokModel } from "../lib/ai-models.mjs";
 import { reportError } from "../lib/report-error.mjs";
+import { burstGuard, readBodyText } from "../lib/abuse-guard.mjs";
 // Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
 // management, admin): requests from the app get 403 (netlify/lib/cors.mjs).
 import { webOnly } from "../lib/cors.mjs";
@@ -332,7 +333,7 @@ async function callOpenAI({
   return normalize(parsed);
 }
 
-export default webOnly(async request => {
+export default webOnly(async (request, context) => {
   if (request.method !== "POST") {
     return json({ error: "Method not allowed." }, 405);
   }
@@ -362,6 +363,11 @@ export default webOnly(async request => {
     }
 
     ({ user } = await verifyUser(request));
+
+    // Security audit Nov 2026 (AI-6): per-account and per-connection limits,
+    // so the site cannot be used to sort a list of stolen OpenAI keys.
+    const burst = await burstGuard("byok-analyze", { request, context, userId: user.id });
+    if (burst) return json(burst.body, burst.status);
 
     // Team members use the shared team pool and their activity goes in the
     // owner's log, which only /api/analyze does; the page falls back to it.
@@ -395,7 +401,16 @@ export default webOnly(async request => {
       );
     }
 
-    const rawBody = await request.text();
+    // SRV-11: read with a cap while it streams in (bytes; the character
+    // check below is unchanged).
+    const read = await readBodyText(request, MAX_REQUEST_CHARS + 200_000);
+    if (!read.ok) {
+      throw Object.assign(
+        new Error(read.status === 413 ? "The analysis request is too large." : "Invalid request."),
+        { status: read.status === 413 ? 413 : 400 }
+      );
+    }
+    const rawBody = read.text;
 
     if (rawBody.length > MAX_REQUEST_CHARS) {
       throw Object.assign(
@@ -451,12 +466,15 @@ export default webOnly(async request => {
       byok: true
     });
   } catch (error) {
-    if (reservation?.allowed && user?.id) {
-      await refundAnalysis(user.id).catch(() => null);
-    }
-
     const status = Number(error?.status) || 500;
     const upstream = String(error?.message || "");
+    // AI-6: a key OpenAI rejected (401) or that has no billing or quota (402)
+    // is not refunded, so checking a list of keys costs the daily allowance.
+    // Faults on our side or OpenAI's (5xx, network) and bad requests are.
+    const keyProblem = status === 401 || status === 402 || upstream.toLowerCase().includes("quota") || upstream.toLowerCase().includes("billing");
+    if (reservation?.allowed && user?.id && !keyProblem) {
+      await refundAnalysis(user.id).catch(() => null);
+    }
     // Only server-side faults (5xx): a rejected key or quota is the visitor's.
     reportError(error, { fn: "byok-analyze", label: "BYOK analysis failed", status });
 
@@ -484,11 +502,14 @@ export default webOnly(async request => {
       );
     }
 
+    // OpenAI's own 4xx text about the visitor's key stays (it helps them);
+    // 5xx text never reaches the page (SRV-AUTH-11).
     return json(
       {
         error:
-          upstream ||
-          "BYOK analysis failed."
+          status < 500 && upstream
+            ? upstream
+            : "BYOK analysis failed. Please try again in a moment."
       },
       status
     );

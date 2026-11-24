@@ -1,5 +1,7 @@
 import { json, verifyUser } from "../lib/supabase.mjs";
-import { reportError } from "../lib/report-error.mjs";
+import { smallJsonBody } from "../lib/abuse-guard.mjs";
+import { publicErrorBody } from "../lib/public-error.mjs";
+import { reportError, consumeQuota } from "../lib/report-error.mjs";
 import { fetchWithJwtRetry, RETRY_STANDARD } from "../lib/supabase-retry.mjs";
 import { withCors } from "../lib/cors.mjs";
 
@@ -14,6 +16,19 @@ function env(name) {
 function clean(value, max = 500) {
   return String(value || "").trim().slice(0, max);
 }
+
+// SRV-17: a document version is a date (2026-10-29). The page and the app send
+// their own (terms and privacy can differ), so a real one is kept; any other
+// label falls back to the server's current version.
+function version(value) {
+  const v = clean(value, 40);
+  return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : CURRENT_VERSION;
+}
+
+// SRV-AUTH-13 / SRV-17: at most 20 recorded acceptances per account per hour
+// (a real person records one or two). Over that, the answer is still a
+// success, so nothing on the page or in the app breaks; fails open.
+const ACCEPTANCES_PER_HOUR = 20;
 
 async function insertAcceptance(payload) {
   const url = env("SUPABASE_URL").replace(/\/$/, "");
@@ -45,22 +60,27 @@ async function handler(request) {
   if (request.method !== "POST") return json({ error: "Method not allowed." }, 405);
   try {
     const { user } = await verifyUser(request);
-    const body = await request.json().catch(() => ({}));
+    // SRV-11: a small JSON body, capped while it streams in.
+    const body: any = await smallJsonBody(request, 16_000);
+    if (body === null) return json({ error: "Request is too large." }, 413);
     const acceptanceType = clean(body.kind, 30).toLowerCase();
     if (!ALLOWED_TYPES.has(acceptanceType)) return json({ error: "Unsupported acceptance type." }, 400);
 
     const record = {
       user_id: user.id,
       acceptance_type: acceptanceType,
-      terms_version: clean(body.termsVersion || body.version || CURRENT_VERSION, 40),
-      privacy_version: clean(body.privacyVersion || body.version || CURRENT_VERSION, 40),
-      acceptable_use_version: clean(body.acceptableUseVersion || body.version || CURRENT_VERSION, 40),
-      refund_version: clean(body.refundVersion || body.version || CURRENT_VERSION, 40),
+      terms_version: version(body.termsVersion || body.version),
+      privacy_version: version(body.privacyVersion || body.version),
+      acceptable_use_version: version(body.acceptableUseVersion || body.version),
+      refund_version: version(body.refundVersion || body.version),
       billing_cycle: ["monthly", "yearly"].includes(clean(body.billingCycle, 20).toLowerCase()) ? clean(body.billingCycle, 20).toLowerCase() : null,
       accepted_at: new Date().toISOString(),
       page_url: clean(body.page, 1000),
       user_agent: clean(request.headers.get("user-agent"), 500)
     };
+
+    const quota = await consumeQuota(`legal:${user.id}`, 3600, ACCEPTANCES_PER_HOUR).catch(() => null);
+    if (quota && quota.allowed === false) return json({ recorded: true, version: CURRENT_VERSION });
 
     await insertAcceptance(record);
     return json({ recorded: true, version: CURRENT_VERSION });
@@ -71,7 +91,8 @@ async function handler(request) {
     if (!error?.status || error.status === 503) {
       reportError(error, { fn: "legal-acceptance", label: error?.status === 503 ? "Acceptance storage not configured" : "Acceptance not recorded" });
     }
-    return json({ error: error?.message || "Legal acceptance could not be recorded." }, Number(error?.status) || 500);
+    const failure = publicErrorBody(error, "Legal acceptance could not be recorded.");
+    return json(failure.body, failure.status);
   }
 }
 

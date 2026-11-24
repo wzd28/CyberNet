@@ -68,6 +68,17 @@ export const GUARD_RULES = {
   "screenshot-preview": {
     ip: [{ window: 60, max: 20 }, { window: 3600, max: 120 }],
     user: []
+  },
+  // Bring-your-own-key checks (security audit Nov 2026, AI-6): a person tries
+  // a key a few times at most, so these only stop a script testing a list of
+  // stolen OpenAI keys through the site.
+  "byok-analyze": {
+    ip: [{ window: 60, max: 20 }, { window: 3600, max: 60 }],
+    user: [{ window: 60, max: 5 }]
+  },
+  "validate-openai-key": {
+    ip: [{ window: 60, max: 20 }, { window: 3600, max: 60 }],
+    user: [{ window: 60, max: 5 }, { window: 3600, max: 10 }, { window: 86400, max: 30 }]
   }
 };
 
@@ -139,6 +150,24 @@ export function isCloudflareAddress(address) {
   });
 }
 
+// Only the custom domain sits behind Cloudflare. A request to the
+// *.netlify.app hosts reaches Netlify directly, so there a CF-Connecting-IP
+// header (which anyone relaying through Cloudflare could choose) is not
+// trusted (security audit Nov 2026, SRV-8).
+function viaCustomDomain(request) {
+  try {
+    const host = new URL(request.url).hostname.toLowerCase();
+    let own = "cybernetai.app";
+    try {
+      const configured = env("SITE_URL");
+      if (configured) own = new URL(configured).hostname.toLowerCase();
+    } catch { /* keep the default */ }
+    return host === own || host === `www.${own}`;
+  } catch {
+    return false;
+  }
+}
+
 // The caller's address as well as it can be known.
 export function clientAddress(request, context) {
   let direct = "";
@@ -147,7 +176,7 @@ export function clientAddress(request, context) {
   } catch { /* keep "" */ }
   try {
     const cf = String(request.headers.get("cf-connecting-ip") || "").trim();
-    if (cf && direct && isCloudflareAddress(direct)) return cf.slice(0, 64);
+    if (cf && direct && isCloudflareAddress(direct) && viaCustomDomain(request)) return cf.slice(0, 64);
   } catch { /* fall through */ }
   if (direct) return direct.slice(0, 64);
   try {
@@ -275,4 +304,14 @@ export async function readJsonCapped(request, maxBytes) {
   } catch {
     return { ok: false, status: 400 };
   }
+}
+
+// For small JSON bodies (security audit Nov 2026, SRV-11): the parsed object,
+// {} for an empty or unreadable body (what request.json().catch(() => ({}))
+// gave before), or null when the body is over the cap, which the caller
+// answers with 413.
+export async function smallJsonBody(request, maxBytes = 16_000) {
+  const read = await readJsonCapped(request, maxBytes);
+  if (!read.ok) return read.status === 413 ? null : {};
+  return read.body && typeof read.body === "object" ? read.body : {};
 }

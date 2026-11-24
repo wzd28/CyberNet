@@ -1,5 +1,7 @@
 import { json, verifyUser, getActiveTeamMembership, serviceFetch } from "../lib/supabase.mjs";
+import { smallJsonBody } from "../lib/abuse-guard.mjs";
 import { reportError } from "../lib/report-error.mjs";
+import { publicErrorBody } from "../lib/public-error.mjs";
 // Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
 // management, admin): requests from the app get 403 (netlify/lib/cors.mjs).
 import { webOnly } from "../lib/cors.mjs";
@@ -17,7 +19,9 @@ export default webOnly(async (request: Request) => {
       return json({ error: "Only the team owner can cancel invites." }, 403);
     }
 
-    const body = await request.json().catch(() => ({}));
+    // SRV-11: a small JSON body, capped while it streams in.
+    const body: any = await smallJsonBody(request, 16_000);
+    if (body === null) return json({ error: "Request is too large." }, 413);
     const inviteId = String(body.inviteId || "").trim();
 
     if (!UUID_PATTERN.test(inviteId)) return json({ error: "A valid inviteId is required." }, 400);
@@ -61,7 +65,9 @@ export default webOnly(async (request: Request) => {
     return json({ ok: true, alreadyInactive: true });
   } catch (error: any) {
     reportError(error, { fn: "business-invite-cancel", label: "Invite cancel failed", status: error?.status });
-    return json({ error: error.message || "Could not cancel the invite." }, Number(error.status) || 500);
+    // SRV-AUTH-11 / SRV-14: our own 4xx texts are kept; database text is not shown.
+    const failure = publicErrorBody(error, "Could not cancel the invite. Please try again in a moment.");
+    return json(failure.body, failure.status);
   }
 });
 

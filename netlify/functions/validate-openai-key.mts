@@ -3,24 +3,27 @@ import {
   verifyUser
 } from "../lib/supabase.mjs";
 import { reportError } from "../lib/report-error.mjs";
+import { burstGuard, clientAddress, smallJsonBody } from "../lib/abuse-guard.mjs";
 // Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
 // management, admin): requests from the app get 403 (netlify/lib/cors.mjs).
 import { webOnly } from "../lib/cors.mjs";
 
+// In-memory backstop per warm instance (it was the only limit). The durable
+// limits are the burstGuard rules for "validate-openai-key" in
+// lib/abuse-guard.mjs: per account 5 a minute, 10 an hour, 30 a day, and per
+// connection 20 a minute, 60 an hour (security audit Nov 2026, AI-6 / SRV-7).
 const WINDOW_MS = 10 * 60 * 1000;
 const MAX_ATTEMPTS = 10;
+const MAX_TRACKED = 5_000;
 const attempts = new Map();
-
-function clientAddress(request) {
-  return (
-    request.headers.get("x-nf-client-connection-ip") ||
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    "unknown"
-  );
-}
 
 function allowed(ip) {
   const now = Date.now();
+  // Never grows without bound: old windows go first, then everything.
+  if (attempts.size > MAX_TRACKED) {
+    for (const [key, entry] of attempts) if (now - entry.startedAt > WINDOW_MS) attempts.delete(key);
+    if (attempts.size > MAX_TRACKED) attempts.clear();
+  }
   const current = attempts.get(ip);
 
   if (!current || now - current.startedAt > WINDOW_MS) {
@@ -67,15 +70,18 @@ function chooseModel(modelIds) {
   ) || "";
 }
 
-export default webOnly(async request => {
+export default webOnly(async (request, context) => {
   if (request.method !== "POST") {
     return json({ error: "Method not allowed." }, 405);
   }
 
   try {
-    await verifyUser(request);
+    const { user } = await verifyUser(request);
 
-    const ip = clientAddress(request);
+    const burst = await burstGuard("validate-openai-key", { request, context, userId: user.id });
+    if (burst) return json({ ...burst.body, error: "Too many API-key checks. Wait a while and try again." }, burst.status);
+
+    const ip = clientAddress(request, context);
 
     if (!allowed(ip)) {
       return json(
@@ -95,7 +101,8 @@ export default webOnly(async request => {
       return json({ error: "Request is too large." }, 413);
     }
 
-    const body = await request.json().catch(() => ({}));
+    const body: any = await smallJsonBody(request, 16_000);
+    if (body === null) return json({ error: "Request is too large." }, 413);
     const apiKey = String(body.apiKey || "").trim();
 
     if (!looksLikeOpenAIKey(apiKey)) {

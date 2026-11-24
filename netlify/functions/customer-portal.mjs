@@ -6,6 +6,8 @@ import {
   getProfile
 } from "../lib/supabase.mjs";
 import { reportError } from "../lib/report-error.mjs";
+import { publicErrorBody } from "../lib/public-error.mjs";
+import { linkOrigin } from "../lib/site-url.mjs";
 // Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
 // management, admin): requests from the app get 403 (netlify/lib/cors.mjs).
 import { webOnly } from "../lib/cors.mjs";
@@ -48,7 +50,8 @@ export default webOnly(async (request) => {
     }
 
     const stripe = new Stripe(secret);
-    const origin = new URL(request.url).origin;
+    // SRV-12: back to the site itself (lib/site-url.mjs).
+    const origin = linkOrigin(request);
 
     const session =
       await stripe.billingPortal.sessions.create({
@@ -61,14 +64,9 @@ export default webOnly(async (request) => {
     console.error("Stripe customer portal error", error);
     reportError(error, { fn: "customer-portal", label: "Billing portal failed", status: error?.status });
 
-    return json(
-      {
-        error:
-          error.message ||
-          "Could not open the billing portal."
-      },
-      Number(error.statusCode || error.status) || 500
-    );
+    // PAY-10: our own 4xx texts are kept; Stripe and database messages are not shown.
+    const failure = publicErrorBody(error, "Could not open the billing portal. Please try again or email support@cybernetai.app.");
+    return json(failure.body, failure.status);
   }
 });
 

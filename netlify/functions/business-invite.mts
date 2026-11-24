@@ -1,5 +1,8 @@
 import { json, verifyUser, getActiveTeamMembership, serviceFetch, expireStaleInvites } from "../lib/supabase.mjs";
 import { reportError } from "../lib/report-error.mjs";
+import { publicErrorBody } from "../lib/public-error.mjs";
+import { readJsonCapped } from "../lib/abuse-guard.mjs";
+import { linkOrigin } from "../lib/site-url.mjs";
 // Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
 // management, admin): requests from the app get 403 (netlify/lib/cors.mjs).
 import { webOnly } from "../lib/cors.mjs";
@@ -43,8 +46,10 @@ function escapeHtml(s: string): string {
 // wording instead.
 const DOMAIN_LIKE = /[a-z0-9-]+(?:[.。．｡][a-z0-9-]+)*[.。．｡][a-z]{2,}(?![a-z0-9-])/i;
 
-function sanitizeInviterName(value: unknown): string {
-  const name = String(value || "")
+export function sanitizeInviterName(value: unknown): string {
+  // Cut first (SRV-13): DOMAIN_LIKE is slow on a very long run of characters,
+  // and only the first 60 are ever used.
+  const name = String(value || "").slice(0, 200)
     .replace(/[\u0000-\u001f\u007f<>]/g, "")
     .replace(/https?:\/\/\S+/gi, "")
     .trim();
@@ -57,7 +62,7 @@ async function sendInviteEmail(toEmail: string, inviterName: string, acceptUrl: 
   if (!apiKey) {
     console.error("CyberNet invite: RESEND_API_KEY missing");
     reportError("RESEND_API_KEY is not set", { fn: "business-invite", label: "Invite email not sent" });
-    throw Object.assign(new Error("Invite emails can't be sent right now. Please try again later."), { status: 503 });
+    throw Object.assign(new Error("Invite emails can't be sent right now. Please try again later."), { status: 503, expose: true });
   }
 
   const response = await fetch("https://api.resend.com/emails", {
@@ -110,7 +115,10 @@ export default webOnly(async (request: Request) => {
       return json({ error: "Only the team owner can invite teammates." }, 403);
     }
 
-    const body = await request.json().catch(() => ({}));
+    // SRV-11: the body is one address; capped while it streams in.
+    const read = await readJsonCapped(request, 16_000);
+    if (!read.ok && read.status === 413) return json({ error: "Request is too large." }, 413);
+    const body: any = read.ok && read.body && typeof read.body === "object" ? read.body : {};
     const email = String(body.email || "").trim().toLowerCase();
     // The same pattern as the sign-in form (public/script.js EMAIL_PATTERN): a name, an @, and a
     // domain with a dot and an ending of two or more characters.
@@ -175,10 +183,22 @@ export default webOnly(async (request: Request) => {
 
     if (!insertRes.ok) {
       const payload = await insertRes.json().catch(() => ({}));
-      throw new Error((payload as any)?.message || "Could not create the invite.");
+      // DB-5: the database seat guard (an owner SQL step) answers "Team is full"
+      // or a duplicate pending invite (23505) when parallel requests race past
+      // the checks above; both get the same answers as those checks.
+      const message = String((payload as any)?.message || "");
+      if (/team is full/i.test(message)) {
+        return json({ error: `Team is full (${seatCap}/${seatCap} seats, including you). Remove a member, or email support@cybernetai.app to move up a tier.` }, 409);
+      }
+      if (insertRes.status === 409 || (payload as any)?.code === "23505") {
+        return json({ error: "There's already a pending invite for this email." }, 409);
+      }
+      throw new Error(message || "Could not create the invite.");
     }
 
-    const acceptUrl = `${new URL(request.url).origin}/accept-invite?token=${token}`;
+    // SRV-12: links in the email point at the site itself, not at whichever
+    // host (netlify.app) the request came through.
+    const acceptUrl = `${linkOrigin(request)}/accept-invite?token=${token}`;
     const inviterName = sanitizeInviterName(user.user_metadata?.full_name);
 
     // The row is written before the email goes out; if sending fails, revoke it
@@ -196,7 +216,7 @@ export default webOnly(async (request: Request) => {
       if (sendError?.status) throw sendError;
       throw Object.assign(
         new Error("The invite email could not be sent, so the invite was not created. Please try again in a moment."),
-        { status: 502 }
+        { status: 502, expose: true }
       );
     }
 
@@ -204,7 +224,9 @@ export default webOnly(async (request: Request) => {
   } catch (error: any) {
     // The 502/503 email failures above are already reported; 401 and other 4xx answers are expected.
     if (!error?.status) reportError(error, { fn: "business-invite", label: "Invite send failed" });
-    return json({ error: error.message || "Could not send the invite." }, Number(error.status) || 500);
+    // SRV-AUTH-11 / SRV-14: our own 4xx texts are kept; database text is not shown.
+    const failure = publicErrorBody(error, "Could not send the invite. Please try again in a moment.");
+    return json(failure.body, failure.status);
   }
 });
 
