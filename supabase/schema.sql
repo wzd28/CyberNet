@@ -1570,6 +1570,9 @@ grant execute on function public.funnel_bump(text, text) to service_role;
 --   supabase/migrations/20261121120000_apple_iap_pro.sql        (this file)
 --   supabase/checks/20261121120000_apple_iap_pro_smoke.sql      (read-only, after)
 --   supabase/rollback/20261121120000_apple_iap_pro_rollback.sql (only if something breaks)
+-- NOTE (security audit Nov 2026): re-running THIS file puts back the old
+-- entitlement_of (Sandbox rows entitle everyone). Re-run
+-- 20261124130000_security_iap_sandbox_allowlist.sql right after it.
 -- SAFE TO RE-RUN: idempotent. With no rows in apple_subscriptions every
 -- changed function answers exactly as before (plan_of = the old profile rule).
 --

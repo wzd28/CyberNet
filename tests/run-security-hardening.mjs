@@ -258,7 +258,7 @@ for (const kind of ["incomplete", "refusal", "garbage"]) {
   check("AI-2 twin: an outage (no answer) is always refunded, without using the refund cap", rpcCalls("refund_analysis").length === 1 && !quotaKeys().some((k) => k.startsWith("g:refund:day:")), { keys: quotaKeys(), status: r.status });
   reset({ quotaDenied: ["g:aicalls:day:"] });
   const r2 = await run(analyze, req("/api/analyze", { token: "t-free", body: { type: "text", content: AMBIGUOUS } }));
-  check("AI-2 per-account daily AI-call cap: no OpenAI call, rule answer, refunded", r2.status === 200 && openaiCalls().length === 0 && r2.data.aiUsed === false && rpcCalls("refund_analysis").length === 1, { status: r2.status });
+  check("AI-2 per-account daily AI-call cap: no OpenAI call, rule answer, refunded", r2.status === 200 && openaiCalls().length === 0 && r2.data.aiUsed === false && rpcCalls("refund_analysis").length === 1 && !quotaKeys().some((k) => k.startsWith("g:ai:calls:day")), { status: r2.status, keys: quotaKeys() });
   reset();
   await run(analyze, req("/api/analyze", { token: "t-free", body: { type: "text", content: AMBIGUOUS } }));
   const k = rpcCalls("consume_api_quota").find((c) => c.body.p_key.startsWith("g:aicalls:day:"));

@@ -1710,10 +1710,10 @@ async function handler(request: Request, context: any): Promise<Response> {
     // AI-2: also a per-account daily count of AI calls that refunds never lower;
     // SRV-5: Free and App-tier calls also count against a free-tier share.
     if (!admin && aiRoute.call && aiRoute.model && env("OPENAI_API_KEY")) {
-      const [userOk, globalOk] = await Promise.all([
-        allowUserAiCall(user.id, { paid: paidCaller }),
-        allowAiCall("analyze", context, { freeTier: !paidCaller }),
-      ]);
+      // In sequence, the account's own count first: an account past its cap
+      // must not use up a slot of the shared (free or global) ceilings.
+      const userOk = await allowUserAiCall(user.id, { paid: paidCaller });
+      const globalOk = userOk && (await allowAiCall("analyze", context, { freeTier: !paidCaller }));
       if (!userOk || !globalOk) aiRoute.call = false;
     }
     if (aiRoute.call && aiRoute.model) {
