@@ -135,8 +135,8 @@ document.addEventListener("DOMContentLoaded",()=>{
   const DEFAULT_DESCRIPTION=document.querySelector('meta[name="description"]')?.content||"";
   const PAGE_META={
     home:{
-      title:"CyberNet AI | AI-Powered Cybersecurity",
-      description:"CyberNet AI provides on-demand threat analysis, account-based AI access, and clear defensive next actions for suspicious messages, links, and screenshots."
+      title:"Free Scam Checker for Texts, Links & QR Codes | CyberNet AI",
+      description:"Paste a text, email, link or QR code and see the scam warning signs in seconds, with the reasons. Free to try. Already clicked? Get a step-by-step recovery plan."
     },
     cybernet:{
       title:"Quick Scan | CyberNet AI",
@@ -2537,19 +2537,69 @@ document.addEventListener("DOMContentLoaded",()=>{
     card.innerHTML=`<p class="cn-save-head" id="cnSaveCardHead">${left>0?"Want the full AI explanation of this message?":"You've used your 3 free checks without an account"}</p>
       <p class="cn-save-text">A free account adds Analysis AI, which explains the warning signs in plain words (3 a day), 5 Quick Scans a day and a Recovery plan if something already went wrong.</p>
       <p class="cn-guest-left">${left>0?`${left} free check${left===1?"":"s"} left without an account.`:"Create a free account to keep checking. It takes a few seconds."}</p>
-      <div class="cn-save-actions"><button type="button" class="primary-btn" data-guest-signup>Create a free account</button><button type="button" class="cn-save-later" data-guest-later>Not now</button></div>`;
+      <div class="cn-save-actions"><button type="button" class="primary-btn" data-guest-signup>Create a free account</button><button type="button" class="cn-save-later" data-guest-later>Not now</button></div>${appLinkHtml(left>0?"web_result":"web_wall")}`;
     card.querySelector("[data-guest-signup]").addEventListener("click",()=>openAuthModal("signup"));
     card.querySelector("[data-guest-later]").addEventListener("click",()=>{card.remove()});
     const summary=box.querySelector(".plain-summary");
     if(summary&&summary.parentNode)summary.insertAdjacentElement("afterend",card);
     else box.appendChild(card);
   }
-  /* After every Quick Scan result: the funnel step (guest or account) and the GA4 scan event. */
-  function afterQuickScan(box,type){
+  /* iPhone app link (growth, 24 Nov 2026). The website had no route to the App Store. Under a guest's result
+     card: "Get the free iPhone app" with Apple's campaign tag (ct=web_result, or web_wall after the last free
+     check), so App Store Connect > App Analytics > Sources counts downloads per placement. Only benefits the
+     app really has (Share extension, camera QR scan). Not shown on Android, nor where the time zone is in the
+     EU: the app is not on the EU App Store until Apple approves the trader declaration (a rough location
+     guess, free and private; a wrong guess only shows or hides one link). The click is a GA4 event
+     (app_click, after cookie consent only); the first-party funnel is unchanged (its event list is fixed
+     on the server). The official Apple badge artwork is an owner download; until then this is a text link. */
+  const APP_STORE_URL="https://apps.apple.com/app/cybernet-ai/id6828596086";
+  const EU_TIME_ZONES=/^(?:Europe\/(?:Amsterdam|Athens|Berlin|Bratislava|Brussels|Bucharest|Budapest|Busingen|Copenhagen|Dublin|Helsinki|Lisbon|Ljubljana|Luxembourg|Madrid|Malta|Mariehamn|Nicosia|Paris|Prague|Riga|Rome|Sofia|Stockholm|Tallinn|Vienna|Vilnius|Warsaw|Zagreb)|Asia\/(?:Nicosia|Famagusta)|Atlantic\/(?:Azores|Canary|Madeira)|Africa\/Ceuta)$/;
+  function appLinkAllowed(){
+    try{
+      if(/Android/i.test(navigator.userAgent||""))return false;
+      return !EU_TIME_ZONES.test(Intl.DateTimeFormat().resolvedOptions().timeZone||"");
+    }catch{return true}
+  }
+  function appLinkHtml(ct){
+    if(!appLinkAllowed())return"";
+    return `<p class="cn-app-line"><a class="cn-app-link" href="${APP_STORE_URL}?ct=${ct}" target="_blank" rel="noopener" data-cn-app="${ct}">Get the free iPhone app</a><span>Check a text right from the Share button, or scan a QR code with your camera.</span></p>`;
+  }
+  document.addEventListener("click",e=>{const a=e.target&&e.target.closest?e.target.closest("a[data-cn-app]"):null;if(a)track("app_click",{placement:a.getAttribute("data-cn-app")})});
+  /* "Warn a friend or family member" (growth, 24 Nov 2026): under a SCAM verdict only (a shared "low risk" could
+     read as a promise). It shares a fixed sentence and a link to the free checker, NEVER the message, link or
+     picture that was checked: those can hold private data. The native share sheet where there is one, else the
+     sentence and link are copied. utm_source=share lands the friend on Quick Scan (try-first) and is kept as
+     their signup_source. GA4 event share_verdict. */
+  const SHARE_URL="https://cybernetai.app/?try=1&utm_source=share&utm_medium=verdict";
+  const SHARE_TEXT="I checked a message with CyberNet AI and it showed scam warning signs. Got something like it? Check it free:";
+  function shareWarning(box,result){
+    if(!box||!result||riskMeta(result).label!=="Scam")return;
+    box.querySelector(".cn-share-line")?.remove();
+    const line=document.createElement("p");
+    line.className="cn-share-line";
+    line.innerHTML=`<button type="button" class="cn-share-btn">Warn a friend or family member</button><span class="cn-share-done" role="status" aria-live="polite"></span>`;
+    const done=line.querySelector(".cn-share-done");
+    line.querySelector("button").addEventListener("click",async()=>{
+      track("share_verdict",{});
+      if(navigator.share){
+        try{await navigator.share({title:"CyberNet AI",text:SHARE_TEXT,url:SHARE_URL});return}
+        catch(err){if(err&&err.name==="AbortError")return}
+      }
+      try{await navigator.clipboard.writeText(`${SHARE_TEXT} ${SHARE_URL}`);done.textContent="Copied. Paste it in a chat."}
+      catch{done.textContent=SHARE_URL}
+    });
+    const summary=box.querySelector(".plain-summary");
+    if(summary&&summary.parentNode)summary.insertAdjacentElement("afterend",line);
+    else box.appendChild(line);
+  }
+  /* After every Quick Scan result: the funnel step (guest or account), the GA4 scan event, the guest card and,
+     under a SCAM verdict, the warn-someone button (right under the summary, above the guest card). */
+  function afterQuickScan(box,type,result){
     const guest=!isSignedIn();
     cnFunnel(guest?"scan_guest":"scan_account");
     track("scan",{type,guest});
     if(guest)guestNote(box);
+    shareWarning(box,result);
   }
   async function checkQuickScanQuota(){
     /* A Try chip on Home (20-scanbox.js) runs our own example: for a guest it does not use a free check, even
@@ -2605,7 +2655,7 @@ document.addEventListener("DOMContentLoaded",()=>{
         ?/*@web*/"This looked like a link rather than a message, so CyberNet AI analyzed it with the link engine for a more accurate result. Use Link Detection directly next time for the same result."/*@end-web*//*@ios "This looked like a link rather than a message, so CyberNet AI checked it with the link engine, which reads web addresses more closely. Use Link Detection directly next time for the same result." @end-ios*/
         :/*@web*/"Local protection scan complete. Use Analysis AI for a deeper, AI-assisted check."/*@end-web*//*@ios "Check on your iPhone complete. Use Analysis AI for a deeper, AI-assisted check." @end-ios*/;
       showReport(cyberTextResult,result.score,result.scamType,result.reasons,result.advice,{...result,note,previewHtml:isBareLink?renderLinkPreview(text,result):renderLinksFound(result.links||[])});
-/*@web*/      afterQuickScan(cyberTextResult,isBareLink?"link":"text");/*@end-web*/
+/*@web*/      afterQuickScan(cyberTextResult,isBareLink?"link":"text",result);/*@end-web*/
       prependScan("textScanList",`“${text.slice(0,42)}${text.length>42?"…":""}”`,result);
       reportTeamActivity({kind:"quick_scan",scanType:isBareLink?"link":"text",content:text,result:quickScanLogResult(result)});
       if(status)status.textContent="Local scan complete";
@@ -2628,7 +2678,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     runScan(cyberLinkBtn,cyberLinkResult,async()=>{
       const result=analyzeLinkRules(link);
       showReport(cyberLinkResult,result.score,result.scamType,result.reasons,result.advice,{...result,note:"Local structural URL scan complete. Use Analysis AI for a deeper, AI-assisted check.",previewHtml:renderLinkPreview(link,result)});
-      prependScan("linkScanList",link.slice(0,52),result);/*@web*/afterQuickScan(cyberLinkResult,"link");/*@end-web*/
+      prependScan("linkScanList",link.slice(0,52),result);/*@web*/afterQuickScan(cyberLinkResult,"link",result);/*@end-web*/
       reportTeamActivity({kind:"quick_scan",scanType:"link",content:link,result:quickScanLogResult(result)});
     },300,checkQuickScanQuota());
   });
@@ -2708,7 +2758,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     // the filename alone. Opted in here, not inside analyzeImageRules, because
     // the Analysis AI page reuses that function for its own pre-analysis.
     showReport(cyberImageResult,result.score,result.scamType,result.reasons,result.advice,{...result,needsDeepScan:!decoded.qrData,note:/*@web*/"Local QR and file checks complete. Use Analysis AI for a deeper, AI-assisted check."/*@end-web*//*@ios "Check on your iPhone complete. Use Analysis AI for a deeper, AI-assisted check." @end-ios*/,previewHtml:decoded.qrData?renderQrPreview(decoded.qrData,qrKind,qrResult):""});
-    prependScan("imageScanList",file.name,result);/*@web*/afterQuickScan(cyberImageResult,"image");/*@end-web*/
+    prependScan("imageScanList",file.name,result);/*@web*/afterQuickScan(cyberImageResult,"image",result);/*@end-web*/
     reportTeamActivity({kind:"quick_scan",scanType:"image",content:"",fileName:file.name,qr:decoded.qrData?{kind:qrKind,data:decoded.qrData}:null,result:quickScanLogResult(result,{needsDeepScan:!decoded.qrData})});
   }
 /*@web*/  if(cyberDropZone)cyberDropZone.addEventListener("click",e=>{if(!guestCanScan()){e.preventDefault();askForAccount()}});/*@end-web*/

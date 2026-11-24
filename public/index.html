@@ -30,8 +30,12 @@
   </script>
   <script>window.CN_modernJs = ({ ...{ a: 1 } }).a === 1;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>CyberNet AI | AI-Powered Cybersecurity</title>
-  <meta name="description" content="CyberNet AI provides on-demand threat analysis, deep evidence correlation, account-based AI access, and clear defensive next actions for suspicious messages, links, email headers, QR codes, and screenshots." />
+  <title>Free Scam Checker for Texts, Links &amp; QR Codes | CyberNet AI</title>
+  <meta name="description" content="Paste a text, email, link or QR code and see the scam warning signs in seconds, with the reasons. Free to try. Already clicked? Get a step-by-step recovery plan." />
+  <!-- Smart App Banner (growth, 24 Nov 2026): Safari on iPhone shows "Open / View" for the CyberNet AI app
+       above the page. Apple only shows it where the app is sold, so EU visitors simply do not see it. The
+       iPhone app build rebuilds <head> from an allow-list, so this tag never reaches the app. -->
+  <meta name="apple-itunes-app" content="app-id=6828596086" />
   <meta name="theme-color" content="#160d42" />
   <meta name="ahrefs-site-verification" content="f91bf5f9cc3131a0f67f4880e83a0f06eb6bb66a204164dc0887aaf87f37cd0a">
   <!-- Deep links (/pricing, /learn, ...) load with #home as the active page, and script.js only
@@ -126,7 +130,7 @@
   <link rel="stylesheet" href="/cybernet-howto.css?v=20260905-1" />
   <link id="cybernetBusinessTeamStylesheet" rel="stylesheet" href="/cybernet-business-team.css?v=20260927-2" />
   <link rel="stylesheet" href="/cybernet-consent.css?v=20260927-2" />
-  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261119-b1" />
+  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261124-g1" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=20261029-m1">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=20261029-m1">
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=20261029-m1">
@@ -138,8 +142,8 @@
 <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="CyberNet AI" />
-<meta property="og:title" content="CyberNet AI | AI-Powered Cybersecurity" />
-<meta property="og:description" content="Analyze suspicious messages, links, QR codes, screenshots, and cybersecurity evidence with clear risk explanations and defensive next actions." />
+<meta property="og:title" content="Is this a scam? Check a text, link or QR code free | CyberNet AI" />
+<meta property="og:description" content="Paste a text, email, link or QR code and see the scam warning signs in seconds, with the reasons. Already clicked? Get a step-by-step recovery plan." />
 <meta property="og:url" content="https://cybernetai.app/" />
 <!-- Preview card shown wherever a link is shared or advertised. Absolute URL is
      required: most crawlers do not resolve relative paths. Dimensions are
@@ -151,8 +155,8 @@
 <meta property="og:image:height" content="630" />
 <meta property="og:image:alt" content="CyberNet AI - Detect and Protect. Check suspicious messages, links and screenshots for scams in seconds." />
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="CyberNet AI | AI-Powered Cybersecurity" />
-<meta name="twitter:description" content="Analyze suspicious messages, links, QR codes, screenshots, and cybersecurity evidence with clear risk explanations and defensive next actions." />
+<meta name="twitter:title" content="Is this a scam? Check a text, link or QR code free | CyberNet AI" />
+<meta name="twitter:description" content="Paste a text, email, link or QR code and see the scam warning signs in seconds, with the reasons. Already clicked? Get a step-by-step recovery plan." />
 <meta name="twitter:image" content="https://cybernetai.app/og-image.jpg?v=20261029-m1" />
 <meta name="twitter:image:alt" content="CyberNet AI - Detect and Protect. Check suspicious messages, links and screenshots for scams in seconds." />
 <script type="application/ld+json">
@@ -164,7 +168,7 @@
       "@id": "https://cybernetai.app/#website",
       "url": "https://cybernetai.app/",
       "name": "CyberNet AI",
-      "description": "AI-powered cybersecurity analysis for suspicious messages, links, QR codes, screenshots, and incident evidence.",
+      "description": "Free scam checker: paste a text, email, link or QR code and see the warning signs in seconds, with a step-by-step recovery plan if you already clicked.",
       "inLanguage": "en"
     },
     {
@@ -172,7 +176,26 @@
       "@id": "https://cybernetai.app/#organization",
       "name": "CyberNet AI",
       "url": "https://cybernetai.app/",
-      "email": "support@cybernetai.app"
+      "email": "support@cybernetai.app",
+      "logo": "https://cybernetai.app/favicon-512x512.png",
+      "sameAs": [
+        "https://www.instagram.com/cybernetai.app/",
+        "https://www.tiktok.com/@cybernetai26",
+        "https://www.linkedin.com/company/cybernetai/",
+        "https://apps.apple.com/app/cybernet-ai/id6828596086"
+      ]
+    },
+    {
+      "@type": "MobileApplication",
+      "@id": "https://cybernetai.app/#iphone-app",
+      "name": "CyberNet AI",
+      "description": "Check texts, links, QR codes and screenshots for scam warning signs on your iPhone, and get a step-by-step recovery plan if you already clicked.",
+      "operatingSystem": "iOS",
+      "applicationCategory": "SecurityApplication",
+      "url": "https://apps.apple.com/app/cybernet-ai/id6828596086",
+      "installUrl": "https://apps.apple.com/app/cybernet-ai/id6828596086",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "publisher": { "@id": "https://cybernetai.app/#organization" }
     },
     {
       "@type": "Course",
@@ -3240,7 +3263,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" defer></script>
   <script src="/config.js?v=20260830-3" defer></script>
   <script src="/legacy/cybernet-engine.js?v=20261030-d1" defer></script>
-  <script src="/legacy/script.js?v=20261124-w1" defer></script>
+  <script src="/legacy/script.js?v=20261124-g1" defer></script>
   <script src="/legacy/cybernet-account-api-upgrade.js?v=20261124-w1" defer></script>
   <script src="/cybernet-howto.js?v=20261019-1" defer></script>
 <script src="/legacy/cybernet-business-team.js?v=20261124-w1" defer></script>
