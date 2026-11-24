@@ -669,7 +669,7 @@ for (const [token, limit] of [["t-free", 3], ["t-pro", 3], ["t-member", 3], ["t-
   // the picture of a page (owner, 11 Nov 2026): the app may ask for it, for any signed-in account; the website keeps Pro/Business
   const shot = src("screenshot-preview.mjs");
   check("source: screenshot-preview is CORS-wrapped for the app, not web-only", /export default withCors\(/.test(shot) && !/webOnly\(/.test(shot));
-  check("source: screenshot-preview skips the plan check only for app requests, and keeps the per-account caps for everyone but admins", /const fromApp = Boolean\(allowedOrigin\(request\)\);\s*if \(!isAdmin && !fromApp\) \{\s*const profile/.test(shot) && /shot:app:day/.test(shot) && /if \(!isAdmin\) \{\s*const allowed =/.test(shot));
+  check("source: screenshot-preview skips the plan check only for app requests, and keeps the per-account caps for everyone but admins", /const fromApp = Boolean\(allowedOrigin\(request\)\);/.test(shot) && /if \(!paid && !fromApp\) \{\s*return json\(\{ error: "Link and QR previews are a Pro feature\." \}, 403\)/.test(shot) && /shot:app:day/.test(shot) && /shot:app:user:/.test(shot) && /if \(!isAdmin\) \{\s*const allowed =/.test(shot));
   const toml = readFileSync(path.join(root, "netlify.toml"), "utf8");
   const ignore = /^\s*ignore = '([^'\n]*)'\s*$/m.exec(toml)?.[1] || "";
   check("netlify.toml: mobile-only commits skip the Netlify build", /git diff --quiet "\$CACHED_COMMIT_REF" "\$COMMIT_REF" -- public netlify netlify\.toml package\.json package-lock\.json supabase$/.test(ignore), ignore);

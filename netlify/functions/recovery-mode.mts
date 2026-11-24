@@ -724,8 +724,9 @@ const ADMIN_EMAILS = (Netlify.env.get("ADMIN_EMAILS") || "")
   .map((value) => value.trim().toLowerCase())
   .filter(Boolean);
 
-function isAdminUser(user: { email?: string } | null): boolean {
-  return Boolean(user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase()));
+// The address must be confirmed too (security audit Nov 2026, SRV-AUTH-5).
+function isAdminUser(user: { email?: string; email_confirmed_at?: string | null; confirmed_at?: string | null } | null): boolean {
+  return Boolean(user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase()) && (user.email_confirmed_at || user.confirmed_at));
 }
 
 async function consumeRecoveryCase(userId: string) {

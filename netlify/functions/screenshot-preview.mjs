@@ -13,10 +13,19 @@ const SHOT_PER_MINUTE = 6;
 const SHOT_PER_DAY = 60;
 // All app accounts together (owner, 11 Nov 2026: pictures for every signed-in app account).
 const APP_SHOTS_PER_DAY = 300;
+// Each Free app account on its own (security audit Nov 2026, SRV-AUTH-1 /
+// SRV-1 / AI-3). The app is recognised by its capacitor://localhost Origin,
+// which a browser page cannot send but curl or a script can, so the Origin is
+// not proof of the app. Without this cap a handful of free accounts sending
+// that Origin could use up the shared 300 a day and leave real app users with
+// "Preview limit reached". With it, draining the pool takes 30 accounts.
+// Pro, Business and admin accounts never use the app pool.
+const APP_SHOTS_PER_ACCOUNT_PER_DAY = 10;
 
 // Fails open: a quota-service outage must not take previews away from paying
-// users.
-async function consumeQuota(key, windowSeconds, max) {
+// users. { failClosed: true } is used only for the free app pictures, which
+// are the ones a script could spend without paying (AI-3).
+async function consumeQuota(key, windowSeconds, max, { failClosed = false } = {}) {
   try {
     const r = await serviceFetch("/rest/v1/rpc/consume_api_quota", {
       method: "POST",
@@ -25,14 +34,14 @@ async function consumeQuota(key, windowSeconds, max) {
     if (!r.ok) {
       console.error("CyberNet screenshot quota check failed", r.status);
       reportError(`Quota check failed (HTTP ${r.status})`, { fn: "screenshot-preview", label: "Preview quota check failed" });
-      return true;
+      return !failClosed;
     }
     const d = await r.json().catch(() => null);
     return d?.allowed !== false;
   } catch (e) {
     console.error("CyberNet screenshot quota check failed", e?.message);
     reportError(e, { fn: "screenshot-preview", label: "Preview quota check failed" });
-    return true;
+    return !failClosed;
   }
 }
 
@@ -87,13 +96,21 @@ function isPrivateAddress(address) {
   const mapped = a.match(/^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/);
   const v4 = (mapped ? mapped[1] : a).match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
   if (v4) {
-    const [o1, o2] = [Number(v4[1]), Number(v4[2])];
+    const [o1, o2, o3] = [Number(v4[1]), Number(v4[2]), Number(v4[3])];
     return o1 === 0 || o1 === 10 || o1 === 127 || o1 >= 224 ||
       (o1 === 169 && o2 === 254) || (o1 === 172 && o2 >= 16 && o2 <= 31) ||
-      (o1 === 192 && o2 === 168) || (o1 === 100 && o2 >= 64 && o2 <= 127);
+      (o1 === 192 && o2 === 168) || (o1 === 100 && o2 >= 64 && o2 <= 127) ||
+      // SRV-10: benchmarking (198.18.0.0/15), IETF protocol (192.0.0.0/24) and
+      // the three documentation ranges are not public hosts either.
+      (o1 === 198 && (o2 === 18 || o2 === 19)) || (o1 === 192 && o2 === 0 && o3 === 0) ||
+      (o1 === 192 && o2 === 0 && o3 === 2) || (o1 === 198 && o2 === 51 && o3 === 100) ||
+      (o1 === 203 && o2 === 0 && o3 === 113);
   }
   if (!a.includes(":")) return true;
-  return a === "::" || a === "::1" || a.startsWith("::ffff:") || /^f[cd]/.test(a) || /^fe[89ab]/.test(a) || /^ff/.test(a);
+  return a === "::" || a === "::1" || a.startsWith("::ffff:") || /^f[cd]/.test(a) || /^fe[89ab]/.test(a) || /^ff/.test(a) ||
+    // SRV-10: NAT64 (64:ff9b::/96) and 6to4 (2002::/16) can wrap a private IPv4
+    // address; 2001:db8::/32 is documentation only.
+    a.startsWith("64:ff9b:") || a.startsWith("2002:") || /^2001:0?db8:/.test(a);
 }
 
 function dnsReason(code) {
@@ -239,16 +256,21 @@ export default withCors(async (request, context) => {
   // Admin-allowlist accounts have Business access (as account-status reports).
   const isAdmin = isAdminUser(user);
   // The app is recognised by its capacitor://localhost Origin, which a web page cannot set (the
-  // X-CyberNet-Platform header alone could be added by any website visitor).
+  // X-CyberNet-Platform header alone could be added by any website visitor). A script can send
+  // that Origin too, so it only decides which free allowance applies, never a paid one (SRV-AUTH-1).
   const fromApp = Boolean(allowedOrigin(request));
-  if (!isAdmin && !fromApp) {
+  let paid = isAdmin;
+  if (!paid) {
     const profile = await getProfile(user).catch(() => ({}));
     const plan = effectivePlan(profile);
     const onTeam = plan === "business" || Boolean(profile?.isTeamMember) || (await isActiveTeamMember(user.id));
-    if (plan !== "pro" && !onTeam) {
-      return json({ error: "Link and QR previews are a Pro feature." }, 403);
-    }
+    paid = plan === "pro" || onTeam;
   }
+  if (!paid && !fromApp) {
+    return json({ error: "Link and QR previews are a Pro feature." }, 403);
+  }
+  // A free account in the app (or anything sending the app's Origin).
+  const freeApp = !paid && fromApp;
 
   const apiKey = process.env.GETSCREENSHOT_API_KEY || globalThis.Netlify?.env?.get?.("GETSCREENSHOT_API_KEY");
 
@@ -272,8 +294,11 @@ export default withCors(async (request, context) => {
     const allowed =
       (await consumeQuota(`shot:min:${user.id}`, 60, SHOT_PER_MINUTE)) &&
       (await consumeQuota(`shot:day:${user.id}`, 86400, SHOT_PER_DAY)) &&
-      // app accounts are free to make: one shared daily ceiling for all app pictures bounds the credits they can spend
-      (!fromApp || (await consumeQuota("shot:app:day", 86400, APP_SHOTS_PER_DAY)));
+      // Free app accounts: their own daily cap first, so one account cannot drain the shared pool,
+      // then one shared daily ceiling for all app pictures that bounds the credits they can spend.
+      // Both fail closed: a quota outage must not turn free pictures into unlimited ones (AI-3).
+      (!freeApp || (await consumeQuota(`shot:app:user:${user.id}`, 86400, APP_SHOTS_PER_ACCOUNT_PER_DAY, { failClosed: true }))) &&
+      (!freeApp || (await consumeQuota("shot:app:day", 86400, APP_SHOTS_PER_DAY, { failClosed: true })));
     if (!allowed) {
       return json({ error: "Preview limit reached. Please try again later.", code: "rate_limited" }, 429);
     }
@@ -337,13 +362,60 @@ async function rasterwiseScreenshot(apiKey, safeUrl, remaining) {
 // Providers hand back a hosted image address; the bytes are fetched here and
 // given to the page as a data URL, because the page's Content-Security-Policy
 // only allows images from the site itself and inline data.
+// This is the one request this function makes to an address it did not choose
+// (it comes from the provider's answer), so (security audit Nov 2026, SRV-10):
+// only http(s) to a public host name, at most 2.5 MB read while it streams in,
+// and the data URL type is always one of three picture types. The CDN hosts
+// are not pinned: they are not documented and a wrong pin would end previews.
+const MAX_SHOT_BYTES = 2_500_000;
+const SHOT_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+export function safeImageUrl(value) {
+  let parsed;
+  try {
+    parsed = new URL(String(value || ""));
+  } catch {
+    return null;
+  }
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return null;
+  if (parsed.username || parsed.password) return null;
+  const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  if (isPrivateHost(host)) return null;
+  // An IP literal (v4 or v6) must be a public address.
+  if ((/^\d+\.\d+\.\d+\.\d+$/.test(host) || host.includes(":")) && isPrivateAddress(host)) return null;
+  return parsed.toString();
+}
+export function shotContentType(header) {
+  const type = String(header || "").split(";")[0].trim().toLowerCase();
+  // We ask both providers for JPEG; anything unexpected (S3 often answers
+  // binary/octet-stream) is labelled JPEG, never passed through to the page.
+  return SHOT_TYPES.has(type) ? type : "image/jpeg";
+}
 async function imageToDataUrl(imageUrl, remaining) {
-  const image = await fetch(imageUrl, { signal: AbortSignal.timeout(Math.min(10_000, remaining())) });
+  const safe = safeImageUrl(imageUrl);
+  if (!safe) throw new Error("Provider returned an unusable image address.");
+  const image = await fetch(safe, { signal: AbortSignal.timeout(Math.min(10_000, remaining())) });
   if (!image.ok) throw new Error(`Screenshot download failed (${image.status}).`);
-  const bytes = Buffer.from(await image.arrayBuffer());
-  if (bytes.length > 2_500_000) throw new Error("Screenshot too large to inline.");
-  const type = image.headers.get("content-type") || "image/jpeg";
-  return `data:${type};base64,${bytes.toString("base64")}`;
+  if (Number(image.headers.get("content-length") || 0) > MAX_SHOT_BYTES) {
+    image.body?.cancel?.().catch?.(() => {});
+    throw new Error("Screenshot too large to inline.");
+  }
+  const chunks = [];
+  let total = 0;
+  if (image.body?.getReader) {
+    const reader = image.body.getReader();
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > MAX_SHOT_BYTES) {
+        reader.cancel().catch(() => {});
+        throw new Error("Screenshot too large to inline.");
+      }
+      chunks.push(Buffer.from(value.buffer, value.byteOffset, value.byteLength));
+    }
+  }
+  const bytes = Buffer.concat(chunks);
+  return `data:${shotContentType(image.headers.get("content-type"))};base64,${bytes.toString("base64")}`;
 }
 
 // Keyless fallback, used when GetScreenshot is not configured, refuses a URL

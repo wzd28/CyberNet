@@ -11,12 +11,21 @@ function env(name) {
 
 // Admin bypass: checks the authenticated user's verified email against the
 // server-side ADMIN_EMAILS allowlist (comma-separated, case-insensitive).
+// The address must also be confirmed (security audit Nov 2026, SRV-AUTH-5 /
+// PAY-8): otherwise anyone who signed up with a listed address before its
+// owner did, or while "Confirm email" was off, would get the bypass. Google
+// and Apple sign-ins always carry email_confirmed_at, so the real admins are
+// unaffected (lib/app-tier.mjs and feedback-admin.mjs already did this).
 export function isAdminUser(user) {
   const admins = env("ADMIN_EMAILS")
     .split(",")
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean);
-  return Boolean(user?.email && admins.includes(String(user.email).toLowerCase()));
+  return Boolean(
+    user?.email &&
+    admins.includes(String(user.email).toLowerCase()) &&
+    (user.email_confirmed_at || user.confirmed_at)
+  );
 }
 
 export function json(data, status = 200) {

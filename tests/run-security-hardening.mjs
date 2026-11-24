@@ -62,7 +62,7 @@ function json(data, status = 200) {
 let aiAnswer = () => ({ verdict: "low_risk", score: 5, confidence: 80, threatType: "None", summary: "Looks fine.", evidence: ["Stub."], counterEvidence: [], limitations: [], actions: ["Do nothing."] });
 
 globalThis.fetch = async (input, init = {}) => {
-  const url = new URL(typeof input === "string" ? input : input.url);
+  const url = new URL(input instanceof Request ? input.url : String(input));
   const method = String(init.method || "GET").toUpperCase();
   let body;
   try { body = typeof init.body === "string" && init.body ? JSON.parse(init.body) : undefined; } catch { body = init.body; }
@@ -74,6 +74,15 @@ globalThis.fetch = async (input, init = {}) => {
     }
     return json({ id: "r", object: "response", created_at: 1, status: "completed", model: body?.model, output: [{ id: "m", type: "message", role: "assistant", status: "completed", content: [{ type: "output_text", text: JSON.stringify(aiAnswer()), annotations: [] }] }] });
   }
+  if (url.hostname === "api.microlink.io") {
+    calls.push({ host: "microlink", target: url.searchParams.get("url") });
+    return json({ status: "success", statusCode: 200, data: { screenshot: { url: state.shotImageUrl || "https://img.microlink.test/shot.jpg" } } });
+  }
+  if (url.hostname.startsWith("img.")) {
+    calls.push({ host: "img", path: url.pathname });
+    const size = state.shotBytes || 4;
+    return new Response(new Uint8Array(size), { headers: { "content-type": state.shotType || "image/jpeg" } });
+  }
   if (url.origin !== SUPABASE) return json({ message: "unexpected" }, 599);
   const call = { host: "supabase", method, path: decodeURIComponent(url.pathname + url.search), body, auth: headers.get("authorization") };
   calls.push(call);
@@ -82,6 +91,11 @@ globalThis.fetch = async (input, init = {}) => {
     return user ? json(user) : json({ msg: "invalid" }, 401);
   }
   const name = url.pathname.startsWith("/rest/v1/rpc/") ? url.pathname.slice(13) : "";
+  if (name === "consume_api_quota" && state.quotaFail) return json({ message: "down" }, 500);
+  if (url.pathname === "/rest/v1/profiles" && method === "GET") {
+    const uid = (/id=eq\.([0-9a-f-]+)/.exec(call.path) || [])[1];
+    return json([{ id: uid, full_name: "T", plan: PRO.has(uid) ? "pro" : "free", subscription_status: PRO.has(uid) ? "active" : null }]);
+  }
   if (name === "consume_api_quota") {
     const denied = state.quotaDenied.some((p) => String(body?.p_key || "").startsWith(p));
     return json({ allowed: !denied, used: denied ? body.p_max_requests + 1 : 1, reset_at: "2026-11-24T12:00:00Z" });
@@ -269,6 +283,70 @@ for (const line of ["Constructor: x", "__proto__: x", "hasOwnProperty: x", "toSt
   check("AI-8 'do not call', 'block and report' and the bank-card advice stay", actions.includes("Do not call +971 50 123 4567.") && actions.includes("Block and report +971 50 123 4567.") && actions.includes("Call your bank on the number on your card."), actions);
   check("AI-8 the fixed official-channel line is added", actions.some((a) => /official app/.test(a)), actions);
   aiAnswer = () => ({ verdict: "low_risk", score: 5, confidence: 80, threatType: "None", summary: "Looks fine.", evidence: ["Stub."], counterEvidence: [], limitations: [], actions: ["Do nothing."] });
+}
+
+// ── SRV-AUTH-1 / SRV-1 / AI-3 / SRV-10: link previews ──
+{
+  const shotMod = await import(pathToFileURL(path.join(root, "netlify/functions/screenshot-preview.mjs")).href);
+  const shot = shotMod.default;
+  shotMod.previewDeps.lookup = async (host) => [{ address: state.dns?.[host] || "93.184.216.34", family: 4 }];
+  const APP = { Origin: "capacitor://localhost" };
+  const post = (token, headers = {}, url = "https://example.com/") => run(shot, req("/api/screenshot-preview", { token, headers, body: { url } }));
+  const freeId = USERS["t-free"].id;
+
+  reset();
+  let r = await post("t-free");
+  check("SRV-AUTH-1 Free web account: still 403 (Pro feature)", r.status === 403, r);
+
+  reset();
+  r = await post("t-free", APP);
+  const keys = quotaKeys();
+  check("SRV-AUTH-1 Free app account: still gets a picture", r.status === 200 && /^data:image\/jpeg;base64,/.test(r.data.screenshot || ""), { status: r.status, data: r.data });
+  check("SRV-AUTH-1 Free app account: own daily app cap checked before the shared pool",
+    keys.indexOf(`shot:app:user:${freeId}`) >= 0 && keys.indexOf(`shot:app:user:${freeId}`) < keys.indexOf("shot:app:day"), keys);
+  check("SRV-AUTH-1 the per-account app cap is 10 a day", rpc("consume_api_quota").some((c) => c.body.p_key === `shot:app:user:${freeId}` && c.body.p_max_requests === 10 && c.body.p_window_seconds === 86400));
+
+  reset({ quotaDenied: ["shot:app:user:"] });
+  r = await post("t-free", APP);
+  check("SRV-AUTH-1 Free app account over its own cap: 429, shared pool untouched", r.status === 429 && !quotaKeys().includes("shot:app:day") && !calls.some((c) => c.host === "microlink"), { status: r.status, keys: quotaKeys() });
+
+  reset();
+  r = await post("t-pro", APP);
+  check("SRV-AUTH-1 Pro account in the app: no app pool, normal caps", r.status === 200 && !quotaKeys().some((k) => k.startsWith("shot:app")), quotaKeys());
+
+  reset({ quotaFail: true });
+  r = await post("t-free", APP);
+  check("AI-3 quota service down: free app pictures fail closed (429)", r.status === 429 && !calls.some((c) => c.host === "microlink"), r.status);
+  reset({ quotaFail: true });
+  r = await post("t-pro");
+  check("AI-3 quota service down: Pro on the website still fails open", r.status === 200, r.status);
+
+  reset();
+  r = await post("t-admin-unconfirmed");
+  check("SRV-AUTH-5 screenshot-preview: unconfirmed admin email is treated as Free (403)", r.status === 403, r.status);
+
+  // SRV-10: the provider's image address and type
+  const { safeImageUrl, shotContentType } = shotMod;
+  check("SRV-10 safeImageUrl: a normal CDN address passes", safeImageUrl("https://iad.microlink.io/abc.jpeg") === "https://iad.microlink.io/abc.jpeg");
+  for (const bad of ["file:///etc/passwd", "http://localhost/x", "http://127.0.0.1/x", "http://169.254.169.254/latest", "http://[::1]/x", "http://10.1.2.3/x", "http://metadata.internal/", "https://u:p@cdn.example.com/x.jpg", "data:image/png;base64,AA", "gopher://x"]) {
+    check(`SRV-10 safeImageUrl refuses ${bad}`, safeImageUrl(bad) === null);
+  }
+  check("SRV-10 content type: png/webp/jpeg kept, anything else labelled jpeg",
+    shotContentType("image/png") === "image/png" && shotContentType("image/webp; q=1") === "image/webp" && shotContentType("text/html") === "image/jpeg" && shotContentType("image/svg+xml") === "image/jpeg" && shotContentType("") === "image/jpeg");
+  reset({ shotType: "text/html" });
+  r = await post("t-pro");
+  check("SRV-10 a non-picture type is never passed into the data URL", r.status === 200 && /^data:image\/jpeg;base64,/.test(r.data.screenshot || ""), r.data?.screenshot?.slice(0, 40));
+  reset({ shotBytes: 2_600_000 });
+  r = await post("t-pro");
+  check("SRV-10 a picture over 2.5 MB is refused (503), not inlined", r.status === 503, r.status);
+  reset({ shotImageUrl: "http://169.254.169.254/latest/meta-data" });
+  r = await post("t-pro");
+  check("SRV-10 a provider pointing at a private address is never fetched", r.status === 503 && !calls.some((c) => c.host === "img"), r.status);
+  for (const [label, address] of [["198.18.0.0/15", "198.19.1.1"], ["192.0.0.0/24", "192.0.0.8"], ["TEST-NET-1", "192.0.2.5"], ["TEST-NET-3", "203.0.113.5"], ["NAT64", "64:ff9b::a00:1"], ["6to4", "2002:a00:1::1"], ["IPv6 documentation", "2001:db8::1"]]) {
+    reset({ dns: { "example.com": address } });
+    r = await post("t-pro");
+    check(`SRV-10 a name resolving to ${label} is refused`, r.status === 400 && !calls.some((c) => c.host === "microlink"), r.status);
+  }
 }
 
 export async function finish(label = "security hardening") {
