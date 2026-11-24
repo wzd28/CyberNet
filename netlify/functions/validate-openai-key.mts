@@ -6,34 +6,15 @@ import { reportError } from "../lib/report-error.mjs";
 // Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
 // management, admin): requests from the app get 403 (netlify/lib/cors.mjs).
 import { webOnly } from "../lib/cors.mjs";
+// AI-6 / SRV-7 / INFRA-3 (security audit Nov 2026): the limit used to be an
+// in-memory Map per function instance, keyed on the connection address (a
+// shared Cloudflare edge behind cybernetai.app), so it reset on every cold
+// start and worked as a checker for stolen OpenAI keys. It is now durable and
+// per account (burstGuard "validate-openai-key": 10 per 10 minutes and 30 a
+// day per account, plus per-address limits on the real visitor address).
+import { burstGuard, readJsonCapped } from "../lib/abuse-guard.mjs";
 
-const WINDOW_MS = 10 * 60 * 1000;
-const MAX_ATTEMPTS = 10;
-const attempts = new Map();
-
-function clientAddress(request) {
-  return (
-    request.headers.get("x-nf-client-connection-ip") ||
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    "unknown"
-  );
-}
-
-function allowed(ip) {
-  const now = Date.now();
-  const current = attempts.get(ip);
-
-  if (!current || now - current.startedAt > WINDOW_MS) {
-    attempts.set(ip, {
-      startedAt: now,
-      count: 1
-    });
-    return true;
-  }
-
-  current.count += 1;
-  return current.count <= MAX_ATTEMPTS;
-}
+const MAX_BODY_BYTES = 16_000;
 
 function looksLikeOpenAIKey(value) {
   return /^sk-[A-Za-z0-9_-]{20,}$/.test(String(value || ""));
@@ -67,21 +48,21 @@ function chooseModel(modelIds) {
   ) || "";
 }
 
-export default webOnly(async request => {
+export default webOnly(async (request, context) => {
   if (request.method !== "POST") {
     return json({ error: "Method not allowed." }, 405);
   }
 
   try {
-    await verifyUser(request);
+    const { user } = await verifyUser(request);
 
-    const ip = clientAddress(request);
-
-    if (!allowed(ip)) {
+    const burst = await burstGuard("validate-openai-key", { request, context, userId: user?.id });
+    if (burst) {
       return json(
         {
           error:
-            "Too many API-key checks. Wait ten minutes and try again."
+            "Too many API-key checks. Wait ten minutes and try again.",
+          code: "rate_limited"
         },
         429
       );
@@ -91,11 +72,16 @@ export default webOnly(async request => {
       request.headers.get("content-length") || 0
     );
 
-    if (contentLength > 16_000) {
+    if (contentLength > MAX_BODY_BYTES) {
       return json({ error: "Request is too large." }, 413);
     }
 
-    const body = await request.json().catch(() => ({}));
+    // SRV-11: capped while it streams in, not only by the declared length.
+    const read = await readJsonCapped(request, MAX_BODY_BYTES);
+    if (!read.ok && read.status === 413) {
+      return json({ error: "Request is too large." }, 413);
+    }
+    const body = read.ok && read.body && typeof read.body === "object" ? read.body : {};
     const apiKey = String(body.apiKey || "").trim();
 
     if (!looksLikeOpenAIKey(apiKey)) {
@@ -199,14 +185,18 @@ export default webOnly(async request => {
     });
   } catch (error) {
     reportError(error, { fn: "validate-openai-key", label: "Key validation failed", status: error?.status });
+    // SRV-AUTH-11: our own 4xx messages (for example "sign in again") stay; any
+    // other failure gets a fixed text instead of an upstream message.
+    const status = Number(error?.status) || 500;
     return json(
       {
         valid: false,
         error:
-          error?.message ||
-          "The API key could not be validated."
+          status < 500 && error?.status && error?.message
+            ? error.message
+            : "The API key could not be validated."
       },
-      Number(error?.status) || 500
+      status
     );
   }
 });

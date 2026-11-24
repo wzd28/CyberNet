@@ -150,6 +150,16 @@ export function isCloudflareAddress(address) {
   });
 }
 
+// The site's own domain (apex or www), which Cloudflare proxies.
+const CUSTOM_HOSTS = new Set(["cybernetai.app", "www.cybernetai.app"]);
+export function onCustomDomain(request) {
+  try {
+    return CUSTOM_HOSTS.has(new URL(request.url).hostname.toLowerCase());
+  } catch {
+    return false;
+  }
+}
+
 // The caller's address as well as it can be known.
 export function clientAddress(request, context) {
   let direct = "";
@@ -157,8 +167,13 @@ export function clientAddress(request, context) {
     direct = String(context?.ip || request.headers.get("x-nf-client-connection-ip") || "").trim();
   } catch { /* keep "" */ }
   try {
+    // SRV-8 (security audit Nov 2026): CF-Connecting-IP is only believed on
+    // the custom domain, which is the only host Cloudflare proxies to us. On
+    // the *.netlify.app hosts a request relayed through Cloudflare egress (for
+    // example someone's Worker) could choose that header, so there the
+    // connection address is used.
     const cf = String(request.headers.get("cf-connecting-ip") || "").trim();
-    if (cf && direct && isCloudflareAddress(direct)) return cf.slice(0, 64);
+    if (cf && direct && isCloudflareAddress(direct) && onCustomDomain(request)) return cf.slice(0, 64);
   } catch { /* fall through */ }
   if (direct) return direct.slice(0, 64);
   try {

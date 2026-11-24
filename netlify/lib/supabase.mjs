@@ -11,11 +11,15 @@ function env(name) {
 
 // Admin bypass: checks the authenticated user's verified email against the
 // server-side ADMIN_EMAILS allowlist (comma-separated, case-insensitive).
+// SRV-AUTH-5 / PAY-8 (security audit Nov 2026): the email must also be
+// confirmed, so nobody can claim an admin address by signing up with it. Google
+// and Apple sign-ins and confirmed email accounts always carry the field.
 export function isAdminUser(user) {
   const admins = env("ADMIN_EMAILS")
     .split(",")
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean);
+  if (!(user?.email_confirmed_at || user?.confirmed_at)) return false;
   return Boolean(user?.email && admins.includes(String(user.email).toLowerCase()));
 }
 

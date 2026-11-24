@@ -29,7 +29,7 @@ let microlink = () => Response.json({ status: "success", statusCode: 200, data: 
 globalThis.fetch = async (input) => {
   const url = new URL(String(input));
   calls.push({ host: url.hostname, target: url.searchParams.get("url") });
-  if (url.hostname === "stub-project.supabase.test" && url.pathname === "/auth/v1/user") return Response.json({ id: "00000000-0000-4000-8000-000000000001", email: "tester@example.test" });
+  if (url.hostname === "stub-project.supabase.test" && url.pathname === "/auth/v1/user") return Response.json({ id: "00000000-0000-4000-8000-000000000001", email: "tester@example.test", email_confirmed_at: "2026-10-01T00:00:00Z" });
   if (url.hostname === "api.rasterwise.com") return rasterwise(url);
   if (url.hostname === "api.microlink.io") return microlink(url);
   if (url.hostname.startsWith("img.")) return new Response(new Uint8Array([137, 80, 78, 71]), { headers: { "content-type": "image/png" } });

@@ -15,6 +15,7 @@ import { reportError } from "../lib/report-error.mjs";
 // Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
 // management, admin): requests from the app get 403 (netlify/lib/cors.mjs).
 import { webOnly } from "../lib/cors.mjs";
+import { burstGuard } from "../lib/abuse-guard.mjs";
 
 const MAX_TEXT_CHARS = 16_000;
 const MAX_IMAGE_DATA_CHARS = 5_500_000;
@@ -333,7 +334,7 @@ async function callOpenAI({
   return normalize(parsed);
 }
 
-export default webOnly(async request => {
+export default webOnly(async (request, context) => {
   if (request.method !== "POST") {
     return json({ error: "Method not allowed." }, 405);
   }
@@ -363,6 +364,11 @@ export default webOnly(async request => {
     }
 
     ({ user } = await verifyUser(request));
+
+    // AI-6 (security audit Nov 2026): per-account and per-address burst limits,
+    // so this endpoint cannot be looped to sort a list of stolen OpenAI keys.
+    const burst = await burstGuard("byok-analyze", { request, context, userId: user.id });
+    if (burst) return json(burst.body, burst.status);
 
     // Team members use the shared team pool and their activity goes in the
     // owner's log, which only /api/analyze does; the page falls back to it.
@@ -454,12 +460,21 @@ export default webOnly(async request => {
       byok: true
     });
   } catch (error) {
-    if (reservation?.allowed && user?.id) {
-      await refundAnalysis(user.id).catch(() => null);
-    }
-
     const status = Number(error?.status) || 500;
     const upstream = String(error?.message || "");
+    const keyProblem =
+      status === 401 ||
+      status === 402 ||
+      upstream.toLowerCase().includes("quota") ||
+      upstream.toLowerCase().includes("billing");
+
+    // AI-6: a rejected key or a quota/billing problem with the visitor's own
+    // key keeps the analysis counted (otherwise every refund made this a free,
+    // unlimited checker for stolen keys). Our faults (5xx, network) and bad
+    // requests are refunded as before.
+    if (reservation?.allowed && user?.id && !keyProblem) {
+      await refundAnalysis(user.id).catch(() => null);
+    }
     // Only server-side faults (5xx): a rejected key or quota is the visitor's.
     reportError(error, { fn: "byok-analyze", label: "BYOK analysis failed", status });
 
@@ -487,11 +502,14 @@ export default webOnly(async request => {
       );
     }
 
+    // SRV-AUTH-11 / SRV-14: the visitor's own 4xx messages (from OpenAI about
+    // their key, or ours) are useful to them and stay; a 5xx gets a fixed text.
     return json(
       {
         error:
-          upstream ||
-          "BYOK analysis failed."
+          status < 500 && upstream
+            ? upstream
+            : "BYOK analysis failed. Please try again."
       },
       status
     );

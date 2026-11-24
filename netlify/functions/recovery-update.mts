@@ -305,8 +305,10 @@ const ADMIN_EMAILS = (Netlify.env.get("ADMIN_EMAILS") || "")
   .map((value) => value.trim().toLowerCase())
   .filter(Boolean);
 
-function isAdminUser(user: { email?: string } | null): boolean {
-  return Boolean(user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase()));
+// AI-13 / SRV-AUTH-5 (security audit Nov 2026): the bypass also needs a
+// confirmed email, so nobody can claim an admin address by signing up with it.
+function isAdminUser(user: { email?: string; email_confirmed_at?: string | null } | null): boolean {
+  return Boolean(user?.email && user.email_confirmed_at && ADMIN_EMAILS.includes(user.email.toLowerCase()));
 }
 
 async function serviceFetch(path: string, init: RequestInit = {}): Promise<Response> {

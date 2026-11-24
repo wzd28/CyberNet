@@ -337,5 +337,55 @@ export { check, reset, run, req, state, calls, rpcCalls, quotaKeys, USERS, SITE,
 // More sections are appended below this line by later fixes.
 // @@SECTIONS@@
 
+// ══════════ BYOK, key checks, addresses, admin (AI-6, SRV-7, SRV-8, SRV-AUTH-5) ══════════
+{
+  const KEY = "sk-" + "a".repeat(40);
+  const byok = (await load("netlify/functions/byok-analyze.mts")).default;
+  const openaiStatus = (status, message) => async (url) =>
+    url.hostname === "api.openai.com" ? json({ error: { message } }, status) : null;
+
+  reset({ extraFetch: openaiStatus(401, "Incorrect API key provided") });
+  let r = await run(byok, req("/api/byok-analyze", { token: "t-free", headers: { "x-cybernet-openai-key": KEY }, body: { type: "text", content: "hello" } }));
+  check("AI-6 BYOK: a rejected key is not refunded (no free key checker)", r.status === 401 && rpcCalls("refund_analysis").length === 0, { status: r.status, refunds: rpcCalls("refund_analysis").length });
+  check("AI-6 BYOK: burst limits are checked per account", quotaKeys().some((k) => k.startsWith("g:byok-analyze:u60:")), quotaKeys());
+
+  reset({ extraFetch: openaiStatus(500, "internal upstream detail xyz") });
+  r = await run(byok, req("/api/byok-analyze", { token: "t-free", headers: { "x-cybernet-openai-key": KEY }, body: { type: "text", content: "hello" } }));
+  check("AI-6 twin: an OpenAI outage is still refunded", rpcCalls("refund_analysis").length === 1, { status: r.status });
+  check("SRV-AUTH-11 BYOK 5xx: no upstream text in the answer", !JSON.stringify(r.data).includes("xyz"), r.data);
+
+  reset({ quotaDenied: ["g:byok-analyze:"] });
+  r = await run(byok, req("/api/byok-analyze", { token: "t-free", headers: { "x-cybernet-openai-key": KEY }, body: { type: "text", content: "hello" } }));
+  check("AI-6 BYOK over the burst limit: 429 before anything is reserved", r.status === 429 && rpcCalls("consume_analysis").length === 0, { status: r.status });
+
+  const validate = (await load("netlify/functions/validate-openai-key.mts")).default;
+  reset({ quotaDenied: ["g:validate-openai-key:u600:"] });
+  r = await run(validate, req("/api/validate-openai-key", { token: "t-free", body: { apiKey: KEY } }));
+  check("AI-6 key check: the per-account limit is durable (429 from the quota table)", r.status === 429, r);
+  reset({ extraFetch: async (url) => (url.hostname === "api.openai.com" ? json({ data: [{ id: "gpt-6-luna" }] }) : null) });
+  r = await run(validate, req("/api/validate-openai-key", { token: "t-free", body: { apiKey: KEY } }));
+  check("AI-6 twin: a real key check still works", r.status === 200 && r.data.valid === true && r.data.model === "gpt-6-luna", r);
+  reset();
+  r = await run(validate, req("/api/validate-openai-key", { body: { apiKey: KEY } }));
+  check("SRV-AUTH-11 twin: signed out keeps its own 401 message", r.status === 401 && /sign in/i.test(r.data.error), r);
+
+  const guard = await load("netlify/lib/abuse-guard.mjs");
+  const CF_EDGE = "104.16.0.1";
+  const viaCf = (host) => new Request(`https://${host}/api/x`, { headers: { "cf-connecting-ip": "203.0.113.50" } });
+  check("SRV-8 custom domain behind Cloudflare: the visitor address is used", guard.clientAddress(viaCf("cybernetai.app"), { ip: CF_EDGE }) === "203.0.113.50");
+  check("SRV-8 netlify.app host: CF-Connecting-IP is not believed", guard.clientAddress(viaCf("cybernet-ai.netlify.app"), { ip: CF_EDGE }) === CF_EDGE);
+  check("SRV-8 twin: a direct visitor is their own address", guard.clientAddress(new Request("https://cybernetai.app/api/x"), { ip: "198.51.100.7" }) === "198.51.100.7");
+
+  const supa = await load("netlify/lib/supabase.mjs");
+  check("SRV-AUTH-5 isAdminUser: an unconfirmed admin address is not admin", supa.isAdminUser({ email: "admin@example.com", email_confirmed_at: null }) === false);
+  check("SRV-AUTH-5 twin: the confirmed admin is", supa.isAdminUser({ email: "admin@example.com", email_confirmed_at: CONFIRMED }) === true);
+
+  const feedback = (await load("netlify/functions/feedback.mjs")).default;
+  reset();
+  const chunked = new Request(`${SITE}/api/feedback`, { method: "POST", headers: { "Content-Type": "application/json" }, body: new ReadableStream({ start(c) { c.enqueue(new TextEncoder().encode("x".repeat(400_000))); c.close(); } }), duplex: "half" });
+  r = await run(feedback, chunked);
+  check("SRV-11 feedback: a chunked oversized body is refused with 413", r.status === 413, r.status);
+}
+
 console.log(`security hardening: ${checks - failures}/${checks} checks passed`);
 if (failures) process.exit(1);
