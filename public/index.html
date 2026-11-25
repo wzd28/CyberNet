@@ -30,8 +30,12 @@
   </script>
   <script>window.CN_modernJs = ({ ...{ a: 1 } }).a === 1;</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>CyberNet AI | AI-Powered Cybersecurity</title>
-  <meta name="description" content="CyberNet AI provides on-demand threat analysis, deep evidence correlation, account-based AI access, and clear defensive next actions for suspicious messages, links, email headers, QR codes, and screenshots." />
+  <title>Free Scam Checker for Texts, Links &amp; QR Codes | CyberNet AI</title>
+  <meta name="description" content="Paste a text, email, link or QR code and see the scam warning signs in seconds, with the reasons. Free to try. Already clicked? Get a step-by-step recovery plan." />
+  <!-- Smart App Banner (growth, 24 Nov 2026): Safari on iPhone shows "Open / View" for the CyberNet AI app
+       above the page. Apple only shows it where the app is sold, so EU visitors simply do not see it. The
+       iPhone app build rebuilds <head> from an allow-list, so this tag never reaches the app. -->
+  <meta name="apple-itunes-app" content="app-id=6828596086" />
   <meta name="theme-color" content="#160d42" />
   <meta name="ahrefs-site-verification" content="f91bf5f9cc3131a0f67f4880e83a0f06eb6bb66a204164dc0887aaf87f37cd0a">
   <!-- Deep links (/pricing, /learn, ...) load with #home as the active page, and script.js only
@@ -126,7 +130,7 @@
   <link rel="stylesheet" href="/cybernet-howto.css?v=20260905-1" />
   <link id="cybernetBusinessTeamStylesheet" rel="stylesheet" href="/cybernet-business-team.css?v=20260927-2" />
   <link rel="stylesheet" href="/cybernet-consent.css?v=20260927-2" />
-  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261119-b1" />
+  <link rel="stylesheet" href="/ui/cybernet-ui.css?v=20261125-n1" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=20261029-m1">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=20261029-m1">
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png?v=20261029-m1">
@@ -138,8 +142,8 @@
 <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="CyberNet AI" />
-<meta property="og:title" content="CyberNet AI | AI-Powered Cybersecurity" />
-<meta property="og:description" content="Analyze suspicious messages, links, QR codes, screenshots, and cybersecurity evidence with clear risk explanations and defensive next actions." />
+<meta property="og:title" content="Is this a scam? Check a text, link or QR code free | CyberNet AI" />
+<meta property="og:description" content="Paste a text, email, link or QR code and see the scam warning signs in seconds, with the reasons. Already clicked? Get a step-by-step recovery plan." />
 <meta property="og:url" content="https://cybernetai.app/" />
 <!-- Preview card shown wherever a link is shared or advertised. Absolute URL is
      required: most crawlers do not resolve relative paths. Dimensions are
@@ -151,8 +155,8 @@
 <meta property="og:image:height" content="630" />
 <meta property="og:image:alt" content="CyberNet AI - Detect and Protect. Check suspicious messages, links and screenshots for scams in seconds." />
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="CyberNet AI | AI-Powered Cybersecurity" />
-<meta name="twitter:description" content="Analyze suspicious messages, links, QR codes, screenshots, and cybersecurity evidence with clear risk explanations and defensive next actions." />
+<meta name="twitter:title" content="Is this a scam? Check a text, link or QR code free | CyberNet AI" />
+<meta name="twitter:description" content="Paste a text, email, link or QR code and see the scam warning signs in seconds, with the reasons. Already clicked? Get a step-by-step recovery plan." />
 <meta name="twitter:image" content="https://cybernetai.app/og-image.jpg?v=20261029-m1" />
 <meta name="twitter:image:alt" content="CyberNet AI - Detect and Protect. Check suspicious messages, links and screenshots for scams in seconds." />
 <script type="application/ld+json">
@@ -164,7 +168,7 @@
       "@id": "https://cybernetai.app/#website",
       "url": "https://cybernetai.app/",
       "name": "CyberNet AI",
-      "description": "AI-powered cybersecurity analysis for suspicious messages, links, QR codes, screenshots, and incident evidence.",
+      "description": "Free scam checker: paste a text, email, link or QR code and see the warning signs in seconds, with a step-by-step recovery plan if you already clicked.",
       "inLanguage": "en"
     },
     {
@@ -172,7 +176,26 @@
       "@id": "https://cybernetai.app/#organization",
       "name": "CyberNet AI",
       "url": "https://cybernetai.app/",
-      "email": "support@cybernetai.app"
+      "email": "support@cybernetai.app",
+      "logo": "https://cybernetai.app/favicon-512x512.png",
+      "sameAs": [
+        "https://www.instagram.com/cybernetai.app/",
+        "https://www.tiktok.com/@cybernetai26",
+        "https://www.linkedin.com/company/cybernetai/",
+        "https://apps.apple.com/app/cybernet-ai/id6828596086"
+      ]
+    },
+    {
+      "@type": "MobileApplication",
+      "@id": "https://cybernetai.app/#iphone-app",
+      "name": "CyberNet AI",
+      "description": "Check texts, links, QR codes and screenshots for scam warning signs on your iPhone, and get a step-by-step recovery plan if you already clicked.",
+      "operatingSystem": "iOS",
+      "applicationCategory": "SecurityApplication",
+      "url": "https://apps.apple.com/app/cybernet-ai/id6828596086",
+      "installUrl": "https://apps.apple.com/app/cybernet-ai/id6828596086",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "publisher": { "@id": "https://cybernetai.app/#organization" }
     },
     {
       "@type": "Course",
@@ -710,7 +733,7 @@
         <p class="cn-field-error" id="signupEmailError" hidden></p>
         <label for="signupPassword">Password</label>
         <div class="cn-pw-field">
-          <input type="password" id="signupPassword" name="new-password" autocomplete="new-password" minlength="8" maxlength="72" placeholder="At least 8 characters" required aria-describedby="signupPasswordError" />
+          <input type="password" id="signupPassword" name="new-password" autocomplete="new-password" minlength="10" maxlength="72" placeholder="At least 10 characters" required aria-describedby="signupPasswordError" />
           <button type="button" class="cn-pw-toggle" data-cn-pw-toggle="signupPassword" aria-controls="signupPassword" aria-label="Show password">Show</button>
         </div>
         <p class="cn-field-error" id="signupPasswordError" hidden></p>
@@ -730,7 +753,7 @@
         <input type="text" id="authRecoveryUsername" name="username" autocomplete="username" tabindex="-1" readonly hidden />
         <label for="authNewPassword">New password</label>
         <div class="cn-pw-field">
-          <input type="password" id="authNewPassword" name="new-password" autocomplete="new-password" minlength="8" maxlength="72" placeholder="At least 8 characters" required aria-describedby="authNewPasswordHint authNewPasswordError" />
+          <input type="password" id="authNewPassword" name="new-password" autocomplete="new-password" minlength="10" maxlength="72" placeholder="At least 10 characters" required aria-describedby="authNewPasswordHint authNewPasswordError" />
           <button type="button" class="cn-pw-toggle" data-cn-pw-toggle="authNewPassword" aria-controls="authNewPassword" aria-label="Show password">Show</button>
         </div>
         <p class="cn-field-hint" id="authNewPasswordHint">Three random words make a strong password that is easy to remember.</p>
@@ -917,7 +940,6 @@
       <button class="nav-link" data-page="cybernetai">Analysis AI</button>
       <button class="nav-link" data-page="recovery">Recovery</button>
       <button class="nav-link" data-page="learn">Learn</button>
-      <button data-web-only class="nav-link" id="navForYouBtn" type="button" data-cn-anchor="for-you">For individuals</button>
       <button data-web-only class="nav-link" id="navManageBusinessBtn" type="button" aria-haspopup="dialog">Manage Business</button>
       <button data-web-only class="nav-link" data-page="pricing">Pricing</button>
       <button data-web-only class="nav-link" data-page="about">About</button>
@@ -986,7 +1008,7 @@
                 </div>
               </div>
             </div>
-            <p data-web-only class="cn-hero-teams"><a class="cn-hero-teams-link" href="#for-teams" data-cn-anchor="for-teams">For teams</a><a class="cn-hero-teams-link" href="#for-you" data-cn-anchor="for-you">For individuals</a></p>
+            <p data-web-only class="cn-hero-teams"><a class="cn-hero-teams-link" href="#for-teams" data-cn-anchor="for-teams">For teams</a></p>
             <p class="cn-hero-recovery">Already clicked, paid or shared&nbsp;a&nbsp;code? <button type="button" class="inline-link-btn cn-hero-recovery-btn" data-page="recovery">Get a recovery plan</button></p>
           </div>
           <button data-web-only class="cn-stage-pause" type="button" aria-pressed="false" aria-label="Pause background motion" title="Pause background motion"><span aria-hidden="true"></span></button>
@@ -1091,25 +1113,6 @@
             <button class="primary-btn big" type="button" data-page="pricing">See the Business plan</button>
             <button class="secondary-btn glass" type="button" data-page="cybernet">Check a message free</button>
           </div>
-        </div>
-      </section>
-
-      <!-- FOR INDIVIDUALS (#for-you, nav "For individuals"): a person who got a strange text, email or link. Web only. -->
-      <section data-web-only class="cn-foryou" id="for-you" aria-labelledby="cnForYouTitle">
-        <div class="cn-foryou-inner">
-          <div class="cn-foryou-copy">
-            <h2 id="cnForYouTitle">Got a strange text, email or link?</h2>
-            <p>Paste it and get a straight answer: is it a scam, why, and what to do next. Your first checks are free, with no account.</p>
-            <div class="cn-teams-actions">
-              <button class="primary-btn big" type="button" data-page="cybernet">Check a message free</button>
-              <button class="secondary-btn glass" type="button" data-page="recovery">Get a recovery plan</button>
-            </div>
-          </div>
-          <ul class="cn-foryou-list">
-            <li><b>Parcel, bank and job-offer texts</b><span>The messages that ask you to pay a small fee, confirm a login or reply fast.</span></li>
-            <li><b>Links and QR codes you weren&rsquo;t expecting</b><span>See whether the address is a look-alike before you open it.</span></li>
-            <li><b>Already clicked or paid?</b><span>Recovery gives you a plan, step by step: what to lock, who to call and what to watch for.</span></li>
-          </ul>
         </div>
       </section>
 
@@ -3261,13 +3264,19 @@
       <a href="/acceptable-use.html">Acceptable Use</a>
       <button type="button" data-open-legal="terms">Legal Center</button>
     </nav>
+    <!-- More links and the iPhone app (growth, 24 Nov 2026): the Black Friday checklist, and a route to the App
+         Store (ct=web_footer counts it in App Store Connect). The footer is web-only, so none of this reaches the app. -->
+    <nav class="cn-footer-legal cn-footer-more" aria-label="More from CyberNet AI">
+      <a href="/black-friday-scam-checklist">Black Friday checklist</a>
+      <a href="https://apps.apple.com/app/cybernet-ai/id6828596086?ct=web_footer" target="_blank" rel="noopener" data-cn-app="web_footer">iPhone app (not yet in the EU)</a>
+    </nav>
   </footer>
 
   <script src="/legacy/cybernet-consent.js?v=20261118-g2" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js" integrity="sha384-Rj26LVGvoeRVR6+mwQmFfcR3QOBEwT+ZmuCWpuiqeTzJpCs0ER4ITAWGb4Hiy3Ok" crossorigin="anonymous" defer></script>
   <script src="/config.js?v=20260830-3" defer></script>
   <script src="/legacy/cybernet-engine.js?v=20261030-d1" defer></script>
-  <script src="/legacy/script.js?v=20261125-m1" defer></script>
+  <script src="/legacy/script.js?v=20261125-m2" defer></script>
   <script src="/legacy/cybernet-account-api-upgrade.js?v=20261125-m1" defer></script>
   <script src="/cybernet-howto.js?v=20261120-1" defer></script>
 <script src="/legacy/cybernet-business-team.js?v=20261124-w1" defer></script>

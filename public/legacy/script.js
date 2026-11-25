@@ -155,8 +155,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const DEFAULT_DESCRIPTION = ((_a = document.querySelector('meta[name="description"]')) == null ? void 0 : _a.content) || "";
   const PAGE_META = {
     home: {
-      title: "CyberNet AI | AI-Powered Cybersecurity",
-      description: "CyberNet AI provides on-demand threat analysis, account-based AI access, and clear defensive next actions for suspicious messages, links, and screenshots."
+      title: "Free Scam Checker for Texts, Links & QR Codes | CyberNet AI",
+      description: "Paste a text, email, link or QR code and see the scam warning signs in seconds, with the reasons. Free to try. Already clicked? Get a step-by-step recovery plan."
     },
     cybernet: {
       title: "Quick Scan | CyberNet AI",
@@ -511,7 +511,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (code === "weak_password" || message.includes("password should") || message.includes("weak password") || message.includes("known to be weak") || message.includes("pwned")) {
       if (/known to be weak|pwned|leak|easy to guess/.test(message)) return "That password has shown up in data leaks, so it's easy to guess. Choose a different one.";
       if (message.includes("at least one character")) return "Use a mix of letters, numbers and symbols in your password.";
-      return "Use a stronger password with at least 8 characters.";
+      return "Use a stronger password with at least 10 characters.";
     }
     if (wait) return `For your security, please wait ${wait} second${wait === 1 ? "" : "s"} before asking for another email.`;
     if (code === "over_email_send_rate_limit" || message.includes("email rate limit"))
@@ -604,7 +604,7 @@ document.addEventListener("DOMContentLoaded", () => {
     button.disabled = false;
   }
   const EMAIL_PATTERN = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)*\.[a-z0-9-]{2,}$/i;
-  const MIN_PASSWORD = 8, MAX_PASSWORD = 72;
+  const MIN_PASSWORD = 10, MAX_PASSWORD = 72;
   const FIELD_RULES = {
     loginEmail: "email",
     loginPassword: "current-password",
@@ -2828,7 +2828,7 @@ document.addEventListener("DOMContentLoaded", () => {
     card.innerHTML = `<p class="cn-save-head" id="cnSaveCardHead">${left > 0 ? "Want the full AI explanation of this message?" : "You've used your 3 free checks without an account"}</p>
       <p class="cn-save-text">A free account adds Analysis AI, which explains the warning signs in plain words (3 a day), 5 Quick Scans a day and a Recovery plan if something already went wrong.</p>
       <p class="cn-guest-left">${left > 0 ? `${left} free check${left === 1 ? "" : "s"} left without an account.` : "Create a free account to keep checking. It takes a few seconds."}</p>
-      <div class="cn-save-actions"><button type="button" class="primary-btn" data-guest-signup>Create a free account</button><button type="button" class="cn-save-later" data-guest-later>Not now</button></div>`;
+      <div class="cn-save-actions"><button type="button" class="primary-btn" data-guest-signup>Create a free account</button><button type="button" class="cn-save-later" data-guest-later>Not now</button></div>${appLinkHtml(left > 0 ? "web_result" : "web_wall")}`;
     card.querySelector("[data-guest-signup]").addEventListener("click", () => openAuthModal("signup"));
     card.querySelector("[data-guest-later]").addEventListener("click", () => {
       card.remove();
@@ -2837,11 +2837,61 @@ document.addEventListener("DOMContentLoaded", () => {
     if (summary && summary.parentNode) summary.insertAdjacentElement("afterend", card);
     else box.appendChild(card);
   }
-  function afterQuickScan(box, type) {
+  const APP_STORE_URL = "https://apps.apple.com/app/cybernet-ai/id6828596086";
+  const EU_TIME_ZONES = /^(?:Europe\/(?:Amsterdam|Athens|Berlin|Bratislava|Brussels|Bucharest|Budapest|Busingen|Copenhagen|Dublin|Helsinki|Lisbon|Ljubljana|Luxembourg|Madrid|Malta|Mariehamn|Nicosia|Paris|Prague|Riga|Rome|Sofia|Stockholm|Tallinn|Vienna|Vilnius|Warsaw|Zagreb)|Asia\/(?:Nicosia|Famagusta)|Atlantic\/(?:Azores|Canary|Madeira)|Africa\/Ceuta)$/;
+  function appLinkAllowed() {
+    try {
+      if (/Android/i.test(navigator.userAgent || "")) return false;
+      return !EU_TIME_ZONES.test(Intl.DateTimeFormat().resolvedOptions().timeZone || "");
+    } catch (e) {
+      return true;
+    }
+  }
+  function appLinkHtml(ct) {
+    if (!appLinkAllowed()) return "";
+    return `<p class="cn-app-line"><a class="cn-app-link" href="${APP_STORE_URL}?ct=${ct}" target="_blank" rel="noopener" data-cn-app="${ct}">Get the free iPhone app</a><span>Check a link or screenshot right from the Share button, or scan a QR code with your camera.</span></p>`;
+  }
+  document.addEventListener("click", (e) => {
+    const a = e.target && e.target.closest ? e.target.closest("a[data-cn-app]") : null;
+    if (a) track("app_click", { placement: a.getAttribute("data-cn-app") });
+  });
+  const SHARE_URL = "https://cybernetai.app/?try=1&utm_source=share&utm_medium=verdict";
+  const SHARE_TEXT = "I checked a message with CyberNet AI and it showed scam warning signs. Got something like it? Check it free:";
+  function shareWarning(box, result) {
+    var _a2;
+    if (!box || !result || riskMeta(result).label !== "Scam") return;
+    (_a2 = box.querySelector(".cn-share-line")) == null ? void 0 : _a2.remove();
+    const line = document.createElement("p");
+    line.className = "cn-share-line";
+    line.innerHTML = `<button type="button" class="cn-share-btn">Warn a friend or family member</button><span class="cn-share-done" role="status" aria-live="polite"></span>`;
+    const done = line.querySelector(".cn-share-done");
+    line.querySelector("button").addEventListener("click", async () => {
+      track("share_verdict", {});
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: "CyberNet AI", text: SHARE_TEXT, url: SHARE_URL });
+          return;
+        } catch (err) {
+          if (err && err.name === "AbortError") return;
+        }
+      }
+      try {
+        await navigator.clipboard.writeText(`${SHARE_TEXT} ${SHARE_URL}`);
+        done.textContent = "Copied. Paste it in a chat.";
+      } catch (e) {
+        done.textContent = SHARE_URL;
+      }
+    });
+    const summary = box.querySelector(".plain-summary");
+    if (summary && summary.parentNode) summary.insertAdjacentElement("afterend", line);
+    else box.appendChild(line);
+  }
+  function afterQuickScan(box, type, result) {
     const guest = !isSignedIn();
     cnFunnel(guest ? "scan_guest" : "scan_account");
     track("scan", { type, guest });
     if (guest) guestNote(box);
+    shareWarning(box, result);
   }
   async function checkQuickScanQuota() {
     const example = exampleScanFresh();
@@ -2907,7 +2957,7 @@ document.addEventListener("DOMContentLoaded", () => {
         "Local protection scan complete. Use Analysis AI for a deeper, AI-assisted check."
       );
       showReport(cyberTextResult, result.score, result.scamType, result.reasons, result.advice, { ...result, note, previewHtml: isBareLink ? renderLinkPreview(text, result) : renderLinksFound(result.links || []) });
-      afterQuickScan(cyberTextResult, isBareLink ? "link" : "text");
+      afterQuickScan(cyberTextResult, isBareLink ? "link" : "text", result);
       prependScan("textScanList", `“${text.slice(0, 42)}${text.length > 42 ? "…" : ""}”`, result);
       reportTeamActivity({ kind: "quick_scan", scanType: isBareLink ? "link" : "text", content: text, result: quickScanLogResult(result) });
       if (status) status.textContent = "Local scan complete";
@@ -2940,7 +2990,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const result = analyzeLinkRules(link);
       showReport(cyberLinkResult, result.score, result.scamType, result.reasons, result.advice, { ...result, note: "Local structural URL scan complete. Use Analysis AI for a deeper, AI-assisted check.", previewHtml: renderLinkPreview(link, result) });
       prependScan("linkScanList", link.slice(0, 52), result);
-      afterQuickScan(cyberLinkResult, "link");
+      afterQuickScan(cyberLinkResult, "link", result);
       reportTeamActivity({ kind: "quick_scan", scanType: "link", content: link, result: quickScanLogResult(result) });
     }, 300, checkQuickScanQuota());
   });
@@ -3088,7 +3138,7 @@ document.addEventListener("DOMContentLoaded", () => {
       "Local QR and file checks complete. Use Analysis AI for a deeper, AI-assisted check."
     ), previewHtml: decoded.qrData ? renderQrPreview(decoded.qrData, qrKind, qrResult) : "" });
     prependScan("imageScanList", file.name, result);
-    afterQuickScan(cyberImageResult, "image");
+    afterQuickScan(cyberImageResult, "image", decoded.qrData ? result : null);
     reportTeamActivity({ kind: "quick_scan", scanType: "image", content: "", fileName: file.name, qr: decoded.qrData ? { kind: qrKind, data: decoded.qrData } : null, result: quickScanLogResult(result, { needsDeepScan: !decoded.qrData }) });
   }
   if (cyberDropZone) cyberDropZone.addEventListener("click", (e) => {

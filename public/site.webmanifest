@@ -23,5 +23,12 @@
   "categories": [
     "security",
     "utilities"
+  ],
+  "related_applications": [
+    {
+      "platform": "itunes",
+      "url": "https://apps.apple.com/app/id6828596086",
+      "id": "6828596086"
+    }
   ]
 }

@@ -1,0 +1,52 @@
+/* Black Friday scam checklist page (growth, 24 Nov 2026; moved out of the page's inline <style>).
+   It uses the legal-page shell (/ui/cybernet-ui-legal.css); this file adds only what the page needs:
+   the one call to action, the iPhone app line and the numbered checks. Plain CSS, loaded as is (no build
+   step); bump its ?v= in the page on a change. */
+html.cn body.cn-legal-page .cn-check-cta {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 52px; margin-top: var(--cn-6, 24px); padding: 0 26px;
+  border-radius: 12px; background: var(--cn-cyan); color: #060a14;
+  font: 700 17px/1.2 var(--cn-font); text-decoration: none;
+}
+html.cn body.cn-legal-page .cn-check-cta:hover { background: #67e8f9; }
+html.cn body.cn-legal-page .cn-check-cta:focus-visible { outline: 2px solid var(--cn-cyan); outline-offset: 3px; }
+html.cn body.cn-legal-page .cn-check-note { margin-top: var(--cn-3, 12px); color: var(--cn-text-2); font-size: 15px; }
+
+/* "Get the free iPhone app": a text link until the owner adds Apple's official badge artwork (never a
+   home-made look-alike of the badge). The EU note sits right under it: the app is not on EU App Stores yet. */
+html.cn body.cn-legal-page .cn-app-line { margin-top: var(--cn-4, 16px); color: var(--cn-text-2); font-size: 15px; line-height: 1.5; }
+html.cn body.cn-legal-page .cn-app-line a {
+  display: inline-flex; align-items: center; min-height: 44px;
+  color: var(--cn-cyan); font-weight: 650; font-size: 16px; text-decoration: underline; text-underline-offset: 3px;
+}
+html.cn body.cn-legal-page .cn-app-line a:hover { color: #67e8f9; }
+html.cn body.cn-legal-page .cn-app-line a:focus-visible { outline: 2px solid var(--cn-cyan); outline-offset: 2px; border-radius: 6px; }
+html.cn body.cn-legal-page .cn-app-line small { display: block; color: var(--cn-text-3); font-size: 13px; }
+
+/* Numbered checks */
+html.cn body.cn-legal-page .cn-checks { list-style: none; margin: 0; padding: 0; counter-reset: cn-check; }
+html.cn body.cn-legal-page .cn-checks > li {
+  counter-increment: cn-check; position: relative; max-width: none;
+  margin: 0; padding: 22px 0 22px 52px; border-top: 1px solid var(--cn-line);
+}
+html.cn body.cn-legal-page .cn-checks > li:first-child { border-top: 0; padding-top: 0; }
+html.cn body.cn-legal-page .cn-checks > li::before {
+  content: counter(cn-check); position: absolute; left: 0; top: 20px;
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 1px solid var(--cn-line-2); background: var(--cn-surface);
+  color: var(--cn-cyan); font: 700 15px/32px var(--cn-font-mono, monospace); text-align: center;
+}
+html.cn body.cn-legal-page .cn-checks > li:first-child::before { top: -2px; }
+html.cn body.cn-legal-page .cn-checks h2 { margin: 0 0 8px; color: var(--cn-text); font: 600 20px/1.3 var(--cn-font); letter-spacing: -.01em; }
+html.cn body.cn-legal-page .cn-checks p { margin: 0; color: var(--cn-text-2); font-size: 17px; line-height: 1.6; }
+html.cn body.cn-legal-page .cn-checks p + p { margin-top: 8px; }
+html.cn body.cn-legal-page .cn-checks a { color: var(--cn-cyan); overflow-wrap: anywhere; }
+html.cn body.cn-legal-page .cn-checks strong { color: var(--cn-text); }
+
+@media (max-width: 420px) {
+  html.cn body.cn-legal-page .cn-checks > li { padding-left: 44px; }
+  html.cn body.cn-legal-page .cn-checks > li::before { width: 30px; height: 30px; font-size: 14px; line-height: 28px; }
+  html.cn body.cn-legal-page .cn-checks h2 { font-size: 18px; }
+  html.cn body.cn-legal-page .cn-checks p { font-size: 16px; }
+  html.cn body.cn-legal-page .cn-check-cta { display: flex; width: 100%; }
+}

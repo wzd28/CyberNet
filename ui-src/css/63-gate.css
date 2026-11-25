@@ -518,6 +518,23 @@ html.cn #authModal .cn-gate-guest:focus-visible { outline: 2px solid #22d3ee; ou
 .cn-save-card .cn-save-later:hover { color: var(--cn-text, #f5f7fa); }
 .cn-save-card .cn-save-later:focus-visible { outline: 2px solid #22d3ee; outline-offset: 2px; border-radius: 8px; }
 @media (max-width: 480px) { .cn-save-card .cn-save-actions .primary-btn { flex: 1 1 100%; margin-right: 0; } }
+/* The iPhone app line inside that card (script.js appLinkHtml, 24 Nov 2026; web only). A text link until the
+   owner adds Apple's official badge artwork: never a home-made look-alike of the badge. */
+.cn-save-card .cn-app-line { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--cn-line, rgba(255, 255, 255, .1)); font-size: .88rem; line-height: 1.5; color: var(--cn-text-3, #8a95a7); }
+.cn-save-card .cn-app-link { display: inline-flex; align-items: center; min-height: 44px; color: var(--cn-cyan, #22d3ee); font-weight: 650; font-size: .95rem; text-decoration: underline; text-underline-offset: 3px; }
+.cn-save-card .cn-app-link:hover { color: #67e8f9; }
+.cn-save-card .cn-app-link:focus-visible { outline: 2px solid #22d3ee; outline-offset: 2px; border-radius: 6px; }
+.cn-save-card .cn-app-line span { display: block; }
+/* "Warn a friend or family member" under a SCAM verdict (script.js shareWarning, 24 Nov 2026; web only). */
+.cn-share-line { display: flex; flex-wrap: wrap; align-items: center; margin: 14px 0 0; }
+.cn-share-line > * { margin: 0 12px 6px 0; }
+.cn-share-btn {
+  min-height: 44px; padding: 0 18px; border: 1px solid var(--cn-line-2, rgba(255, 255, 255, .18)); border-radius: 12px;
+  background: transparent; color: var(--cn-text, #f5f7fa); font: inherit; font-weight: 600; font-size: .94rem; cursor: pointer;
+}
+.cn-share-btn:hover { border-color: var(--cn-cyan, #22d3ee); }
+.cn-share-btn:focus-visible { outline: 2px solid #22d3ee; outline-offset: 2px; }
+.cn-share-done { font-size: .88rem; color: var(--cn-text-2, #aab4c3); overflow-wrap: anywhere; }
 
 /* Sign-up by code (index.html #authCodeBox, script.js showCodeStep, 18 Nov 2026; web only) */
 html.cn #authModal .cn-code-box[hidden] { display: none; }
@@ -538,11 +555,10 @@ html.cn #authModal.cn-inapp #googleAuthWrap .auth-divider { margin: 0 0 12px; }
    Business-first Home (18 Nov 2026, growth brief). Web only: this partial is not in the iPhone app
    (mobile/scripts/build-web.mjs UI_EXCLUDE), and the markup is data-web-only.
    - the hero headline is longer than "Is it a scam? Know in seconds.", so it steps down a size;
-   - "For teams" / "For individuals" links under the paste box;
+   - the "For teams" link under the paste box;
    - the For teams band (#for-teams): navy ink ground, the Soffit WebGL2 gradient
      (public/cybernet-soffit.js) when it runs (.is-live), a static CSS gradient of the same palette
-     otherwise, and a scrim on the text side so the copy reads 4.5:1 or more over either;
-   - the For individuals section (#for-you).
+     otherwise, and a scrim on the text side so the copy reads 4.5:1 or more over either.
    ====================================================================================== */
 html.cn #home .hero-content .hero-title.cn-hero-title-biz { font-size: max(1.75rem, min(calc(var(--cn-step-hero) * .54), 5.2vh + 8px)); line-height: 1.06; }
 @supports (height: 1svh) {
@@ -579,8 +595,7 @@ html.cn #home .hero-content .hero-title.cn-hero-title-biz .cn-sweep { color: inh
   }
 }
 
-html.cn #home > .cn-teams,
-html.cn #home > .cn-foryou {
+html.cn #home > .cn-teams {
   position: relative;
   box-sizing: border-box;
   /* plain fallbacks first for Chrome 69 WebViews (no clamp/min/max, no margin-inline shorthand) */
@@ -594,8 +609,7 @@ html.cn #home > .cn-foryou {
 }
 /* the band radius token is a clamp(): only where clamp() works, or Chrome 69 drops the radius to 0 */
 @supports (width: clamp(1px, 1px, 1px)) {
-  html.cn #home > .cn-teams,
-  html.cn #home > .cn-foryou { border-radius: var(--cn-r-band, clamp(28px, 1rem + 3vw, 56px)); }
+  html.cn #home > .cn-teams { border-radius: var(--cn-r-band, clamp(28px, 1rem + 3vw, 56px)); }
 }
 html.cn #home > .cn-teams {
   isolation: isolate;
@@ -622,14 +636,12 @@ html.cn #home > .cn-teams > .cn-teams-scrim {
   position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: -1; pointer-events: none;
   background: linear-gradient(100deg, rgba(6, 10, 20, .9) 0%, rgba(6, 10, 20, .88) 62%, rgba(6, 10, 20, .5) 100%);
 }
-html.cn #home .cn-teams-inner,
-html.cn #home .cn-foryou-inner {
+html.cn #home .cn-teams-inner {
   padding: 56px 20px;
   padding: clamp(48px, 2rem + 4vw, 104px) clamp(18px, .25rem + 3.6vw, 72px);
 }
 html.cn #home .cn-teams-inner { max-width: 1000px; }
-html.cn #home .cn-teams h2,
-html.cn #home .cn-foryou h2 {
+html.cn #home .cn-teams h2 {
   margin: 0;
   max-width: 22ch;
   color: #f5f7fa;
@@ -638,8 +650,7 @@ html.cn #home .cn-foryou h2 {
   font-weight: 600; line-height: 1.08; letter-spacing: var(--cn-track-h2);
   text-wrap: balance;
 }
-html.cn #home .cn-teams-lead,
-html.cn #home .cn-foryou-copy > p {
+html.cn #home .cn-teams-lead {
   margin: 16px 0 0; max-width: 56ch;
   color: #cbd3df; font-size: 1.0625rem; font-size: clamp(1rem, .95rem + .25vw, 1.125rem); line-height: 1.55;
 }
@@ -676,21 +687,6 @@ html.cn #home .cn-teams-price {
 }
 html.cn #home .cn-teams-price b { color: #f5f7fa; font-weight: 650; }
 
-html.cn #home > .cn-foryou {
-  border: 1px solid var(--cn-line-2, rgba(148, 163, 184, .24));
-  background: linear-gradient(180deg, rgba(18, 26, 43, .9), rgba(11, 17, 30, .9));
-}
-html.cn #home .cn-foryou-inner {
-  display: grid; grid-gap: 32px; gap: 32px; gap: clamp(24px, 1rem + 3vw, 64px); align-items: center;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-}
-html.cn #home .cn-foryou-list { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--cn-line-2, rgba(148, 163, 184, .24)); }
-html.cn #home .cn-foryou-list li { padding: 16px 0; border-bottom: 1px solid var(--cn-line-2, rgba(148, 163, 184, .24)); }
-html.cn #home .cn-foryou-list b { display: block; color: #f5f7fa; font-weight: 650; line-height: 1.35; }
-html.cn #home .cn-foryou-list span { display: block; margin-top: 4px; color: #cbd3df; font-size: .94rem; line-height: 1.5; }
-@media (max-width: 860px) {
-  html.cn #home .cn-foryou-inner { grid-template-columns: minmax(0, 1fr); }
-}
 /* Under 1200px the list reaches the bright side of the band, so the scrim is even across it (the boxes
    used to carry their own dark fill there). */
 @media (max-width: 1199.98px) {
@@ -701,10 +697,6 @@ html.cn #home .cn-foryou-list span { display: block; margin-top: 4px; color: #cb
 }
 html.cn #authModal.cn-code-step #googleAuthWrap,
 html.cn #authModal.cn-code-step .cn-gate-guest { display: none !important; }
-
-/* The nav has no room for "For individuals" between the phone sheet (< 1024px) and about 1360px: the
-   Sign In button was pushed off the pill at 1280. There the hero's own "For individuals" link leads to #for-you. */
-@media (min-width: 1024px) and (max-width: 1359.98px) { html.cn .navbar #navForYouBtn { display: none; } }
 
 /* Phones (18 Nov 2026, conversion review): a first-time visitor sees the cookie bar, so the paste box and
    "Check a message free" must sit above it at 390x844. The globe steps down on phones (web only: this partial
