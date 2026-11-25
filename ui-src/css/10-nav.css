@@ -572,9 +572,20 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
   }
 }
 
-@media (min-width: 1024px) and (max-width: 1599.98px) {
+/* Signed in, the bar (capped width, so wide screens gain no room) holds the greeting, plan chip and
+   Sign Out: the social icons step aside at every desktop width (they stay in the menu sheet and the
+   footer) and the links tighten a little, so Sign Out never sticks out past the bar (owner, 25 Nov 2026). */
+@media (min-width: 1024px) {
   html.cn header.navbar .nav-actions:has(> #accountSummary:not([hidden])) .nav-social-links {
     display: none;
+  }
+}
+
+/* from 1440px the links have their roomy 13px; signed in they use the 10px step below it */
+@media (min-width: 1440px) {
+  html.cn header.navbar:has(#accountSummary:not([hidden])) .nav-link,
+  html.cn header.navbar:is(.open, .cn-sheet-out):has(#accountSummary:not([hidden])) .nav-link {
+    --cn-nl: 10px;
   }
 }
 
