@@ -1736,7 +1736,13 @@
   }
   // Called from the sign-in dialog (its own view and message line) and from the sign-in card and the Account
   // block (view "login", their own message line). true once Supabase has the session.
+  // App 1.1.1: one sign-in at a time. A second tap (or a second button) while one is running returns quietly (false) without
+  // touching its button or message line; the native plugin's own IN_PROGRESS answer is just as quiet (no message, no report).
+  let appleSignInBusy = false;
   async function signInWithApple(button, { view = $("#authModal")?.dataset.authView || "login", say = authMessage } = {}) {
+    if (appleSignInBusy) return false;
+    appleSignInBusy = true;
+    try {
     const apple = P("AppleSignIn"), sb = supabase();
     if (!apple || !sb) { say("Sign in with Apple is not available right now. Please use your email and password."); return false; }
     if (view === "signup" && !legalAccepted()) { legalError(); return false; }
@@ -1764,8 +1770,10 @@
       return true;
     } catch (error) {
       const text = String(error?.message || error?.code || "");
-      // The plugin answers CANCELED for a closed sheet (also Apple's "unknown" error after the sheet was shown); the message is the fallback
+      // The plugin answers CANCELED for a closed sheet (also Apple's "unknown" error after the sheet was shown); the message is the fallback.
+      // IN_PROGRESS: Apple's sheet is already open (a sign-in from before this page's guard): nothing to say or report.
       if (error?.code === "CANCELED" || /cancel|1001/i.test(text)) say("", "");
+      else if (error?.code === "IN_PROGRESS") { /* quiet */ }
       else {
         // a real failure goes to the error report with Apple's own code (error.data: nativeDomain, nativeCode)
         const native = error?.data && error.data.nativeCode !== undefined ? ` (${error.data.nativeDomain || "Apple"} ${error.data.nativeCode})` : "";
@@ -1773,6 +1781,7 @@
         say("Sign in with Apple didn't finish. Please try again, or use your email and password."); }
       return false;
     } finally { button.disabled = false; }
+    } finally { appleSignInBusy = false; }
   }
 
   // ---- Sign in with Google (owner, 30 Oct 2026) ----

@@ -691,7 +691,7 @@ try {
         check("Choices: the offline notes: the launch card's note is short (its guest link sits right under it), the other cards name what still works", gateText[0] === "You're offline. Connect to the internet to sign in." && !/continue without/i.test(gateText[0]) && gateText[1] === "You're offline. Connect to the internet to sign in. Quick Scan, QR and Learn still work.");
         check("Offline: Continue without an account needs no network (the card's handler only resolves the card), and only the Apple and Google sign-ins check the connection", !/offline|fetch|navigator\.onLine/.test(fnText("signInCard")) && (fnText("wireSignIn").match(/if\(offline\)\{say\(offlineText,"info"\);return\}/g) || []).length === 2);
         check("Choices: nothing is a dead end: an unexpected problem shows \"Something went wrong\" on the card's own message line", /catch\(error\)\{report\(error,`signin\$\{what\}`\);say\("Somethingwentwrong\.Pleasetryagain\."\)\}/.test(fnText("wireSignIn")));
-        check("Choices: a failed Apple sign-in says so, with the email way out, on the line it came from (the existing words); a cancelled one says nothing", squash(iosJs).includes(squash(`say("Sign in with Apple didn't finish. Please try again, or use your email and password.")`)) && /if\(error\?\.code==="CANCELED"\|\|\/cancel\|1001\/i\.test\(text\)\)say\("",""\)/.test(fnText("signInWithApple")));
+        check("Choices: a failed Apple sign-in says so, with the email way out, on the line it came from (the existing words); a cancelled one says nothing", squash(iosJs).includes(squash(`say("Sign in with Apple didn't finish. Please try again, or use your email and password.")`)) && /if\(error\?\.code==="CANCELED"\|\|\/cancel\|1001\/i\.test\(text\)\)say\("",""\);?elseif\(error\?\.code==="IN_PROGRESS"\)\{\}/.test(fnText("signInWithApple")));
         {
           // 10 Nov 2026: Apple's "unknown" error after the sheet was shown is a cancel (AppleSignInPlugin.swift), and a real failure is reported with Apple's own code
           const swift = await readFile(path.join(mobile, "native", "App", "Plugins", "AppleSignInPlugin.swift"), "utf8");
@@ -700,7 +700,7 @@ try {
             /private var sheetWasShown = false/.test(swift) && /func presentationAnchor\(for controller: ASAuthorizationController\) -> ASPresentationAnchor \{ sheetWasShown = true/.test(sq) && /authError\.code == \.canceled \|\| \(authError\.code == \.unknown && sheetWasShown\)/.test(swift) && /"CANCELED", error, details\)/.test(swift) && /"FAILED", error, details\)/.test(swift) && /"nativeDomain": native\.domain, "nativeCode": native\.code/.test(swift));
           const run2 = async err => {
             const log = { said: [], reported: [] };
-            const fn = new Function("P", "supabase", "legalAccepted", "legalError", "storeAcceptance", "rememberLoginAcceptance", "authMessage", "$", "randomNonce", "sha256Hex", "report", "toast", `${iosSrc(fnOf("signInWithApple"))};\nreturn signInWithApple;`)(
+            const fn = new Function("P", "supabase", "legalAccepted", "legalError", "storeAcceptance", "rememberLoginAcceptance", "authMessage", "$", "randomNonce", "sha256Hex", "report", "toast", `${iosSrc(declOf("appleSignInBusy"))};\n${iosSrc(fnOf("signInWithApple"))};\nreturn signInWithApple;`)(
               () => ({ signIn: async () => { throw err; } }), () => ({ auth: {} }), () => true, () => {}, () => {}, () => {}, () => {}, () => null, () => "n", async () => "h", (e, where) => log.reported.push([e, where]), () => {});
             await fn({ disabled: false }, { view: "login", say: (a, b) => log.said.push(a) });
             return log;
@@ -710,6 +710,33 @@ try {
           const plain = await run2(new Error("boom"));
           check("Sign in with Apple (JavaScript): CANCELED shows nothing and reports nothing (also with a native code 1000); FAILED reports with Apple's code and says it did not finish; an error with no native code is reported as it is",
             cancelled.said.at(-1) === "" && cancelled.reported.length === 0 && /didn't finish/.test(failed.said.at(-1)) && failed.reported.length === 1 && /\(com\.apple\.AuthenticationServices\.AuthorizationError 1004\)/.test(failed.reported[0][0].message) && failed.reported[0][1] === "apple sign-in" && plain.reported.length === 1 && plain.reported[0][0].message === "boom", [cancelled, failed, plain]);
+          // app 1.1.1: a double tap starts one sign-in; the plugin's IN_PROGRESS is quiet
+          const busy = await run2(Object.assign(new Error("Sign in with Apple is already open."), { code: "IN_PROGRESS" }));
+          check("Sign in with Apple (JavaScript): the plugin's IN_PROGRESS shows no message and reports nothing; CANCELED stays quiet too", busy.reported.length === 0 && busy.said.every(t => t === "") && cancelled.said.every(t => t === ""), busy);
+          {
+            const log = { native: 0, said: [], reported: [], signedIn: 0 };
+            const waiting = [];
+            const finishApple = value => waiting.splice(0).forEach(resolve => resolve(value));
+            const fn = new Function("P", "supabase", "legalAccepted", "legalError", "storeAcceptance", "rememberLoginAcceptance", "authMessage", "$", "randomNonce", "sha256Hex", "report", "toast", "refreshAccountName", `${iosSrc(declOf("appleSignInBusy"))};\n${iosSrc(fnOf("signInWithApple"))};\nreturn signInWithApple;`)(
+              () => ({ signIn: () => { log.native++; return new Promise(r => { waiting.push(r); }); } }),
+              () => ({ auth: { signInWithIdToken: async () => { log.signedIn++; return { error: null }; } } }),
+              () => true, () => {}, () => {}, () => {}, () => {}, () => null, () => "n", async () => "h", (e, where) => log.reported.push(where), () => {}, async () => {});
+            const b1 = { disabled: false }, b2 = { disabled: false };
+            const say = t => log.said.push(t);
+            const first = fn(b1, { view: "login", say });
+            await new Promise(r => setTimeout(r, 0));
+            const second = await Promise.race([fn(b2, { view: "login", say }), new Promise(r => setTimeout(() => r("still waiting"), 100))]);
+            const saidBefore = log.said.length;
+            const midway = { native: log.native, b1: b1.disabled, b2: b2.disabled };
+            finishApple({ idToken: "token" });
+            const firstResult = await first;
+            const thirdRun = fn(b2, { view: "login", say });
+            await new Promise(r => setTimeout(r, 0));
+            finishApple({ idToken: "token" });
+            const third = await thirdRun;
+            check("Sign in with Apple (JavaScript): a second tap while one sign-in runs returns false at once, opens no second Apple sheet and leaves its button and the message line alone; the first finishes and the next tap works",
+              second === false && midway.native === 1 && midway.b1 === true && midway.b2 === false && saidBefore === 1 && firstResult === true && b1.disabled === false && log.signedIn === 2 && third === true && log.native === 2 && log.reported.length === 0, [second, midway, firstResult, third, log]);
+          }
         }
         {
           // QR result sheet (10 Nov 2026): Wi-Fi, contact and payment codes show the engine's own reasons and advice, not the generic lines
