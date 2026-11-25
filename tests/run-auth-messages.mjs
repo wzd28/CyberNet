@@ -111,7 +111,7 @@ const err = (message, extra = {}) => Object.assign(new Error(message), extra);
     ["unconfirmed", err("Email not confirmed", { code: "email_not_confirmed" }), "login", /isn't confirmed yet.*Resend confirmation email/],
     ["exists", err("User already registered", { code: "user_already_exists" }), "signup", /already exists for this email/],
     ["same-password", err("New password should be different from the old password.", { code: "same_password", status: 422 }), "recovery", /password you use now/],
-    ["weak-length", err("Password should be at least 8 characters.", { code: "weak_password" }), "signup", /at least 8 characters/],
+    ["weak-length", err("Password should be at least 10 characters.", { code: "weak_password" }), "signup", /at least 10 characters/],
     ["weak-pwned", err("Password is known to be weak and easy to guess, please choose a different one.", { code: "weak_password" }), "recovery", /data leaks/],
     ["weak-chars", err("Password should contain at least one character of each: abcdefghijklmnopqrstuvwxyz, 0123456789", { code: "weak_password" }), "signup", /mix of letters, numbers and symbols/],
     ["too-long", err("Password cannot be longer than 72 characters"), "recovery", /72 characters or fewer/],
@@ -163,8 +163,8 @@ const err = (message, extra = {}) => Object.assign(new Error(message), extra);
   ok("signupFirstName", "Ana");
   bad("signupPassword", "", /Choose a password/);
   bad("authNewPassword", "", /Enter a new password/);
-  bad("signupPassword", "1234567", /at least 8 characters\. This one has 7/);
-  ok("signupPassword", "12345678");
+  bad("signupPassword", "12345678", /at least 10 characters. This one has 8/);
+  ok("signupPassword", "1234567890");
   bad("authNewPassword", "x".repeat(73), /72 characters or fewer/);
   ok("authNewPassword", "x".repeat(72));
   newPasswordEl.value = "three random words";

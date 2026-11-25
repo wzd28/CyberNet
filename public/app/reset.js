@@ -13,7 +13,7 @@
 (function () {
   "use strict";
 
-  var MIN = 8;
+  var MIN = 10;
   var MAX = 72;
 
   function byId(id) { return document.getElementById(id); }
@@ -57,7 +57,7 @@
     if (text.indexOf("longer than 72") >= 0) return "Use 72 characters or fewer.";
     if (code === "weak_password" || text.indexOf("password should") >= 0 || text.indexOf("weak") >= 0 || text.indexOf("pwned") >= 0) {
       if (/known to be weak|pwned|leak|easy to guess/.test(text)) return "That password has shown up in data leaks, so it's easy to guess. Choose a different one.";
-      return "Use a stronger password with at least 8 characters.";
+      return "Use a stronger password with at least 10 characters.";
     }
     if (code === "session_not_found" || code === "session_expired" || text.indexOf("session") >= 0 || text.indexOf("jwt") >= 0) return "This reset link has expired. Go back to the app and ask for a new one.";
     if (text.indexOf("rate limit") >= 0) return "Too many tries in a short time. Please wait a few minutes, then try again.";
@@ -140,7 +140,7 @@
     if (saving) return;
     var password = (byId("cnResetPassword") || {}).value || "";
     var confirm = (byId("cnResetConfirm") || {}).value || "";
-    if (password.length < MIN) { status("Use at least 8 characters.", "error"); return; }
+    if (password.length < MIN) { status("Use at least " + MIN + " characters.", "error"); return; }
     if (password.length > MAX) { status("Use 72 characters or fewer.", "error"); return; }
     if (password !== confirm) { status("The two passwords don't match.", "error"); return; }
     saving = true;

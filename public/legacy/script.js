@@ -511,7 +511,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (code === "weak_password" || message.includes("password should") || message.includes("weak password") || message.includes("known to be weak") || message.includes("pwned")) {
       if (/known to be weak|pwned|leak|easy to guess/.test(message)) return "That password has shown up in data leaks, so it's easy to guess. Choose a different one.";
       if (message.includes("at least one character")) return "Use a mix of letters, numbers and symbols in your password.";
-      return "Use a stronger password with at least 8 characters.";
+      return "Use a stronger password with at least 10 characters.";
     }
     if (wait) return `For your security, please wait ${wait} second${wait === 1 ? "" : "s"} before asking for another email.`;
     if (code === "over_email_send_rate_limit" || message.includes("email rate limit"))
@@ -604,7 +604,7 @@ document.addEventListener("DOMContentLoaded", () => {
     button.disabled = false;
   }
   const EMAIL_PATTERN = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)*\.[a-z0-9-]{2,}$/i;
-  const MIN_PASSWORD = 8, MAX_PASSWORD = 72;
+  const MIN_PASSWORD = 10, MAX_PASSWORD = 72;
   const FIELD_RULES = {
     loginEmail: "email",
     loginPassword: "current-password",
