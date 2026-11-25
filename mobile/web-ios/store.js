@@ -559,6 +559,17 @@
       } else btn?.remove();
     }
   }
+  // 1.1.1: the one offer in ios.js's daily limit sheet, on the same terms as the meters' entry (a Free account that can buy
+  // here). No price (the paywall shows Apple's), nothing about any other plan or place. null = the sheet shows OK only.
+  function limitOffer() {
+    const f = facts();
+    if (standing(f) !== "free" || !canBuy(f) || linkedElsewhere()) return null;
+    return {
+      line: `Pro raises your daily limits to ${LIMITS.pro.ai} AI explanations and ${LIMITS.pro.cases} Recovery cases, with Recovery updates ${LIMITS.pro.waitHours} hours apart.`,
+      label: "Get Pro",
+      open: openPaywall
+    };
+  }
   function watchMeters() {
     const watch = new MutationObserver(() => paintMeters());
     for (const [sel] of METERS) { const n = $(sel); if (n) watch.observe(n, { childList: true, characterData: true, subtree: true }); }
@@ -625,6 +636,6 @@
     }
   }
 
-  w.CNPro = Object.freeze({ open: openPaywall, sync, restore, manage, ids: () => PRO_IDS.slice() });
+  w.CNPro = Object.freeze({ open: openPaywall, sync, restore, manage, limitOffer, ids: () => PRO_IDS.slice() });
   if (d.readyState === "loading") d.addEventListener("DOMContentLoaded", start, { once: true }); else start();
 })();

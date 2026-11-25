@@ -520,3 +520,54 @@
   font-size:11px;
   line-height:1.6;
 }
+
+/* Limit dialog (25 Nov 2026, script.js showLimitDialog). The sheet, scrim and round close button come
+   from the shared .modal / .modal-card / .close-modal rules (ui-src/css/60-overlays.css); these rules
+   only lay out what is inside. Website only: this stylesheet is not part of the iPhone app. */
+html.cn #cnLimitModal { z-index: 1400; }
+html.cn #cnLimitModal > .modal-card.cn-limit-card { width: min(440px, 100%); }
+.cn-limit-card .cn-limit-icon {
+  display: inline-grid; place-items: center;
+  width: 44px; height: 44px; margin-bottom: 16px;
+  border-radius: 50%;
+  color: var(--cn-cyan-2, #67e8f9);
+  background: var(--cn-cyan-tint, rgba(34,211,238,.1));
+  box-shadow: inset 0 0 0 1px var(--cn-cyan-line, rgba(34,211,238,.36));
+}
+.cn-limit-card .cn-limit-title {
+  margin: 0 40px 8px 0;
+  font-size: clamp(1.25rem, 1.1rem + .6vw, 1.5rem);
+  line-height: 1.25; letter-spacing: -.01em; font-weight: 600;
+  color: var(--cn-text, #f5f7fa); text-wrap: balance;
+}
+.cn-limit-card .cn-limit-line { margin: 0; color: var(--cn-text-2, #b7c3d6); line-height: 1.55; }
+.cn-limit-card .cn-limit-reset {
+  display: flex; flex-direction: column; gap: 2px;
+  margin: 20px 0 0; padding: 14px 16px;
+  border-radius: var(--cn-r-ctl, 12px);
+  background: var(--cn-fill-1, rgba(255,255,255,.03));
+  box-shadow: inset 0 0 0 1px var(--cn-line, rgba(148,163,184,.16));
+}
+.cn-limit-card .cn-limit-wait {
+  font-size: 1.125rem; font-weight: 600; color: var(--cn-text, #f5f7fa);
+  font-variant-numeric: tabular-nums;
+}
+.cn-limit-card .cn-limit-when { color: var(--cn-text-2, #b7c3d6); font-size: .9rem; }
+.cn-limit-card .cn-limit-offer {
+  margin: 16px 0 0; color: var(--cn-text-2, #b7c3d6); line-height: 1.55; font-size: .95rem;
+}
+.cn-limit-card .cn-limit-actions { display: flex; flex-direction: column; align-items: stretch; gap: 6px; margin-top: 22px; }
+.cn-limit-card .cn-limit-primary { width: 100%; min-height: 48px; }
+.cn-limit-card .cn-limit-secondary {
+  min-height: 44px; padding: 8px 12px;
+  border: 0; border-radius: var(--cn-r-ctl, 12px); background: transparent;
+  color: var(--cn-text-2, #b7c3d6); font: inherit; font-weight: 500; cursor: pointer;
+  transition: color 150ms ease, background-color 150ms ease;
+}
+.cn-limit-card .cn-limit-secondary:focus-visible { outline: 2px solid var(--cn-focus, #67e8f9); outline-offset: 2px; }
+@media (hover: hover) and (pointer: fine) {
+  .cn-limit-card .cn-limit-secondary:hover { color: var(--cn-text, #f5f7fa); background: var(--cn-fill-1, rgba(255,255,255,.04)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html.cn #cnLimitModal, html.cn #cnLimitModal > .modal-card { animation: none; }
+}

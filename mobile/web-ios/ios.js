@@ -734,6 +734,7 @@
     const method = String(init?.method || (typeof input === "object" && input?.method) || "GET").toUpperCase();
     if (method === "POST" && AI_ENDPOINT.test(url)) {
       let asked = false;
+      const trigger = d.activeElement; // 1.1.1: focus goes back here after the daily limit sheet
       try {
         if (!(consent.granted === true && consent.userId === state()?.user?.id)) {
           asked = true;
@@ -751,6 +752,7 @@
         if (await askConsent()) { options = { ...(init || {}), signal: freshSignal(40000) }; res = await appFetch(input, options); }
       }
       if (/recovery-mode/.test(url) && res.ok) res.clone().json().then(j => { if (j?.caseId) lastCaseId = String(j.caseId); }).catch(() => {});
+      if (res.status === 429) noteLimitReply(url, res, trigger);
       return res;
     }
     if (method === "GET" && /^\/api\/account-status(?:[?#]|$)/.test(url)) {
@@ -2736,10 +2738,137 @@
     } catch (error) { report(error, "start"); }
   }
 
+  /* ================================================================ 1.1.1: the daily limit sheet */
+  // Shown once, right after something was refused for today: the server's 429 for an AI explanation, a Recovery case or a
+  // Recovery update (code daily_limit_reached or cooldown_active, seen by the fetch layer above), or script.js's own
+  // pre-check before an AI explanation (its "You've used today's AI explanations" bubble). Never at launch, never on its own.
+  // The inline messages and meters stay as they are. The sheet says what ran out, when it comes back (a live countdown and
+  // the local clock time) and has OK. It names no plan and nothing to buy: in in-app purchase builds ios/store.js may add
+  // one offer through CNPro.limitOffer (Free accounts only, it opens the paywall); a CN_NO_IAP=1 build has no store.js.
+  const LIMIT_TEXT = Object.freeze({
+    ai: { title: "You've used today's AI explanations", one: "AI explanation", many: "AI explanations", again: "AI explanations are available again." },
+    cases: { title: "You've used today's Recovery cases", one: "Recovery case", many: "Recovery cases", again: "You can start a new Recovery case now." },
+    updates: { title: "You've used today's Recovery updates", one: "Recovery update", many: "Recovery updates", again: "You can send a Recovery update now." },
+    cooldown: { title: "Your next Recovery update is ready in", again: "You can send your next Recovery update now.", line: "Recovery updates have a short wait between them, so each one can build on the last." }
+  });
+  const LIMIT_ICON = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" aria-hidden="true"><circle cx="12" cy="13" r="8" stroke="currentColor" stroke-width="1.8"/><path d="M12 9v4.2l2.6 1.6M9.5 2.8h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  // AI explanations reset at 00:00 UTC; the Recovery window at 12:00 PM Asia/Dubai = 08:00 UTC (netlify/lib/app-tier.mjs).
+  function nextUtc(hour, now = Date.now()) {
+    const t = new Date(now);
+    let at = Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate(), hour, 0, 0, 0);
+    if (at <= now) at += 86400e3;
+    return at;
+  }
+  function limitDeadline(kind, usage, now = Date.now()) {
+    if (kind === "cooldown") {
+      const s = Number(usage?.cooldownSecondsRemaining ?? usage?.cooldown_seconds_remaining);
+      if (Number.isFinite(s) && s > 0) return now + Math.min(s, 86400) * 1000;
+    }
+    const given = Date.parse((kind === "ai" ? usage?.resetDate || usage?.resetAt : usage?.resetAt || usage?.reset_at) || "");
+    // the server's time when it is a sensible one (within the next day); otherwise the known reset
+    if (Number.isFinite(given) && given > now && given - now <= 86400e3 + 60e3) return given;
+    return nextUtc(kind === "ai" ? 0 : 8, now);
+  }
+  function waitText(ms) {
+    const m = Math.max(1, Math.ceil(ms / 60000)), h = Math.floor(m / 60), r = m % 60;
+    return h ? (r ? `${h}h ${r}m` : `${h}h`) : `${m}m`;
+  }
+  function clockText(at, now = Date.now()) {
+    let time;
+    try { time = new Date(at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); } catch { time = new Date(at).toTimeString().slice(0, 5); }
+    const day = x => new Date(x).toDateString();
+    return day(at) === day(now) ? `at ${time} today` : day(at) === day(now + 86400e3) ? `at ${time} tomorrow` : `at ${time}`;
+  }
+  let limitOpen = null, limitLast = { kind: "", at: 0 };
+  function limitSheet(kind, usage, trigger) {
+    const text = LIMIT_TEXT[kind];
+    if (!text || limitOpen) return limitOpen?.promise || Promise.resolve(null);
+    if (limitLast.kind === kind && Date.now() - limitLast.at < 4000) return Promise.resolve(null); // one refusal, one sheet
+    limitLast = { kind, at: Date.now() };
+    const back = trigger && trigger !== d.body ? trigger : d.activeElement;
+    const deadline = limitDeadline(kind, usage);
+    const limit = Number(usage?.limit ?? usage?.daily_limit);
+    const line = kind === "cooldown" ? text.line
+      : Number.isFinite(limit) && limit > 0 && limit < 1000 ? `Your account includes ${limit} ${limit === 1 ? text.one : text.many} a day.` : "";
+    let offer = null;
+    /*@iap*/
+    try { offer = w.CNPro?.limitOffer?.(kind) || null; } catch (error) { report(error, "limit offer"); } // in-app purchase builds only
+    /*@end-iap*/
+    const actions = offer
+      ? `<button type="button" class="primary-btn full cn-limit-cta" data-sheet-value="offer" data-autofocus>${esc(offer.label)}</button><button type="button" class="cn-ios-link-btn cn-limit-later" data-sheet-value="later">Not now</button>`
+      : '<button type="button" class="primary-btn full cn-limit-cta" data-sheet-value="ok" data-autofocus>OK</button>';
+    let timer = 0;
+    const paintWait = panel => {
+      const left = deadline - Date.now();
+      const title = $(".cn-limit-title", panel), when = $(".cn-limit-when", panel);
+      if (!title || !when) return;
+      if (left <= 0) {
+        if (kind === "cooldown") title.textContent = "Your next Recovery update is ready";
+        when.innerHTML = `<span class="cn-limit-in">${esc(text.again)}</span>`;
+        when.classList.add("is-ready");
+        clearInterval(timer);
+        return;
+      }
+      if (kind === "cooldown") title.textContent = `${text.title} ${waitText(left)}`;
+      when.innerHTML = kind === "cooldown"
+        ? `<span class="cn-limit-in">Ready ${esc(clockText(deadline))}</span>`
+        : `<span class="cn-limit-in">Resets in ${esc(waitText(left))}</span><span class="cn-limit-at">${esc(clockText(deadline))}</span>`;
+    };
+    const onShow = () => { if (!d.hidden && limitOpen) paintWait(limitOpen.panel); };
+    const promise = sheet({
+      id: "cnLimitSheet",
+      label: "Daily limit",
+      html: `<div class="cn-limit-head"><span class="cn-limit-icon">${LIMIT_ICON}</span><h2 class="cn-ios-sheet-title cn-limit-title" id="cnLimitTitle">${esc(text.title)}</h2>${line ? `<p class="cn-limit-line">${esc(line)}</p>` : ""}</div>
+        <p class="cn-limit-when"></p>${offer?.line ? `<p class="cn-limit-offer">${esc(offer.line)}</p>` : ""}
+        <div class="cn-ios-sheet-actions">${actions}</div>`,
+      onOpen(panel) {
+        panel.classList.add("cn-limit-sheet");
+        panel.setAttribute("aria-labelledby", "cnLimitTitle");
+        panel.removeAttribute("aria-label");
+        if (limitOpen) limitOpen.panel = panel;
+        paintWait(panel);
+        timer = setInterval(() => paintWait(panel), 30000);
+        d.addEventListener("visibilitychange", onShow);
+      }
+    }).then(value => {
+      clearInterval(timer);
+      d.removeEventListener("visibilitychange", onShow);
+      limitOpen = null;
+      limitLast = { kind: "", at: 0 }; // a deliberate retry after closing gets its own sheet
+      if (value === "offer" && offer?.open) later(() => offer.open(), 240);
+      else later(() => { if (back?.isConnected && !back.disabled) { try { back.focus({ preventScroll: true }); } catch { /* ignore */ } } }, 0);
+      return value;
+    });
+    limitOpen = { promise, panel: null };
+    limitOpen.panel = $("#cnLimitSheet .cn-ios-sheet");
+    return promise;
+  }
+  // The server's refusal, read from a copy of the reply (script.js reads the original and shows its own message first).
+  function noteLimitReply(url, res, trigger) {
+    res.clone().json().then(data => {
+      const code = data?.code;
+      if (code !== "daily_limit_reached" && code !== "cooldown_active") return;
+      const kind = /recovery-update/.test(url) ? (code === "cooldown_active" ? "cooldown" : "updates") : /recovery-mode/.test(url) ? "cases" : "ai";
+      later(() => limitSheet(kind, data.usage || {}, trigger), 60);
+    }).catch(() => {});
+  }
+  // script.js's AI pre-check adds this bubble without asking the server (today's count is already used up).
+  function watchLimitBubbles() {
+    const box = $("#chatMessages");
+    if (!box) return;
+    new MutationObserver(list => {
+      for (const m of list) for (const n of m.addedNodes) {
+        if (n.nodeType !== 1 || !n.classList?.contains("chat-bubble-ai")) continue;
+        if (/^You've used today's AI explanations/.test(n.querySelector(".warning")?.textContent || "")) later(() => limitSheet("ai", state()?.usage || {}, $("#chatSendBtn")), 60);
+      }
+    }).observe(box, { childList: true });
+  }
+  onReady(watchLimitBubbles);
+
   w.CNIos = Object.freeze({
     version: VERSION, openLegal, startQrScan, showQrVerdict, askConsent, showIntro, checkInbox, reportProblem, navigate,
     // shared with the app's other files (1.1: ios/store.js)
-    P, sheet, toast, haptic, tick, esc, report, store, state, signedIn, authHeaders, signInCard, openExternal, activePage, motionOff,
+    P, sheet, toast, haptic, tick, esc, report, store, state, signedIn, authHeaders, signInCard, openExternal, activePage, motionOff, limitSheet,
     isOffline: () => offline
   });
   onReady(start);

@@ -1039,6 +1039,181 @@ document.addEventListener("DOMContentLoaded", () => {
     var _a2;
     return Boolean((_a2 = appState.session) == null ? void 0 : _a2.access_token);
   }
+  const CN_PLAN_LIMITS = { free: { ai: 3, cases: 1, gapHours: 6, quickscan: 5 }, pro: { ai: 15, cases: 3, gapHours: 2 }, business: { ai: 50, cases: 20, gapHours: 1, quickscan: 100 } };
+  function cnNextUtcMidnight(now) {
+    const d = new Date(now);
+    return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1);
+  }
+  function cnNextDubaiNoon(now) {
+    const d = new Date(now);
+    let t = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 8);
+    if (t <= now) t += 864e5;
+    return t;
+  }
+  function cnWaitText(ms) {
+    const m = Math.ceil(Math.max(0, ms) / 6e4);
+    if (m <= 0) return "";
+    if (m < 60) return `${m}m`;
+    const h = Math.floor(m / 60), r = m % 60;
+    return r ? `${h}h ${r}m` : `${h}h`;
+  }
+  let cnLimitOpen = null;
+  function cnLimitResetAt(kind, usage) {
+    const now = Date.now();
+    if (kind === "cooldown") {
+      const s = Number(usage == null ? void 0 : usage.cooldownSecondsRemaining) || 0;
+      return now + Math.max(60, s) * 1e3;
+    }
+    const given = kind === "ai" ? usage == null ? void 0 : usage.resetDate : kind === "quickscan" ? null : usage == null ? void 0 : usage.resetAt;
+    const at = given ? new Date(given).getTime() : NaN;
+    if (Number.isFinite(at) && at > now) return at;
+    return kind === "cases" || kind === "update" ? cnNextDubaiNoon(now) : cnNextUtcMidnight(now);
+  }
+  function cnLimitClock(at) {
+    const d = new Date(at), today = /* @__PURE__ */ new Date();
+    const time = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    if (d.toDateString() === today.toDateString()) return `today at ${time}`;
+    const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+    return d.toDateString() === tomorrow.toDateString() ? `tomorrow at ${time}` : `${d.toLocaleDateString([], { weekday: "long" })} at ${time}`;
+  }
+  function cnLimitCopy(kind, tier, usage) {
+    const L = CN_PLAN_LIMITS[tier] || CN_PLAN_LIMITS.free;
+    const n = Number(usage == null ? void 0 : usage.limit);
+    const lim = Number.isFinite(n) && n > 0 && n < 1e3 ? n : null;
+    const who = tier === "business" ? "Your team's Business plan includes" : tier === "pro" ? "Pro includes" : "The Free plan includes";
+    const plural = (count, one, many) => `${count} ${count === 1 ? one : many}`;
+    if (kind === "ai") return { title: "You've used today's AI explanations", line: `${who} ${plural(lim || L.ai, "AI explanation", "AI explanations")} a day.`, wait: "Resets in" };
+    if (kind === "cases") return { title: "You've used today's Recovery cases", line: `${who} ${plural(lim || L.cases, "Recovery case", "Recovery cases")} a day.`, wait: "Resets in" };
+    if (kind === "update") return { title: "You've used today's Recovery update", line: tier === "free" ? `${who} 1 Recovery update a day, sent at least ${L.gapHours} hours apart.` : `On ${tier === "business" ? "Business" : "Pro"}, Recovery updates can be sent ${L.gapHours === 1 ? "1 hour" : `${L.gapHours} hours`} apart.`, wait: "Resets in" };
+    if (kind === "quickscan") return { title: "You've used today's Quick Scans", line: `${who} ${plural(lim || L.quickscan || 5, "Quick Scan", "Quick Scans")} a day.`, wait: "Resets in" };
+    return { title: "Your next Recovery update isn't ready yet", line: `On ${tier === "business" ? "Business" : tier === "pro" ? "Pro" : "the Free plan"}, Recovery updates can be sent ${L.gapHours === 1 ? "1 hour" : `${L.gapHours} hours`} apart.`, wait: "Ready in", cooldown: true };
+  }
+  function cnLimitOffer(kind, tier) {
+    if (tier === "free") {
+      const text = kind === "quickscan" ? "Pro lifts the daily Quick Scan limit, and gives you 15 AI explanations and 3 Recovery cases a day." : "Pro gives you 15 AI explanations and 3 Recovery cases a day, with Recovery updates 2 hours apart.";
+      return { text, primary: "Upgrade to Pro", secondary: "Not now", go: "pro" };
+    }
+    if (tier === "pro") {
+      const text = kind === "cooldown" ? "Business sends Recovery updates 1 hour apart, with 50 AI explanations and 20 Recovery cases a day for your team." : "Business gives your team 50 AI explanations and 20 Recovery cases a day, with seats for 5 or more people.";
+      return { text, primary: "See Business plans", secondary: "Close", go: "business" };
+    }
+    return { text: "", primary: "OK", secondary: "", go: "" };
+  }
+  function closeLimitDialog(restoreFocus = true) {
+    const s = cnLimitOpen;
+    if (!s) return;
+    cnLimitOpen = null;
+    clearInterval(s.timer);
+    document.removeEventListener("visibilitychange", s.tick);
+    document.removeEventListener("keydown", s.onKey, true);
+    s.modal.remove();
+    document.body.style.overflow = s.overflow;
+    if (restoreFocus && s.trigger && document.contains(s.trigger)) {
+      try {
+        s.trigger.focus({ preventScroll: true });
+      } catch (e) {
+      }
+    }
+  }
+  function showLimitDialog({ kind = "ai", usage = null } = {}) {
+    if (cnLimitOpen) closeLimitDialog(false);
+    const tier = isSignedIn() && planTier() || ((usage == null ? void 0 : usage.plan) === "business" || (usage == null ? void 0 : usage.plan) === "pro" ? usage.plan : "free");
+    const copy = cnLimitCopy(kind, tier, usage), offer = cnLimitOffer(kind, tier), resetAt = cnLimitResetAt(kind, usage);
+    const modal = document.createElement("div");
+    modal.className = "modal cn-limit-modal show";
+    modal.id = "cnLimitModal";
+    modal.innerHTML = `<div class="modal-card cn-limit-card glass" role="dialog" aria-modal="true" aria-labelledby="cnLimitTitle" aria-describedby="cnLimitLine cnLimitWhen">
+      <button class="close-modal" type="button" aria-label="Close" data-limit-close>&times;</button>
+      <span class="cn-limit-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/></svg></span>
+      <h2 id="cnLimitTitle" class="cn-limit-title">${escapeHTML(copy.title)}</h2>
+      <p id="cnLimitLine" class="cn-limit-line">${escapeHTML(copy.line)}</p>
+      <div class="cn-limit-reset"><span class="cn-limit-wait" data-limit-wait></span><span id="cnLimitWhen" class="cn-limit-when" data-limit-when></span></div>
+      ${offer.text ? `<p class="cn-limit-offer">${escapeHTML(offer.text)}</p>` : ""}
+      <div class="cn-limit-actions">
+        <button type="button" class="primary-btn full cn-limit-primary" data-limit-primary>${escapeHTML(offer.primary)}</button>
+        ${offer.secondary ? `<button type="button" class="cn-limit-secondary" data-limit-close>${escapeHTML(offer.secondary)}</button>` : ""}
+      </div>
+    </div>`;
+    const waitEl = modal.querySelector("[data-limit-wait]"), whenEl = modal.querySelector("[data-limit-when]");
+    const tick = () => {
+      const left = resetAt - Date.now(), wait = cnWaitText(left);
+      if (!wait) {
+        waitEl.textContent = copy.cooldown ? "Ready now" : "Available again";
+        whenEl.textContent = copy.cooldown ? "You can send your next update." : "You can try again now.";
+        return;
+      }
+      waitEl.textContent = `${copy.wait} ${wait}`;
+      const clock = cnLimitClock(resetAt);
+      whenEl.textContent = copy.cooldown ? `Ready ${clock}` : clock.charAt(0).toUpperCase() + clock.slice(1);
+    };
+    tick();
+    const onKey = (event) => {
+      if (cnLimitOpen !== state) return;
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        closeLimitDialog();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const items = [...modal.querySelectorAll("button")].filter((b) => !b.disabled && b.offsetParent !== null);
+      if (!items.length) return;
+      const first = items[0], last = items[items.length - 1];
+      if (!modal.contains(document.activeElement)) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+      } else if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    const state = { modal, tick, onKey, timer: setInterval(tick, 3e4), overflow: document.body.style.overflow, trigger: document.activeElement };
+    cnLimitOpen = state;
+    document.addEventListener("visibilitychange", tick);
+    document.addEventListener("keydown", onKey, true);
+    modal.addEventListener("click", (event) => {
+      if (event.target === modal || event.target.closest("[data-limit-close]")) {
+        closeLimitDialog();
+        return;
+      }
+      if (!event.target.closest("[data-limit-primary]")) return;
+      if (!offer.go) {
+        closeLimitDialog();
+        return;
+      }
+      closeLimitDialog(false);
+      track("limit_dialog_upgrade", { kind, plan: tier });
+      switchPage("pricing");
+      if (offer.go === "business") setTimeout(() => {
+        const card = document.querySelector(".business-price-card");
+        if (!card) return;
+        let calm = false;
+        try {
+          calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+        } catch (e) {
+        }
+        card.scrollIntoView({ block: "center", behavior: calm ? "auto" : "smooth" });
+        const btn = document.getElementById("businessPlanBtn");
+        if (btn) {
+          try {
+            btn.focus({ preventScroll: true });
+          } catch (e) {
+          }
+        }
+      }, 450);
+    });
+    document.body.appendChild(modal);
+    document.body.style.overflow = "hidden";
+    track("limit_dialog_shown", { kind, plan: tier });
+    try {
+      modal.querySelector("[data-limit-primary]").focus({ preventScroll: true });
+    } catch (e) {
+    }
+  }
+  window.CN_showLimitDialog = showLimitDialog;
   function isLoggedTeamMember() {
     var _a2, _b2;
     return Boolean((_a2 = appState.profile) == null ? void 0 : _a2.isTeamMember) && ((_b2 = appState.profile) == null ? void 0 : _b2.teamRole) !== "owner";
@@ -2909,6 +3084,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!res.ok) {
         appState.quickScanUsage = { used: Number(data.used) || 0, limit: Number(data.limit) || 5, plan: data.plan || "free" };
         updateAccountUI();
+        if (res.status === 429 && data.code === "daily_limit_reached") showLimitDialog({ kind: "quickscan", usage: { plan: data.plan, limit: data.limit } });
         return { allowed: false, message: data.error || "Daily Quick Scan limit reached. Upgrade to Pro for unlimited scans." };
       }
       appState.quickScanUsage = { used: Number(data.used) || 0, limit: Number(data.limit) || 5, plan: data.plan || "free" };
@@ -3245,6 +3421,7 @@ document.addEventListener("DOMContentLoaded", () => {
         /*@end-web*/
         /*@ios `<span class="warning">You've used today's AI explanations. ${escapeHTML(aiResetText())}</span>` @end-ios*/
       );
+      showLimitDialog({ kind: "ai", usage: appState.usage });
       return false;
     }
     return true;
@@ -3446,6 +3623,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (stopDiagnostic) stopDiagnostic();
       if (inner) inner.innerHTML = `<span class="warning">${escapeHTML(friendlyNetworkError(error) || error.message || "The analysis didn't finish. Please try again.")}</span>${/*@web*/
       error.code === "daily_limit_reached" ? '<button class="report-download-btn" data-upgrade-now>Upgrade to Pro</button>' : ""}`;
+      if (error.code === "daily_limit_reached") showLimitDialog({ kind: "ai", usage: error.usage || appState.usage });
     }
     if (chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
   }
@@ -3860,6 +4038,7 @@ document.addEventListener("DOMContentLoaded", () => {
             appState.recoveryUsage = { used: Number(error.usage.used) || 0, limit: Number((_b2 = error.usage.limit) != null ? _b2 : error.usage.daily_limit) || 1 };
             updateAccountUI();
           }
+          showLimitDialog({ kind: "cases", usage: error.usage });
         } else {
           setIntakeMessage(friendlyNetworkError(error) || error.message || "Recovery Mode couldn't start right now. Please try again.", "warning");
         }
@@ -4066,9 +4245,11 @@ document.addEventListener("DOMContentLoaded", () => {
           const seconds = Number((_a2 = error.usage) == null ? void 0 : _a2.cooldownSecondsRemaining) || 0;
           const hours = Math.ceil(seconds / 3600), minutes = Math.max(1, Math.ceil(seconds / 60));
           setUpdateMessage(seconds > 0 ? `You can send your next update in about ${seconds >= 3600 ? `${hours} hour${hours > 1 ? "s" : ""}` : `${minutes} minute${minutes > 1 ? "s" : ""}`}.` : error.message || "Please wait before submitting another update.", "warning");
+          showLimitDialog({ kind: "cooldown", usage: error.usage });
         } else if (error.code === "daily_limit_reached") {
           setUpdateMessage(`${error.message}${/*@web*/
           ((_b2 = error.usage) == null ? void 0 : _b2.plan) === "free" || !((_c2 = error.usage) == null ? void 0 : _c2.plan) ? " Upgrade to Pro for more updates per day." : " Updates reset at 12:00 PM Gulf time."}`, "warning");
+          showLimitDialog({ kind: "update", usage: error.usage });
         } else {
           setUpdateMessage(friendlyNetworkError(error) || error.message || "Couldn't update this case right now. Please try again.", "warning");
         }

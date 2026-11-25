@@ -1577,3 +1577,32 @@ html.cn-still .cn-pro-skel, html.cn-still .cn-pro-done-tick { animation: none; }
 @media (prefers-reduced-transparency: reduce) { .cn-ios-sheet.cn-pro-sheet { background: var(--cn-pro-bg); } }
 /*@end-iap*/
 html.cn-ios .cn-privacy-note[hidden] { display: none; }
+
+/* ---------- 1.1.1: the daily limit sheet (ios.js limitSheet; both builds) ----------
+   A short sheet: what ran out, when it comes back (live), one action. Same navy and cyan as the paywall. */
+.cn-ios-sheet.cn-limit-sheet {
+  max-width: 520px;
+  padding-left: 22px;
+  padding-right: 22px;
+  background:
+    radial-gradient(110% 55% at 50% -12%, rgba(34, 211, 238, .12), rgba(34, 211, 238, 0) 62%),
+    var(--cn-ios-sheet-bg);
+}
+.cn-limit-head { display: grid; justify-items: center; text-align: center; gap: 8px; margin: 14px 0 18px; }
+.cn-limit-icon {
+  display: grid; place-items: center; width: 52px; height: 52px; margin-bottom: 4px; border-radius: 16px;
+  color: var(--cn-ios-accent); background: rgba(34, 211, 238, .1); border: 1px solid rgba(34, 211, 238, .22);
+}
+.cn-limit-sheet .cn-limit-title { margin: 0; max-width: 22ch; font-size: 1.45rem; line-height: 1.2; letter-spacing: -.015em; font-weight: 700; text-wrap: balance; }
+.cn-limit-line { margin: 0 auto; max-width: 34ch; color: var(--cn-ios-text-2); line-height: 1.45; font-size: .98rem; }
+.cn-limit-when {
+  display: grid; justify-items: center; gap: 2px; margin: 0; padding: 14px 16px; text-align: center;
+  border-radius: 16px; background: var(--cn-ios-row-bg); border: 1px solid var(--cn-ios-line);
+}
+.cn-limit-in { font-size: 1.2rem; font-weight: 650; color: var(--cn-ios-text); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.cn-limit-at { font-size: .9rem; color: var(--cn-ios-text-2); }
+.cn-limit-when.is-ready .cn-limit-in { font-size: 1.02rem; color: var(--cn-ios-accent); }
+.cn-limit-offer { margin: 14px auto 0; max-width: 36ch; text-align: center; color: var(--cn-ios-text-2); line-height: 1.45; font-size: .94rem; }
+.cn-limit-sheet .cn-limit-cta { min-height: 52px; font-size: 1.05rem; font-weight: 700; border-radius: 14px; }
+.cn-limit-sheet .cn-limit-later { justify-self: center; min-height: 44px; padding: 0 18px; font-size: 1rem; }
+@media (prefers-reduced-transparency: reduce) { .cn-ios-sheet.cn-limit-sheet { background: var(--cn-ios-sheet-bg); } }

@@ -830,8 +830,10 @@ try {
           mobilePkg.version === "1.1.1" && lock.version === "1.1.1" && lock.packages[""].version === "1.1.1" && boot.includes('var VERSION="1.1.1"') && versions.length === 4 && versions.every(v => v === "1.1.1"), [mobilePkg.version, lock.version, versions]);
         const notes = await readFile(path.join(mobile, "RELEASE-NOTES-1.1.1.md"), "utf8").catch(() => "");
         const whatsNew = (notes.split("```")[1] || "").trim();
-        check("Version: RELEASE-NOTES-1.1.1.md has a What's New text under 4,000 characters with no price, plan or word the gate refuses",
-          whatsNew.length > 100 && whatsNew.length < 4000 && wordHits(whatsNew).length === 0 && !/\$|\bplans?\b|price|purchase|subscri/i.test(whatsNew), [whatsNew.length, wordHits(whatsNew)]);
+        // 1.1.1 is the first in-app purchase release (e344bb4), so its What's New may name Pro and subscribing in the app;
+        // it still carries no price, no Business plan, no website or link out and no other way to pay.
+        check("Version: RELEASE-NOTES-1.1.1.md has a What's New text under 4,000 characters with no price, Business plan, website or link out",
+          whatsNew.length > 100 && whatsNew.length < 4000 && !/\$|\d+\.\d\d|price|business|enterprise|website|https?:|www\.|\.app\b|\.com\b|checkout|stripe|pricing/i.test(whatsNew), [whatsNew.length]);
       }
 
       // ---- Account name (app 1.1.1): a Sign in with Apple account showed the email's first part (the profile is made before the app
@@ -1561,6 +1563,21 @@ try {
         check("StoreKit (Swift): CNStore is registered inside the // @iap block only", /\/\/ @iap[\s\S]*registerPluginInstance\(StoreKitPlugin\(\)\)[\s\S]*\/\/ @end-iap/.test(main) && (main.match(/StoreKitPlugin\(\)/g) || []).length === 1);
         const pi = await readFile(path.join(mobile, "native", "App", "PrivacyInfo.xcprivacy"), "utf8");
         check("Privacy manifest: Purchase History is collected, linked, not tracking, for App Functionality", /NSPrivacyCollectedDataTypePurchaseHistory<\/string>\s*<key>NSPrivacyCollectedDataTypeLinked<\/key>\s*<true\/>\s*<key>NSPrivacyCollectedDataTypeTracking<\/key>\s*<false\/>/.test(pi));
+        // ---- 1.1.1: the daily limit sheet (ios.js limitSheet; the Free offer is store.js limitOffer)
+        {
+          const iosSrc = await readFile(path.join(mobile, "web-ios", "ios.js"), "utf8");
+          const sheetSrc = iosSrc.slice(iosSrc.indexOf("1.1.1: the daily limit sheet"), iosSrc.indexOf("w.CNIos = Object.freeze({"));
+          const offerSrc = storeSrc.slice(storeSrc.indexOf("function limitOffer()"), storeSrc.indexOf("function watchMeters()"));
+          check("Limit sheet: ships in both bundles, opened from the 429 replies (daily_limit_reached, cooldown_active) and the AI pre-check bubble", /You've used today's AI explanations/.test(noIos) && /You've used today's AI explanations/.test(iapIos) && /cooldown_active/.test(noIos) && /daily_limit_reached/.test(noIos) && /noteLimitReply\(url, res, trigger\)/.test(iosSrc) && /chat-bubble-ai/.test(sheetSrc));
+          check("Limit sheet: the no-IAP bundle has no offer at all (no CNPro, no limitOffer, no Pro word) and the IAP bundle asks store.js for it", !/limitOffer|CNPro|\bPro\b|Get Pro/.test(noIos) && /CNPro\?\.limitOffer\?\.\(kind\)/.test(iapIos));
+          check("Limit sheet (3.1.1 / 3.1.3): ios.js copy names no plan, no Business, no website and no link", !/\bPro\b|business|website|https?:|price|upgrade|subscri/i.test(sheetSrc.replace(/CNPro\?\.limitOffer/g, "")), sheetSrc.match(/.{20}(\bPro\b|business|website|https?:|price|upgrade).{20}/i)?.[0]);
+          check("Limit sheet: the offer is Free-only on the meters' terms, opens the paywall, names no price, Business or website, and is exported on CNPro", /standing\(f\) !== "free" \|\| !canBuy\(f\) \|\| linkedElsewhere\(\)/.test(offerSrc) && /open: openPaywall/.test(offerSrc) && /label: "Get Pro"/.test(offerSrc) && !/\$\s?\d|price|business|website|unlimited AI/i.test(offerSrc) && /limitOffer,\s?ids:/.test(storeOut) && /Pro raises your daily limits/.test(storeOut));
+          check("Limit sheet: close by X / Esc / backdrop (sheet()), a live countdown that never goes negative, server reset times with 00:00 UTC and 08:00 UTC fallbacks", /aria-labelledby", "cnLimitTitle"/.test(sheetSrc) && /setInterval\(\(\) => paintWait\(panel\), 30000\)/.test(sheetSrc) && /if \(left <= 0\)/.test(sheetSrc) && /nextUtc\(kind === "ai" \? 0 : 8, now\)/.test(sheetSrc) && /cooldownSecondsRemaining/.test(sheetSrc));
+          // the reset math, run for real
+          const fn = new Function(`${sheetSrc.slice(sheetSrc.indexOf("function nextUtc("), sheetSrc.indexOf("function clockText("))}; return { nextUtc, limitDeadline, waitText };`)();
+          const now = Date.UTC(2026, 10, 25, 9, 30);
+          check("Limit sheet: AI resets at the next 00:00 UTC, Recovery at the next 08:00 UTC, a cooldown from its seconds; a stale server time is ignored", fn.limitDeadline("ai", {}, now) === Date.UTC(2026, 10, 26, 0) && fn.limitDeadline("cases", { resetAt: "2026-11-20T08:00:00Z" }, now) === Date.UTC(2026, 10, 26, 8) && fn.limitDeadline("cases", { resetAt: "2026-11-26T08:00:00.000Z" }, now) === Date.UTC(2026, 10, 26, 8) && fn.limitDeadline("cooldown", { cooldownSecondsRemaining: 6720 }, now) === now + 6720e3 && fn.waitText(6720e3) === "1h 52m" && fn.waitText(3600e3) === "1h" && fn.waitText(1000) === "1m");
+        }
       }
     }
   }
