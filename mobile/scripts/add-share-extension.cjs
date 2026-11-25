@@ -584,7 +584,7 @@ function planEngine() {
 }
 
 // ---------------------------------------------------------------------------------------------
-// 7. App icon and launch image (--icons). sharp comes with @capacitor/assets (BUILD-PLAN §6.1).
+// 7. App icon and launch image (--icons). sharp is a direct devDependency (it used to come with @capacitor/assets; BUILD-PLAN §6.1).
 
 async function renderIcons() {
   const sharp = require('sharp');
