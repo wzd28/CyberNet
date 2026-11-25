@@ -1,12 +1,14 @@
 # CyberNet AI 1.1.1: release notes
 
-The "What's New" text for App Store Connect is the block below (plain text, under 4,000 characters, no prices or plans).
+The "What's New" text for App Store Connect is the block below (plain text, under 4,000 characters, no prices or website links).
 The notes under it are for the team and are not pasted anywhere.
 
 ## What's New in Version 1.1.1
 
 ```
-This update fixes a few things you told us about.
+New: CyberNet AI Pro is now available in the app. Subscribe from Account for more AI checks and Recovery cases every day. Manage or cancel any time in Settings.
+
+This update also fixes a few things you told us about.
 
 - Your name, not your email: if you signed in with Apple, your Account tab now shows your name instead of the first part of your email address (or a random code when you hide your email).
 - Add your name: if CyberNet AI has no name for you, Account now has an "Add your name" row. Type your first and last name and it is saved to your account.
@@ -25,4 +27,5 @@ Thank you for using CyberNet AI. If something does not look right, tap Contact s
   development build or after release.
 - The account name repair needs the server change (netlify/lib/supabase.mjs betterProfileName) to be live for the saved name to
   change; the app already shows the right name from the account without it.
-- 1.1.1 ships without in-app purchases (CN_NO_IAP=1 in codemagic.yaml), like 1.1.0.
+- 1.1.1 is the first build WITH in-app purchases: CN_NO_IAP was removed from codemagic.yaml (f9df141). Pro Monthly and Pro Yearly
+  must be attached to the 1.1.1 version in App Store Connect and submitted with it.
