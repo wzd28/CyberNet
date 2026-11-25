@@ -1,13 +1,13 @@
-// Growth pages (24 Nov 2026): the scam guide pages, the Smart App Banner, the iPhone app links and the
-// warn-a-friend share. Static checks only (no browser).
+// Growth changes (24 Nov 2026): the Black Friday checklist page, the Smart App Banner, the iPhone app links
+// and the warn-a-friend share. Static checks only (no browser).
 //
-//   node tests/run-guides.mjs
+//   node tests/run-growth.mjs
 //
 // 1. Every page in public/sitemap.xml exists, and each pretty URL has its netlify.toml rewrite (with and
 //    without the trailing slash) to the file whose canonical is that same URL.
-// 2. Guide pages: unique title and description, one H1, the Smart App Banner, valid JSON-LD, a FAQPage
-//    that says word for word what the visible FAQ says, a ?try=1 call to action, App Store links with the
-//    right id and a ct= campaign tag, the EU note next to the app link, no images from other hosts (CSP).
+// 2. Content pages (the checklist): title and description, one H1, the Smart App Banner, valid Article
+//    JSON-LD, a ?try=1 call to action, App Store links with the right id and a ct= campaign tag, the EU
+//    note next to the app link, no images from other hosts (CSP).
 // 3. Home: the banner, the new title in both index.html and PAGE_META.home, the MobileApplication schema.
 // 4. script.js: the app link and the share stay inside a web-only region (the iPhone app never shows an
 //    App Store link), the share never sends what was checked, and the EU time-zone test behaves.
@@ -25,7 +25,7 @@ function check(name, ok, detail = "") {
 }
 const decode = s => s.replace(/<[^>]+>/g, "").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
 const APP_ID = "6828596086";
-const GUIDES = ["scam-text-checker", "parcel-delivery-scam-text", "toll-fine-scam-text", "qr-code-scam", "is-this-link-safe", "black-friday-scam-checklist"];
+const GUIDES = ["black-friday-scam-checklist"];
 
 /* ---------- 1. sitemap, redirects, canonicals ---------- */
 const toml = read("netlify.toml");
@@ -54,7 +54,7 @@ for (const loc of locs) {
 }
 check("robots.txt points at the sitemap", /Sitemap: https:\/\/cybernetai\.app\/sitemap\.xml/.test(read("public/robots.txt")));
 
-/* ---------- 2. guide pages ---------- */
+/* ---------- 2. content pages ---------- */
 const titles = new Map(), descriptions = new Map();
 function headOf(html) { return html.slice(0, html.indexOf("</head>")); }
 for (const g of GUIDES) {
@@ -93,18 +93,6 @@ for (const g of GUIDES) {
   const article = graph.find(n => n["@type"] === "Article");
   check(`guide ${g}: Article JSON-LD with dates and publisher`, article && /^\d{4}-\d{2}-\d{2}$/.test(article.datePublished) && article.publisher && article.mainEntityOfPage === `https://cybernetai.app/${g}`);
   check(`guide ${g}: no aggregateRating (no real ratings on the page)`, !JSON.stringify(graph).includes("aggregateRating"));
-  const faq = graph.find(n => n["@type"] === "FAQPage");
-  if (g === "black-friday-scam-checklist") continue; // a checklist, no FAQ
-  check(`guide ${g}: FAQPage JSON-LD`, faq && faq.mainEntity && faq.mainEntity.length >= 3);
-  const fs = html.indexOf('id="cn-faq-h"'), fe = html.indexOf("</section>", fs);
-  const visible = [...html.slice(fs, fe).matchAll(/<h3>([\s\S]*?)<\/h3>\s*<p>([\s\S]*?)<\/p>/g)].map(m => [decode(m[1]), decode(m[2])]);
-  check(`guide ${g}: visible FAQ has as many questions as the JSON-LD`, faq && visible.length === faq.mainEntity.length, `${visible.length} vs ${faq && faq.mainEntity.length}`);
-  if (faq) faq.mainEntity.forEach((q, i) => {
-    const v = visible[i] || [];
-    check(`guide ${g}: FAQ ${i + 1} question matches the page`, q.name === v[0], `${q.name} | ${v[0]}`);
-    check(`guide ${g}: FAQ ${i + 1} answer matches the page`, q.acceptedAnswer && q.acceptedAnswer.text === v[1], `${q.acceptedAnswer && q.acceptedAnswer.text} | ${v[1]}`);
-  });
-  for (const other of GUIDES.filter(o => o !== g)) check(`guide ${g}: links to /${other}`, html.includes(`href="/${other}"`));
 }
 
 /* ---------- 3. home page ---------- */
@@ -123,7 +111,8 @@ for (const g of GUIDES) {
   check("home: Organization has logo and sameAs", org && org.logo && Array.isArray(org.sameAs) && org.sameAs.length >= 3);
   check("home: no aggregateRating", !JSON.stringify(ld).includes("aggregateRating"));
   const footer = (/<footer data-web-only>[\s\S]*?<\/footer>/.exec(html) || [""])[0];
-  check("home: the web-only footer links every guide", GUIDES.every(g => footer.includes(`href="/${g}"`)));
+  check("home: the web-only footer links the checklist", GUIDES.every(g => footer.includes(`href="/${g}"`)));
+  check("home: the web-only footer links the iPhone app with ct=web_footer", footer.includes(`https://apps.apple.com/app/cybernet-ai/id${APP_ID}?ct=web_footer`));
   const bodyApps = [...html.slice(html.indexOf("<body")).matchAll(/https:\/\/apps\.apple\.com\/[^"]+/g)].map(m => m[0]);
   check("home: App Store links in the page body are only in the web-only footer", bodyApps.length > 0 && bodyApps.every(u => footer.includes(u)));
   const manifest = JSON.parse(read("public/site.webmanifest"));
@@ -166,5 +155,5 @@ for (const g of GUIDES) {
   check("legacy/script.js is rebuilt with the app link and share", legacy.includes("Warn a friend or family member") && legacy.includes("id6828596086"));
 }
 
-console.log(`guides: ${pass}/${pass + fail} checks passed`);
+console.log(`growth: ${pass}/${pass + fail} checks passed`);
 process.exit(fail ? 1 : 0);

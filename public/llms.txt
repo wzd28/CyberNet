@@ -7,13 +7,8 @@
 - Quick Scan runs in the browser or on the iPhone. It shows warning signs; it is not antivirus software and cannot promise that something is safe.
 - Checks cover English and Arabic scam messages, including Gulf (UAE) scams.
 
-## Scam guides
+## Guides
 
-- [Is this text a scam? Free scam text checker](https://cybernetai.app/scam-text-checker)
-- [Parcel delivery scam texts](https://cybernetai.app/parcel-delivery-scam-text)
-- [Fake toll and traffic fine texts (Salik, RTA, E-ZPass)](https://cybernetai.app/toll-fine-scam-text)
-- [QR code scams](https://cybernetai.app/qr-code-scam)
-- [Is this link safe?](https://cybernetai.app/is-this-link-safe)
 - [Black Friday scam checklist](https://cybernetai.app/black-friday-scam-checklist)
 
 ## Help

@@ -1,8 +1,7 @@
-/* Scam guide pages (growth, 24 Nov 2026): the Black Friday checklist and the standalone scam pages
-   (scam-text-checker, parcel-delivery-scam-text, toll-fine-scam-text, qr-code-scam, is-this-link-safe).
-   They use the legal-page shell (/ui/cybernet-ui-legal.css); this file adds only what those pages need:
-   the one call to action, the iPhone app line, the numbered checks, the example message and the
-   related-guides list. Plain CSS, loaded as is (no build step); bump its ?v= in every guide page on a change. */
+/* Black Friday scam checklist page (growth, 24 Nov 2026; moved out of the page's inline <style>).
+   It uses the legal-page shell (/ui/cybernet-ui-legal.css); this file adds only what the page needs:
+   the one call to action, the iPhone app line and the numbered checks. Plain CSS, loaded as is (no build
+   step); bump its ?v= in the page on a change. */
 html.cn body.cn-legal-page .cn-check-cta {
   display: inline-flex; align-items: center; justify-content: center;
   min-height: 52px; margin-top: var(--cn-6, 24px); padding: 0 26px;
@@ -38,36 +37,16 @@ html.cn body.cn-legal-page .cn-checks > li::before {
   color: var(--cn-cyan); font: 700 15px/32px var(--cn-font-mono, monospace); text-align: center;
 }
 html.cn body.cn-legal-page .cn-checks > li:first-child::before { top: -2px; }
-html.cn body.cn-legal-page .cn-checks h2,
-html.cn body.cn-legal-page .cn-checks h3 { margin: 0 0 8px; color: var(--cn-text); font: 600 20px/1.3 var(--cn-font); letter-spacing: -.01em; }
+html.cn body.cn-legal-page .cn-checks h2 { margin: 0 0 8px; color: var(--cn-text); font: 600 20px/1.3 var(--cn-font); letter-spacing: -.01em; }
 html.cn body.cn-legal-page .cn-checks p { margin: 0; color: var(--cn-text-2); font-size: 17px; line-height: 1.6; }
 html.cn body.cn-legal-page .cn-checks p + p { margin-top: 8px; }
 html.cn body.cn-legal-page .cn-checks a { color: var(--cn-cyan); overflow-wrap: anywhere; }
 html.cn body.cn-legal-page .cn-checks strong { color: var(--cn-text); }
 
-/* An example scam message, shown as text (never a live link) */
-html.cn body.cn-legal-page .cn-example {
-  max-width: 60ch; margin: 0 0 var(--cn-4, 16px); padding: 14px 16px;
-  border: 1px solid var(--cn-line-2); border-left: 3px solid #f59e0b; border-radius: 12px;
-  background: var(--cn-surface); color: var(--cn-text);
-  font: 500 15px/1.55 var(--cn-font-mono, monospace); overflow-wrap: anywhere;
-}
-html.cn body.cn-legal-page .cn-example-label { display: block; margin-bottom: 6px; color: var(--cn-text-3); font: 600 12px/1.2 var(--cn-font); letter-spacing: .06em; text-transform: uppercase; }
-
-html.cn body.cn-legal-page .cn-guide-meta { margin-top: var(--cn-4, 16px); color: var(--cn-text-3); font-size: 14px; }
-html.cn body.cn-legal-page .cn-related { list-style: none; padding: 0; }
-html.cn body.cn-legal-page .cn-related li { padding-inline-start: 0; }
-html.cn body.cn-legal-page .cn-related a { display: inline-flex; align-items: center; min-height: 44px; color: var(--cn-cyan); }
-
 @media (max-width: 420px) {
   html.cn body.cn-legal-page .cn-checks > li { padding-left: 44px; }
   html.cn body.cn-legal-page .cn-checks > li::before { width: 30px; height: 30px; font-size: 14px; line-height: 28px; }
-  html.cn body.cn-legal-page .cn-checks h2,
-  html.cn body.cn-legal-page .cn-checks h3 { font-size: 18px; }
+  html.cn body.cn-legal-page .cn-checks h2 { font-size: 18px; }
   html.cn body.cn-legal-page .cn-checks p { font-size: 16px; }
   html.cn body.cn-legal-page .cn-check-cta { display: flex; width: 100%; }
 }
-
-/* Long made-up web addresses in the guides: the legal shell keeps <code> on one line, which pushed the page
-   sideways on phones. Here they may break anywhere. */
-html.cn body.cn-legal-page .cn-legal-section code { white-space: normal; overflow-wrap: anywhere; }

@@ -354,10 +354,10 @@ html.cn body > footer .cn-footer-brand:focus-visible {
   }
 }
 
-/* ---------- scam guides row (index.html nav.cn-footer-guides, growth 24 Nov 2026) ----------
+/* ---------- "more" link row: checklist and iPhone app (index.html nav.cn-footer-more, growth 24 Nov 2026) ----------
    A second link row with the same look as the legal links, under the fine print on its own row,
    so it never shares the legal links' grid cell. */
-html.cn body > footer .cn-footer-legal.cn-footer-guides {
+html.cn body > footer .cn-footer-legal.cn-footer-more {
   grid-column: 1 / -1;
   grid-row: 4;
   justify-self: start;
@@ -365,5 +365,5 @@ html.cn body > footer .cn-footer-legal.cn-footer-guides {
   max-width: none;
 }
 @media (max-width: 899.98px) {
-  html.cn body > footer .cn-footer-legal.cn-footer-guides { grid-column: 1; grid-row: 6; margin: var(--cn-2) 0 0; }
+  html.cn body > footer .cn-footer-legal.cn-footer-more { grid-column: 1; grid-row: 6; margin: var(--cn-2) 0 0; }
 }
