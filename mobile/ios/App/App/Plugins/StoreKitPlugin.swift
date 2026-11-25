@@ -32,6 +32,8 @@ import Capacitor
 ///                                                                      Account password), then currentEntitlements()
 ///   finish({ transactionId })          -> {}      tells Apple the purchase was delivered; an unknown id is a no-op
 ///   manageSubscriptions()              -> {}      Apple's Manage Subscriptions sheet; returns when it closes
+///   redeemCode()                       -> {}      Apple's offer-code redemption sheet (iOS 16+); a redeemed code arrives
+///                                         as a `transactionUpdate` event like any other new transaction
 ///   refundRequest({ transactionId? })  -> { status: "success" | "cancelled" }   Apple's refund sheet for that transaction
 ///                                         (default: the active Pro transaction)
 ///
@@ -63,6 +65,7 @@ public final class StoreKitPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "restore", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "finish", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "manageSubscriptions", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "redeemCode", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "refundRequest", returnType: CAPPluginReturnPromise)
     ]
 
@@ -254,6 +257,21 @@ public final class StoreKitPlugin: CAPPlugin, CAPBridgedPlugin {
                 call.resolve()
             } catch {
                 call.reject("Subscriptions can't be managed right now.", "FAILED")
+            }
+        }
+    }
+
+    @objc func redeemCode(_ call: CAPPluginCall) {
+        Task { @MainActor in
+            guard let scene = self.currentScene() else {
+                call.reject("Codes can't be redeemed right now.", "NOT_AVAILABLE")
+                return
+            }
+            do {
+                try await AppStore.presentOfferCodeRedeemSheet(in: scene)
+                call.resolve()
+            } catch {
+                call.reject("Codes can't be redeemed right now.", "FAILED")
             }
         }
     }

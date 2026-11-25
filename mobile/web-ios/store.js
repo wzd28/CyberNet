@@ -510,6 +510,17 @@
     } catch (error) { report(error, "pro update"); } finally { verifying.delete(id); }
   }
 
+  /* ================================================================ promo codes: Apple's own offer code sheet (1.1.1) */
+  // The code is typed and checked by Apple (App Store Connect offer codes on Pro Yearly), never by this file. Free accounts
+  // only (same terms as Get Pro); the server learns about it the usual way, through transactionUpdate and /api/apple-verify.
+  const REDEEM_ROW = '<button type="button" class="cn-ios-row cn-ios-row-btn cn-pro-redeem" data-pro-row="redeem" data-ios-nav>Redeem a code</button>';
+  async function redeem() {
+    if (!CNStore || typeof CNStore.redeemCode !== "function") { toast("Codes can't be redeemed right now."); return; }
+    if (!signedIn()) { toast("Sign in first, then redeem your code."); return; }
+    try { await CNStore.redeemCode(); later(() => sync("update"), 1500); }
+    catch (error) { report(error, "pro redeem"); toast("Codes can't be redeemed right now."); }
+  }
+
   /* ================================================================ Account: the CyberNet AI Pro group */
   // Placeholder: mobile/web-ios/partials/account.html #cnAcctPro (in-app purchase builds only).
   function paintAccount() {
@@ -530,6 +541,7 @@
       const wrong = linkedElsewhere();
       rows = `<div class="cn-ios-row cn-ios-row-stack"><strong>CyberNet AI Pro</strong><span>${esc(wrong ? TEXT.wrongAccount : `${LIMITS.pro.ai} AI explanations and ${LIMITS.pro.cases} Recovery cases a day, on your iPhone and on the website.`)}</span></div>
         ${wrong ? "" : '<button type="button" class="cn-ios-row cn-ios-row-btn cn-pro-get" data-pro-row="open" data-ios-nav>Get Pro</button>'}
+        ${wrong ? "" : REDEEM_ROW}
         <button type="button" class="cn-ios-row cn-ios-row-btn" data-pro-row="restore">Restore Purchases</button>`;
     }
     const html = `<h2 class="cn-ios-group-title">CyberNet AI Pro</h2><div class="cn-ios-group">${rows}</div>`;
@@ -617,6 +629,7 @@
       const what = b.getAttribute("data-pro-row");
       if (what === "open") openPaywall();
       else if (what === "restore") restore();
+      else if (what === "redeem") redeem();
       else if (what === "manage") manage();
       else if (what === "refund") refund();
     });
@@ -636,6 +649,6 @@
     }
   }
 
-  w.CNPro = Object.freeze({ open: openPaywall, sync, restore, manage, limitOffer, ids: () => PRO_IDS.slice() });
+  w.CNPro = Object.freeze({ open: openPaywall, sync, restore, redeem, manage, limitOffer, ids: () => PRO_IDS.slice() });
   if (d.readyState === "loading") d.addEventListener("DOMContentLoaded", start, { once: true }); else start();
 })();

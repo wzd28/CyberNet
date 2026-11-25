@@ -1614,6 +1614,7 @@ try {
         check("Paywall: the IAP build sends X-CyberNet-Plans and X-CyberNet-IAP; the no-IAP build sends neither (1.0's one App tier)", /X-CyberNet-Plans/.test(iapBoot) && /X-CyberNet-IAP/.test(iapBoot) && !/X-CyberNet-Plans|X-CyberNet-IAP/.test(noBoot));
         check("Paywall: ios.js copies the billing facts (cnBilling) in the IAP build only, and names no StoreKit plugin in either", /cnBilling/.test(iapIos) && !/cnBilling/.test(noIos) && !/CNStore|StoreKit/.test(iapIos + noIos));
         check("Paywall: the Account Pro slot is in the IAP page only", /id="cnAcctPro"/.test(iapIndex) && !/cnAcctPro/.test(noIndex));
+        check("Promo codes (1.1.1): the no-purchase build has no Redeem wording", !/redeem/i.test(noIndex + noIos));
         const swift = await readFile(path.join(mobile, "native", "App", "Plugins", "StoreKitPlugin.swift"), "utf8");
         const server = await import(pathToFileURL(path.join(root, "netlify", "lib", "apple-products.mjs")).href);
         const idsIn = text => [...new Set([...text.matchAll(/"(app\.cybernetai\.[\w.]+)"/g)].map(m => m[1]))].sort();
@@ -1626,6 +1627,10 @@ try {
         check("Paywall (3.1.2): Apple's standard EULA, the Privacy Policy, Restore Purchases, the auto-renewal terms (24 hours, Settings > Subscriptions) and the sign-in reason are in the shipped file", storeOut.includes("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/") && /Terms of Use/.test(storeOut) && /Privacy Policy/.test(storeOut) && /Restore Purchases/.test(storeOut) && /at least 24 hours before the current period ends/.test(storeOut) && /tap your name, then Subscriptions/.test(storeOut) && /so it also works on the website/.test(storeOut));
         check("Paywall: no typed price, no trial, no Business and no link to buy or manage anywhere else in store.js", !/\$\s?\d|\d[.,]\d\d\b|free trial|\bbusiness\b|stripe|checkout|pricing|cybernetai\.app\/(account|pricing)|apps\.apple\.com|manage on the website/i.test(storeSrc.replace(/https:\/\/www\.apple\.com\/legal\/internet-services\/itunes\/dev\/stdeula\//, "")), storeSrc.match(/.{30}(\$\s?\d|free trial|\bbusiness\b|stripe|checkout|pricing).{30}/i)?.[0]);
         check("Paywall: finish only on the server's finish:true, matched by the result's index; success read from the entitlement", /r\?\.finish !== true/.test(storeSrc) && /items\[Number\(r\?\.index\)\]/.test(storeSrc) && /entitlement\?\.apple\?\.active/.test(storeSrc) && !/status === "applied"/.test(storeSrc));
+        {
+          const swiftIos = await readFile(path.join(mobile, "ios", "App", "App", "Plugins", "StoreKitPlugin.swift"), "utf8");
+          check("Promo codes (1.1.1): Redeem a code opens Apple's own offer code sheet (redeemCode in both StoreKitPlugin.swift copies), in the IAP store.js only", /presentOfferCodeRedeemSheet/.test(swift) && swift === swiftIos && /name: "redeemCode"/.test(swift) && /data-pro-row="redeem"/.test(storeSrc) && /Redeem a code/.test(storeOut) && /CNStore\.redeemCode\(\)/.test(storeSrc));
+        }
         check("Paywall: never opened at launch (only Get Pro, the meters' entry and window.CNPro.open)", (storeSrc.match(/openPaywall\(/g) || []).length === 2 && /if \(what === "open"\) openPaywall\(\)/.test(storeSrc));
         {
           const buySrc = storeSrc.slice(storeSrc.indexOf("async function buy()"), storeSrc.indexOf("/* ================================================================ restoring"));
