@@ -56,6 +56,9 @@ const has = (result, rule, term) => result.hits.some(h => h.rule === rule && (te
 {
   const r = await gate({});
   check("clean bundle passes", r.hits.length === 0, r.hits);
+  // app 1.1.1: the Account tab's Rate CyberNet AI row names this exact address in ios/ios.js
+  const rate = await gate({ "ios/ios.js": `const APP_REVIEW_URL = "https://apps.apple.com/app/id6828596086?action=write-review";` });
+  check("the write-a-review address is allowed in ios/ios.js", rate.hits.length === 0 && gatePlan.REVIEW_URL === "https://apps.apple.com/app/id6828596086?action=write-review", rate.hits);
 }
 
 /* ---------- planted problems ---------- */
@@ -82,6 +85,9 @@ const PLANTED = [
   ["Google word in the page", { "index.html": CLEAN["index.html"].replace("<h1>Quick Scan</h1>", "<h1>Quick Scan</h1><button>Continue with Google</button>") }, "word", "google"],
   ["the website's Google button in ios.js", { "ios/ios.js": `const googleAuthBtn=document.getElementById("googleAuthBtn");` }, "identifier", "googleAuthBtn"],
   ["a Google address in ios.js", { "ios/ios.js": `fetch("https://accounts.google.com/o/oauth2/v2/auth");` }, "remote-host", "accounts.google.com"],
+  // app 1.1.1: ios.js may name CyberNet AI's own write-a-review address (Account > Rate CyberNet AI), and nothing else on apps.apple.com
+  ["another App Store address in ios.js", { "ios/ios.js": `const u="https://apps.apple.com/app/id6828596086";` }, "remote-host", "apps.apple.com"],
+  ["the review address in another script", { "script.js": CLEAN["script.js"] + `const u="https://apps.apple.com/app/id6828596086?action=write-review";` }, "remote-host", "apps.apple.com"],
   ["a purchase word next to Google in ios.js", { "ios/ios.js": `const t="Upgrade with Google";` }, "word", "upgrade"],
   ["Stripe in app copy", { "script.js": CLEAN["script.js"] + `const t="Opening secure Stripe Checkout";` }, "word", "stripe"],
   ["placeholder copy", { "index.html": CLEAN["index.html"].replace("<h1>Quick Scan</h1>", "<h1>Quick Scan</h1><p>Video coming soon.</p>") }, "word", "coming soon"],

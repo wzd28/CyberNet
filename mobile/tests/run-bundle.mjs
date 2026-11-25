@@ -728,6 +728,70 @@ try {
         }
       }
 
+      // ---- App Store ratings prompt (app 1.1.1): after the third finished check, only at a calm moment, never after Recovery, at most
+      // once every 60 days. The counting and asking functions are cut out of the built ios.js and run with a fake store, clock and plugin.
+      {
+        const kv = new Map();
+        const fakeStore = { get: k => (kv.has(k) ? kv.get(k) : null), set: (k, v) => kv.set(k, String(v)), del: k => kv.delete(k) };
+        const asked = [], opened = [], reported = [];
+        let plugin = { requestReview: async () => { asked.push(1); } };
+        let page = "cybernet";
+        const stack = [];
+        let rv = null;
+        try {
+          rv = run(["REVIEW_KEY", "REVIEW_AFTER", "REVIEW_GAP_MS", "REVIEW_AFTER_RECOVERY_MS", "REVIEW_CALM_PAGES", "APP_REVIEW_URL", "reviewMoment", "reviewRead", "reviewDue", "noteFinishedCheck", "maybeAskReview", "rateApp"],
+            ["store", "P", "activePage", "sheetStack", "cardOpen", "$", "offline", "report", "openExternal"],
+            "{ REVIEW_KEY, REVIEW_CALM_PAGES, APP_REVIEW_URL, reviewMoment, reviewRead, noteFinishedCheck, maybeAskReview, rateApp, set(k, v) { if (k === 'cardOpen') cardOpen = v; if (k === 'offline') offline = v; } }",
+            fakeStore, name => (name === "CNReview" ? plugin : null), () => page, stack, null, () => null, false, (e, where) => reported.push(where), url => opened.push(url));
+        } catch (error) { check("Ratings prompt: its functions can be run", false, error.message); }
+        if (rv) {
+          const DAY = 24 * 60 * 60 * 1000, t0 = Date.parse("2026-12-01T10:00:00Z");
+          rv.noteFinishedCheck(); rv.noteFinishedCheck();
+          const early = rv.maybeAskReview("home", t0);
+          rv.noteFinishedCheck();
+          const third = rv.maybeAskReview("home", t0);
+          const stamped = rv.reviewRead();
+          check("Ratings prompt: not before the third finished check; at the first calm moment after it, it asks once and resets the count (stamp written)", early === false && third === true && asked.length === 1 && stamped.checks === 0 && stamped.askedAt === t0, [early, third, asked.length, stamped]);
+          for (let i = 0; i < 5; i++) rv.noteFinishedCheck();
+          const day30 = rv.maybeAskReview("home", t0 + 30 * DAY), day59 = rv.maybeAskReview("home", t0 + 59 * DAY), day60 = rv.maybeAskReview("home", t0 + 60 * DAY);
+          check("Ratings prompt: never more than once every 60 days (asks again only on day 60)", day30 === false && day59 === false && day60 === true && asked.length === 2, [day30, day59, day60]);
+          const t1 = t0 + 200 * DAY;
+          for (let i = 0; i < 3; i++) rv.noteFinishedCheck();
+          page = "recovery"; const onRecovery = rv.maybeAskReview("close", t1); page = "home";
+          rv.reviewMoment.recoveryAt = t1 - 60 * 1000; const justLeft = rv.maybeAskReview("home", t1);
+          stack.push({}); rv.reviewMoment.recoveryAt = 0; const overSheet = rv.maybeAskReview("home", t1); stack.pop();
+          rv.set("cardOpen", Promise.resolve()); const overCard = rv.maybeAskReview("home", t1); rv.set("cardOpen", null);
+          rv.set("offline", true); const off = rv.maybeAskReview("home", t1); rv.set("offline", false);
+          const saved = plugin; plugin = null; const noPlugin = rv.maybeAskReview("home", t1); plugin = saved;
+          check("Ratings prompt: never on Recovery or within 10 minutes of leaving it, never over a sheet or the sign-in card, never offline or without the plugin (and the count is kept for later)", [onRecovery, justLeft, overSheet, overCard, off, noPlugin].every(x => x === false) && asked.length === 2 && rv.reviewRead().checks === 3, [onRecovery, justLeft, overSheet, overCard, off, noPlugin]);
+          rv.reviewMoment.recoveryAt = t1 - 11 * 60 * 1000;
+          const later11 = rv.maybeAskReview("home", t1);
+          check("Ratings prompt: 10 minutes after Recovery, the next calm moment asks", later11 === true && asked.length === 3);
+          plugin = { requestReview: async () => { throw new Error("no scene"); } };
+          for (let i = 0; i < 3; i++) rv.noteFinishedCheck();
+          const failing = rv.maybeAskReview("qr", t1 + 61 * DAY);
+          await new Promise(r => setTimeout(r, 0));
+          check("Ratings prompt: a plugin that fails is reported and still counts as asked (no second try within 60 days)", failing === true && reported.includes("review qr") && rv.reviewRead().askedAt === t1 + 61 * DAY && rv.maybeAskReview("qr", t1 + 62 * DAY) === false, reported);
+          kv.set(rv.REVIEW_KEY, "not json");
+          check("Ratings prompt: a damaged stored value reads as a fresh start", JSON.stringify(rv.reviewRead()) === '{"checks":0,"askedAt":0}');
+          rv.rateApp();
+          check("Ratings prompt: Account > Rate CyberNet AI opens CyberNet AI's own write-a-review page through openExternal", opened.length === 1 && opened[0] === "https://apps.apple.com/app/id6828596086?action=write-review" && rv.APP_REVIEW_URL === opened[0]);
+          check("Ratings prompt: the calm pages are Home, Learn and Account (never Recovery or a Check page)", rv.REVIEW_CALM_PAGES.join("|") === "home|learn|account");
+        }
+        // where it is wired: counting at every finished check except Recovery; asking only at the calm moments
+        const deco = fnText("decorateResults"), qr = fnText("showQrVerdict"), pagesFn = fnText("watchPages"), closeX = fnText("addNewCheckX");
+        check("Ratings prompt: a Quick Scan verdict and an Analysis AI answer count (Recovery's area never does); a QR or shared-item verdict counts when its sheet opens", /if\(area\.kind!=="recovery"\)\{haptic\(tone\);noteFinishedCheck\(\);?\}/.test(deco) && qr.indexOf("noteFinishedCheck()") > 0 && qr.indexOf("noteFinishedCheck()") < qr.indexOf("sheet({"));
+        check("Ratings prompt: asked only when a LOW RISK QR verdict is closed (not Open in Safari, Scan another or the AI), when a LOW RISK Quick Scan result is closed with its X, or on arriving at a calm page; Recovery stamps the time instead", /\.then\((\w+)=>\{syncTabs\(\);if\(\1===null&&v\.tone==="safe"\)later\(\(\)=>maybeAskReview\("qr"\),400\);?\}\);?\}$/.test(qr) && /constcalm=!\/result-has-danger\|verdict-headline-danger\|uncertain\//.test(closeX) && /if\(calm\)later\(\(\)=>maybeAskReview\("close"\),400\)/.test(closeX) && /if\(now==="recovery"\|\|from==="recovery"\)reviewMoment\.recoveryAt=Date\.now\(\);elseif\(REVIEW_CALM_PAGES\.includes\(now\)\)later\(\(\)=>maybeAskReview\(now\),700\)/.test(pagesFn) && (squash(iosJs).match(/maybeAskReview\(/g) || []).length === 4, [qr.slice(-300)]);
+        check("Ratings prompt: the stamp is stored before the native call, and the native call is the only CNReview use", /store\.set\(REVIEW_KEY,JSON\.stringify\(\{checks:0,askedAt:now\}\)\);try\{Promise\.resolve\(review\.requestReview\(\)\)/.test(fnText("maybeAskReview")) && (iosJs.match(/CNReview/g) || []).length === 1);
+        const rateRow = parse(html.slice(html.indexOf('<section id="account"'), html.indexOf("</section>", html.indexOf('<section id="account"')))).find(n => attr(n, "data-ios-action") === "rate");
+        check("Ratings prompt: Account > Help has a Rate CyberNet AI row (for everyone, signed in or not) and bindAccount opens it", rateRow && textOf(rateRow).trim() === "Rate CyberNet AI" && rateRow.tagName === "button" && /elseif\(action==="rate"\)rateApp\(\)/.test(fnText("bindAccount")), rateRow && textOf(rateRow));
+        const reviewSwift = await readFile(path.join(mobile, "native", "App", "Plugins", "ReviewPromptPlugin.swift"), "utf8");
+        const mainSwift = await readFile(path.join(mobile, "native", "App", "MainViewController.swift"), "utf8");
+        check("Ratings prompt (native): ReviewPromptPlugin is CNReview.requestReview(), calls AppStore.requestReview(in:) on the main thread with the web view's window scene, always answers, and is registered once outside the // @iap block",
+          /jsName = "CNReview"/.test(reviewSwift) && /CAPPluginMethod\(name: "requestReview", returnType: CAPPluginReturnPromise\)/.test(reviewSwift) && /DispatchQueue\.main\.async/.test(reviewSwift) && /AppStore\.requestReview\(in: scene\)\s*call\.resolve\(\)/.test(reviewSwift) && /bridge\?\.webView\?\.window\?\.windowScene/.test(reviewSwift) && !/SKStoreReviewController\.requestReview/.test(reviewSwift)
+          && (mainSwift.match(/registerPluginInstance\(ReviewPromptPlugin\(\)\)/g) || []).length === 1 && mainSwift.indexOf("ReviewPromptPlugin()") < mainSwift.indexOf("// @iap"));
+      }
+
       // ---- Sign in with Google (owner, 30 Oct 2026): the system's secure sign-in sheet (CNWebAuth), PKCE, a quiet cancel.
       // signInWithGoogle() is cut out of the built ios.js and run against the REAL vendored supabase-js (the bundle's
       // vendor/supabase.js) with a fake network and a fake sheet, so the sign-in address, the PKCE exchange and the
@@ -1191,7 +1255,7 @@ try {
         check("QR scanner closed: cancelled and an empty result sync the tab bar at once; a result, a refusal and an error open a sheet (which syncs when it is closed)",
           cancel.log.join("|") === "sync" && empty.log.join("|") === "sync" && scanned.log.join("|") === "verdict:https://parcel-redeliver-help.invalid/pay,qr" && denied.log.join("|").startsWith("help:CyberNet AI doesn't ha") && !denied.log.includes("sync") && broken.log.join("|").startsWith("report:qr scan|help:The camera isn't avail") && none.log.join("|").startsWith("help:The camera scanner is"), [cancel.log, empty.log, scanned.log, denied.log, broken.log, none.log]);
         check("QR scanner closed: the result sheet and the camera help sheet sync the tab bar when they close, and a code that cannot be checked syncs too",
-          /\}\)\.then\(\(\)=>syncTabs\(\)\);?\}$/.test(fnText("showQrVerdict")) && /\.then\(choice=>\{syncTabs\(\);/.test(fnText("showCameraHelp")) && /Thiscodecouldnotbechecked\."\);syncTabs\(\);return/.test(fnText("showQrVerdict")) && /couldnotload\.Pleaserestarttheapp\."\);syncTabs\(\);return/.test(fnText("showQrVerdict")));
+          /\}\)\.then\(\w+=>\{syncTabs\(\);/.test(fnText("showQrVerdict")) && /\.then\(choice=>\{syncTabs\(\);/.test(fnText("showCameraHelp")) && /Thiscodecouldnotbechecked\."\);syncTabs\(\);return/.test(fnText("showQrVerdict")) && /couldnotload\.Pleaserestarttheapp\."\);syncTabs\(\);return/.test(fnText("showQrVerdict")));
         check("Tab bar: a page view is counted when the page changes, not each time the highlight is put back", /page!==lastPageViewed\)\{lastPageViewed=page;w\.CNAnalytics\.page\(/.test(fnText("syncTabs")));
       }
 

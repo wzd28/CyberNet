@@ -303,6 +303,9 @@
       if (needsAccount(now)) requireAccount(now, null, needsAccount(from) ? "cybernet" : from);
       if (now === "account") renderAccount();
       if (now === "recovery") later(addReminderButton, 400);
+      // the ratings prompt: never after Recovery; Home, Learn and Account are calm moments
+      if (now === "recovery" || from === "recovery") reviewMoment.recoveryAt = Date.now();
+      else if (REVIEW_CALM_PAGES.includes(now)) later(() => maybeAskReview(now), 700);
     });
     $$(".page").forEach(p => mo.observe(p, { attributes: true, attributeFilter: ["class"] }));
     syncTabs();
@@ -490,6 +493,7 @@
         else if (action === "share-help") showShareHelp();
         else if (action === "test-reminder") testReminder();
         else if (action === "tracking-settings") openExternal("app-settings:");
+        else if (action === "rate") rateApp();
       } catch (error) { report(error, `account ${action}`); toast("Something went wrong. Please try again."); }
     });
     $("#cnAiConsentSwitch")?.addEventListener("change", e => toggleConsent(e.target));
@@ -1876,6 +1880,7 @@
     const link = analysed.kind === "url" ? linkParts(value) : null;
     const target = link ? `<p class="cn-ios-qr-target"><span>${esc(link.scheme)}</span><strong>${esc(link.host)}</strong><span>${esc(link.rest)}</span></p>` : `<pre class="cn-ios-qr-raw">${esc(value.slice(0, 600))}</pre>`;
     haptic(v.haptic);
+    noteFinishedCheck();
     sheet({
       id: "cnQrVerdict",
       label: "QR code result",
@@ -1917,7 +1922,11 @@
           if (what === "report") reportProblem(kind, "");
         });
       }
-    }).then(() => syncTabs());
+    }).then(value => {
+      syncTabs();
+      // closing a LOW RISK verdict is a calm moment for the ratings prompt (not Open in Safari, Scan another or the AI explanation)
+      if (value === null && v.tone === "safe") later(() => maybeAskReview("qr"), 400);
+    });
   }
   // The picture of a page (owner, 11 Nov 2026): only when a signed-in person taps for it. Only the web address goes to
   // CyberNet AI's server, whose preview service (GetScreenshot, or Microlink) opens the page; the image comes back as data:.
@@ -2145,7 +2154,7 @@
         host.appendChild(b);
         if (area.kind === "quick_scan") addNewCheckX(box);
         const tone = /result-has-danger|verdict-headline-danger/.test(box.className + r.innerHTML.slice(0, 400)) ? "ERROR" : /uncertain/.test(box.className + r.innerHTML.slice(0, 400)) ? "WARNING" : "SUCCESS";
-        if (area.kind !== "recovery") haptic(tone);
+        if (area.kind !== "recovery") { haptic(tone); noteFinishedCheck(); } // a finished check for the ratings prompt (never Recovery)
       }
     }
   }
@@ -2158,6 +2167,7 @@
     if (!(box.id in RESULT_INPUT) || $(":scope > .cn-ios-result-x", box)) return;
     const x = el(`<button type="button" class="cn-ios-sheet-x cn-ios-result-x" aria-label="Close this result and start a new check">${CLOSE_X}</button>`);
     x.addEventListener("click", () => {
+      const calm = !/result-has-danger|verdict-headline-danger|uncertain/.test(box.className + box.innerHTML.slice(0, 600)); // a LOW RISK result
       const field = RESULT_INPUT[box.id] ? $(`#${RESULT_INPUT[box.id]}`) : null;
       box.className = "result-box";
       box.textContent = RESULT_EMPTY[box.id];
@@ -2166,6 +2176,7 @@
       const top = w.scrollY + panel.getBoundingClientRect().top - (($(".navbar")?.getBoundingClientRect().bottom) || 0) - 12;
       w.scrollTo({ top: Math.max(0, top), behavior: motionOff() ? "auto" : "smooth" });
       try { (field || panel.querySelector("button, input"))?.focus({ preventScroll: true }); } catch { /* ignore */ }
+      if (calm) later(() => maybeAskReview("close"), 400);
     });
     box.prepend(x);
   }
@@ -2212,6 +2223,50 @@
       }
     });
   }
+
+  // ---- App Store ratings prompt (app 1.1.1). iOS's own rating prompt (CNReview, ReviewPromptPlugin.swift) is asked for once the
+  // person has finished three checks (a Quick Scan text, link or image verdict, a QR or shared-item verdict, or an Analysis AI
+  // answer; Recovery never counts). It is never asked for over a verdict: only at a calm moment, which is closing a LOW RISK
+  // result, or arriving on Home, Learn or Account. So a SCAM verdict is never followed by the prompt; the next calm moment is.
+  // Never while Recovery is open or within 10 minutes of leaving it, never over a sheet, the sign-in card or the intro, and at
+  // most once every 60 days (iOS also limits it to three times a year). The counters stay on this iPhone (localStorage, not the
+  // Preferences that sign-out clears, so the 60 days survive a sign-out). The Account tab's "Rate CyberNet AI" row is always there.
+  const REVIEW_KEY = "cn-review-1";
+  const REVIEW_AFTER = 3;
+  const REVIEW_GAP_MS = 60 * 24 * 60 * 60 * 1000;
+  const REVIEW_AFTER_RECOVERY_MS = 10 * 60 * 1000;
+  const REVIEW_CALM_PAGES = ["home", "learn", "account"];
+  const APP_REVIEW_URL = "https://apps.apple.com/app/id6828596086?action=write-review";
+  const reviewMoment = { recoveryAt: 0 };
+  function reviewRead() {
+    try {
+      const v = JSON.parse(store.get(REVIEW_KEY) || "{}") || {};
+      return { checks: Math.max(0, Math.floor(Number(v.checks) || 0)), askedAt: Math.max(0, Number(v.askedAt) || 0) };
+    } catch { return { checks: 0, askedAt: 0 }; }
+  }
+  function reviewDue(s, now) {
+    return s.checks >= REVIEW_AFTER && (!s.askedAt || now - s.askedAt >= REVIEW_GAP_MS);
+  }
+  // A finished check (never Recovery). Counting only: the prompt waits for a calm moment.
+  function noteFinishedCheck() {
+    const s = reviewRead();
+    s.checks = Math.min(s.checks + 1, 1000);
+    store.set(REVIEW_KEY, JSON.stringify(s));
+  }
+  // A calm moment: ask if three checks are done, 60 days have passed and nothing else is on the screen. true when it asked.
+  function maybeAskReview(where, now = Date.now()) {
+    const review = P("CNReview");
+    if (!review) return false;
+    const s = reviewRead();
+    if (!reviewDue(s, now)) return false;
+    if (activePage() === "recovery" || (reviewMoment.recoveryAt && now - reviewMoment.recoveryAt < REVIEW_AFTER_RECOVERY_MS)) return false;
+    if (sheetStack.length || cardOpen || $("#cnIntroStage") || offline) return false;
+    // the stamp is written first, so a prompt that fails (or a page that reloads) never asks again within the 60 days
+    store.set(REVIEW_KEY, JSON.stringify({ checks: 0, askedAt: now }));
+    try { Promise.resolve(review.requestReview()).catch(error => report(error, `review ${where}`)); } catch (error) { report(error, `review ${where}`); }
+    return true;
+  }
+  function rateApp() { openExternal(APP_REVIEW_URL); }
 
   // Analysis AI's page opens with the website's "Sign in, then paste ..." lines. In the app a guest never sees the
   // page (the sign-in card comes first) and a signed-in person is already in, so none of it may ask for a sign-in;

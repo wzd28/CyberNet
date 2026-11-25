@@ -93,6 +93,10 @@ export const IAP_ONLY_FILES = [/^ios\/store\.js$/];
 // Hosts only ios/store.js may name: Apple's standard Terms of Use (EULA), which the paywall links to (App Review 3.1.2).
 const STORE_FILE = "ios/store.js";
 const STORE_HOSTS = ["www.apple.com"];
+// The one App Store address the app may name (app 1.1.1): Account > "Rate CyberNet AI" opens CyberNet AI's own write-a-review page,
+// in ios/ios.js only and as this exact address (any other apps.apple.com address, e.g. the subscriptions page, stays refused).
+export const REVIEW_FILE = "ios/ios.js";
+export const REVIEW_URL = "https://apps.apple.com/app/id6828596086?action=write-review";
 
 // Files that may exist in the bundle at all.
 export const ALLOWED_FILES = [
@@ -260,7 +264,7 @@ export async function checkBundle({ dir = path.join(mobile, "www"), debug = fals
         const host = hostsIn(url)[0] || "";
         const looksLikeCode = /\.(m?js|css)(\?|#|$)/i.test(url) || CDN.test(url);
         if (looksLikeCode && !(rel === ANALYTICS && host === "www.googletagmanager.com")) add({ file: rel, line, rule: "remote-code", term: host, literal: value, detail: `loads code from ${url.slice(0, 100)}` });
-        else if (!engine && !vendor && !hostAllowed(host, rel)) add({ file: rel, line, rule: "remote-host", term: host, literal: value, detail: `names ${host}, which the app does not talk to` });
+        else if (!engine && !vendor && !hostAllowed(host, rel) && !(rel === REVIEW_FILE && url === REVIEW_URL)) add({ file: rel, line, rule: "remote-host", term: host, literal: value, detail: `names ${host}, which the app does not talk to` });
       }
       for (const m of value.matchAll(IPV4)) add({ file: rel, line, rule: "ip-literal", term: m[0], literal: value, detail: `IP literal ${m[0]} (App Review uses IPv6-only networks)` });
       if (engine || vendor) continue;

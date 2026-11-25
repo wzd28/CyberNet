@@ -713,6 +713,25 @@ function validateFiles() {
   const sceneDelegate = fs.readFileSync(path.join(IOS_APP, 'App', 'SceneDelegate.swift'), 'utf8');
   if (!sceneDelegate.includes('MainViewController()')) problems.push('SceneDelegate does not create MainViewController');
 
+  // Every app-local plugin that is compiled in is also registered (a plugin file without its registerPluginInstance line is dead
+  // code, and its JS name answers "not implemented"). App 1.1.1 added ReviewPromptPlugin (CNReview, the ratings prompt).
+  {
+    const main = fs.readFileSync(path.join(IOS_APP, 'App', 'MainViewController.swift'), 'utf8');
+    const compiled = fs.readdirSync(path.join(NATIVE, 'App', 'Plugins')).filter((name) => name.endsWith('.swift') && !(NO_IAP && iapOnly(name)));
+    for (const name of compiled) {
+      const type = name.replace(/\.swift$/, '');
+      if ((main.match(new RegExp(`registerPluginInstance\\(${type}\\(\\)\\)`, 'g')) || []).length !== 1) problems.push(`MainViewController.swift must register ${type}() exactly once`);
+    }
+    if (!compiled.includes('ReviewPromptPlugin.swift')) problems.push('ReviewPromptPlugin.swift (the ratings prompt) is missing from mobile/native/App/Plugins');
+    const review = path.join(IOS_APP, 'App', 'Plugins', 'ReviewPromptPlugin.swift');
+    if (fs.existsSync(review)) {
+      const text = fs.readFileSync(review, 'utf8');
+      if (!/jsName = "CNReview"/.test(text) || !/CAPPluginMethod\(name: "requestReview"/.test(text) || !/AppStore\.requestReview\(in: scene\)/.test(text)) {
+        problems.push('ReviewPromptPlugin.swift must expose CNReview.requestReview() calling AppStore.requestReview(in:)');
+      }
+    }
+  }
+
   // CN_NO_IAP=1: nothing of the App Store purchase is compiled in (App Review 2.3.1 / 2.5.19: no dormant purchase code).
   if (NO_IAP) {
     for (const name of IAP_ONLY_SWIFT) {
