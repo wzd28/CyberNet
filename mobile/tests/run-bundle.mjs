@@ -792,6 +792,82 @@ try {
           && (mainSwift.match(/registerPluginInstance\(ReviewPromptPlugin\(\)\)/g) || []).length === 1 && mainSwift.indexOf("ReviewPromptPlugin()") < mainSwift.indexOf("// @iap"));
       }
 
+      // ---- Account name (app 1.1.1): a Sign in with Apple account showed the email's first part (the profile is made before the app
+      // has Apple's name). The Account tab shows the account's own name instead, refreshes after saving it, and offers "Add your name".
+      {
+        let an = null;
+        try { an = run(["accountName"], [], "accountName"); } catch (error) { check("Account name: accountName can be run", false, error.message); }
+        if (an) {
+          const u = (email, meta) => ({ email, user_metadata: meta });
+          check("Account name: the saved fallback (the email's first part, a Hide My Email code, 'User' or empty) gives way to the account's own name",
+            an("walid.test", u("walid.test@example.com", { full_name: "Walid Example" })) === "Walid Example" && an("x7k2abc9", u("x7k2abc9@privaterelay.appleid.com", { first_name: "Sam", last_name: "Lee" })) === "Sam Lee" && an("User", u(null, { full_name: "Sam Lee" })) === "Sam Lee" && an("", u("sam@example.com", { name: "Sam  Lee " })) === "Sam Lee" && an("SAM", u("sam@example.com", { full_name: "Sam Lee" })) === "Sam Lee");
+          check("Account name: a name the person set is shown as it is; no real name anywhere gives '' (so the Add your name row shows)",
+            an("Samantha Lee", u("sam@example.com", { full_name: "Sam Lee" })) === "Samantha Lee" && an("sam", u("sam@example.com", {})) === "" && an("sam", u("sam@example.com", { full_name: "sam" })) === "" && an("", u("sam@example.com", { full_name: "   " })) === "" && an("", null) === "" && an("x7k2abc9", u("x7k2abc9@privaterelay.appleid.com", {})) === "");
+          const server = await import(pathToFileURL(path.join(root, "netlify", "lib", "supabase.mjs")).href).catch(() => null);
+          const cases = [["walid.test", u("walid.test@example.com", { full_name: "Walid Example" })], ["Samantha", u("sam@example.com", { full_name: "Sam Lee" })], ["sam", u("sam@example.com", {})], ["", u("sam@example.com", { first_name: "Sam" })], ["User", u(null, { name: "Sam Lee" })]];
+          check("Account name: the app shows what the server will save (netlify/lib/supabase.mjs betterProfileName, same rules)", server?.betterProfileName && cases.every(([saved, user]) => an(saved, user) === (server.betterProfileName(saved, user) || (an(saved, user) === saved ? saved : ""))), cases.map(([a, b]) => [an(a, b), server?.betterProfileName?.(a, b)]));
+        }
+        {
+          const calls = [];
+          const st = { user: { id: "u1", user_metadata: {} } };
+          let resolveFirst;
+          const acct = { refreshAccountStatus: () => { calls.push(Date.now()); return calls.length === 1 ? new Promise(r => { resolveFirst = r; }) : Promise.resolve(); } };
+          let drawn = 0;
+          const ran = run(["refreshAccountName"], ["state", "account", "report", "renderAccount"], "refreshAccountName", () => st, () => acct, () => {}, () => { drawn++; });
+          const p = ran({ id: "u1", user_metadata: { full_name: "Sam Lee" } });
+          await new Promise(r => setTimeout(r, 0));
+          const beforeFirst = calls.length;
+          resolveFirst();
+          await p;
+          check("Account name: after a name is saved, the account-status call in flight is awaited and a fresh one follows, then the Account tab is drawn with the new name", beforeFirst === 1 && calls.length === 2 && drawn === 1 && st.user.user_metadata.full_name === "Sam Lee");
+          await ran({ id: "someone-else", user_metadata: { full_name: "X" } });
+          check("Account name: a user from another session never replaces the signed-in one", st.user.id === "u1" && st.user.user_metadata.full_name === "Sam Lee");
+        }
+        {
+          // the Add your name sheet, run with a fake sheet and panel
+          const make = (updateUser, isOffline = false) => {
+            const log = { html: "", done: [], toasts: [], refreshed: [], reported: [], updates: [] };
+            const fields = { "#cnNameFirst": { value: "" }, "#cnNameLast": { value: "" } };
+            const errorEl = { textContent: "", hidden: true };
+            const btn = { disabled: false };
+            let handler = null;
+            const panel = { querySelector: sel => (sel === ".cn-ios-sheet-error" ? errorEl : fields[sel]), addEventListener: (t, fn) => { handler = fn; } };
+            const fn = run(["NAME_MAX", "showNameSheet"], ["sheet", "supabase", "offline", "toast", "report", "refreshAccountName"], "showNameSheet",
+              ({ html, onOpen }) => { log.html = html; onOpen(panel, v => log.done.push(v)); return Promise.resolve(); },
+              () => ({ auth: { updateUser: async arg => { log.updates.push(arg); return updateUser(arg); } } }), isOffline, t => log.toasts.push(t), (e, w2) => log.reported.push(w2), async user => { log.refreshed.push(user); });
+            fn();
+            return { log, fields, errorEl, btn, save: () => handler({ target: { closest: () => btn } }) };
+          };
+          const ok = make(async () => ({ data: { user: { id: "u1" } }, error: null }));
+          await ok.save();
+          const emptyMsg = ok.errorEl.textContent;
+          ok.fields["#cnNameFirst"].value = "  Sam "; ok.fields["#cnNameLast"].value = " Lee";
+          await ok.save();
+          await new Promise(r => setTimeout(r, 0));
+          check("Add your name: both fields empty says what to do and saves nothing; a name is saved to the account (full, first and last), the sheet closes, a toast confirms and the account is refreshed",
+            /first name/.test(emptyMsg) && ok.log.updates.length === 1 && JSON.stringify(ok.log.updates[0]) === JSON.stringify({ data: { full_name: "Sam Lee", first_name: "Sam", last_name: "Lee" } }) && ok.log.done.join() === "saved" && ok.log.toasts[0] === "Your name is saved." && ok.log.refreshed.length === 1 && ok.log.refreshed[0]?.id === "u1", [emptyMsg, ok.log]);
+          const bad = make(async () => ({ data: null, error: new Error("rate limited") }));
+          bad.fields["#cnNameFirst"].value = "Sam";
+          await bad.save();
+          const off = make(async () => ({ data: null, error: null }), true);
+          off.fields["#cnNameFirst"].value = "Sam";
+          await off.save();
+          check("Add your name: a failed save is reported, says so on the sheet and lets the person try again; offline it says so and sends nothing",
+            bad.log.done.length === 0 && bad.log.reported.includes("save name") && /couldn't be saved/.test(bad.errorEl.textContent) && bad.errorEl.hidden === false && bad.btn.disabled === false && off.log.updates.length === 0 && /offline/.test(off.errorEl.textContent), [bad.errorEl, off.errorEl]);
+          const nodes = parse(ok.log.html);
+          const inputs = nodes.filter(n => n.tagName === "input");
+          check("Add your name: two labelled text fields (given-name, family-name), a Save button and Cancel; no word the gate refuses",
+            inputs.length === 2 && inputs.every(i => attr(i, "type") === "text" && nodes.some(l => l.tagName === "label" && attr(l, "for") === attr(i, "id"))) && attr(inputs[0], "autocomplete") === "given-name" && attr(inputs[1], "autocomplete") === "family-name" && nodes.some(n => n.tagName === "button" && textOf(n).trim() === "Save") && nodes.some(n => n.tagName === "button" && textOf(n).trim() === "Cancel") && wordHits(ok.log.html.replace(/<[^>]+>/g, " "), { file: "ios/ios.js" }).length === 0);
+        }
+        const accountHtml = html.slice(html.indexOf('<section id="account"'), html.indexOf("</section>", html.indexOf('<section id="account"')));
+        const addRow = parse(accountHtml).find(n => attr(n, "id") === "cnAcctAddName");
+        check("Add your name: the row is in the signed-in account group, hidden until renderAccount finds no name (and the account has answered); bindAccount opens the sheet",
+          addRow && addRow.tagName === "button" && attr(addRow, "data-ios-action") === "add-name" && attr(addRow, "hidden") !== undefined && textOf(addRow).trim() === "Add your name" && accountHtml.indexOf('id="cnAcctAddName"') > accountHtml.indexOf('id="cnAcctName"') && accountHtml.indexOf('id="cnAcctAddName"') < accountHtml.indexOf('id="cnAcctAi"')
+          && /constname=accountName\(s\?\.profile\?\.fullName,user\)/.test(fnText("renderAccount")) && /addName\.hidden=!!name\|\|!s\?\.accountReady/.test(fnText("renderAccount")) && /elseif\(action==="add-name"\)showNameSheet\(\)/.test(fnText("bindAccount")));
+        check("Sign in with Apple: after Apple's name is saved to the account, the account is refreshed so the repaired name appears (in the background)",
+          /constnamed=awaitsb\.auth\.updateUser\(\{data:\{full_name:`\$\{given\}\$\{family\}`\.trim\(\),first_name:given,last_name:family\}\}\)\.catch\(\(\)=>null\);if\(named&&!named\.error\)refreshAccountName\(named\.data\?\.user\)\.catch\(/.test(fnText("signInWithApple").replace(/\$\{given\} \$\{family\}/, "${given}${family}")));
+      }
+
       // ---- Sign in with Google (owner, 30 Oct 2026): the system's secure sign-in sheet (CNWebAuth), PKCE, a quiet cancel.
       // signInWithGoogle() is cut out of the built ios.js and run against the REAL vendored supabase-js (the bundle's
       // vendor/supabase.js) with a fake network and a fake sheet, so the sign-in address, the PKCE exchange and the

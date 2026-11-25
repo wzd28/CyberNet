@@ -431,6 +431,77 @@
     const s = state();
     return Boolean(s?.profile?.isTeamMember) && s?.profile?.teamRole !== "owner";
   }
+  // App 1.1.1 (Sign in with Apple name): the profile is created before the app has Apple's name, so the saved name can be only a
+  // fallback ("", "User" or the email's first part, which for Hide My Email is a random code). Then the account's own name
+  // (user_metadata full_name, name, or first + last) is shown instead; the server repairs the saved one on the next account-status
+  // call (netlify/lib/supabase.mjs betterProfileName, same rules). A name the person set is always shown as it is. "" = no name anywhere.
+  function accountName(saved, user) {
+    const tidy = value => String(value || "").replace(/\s+/g, " ").trim().slice(0, 120);
+    const meta = user?.user_metadata || {};
+    const real = tidy(meta.full_name || meta.name || [meta.first_name, meta.last_name].filter(Boolean).join(" "));
+    const now = tidy(saved);
+    const local = String(user?.email || "").split("@")[0].trim().toLowerCase();
+    const isFallback = value => !value || value.toLowerCase() === "user" || (!!local && value.toLowerCase() === local);
+    if (!isFallback(now)) return now;
+    return isFallback(real) ? "" : real;
+  }
+  // After a name was saved to the account: the in-flight account-status request may have left before the save, so it is awaited
+  // and a fresh one follows; that one lets the server repair the profile name, then the Account tab is drawn again.
+  async function refreshAccountName(updatedUser) {
+    const s = state();
+    if (s && updatedUser?.id && updatedUser.id === s.user?.id) s.user = updatedUser;
+    const refresh = account()?.refreshAccountStatus;
+    if (typeof refresh === "function") {
+      try { await refresh(); } catch { /* the second call reports */ }
+      try { await refresh(); } catch (error) { report(error, "account name refresh"); }
+    }
+    renderAccount();
+  }
+  const NAME_MAX = 60;
+  function showNameSheet() {
+    return sheet({
+      id: "cnNameSheet",
+      label: "Add your name",
+      html: `<h2 class="cn-ios-sheet-title">Add your name</h2>
+        <div class="cn-ios-sheet-body">
+          <p>It is shown on your account, here and on the website.</p>
+          <label for="cnNameFirst">First name</label>
+          <input type="text" id="cnNameFirst" autocomplete="given-name" autocapitalize="words" maxlength="${NAME_MAX}" data-autofocus>
+          <label for="cnNameLast">Last name</label>
+          <input type="text" id="cnNameLast" autocomplete="family-name" autocapitalize="words" maxlength="${NAME_MAX}">
+          <p class="cn-ios-sheet-error" role="alert" hidden></p>
+        </div>
+        <div class="cn-ios-sheet-actions"><button type="button" class="primary-btn full" data-name="save">Save</button>
+        <button type="button" class="cn-ios-link-btn" data-sheet-value="close">Cancel</button></div>`,
+      onOpen(panel, done) {
+        const error = panel.querySelector(".cn-ios-sheet-error");
+        const say = text => { error.textContent = text; error.hidden = !text; };
+        panel.addEventListener("click", async e => {
+          const b = e.target.closest('[data-name="save"]');
+          if (!b || b.disabled) return;
+          const first = panel.querySelector("#cnNameFirst").value.replace(/\s+/g, " ").trim().slice(0, NAME_MAX);
+          const last = panel.querySelector("#cnNameLast").value.replace(/\s+/g, " ").trim().slice(0, NAME_MAX);
+          if (!first && !last) { say("Type your first name, your last name or both."); return; }
+          if (offline) { say("You're offline. Connect to the internet to save your name."); return; }
+          const sb = supabase();
+          if (!sb) { say("Your name can't be saved right now. Please try again."); return; }
+          b.disabled = true;
+          say("");
+          try {
+            const { data, error: failed } = await sb.auth.updateUser({ data: { full_name: `${first} ${last}`.trim(), first_name: first, last_name: last } });
+            if (failed) throw failed;
+            done("saved");
+            toast("Your name is saved.");
+            refreshAccountName(data?.user).catch(err => report(err, "account name refresh"));
+          } catch (err) {
+            report(err, "save name");
+            say(err instanceof TypeError ? "You're offline. Connect to the internet to save your name." : "Your name couldn't be saved. Please try again.");
+            b.disabled = false;
+          }
+        });
+      }
+    });
+  }
   function renderAccount() {
     const page = $("#account");
     if (!page) return;
@@ -440,8 +511,10 @@
     $$("[data-ios-signed-out]", page).forEach(n => { n.hidden = inNow; });
     if (inNow) {
       const user = s?.user || {};
-      const name = String(s?.profile?.fullName || user?.user_metadata?.full_name || "").trim();
+      const name = accountName(s?.profile?.fullName, user);
       $("#cnAcctName").textContent = name || "Your account";
+      const addName = $("#cnAcctAddName");
+      if (addName) addName.hidden = !!name || !s?.accountReady; // only once the account has answered, so it never flashes
       $("#cnAcctEmail").textContent = userEmailLabel(user);
       const u = s?.usage || {};
       const limit = Number(u.limit) || 0;
@@ -494,6 +567,7 @@
         else if (action === "test-reminder") testReminder();
         else if (action === "tracking-settings") openExternal("app-settings:");
         else if (action === "rate") rateApp();
+        else if (action === "add-name") showNameSheet();
       } catch (error) { report(error, `account ${action}`); toast("Something went wrong. Please try again."); }
     });
     $("#cnAiConsentSwitch")?.addEventListener("change", e => toggleConsent(e.target));
@@ -1678,7 +1752,12 @@
       const { error } = await sb.auth.signInWithIdToken({ provider: "apple", token, nonce: raw });
       if (error) throw error;
       const given = res?.givenName || res?.response?.givenName || "", family = res?.familyName || res?.response?.familyName || "";
-      if (given || family) await sb.auth.updateUser({ data: { full_name: `${given} ${family}`.trim(), first_name: given, last_name: family } }).catch(() => {});
+      if (given || family) {
+        // Apple shares the name only on the first sign-in: it goes into the account, then the account is asked again so the
+        // server repairs the profile's fallback name (in the background: the sign-in itself is finished)
+        const named = await sb.auth.updateUser({ data: { full_name: `${given} ${family}`.trim(), first_name: given, last_name: family } }).catch(() => null);
+        if (named && !named.error) refreshAccountName(named.data?.user).catch(err => report(err, "account name refresh"));
+      }
       say("You're signed in.", "success");
       $("#closeAuth")?.click();
       toast("You're signed in with Apple.");
