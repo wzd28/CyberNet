@@ -204,11 +204,11 @@ html.cn-kb-open .cn-ios-tabbar { display: none; }
   align-items: center;
   justify-content: center;
   gap: 2px;
-  font: 600 11px/1.1 var(--cn-font, -apple-system, system-ui, sans-serif);
+  font: 600 .6875rem/1.1 var(--cn-font, -apple-system, system-ui, sans-serif);
   letter-spacing: .01em;
 }
 .cn-ios-tab.is-active { color: var(--cn-ios-accent); }
-@media (max-width: 340px) { .cn-ios-tab { font-size: 10px; } } /* six labels across an iPhone SE-width screen */
+@media (max-width: 340px) { .cn-ios-tab { font-size: .625rem; } } /* six labels across an iPhone SE-width screen */
 .cn-ios-tab svg { display: block; }
 
 /* ---------- sheets ---------- */
@@ -842,7 +842,7 @@ html.cn-ios-embedded .cn-ios-legal-bar { display: none; }
   border: 0;
   background: none;
   color: var(--cn-ios-accent);
-  font: 600 17px/1 -apple-system, system-ui, sans-serif;
+  font: 600 1.0625rem/1 -apple-system, system-ui, sans-serif;
   min-height: 44px;
   padding: 0 6px;
 }
@@ -1061,8 +1061,8 @@ html.cn #home .hero .cn-tile-sub::after { position: absolute; inset-inline-end: 
 /* One tile per row on the phone: the label and its line each stay on one line, the arrow at the edge. */
 html.cn #home .hero .hero-video-buttons { grid-template-columns: minmax(0, 1fr); gap: .625rem; }
 html.cn #home .hero .hero-video-btn:last-child { grid-column: auto; justify-self: stretch; width: auto; }
-/* The example scan is a light panel on the website (22-live.css, which the app leaves out). Without the panel its dark
-   ink sat on the app's dark ground and could hardly be read: the panel's shell and ground, copied. */
+/* The example scan is a panel on the website (22-live.css, which the app leaves out): its shell, copied. Its ground is the
+   app's dark surface (1.1.1, Dark Interface: see "Accessibility Nutrition Label" at the end of this file). */
 html.cn #home > .cn-demo {
   position: relative;
   isolation: isolate;
@@ -1073,15 +1073,7 @@ html.cn #home > .cn-demo {
   padding: 48px 18px;
   border-radius: 28px;
   overflow: clip;
-  color-scheme: light;
-  color: var(--cn-text);
-  background-color: #f5f7fa;
-  background-image:
-    radial-gradient(60% 46% at 50% 0%, rgba(34, 211, 238, .08), transparent 72%),
-    linear-gradient(180deg, #fafbfc 0%, #f5f7fa 46%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9), 0 0 0 1px rgba(148, 163, 184, .14);
 }
-html.cn #home > .cn-demo .cn-demo-copy h2 > span { color: var(--cn-text-2); }
 /* The picture of a page, on request (QR sheet and Check results). */
 .cn-ios-shot { margin: 10px 0 12px; }
 .cn-ios-shot-img, html.cn-ios .dest-shot img { display: block; width: 100%; height: auto; border-radius: 12px; border: 1px solid rgba(255, 255, 255, .1); }
@@ -1116,8 +1108,8 @@ html.cn-ios #cnMain > .page:not(#home) .feature-page-header .cn-edrow,
 html.cn-ios #cnMain > .page:not(#home) .feature-page-header > .cn-edlabel,
 html.cn-ios #cybernet .feature-page-header .feature-crosslink { display: none; }
 html.cn-ios #cnMain > .page:not(#home) .feature-page-header h1 {
-  font-size: 34px;
-  line-height: 41px;
+  font-size: 2.125rem;
+  line-height: 2.5625rem;
   font-weight: 700;
   letter-spacing: -.02em;
   margin-top: 0;
@@ -1236,7 +1228,7 @@ html.cn-ios #howtoVideoModal .video-player-shell {
   overflow-y: auto;
   overscroll-behavior: contain;
 }
-html.cn-ios #howtoVideoModal .video-exit-btn { min-height: 44px; padding: 0 16px; font-size: 17px; font-weight: 600; color: var(--cn-ios-accent); border-color: transparent; }
+html.cn-ios #howtoVideoModal .video-exit-btn { min-height: 44px; padding: 0 16px; font-size: 1.0625rem; font-weight: 600; color: var(--cn-ios-accent); border-color: transparent; }
 html.cn-ios #howtoVideoModal .video-modal-tab { min-height: 44px; }
 html.cn-ios #howtoVideoModal .video-modal-tabs { align-self: stretch; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 html.cn-ios #howtoVideoModal .hw-btn { min-height: 44px; }
@@ -1286,7 +1278,7 @@ html.cn-ios #howtoVideoModal .video-player-shell.cn-guide {
   border: 0;
   background: none;
   color: var(--cn-ios-accent);
-  font: 400 17px/1 var(--cn-font, -apple-system, system-ui, sans-serif);
+  font: 400 1.0625rem/1 var(--cn-font, -apple-system, system-ui, sans-serif);
   cursor: pointer;
   touch-action: manipulation;
   -webkit-user-select: none;
@@ -1301,8 +1293,8 @@ html.cn-ios #howtoVideoModal .video-player-shell.cn-guide {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-size: 17px;
-  line-height: 22px;
+  font-size: 1.0625rem;
+  line-height: 1.375rem;
   font-weight: 600;
   color: var(--cn-ios-text);
   opacity: 0;
@@ -1312,16 +1304,16 @@ html.cn-ios #howtoVideoModal .video-player-shell.cn-guide {
 .cn-guide-body { max-width: 640px; margin: 0 auto; padding: 4px max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); }
 .cn-guide-title {
   margin: 0;
-  font-size: 34px;
-  line-height: 41px;
+  font-size: 2.125rem;
+  line-height: 2.5625rem;
   font-weight: 700;
   letter-spacing: -.012em;
   color: var(--cn-ios-text);
   outline: none;
   text-wrap: balance;
 }
-.cn-guide-lead { margin: 8px 0 0; font-size: 17px; line-height: 24px; color: var(--cn-ios-text-2); }
-.cn-guide-group { margin: 28px 4px 8px; font-size: 15px; line-height: 20px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--cn-ios-text-2); }
+.cn-guide-lead { margin: 8px 0 0; font-size: 1.0625rem; line-height: 1.5rem; color: var(--cn-ios-text-2); }
+.cn-guide-group { margin: 28px 4px 8px; font-size: .9375rem; line-height: 1.25rem; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--cn-ios-text-2); }
 .cn-guide-list { margin: 0; padding: 0; list-style: none; border-radius: 14px; overflow: hidden; background: var(--cn-guide-row); }
 .cn-guide-list > li { margin: 0; padding: 0; }
 .cn-guide-row {
@@ -1349,8 +1341,8 @@ html.cn-ios #howtoVideoModal .video-player-shell.cn-guide {
 .cn-guide-row:active { background: rgba(255, 255, 255, .07); }
 .cn-guide-row:focus-visible { outline: 2px solid var(--cn-ios-accent); outline-offset: -2px; border-radius: 14px; }
 .cn-guide-row-text { flex: 1; min-width: 0; display: grid; gap: 2px; }
-.cn-guide-row-title { font-size: 17px; line-height: 22px; font-weight: 500; }
-.cn-guide-row-sub { font-size: 14px; line-height: 19px; color: var(--cn-ios-text-2); }
+.cn-guide-row-title { font-size: 1.0625rem; line-height: 1.375rem; font-weight: 500; }
+.cn-guide-row-sub { font-size: .875rem; line-height: 1.1875rem; color: var(--cn-ios-text-2); }
 .cn-guide-chev { flex: none; color: rgba(148, 163, 184, .7); }
 .cn-guide-icon { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; color: #fff; }
 .cn-guide-icon svg { width: 19px; height: 19px; }
@@ -1373,8 +1365,8 @@ html.cn-ios #howtoVideoModal .video-player-shell.cn-guide {
   counter-increment: cn-step;
   margin: 0;
   padding: 12px 0 12px 42px;
-  font-size: 17px;
-  line-height: 24px;
+  font-size: 1.0625rem;
+  line-height: 1.5rem;
   color: var(--cn-ios-text);
 }
 .cn-guide-steps > li + li { border-top: 1px solid var(--cn-guide-sep); }
@@ -1390,15 +1382,15 @@ html.cn-ios #howtoVideoModal .video-player-shell.cn-guide {
   border-radius: 50%;
   background: rgba(34, 211, 238, .16);
   color: var(--cn-ios-accent);
-  font-size: 15px;
+  font-size: .9375rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 .cn-guide-tip { margin: 12px 0 0; padding: 14px 16px; border-radius: 14px; background: var(--cn-guide-row); }
-.cn-guide-tip p { margin: 0; font-size: 15px; line-height: 21px; color: var(--cn-ios-text-2); }
-.cn-guide-tip .cn-guide-tip-title { margin: 0 0 4px; font-size: 15px; font-weight: 600; color: var(--cn-ios-text); }
+.cn-guide-tip p { margin: 0; font-size: .9375rem; line-height: 1.3125rem; color: var(--cn-ios-text-2); }
+.cn-guide-tip .cn-guide-tip-title { margin: 0 0 4px; font-size: .9375rem; font-weight: 600; color: var(--cn-ios-text); }
 .cn-guide-go { margin-top: 24px; min-height: 50px; }
-.cn-guide-foot { margin: 24px 4px 0; font-size: 14px; line-height: 20px; color: var(--cn-ios-text-2); }
+.cn-guide-foot { margin: 24px 4px 0; font-size: .875rem; line-height: 1.25rem; color: var(--cn-ios-text-2); }
 @media (hover: hover) and (pointer: fine) {
   .cn-guide-row:hover { background: rgba(255, 255, 255, .05); }
   .cn-guide-back:hover { opacity: .75; }
@@ -1422,7 +1414,7 @@ html.cn-still .cn-ios-loading { animation: none; }
 /* design 5 (Check): the switch's hint already says what Quick Scan does, so the lead goes and the "not antivirus" note
    is one quiet footnote line; the text box starts higher on the first screen */
 html.cn-ios #cybernet .feature-page-header > p:not(.cn-ios-disclaimer) { display: none; }
-html.cn.cn-ios #cnMain > #cybernet .feature-page-header > p.cn-ios-disclaimer { max-width: 34em; margin: 6px 0 0; font-size: 13px; line-height: 18px; color: var(--cn-ios-text-2); }
+html.cn.cn-ios #cnMain > #cybernet .feature-page-header > p.cn-ios-disclaimer { max-width: 34em; margin: 6px 0 0; font-size: .8125rem; line-height: 1.125rem; color: var(--cn-ios-text-2); }
 /* bug 1: without the native bar (browser checks), the web tab bar steps aside for the how-to guide too */
 html.cn-ios:has(#howtoVideoModal.show) #cnIosTabbar { display: none; }
 /* design 6: the legal sheet's header names the document, with the Close X on the right (owner, 21 Nov 2026: X, not Done) */
@@ -1436,7 +1428,7 @@ html.cn-ios #cybernet .result-box:has(> .cn-ios-result-x) { position: relative; 
 /* the X in a fixed header (legal sheet, how-to guide): the sheet X's look, in the header's flow */
 .cn-ios-sheet-x.cn-ios-head-x { position: relative; top: auto; float: none; flex: none; margin: 0 4px 0 0; }
 /* centred like an iOS navigation title (the left padding balances the X on the right) */
-.cn-ios-legal-title { flex: 1; min-width: 0; margin: 0; padding-left: 36px; text-align: center; font-size: 17px; line-height: 22px; font-weight: 600; color: var(--cn-ios-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cn-ios-legal-title { flex: 1; min-width: 0; margin: 0; padding-left: 36px; text-align: center; font-size: 1.0625rem; line-height: 1.375rem; font-weight: 600; color: var(--cn-ios-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* sticky sheets have no Close button or grabber, so they keep their own top padding */
 .cn-ios-sheet:not(:has(> .cn-ios-sheet-x)) { padding-top: 22px; }
 
@@ -1461,7 +1453,7 @@ html.cn-ios #cybernet .result-box:has(> .cn-ios-result-x) { position: relative; 
 .cn-pro-restore::after { content: ""; position: absolute; inset: -7px -4px; }
 .cn-pro-head { display: grid; justify-items: center; text-align: center; gap: 6px; margin: 10px 0 18px; }
 .cn-pro-head svg { margin-bottom: 4px; filter: drop-shadow(0 6px 18px rgba(34, 211, 238, .28)); }
-.cn-pro-sheet .cn-pro-head .cn-ios-sheet-title { margin: 0; padding: 0; font-size: 28px; line-height: 1.12; letter-spacing: -.02em; font-weight: 700; }
+.cn-pro-sheet .cn-pro-head .cn-ios-sheet-title { margin: 0; padding: 0; font-size: 1.75rem; line-height: 1.12; letter-spacing: -.02em; font-weight: 700; }
 .cn-pro-lead { margin: 0 auto; max-width: 34ch; color: var(--cn-ios-text-2); line-height: 1.45; font-size: .98rem; }
 .cn-pro-benefits { list-style: none; margin: 0 0 18px; padding: 4px 16px; border-radius: 16px; background: var(--cn-pro-card); border: 1px solid var(--cn-ios-line); }
 .cn-pro-benefits li { display: flex; align-items: center; gap: 12px; min-height: 50px; padding: 6px 0; border-bottom: 1px solid var(--cn-ios-line); }
@@ -1559,7 +1551,7 @@ html.cn-ios #cybernet .result-box:has(> .cn-ios-result-x) { position: relative; 
 @media (max-height: 700px) {
   .cn-pro-head { margin: 0 0 12px; gap: 4px; }
   .cn-pro-head svg { width: 38px; height: 38px; margin-bottom: 0; }
-  .cn-pro-sheet .cn-pro-head .cn-ios-sheet-title { font-size: 24px; }
+  .cn-pro-sheet .cn-pro-head .cn-ios-sheet-title { font-size: 1.5rem; }
   .cn-pro-lead { display: none; }
   .cn-pro-benefits { margin-bottom: 12px; }
   .cn-pro-benefits li { min-height: 40px; padding: 4px 0; }
@@ -1569,7 +1561,7 @@ html.cn-ios #cybernet .result-box:has(> .cn-ios-result-x) { position: relative; 
 }
 @media (max-width: 360px) {
   .cn-ios-sheet.cn-pro-sheet { padding-left: 16px; padding-right: 16px; }
-  .cn-pro-sheet .cn-pro-head .cn-ios-sheet-title { font-size: 24px; }
+  .cn-pro-sheet .cn-pro-head .cn-ios-sheet-title { font-size: 1.5rem; }
   .cn-pro-option { gap: 10px; padding: 10px 12px; }
 }
 @media (prefers-reduced-motion: reduce) { .cn-pro-skel, .cn-pro-done-tick { animation: none; } .cn-pro-option, .cn-pro-meter { transition: none; } }
@@ -1606,3 +1598,187 @@ html.cn-ios .cn-privacy-note[hidden] { display: none; }
 .cn-limit-sheet .cn-limit-cta { min-height: 52px; font-size: 1.05rem; font-weight: 700; border-radius: 14px; }
 .cn-limit-sheet .cn-limit-later { justify-self: center; min-height: 44px; padding: 0 18px; font-size: 1rem; }
 @media (prefers-reduced-transparency: reduce) { .cn-ios-sheet.cn-limit-sheet { background: var(--cn-ios-sheet-bg); } }
+
+/* ================================================================ 1.1.1: Accessibility Nutrition Label (CSS) */
+/* Dark Interface. Home's three light panels (the example scan, "Rules first, then AI" and its facts strip) are light
+   sheets on the website (00-tokens.css light scope, 22-live.css, 28-home-more.css). In the app every screen is dark: the
+   panels take the page's own dark tokens back (inherit = the html.cn values, also under More Contrast) and a dark ground,
+   and the few colours the website writes out for the light sheet get their dark twins. The website does not load this file. */
+html.cn.cn-ios #home > :is(.cn-live, .cn-demo, .why-choose, .wow-section) {
+  --cn-bg: inherit; --cn-bg-2: inherit; --cn-surface: inherit; --cn-surface-2: inherit; --cn-surface-3: inherit; --cn-glass: inherit; --cn-sheen: inherit; --cn-hi: inherit; --cn-fill-1: inherit; --cn-fill-2: inherit; --cn-line: inherit; --cn-line-2: inherit; --cn-line-ctl: inherit; --cn-text: inherit; --cn-text-2: inherit; --cn-text-3: inherit; --cn-cyan: inherit; --cn-cyan-2: inherit; --cn-ice: inherit; --cn-teal: inherit; --cn-cyan-tint: inherit; --cn-cyan-line: inherit; --cn-on-cyan: inherit; --cn-ring: inherit; --cn-blue: inherit; --cn-violet: inherit; --cn-iris: inherit; --cn-iris-2: inherit; --cn-iris-tint: inherit; --cn-iris-line: inherit; --cn-mint: inherit; --cn-mint-2: inherit; --cn-mint-tint: inherit; --cn-mint-line: inherit; --cn-safe: inherit; --cn-safe-tint: inherit; --cn-warn: inherit; --cn-warn-tint: inherit; --cn-danger: inherit; --cn-danger-tint: inherit; --cn-shadow: inherit; --cn-shadow-card: inherit; --cn-edge-1: inherit; --cn-edge-2: inherit; --cn-edge-3: inherit; --cn-edge-4: inherit; --cn-sel: inherit; --cn-hair-1: inherit; --cn-hair-2: inherit; --cn-hair-3: inherit; --cn-hair-lit: inherit; --cn-falloff: inherit; --cn-key: inherit; --cn-sh-2: inherit; --cn-sh-3: inherit; 
+  color-scheme: dark;
+  color: var(--cn-text);
+}
+html.cn.cn-ios #home > :is(.cn-live, .cn-demo, .why-choose) {
+  background-color: var(--cn-surface);
+  background-image:
+    radial-gradient(60% 46% at 50% 0%, rgba(34, 211, 238, .07), transparent 72%),
+    linear-gradient(180deg, var(--cn-surface-2) 0%, var(--cn-surface) 46%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), 0 0 0 1px var(--cn-line);
+}
+html.cn.cn-ios #home > .why-choose { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06); }
+html.cn.cn-ios #home > .wow-section { background-color: var(--cn-surface); }
+html.cn.cn-ios #home > .wow-section::before {
+  background:
+    linear-gradient(var(--cn-surface-2), var(--cn-surface-2)) padding-box,
+    linear-gradient(120deg, rgba(34, 211, 238, .5), var(--cn-line) 36%, var(--cn-line) 70%, rgba(59, 130, 246, .4)) border-box;
+  box-shadow: none;
+}
+html.cn.cn-ios #home .wow-stat { --cn-fact: var(--cn-text); }
+html.cn.cn-ios #home .why-choose-item { background: var(--cn-surface-2); box-shadow: none; }
+html.cn.cn-ios #home .wc-icon-box { border-color: var(--cn-line); background: var(--cn-surface-3); color: var(--cn-cyan-2); }
+html.cn.cn-ios #home .why-choose-item:first-child .wc-icon-box { border-color: rgba(129, 140, 248, .3); background: rgba(129, 140, 248, .14); color: #a5b4fc; }
+html.cn.cn-ios #home > .why-choose > .cn-head h2 > span,
+html.cn.cn-ios #home > .cn-demo .cn-demo-copy h2 > span { color: var(--cn-text-2); }
+/* the white example cards of "Three tools, one goal" (26-flow.css): dark cards with the tool's bright mark */
+html.cn.cn-ios #home .cn-flow .cn-mini {
+  --cn-text: inherit; --cn-text-2: inherit; --cn-text-3: inherit; --cn-line: inherit; --cn-line-2: inherit;
+  --cn-surface: inherit; --cn-surface-2: inherit; --cn-surface-3: inherit; --cn-bg-2: inherit; --cn-iris: inherit; --cn-mint: inherit;
+  --cn-danger: inherit; --cn-danger-tint: inherit; --cn-safe: inherit; --cn-safe-tint: inherit; --cn-warn: inherit; --cn-warn-tint: inherit;
+  --cn-id-2: var(--cn-tool, #22d3ee);
+  --cn-tool-ink: var(--cn-tool, #22d3ee);
+  color-scheme: dark;
+  background: linear-gradient(180deg, var(--cn-surface-2), var(--cn-surface));
+  border-color: var(--cn-line-2);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, .2), 0 30px 60px -30px rgba(0, 0, 0, .75);
+}
+/* the light-band edge on the primary pill is not needed on a dark ground */
+html.cn.cn-ios #home > :is(.cn-live, .cn-demo, .why-choose, .wow-section) .primary-btn {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), inset 0 -1px 0 rgba(2, 6, 23, .16);
+}
+/* the example scan's step list */
+html.cn.cn-ios #home .cn-step-bar { background: var(--cn-surface-3); }
+html.cn.cn-ios #home .cn-step.is-active b::before { color: var(--cn-cyan-2); }
+html.cn.cn-ios #home .cn-step.is-done .cn-step-bar::after { background: linear-gradient(90deg, #22d3ee, #3b82f6); }
+/* the engine diagram */
+html.cn.cn-ios #home .cn-beams {
+  border-color: var(--cn-line);
+  background: radial-gradient(34% 70% at 92% 50%, rgba(34, 211, 238, .08), transparent 72%), var(--cn-bg-2);
+  box-shadow: none;
+}
+html.cn.cn-ios #home .cn-beams::before { background-image: radial-gradient(rgba(148, 163, 184, .16) 1px, transparent 1.4px); }
+html.cn.cn-ios #home .cn-node-in rect { fill: var(--cn-surface-2); stroke: rgba(148, 163, 184, .4); }
+html.cn.cn-ios #home .cn-node-in text { fill: #aab4c3; }
+html.cn.cn-ios #home .cn-node-engine rect { fill: #0b2530; stroke: rgba(34, 211, 238, .55); --cn-node-anim: cn-ios-beam-engine; }
+html.cn.cn-ios #home .cn-node-engine text { fill: #f5f7fa; }
+html.cn.cn-ios #home .cn-node-engine.is-ai rect { fill: #121c3a; stroke: rgba(96, 165, 250, .6); --cn-node-anim: cn-ios-beam-engine-ai; }
+html.cn.cn-ios #home .cn-node-engine.is-ai text { fill: #bfdbfe; }
+html.cn.cn-ios #home .cn-beam-ports circle { fill: var(--cn-bg-2); stroke: #8a95a7; }
+@keyframes cn-ios-beam-engine {
+  0%, 33% { stroke: rgba(34, 211, 238, .55); fill: #0b2530; }
+  38% { stroke: #22d3ee; fill: #0e3a48; }
+  52%, 100% { stroke: rgba(34, 211, 238, .55); fill: #0b2530; }
+}
+@keyframes cn-ios-beam-engine-ai {
+  0%, 33% { stroke: rgba(96, 165, 250, .6); fill: #121c3a; }
+  38% { stroke: #60a5fa; fill: #1a2a55; }
+  52%, 100% { stroke: rgba(96, 165, 250, .6); fill: #121c3a; }
+}
+
+/* Larger Text. Every font size the app uses is in rem, so it follows the root size ios.js sets from the iPhone's text
+   size (Dynamic Type). Body text grows in full; titles grow at half the rate (as UIKit's large titles do), so a word
+   still fits the screen at the largest sizes. At the default 16 px root every value below equals the one it replaces. */
+html.cn.cn-ios {
+  --cn-step-hero: calc(clamp(40px, 25.6px + 4.4vw, 88px) + (1rem - 16px) * .5);
+  --cn-step-h1: calc(clamp(34px, 24px + 2.8vw, 64px) + (1rem - 16px) * .5);
+  --cn-step-h2: calc(clamp(28px, 20.8px + 2vw, 52px) + (1rem - 16px) * .5);
+  --cn-step-h3: calc(clamp(20px, 17.6px + .6vw, 26px) + (1rem - 16px) * .6);
+}
+html.cn-ios #cnMain > .page:not(#home) .feature-page-header h1 { font-size: calc(34px + (1rem - 16px) * .5); line-height: calc(41px + (1rem - 16px) * .6); overflow-wrap: break-word; }
+@media (max-width: 599.98px) {
+  html.cn.cn-ios #home .hero-content .hero-title { font-size: max(calc(36px + (1rem - 16px) * .5), min(var(--cn-step-hero), calc(9svh + 14px + (1rem - 16px) * .5))); }
+}
+@media (max-width: 599.98px) and (max-height: 700px) {
+  html.cn.cn-ios #home .hero-content .hero-title { font-size: calc(34px + (1rem - 16px) * .5); }
+}
+html.cn.cn-ios #home .wow-header h2 { font-size: calc(clamp(22px, 17.6px + 1.2vw, 34px) + (1rem - 16px) * .5); }
+html.cn.cn-ios #home .wow-stat-number { font-size: calc(clamp(36px, 24px + 2.6vw, 60px) + (1rem - 16px) * .5); }
+html.cn.cn-ios #recovery .recovery-header h1 { font-size: calc(clamp(38px, 23.2px + 3.1vw, 70px) + (1rem - 16px) * .5); }
+.cn-pro-sheet .cn-pro-head .cn-ios-sheet-title { font-size: calc(28px + (1rem - 16px) * .6); }
+.cn-limit-sheet .cn-limit-title { font-size: calc(23.2px + (1rem - 16px) * .6); }
+.cn-ios-sheet-title { overflow-wrap: break-word; }
+/* Apple's and Google's sign-in buttons keep their fixed title (21 px on the 50 pt button, Apple's button guidance) */
+/* the brand in the top bar is a logo, not text to read: it stays near its size */
+html.cn.cn-ios .brand .brand-text { font-size: calc(16px + (1rem - 16px) * .25); }
+/* the web tab bar (shown only without the native one) mirrors the native bar, which keeps its size (Large Content Viewer) */
+.cn-ios-tab { font-size: 11px; }
+@media (max-width: 340px) { .cn-ios-tab { font-size: 10px; } }
+
+/* Nothing is cut off at large sizes: labels wrap, rows wrap, and the two- and three-way switches stack when their labels
+   no longer fit side by side. The switches ask their own box (container query in em: "is this box narrower than N
+   lines of this text?"), so the switch stays side by side at the default size on every iPhone. */
+.cn-ios-seg-btn { white-space: normal; padding: 6px 8px; text-wrap: balance; }
+.cn-ios-seg-wrap { container: cn-ios-seg / inline-size; }
+@container cn-ios-seg (max-width: 19em) {
+  .cn-ios-seg { grid-template-columns: minmax(0, 1fr); border-radius: 22px; }
+  .cn-ios-seg-thumb { width: auto; right: 3px; bottom: auto; height: calc((100% - 6px) / 2); border-radius: 19px; }
+  .cn-ios-seg[data-active="cybernetai"] .cn-ios-seg-thumb { transform: translateY(100%); }
+}
+html.cn-ios #cybernet > .detect-tabs { display: flex; flex-wrap: wrap; }
+html.cn-ios #cybernet .detect-tab { flex: 1 1 0; min-width: min-content; }
+html.cn-ios #cybernet .detect-tab { overflow-wrap: normal; }
+.cn-ios-quiet-row { flex-wrap: wrap; row-gap: 4px; }
+html.cn-ios :is(.primary-btn, .secondary-btn) { white-space: normal; }
+@container cn-wow (max-width: 18em) {
+  html.cn.cn-ios #home .wow-stats { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  html.cn.cn-ios #home .wow-stat { grid-template-columns: auto minmax(0, 1fr); align-items: baseline; column-gap: 12px; padding-inline: 4px; }
+  html.cn.cn-ios #home .wow-stat::before { grid-column: 1 / -1; }
+  html.cn.cn-ios #home .wow-stat + .wow-stat { border-inline-start: 0; border-block-start: 1px solid var(--cn-line); padding-block-start: 12px; }
+}
+/* Recovery: the shield sits beside the title; once the title is large it keeps clear of it */
+html.cn-ios #recovery .recovery-header { container: cn-rec-head / inline-size; }
+@container cn-rec-head (max-width: 19em) {
+  html.cn.cn-ios #recovery .recovery-header h1 { padding-inline-end: 72px; }
+}
+/* Home's example scan at large sizes: the step numbers keep their own width, the steps and the console's top row stack */
+html.cn.cn-ios #home .cn-step b::before { inline-size: auto; min-inline-size: 18px; }
+@container cn-demo (max-width: 18em) {
+  html.cn.cn-ios #home .cn-steps { grid-template-columns: minmax(0, 1fr); }
+}
+@container cn-console (max-width: 18em) {
+  html.cn.cn-ios #home .cn-console-top { grid-template-columns: minmax(0, 1fr); grid-template-areas: "app" "ex" "status"; }
+  html.cn.cn-ios #home .cn-status { justify-self: start; }
+}
+/* Account rows at large sizes: the value moves under its label (as iOS lists do) instead of squeezing beside it */
+.cn-ios-group { container: cn-ios-group / inline-size; }
+@container cn-ios-group (max-width: 18em) {
+  .cn-ios-row { flex-wrap: wrap; row-gap: 4px; }
+  .cn-ios-row > :is(span, strong, small) { flex: 1 1 auto; }
+}
+.cn-ios-row-stack span { word-break: normal; overflow-wrap: anywhere; }
+/* Home's hero at large sizes: the scan box's buttons grow and wrap, the recovery link may break, the example meter stacks */
+html.cn.cn-ios #home #cnScanBox .hero-buttons { min-inline-size: 0; max-inline-size: 100%; }
+html.cn.cn-ios #home #cnScanBox .hero-buttons :is(.primary-btn, .secondary-btn) { height: auto; min-inline-size: 0; max-inline-size: 100%; padding-block: 6px; white-space: normal; }
+@container cn-hero (max-width: 18em) {
+  html.cn.cn-ios #home .hero-content .cn-hero-recovery-btn { white-space: normal; }
+}
+@container cn-console (max-width: 18em) {
+  html.cn.cn-ios #home .cn-meter { grid-template-columns: minmax(0, 1fr); grid-template-areas: "label" "arc" "verdict"; justify-items: center; }
+  html.cn.cn-ios #home .cn-meter > .cn-label { justify-self: start; align-self: auto; }
+}
+/* the engine diagram as phones show it (40-beams.js builds .cn-bv from the SVG labels): dark pills, the checks in a dark box */
+html.cn.cn-ios #home .cn-bv-node { border-color: rgba(148, 163, 184, .4); background: var(--cn-surface-2); color: var(--cn-text-2); white-space: normal; text-align: center; }
+html.cn.cn-ios #home .cn-bv-eng { border-color: rgba(34, 211, 238, .55); background: #0b2530; box-shadow: none; }
+html.cn.cn-ios #home .cn-bv-eng .cn-bv-node { background: none; color: var(--cn-text); }
+html.cn.cn-ios #home .cn-bv-eng .cn-bv-node + .cn-bv-node { border-inline-start-color: rgba(34, 211, 238, .3); }
+html.cn.cn-ios #home .cn-bv-eng .cn-bv-node.is-ai { background: #121c3a; color: #bfdbfe; }
+html.cn.cn-ios #home .cn-bv-out .cn-bv-node { border-color: #22d3ee; background: #22d3ee; color: #061018; }
+html.cn.cn-ios #home .cn-beams[data-cn-run] .cn-bv-eng { animation-name: cn-ios-bv-eng; }
+@keyframes cn-ios-bv-eng {
+  0%, 29% { border-color: rgba(34, 211, 238, .55); }
+  34% { border-color: #22d3ee; }
+  48%, 100% { border-color: rgba(34, 211, 238, .55); }
+}
+@container cn-beams (max-width: 16em) {
+  html.cn.cn-ios #home .cn-bv-eng { grid-template-columns: minmax(0, 1fr); }
+  html.cn.cn-ios #home .cn-bv-eng .cn-bv-node + .cn-bv-node { border-inline-start: 0; border-block-start: 1px solid rgba(34, 211, 238, .3); }
+}
+/* "Three tools" switch at large sizes: one tool per row, the object beside its name */
+@container cn-flow (max-width: 18em) {
+  html.cn.cn-ios #home .cn-reel-tabs { grid-template-columns: minmax(0, 1fr); }
+  html.cn.cn-ios #home .cn-reel-tab { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 12px; min-block-size: 56px; padding: 8px 14px; text-align: start; }
+}
+/* the "Example" pill: when large text wraps it to two lines a full pill radius cuts into the words (11px = the same pill at the default size) */
+html.cn.cn-ios #home .cn-console .cn-ex { border-radius: 11px; }
+/* a verdict that the app moved focus to (VoiceOver, tabindex=-1): VoiceOver draws its own cursor, no ring on the card */
+html.cn-ios .verdict-headline[tabindex="-1"]:focus { outline: none; }

@@ -31,7 +31,7 @@ html.cn #authModal input[hidden] {
 html.cn #authModal :is(.cn-field-error, .cn-field-hint) {
   margin: calc(var(--cn-2) * -1) 0 var(--cn-4);
   font-family: var(--cn-font);
-  font-size: 13px;
+  font-size: .8125rem;
   letter-spacing: 0;
   line-height: 1.45;
   text-align: start;
@@ -116,7 +116,7 @@ html.cn #authModal .cn-pw-toggle {
   background: transparent;
   color: var(--cn-cyan-2);
   font-family: var(--cn-font);
-  font-size: 14px;
+  font-size: .875rem;
   font-weight: 600;
   letter-spacing: -.005em;
   line-height: 1;
@@ -189,7 +189,7 @@ html.cn #authModal .cn-auth-notice strong {
   margin: 0 0 4px;
   color: var(--cn-text);
   font-family: var(--cn-font);
-  font-size: 14.5px;
+  font-size: .90625rem;
   font-weight: 600;
   letter-spacing: -.01em;
   line-height: 1.35;
@@ -200,7 +200,7 @@ html.cn #authModal .cn-auth-notice p {
   margin: 0;
   color: var(--cn-text-2);
   font-family: var(--cn-font);
-  font-size: 13.5px;
+  font-size: .84375rem;
   line-height: 1.55;
   text-wrap: pretty;
 }
@@ -287,7 +287,7 @@ html.cn .cn-toast {
   box-shadow: var(--cn-shadow-card);
   color: #f5f7fa;
   font-family: var(--cn-font);
-  font-size: 14.5px;
+  font-size: .90625rem;
   font-weight: 500;
   letter-spacing: -.005em;
   line-height: 1.45;
@@ -355,6 +355,6 @@ html.cn #authModal .auth-tab { white-space: nowrap; }
 @media (max-width: 479.98px) {
   html.cn #authModal .auth-tab {
     padding-inline: 8px;
-    font-size: 13.5px;
+    font-size: .84375rem;
   }
 }

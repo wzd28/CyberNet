@@ -101,7 +101,7 @@ html.cn #businessTeamModal .cn-team-loader-text {
   margin: 0;
   color: var(--cn-text-2);
   font-family: var(--cn-font);
-  font-size: var(--cn-step-small, 14px);
+  font-size: var(--cn-step-small, .875rem);
   line-height: 1.55;
   text-align: center;
 }

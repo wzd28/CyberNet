@@ -189,6 +189,12 @@ final class MainViewController: CAPBridgeViewController, UITabBarDelegate {
         updateTabBarVisibility()
     }
 
+    /// VoiceOver (1.1.1): while a sheet is open in the page the bar stays visible but VoiceOver skips it,
+    /// the native half of the page's aria-modal.
+    func setTabBarAccessibilityHidden(_ hidden: Bool) {
+        tabBar.accessibilityElementsHidden = hidden
+    }
+
     /// How much of the page the bar covers, in points (= CSS pixels), home-indicator area included.
     func tabBarMetrics() -> (height: Int, hidden: Bool) {
         let hidden = tabBar.isHidden

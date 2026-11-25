@@ -7,6 +7,8 @@ import Capacitor
 ///   select({ tab })        -> {}                  highlights "home" | "check" | "scan" | "recovery" | "learn" | "account"
 ///                                                  (no `cnTab` event is sent back)
 ///   setHidden({ hidden })  -> {}                  e.g. while the keyboard or a full-screen sheet is up
+///   setAccessibilityHidden({ hidden }) -> {}      hides the bar from VoiceOver only (it stays on screen) while a
+///                                                  sheet is open in the page, so swiping cannot leave the sheet
 ///   getMetrics()           -> { height, hidden }  the bar's overlap with the page in CSS pixels,
 ///                                                  home-indicator area included (0 when hidden)
 /// Changes are also pushed as the window event `cnTabBarMetrics` (MainViewController.swift).
@@ -17,6 +19,7 @@ public final class TabBarPlugin: CAPPlugin, CAPBridgedPlugin {
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "select", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setHidden", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setAccessibilityHidden", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getMetrics", returnType: CAPPluginReturnPromise)
     ]
 
@@ -46,6 +49,18 @@ public final class TabBarPlugin: CAPPlugin, CAPBridgedPlugin {
                 return
             }
             shell.setTabBarHiddenByPage(hidden)
+            call.resolve()
+        }
+    }
+
+    @objc func setAccessibilityHidden(_ call: CAPPluginCall) {
+        let hidden = call.getBool("hidden", false)
+        DispatchQueue.main.async {
+            guard let shell = self.bridge?.viewController as? MainViewController else {
+                call.unavailable("The tab bar is not available.")
+                return
+            }
+            shell.setTabBarAccessibilityHidden(hidden)
             call.resolve()
         }
     }

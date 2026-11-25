@@ -60,24 +60,56 @@
   // only the top one answers Escape and Tab (bug 10: Escape used to close the sheet underneath first).
   const sheetStack = [];
   const CLOSE_X = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
+  // Accessibility (VoiceOver, 1.1.1): while any sheet is open the page behind it is inert and hidden from VoiceOver
+  // (inertBehind, one hold per sheet), and so is every sheet under the top one; both are handed back when it closes.
+  function syncSheets() {
+    sheetStack.forEach((n, i) => {
+      const under = i !== sheetStack.length - 1;
+      n.inert = under;
+      if (under) n.setAttribute("aria-hidden", "true"); else n.removeAttribute("aria-hidden");
+    });
+    // the native tab bar stays on screen over a sheet, but VoiceOver must not swipe out of the sheet onto it
+    const vo = sheetStack.length > 0;
+    if (vo !== tabsVoHidden) { tabsVoHidden = vo; try { nativeTabs?.setAccessibilityHidden?.({ hidden: vo })?.catch?.(() => {}); } catch { /* older shell */ } }
+  }
+  let tabsVoHidden = false;
   function sheet({ id, label, html, sticky = false, onOpen }) {
     return new Promise(resolve => {
-      $(`#${id}`)?.remove();
+      const old = $(`#${id}`);
+      if (old?.cnClose) old.cnClose(null); // the same sheet again: the old one is closed properly (its hold and its promise)
+      old?.remove();
       const back = d.activeElement;
       // a sticky sheet (the launch card, a step that must be answered) has neither: it cannot be dismissed
       const chrome = sticky ? "" : `<div class="cn-ios-sheet-grab" aria-hidden="true"></div><button type="button" class="cn-ios-sheet-x" data-sheet-dismiss aria-label="Close">${CLOSE_X}</button>`;
       const node = el(`<div class="cn-ios-sheet-backdrop" id="${id}"><div class="cn-ios-sheet" role="dialog" aria-modal="true" aria-label="${esc(label)}" tabindex="-1">${chrome}${html}</div></div>`);
       const panel = node.firstElementChild;
       sheetStack.push(node);
+      syncSheets();
+      inertBehind(true);
+      let closed = false;
       const done = value => {
+        if (closed) return; // once: a second call must not hand back another sheet's hold
+        closed = true;
+        node.cnClose = null;
         const at = sheetStack.indexOf(node);
         if (at >= 0) sheetStack.splice(at, 1);
+        syncSheets();
+        inertBehind(false); // before focus goes back: what had it is reachable again
         d.removeEventListener("keydown", onKey, true);
         node.classList.remove("is-open");
+        node.setAttribute("aria-hidden", "true");
+        node.inert = true;
         later(() => node.remove(), 220);
-        try { back?.focus?.({ preventScroll: true }); } catch { /* ignore */ }
+        // back to what had focus, or (gone, hidden, or nothing had it) the open sheet underneath or the page's heading
+        try {
+          const under = sheetStack[sheetStack.length - 1];
+          if (back && back !== d.body && back.isConnected) back.focus({ preventScroll: true });
+          else if (under) under.firstElementChild.focus({ preventScroll: true });
+          else focusBack(null);
+        } catch { /* ignore */ }
         resolve(value);
       };
+      node.cnClose = done;
       const onKey = e => {
         if (sheetStack[sheetStack.length - 1] !== node) return; // a sheet above this one answers first
         if ((e.key === "Escape" || e.key === "Esc") && !sticky) { e.stopImmediatePropagation(); done(null); }
@@ -221,7 +253,7 @@
   function goTab(id) {
     const tab = TABS.find(t => t.id === id);
     if (!tab) return;
-    if (id === "scan") { startQrScan(); return; }
+    if (id === "scan") { openScan(); return; }
     const here = PAGE_TAB[activePage()];
     if (here === id) { scrollToTop(); return; } // the open tab again: to the top (Check keeps Quick Scan or Analysis AI)
     rememberScroll();
@@ -1362,7 +1394,12 @@
   let behindHolds = 0;
   function inertBehind(on) {
     behindHolds = Math.max(0, behindHolds + (on ? 1 : -1));
-    for (const sel of BEHIND) $$(sel).forEach(n => { n.inert = behindHolds > 0; });
+    const held = behindHolds > 0;
+    for (const sel of BEHIND) $$(sel).forEach(n => {
+      n.inert = held;
+      if (held && !n.hasAttribute("aria-hidden")) { n.setAttribute("aria-hidden", "true"); n.dataset.cnHid = "1"; }
+      else if (!held && n.dataset.cnHid) { n.removeAttribute("aria-hidden"); delete n.dataset.cnHid; }
+    });
   }
   let barByCard = false;
   function holdBar(on) {
@@ -1541,12 +1578,16 @@
       </div>`);
     // Part of the sheet stack (review fix): opened over the paywall, only the legal sheet answers Escape and Tab.
     sheetStack.push(node);
+    syncSheets();
+    inertBehind(true);
     let closed = false;
     const close = () => {
       if (closed) return;
       closed = true;
       const at = sheetStack.indexOf(node);
       if (at >= 0) sheetStack.splice(at, 1);
+      syncSheets();
+      inertBehind(false);
       node.classList.remove("is-open"); later(() => node.remove(), 220); d.removeEventListener("keydown", onKey, true);
       try { back?.focus?.({ preventScroll: true }); } catch { /* ignore */ }
     };
@@ -1866,6 +1907,14 @@
   /* ================================================================ 10. QR scanner */
   // The scanner is not a page: when it closes (cancelled, failed, or its result sheet closed) syncTabs() puts the tab bar's highlight
   // back on the page that is open, where the native bar would otherwise stay on Scan QR.
+  // Scan QR (Accessibility, 1.1.1): the tab and the guide open a small sheet first, with "Scan with the camera" and
+  // "Choose a photo of a QR code" side by side, so a VoiceOver user (for whom aiming a camera is hard) always has the photo
+  // way in, not only after the camera fails. No camera (no scanner plugin, or a Mac): startQrScan shows the photo help.
+  const SCAN_HINT = "Point the camera at a QR code. Or choose a photo instead.";
+  function openScan() {
+    if (!P("CapacitorBarcodeScanner") || pointerOnly()) { startQrScan(); return; }
+    showCameraHelp(SCAN_HINT, false, true);
+  }
   async function startQrScan() {
     const scanner = P("CapacitorBarcodeScanner");
     if (!scanner) { showCameraHelp("The camera scanner is part of the CyberNet AI app. You can choose a photo of a QR code instead."); return; }
@@ -1896,22 +1945,27 @@
   function pointerOnly() {
     try { return navigator.maxTouchPoints === 0 && w.matchMedia("(hover: hover) and (pointer: fine)").matches; } catch { return false; }
   }
-  function showCameraHelp(text, settings = false) {
+  function showCameraHelp(text, settings = false, camera = false) {
     sheet({
       id: "cnCameraHelp",
       label: "Scan a QR code",
-      html: `<h2 class="cn-ios-sheet-title">Scan a QR code</h2>
-        <div class="cn-ios-sheet-body"><p>${esc(text)}</p></div>
+      html: `<h2 class="cn-ios-sheet-title" id="cnScanTitle">Scan a QR code</h2>
+        <div class="cn-ios-sheet-body"><p id="cnScanHint">${esc(text)}</p></div>
         <div class="cn-ios-sheet-actions">
-          <button type="button" class="primary-btn full" data-sheet-value="photo" data-autofocus>Choose a photo of a QR code</button>
+          ${camera ? '<button type="button" class="primary-btn full" data-sheet-value="camera" data-autofocus aria-describedby="cnScanHint">Scan with the camera</button>' : ""}
+          <button type="button" class="${camera ? "secondary-btn" : "primary-btn"} full" data-sheet-value="photo"${camera ? "" : " data-autofocus"}>Choose a photo of a QR code</button>
           ${settings ? '<button type="button" class="secondary-btn full" data-sheet-value="settings">Open Settings</button>' : ""}
         </div>`,
       // 1.1 bug 9: WebKit opens a file picker only inside the tap itself, so the picker opens here, in the tap; the photo then
       // goes to Quick Scan's Image tab as if it had been chosen there.
       onOpen(panel) {
+        panel.setAttribute("aria-labelledby", "cnScanTitle");
+        panel.setAttribute("aria-describedby", "cnScanHint");
+        panel.removeAttribute("aria-label");
         panel.querySelector('[data-sheet-value="photo"]')?.addEventListener("click", () => pickQrPhoto(), true);
       }
     }).then(choice => {
+      if (choice === "camera") { later(startQrScan, 240); return; } // the sheet is gone first; the tab bar stays on Scan QR
       syncTabs();
       if (choice === "settings") openExternal("app-settings:");
     });
@@ -1929,6 +1983,7 @@
         const field = $("#cyberImageInput");
         if (!field) return;
         try { const dt = new DataTransfer(); dt.items.add(file); field.files = dt.files; } catch (error) { report(error, "qr photo"); return; }
+        resultFocusWanted = { box: "#cyberImageResult", until: Date.now() + 20000 };
         field.dispatchEvent(new Event("change", { bubbles: true }));
       }, 380);
     }, { once: true });
@@ -1973,9 +2028,9 @@
     noteFinishedCheck();
     sheet({
       id: "cnQrVerdict",
-      label: "QR code result",
+      label: `QR code result: ${v.headline}`,
       html: `<p class="cn-ios-sheet-kicker">${kind === "share" ? "Shared item" : "QR code"} · ${esc(analysed.kind === "url" ? "Web link" : "Content")}</p>
-        <div class="verdict-headline verdict-headline-${v.tone}"><span class="verdict-headline-text">${v.headline}</span></div>
+        <div class="verdict-headline verdict-headline-${v.tone}" role="heading" aria-level="2" tabindex="-1" data-autofocus><span class="verdict-headline-text">${v.headline}</span></div>
         <div class="cn-ios-sheet-body">
           ${target}
           ${link && signedIn() ? `<div class="cn-ios-shot" data-qr-shot><button type="button" class="secondary-btn full" data-qr="shot">Show a picture of this page</button><p class="cn-ios-note">Sends only this web address to our preview service, which opens the page away from your iPhone.</p></div>` : ""}
@@ -1985,7 +2040,7 @@
           <p class="cn-ios-disclaimer-small">${/100% safe/i.test(plain.action || "") ? "It is not antivirus software." : "It is not antivirus software, and no scanner can promise something is 100% safe."}</p>
         </div>
         <div class="cn-ios-sheet-actions cn-ios-qr-actions">
-          <button type="button" class="primary-btn full" data-qr="ai" data-autofocus>Get an AI explanation</button>
+          <button type="button" class="primary-btn full" data-qr="ai">Get an AI explanation</button>
           ${kind === "qr" ? '<button type="button" class="secondary-btn full" data-qr="again">Scan another</button>' : ""}
           <div class="cn-ios-quiet-row">
             <button type="button" class="cn-ios-link-btn" data-qr="copy">Copy</button>
@@ -2230,6 +2285,91 @@
     { sel: "#cyberTextResult", kind: "quick_scan" }, { sel: "#cyberLinkResult", kind: "quick_scan" }, { sel: "#cyberImageResult", kind: "quick_scan" },
     { sel: "#chatMessages", kind: "analysis_ai" }, { sel: "#recoveryDashboard", kind: "recovery" }
   ];
+  // VoiceOver (1.1.1): a finished check is read out, wherever VoiceOver is. One polite line on the body (never inside a
+  // sheet or the page, which can be inert): the verdict and its first line for Quick Scan, the answer for Analysis AI, a
+  // short line for a Recovery plan, and the website's warnings (a wrong file type, no QR code found) as they are.
+  let resultFocusWanted = null; // { box, until }: a photo of a QR code was chosen; VoiceOver is taken to its result
+  function announce(text) {
+    const line = String(text || "").replace(/\s+/g, " ").trim().slice(0, 300);
+    if (!line) return;
+    let box = $("#cnIosSay");
+    if (!box) { box = el('<div id="cnIosSay" class="cn-ix-sr" role="status" aria-live="polite" aria-atomic="true"></div>'); d.body.appendChild(box); }
+    box.textContent = "";
+    clearTimeout(announce.t);
+    announce.t = setTimeout(() => { box.textContent = line; }, 80); // emptied first, so the same words twice are read twice
+  }
+  const textIn = (node, sel) => (node && sel ? node.querySelector(sel) : node)?.textContent?.replace(/\s+/g, " ").trim() || "";
+  function resultLine(box) {
+    if (!box || box.querySelector(".scanning-placeholder, .diagnostic-progress, .btn-spinner")) return ""; // still working
+    const head = textIn(box, ".verdict-headline-text") || textIn(box, ".verdict-headline");
+    if (head) {
+      const lead = textIn(box, ".plain-lead") || textIn(box, ".scam-type-tag");
+      return `Result: ${head}.${lead ? ` ${lead}` : ""}`;
+    }
+    const warn = textIn(box, ".warning");
+    if (warn) return warn;
+    const all = textIn(box);
+    return /will appear here\.?$/.test(all) ? "" : all.slice(0, 220);
+  }
+  function focusResult(box) {
+    const head = box.querySelector(".verdict-headline") || box;
+    if (!head.hasAttribute("tabindex")) head.setAttribute("tabindex", "-1");
+    scrollToResult(box);
+    try { head.focus({ preventScroll: true }); } catch { /* ignore */ }
+  }
+  function watchAnnouncements() {
+    const said = new WeakMap();
+    for (const sel of ["#cyberTextResult", "#cyberLinkResult", "#cyberImageResult"]) {
+      const box = $(sel);
+      if (!box) continue;
+      let t = 0;
+      new MutationObserver(() => {
+        clearTimeout(t);
+        t = setTimeout(() => {
+          const line = resultLine(box);
+          if (!line) { said.delete(box); return; } // cleared or still working: the next result is read even if it is the same
+          if (said.get(box) === line) return;
+          said.set(box, line);
+          announce(line);
+          if (resultFocusWanted?.box === sel && Date.now() < resultFocusWanted.until) { resultFocusWanted = null; later(() => focusResult(box), 120); }
+        }, 250);
+      }).observe(box, { childList: true, subtree: true, characterData: true });
+    }
+    const chat = $("#chatMessages");
+    if (chat) {
+      // the greeting (and anything already there) is never read as an answer: only a reply after the person's own message is
+      $$(".chat-bubble-ai", chat).forEach(b => { b.dataset.cnSaid = "done"; });
+      let t = 0;
+      new MutationObserver(() => {
+        clearTimeout(t);
+        t = setTimeout(() => {
+          const bubbles = $$(".chat-bubble-ai", chat);
+          const last = bubbles[bubbles.length - 1];
+          if (!last || last.dataset.cnSaid === "done") return;
+          const asked = $$(".chat-bubble-user", chat).pop();
+          if (!asked || !(asked.compareDocumentPosition(last) & Node.DOCUMENT_POSITION_FOLLOWING)) return;
+          if (last.querySelector(".diagnostic-progress")) {
+            if (!last.dataset.cnSaid) { last.dataset.cnSaid = "busy"; announce("Analysis AI is checking it."); }
+            return;
+          }
+          const head = textIn(last, ".verdict-headline-text") || textIn(last, ".verdict-headline") || textIn(last, ".diagnostic-followup-head");
+          const line = head ? `Analysis AI answered: ${head}.` : textIn(last, ".warning") || textIn(last, ".chat-bubble-inner").slice(0, 220);
+          if (!line) return;
+          last.dataset.cnSaid = "done";
+          announce(line);
+        }, 300);
+      }).observe(chat, { childList: true, subtree: true });
+    }
+    const plan = $("#recoveryDashboard");
+    if (plan) {
+      let was = !plan.hidden;
+      new MutationObserver(() => {
+        const now = !plan.hidden;
+        if (now && !was) announce("Your Recovery plan is ready. Start with the first step.");
+        was = now;
+      }).observe(plan, { attributes: true, attributeFilter: ["hidden"] });
+    }
+  }
   function decorateResults() {
     for (const area of RESULT_AREAS) {
       const box = $(area.sel);
@@ -2486,8 +2626,8 @@
         go: { label: "Check a picture", page: "cybernet", tab: "image" } },
       { id: "qr", icon: "qr", tint: "orange", title: "Scan a QR code", sub: "With the camera, or from a photo",
         lead: "Check a QR code before you act on it. Nothing opens until you choose.",
-        steps: ["Tap Scan QR at the bottom of the screen.", "The first time, allow CyberNet AI to use the camera.", "Point the camera at the code. The result opens by itself.", "Read the answer and what the code holds (a web link, Wi-Fi, a contact or plain text).", "Choose what to do: Get an AI explanation, Scan another, Copy, or Open in Safari. A risky link asks you again before it opens.", "Tap the X at the top right to close the result."],
-        tips: [["No camera?", "On a Mac, or if the camera is off for CyberNet AI, choose a photo of the QR code instead. A screenshot works too."]],
+        steps: ["Tap Scan QR at the bottom of the screen, then Scan with the camera. Or tap Choose a photo of a QR code to check a photo or a screenshot.", "The first time, allow CyberNet AI to use the camera.", "Point the camera at the code. The result opens by itself.", "Read the answer and what the code holds (a web link, Wi-Fi, a contact or plain text).", "Choose what to do: Get an AI explanation, Scan another, Copy, or Open in Safari. A risky link asks you again before it opens.", "Tap the X at the top right to close the result."],
+        tips: [["No camera?", "On a Mac, or if the camera is off for CyberNet AI, choose a photo of the QR code instead. A screenshot works too."], ["Using VoiceOver?", "Choose a photo of a QR code is often easier than aiming the camera. The result is read out when it is ready."]],
         go: { label: "Scan a QR code", action: "scan" } },
       { id: "share", icon: "share", tint: "indigo", title: "Share to CyberNet AI", sub: "Check from Safari, Photos and more",
         lead: "Send a link, a picture or text to CyberNet AI from another app, without copying it first.",
@@ -2589,7 +2729,7 @@
     $("#closeHowtoVideo")?.click();
     later(() => {
       const g = t.go;
-      if (g.action === "scan") { startQrScan(); return; }
+      if (g.action === "scan") { openScan(); return; }
       if (g.action === "share-help") { showShareHelp(); return; }
       if (g.page === "cybernetai") { if (!requireAccount("cybernetai")) arrive("cybernetai"); return; }
       if (g.page === "cybernet" && $("#cnIosSeg")) pickCheckMode("cybernet"); else navigate(g.page);
@@ -2638,13 +2778,14 @@
       sync();
     }
   }
-  // Larger Text: follow the iPhone's text size (Dynamic Type), within limits the layout can take.
+  // Larger Text: follow the iPhone's text size (Dynamic Type) up to the largest accessibility sizes (AX5 body is about 53 pt,
+  // so a 16..40 px root covers about 235%). It runs at start and again each time the app comes back (the size may have changed).
   function dynamicType() {
     const probe = el('<span aria-hidden="true" style="position:absolute;visibility:hidden;font:-apple-system-body">x</span>');
     d.body.appendChild(probe);
     const px = parseFloat(getComputedStyle(probe).fontSize);
     probe.remove();
-    if (Number.isFinite(px) && px > 0) root.style.fontSize = `${Math.min(22, Math.max(16, px * (16 / 17)))}px`;
+    if (Number.isFinite(px) && px > 0) root.style.fontSize = `${Math.min(40, Math.max(16, px * (16 / 17)))}px`;
   }
 
   /* ================================================================ 14. tracking, analytics, lifecycle */
@@ -2692,6 +2833,7 @@
       dynamicType();
       watchNetwork();
       new MutationObserver(() => { clearTimeout(start.dt); start.dt = setTimeout(decorateResults, 120); }).observe($("#cnMain") || d.body, { childList: true, subtree: true });
+      watchAnnouncements();
       if (w.CN_ACCOUNT_DELETED) nativeCleanupAfterDeletion();
       later(addReminderButton, 800);
       // external links open in Safari, never inside the app (D10)

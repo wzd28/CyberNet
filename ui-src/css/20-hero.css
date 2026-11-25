@@ -412,7 +412,7 @@ html.cn #home .hero-content .hero-title {
   /* --cn-font-hero carries a fallback face metric-matched to the 600-weight,
      110%-wide Mona Sans, so the late font swap does not shift the hero */
   font-family: var(--cn-font-hero, "Mona Sans", "Mona Sans Hero Fallback", var(--cn-font));
-  font-size: max(2.25rem, min(var(--cn-step-hero), 9vh + 14px));
+  font-size: max(2.25rem, min(var(--cn-step-hero), 9vh + .875rem));
   font-weight: 600;
   font-stretch: 110%;
   line-height: 1.02;
@@ -423,7 +423,7 @@ html.cn #home .hero-content .hero-title {
   overflow-wrap: break-word;
 }
 @supports (height: 1svh) {
-  html.cn #home .hero-content .hero-title { font-size: max(2.25rem, min(var(--cn-step-hero), 9svh + 14px)); }
+  html.cn #home .hero-content .hero-title { font-size: max(2.25rem, min(var(--cn-step-hero), 9svh + .875rem)); }
 }
 html.cn #home .hero-content .hero-title span {
   color: var(--h4-text-2);
@@ -774,10 +774,10 @@ html.cn #home .hero-content .cn-hero-recovery-btn::after {
     text-align: start;
   }
   html.cn #home .hero-content .hero-title {
-    font-size: max(2.5rem, min(5.25rem, 10.6cqi, 9vh + 10px));
+    font-size: max(2.5rem, min(5.25rem, 10.6cqi, 9vh + .625rem));
   }
   @supports (height: 1svh) {
-    html.cn #home .hero-content .hero-title { font-size: max(2.5rem, min(5.25rem, 10.6cqi, 9svh + 10px)); }
+    html.cn #home .hero-content .hero-title { font-size: max(2.5rem, min(5.25rem, 10.6cqi, 9svh + .625rem)); }
   }
   html.cn #home .hero-content .cn-hero-sub { margin-inline: 0; max-width: 30em; }
   html.cn #home #cnScanBox { margin-inline: 0; max-width: 600px; }
@@ -830,7 +830,7 @@ html.cn #home .hero-content .cn-hero-recovery-btn::after {
   html.cn #home #heroLearnFeaturesBtn { margin-bottom: 10px; }
   html.cn #home .hero-content .hero-title br { display: none; }
   html.cn #home .hero-content .hero-title > span { margin-inline-start: .25em; }
-  html.cn #home .hero-content .hero-title { font-size: clamp(1.625rem, 6vh + 6px, 2.25rem); }
+  html.cn #home .hero-content .hero-title { font-size: clamp(1.625rem, 6vh + .375rem, 2.25rem); }
   html.cn #home .hero-content .cn-hero-sub { display: none; }
   html.cn #home #cnScanBox { margin: 14px 0 0; }
   html.cn #home .hero-content .cn-hero-recovery { margin-inline: 0; text-align: start; }

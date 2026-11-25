@@ -79,10 +79,10 @@ html.cn body > footer .cn-footer-brand {
   border-radius: var(--cn-r-ctl);
   color: var(--cn-ch-text);
   font-family: var(--cn-font-mono);
-  font-size: 20px;
+  font-size: 1.25rem;
   font-weight: 700;
   letter-spacing: -.02em;
-  line-height: 48px;
+  line-height: 3rem;
   text-decoration: none;
   white-space: nowrap;
   -webkit-tap-highlight-color: transparent;
@@ -116,7 +116,7 @@ html.cn body > footer .cn-footer-brand small {
   background: rgba(34, 211, 238, .1);
   color: #d9f7fc;
   font-family: var(--cn-font-mono);
-  font-size: 11px;
+  font-size: .6875rem;
   font-weight: 600;
   line-height: 1.1;
   letter-spacing: .08em;
@@ -131,7 +131,7 @@ html.cn body > footer > p {
   padding: 0 var(--cn-6) 0 0;
   color: var(--cn-ch-text-2);
   font-family: var(--cn-font);
-  font-size: 13px;
+  font-size: .8125rem;
   line-height: 1.7;
   text-align: start;
   text-wrap: pretty;
@@ -186,7 +186,7 @@ html.cn body > footer .cn-footer-legal button {
   background: linear-gradient(currentColor, currentColor) 0 calc(50% + .56em) / 0 1px no-repeat;
   color: var(--cn-ch-text-2);
   font-family: var(--cn-font);
-  font-size: 13.5px;
+  font-size: .84375rem;
   font-weight: 500;
   letter-spacing: -.005em;
   line-height: 1.2;
@@ -207,7 +207,7 @@ html.cn body > footer [data-cn-motion] {
   background: rgba(255, 255, 255, .04);
   box-shadow: none;
   color: #b3bccb;
-  font-size: 13px;
+  font-size: .8125rem;
   font-weight: 600;
   -webkit-tap-highlight-color: transparent;
 }
@@ -266,7 +266,7 @@ html.cn body > footer .cn-footer-brand:focus-visible {
 
   html.cn body > footer .cn-footer-legal a,
   html.cn body > footer .cn-footer-legal button {
-    font-size: 13px;
+    font-size: .8125rem;
   }
 }
 

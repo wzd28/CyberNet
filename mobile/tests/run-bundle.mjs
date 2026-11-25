@@ -211,7 +211,7 @@ try {
         const decl = find(n => n.type === "VariableDeclaration" && n.declarations.some(d => d.id?.name === "lastCheckPage"), iosAst);
         let gt = null;
         try {
-          gt = new Function("TABS", "navigate", "startQrScan", "activePage", "isCheckPage", "scrollToTop", "PAGE_TAB", "rememberScroll", `let tabReturn = null;\n${iosSrc(decl)}\n${iosSrc(find(n => n.type === "FunctionDeclaration" && n.id?.name === "goTab", iosAst))}\nreturn { goTab, remember: page => { lastCheckPage = page; }, pending: () => tabReturn };`);
+          gt = new Function("TABS", "navigate", "openScan", "activePage", "isCheckPage", "scrollToTop", "PAGE_TAB", "rememberScroll", `let tabReturn = null;\n${iosSrc(decl)}\n${iosSrc(find(n => n.type === "FunctionDeclaration" && n.id?.name === "goTab", iosAst))}\nreturn { goTab, remember: page => { lastCheckPage = page; }, pending: () => tabReturn };`);
         } catch (error) { check("goTab can be run", false, error.message); }
         if (gt) {
           const tabs = [{ id: "check", page: "cybernet" }, { id: "scan", page: null }, { id: "recovery", page: "recovery" }, { id: "learn", page: "learn" }];
@@ -1375,7 +1375,82 @@ try {
         check("QR scanner closed: cancelled and an empty result sync the tab bar at once; a result, a refusal and an error open a sheet (which syncs when it is closed)",
           cancel.log.join("|") === "sync" && empty.log.join("|") === "sync" && scanned.log.join("|") === "verdict:https://parcel-redeliver-help.invalid/pay,qr" && denied.log.join("|").startsWith("help:CyberNet AI doesn't ha") && !denied.log.includes("sync") && broken.log.join("|").startsWith("report:qr scan|help:The camera isn't avail") && none.log.join("|").startsWith("help:The camera scanner is"), [cancel.log, empty.log, scanned.log, denied.log, broken.log, none.log]);
         check("QR scanner closed: the result sheet and the camera help sheet sync the tab bar when they close, and a code that cannot be checked syncs too",
-          /\}\)\.then\(\w+=>\{syncTabs\(\);/.test(fnText("showQrVerdict")) && /\.then\(choice=>\{syncTabs\(\);/.test(fnText("showCameraHelp")) && /Thiscodecouldnotbechecked\."\);syncTabs\(\);return/.test(fnText("showQrVerdict")) && /couldnotload\.Pleaserestarttheapp\."\);syncTabs\(\);return/.test(fnText("showQrVerdict")));
+          /\}\)\.then\(\w+=>\{syncTabs\(\);/.test(fnText("showQrVerdict")) && /\.then\(choice=>\{if\(choice==="camera"\)\{later\(startQrScan,\d+\);return;?\}syncTabs\(\);/.test(fnText("showCameraHelp")) && /Thiscodecouldnotbechecked\."\);syncTabs\(\);return/.test(fnText("showQrVerdict")) && /couldnotload\.Pleaserestarttheapp\."\);syncTabs\(\);return/.test(fnText("showQrVerdict")));
+        // ---- Accessibility 1.1.1: the Scan QR sheet always offers the photo next to the camera
+        {
+          const mkOpen = (hasScanner, mac) => {
+            const shown = [];
+            const api = run(["SCAN_HINT", "openScan", "showCameraHelp"], ["P", "pointerOnly", "startQrScan", "sheet", "esc", "syncTabs", "openExternal", "later", "pickQrPhoto"], "openScan",
+              () => (hasScanner ? {} : null), () => mac, () => shown.push("camera-now"), o => { shown.push(o.html); return new Promise(() => {}); }, esc, () => {}, () => {}, () => {}, () => {});
+            api();
+            return shown;
+          };
+          const phone = mkOpen(true, false), noCam = mkOpen(false, false), macOpen = mkOpen(true, true);
+          const btns = parse(phone[0] || "").filter(n => n.tagName === "button");
+          const cam = btns.find(b => attr(b, "data-sheet-value") === "camera"), photo = btns.find(b => attr(b, "data-sheet-value") === "photo");
+          check("Scan QR (VoiceOver): the Scan tab opens a sheet with Scan with the camera and Choose a photo of a QR code side by side; the camera button carries the hint", !!cam && !!photo && textOf(cam) === "Scan with the camera" && textOf(photo) === "Choose a photo of a QR code" && attr(cam, "aria-describedby") === "cnScanHint" && /id="cnScanHint">Point the camera at a QR code\. Or choose a photo instead\.</.test(phone[0]), phone);
+          check("Scan QR (VoiceOver): without a camera scanner, or on a Mac, startQrScan's photo help comes at once (no camera button)", noCam.join() === "camera-now" && macOpen.join() === "camera-now");
+          check("Scan QR (VoiceOver): the tab bar and the guide open the Scan QR sheet; the photo picker opens inside the tap; Scan another still goes straight to the camera", /if\(id==="scan"\)\{openScan\(\);return;?\}/.test(fnText("goTab")) && /g\.action==="scan"\)\{openScan\(\);return;?\}/.test(fnText("guideGo")) && /\[data-sheet-value="photo"\]'\)\?\.addEventListener\("click",\(\)=>pickQrPhoto\(\),true\)/.test(fnText("showCameraHelp")) && /later\(startQrScan,250\)/.test(fnText("showQrVerdict")));
+          check("Scan QR (VoiceOver): a camera result sheet opens on its verdict (a heading, focused first, named in the dialog's label); a photo's result is announced and focused", /role="heading"aria-level="2"tabindex="-1"data-autofocus/.test(fnText("showQrVerdict")) && !/data-qr="ai"data-autofocus/.test(fnText("showQrVerdict")) && /label:`QRcoderesult:\$\{v\.headline\}`/.test(fnText("showQrVerdict")) && /resultFocusWanted=\{box:"#cyberImageResult"/.test(fnText("pickQrPhoto")) && /announce\(line\)/.test(fnText("watchAnnouncements")) && /watchAnnouncements\(\);/.test(fnText("start")));
+          const rl = run(["textIn", "resultLine"], [], "resultLine");
+          const fake = html => {
+            const nodes = parse(html);
+            const top = nodes.filter(n => !nodes.some(p => p !== n && (p.childNodes || []).includes(n)));
+            return {
+              querySelector: sel => {
+                const cls = sel.split(",").map(x => x.trim().replace(/^\./, ""));
+                const hit = nodes.find(n => cls.some(c => (attr(n, "class") || "").split(/\s+/).includes(c)));
+                return hit ? { textContent: textOf(hit) } : null;
+              },
+              textContent: top.length ? top.map(textOf).join("") : html
+            };
+          };
+          check("Results are read out (VoiceOver): the verdict and its first line, a warning as it is, nothing while it is still working or empty",
+            rl(fake('<div class="scan-report"><div class="verdict-headline"><span class="verdict-headline-text">SCAM</span></div><p class="plain-lead">This asks for a payment.</p></div>')) === "Result: SCAM. This asks for a payment." &&
+            rl(fake('<span class="warning">The image must be smaller than 10 MB.</span>')) === "The image must be smaller than 10 MB." &&
+            rl(fake('<div class="scanning-placeholder"><span>Inspecting</span></div>')) === "" && rl(fake("Your image scam result will appear here.")) === "");
+        }
+        // ---- Accessibility 1.1.1: the page behind a sheet is inert, sheets under the top one too, and all of it comes back
+        {
+          const reg = {};
+          let holds = 0;
+          const mkNode = () => {
+            const attrs = {};
+            const panel = { setAttribute() {}, removeAttribute() {}, querySelector: () => null, focus() {} };
+            return { attrs, inert: false, firstElementChild: panel, classList: { add() {}, remove() {} }, addEventListener() {}, setAttribute(k, v) { attrs[k] = v; }, removeAttribute(k) { delete attrs[k]; }, remove() { if (reg[this.id] === this) delete reg[this.id]; } };
+          };
+          const doc = { activeElement: null, addEventListener() {}, removeEventListener() {}, body: { appendChild(n) { reg[n.id] = n; } } };
+          const voCalls = [];
+          const fakeTabs = { setAccessibilityHidden: o => { voCalls.push(o.hidden); return Promise.resolve(); } };
+          const sheetFn = run(["sheetStack", "CLOSE_X", "tabsVoHidden", "syncSheets", "sheet"], ["$", "$$", "el", "d", "esc", "later", "requestAnimationFrame", "inertBehind", "nativeTabs"], "sheet",
+            sel => reg[sel.slice(1)] || null, () => [], html => { const n = mkNode(); n.id = html.match(/id="([^"]+)"/)[1]; return n; }, doc, esc, () => {}, () => {}, on => { holds = Math.max(0, holds + (on ? 1 : -1)); }, fakeTabs);
+          const open = id => { let close; const p = sheetFn({ id, label: id, html: "", onOpen: (panel, done) => { close = done; } }); return { p, close: v => close(v), node: reg[id] }; };
+          const a = open("cnA");
+          const afterA = holds;
+          const b = open("cnB");
+          const nested = holds === 2 && a.node.inert === true && a.node.attrs["aria-hidden"] === "true" && !b.node.inert && !("aria-hidden" in b.node.attrs);
+          b.close("x"); b.close("again"); // a second close must not hand back the hold of the sheet underneath
+          const afterB = holds === 1 && !a.node.inert && !("aria-hidden" in a.node.attrs);
+          const a2 = open("cnA"); // the same sheet again: the old one is resolved and its hold handed back
+          const reopened = holds === 1 && (await a.p) === null;
+          a2.close(null);
+          check("Sheets (VoiceOver): one hold on the page behind per open sheet; a sheet under the top one is inert and hidden; closing (once only) hands it back; the same sheet again closes the old one properly",
+            afterA === 1 && nested && afterB && reopened && holds === 0 && (await b.p) === "x", { afterA, nested, afterB, reopened, holds });
+          check("Sheets (VoiceOver): the native tab bar is hidden from VoiceOver (not from sight) while any sheet is open and given back when the last one closes, one call per change",
+            voCalls[0] === true && voCalls[voCalls.length - 1] === false && voCalls.every((v, i) => i === 0 || v !== voCalls[i - 1]), voCalls);
+          check("Sheets (VoiceOver): the page behind is the page, the bar, the Check switch, the tab bar and the skip link; aria-hidden is set and removed only where inertBehind set it",
+            /constBEHIND=\["#cnMain","\.navbar","#cnIosSegWrap","#cnIosTabbar","\.cn-skip"\]/.test(iosJs.replace(/\s+/g, "")) && /if\(held&&!n\.hasAttribute\("aria-hidden"\)\)\{n\.setAttribute\("aria-hidden","true"\);n\.dataset\.cnHid="1";?\}elseif\(!held&&n\.dataset\.cnHid\)\{n\.removeAttribute\("aria-hidden"\);deleten\.dataset\.cnHid;?\}/.test(fnText("inertBehind")) && /syncSheets\(\);inertBehind\(false\);/.test(fnText("sheet")));
+        }
+        // ---- Accessibility 1.1.1 (Larger Text): the root follows Dynamic Type up to the accessibility sizes (no 22 px cap)
+        {
+          const sizeFor = px => {
+            const rootEl = { style: {} };
+            run(["dynamicType"], ["el", "d", "getComputedStyle", "root"], "dynamicType", () => ({ remove() {} }), { body: { appendChild() {} } }, () => ({ fontSize: `${px}px` }), rootEl)();
+            return rootEl.style.fontSize;
+          };
+          check("Larger Text: the root font size follows the iPhone's text size from 16 px up to 40 px (AX sizes), not capped at 22 px, and is read again when the app comes back",
+            sizeFor(17) === "16px" && sizeFor(14) === "16px" && sizeFor(23) === `${23 * 16 / 17}px` && sizeFor(40) === `${40 * 16 / 17}px` && sizeFor(53) === "40px" && !/Math\.min\(22/.test(fnText("dynamicType")) && /isActive\)\{[^}]*dynamicType\(\);?\}/.test(iosJs.replace(/\s+/g, "")), [sizeFor(17), sizeFor(23), sizeFor(53)]);
+        }
         check("Tab bar: a page view is counted when the page changes, not each time the highlight is put back", /page!==lastPageViewed\)\{lastPageViewed=page;w\.CNAnalytics\.page\(/.test(fnText("syncTabs")));
       }
 

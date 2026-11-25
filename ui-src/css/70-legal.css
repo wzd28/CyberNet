@@ -120,7 +120,7 @@ html.cn body.cn-legal-page .cn-legal-page-brand img {
 html.cn body.cn-legal-page .cn-legal-page-brand > span {
   overflow: hidden;
   color: var(--cn-text);
-  font: 700 15px/1 var(--cn-font-mono);
+  font: 700 .9375rem/1 var(--cn-font-mono);
   letter-spacing: -.02em;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -137,7 +137,7 @@ html.cn body.cn-legal-page .cn-legal-page-brand > span > small {
   border: 1px solid var(--cn-line-2);
   border-radius: 6px;
   color: var(--cn-text-2);
-  font: 600 11px/1.1 var(--cn-font-mono);
+  font: 600 .6875rem/1.1 var(--cn-font-mono);
   letter-spacing: .08em;
   text-transform: uppercase;
 }

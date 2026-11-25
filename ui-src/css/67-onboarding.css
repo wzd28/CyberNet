@@ -49,7 +49,7 @@ html.cn #cnOnboard .cn-onboard-top .account-eyebrow {
 html.cn #cnOnboard .cn-onboard-count {
   color: var(--cn-text-3);
   font-family: var(--cn-font-mono);
-  font-size: 12px;
+  font-size: .75rem;
   font-weight: 500;
   letter-spacing: var(--cn-track-label);
   line-height: 1.2;
@@ -60,7 +60,7 @@ html.cn #cnOnboard .cn-onboard-count {
 html.cn #cnOnboard .cn-onboard-hello {
   margin: 0 0 var(--cn-5);
   color: var(--cn-text-2);
-  font-size: 15px;
+  font-size: .9375rem;
   line-height: 1.5;
 }
 
@@ -116,7 +116,7 @@ html.cn #cnOnboard .cn-onboard-body {
   max-width: 46ch;
   margin: 0;
   color: var(--cn-text-2);
-  font-size: 16px;
+  font-size: 1rem;
   line-height: 1.6;
 }
 
@@ -139,7 +139,7 @@ html.cn #cnOnboard .cn-onboard-kinds li {
   border-radius: 8px;
   background: var(--cn-fill-1);
   color: var(--cn-text-2);
-  font-size: 13px;
+  font-size: .8125rem;
   font-weight: 500;
   line-height: 1.2;
 }
@@ -210,21 +210,21 @@ html.cn #cnOnboard .cn-onboard-fact {
 
 html.cn #cnOnboard .cn-onboard-label {
   color: var(--cn-text);
-  font-size: 15px;
+  font-size: .9375rem;
   font-weight: 500;
   line-height: 1.35;
 }
 
 html.cn #cnOnboard .cn-onboard-hint {
   color: var(--cn-text-3);
-  font-size: 13px;
+  font-size: .8125rem;
   line-height: 1.4;
 }
 
 html.cn #cnOnboard .cn-onboard-note {
   margin: 0;
   color: var(--cn-text-3);
-  font-size: 13.5px;
+  font-size: .84375rem;
   line-height: 1.55;
 }
 
@@ -236,7 +236,7 @@ html.cn #cnOnboard .cn-onboard-tip {
   border-radius: var(--cn-r-ctl);
   background: var(--cn-surface-2);
   color: var(--cn-text-2);
-  font-size: 14px;
+  font-size: .875rem;
   line-height: 1.55;
 }
 
@@ -315,7 +315,7 @@ html.cn.cn-still #cnOnboard .cn-onboard-dots li { transition: none; }
 /* ---------- small phones ---------- */
 @media (max-width: 639.98px) {
   html.cn #cnOnboard .cn-onboard-hello { margin-bottom: var(--cn-4); }
-  html.cn #cnOnboard .cn-onboard-body { font-size: 15.5px; }
+  html.cn #cnOnboard .cn-onboard-body { font-size: .96875rem; }
   html.cn #cnOnboard .cn-onboard-nav { margin-top: var(--cn-5); padding-top: var(--cn-4); }
   html.cn #cnOnboard .cn-onboard-alt { justify-self: stretch; }
 }

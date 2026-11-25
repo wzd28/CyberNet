@@ -537,7 +537,7 @@ html.cn #learn .rm-node-info::before {
   font-family: var(--cn-font);
   font-size: .8125rem;
   font-weight: 450;
-  line-height: 16px;
+  line-height: 1rem;
   letter-spacing: .01em;
   text-transform: none;
   transition: color var(--cn-dur-2) var(--cn-ease-out);

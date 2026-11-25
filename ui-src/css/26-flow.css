@@ -563,13 +563,13 @@ html.cn #home .cn-mini-url {
   border: 1px solid var(--cn-line);
   border-radius: var(--cn-r-ctl);
   font-family: var(--cn-font-mono);
-  font-size: 13px;
+  font-size: .8125rem;
   line-height: 1.4;
   color: var(--cn-text);
   overflow-wrap: anywhere;
 }
 @media (max-width: 359.98px) {
-  html.cn #home .cn-mini-url { gap: 8px; padding-inline: 12px; font-size: 12px; overflow-wrap: break-word; }
+  html.cn #home .cn-mini-url { gap: 8px; padding-inline: 12px; font-size: .75rem; overflow-wrap: break-word; }
 }
 html.cn #home .cn-mini-url::before {
   content: "";
@@ -599,7 +599,7 @@ html.cn #home .cn-mini-verdict b::after {
   content: "/100";
   margin-inline-start: 3px;
   font-family: var(--cn-font-mono);
-  font-size: 12px;
+  font-size: .75rem;
   font-weight: 400;
   letter-spacing: 0;
   color: var(--cn-text-2);

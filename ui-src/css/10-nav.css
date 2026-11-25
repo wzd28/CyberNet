@@ -114,7 +114,7 @@ html.cn header.navbar .brand {
   border-radius: var(--cn-r-ctl);
   color: var(--cn-ch-text);
   font-family: var(--cn-font-mono);
-  font-size: 17px;
+  font-size: 1.0625rem;
   font-weight: 700;
   letter-spacing: -.02em;
   line-height: 1;
@@ -158,7 +158,7 @@ html.cn header.navbar .brand-text small {
   background: rgba(34, 211, 238, .1);
   color: #d9f7fc;
   font-family: var(--cn-font-mono);
-  font-size: 11px;
+  font-size: .6875rem;
   font-weight: 600;
   line-height: 1.1;
   letter-spacing: .08em;
@@ -219,7 +219,7 @@ html.cn header.navbar #openAuth.login-btn {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5);
   color: var(--cn-ch-ink);
   font-family: var(--cn-font);
-  font-size: 14px;
+  font-size: .875rem;
   font-weight: 600;
   letter-spacing: -.01em;
   line-height: 1;
@@ -263,7 +263,7 @@ html.cn header.navbar .nav-greeting {
   overflow: hidden;
   color: var(--cn-ch-text-2);
   font-family: var(--cn-font);
-  font-size: 14px;
+  font-size: .875rem;
   font-weight: 500;
   letter-spacing: -.01em;
   text-overflow: ellipsis;
@@ -279,7 +279,7 @@ html.cn header.navbar .plan-badge {
   color: var(--cn-ch-text-2);
   box-shadow: none;
   font-family: var(--cn-font-mono);
-  font-size: 11px;
+  font-size: .6875rem;
   font-weight: 600;
   letter-spacing: .08em;
   line-height: 1;
@@ -317,7 +317,7 @@ html.cn header.navbar .account-action-btn {
   background: transparent;
   color: var(--cn-ch-text-2);
   font-family: var(--cn-font);
-  font-size: 13px;
+  font-size: .8125rem;
   font-weight: 500;
   letter-spacing: -.005em;
   white-space: nowrap;
@@ -351,7 +351,7 @@ html.cn header.navbar #mobileMenu.mobile-menu {
   color: var(--cn-ch-ink) !important;
   box-shadow: 0 6px 16px -10px rgba(0, 0, 0, .7);
   font-family: var(--cn-font) !important;
-  font-size: 14px !important;
+  font-size: .875rem !important;
   font-weight: 600 !important;
   letter-spacing: -.01em !important;
   line-height: 1 !important;
@@ -439,7 +439,7 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
     background: transparent;
     color: var(--cn-ch-text-2);
     font-family: var(--cn-font);
-    font-size: 14px;
+    font-size: .875rem;
     font-weight: 500;
     letter-spacing: -.01em;
     line-height: 1;
@@ -540,7 +540,7 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
   html.cn header.navbar .nav-link,
   html.cn header.navbar:is(.open, .cn-sheet-out) .nav-link {
     --cn-nl: 8px;
-    font-size: 13.5px;
+    font-size: .84375rem;
   }
 }
 
@@ -548,11 +548,11 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
   html.cn header.navbar .nav-link,
   html.cn header.navbar:is(.open, .cn-sheet-out) .nav-link {
     --cn-nl: 6px;
-    font-size: 13px;
+    font-size: .8125rem;
   }
 
   html.cn header.navbar .brand {
-    font-size: 16px;
+    font-size: 1rem;
   }
 
   html.cn header.navbar .brand-text small {
@@ -753,10 +753,10 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
     padding-block-start: 6px;
     color: var(--cn-ch-text-3);
     font-family: var(--cn-font);
-    font-size: 12px;
+    font-size: .75rem;
     font-weight: 600;
     letter-spacing: .1em;
-    line-height: 16px;
+    line-height: 1rem;
     text-transform: uppercase;
   }
 
@@ -987,7 +987,7 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
     flex: 1 1 160px;
     max-width: 360px;
     height: 48px;
-    font-size: 15px;
+    font-size: .9375rem;
   }
 
   html.cn header.navbar:is(.open, .cn-sheet-out) .auth-checking-skeleton {
@@ -1020,7 +1020,7 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
     min-width: 0;
     max-width: none;
     color: var(--cn-ch-text);
-    font-size: 16px;
+    font-size: 1rem;
     font-weight: 600;
   }
 
@@ -1035,7 +1035,7 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
     height: 44px;
     margin-inline-start: auto;
     padding: 0 18px;
-    font-size: 14px;
+    font-size: .875rem;
   }
 
   /* the page behind the sheet does not scroll (12-nav.js mirrors .navbar.open into
@@ -1083,7 +1083,7 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
 @media (max-width: 599.98px) {
   html.cn header.navbar .brand {
     gap: 8px;
-    font-size: 16px;
+    font-size: 1rem;
   }
 
   html.cn header.navbar .brand-mark-icon {
@@ -1118,13 +1118,13 @@ html.cn header.navbar #mobileMenu.mobile-menu:focus-visible {
 
   html.cn header.navbar .brand {
     gap: 6px;
-    font-size: 14px;
+    font-size: .875rem;
   }
 
   html.cn header.navbar .brand-text small {
     margin-inline-start: 5px;
     padding: 2px 4px 1px;
-    font-size: 9px;
+    font-size: .5625rem;
   }
 
   html.cn header.navbar #mobileMenu.mobile-menu {

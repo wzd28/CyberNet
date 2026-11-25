@@ -266,7 +266,7 @@ html.cn .modal .account-eyebrow {
   background: rgba(34, 211, 238, .1);
   color: #d9f7fc;
   font-family: var(--cn-font-mono);
-  font-size: 11px;
+  font-size: .6875rem;
   font-weight: 500;
   letter-spacing: var(--cn-track-label);
   line-height: 1;
@@ -294,7 +294,7 @@ html.cn .modal .cybernet-account-message,
 html.cn .modal .cn-team-message {
   color: var(--cn-text-2);
   font-family: var(--cn-font);
-  font-size: 14px;
+  font-size: .875rem;
   line-height: 1.5;
 }
 
@@ -312,7 +312,7 @@ html.cn .modal .modal-card :where(select):is(select, input[type="text"]) {
   min-height: 48px;
   margin: 0 0 var(--cn-4);
   padding: 0 16px;
-  font-size: 16px;
+  font-size: 1rem;
 }
 
 html.cn .modal .modal-card select {
@@ -324,7 +324,7 @@ html.cn .modal .modal-card textarea {
   width: 100%;
   margin: 0 0 var(--cn-4);
   padding: 12px 16px;
-  font-size: 16px;
+  font-size: 1rem;
   line-height: 1.5;
 }
 
@@ -334,7 +334,7 @@ html.cn .modal :is(.auth-name-grid, .feedback-name-grid) label {
   margin: 0 0 var(--cn-2);
   color: var(--cn-text-2);
   font-family: var(--cn-font);
-  font-size: 13px;
+  font-size: .8125rem;
   font-weight: 500;
   letter-spacing: -.005em;
   line-height: 1.3;
@@ -386,7 +386,7 @@ html.cn #authModal .auth-heading p {
   max-width: 34ch;
   margin: 0 auto;
   color: var(--cn-text-2);
-  font-size: 14px;
+  font-size: .875rem;
   line-height: 1.5;
 }
 
@@ -410,7 +410,7 @@ html.cn #authModal .auth-tab {
   background: transparent;
   color: var(--cn-text-2);
   font-family: var(--cn-font);
-  font-size: 14px;
+  font-size: .875rem;
   font-weight: 500;
   letter-spacing: -.01em;
   cursor: pointer;
@@ -443,7 +443,7 @@ html.cn #authModal .google-auth-btn {
   background: var(--cn-text);
   color: var(--cn-bg);
   font-family: var(--cn-font);
-  font-size: 15px;
+  font-size: .9375rem;
   font-weight: 600;
   letter-spacing: -.01em;
   box-shadow: none;
@@ -469,7 +469,7 @@ html.cn #authModal .auth-divider {
   margin: var(--cn-4) 0;
   color: var(--cn-text-2);
   font-family: var(--cn-font);
-  font-size: 12px;
+  font-size: .75rem;
   letter-spacing: 0;
 }
 
@@ -501,7 +501,7 @@ html.cn #authModal .auth-text-btn {
   background: none;
   color: var(--cn-text-2);
   font-family: var(--cn-font);
-  font-size: 14px;
+  font-size: .875rem;
   font-weight: 500;
   letter-spacing: -.005em;
   cursor: pointer;
@@ -542,7 +542,7 @@ html.cn #authModal .modal-card > small {
   border-top: 1px solid var(--cn-line);
   color: var(--cn-text-2);
   font-family: var(--cn-font);
-  font-size: 12.5px;
+  font-size: .78125rem;
   line-height: 1.5;
   text-align: center;
   text-wrap: pretty;
@@ -550,7 +550,7 @@ html.cn #authModal .modal-card > small {
 
 html.cn #authModal .auth-inapp-note {
   color: var(--cn-text-2);
-  font-size: 13px;
+  font-size: .8125rem;
 }
 
 /* the dimmed Create button until the terms box is ticked (it stays clickable) */
@@ -582,7 +582,7 @@ html.cn #authModal .cn-google-legal-note {
   margin: var(--cn-3) 0 0;
   color: var(--cn-text-2);
   font-family: var(--cn-font);
-  font-size: 12.5px;
+  font-size: .78125rem;
   line-height: 1.55;
   text-align: center;
   text-wrap: pretty;
@@ -624,7 +624,7 @@ html.cn #authModal #cnSignupLegalBox label {
   margin: 0;
   color: var(--cn-text-2);
   font-family: var(--cn-font);
-  font-size: 13px;
+  font-size: .8125rem;
   font-weight: 400;
   letter-spacing: 0;
   line-height: 1.55;
@@ -647,7 +647,7 @@ html.cn #authModal #cnSignupLegalBox .cn-legal-inline-actions .cn-legal-link-btn
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  font-size: 13px;
+  font-size: .8125rem;
 }
 
 /* .modal-card small (style.css) centres this in mono */
@@ -657,7 +657,7 @@ html.cn #authModal #cnSignupLegalBox .cn-legal-required {
   padding-inline-start: 32px;
   color: var(--cn-text-2);
   font-family: var(--cn-font);
-  font-size: 12px;
+  font-size: .75rem;
   font-weight: 400;
   letter-spacing: 0;
   line-height: 1.45;
@@ -679,7 +679,7 @@ html.cn #feedbackModal .feedback-heading {
 html.cn #feedbackModal .feedback-heading p {
   margin: 0;
   color: var(--cn-text-2);
-  font-size: 14px;
+  font-size: .875rem;
   line-height: 1.6;
 }
 
@@ -765,7 +765,7 @@ html.cn #howtoVideoModal .video-control-btn {
   background: transparent;
   color: var(--cn-text);
   font-family: var(--cn-font);
-  font-size: 14px;
+  font-size: .875rem;
   font-weight: 500;
   letter-spacing: -.005em;
   cursor: pointer;
@@ -819,7 +819,7 @@ html.cn #howtoVideoModal .video-modal-tab {
   background: transparent;
   color: var(--cn-text-2);
   font-family: var(--cn-font);
-  font-size: 14px;
+  font-size: .875rem;
   font-weight: 500;
   letter-spacing: -.01em;
   white-space: nowrap;
@@ -882,7 +882,7 @@ html.cn #howtoVideoModal .hw {
 html.cn #howtoVideoModal .hw-summary {
   max-width: 68ch;
   color: var(--cn-text-2);
-  font-size: 15px;
+  font-size: .9375rem;
   line-height: 1.6;
 }
 
@@ -895,7 +895,7 @@ html.cn #howtoVideoModal .hw-step {
 html.cn #howtoVideoModal .hw-step-count {
   margin-bottom: var(--cn-3);
   color: var(--cn-cyan-2);
-  font-size: 12px;
+  font-size: .75rem;
   font-weight: 500;
   letter-spacing: var(--cn-track-label);
 }
@@ -913,7 +913,7 @@ html.cn #howtoVideoModal .hw-heading {
 html.cn #howtoVideoModal .hw-body {
   margin: 0 0 var(--cn-5);
   color: var(--cn-text-2);
-  font-size: 16px;
+  font-size: 1rem;
   line-height: 1.6;
 }
 
@@ -926,7 +926,7 @@ html.cn #howtoVideoModal .hw-callout {
 
 html.cn #howtoVideoModal .hw-callout-label {
   margin-bottom: 6px;
-  font-size: 11px;
+  font-size: .6875rem;
   font-weight: 500;
   letter-spacing: var(--cn-track-label);
 }
@@ -934,13 +934,13 @@ html.cn #howtoVideoModal .hw-callout-label {
 html.cn #howtoVideoModal .hw-callout b {
   margin-bottom: 4px;
   color: var(--cn-text);
-  font-size: 15px;
+  font-size: .9375rem;
   font-weight: 600;
 }
 
 html.cn #howtoVideoModal .hw-callout p {
   color: var(--cn-text-2);
-  font-size: 14px;
+  font-size: .875rem;
   line-height: 1.55;
 }
 
@@ -970,7 +970,7 @@ html.cn #howtoVideoModal .hw-tab {
   border-radius: var(--cn-r-pill);
   color: var(--cn-text-2);
   font-family: var(--cn-font);
-  font-size: 13px;
+  font-size: .8125rem;
 }
 
 html.cn #howtoVideoModal .hw-tab.is-active {
@@ -983,7 +983,7 @@ html.cn #howtoVideoModal .hw-field-label,
 html.cn #howtoVideoModal .hw-meter-label {
   color: var(--cn-text-2);
   font-family: var(--cn-font-mono);
-  font-size: 11px;
+  font-size: .6875rem;
   letter-spacing: var(--cn-track-label);
 }
 
@@ -1006,7 +1006,7 @@ html.cn #howtoVideoModal .hw-verdict-icon {
 
 html.cn #howtoVideoModal .hw-verdict-text {
   font-family: var(--cn-font-mono);
-  font-size: 15px;
+  font-size: .9375rem;
   font-weight: 600;
   letter-spacing: var(--cn-track-label);
 }
@@ -1071,7 +1071,7 @@ html.cn #howtoVideoModal .hw-btn {
   background: transparent;
   color: var(--cn-text);
   font-family: var(--cn-font);
-  font-size: 15px;
+  font-size: .9375rem;
   font-weight: 600;
   letter-spacing: -.01em;
   transition: background-color var(--cn-dur-1) ease, border-color var(--cn-dur-1) ease, opacity var(--cn-dur-1) ease;
@@ -1166,7 +1166,7 @@ html.cn #accountDetailsModal .cybernet-account-head p,
 html.cn #cybernetHowToGetKeyModal .cybernet-account-head p {
   margin: 6px 0 0;
   color: var(--cn-text-2);
-  font-size: 14px;
+  font-size: .875rem;
   line-height: 1.6;
 }
 
@@ -1178,7 +1178,7 @@ html.cn #accountDetailsModal .cybernet-account-live-badge {
   border-radius: var(--cn-r-pill);
   background: transparent;
   color: var(--cn-text-2);
-  font-size: 11px;
+  font-size: .6875rem;
   letter-spacing: var(--cn-track-label);
   white-space: nowrap;
 }
@@ -1211,7 +1211,7 @@ html.cn #accountDetailsModal .cn-account-tab {
   box-shadow: none;
   color: var(--cn-text-2);
   font-family: var(--cn-font);
-  font-size: 14px;
+  font-size: .875rem;
   font-weight: 500;
   letter-spacing: -.01em;
   text-transform: none;
@@ -1246,14 +1246,14 @@ html.cn #businessTeamModal .cn-team-stat > span {
   margin-bottom: var(--cn-2);
   color: var(--cn-text-2);
   font-family: var(--cn-font-mono);
-  font-size: 11px;
+  font-size: .6875rem;
   font-weight: 500;
   letter-spacing: var(--cn-track-label);
 }
 
 html.cn #accountDetailsModal .cybernet-account-item strong {
   color: var(--cn-text);
-  font-size: 15px;
+  font-size: .9375rem;
   font-weight: 500;
 }
 
@@ -1269,7 +1269,7 @@ html.cn #accountDetailsModal .cybernet-account-plan-badge {
   border-radius: var(--cn-r-pill);
   background: var(--cn-cyan-tint);
   color: var(--cn-cyan-2);
-  font-size: 11px;
+  font-size: .6875rem;
   letter-spacing: var(--cn-track-label);
 }
 
@@ -1294,7 +1294,7 @@ html.cn #accountDetailsModal .cybernet-notify-copy label {
   margin: 0;
   color: var(--cn-text);
   font-family: var(--cn-font);
-  font-size: 15px;
+  font-size: .9375rem;
   font-weight: 600;
   text-transform: none;
 }
@@ -1302,12 +1302,12 @@ html.cn #accountDetailsModal .cybernet-notify-copy label {
 html.cn #accountDetailsModal .cybernet-notify-copy p,
 html.cn #accountDetailsModal .cybernet-notify-status {
   color: var(--cn-text-2);
-  font-size: 13px;
+  font-size: .8125rem;
 }
 
 html.cn #accountDetailsModal .cybernet-notify-warning {
   color: var(--cn-text-2);
-  font-size: 12.5px;
+  font-size: .78125rem;
 }
 
 html.cn #accountDetailsModal .cybernet-switch-track {
@@ -1360,12 +1360,12 @@ html.cn #accountDetailsModal .cn-account-legal-panel {
 
 html.cn #accountDetailsModal .cn-account-legal-panel h3 {
   margin: 0 0 4px;
-  font-size: 15px;
+  font-size: .9375rem;
 }
 
 html.cn #accountDetailsModal .cn-account-legal-panel p {
   color: var(--cn-text-2);
-  font-size: 13px;
+  font-size: .8125rem;
   line-height: 1.6;
 }
 
@@ -1382,7 +1382,7 @@ html.cn #accountDetailsModal .cn-account-legal-links a {
   background: transparent;
   color: var(--cn-text);
   font-family: var(--cn-font);
-  font-size: 13px;
+  font-size: .8125rem;
   font-weight: 500;
   letter-spacing: -.005em;
 }
@@ -1407,12 +1407,12 @@ html.cn #accountDetailsModal .cn-account-report-section {
 
 html.cn #accountDetailsModal .cn-account-report-heading h3 {
   margin: 0 0 4px;
-  font-size: 17px;
+  font-size: 1.0625rem;
 }
 
 html.cn #accountDetailsModal .cn-account-report-heading p {
   color: var(--cn-text-2);
-  font-size: 13px;
+  font-size: .8125rem;
 }
 
 html.cn #accountDetailsModal .cn-account-report-heading span {
@@ -1420,7 +1420,7 @@ html.cn #accountDetailsModal .cn-account-report-heading span {
   background: transparent;
   color: var(--cn-text-2);
   font-family: var(--cn-font-mono);
-  font-size: 11px;
+  font-size: .6875rem;
   font-weight: 500;
   letter-spacing: var(--cn-track-label);
 }
@@ -1429,7 +1429,7 @@ html.cn #accountDetailsModal .protect-no-cases {
   border-color: var(--cn-line-2);
   border-radius: var(--cn-r-ctl);
   color: var(--cn-text-2);
-  font-size: 14px;
+  font-size: .875rem;
 }
 
 html.cn #accountDetailsModal .protect-saved-case {
@@ -1445,7 +1445,7 @@ html.cn #accountDetailsModal .protect-danger-btn {
   padding: 0 16px;
   border-radius: var(--cn-r-pill);
   font-family: var(--cn-font);
-  font-size: 13px;
+  font-size: .8125rem;
   font-weight: 600;
 }
 
@@ -1490,7 +1490,7 @@ html.cn #cybernetHowToGetKeyModal .cybernet-howto-provider h4 {
   margin: 0 0 var(--cn-2);
   color: var(--cn-text);
   font-family: var(--cn-font);
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 600;
 }
 
@@ -1498,7 +1498,7 @@ html.cn #cybernetHowToGetKeyModal .cybernet-howto-provider ol {
   padding-inline-start: 20px;
   padding-left: 20px;
   color: var(--cn-text-2);
-  font-size: 14px;
+  font-size: .875rem;
   line-height: 1.7;
 }
 
@@ -1512,7 +1512,7 @@ html.cn #cybernetHowToGetKeyModal .cybernet-howto-note {
   padding-top: var(--cn-4);
   border-top: 1px solid var(--cn-line);
   color: var(--cn-text-2);
-  font-size: 13px;
+  font-size: .8125rem;
 }
 
 /* ---------- 12. Manage Business and the team invite ---------- */
@@ -1525,7 +1525,7 @@ html.cn #businessTeamModal .cn-team-head {
 
 html.cn #businessTeamModal .cn-team-head p {
   color: var(--cn-text-2);
-  font-size: 14px;
+  font-size: .875rem;
   line-height: 1.6;
 }
 
@@ -1537,7 +1537,7 @@ html.cn #businessTeamModal .cn-team-pending-badge {
   border-radius: var(--cn-r-pill);
   background: transparent;
   color: var(--cn-text-2);
-  font-size: 11px;
+  font-size: .6875rem;
   font-weight: 500;
   letter-spacing: var(--cn-track-label);
 }
@@ -1550,7 +1550,7 @@ html.cn #businessTeamModal .cn-team-stats {
 html.cn #businessTeamModal .cn-team-stat strong {
   color: var(--cn-text);
   font-family: var(--cn-font-mono);
-  font-size: 22px;
+  font-size: 1.375rem;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
@@ -1558,7 +1558,7 @@ html.cn #businessTeamModal .cn-team-stat strong {
 html.cn #businessTeamModal .cn-team-stat small {
   margin-top: var(--cn-2);
   color: var(--cn-text-2);
-  font-size: 12.5px;
+  font-size: .78125rem;
   line-height: 1.5;
   text-align: start;
 }
@@ -1576,13 +1576,13 @@ html.cn #businessTeamModal .cn-team-section {
 
 html.cn #businessTeamModal .cn-team-section-head h3 {
   margin: 0 0 4px;
-  font-size: 17px;
+  font-size: 1.0625rem;
 }
 
 html.cn #businessTeamModal .cn-team-section-head p,
 html.cn #businessTeamModal .cn-team-invite-note {
   color: var(--cn-text-2);
-  font-size: 13px;
+  font-size: .8125rem;
   line-height: 1.6;
 }
 
@@ -1636,7 +1636,7 @@ html.cn #businessTeamModal .cn-activity-verdict {
   border-radius: var(--cn-r-pill);
   background: var(--cn-surface-3);
   color: var(--cn-text-2);
-  font-size: 11px;
+  font-size: .6875rem;
   font-weight: 500;
   letter-spacing: var(--cn-track-label);
 }
@@ -1677,19 +1677,19 @@ html.cn #businessTeamModal .cn-activity-summary:focus-visible {
 }
 
 html.cn #businessTeamModal .cn-activity-title {
-  font-size: 14px;
+  font-size: .875rem;
 }
 
 html.cn #businessTeamModal .cn-activity-body {
   border-top-color: var(--cn-line);
   color: var(--cn-text-2);
-  font-size: 13px;
+  font-size: .8125rem;
 }
 
 html.cn #businessTeamModal .cn-activity-body strong {
   color: var(--cn-text);
   font-family: var(--cn-font-mono);
-  font-size: 11px;
+  font-size: .6875rem;
   font-weight: 500;
   letter-spacing: var(--cn-track-label);
 }
@@ -1702,7 +1702,7 @@ html.cn #businessTeamModal .cn-team-remove {
   background: var(--cn-danger-tint);
   color: var(--cn-danger);
   font-family: var(--cn-font);
-  font-size: 13px;
+  font-size: .8125rem;
   font-weight: 600;
   letter-spacing: 0;
   text-transform: none;
@@ -1733,7 +1733,7 @@ html.cn #businessTeamModal .cn-team-empty {
 
 html.cn #acceptInviteModal .cn-invite-card > p {
   color: var(--cn-text-2);
-  font-size: 15px;
+  font-size: .9375rem;
   line-height: 1.6;
 }
 
@@ -1747,7 +1747,7 @@ html.cn #acceptInviteModal .cn-invite-terms {
 
 html.cn #acceptInviteModal .cn-invite-terms li {
   color: var(--cn-text-2);
-  font-size: 14px;
+  font-size: .875rem;
   line-height: 1.6;
 }
 
@@ -1804,7 +1804,7 @@ html.cn .cn-legal-modal .cn-legal-brand img {
 
 html.cn .cn-legal-modal .cn-legal-brand strong {
   color: var(--cn-text);
-  font-size: 17px;
+  font-size: 1.0625rem;
   font-weight: 600;
   letter-spacing: -.015em;
 }
@@ -1812,7 +1812,7 @@ html.cn .cn-legal-modal .cn-legal-brand strong {
 html.cn .cn-legal-modal .cn-legal-brand small {
   color: var(--cn-text-2);
   font-family: var(--cn-font-mono);
-  font-size: 11px;
+  font-size: .6875rem;
   font-weight: 500;
   letter-spacing: var(--cn-track-label);
 }
@@ -1834,7 +1834,7 @@ html.cn .cn-legal-modal .cn-legal-tab {
   border-radius: var(--cn-r-pill);
   color: var(--cn-text-2);
   font-family: var(--cn-font);
-  font-size: 14px;
+  font-size: .875rem;
   font-weight: 500;
   letter-spacing: -.01em;
   text-transform: none;
@@ -1868,7 +1868,7 @@ html.cn .cn-legal-modal .cn-legal-dialog-foot {
 
 html.cn .cn-legal-modal .cn-legal-dialog-foot p {
   color: var(--cn-text-2);
-  font-size: 13px;
+  font-size: .8125rem;
   line-height: 1.5;
   text-align: start;
 }
@@ -1901,7 +1901,7 @@ html.cn .cn-legal-modal .cn-legal-viewer .cn-legal-section h3 {
 html.cn .cn-legal-modal .cn-legal-viewer .cn-legal-callout {
   border-color: var(--cn-line-2);
   background: var(--cn-surface-2);
-  font-size: 13px;
+  font-size: .8125rem;
 }
 
 html.cn .cn-legal-modal .cn-legal-viewer .cn-legal-data-table th,
@@ -1926,7 +1926,7 @@ html.cn .cn-legal-modal .cn-legal-done {
   background: var(--cn-cyan);
   color: var(--cn-on-cyan);
   font-family: var(--cn-font);
-  font-size: 15px;
+  font-size: .9375rem;
   font-weight: 600;
   letter-spacing: -.01em;
   text-transform: none;
@@ -1971,14 +1971,14 @@ html.cn .cn-consent {
 html.cn .cn-consent-title {
   color: var(--cn-consent-text);
   font-family: var(--cn-font);
-  font-size: 15px;
+  font-size: .9375rem;
   font-weight: 600;
   letter-spacing: -.015em;
 }
 
 html.cn .cn-consent-text {
   color: var(--cn-consent-muted);
-  font-size: 13.5px;
+  font-size: .84375rem;
   line-height: 1.5;
 }
 
@@ -1992,7 +1992,7 @@ html.cn .cn-consent-text a {
 html.cn .cn-consent-current {
   color: var(--cn-consent-muted);
   font-family: var(--cn-font);
-  font-size: 12.5px;
+  font-size: .78125rem;
   font-weight: 500;
 }
 
@@ -2010,7 +2010,7 @@ html.cn .cn-consent-btn {
   background: rgba(255, 255, 255, .06);
   color: var(--cn-consent-text);
   font-family: var(--cn-font);
-  font-size: 14px;
+  font-size: .875rem;
   font-weight: 600;
   letter-spacing: -.01em;
   transition: background-color var(--cn-dur-1) ease, border-color var(--cn-dur-1) ease;
@@ -2375,7 +2375,7 @@ html.cn .cn-consent-text a:focus-visible {
   }
 
   html.cn #howtoVideoModal .hw-summary {
-    font-size: 14px;
+    font-size: .875rem;
     line-height: 1.5;
   }
 
@@ -2519,20 +2519,20 @@ html.cn :where(.cn-legal-modal .cn-legal-tab.active):is(.cn-legal-modal .cn-lega
 /* Admin feedback inbox (public/cybernet-admin-feedback.js, Account > Feedback inbox). */
 html.cn #feedbackInboxModal > .modal-card { width: min(760px, 100%); max-height: min(90dvh, 920px); overflow: auto; }
 html.cn #feedbackInboxModal h2 { margin: 6px 0 6px; }
-html.cn .cn-fbinbox-sub { color: var(--cn-text-2); font-size: 13px; line-height: 1.6; margin: 0 0 14px; }
+html.cn .cn-fbinbox-sub { color: var(--cn-text-2); font-size: .8125rem; line-height: 1.6; margin: 0 0 14px; }
 html.cn .cn-fbinbox-filter { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 10px; }
-html.cn .cn-fbinbox-filter .secondary-btn { min-height: 36px; padding: 6px 14px; font-size: 13px; }
+html.cn .cn-fbinbox-filter .secondary-btn { min-height: 36px; padding: 6px 14px; font-size: .8125rem; }
 html.cn .cn-fbinbox-filter .secondary-btn[aria-pressed="true"] { border-color: var(--cn-cyan); color: var(--cn-cyan); background: var(--cn-cyan-tint); }
 html.cn .cn-fbinbox-status { min-height: 20px; margin: 0 0 10px; }
 html.cn .cn-fbinbox-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
 html.cn .cn-fbinbox-item { border: 1px solid var(--cn-line); border-radius: 12px; padding: 14px 16px; background: var(--cn-fill-1); }
 html.cn .cn-fbinbox-item[data-status="new"] { border-color: var(--cn-cyan-line); }
 html.cn .cn-fbinbox-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 12px; margin-bottom: 6px; color: var(--cn-text); }
-html.cn .cn-fbinbox-pill { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--cn-cyan); border: 1px solid var(--cn-cyan-line); border-radius: 999px; padding: 1px 8px; }
-html.cn .cn-fbinbox-time { margin-left: auto; color: var(--cn-text-3); font-size: 12px; }
-html.cn .cn-fbinbox-meta { color: var(--cn-text-3); font-size: 12px; line-height: 1.5; margin: 4px 0; overflow-wrap: anywhere; }
+html.cn .cn-fbinbox-pill { font-size: .6875rem; letter-spacing: .06em; text-transform: uppercase; color: var(--cn-cyan); border: 1px solid var(--cn-cyan-line); border-radius: 999px; padding: 1px 8px; }
+html.cn .cn-fbinbox-time { margin-left: auto; color: var(--cn-text-3); font-size: .75rem; }
+html.cn .cn-fbinbox-meta { color: var(--cn-text-3); font-size: .75rem; line-height: 1.5; margin: 4px 0; overflow-wrap: anywhere; }
 html.cn .cn-fbinbox-meta a { color: var(--cn-cyan); }
-html.cn .cn-fbinbox-message { color: var(--cn-text); font-size: 14px; line-height: 1.6; margin: 8px 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+html.cn .cn-fbinbox-message { color: var(--cn-text); font-size: .875rem; line-height: 1.6; margin: 8px 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 html.cn .cn-fbinbox-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-html.cn .cn-fbinbox-actions .secondary-btn, html.cn .cn-fbinbox-more { min-height: 34px; padding: 6px 12px; font-size: 13px; }
+html.cn .cn-fbinbox-actions .secondary-btn, html.cn .cn-fbinbox-more { min-height: 34px; padding: 6px 12px; font-size: .8125rem; }
 html.cn .cn-fbinbox-more { margin-top: 12px; }
