@@ -170,9 +170,8 @@ workflows:
         certificates:
           - cybernet_dist              # Apple Distribution
       vars:
-        # App 1.1 build 10 ships WITHOUT in-app purchases (plan M1 / critic #5): build-web.mjs keeps the "no purchases" app
-        # and add-share-extension.cjs leaves StoreKit out of the binary. Remove this line for the first in-app purchase build.
-        CN_NO_IAP: "1"
+        # 1.1.1 is the first in-app purchase build: CN_NO_IAP is no longer set, so the paywall and StoreKit ship.
+        # To build a "no purchases" app again, add back:  CN_NO_IAP: "1"
         XCODE_PROJECT: mobile/ios/App/App.xcodeproj
         XCODE_SCHEME: App
         BUNDLE_ID: app.cybernetai
