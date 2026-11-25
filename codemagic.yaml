@@ -161,7 +161,7 @@ workflows:
     integrations:
       app_store_connect: CyberNet ASC   # Codemagic Developer Portal integration (key name, not the key)
     environment:
-      xcode: "27.2"        # same pin as ios-simulator
+      xcode: "27.1"        # 25 Nov: the 27.2 machine pool was queued for 1h+ (Codemagic advice: switch Xcode version); 27.1 = iOS 27 SDK, released (not beta)
       node: 22
       ios_signing:
         provisioning_profiles:
