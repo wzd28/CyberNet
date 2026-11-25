@@ -30,13 +30,16 @@ html.cn body.cn-legal-page .cn-checks > li {
   margin: 0; padding: 22px 0 22px 52px; border-top: 1px solid var(--cn-line);
 }
 html.cn body.cn-legal-page .cn-checks > li:first-child { border-top: 0; padding-top: 0; }
+/* Number badge: sized so the two-digit "10" keeps 8.6-9px of room inside the ring on each side
+   (25 Nov 2026 readability fix; it sat 8px from the edge on desktop and 6.6px on phones). The top
+   offsets keep the badge centred on the first line of the heading. */
 html.cn body.cn-legal-page .cn-checks > li::before {
-  content: counter(cn-check); position: absolute; left: 0; top: 20px;
-  width: 34px; height: 34px; border-radius: 50%;
+  content: counter(cn-check); position: absolute; left: 0; top: 19px;
+  width: 36px; height: 36px; border-radius: 50%;
   border: 1px solid var(--cn-line-2); background: var(--cn-surface);
-  color: var(--cn-cyan); font: 700 15px/32px var(--cn-font-mono, monospace); text-align: center;
+  color: var(--cn-cyan); font: 700 15px/34px var(--cn-font-mono, monospace); text-align: center;
 }
-html.cn body.cn-legal-page .cn-checks > li:first-child::before { top: -2px; }
+html.cn body.cn-legal-page .cn-checks > li:first-child::before { top: -3px; }
 html.cn body.cn-legal-page .cn-checks h2 { margin: 0 0 8px; color: var(--cn-text); font: 600 20px/1.3 var(--cn-font); letter-spacing: -.01em; }
 html.cn body.cn-legal-page .cn-checks p { margin: 0; color: var(--cn-text-2); font-size: 17px; line-height: 1.6; }
 html.cn body.cn-legal-page .cn-checks p + p { margin-top: 8px; }
@@ -44,8 +47,9 @@ html.cn body.cn-legal-page .cn-checks a { color: var(--cn-cyan); overflow-wrap: 
 html.cn body.cn-legal-page .cn-checks strong { color: var(--cn-text); }
 
 @media (max-width: 420px) {
-  html.cn body.cn-legal-page .cn-checks > li { padding-left: 44px; }
-  html.cn body.cn-legal-page .cn-checks > li::before { width: 30px; height: 30px; font-size: 14px; line-height: 28px; }
+  html.cn body.cn-legal-page .cn-checks > li { padding-left: 48px; }
+  html.cn body.cn-legal-page .cn-checks > li::before { top: 18px; width: 34px; height: 34px; font-size: 14px; line-height: 32px; }
+  html.cn body.cn-legal-page .cn-checks > li:first-child::before { top: -4px; }
   html.cn body.cn-legal-page .cn-checks h2 { font-size: 18px; }
   html.cn body.cn-legal-page .cn-checks p { font-size: 16px; }
   html.cn body.cn-legal-page .cn-check-cta { display: flex; width: 100%; }
