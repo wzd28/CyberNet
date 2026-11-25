@@ -61,9 +61,12 @@ revoke all on public.profiles from anon, authenticated;
 revoke all on public.daily_usage from anon, authenticated;
 revoke all on public.scan_history from anon, authenticated;
 
-grant select on public.profiles to authenticated;
-grant select on public.daily_usage to authenticated;
-grant select on public.scan_history to authenticated;
+-- No authenticated grants (security audit Nov 2026, DB-1 / DB-11): the browser
+-- only uses supabase.auth; every read goes through a Netlify Function with the
+-- service role. The grants for every table are at the end of this file.
+revoke all on public.profiles from anon, authenticated;
+revoke all on public.daily_usage from anon, authenticated;
+revoke all on public.scan_history from anon, authenticated;
 
 drop policy if exists "Users can read their own profile"
   on public.profiles;
@@ -96,7 +99,7 @@ create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, pg_temp
 as $$
 begin
   insert into public.profiles (
@@ -107,20 +110,25 @@ begin
   )
   values (
     new.id,
-    coalesce(
-      nullif(
-        trim(
-          concat_ws(
-            ' ',
-            new.raw_user_meta_data ->> 'first_name',
-            new.raw_user_meta_data ->> 'last_name'
-          )
+    -- DB-9: the name comes from sign-up metadata the caller chooses, so
+    -- control characters are removed and it is cut to 100 characters.
+    left(regexp_replace(
+      coalesce(
+        nullif(
+          trim(
+            concat_ws(
+              ' ',
+              left(new.raw_user_meta_data ->> 'first_name', 200),
+              left(new.raw_user_meta_data ->> 'last_name', 200)
+            )
+          ),
+          ''
         ),
-        ''
+        nullif(left(new.raw_user_meta_data ->> 'full_name', 400), ''),
+        split_part(coalesce(new.email, 'User'), '@', 1)
       ),
-      nullif(new.raw_user_meta_data ->> 'full_name', ''),
-      split_part(coalesce(new.email, 'User'), '@', 1)
-    ),
+      '[[:cntrl:]]', '', 'g'
+    ), 100),
     'free',
     'inactive'
   )
@@ -366,10 +374,11 @@ revoke all on public.recovery_versions from anon, authenticated;
 revoke all on public.recovery_tasks from anon, authenticated;
 revoke all on public.recovery_usage from anon, authenticated;
 
-grant select on public.recovery_cases to authenticated;
-grant select on public.recovery_versions to authenticated;
-grant select on public.recovery_tasks to authenticated;
-grant select on public.recovery_usage to authenticated;
+-- No authenticated grants (DB-1 / DB-11); see the end of this file.
+revoke all on public.recovery_cases from anon, authenticated;
+revoke all on public.recovery_versions from anon, authenticated;
+revoke all on public.recovery_tasks from anon, authenticated;
+revoke all on public.recovery_usage from anon, authenticated;
 
 drop policy if exists "Users can read their own recovery cases"
   on public.recovery_cases;
@@ -524,7 +533,7 @@ returns table (
 )
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, pg_temp
 as $$
 declare
   v_plan text := 'free';
@@ -576,13 +585,23 @@ begin
   where user_id = p_user_id
     and window_start = v_window
     and updates_used < v_limit
+    -- DB-4: the cooldown is part of the guarded UPDATE, so parallel requests
+    -- that all passed the early check cannot each take an update.
+    and (last_update_at is null or last_update_at <= now() - v_cooldown)
   returning updates_used
   into v_used;
 
   if v_used is null then
-    select updates_used into v_used
+    select updates_used, last_update_at into v_used, v_last_update
     from public.recovery_usage
     where user_id = p_user_id and window_start = v_window;
+
+    -- Lost the race to a parallel request: the same cooldown answer as above.
+    if v_last_update is not null and now() < v_last_update + v_cooldown then
+      v_cooldown_remaining := ceil(extract(epoch from ((v_last_update + v_cooldown) - now())));
+      return query select false, coalesce(v_used, 0), v_limit, v_plan, public.recovery_next_reset(), greatest(0, v_cooldown_remaining);
+      return;
+    end if;
 
     return query select false, coalesce(v_used, 0), v_limit, v_plan, public.recovery_next_reset(), 0;
     return;
@@ -599,8 +618,8 @@ revoke all on function public.recovery_next_reset() from public, anon, authentic
 
 grant execute on function public.consume_recovery_case(uuid) to service_role;
 grant execute on function public.consume_recovery_update(uuid) to service_role;
-grant execute on function public.recovery_window_start() to service_role, authenticated;
-grant execute on function public.recovery_next_reset() to service_role, authenticated;
+grant execute on function public.recovery_window_start() to service_role;
+grant execute on function public.recovery_next_reset() to service_role;
 
 -- ═══════════════════════════════════════════════════════════════════
 -- CyberNet AI: Legal acceptance records (Terms/Privacy/Acceptable Use/
@@ -631,7 +650,7 @@ create index if not exists legal_acceptances_user_created_idx
 
 alter table public.legal_acceptances enable row level security;
 revoke all on public.legal_acceptances from anon, authenticated;
-grant select on public.legal_acceptances to authenticated;
+revoke all on public.legal_acceptances from anon, authenticated; -- DB-11
 
 -- Users can view only their own acceptance history. Inserts are performed only
 -- by the authenticated Netlify Function using the Supabase service-role key.
@@ -692,7 +711,7 @@ create table if not exists public.quickscan_usage (
 
 alter table public.quickscan_usage enable row level security;
 revoke all on public.quickscan_usage from anon, authenticated;
-grant select on public.quickscan_usage to authenticated;
+revoke all on public.quickscan_usage from anon, authenticated; -- DB-11
 
 drop policy if exists "Users can read their own Quick Scan usage" on public.quickscan_usage;
 create policy "Users can read their own Quick Scan usage"
@@ -997,7 +1016,7 @@ create or replace function public.consume_recovery_update_business(p_user_id uui
 returns table(allowed boolean, used integer, daily_limit integer, plan text, reset_at timestamptz, cooldown_seconds_remaining integer)
 language plpgsql
 security definer
-set search_path to 'public'
+set search_path = public, pg_temp
 as $$
 declare
   v_limit integer := 999;
@@ -1030,13 +1049,23 @@ begin
   where user_id = p_user_id
     and window_start = v_window
     and updates_used < v_limit
+    -- DB-4: the cooldown is part of the guarded UPDATE, so parallel requests
+    -- that all passed the early check cannot each take an update.
+    and (last_update_at is null or last_update_at <= now() - v_cooldown)
   returning updates_used
   into v_used;
 
   if v_used is null then
-    select updates_used into v_used
+    select updates_used, last_update_at into v_used, v_last_update
     from public.recovery_usage
     where user_id = p_user_id and window_start = v_window;
+
+    -- Lost the race to a parallel request: the same cooldown answer as above.
+    if v_last_update is not null and now() < v_last_update + v_cooldown then
+      v_cooldown_remaining := ceil(extract(epoch from ((v_last_update + v_cooldown) - now())));
+      return query select false, coalesce(v_used, 0), v_limit, 'business'::text, public.recovery_next_reset(), greatest(0, v_cooldown_remaining);
+      return;
+    end if;
 
     return query select false, coalesce(v_used, 0), v_limit, 'business'::text, public.recovery_next_reset(), 0;
     return;
@@ -1556,6 +1585,221 @@ $$;
 revoke all on function public.funnel_bump(text, text) from public, anon, authenticated;
 grant execute on function public.funnel_bump(text, text) to service_role;
 
+-- ---------------------------------------------------------------------------
+-- Security audit Nov 2026 (mirror of 20261124120000_security_recovery_update_cooldown.sql
+-- for the App version; the website and Business versions are updated in place
+-- above). It replaces the copy from the iOS 1.0 block above, which stays as
+-- that migration wrote it.
+-- ---------------------------------------------------------------------------
+create or replace function public.consume_recovery_update_app(
+  p_user_id uuid,
+  p_limit integer,
+  p_cooldown_seconds integer
+)
+returns table (
+  allowed boolean,
+  used integer,
+  daily_limit integer,
+  plan text,
+  reset_at timestamptz,
+  cooldown_seconds_remaining integer
+)
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_limit integer := greatest(0, least(coalesce(p_limit, 0), 1000));
+  v_cooldown interval := make_interval(secs => greatest(0, least(coalesce(p_cooldown_seconds, 0), 86400)));
+  v_used integer;
+  v_window timestamptz := public.recovery_window_start();
+  v_last_update timestamptz;
+  v_cooldown_remaining integer := 0;
+begin
+  select last_update_at into v_last_update
+  from public.recovery_usage
+  where user_id = p_user_id and window_start = v_window;
+
+  if v_last_update is not null and now() < v_last_update + v_cooldown then
+    v_cooldown_remaining := ceil(extract(epoch from ((v_last_update + v_cooldown) - now())));
+    select updates_used into v_used
+    from public.recovery_usage
+    where user_id = p_user_id and window_start = v_window;
+    return query select false, coalesce(v_used, 0), v_limit, 'app'::text, public.recovery_next_reset(), greatest(0, v_cooldown_remaining);
+    return;
+  end if;
+
+  insert into public.recovery_usage (user_id, window_start, cases_created, updates_used)
+  values (p_user_id, v_window, 0, 0)
+  on conflict (user_id, window_start) do nothing;
+
+  update public.recovery_usage
+  set updates_used = updates_used + 1, last_update_at = now(), updated_at = now()
+  where user_id = p_user_id and window_start = v_window and updates_used < v_limit
+    -- DB-4: see consume_recovery_update.
+    and (last_update_at is null or last_update_at <= now() - v_cooldown)
+  returning updates_used into v_used;
+
+  if v_used is null then
+    select updates_used, last_update_at into v_used, v_last_update
+    from public.recovery_usage
+    where user_id = p_user_id and window_start = v_window;
+    if v_last_update is not null and now() < v_last_update + v_cooldown then
+      v_cooldown_remaining := ceil(extract(epoch from ((v_last_update + v_cooldown) - now())));
+      return query select false, coalesce(v_used, 0), v_limit, 'app'::text, public.recovery_next_reset(), greatest(0, v_cooldown_remaining);
+      return;
+    end if;
+    return query select false, coalesce(v_used, 0), v_limit, 'app'::text, public.recovery_next_reset(), 0;
+    return;
+  end if;
+
+  return query select true, v_used, v_limit, 'app'::text, public.recovery_next_reset(), 0;
+end;
+$$;
+
+revoke all on function public.consume_recovery_update_app(uuid, integer, integer) from public, anon, authenticated;
+grant execute on function public.consume_recovery_update_app(uuid, integer, integer) to service_role;
+
+-- ---------------------------------------------------------------------------
+-- Security audit Nov 2026 (mirror of supabase/migrations/20261124120100_security_business_seat_guard.sql)
+-- ---------------------------------------------------------------------------
+create or replace function public.business_invite_seat_guard()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_seats integer;
+  v_taken integer;
+  v_recent integer;
+begin
+  if new.status is distinct from 'pending' then
+    return new;
+  end if;
+  perform pg_advisory_xact_lock(hashtextextended('cn_team_seats:' || new.business_account_id::text, 0));
+
+  select a.seat_tier into v_seats
+  from public.business_accounts a
+  where a.id = new.business_account_id;
+  v_seats := coalesce(v_seats, 5);
+
+  select
+    (select count(*) from public.business_members m
+      where m.business_account_id = new.business_account_id and m.status = 'active')
+    + (select count(*) from public.business_invites i
+      where i.business_account_id = new.business_account_id and i.status = 'pending' and i.expires_at > now())
+  into v_taken;
+  if v_taken >= v_seats then
+    raise exception 'Team is full (% of % seats)', v_taken, v_seats using errcode = 'P0001';
+  end if;
+
+  select count(*) into v_recent
+  from public.business_invites i
+  where i.business_account_id = new.business_account_id and i.created_at > now() - interval '24 hours';
+  if v_recent >= 30 then
+    raise exception 'Invite limit reached for today' using errcode = 'P0001';
+  end if;
+
+  return new;
+end;
+$$;
+
+create or replace function public.business_member_seat_guard()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_seats integer;
+  v_active integer;
+begin
+  if new.status is distinct from 'active' or new.role = 'owner' then
+    return new;
+  end if;
+  if tg_op = 'UPDATE' and old.status = 'active' then
+    return new;
+  end if;
+  perform pg_advisory_xact_lock(hashtextextended('cn_team_seats:' || new.business_account_id::text, 0));
+
+  select a.seat_tier into v_seats
+  from public.business_accounts a
+  where a.id = new.business_account_id;
+  v_seats := coalesce(v_seats, 5);
+
+  select count(*) into v_active
+  from public.business_members m
+  where m.business_account_id = new.business_account_id and m.status = 'active' and m.id <> new.id;
+  if v_active >= v_seats then
+    raise exception 'Team is full (% of % seats)', v_active, v_seats using errcode = 'P0001';
+  end if;
+
+  return new;
+end;
+$$;
+
+revoke all on function public.business_invite_seat_guard() from public, anon, authenticated, service_role;
+revoke all on function public.business_member_seat_guard() from public, anon, authenticated, service_role;
+
+drop trigger if exists business_invites_seat_guard on public.business_invites;
+create trigger business_invites_seat_guard
+  before insert on public.business_invites
+  for each row execute function public.business_invite_seat_guard();
+
+drop trigger if exists business_members_seat_guard on public.business_members;
+create trigger business_members_seat_guard
+  before insert or update of status on public.business_members
+  for each row execute function public.business_member_seat_guard();
+
+-- ---------------------------------------------------------------------------
+-- Security audit Nov 2026 (mirror of 20261124120200_security_signup_name_search_path.sql)
+-- ---------------------------------------------------------------------------
+revoke all on function public.handle_new_user() from public, anon, authenticated;
+grant execute on function public.handle_new_user() to service_role;
+do $$
+begin
+  if exists (select 1 from pg_roles where rolname = 'supabase_auth_admin') then
+    grant execute on function public.handle_new_user() to supabase_auth_admin;
+  end if;
+end $$;
+alter function public.consume_analysis(uuid) set search_path = public, pg_temp;
+alter function public.consume_analysis_business(uuid) set search_path = public, pg_temp;
+alter function public.consume_quickscan(uuid) set search_path = public, pg_temp;
+alter function public.consume_recovery_case(uuid) set search_path = public, pg_temp;
+alter function public.consume_recovery_case_business(uuid) set search_path = public, pg_temp;
+alter function public.consume_recovery_update(uuid) set search_path = public, pg_temp;
+alter function public.consume_recovery_update_business(uuid) set search_path = public, pg_temp;
+alter function public.refund_analysis(uuid) set search_path = public, pg_temp;
+alter function public.refund_analysis_business(uuid) set search_path = public, pg_temp;
+alter function public.get_platform_stats() set search_path = public, pg_temp;
+
+-- ---------------------------------------------------------------------------
+-- Explicit least-privilege grants for every table (mirror of section 1 of
+-- supabase/migrations/20261021135311_explicit_grants.sql; DB-11). Without
+-- these a restore on Supabase's new defaults leaves the business_* tables,
+-- api_rate_limits and checkout_debug_log without service_role access.
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  t text;
+begin
+  foreach t in array array[
+    'profiles', 'daily_usage', 'scan_history', 'quickscan_usage',
+    'legal_acceptances',
+    'recovery_cases', 'recovery_versions', 'recovery_tasks', 'recovery_usage',
+    'business_accounts', 'business_members', 'business_invites',
+    'business_daily_usage', 'business_recovery_usage',
+    'api_rate_limits', 'checkout_debug_log',
+    'ai_consents', 'feedback'
+  ] loop
+    execute format('alter table public.%I enable row level security', t);
+    execute format('revoke all on table public.%I from public, anon, authenticated, service_role', t);
+    execute format('grant select, insert, update, delete on table public.%I to service_role', t);
+  end loop;
+end $$;
+revoke all on all sequences in schema public from public, anon, authenticated;
+
 -- ===== mirror of supabase/migrations/20261121120000_apple_iap_pro.sql =====
 -- supabase/migrations/20261121120000_apple_iap_pro.sql
 -- iPhone app 1.1: Apple In-App Purchase for PRO ONLY (auto-renewable
@@ -1570,6 +1814,10 @@ grant execute on function public.funnel_bump(text, text) to service_role;
 --   supabase/migrations/20261121120000_apple_iap_pro.sql        (this file)
 --   supabase/checks/20261121120000_apple_iap_pro_smoke.sql      (read-only, after)
 --   supabase/rollback/20261121120000_apple_iap_pro_rollback.sql (only if something breaks)
+-- RUN ORDER (merge of the website lane, 25 Nov 2026): AFTER
+-- 20261124120000_security_recovery_update_cooldown.sql (its consume_recovery_update
+-- reads profiles only; this file's copy keeps its DB-4 fix and adds plan_of). If
+-- that file is ever run again after this one, run section 4 of this file again.
 -- NOTE (security audit Nov 2026): re-running THIS file puts back the old
 -- entitlement_of (Sandbox rows entitle everyone). Re-run
 -- 20261124130000_security_iap_sandbox_allowlist.sql right after it.
@@ -1766,7 +2014,7 @@ returns table (
 )
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, pg_temp
 as $$
 declare
   v_plan text := 'free';
@@ -1858,7 +2106,7 @@ returns table (
 )
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, pg_temp
 as $$
 declare
   v_plan text := 'free';
@@ -1907,6 +2155,10 @@ end;
 $$;
 
 -- consume_recovery_update: copied from supabase/schema.sql line 514 (origin/main 4576f6a)
+-- and updated with the website lane's DB-4 cooldown fix
+-- (20261124120000_security_recovery_update_cooldown.sql: the cooldown in the
+-- guarded UPDATE, the lost-race answer, search_path public, pg_temp), so this
+-- file never undoes it.
 create or replace function public.consume_recovery_update(
   p_user_id uuid
 )
@@ -1920,7 +2172,7 @@ returns table (
 )
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, pg_temp
 as $$
 declare
   v_plan text := 'free';
@@ -1972,13 +2224,23 @@ begin
   where user_id = p_user_id
     and window_start = v_window
     and updates_used < v_limit
+    -- DB-4: the cooldown is part of the guarded UPDATE, so parallel requests
+    -- that all passed the early check cannot each take an update.
+    and (last_update_at is null or last_update_at <= now() - v_cooldown)
   returning updates_used
   into v_used;
 
   if v_used is null then
-    select updates_used into v_used
+    select updates_used, last_update_at into v_used, v_last_update
     from public.recovery_usage
     where user_id = p_user_id and window_start = v_window;
+
+    -- Lost the race to a parallel request: the same cooldown answer as above.
+    if v_last_update is not null and now() < v_last_update + v_cooldown then
+      v_cooldown_remaining := ceil(extract(epoch from ((v_last_update + v_cooldown) - now())));
+      return query select false, coalesce(v_used, 0), v_limit, v_plan, public.recovery_next_reset(), greatest(0, v_cooldown_remaining);
+      return;
+    end if;
 
     return query select false, coalesce(v_used, 0), v_limit, v_plan, public.recovery_next_reset(), 0;
     return;
@@ -2000,7 +2262,7 @@ returns table (
 )
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, pg_temp
 as $$
 declare
   v_plan text := 'free';

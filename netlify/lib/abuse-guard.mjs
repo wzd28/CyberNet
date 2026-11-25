@@ -175,11 +175,6 @@ export function clientAddress(request, context) {
     direct = String(context?.ip || request.headers.get("x-nf-client-connection-ip") || "").trim();
   } catch { /* keep "" */ }
   try {
-    // SRV-8 (security audit Nov 2026): CF-Connecting-IP is only believed on
-    // the custom domain, which is the only host Cloudflare proxies to us. On
-    // the *.netlify.app hosts a request relayed through Cloudflare egress (for
-    // example someone's Worker) could choose that header, so there the
-    // connection address is used.
     const cf = String(request.headers.get("cf-connecting-ip") || "").trim();
     if (cf && direct && isCloudflareAddress(direct) && viaCustomDomain(request)) return cf.slice(0, 64);
   } catch { /* fall through */ }
@@ -237,61 +232,24 @@ export async function burstGuard(fn, { request, context, userId } = {}) {
   }
 }
 
-/* ---------- 1b. per-account AI limits (security pass, Nov 2026) ---------- */
-
-// AI-2: a per-account daily count of OpenAI calls that a refund never lowers.
-// The daily plan allowance is refunded whenever no AI answer came back, so on
-// its own it does not bound how many (billed) calls one account can cause.
-// The numbers sit far above any plan's daily allowance (Free 3-5, Pro 15, the
-// App Review account's raised 50), so
-// a real person never meets them; team pools are shared, hence the higher
-// paid number. Fails open, like every quota here.
-export const USER_AI_CALLS_PER_DAY = Object.freeze({ free: 60, paid: 400 });
-
-// true when this account may make one more OpenAI call today (and counts it).
-export async function allowUserAiCall(userId, { paid = false } = {}) {
-  if (!userId) return true;
-  try {
-    const max = paid ? USER_AI_CALLS_PER_DAY.paid : USER_AI_CALLS_PER_DAY.free;
-    const answer = await guardDeps.consume(`g:aicalls:day:${userId}`, 86400, max);
-    return !(answer && answer.allowed === false);
-  } catch {
-    return true;
-  }
-}
-
-// AI-2: refunds for a call OpenAI did answer (and bill), but whose answer was
-// unusable (cut off, refused, unparseable, timed out), are capped per account
-// per day. Real outages (no answer at all) are refunded as before.
-export const BILLED_REFUNDS_PER_DAY = 3;
-export async function allowBilledRefund(userId) {
-  if (!userId) return true;
-  try {
-    const answer = await guardDeps.consume(`g:refund:day:${userId}`, 86400, BILLED_REFUNDS_PER_DAY);
-    return !(answer && answer.allowed === false);
-  } catch {
-    return true;
-  }
-}
-
 /* ---------- 2. the global daily OpenAI ceiling ---------- */
-
-// SRV-5: Free and App-tier callers also share a sub-ceiling (this share of the
-// whole ceiling), checked first, so a farm of free accounts cannot use up the
-// AI answers paying customers rely on. The global key stays the hard bound.
-export const FREE_CEILING_SHARE = 0.65;
-export const AI_FREE_CEILING_KEY = "g:ai:calls:day:free";
 
 // true when an OpenAI call may be made now. Counts the call when it allows it.
 // allowAiCall.lastReport holds the newest alert promise, so a background
 // function (no waitUntil) can await it before it ends.
-// options.freeTier (or free, the website lane's name): the caller is on Free or
-// the App tier (see SRV-5 above).
-export async function allowAiCall(fn, context, { freeTier = false, free = false } = {}) {
+// { free: true } for Free and App-tier callers (security audit Nov 2026,
+// SRV-5): they share a sub-ceiling of 65% of the total, checked first, so a
+// farm of free accounts can no longer use up the whole day's AI calls and
+// leave paying customers on the rule engine. Paid plans keep the rest; the
+// total stays the hard bound for everyone. Fails open like the total.
+export const AI_FREE_SHARE = 0.65;
+export const AI_FREE_CEILING_KEY = "g:ai:calls:day:free";
+
+export async function allowAiCall(fn, context, { free = false } = {}) {
   const ceiling = aiCeiling();
   if (!ceiling) return true;
-  if (freeTier || free) {
-    const freeCeiling = Math.max(1, Math.floor(ceiling * FREE_CEILING_SHARE));
+  if (free) {
+    const freeCeiling = Math.max(1, Math.floor(ceiling * AI_FREE_SHARE));
     let freeAnswer = null;
     try {
       freeAnswer = await guardDeps.consume(AI_FREE_CEILING_KEY, AI_CEILING_WINDOW, freeCeiling);
@@ -300,10 +258,10 @@ export async function allowAiCall(fn, context, { freeTier = false, free = false 
     }
     if (freeAnswer && freeAnswer.allowed === false) {
       try {
-        console.error(JSON.stringify({ tag: "cn_ai_free_ceiling", fn, ceiling: freeCeiling }));
+        console.error(JSON.stringify({ tag: "cn_ai_ceiling_free", fn, ceiling: freeCeiling }));
       } catch { /* ignore */ }
-      allowAiCall.lastReport = reportError(new Error(`Free-tier AI call ceiling reached (${freeCeiling} calls in 24 hours)`), {
-        fn, label: "Free-tier AI answers paused (paid plans unaffected)", context
+      allowAiCall.lastReport = reportError(new Error(`Free AI call share reached (${freeCeiling} calls in 24 hours)`), {
+        fn, label: "Free accounts' AI share used up: free AI answers paused, paid plans unaffected", context
       });
       return false;
     }

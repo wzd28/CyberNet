@@ -3,7 +3,7 @@
   "use strict";
   const PENDING_BUSINESS_CHECKOUT = "cybernet_pending_business_checkout";
   const PENDING_INVITE = "cybernet_pending_invite";
-  const PENDING_INVITE_MAX_AGE = 7 * 24 * 60 * 60 * 1e3;
+  const PENDING_INVITE_MAX_AGE = 24 * 60 * 60 * 1e3;
   const INVITE_TOKEN_PATTERN = /^[a-f0-9]{64}$/;
   const INVITE_EMAIL_PATTERN = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)*\.[a-z0-9-]{2,}$/i;
   const STYLESHEET_VERSION = "20260927-2";

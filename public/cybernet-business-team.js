@@ -16,7 +16,9 @@
 
   const PENDING_BUSINESS_CHECKOUT = "cybernet_pending_business_checkout";
   const PENDING_INVITE = "cybernet_pending_invite";
-  const PENDING_INVITE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
+  // The server lets an invite be accepted for 24 hours (business-invite.mts INVITE_TTL_MS), so the saved
+  // copy of this bearer token is never kept longer than that (security audit Nov 2026, WEB-6; was 7 days).
+  const PENDING_INVITE_MAX_AGE = 24 * 60 * 60 * 1000;
   const INVITE_TOKEN_PATTERN = /^[a-f0-9]{64}$/;
   // The same email check as the sign-in form (script.js EMAIL_PATTERN) and business-invite.mts.
   const INVITE_EMAIL_PATTERN = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)*\.[a-z0-9-]{2,}$/i;

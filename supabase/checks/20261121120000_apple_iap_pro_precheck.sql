@@ -10,13 +10,17 @@
 -- 1) The four live bodies. Expected "matches_repo" = true on all 4 rows.
 --    If a row says false, STOP and send Claude the "definition" column of that
 --    row: production differs from the repo and the migration must be adapted.
+--    consume_recovery_update expects the body AFTER the website lane's
+--    20261124120000_security_recovery_update_cooldown.sql (DB-4). If its row
+--    shows body_md5 c80d61ead7046dd3bbfbbf2d8136d10b, that file has not been
+--    run yet: run it first, then this check again.
 select
   p.proname as function_name,
   md5(p.prosrc) as body_md5,
   md5(p.prosrc) = case p.proname
     when 'consume_analysis'        then '75716c553750569336d1c4a839e3fcba'
     when 'consume_recovery_case'   then '924170a552b5cad502fe6e7af957122e'
-    when 'consume_recovery_update' then 'c80d61ead7046dd3bbfbbf2d8136d10b'
+    when 'consume_recovery_update' then 'e1f87ce58e10b57b3e82b177113c9fc5'
     when 'consume_quickscan'       then '67afc1bf74e4d48320c37cb6719ba155'
   end as matches_repo,
   pg_get_functiondef(p.oid) as definition

@@ -176,7 +176,8 @@
   function localSnapshot() {
     const out = {};
     storageKeys(window.localStorage).forEach(key => {
-      if (!/^cybernet/i.test(key) || /(api.?key|token|secret|password)/i.test(key)) return;
+      // "invite": cybernet_pending_invite holds a Business invite token, a bearer secret (WEB-6, Nov 2026).
+      if (!/^cybernet/i.test(key) || /(api.?key|token|secret|password|invite)/i.test(key)) return;
       try { out[key] = localStorage.getItem(key); } catch { /* ignore */ }
     });
     return out;

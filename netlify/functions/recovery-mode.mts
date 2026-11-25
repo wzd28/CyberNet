@@ -8,6 +8,7 @@ import { appTierFor, consumeRecoveryCaseApp, recoveryCaseLimitMessage, appLimits
 import { aiConsentGate } from "../lib/ai-consent.mjs";
 import { burstGuard, allowAiCall, readJsonCapped } from "../lib/abuse-guard.mjs";
 import { linkOrigin } from "../lib/site-url.mjs";
+import { productionOnly } from "../lib/deploy-guard.mjs"; // INFRA-1: 404 on deploy previews and branch deploys
 
 declare const Netlify: {
   env: {
@@ -757,10 +758,9 @@ const ADMIN_EMAILS = (Netlify.env.get("ADMIN_EMAILS") || "")
   .map((value) => value.trim().toLowerCase())
   .filter(Boolean);
 
-// AI-13 / SRV-AUTH-5 (security audit Nov 2026): the bypass also needs a
-// confirmed email, so nobody can claim an admin address by signing up with it.
-function isAdminUser(user: { email?: string; email_confirmed_at?: string | null } | null): boolean {
-  return Boolean(user?.email && user.email_confirmed_at && ADMIN_EMAILS.includes(user.email.toLowerCase()));
+// The address must be confirmed too (security audit Nov 2026, SRV-AUTH-5).
+function isAdminUser(user: { email?: string; email_confirmed_at?: string | null; confirmed_at?: string | null } | null): boolean {
+  return Boolean(user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase()) && (user.email_confirmed_at || user.confirmed_at));
 }
 
 async function consumeRecoveryCase(userId: string) {
@@ -1162,7 +1162,7 @@ export type { ClassifierResult };
 
 // CORS for the iPhone app only (netlify/lib/cors.mjs); website requests pass
 // through unchanged. OPTIONS is listed so the app's preflight reaches it.
-export default withCors(handler);
+export default productionOnly(withCors(handler));
 
 export const config = {
   path: "/api/recovery-mode",

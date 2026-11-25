@@ -27,7 +27,7 @@ returns table (
 )
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, pg_temp
 as $$
 declare
   v_plan text := 'free';
@@ -123,7 +123,7 @@ returns table (
 )
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, pg_temp
 as $$
 declare
   v_plan text := 'free';
@@ -185,7 +185,7 @@ returns table (
 )
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, pg_temp
 as $$
 declare
   v_plan text := 'free';
@@ -237,13 +237,23 @@ begin
   where user_id = p_user_id
     and window_start = v_window
     and updates_used < v_limit
+    -- DB-4: the cooldown is part of the guarded UPDATE, so parallel requests
+    -- that all passed the early check cannot each take an update.
+    and (last_update_at is null or last_update_at <= now() - v_cooldown)
   returning updates_used
   into v_used;
 
   if v_used is null then
-    select updates_used into v_used
+    select updates_used, last_update_at into v_used, v_last_update
     from public.recovery_usage
     where user_id = p_user_id and window_start = v_window;
+
+    -- Lost the race to a parallel request: the same cooldown answer as above.
+    if v_last_update is not null and now() < v_last_update + v_cooldown then
+      v_cooldown_remaining := ceil(extract(epoch from ((v_last_update + v_cooldown) - now())));
+      return query select false, coalesce(v_used, 0), v_limit, v_plan, public.recovery_next_reset(), greatest(0, v_cooldown_remaining);
+      return;
+    end if;
 
     return query select false, coalesce(v_used, 0), v_limit, v_plan, public.recovery_next_reset(), 0;
     return;
@@ -265,7 +275,7 @@ returns table (
 )
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, pg_temp
 as $$
 declare
   v_plan text := 'free';

@@ -29,7 +29,7 @@ select p.proname as function_name,
        md5(p.prosrc) = case p.proname
          when 'consume_analysis'        then '24c44cf35db1d2d5a4fef2da95935c17'
          when 'consume_recovery_case'   then 'df1ac9cbdf6ab3abc6a1c9bd8d66bc53'
-         when 'consume_recovery_update' then '27270630e5b90bb259aa078a635e9512'
+         when 'consume_recovery_update' then 'b5d305637fd4c532e2c0076324d9ee07'
          when 'consume_quickscan'       then '352351f869282d60693b48f569b283b2'
        end as matches_repo
 from pg_proc p join pg_namespace n on n.oid = p.pronamespace

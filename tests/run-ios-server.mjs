@@ -366,7 +366,6 @@ for (const [token, limit] of Object.entries(EXPECT_LIMIT)) {
   check("analyze web without any consent row: unaffected", r.status === 200 && !rpcCalls("has_ai_consent").length, r.status);
   reset();
   r = await run(fn.analyze, req("/api/analyze", { token: "t-pro", ios: true, body: { mode: "investigation", caseData: { title: "x", context: "y", artifacts: [{ type: "text", content: "hello" }] } } }));
-  // SRV-AUTH-13: the session is checked before the body is read, so the only call is the sign-in check.
   check("analyze app investigation: 403, nothing called but the sign-in check", r.status === 403 && r.data.code === "NOT_AVAILABLE_IN_APP" && calls.every((c) => c.path === "/auth/v1/user") && !PLAN_WORDS.test(r.data.error), r.data);
   reset({ allowApp: false });
   r = await run(fn.analyze, req("/api/analyze", { token: "t-pro", ios: true, body: IMAGE }));
@@ -671,7 +670,8 @@ for (const [token, limit] of [["t-free", 3], ["t-pro", 3], ["t-member", 3], ["t-
   const src = (f) => readFileSync(path.join(root, "netlify/functions", f), "utf8");
   for (const f of ["account-status.mjs", "analyze.mts", "recovery-mode.mts", "recovery-update.mts", "recovery-case.mts", "privacy-data.mts", "legal-acceptance.mts", "ai-consent.mjs", "client-error.mjs", "feedback.mjs", "team-activity.mts"]) {
     const s = src(f);
-    check(`source: ${f} default export is CORS-wrapped`, /export default withCors\(handler\);/.test(s));
+    // productionOnly (lib/deploy-guard.mjs, INFRA-1) may sit outside the CORS wrapper.
+    check(`source: ${f} default export is CORS-wrapped`, /export default (?:productionOnly\()?withCors\(handler\)\)?;/.test(s));
     const methods = /method:\s*\[([^\]]*)\]/.exec(s.slice(s.indexOf("export const config")));
     check(`source: ${f} route lets OPTIONS through`, !methods || /"OPTIONS"/.test(methods[1]), methods?.[1]);
   }
@@ -680,8 +680,8 @@ for (const [token, limit] of [["t-free", 3], ["t-pro", 3], ["t-member", 3], ["t-
   }
   // the picture of a page (owner, 11 Nov 2026): the app may ask for it, for any signed-in account; the website keeps Pro/Business
   const shot = src("screenshot-preview.mjs");
-  check("source: screenshot-preview is CORS-wrapped for the app, not web-only", /export default withCors\(/.test(shot) && !/webOnly\(/.test(shot));
-  check("source: screenshot-preview skips the plan check only for app requests, and keeps the per-account caps for everyone but admins", /const fromApp = Boolean\(allowedOrigin\(request\)\);\s*if \(!isAdmin && !fromApp\) \{\s*const profile/.test(shot) && /shot:app:day/.test(shot) && /if \(!isAdmin\) \{\s*const allowed =/.test(shot));
+  check("source: screenshot-preview is CORS-wrapped for the app, not web-only", /export default (?:productionOnly\()?withCors\(/.test(shot) && !/webOnly\(/.test(shot));
+  check("source: screenshot-preview skips the plan check only for app requests, and keeps the per-account caps for everyone but admins", /const fromApp = Boolean\(allowedOrigin\(request\)\);/.test(shot) && /if \(!paid && !fromApp\) \{\s*return json\(\{ error: "Link and QR previews are a Pro feature\." \}, 403\)/.test(shot) && /shot:app:day/.test(shot) && /shot:app:user:/.test(shot) && /if \(!isAdmin\) \{\s*const allowed =/.test(shot));
   const toml = readFileSync(path.join(root, "netlify.toml"), "utf8");
   const ignore = /^\s*ignore = '([^'\n]*)'\s*$/m.exec(toml)?.[1] || "";
   check("netlify.toml: mobile-only commits skip the Netlify build", /git diff --quiet "\$CACHED_COMMIT_REF" "\$COMMIT_REF" -- public netlify netlify\.toml package\.json package-lock\.json supabase$/.test(ignore), ignore);
@@ -972,7 +972,7 @@ const plansLib = await import(pathToFileURL(path.join(root, "netlify/lib/plans.m
   reset();
   const big = new Request(`${SITE}/api/analyze`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer t-free" }, body: new ReadableStream({ start(c) { const chunk = new TextEncoder().encode("x".repeat(1_000_000)); for (let i = 0; i < 7; i++) c.enqueue(chunk); c.close(); } }), duplex: "half" });
   r = await run(fn.analyze, big);
-  check("guard analyze: a 7 MB body with no Content-Length is refused with 413, nothing called but the sign-in check", r.status === 413 && calls.every((c) => c.path === "/auth/v1/user"), { status: r.status, calls: calls.length });
+  check("guard analyze: a 7 MB body with no Content-Length is refused with 413, nothing called but the sign-in check (audit SRV-AUTH-13: sign-in first)", r.status === 413 && calls.every((c) => c.path === "/auth/v1/user"), { status: r.status, calls: calls.length });
   // Recovery Mode and updates.
   reset({ quotaDenied: "g:recovery-mode:ip" });
   r = await run(fn["recovery-mode"], req("/api/recovery-mode", { token: "t-review", ios: true, origin: APP, body: INCIDENT }));

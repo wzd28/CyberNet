@@ -1756,6 +1756,21 @@ document.addEventListener("DOMContentLoaded",()=>{
     try{go.focus()}catch{}
   }
 
+  /* Billing redirects (security audit Nov 2026, WEB-8): the checkout and portal functions only ever return
+     Stripe's own session URL, so anything other than https on Stripe, this site, or a subdomain of the site
+     (a Stripe custom checkout domain) is refused instead of followed. Exported for the account panel. */
+  function isBillingUrl(value){
+    if(typeof value!=="string"||!value)return false;
+    try{
+      const u=new URL(value,window.location.origin);
+      if(u.origin===window.location.origin)return true;
+      if(u.protocol!=="https:")return false;
+      const h=u.hostname.toLowerCase();
+      return h==="stripe.com"||h.endsWith(".stripe.com")||h==="cybernetai.app"||h.endsWith(".cybernetai.app");
+    }catch{return false}
+  }
+  window.cnIsBillingUrl=isBillingUrl;
+
   async function startCheckout(cycle="monthly",plan="pro",confirmSecondPlan=false){
     const confirmed=confirmSecondPlan===true;
     const btn=plan==="pro"?proPlanBtn:null;
@@ -1786,7 +1801,7 @@ document.addEventListener("DOMContentLoaded",()=>{
         if(["ALREADY_SUBSCRIBED","ALREADY_SUBSCRIBED_APPLE","PAYMENT_PAST_DUE","TEAM_MEMBER"].includes(data.code)){showPricingNotice(data.error);return}
       }
       if(!response.ok)throw new Error(data.error||"Stripe Checkout is not configured yet.");
-      if(!data.url)throw new Error("Stripe did not return a Checkout URL.");
+      if(!data.url||!isBillingUrl(data.url))throw new Error("Stripe did not return a Checkout URL.");
       // Lets the Manage Business panel open itself once the owner lands back
       // on the site after paying, so the first thing they see is their team.
       if(plan==="business"){try{sessionStorage.setItem("cybernet_pending_business_checkout","1")}catch{}}
@@ -1808,6 +1823,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       const response=await fetch("/api/customer-portal",{method:"POST",headers:authHeaders({"Content-Type":"application/json"})});
       const data=await response.json().catch(()=>({}));
       if(!response.ok)throw new Error(data.error||"Billing portal unavailable.");
+      if(!isBillingUrl(data.url))throw new Error("Billing portal unavailable.");
       window.location.assign(data.url);
     }catch(error){showPricingNotice(friendlyNetworkError(error)||error.message||"The billing page isn't available right now. Please try again in a moment.","error");switchPage("pricing")}
   }
@@ -1864,7 +1880,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(first&&!first.value)first.value=metadata.first_name||parts[0]||"";
     if(last&&!last.value)last.value=metadata.last_name||parts.slice(1).join(" ")||"";
     if(email&&!email.value)email.value=user?.email||"";
-    /* These hidden fields only go to the Netlify Forms fallback; the page is sent without its query or hash. */
+    /* These hidden fields were only for the Netlify Forms fallback (removed Nov 2026); nothing sends them now. */
     const page=document.getElementById("feedbackPageUrl");
     const submitted=document.getElementById("feedbackSubmittedAt");
     const browser=document.getElementById("feedbackBrowser");
@@ -2029,7 +2045,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(button)button.disabled=true;
     setFeedbackMessage("Sending your report securely…");
     /* Saved in the database by /api/feedback (netlify/functions/feedback.mjs). A 4xx answer is shown as is;
-       only when that endpoint is down does the form fall back to the Netlify Forms submission it used before. */
+       when that endpoint is down the visitor is asked to email support (no Netlify Forms fallback since Nov 2026). */
     const uiVersion=(/[?&]v=([\w.-]{1,32})/.exec(document.querySelector('script[src*="/ui/cybernet-ui.js"]')?.getAttribute("src")||"")||[])[1]||"";
     try{
       let saved=false;
@@ -2053,14 +2069,9 @@ document.addEventListener("DOMContentLoaded",()=>{
           return;
         }
       }catch(error){console.warn("CyberNet feedback endpoint unavailable",error)}
-/*@web*/      if(!saved){
-        const response=await fetch("/",{
-          method:"POST",
-          headers:{"Content-Type":"application/x-www-form-urlencoded"},
-          body:new URLSearchParams(formData).toString()
-        });
-        if(!response.ok)throw new Error(`Submission failed with ${response.status}`);
-      }/*@end-web*//*@ios if(!saved)throw new Error("Feedback endpoint unavailable"); @end-ios*/
+      // No Netlify Forms fallback any more (security audit Nov 2026, INFRA-9): it was an unauthenticated,
+      // unlimited way into the support inbox. When /api/feedback is down the visitor is told to email support.
+      if(!saved)throw new Error("Feedback endpoint unavailable");
       feedbackForm.reset();
       prefillFeedback();
       setFeedbackMessage("Thank you. Your message reached CyberNet support. If you gave an email, we will reply there.","success");
@@ -2631,7 +2642,9 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(jsQRLoader)return jsQRLoader;
     // A failed load is forgotten so the next image tries again instead of
     // reusing the rejected promise for the rest of the visit.
-    jsQRLoader=new Promise((resolve,reject)=>{const script=document.createElement("script");script.src=/*@web*/"https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"/*@end-web*//*@ios "vendor/jsQR.js" @end-ios*/;script.async=true;script.onload=()=>resolve(window.jsQR);script.onerror=()=>{script.remove();jsQRLoader=null;reject(new Error("QR decoder failed to load"))};document.head.appendChild(script)});
+    // Self-hosted (security audit Nov 2026, WEB-2/SUP-2): the same jsQR 1.4.0 file the iOS app ships,
+    // byte-identical to the npm/jsDelivr copy (public/ui/vendor/NOTICE.txt), so no CDN can swap it.
+    jsQRLoader=new Promise((resolve,reject)=>{const script=document.createElement("script");script.src=/*@web*/"/ui/vendor/jsQR-1.4.0.js"/*@end-web*//*@ios "vendor/jsQR.js" @end-ios*/;script.async=true;script.onload=()=>resolve(window.jsQR);script.onerror=()=>{script.remove();jsQRLoader=null;reject(new Error("QR decoder failed to load"))};document.head.appendChild(script)});
     return jsQRLoader;
   }
   // Fetch the QR decoder as soon as someone heads for an image upload, so the
@@ -2971,13 +2984,11 @@ document.addEventListener("DOMContentLoaded",()=>{
       const [deep]=await Promise.all([requestDeepAnalysis(type,serverContent,local,imageData,chatHistory.slice(-6)),minWait]);
       if(stopDiagnostic)stopDiagnostic();
       // A follow-up question is answered about the earlier item, so the local
-      // engine's read of the question itself has nothing to add. Security audit
-      // AI-4: unless the local engine itself warns about the new text; then it
-      // is not a plain question (injected "this is a follow-up" text), so the
-      // normal merged report with its warning is shown.
-      const localWarns=["suspicious","malicious"].includes(String(local?.verdict||""));
-      const followUp=Boolean(deep?.isFollowUp)&&!localWarns;
-      const result=followUp?{...deep,scamType:`Follow-up · ${deep.scamType}`}:mergeAnalysis(local,deep?{...deep,isFollowUp:false}:deep);
+      // engine's read of the question itself has nothing to add. Unless that
+      // read is itself a warning (security audit Nov 2026, AI-4): a scam
+      // message pretending to be a follow-up then gets the normal report.
+      const followUp=Boolean(deep?.isFollowUp)&&!["suspicious","malicious"].includes(local?.verdict);
+      const result=followUp?{...deep,scamType:`Follow-up · ${deep.scamType}`}:{...mergeAnalysis(local,deep),isFollowUp:false};
       if(type==="link")result.previewUrl=/^https?:\/\//i.test(content)?content:`https://${content}`;
       if(deep?.teamLogId)reportTeamActivity({kind:"analysis_shown",logId:deep.teamLogId,shown:{score:clamp(Math.round(result.score)),label:followUp?"FOLLOW-UP":getDanger(result.score,result).headline,threatType:result.scamType}});
       result.previewHtml=followUp?"":type==="link"?renderLinkPreview(result.previewUrl,local):type==="image"&&decodedQrForDisplay?renderQrPreview(decodedQrForDisplay,qrKind,qrResult):renderLinksFound(local.links||[]);
@@ -3391,8 +3402,10 @@ document.addEventListener("DOMContentLoaded",()=>{
     }
     if(startBtn)startBtn.addEventListener("click",startRecoveryCase);
 
-    function riskClass(risk){return `recovery-risk-${risk||"medium"}`}
-    function priorityClass(priority){return `recovery-priority-${priority||"normal"}`}
+    // Allow-listed (security audit Nov 2026, WEB-7): these go into a class attribute inside innerHTML, so a
+    // value the server failed to sanitise can never break out of it. Same fallbacks as before.
+    function riskClass(risk){return `recovery-risk-${["low","medium","high","critical"].includes(risk)?risk:"medium"}`}
+    function priorityClass(priority){return `recovery-priority-${["critical","high","normal"].includes(priority)?priority:"normal"}`}
 
     function renderActionItem(action,options={}){
       const completed=currentTasks.find(t=>t.task_key===action.id)?.status==="completed";

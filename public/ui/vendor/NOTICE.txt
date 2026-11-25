@@ -35,3 +35,11 @@ React Bits
   Technique after React Bits, MIT + Commons Clause, (c) 2026 David Haz. Re-implemented, not
   redistributed. (SplitText, ScrollReveal, Counter/CountUp, AnimatedContent, ShinyText,
   GlareHover, StarBorder, SpotlightCard and Noise are ported as vanilla code in ui-src.)
+
+jsQR-1.4.0.js
+  jsQR 1.4.0, Apache License 2.0, (c) Cosmo Wolfe. https://github.com/cozmo/jsQR
+  Loaded on demand by public/script.js (image upload / QR scan) on every device, not only desktop.
+  Self-hosted since 24 Nov 2026 (security audit: no runtime CDN load without integrity).
+  Source: https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js (byte-identical to npm jsqr@1.4.0)
+  sha384-b5Ya4Bq3qCyz39m2ISh+4DxjAIljdeFwK/BsXLuj9gugaNwAcj/ia15fxNZL9Nlx   256,885 bytes
+  Licence text: https://www.apache.org/licenses/LICENSE-2.0

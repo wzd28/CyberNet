@@ -16,6 +16,7 @@ import { burstGuard, readBodyText } from "../lib/abuse-guard.mjs";
 // Not part of the iPhone app (purchases, billing, BYOK, link previews, Business
 // management, admin): requests from the app get 403 (netlify/lib/cors.mjs).
 import { webOnly } from "../lib/cors.mjs";
+import { productionOnly } from "../lib/deploy-guard.mjs"; // INFRA-1: 404 on deploy previews and branch deploys
 
 const MAX_TEXT_CHARS = 16_000;
 const MAX_IMAGE_DATA_CHARS = 5_500_000;
@@ -334,7 +335,7 @@ async function callOpenAI({
   return normalize(parsed);
 }
 
-export default webOnly(async (request, context) => {
+export default productionOnly(webOnly(async (request, context) => {
   if (request.method !== "POST") {
     return json({ error: "Method not allowed." }, 405);
   }
@@ -517,7 +518,7 @@ export default webOnly(async (request, context) => {
       status
     );
   }
-});
+}));
 
 export const config = {
   path: "/api/byok-analyze"

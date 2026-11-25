@@ -36,7 +36,9 @@ begin
     'recovery_cases', 'recovery_versions', 'recovery_tasks', 'recovery_usage',
     'business_accounts', 'business_members', 'business_invites',
     'business_daily_usage', 'business_recovery_usage',
-    'api_rate_limits', 'checkout_debug_log'
+    'api_rate_limits', 'checkout_debug_log',
+    -- Added in the Nov 2026 audit (DB-1): created after this file was written.
+    'ai_consents', 'feedback'
   ] loop
     execute format('alter table public.%I enable row level security', t);
     execute format('revoke all on table public.%I from public, anon, authenticated, service_role', t);

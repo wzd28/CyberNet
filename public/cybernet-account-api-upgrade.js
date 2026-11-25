@@ -6,12 +6,21 @@
   const KEY_SUFFIX_STORAGE = "cybernet_openai_key_suffix";
   const ORIGINAL_FETCH = window.fetch.bind(window);
 
+  // The visitor's own OpenAI key lives only in this variable (security audit
+  // Nov 2026, AI-10): it used to be copied to sessionStorage, where any
+  // injected script could read it. After a reload the visitor connects it
+  // again (the page already calls it a temporary key). The model and the
+  // last four characters, which are not secret, stay in sessionStorage.
+  let memoryKey = "";
+  // Any copy an older version of this page left behind is removed.
+  try {
+    sessionStorage.removeItem(KEY_STORAGE);
+  } catch {
+    // Ignore browser storage failures.
+  }
+
   function getSessionKey() {
-    try {
-      return sessionStorage.getItem(KEY_STORAGE) || "";
-    } catch {
-      return "";
-    }
+    return memoryKey;
   }
 
   function getSessionModel() {
@@ -23,6 +32,7 @@
   }
 
   function clearSessionKey() {
+    memoryKey = "";
     try {
       sessionStorage.removeItem(KEY_STORAGE);
       sessionStorage.removeItem(MODEL_STORAGE);
@@ -1064,6 +1074,11 @@
           throw new Error(data.error || "Billing portal is unavailable.");
         }
 
+        // WEB-8 (security audit Nov 2026): only follow a Stripe / same-site URL (helper in script.js).
+        if (typeof window.cnIsBillingUrl === "function" && !window.cnIsBillingUrl(data.url)) {
+          throw new Error("Billing portal is unavailable.");
+        }
+
         window.location.assign(data.url);
       } catch (error) {
         setMessage(
@@ -1164,8 +1179,8 @@
           );
         }
 
+        memoryKey = apiKey;
         try {
-          sessionStorage.setItem(KEY_STORAGE, apiKey);
           sessionStorage.setItem(
             MODEL_STORAGE,
             data.model || "gpt-5-mini"

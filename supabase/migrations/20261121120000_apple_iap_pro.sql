@@ -11,6 +11,10 @@
 --   supabase/migrations/20261121120000_apple_iap_pro.sql        (this file)
 --   supabase/checks/20261121120000_apple_iap_pro_smoke.sql      (read-only, after)
 --   supabase/rollback/20261121120000_apple_iap_pro_rollback.sql (only if something breaks)
+-- RUN ORDER (merge of the website lane, 25 Nov 2026): AFTER
+-- 20261124120000_security_recovery_update_cooldown.sql (its consume_recovery_update
+-- reads profiles only; this file's copy keeps its DB-4 fix and adds plan_of). If
+-- that file is ever run again after this one, run section 4 of this file again.
 -- NOTE (security audit Nov 2026): re-running THIS file puts back the old
 -- entitlement_of (Sandbox rows entitle everyone). Re-run
 -- 20261124130000_security_iap_sandbox_allowlist.sql right after it.
@@ -207,7 +211,7 @@ returns table (
 )
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, pg_temp
 as $$
 declare
   v_plan text := 'free';
@@ -299,7 +303,7 @@ returns table (
 )
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, pg_temp
 as $$
 declare
   v_plan text := 'free';
@@ -348,6 +352,10 @@ end;
 $$;
 
 -- consume_recovery_update: copied from supabase/schema.sql line 514 (origin/main 4576f6a)
+-- and updated with the website lane's DB-4 cooldown fix
+-- (20261124120000_security_recovery_update_cooldown.sql: the cooldown in the
+-- guarded UPDATE, the lost-race answer, search_path public, pg_temp), so this
+-- file never undoes it.
 create or replace function public.consume_recovery_update(
   p_user_id uuid
 )
@@ -361,7 +369,7 @@ returns table (
 )
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, pg_temp
 as $$
 declare
   v_plan text := 'free';
@@ -413,13 +421,23 @@ begin
   where user_id = p_user_id
     and window_start = v_window
     and updates_used < v_limit
+    -- DB-4: the cooldown is part of the guarded UPDATE, so parallel requests
+    -- that all passed the early check cannot each take an update.
+    and (last_update_at is null or last_update_at <= now() - v_cooldown)
   returning updates_used
   into v_used;
 
   if v_used is null then
-    select updates_used into v_used
+    select updates_used, last_update_at into v_used, v_last_update
     from public.recovery_usage
     where user_id = p_user_id and window_start = v_window;
+
+    -- Lost the race to a parallel request: the same cooldown answer as above.
+    if v_last_update is not null and now() < v_last_update + v_cooldown then
+      v_cooldown_remaining := ceil(extract(epoch from ((v_last_update + v_cooldown) - now())));
+      return query select false, coalesce(v_used, 0), v_limit, v_plan, public.recovery_next_reset(), greatest(0, v_cooldown_remaining);
+      return;
+    end if;
 
     return query select false, coalesce(v_used, 0), v_limit, v_plan, public.recovery_next_reset(), 0;
     return;
@@ -441,7 +459,7 @@ returns table (
 )
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, pg_temp
 as $$
 declare
   v_plan text := 'free';
