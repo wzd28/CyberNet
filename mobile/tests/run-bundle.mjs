@@ -815,7 +815,7 @@ try {
         const reviewSwift = await readFile(path.join(mobile, "native", "App", "Plugins", "ReviewPromptPlugin.swift"), "utf8");
         const mainSwift = await readFile(path.join(mobile, "native", "App", "MainViewController.swift"), "utf8");
         check("Ratings prompt (native): ReviewPromptPlugin is CNReview.requestReview(), calls AppStore.requestReview(in:) on the main thread with the web view's window scene, always answers, and is registered once outside the // @iap block",
-          /jsName = "CNReview"/.test(reviewSwift) && /CAPPluginMethod\(name: "requestReview", returnType: CAPPluginReturnPromise\)/.test(reviewSwift) && /DispatchQueue\.main\.async/.test(reviewSwift) && /AppStore\.requestReview\(in: scene\)\s*call\.resolve\(\)/.test(reviewSwift) && /bridge\?\.webView\?\.window\?\.windowScene/.test(reviewSwift) && !/SKStoreReviewController\.requestReview/.test(reviewSwift)
+          /jsName = "CNReview"/.test(reviewSwift) && /CAPPluginMethod\(name: "requestReview", returnType: CAPPluginReturnPromise\)/.test(reviewSwift) && /Task \{ @MainActor in/.test(reviewSwift) && /AppStore\.requestReview\(in: scene\)\s*call\.resolve\(\)/.test(reviewSwift) && /bridge\?\.webView\?\.window\?\.windowScene/.test(reviewSwift) && !/SKStoreReviewController\.requestReview/.test(reviewSwift)
           && (mainSwift.match(/registerPluginInstance\(ReviewPromptPlugin\(\)\)/g) || []).length === 1 && mainSwift.indexOf("ReviewPromptPlugin()") < mainSwift.indexOf("// @iap"));
       }
 
