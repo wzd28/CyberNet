@@ -3,6 +3,8 @@ node_modules/
 # Every env file (security audit Nov 2026, SUP-8: a real key once sat in .env in history).
 .env
 .env.*
+# Security audit Nov 2026 (SUP-8, app lane): any other .env variant too (.envrc, .env-old); only the example is committed.
+.env*
 !.env.example
 *.log
 .DS_Store
