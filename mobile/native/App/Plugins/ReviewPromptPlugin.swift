@@ -19,7 +19,9 @@ public final class ReviewPromptPlugin: CAPPlugin, CAPBridgedPlugin {
     ]
 
     @objc func requestReview(_ call: CAPPluginCall) {
-        DispatchQueue.main.async {
+        // Task { @MainActor in } (as StoreKitPlugin.swift does): currentScene() and AppStore.requestReview(in:) are main-actor APIs,
+        // and an explicit main-actor closure compiles in every Swift language mode.
+        Task { @MainActor in
             guard let scene = self.currentScene() else {
                 call.unavailable("The rating prompt is not available right now.")
                 return
