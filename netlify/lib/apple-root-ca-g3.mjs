@@ -4,7 +4,7 @@
 // this file is secret. netlify/lib/apple-verify-jws.mjs trusts a signed message only if
 // its certificate chain ends in exactly these bytes.
 //
-// NOT EMBEDDED YET. The certificate has to be fetched from Apple:
+// EMBEDDED (25 Nov 2026). Source:
 //   https://www.apple.com/certificateauthority/AppleRootCA-G3.cer
 // Downloading needs the owner's / main session's explicit permission, so it was
 // not done when this module was written. Until it is embedded:
@@ -37,4 +37,6 @@ export const APPLE_ROOT_CA_G3_SHA256 = "63343abfb89a6a03ebb57e9b3f5fa7be7c4f5c75
 
 export const APPLE_ROOT_CA_G3_PLACEHOLDER = "NOT-EMBEDDED-YET: replace with the base64 DER of Apple Root CA - G3 (see the comment at the top of this file)";
 
-export const APPLE_ROOT_CA_G3_BASE64 = APPLE_ROOT_CA_G3_PLACEHOLDER;
+// Embedded 25 Nov 2026 (owner approved the download): fetched from apple.com/certificateauthority, 583 bytes,
+// SHA-256 matched APPLE_ROOT_CA_G3_SHA256 before embedding.
+export const APPLE_ROOT_CA_G3_BASE64 = "MIICQzCCAcmgAwIBAgIILcX8iNLFS5UwCgYIKoZIzj0EAwMwZzEbMBkGA1UEAwwSQXBwbGUgUm9vdCBDQSAtIEczMSYwJAYDVQQLDB1BcHBsZSBDZXJ0aWZpY2F0aW9uIEF1dGhvcml0eTETMBEGA1UECgwKQXBwbGUgSW5jLjELMAkGA1UEBhMCVVMwHhcNMTQwNDMwMTgxOTA2WhcNMzkwNDMwMTgxOTA2WjBnMRswGQYDVQQDDBJBcHBsZSBSb290IENBIC0gRzMxJjAkBgNVBAsMHUFwcGxlIENlcnRpZmljYXRpb24gQXV0aG9yaXR5MRMwEQYDVQQKDApBcHBsZSBJbmMuMQswCQYDVQQGEwJVUzB2MBAGByqGSM49AgEGBSuBBAAiA2IABJjpLz1AcqTtkyJygRMc3RCV8cWjTnHcFBbZDuWmBSp3ZHtfTjjTuxxEtX/1H7YyYl3J6YRbTzBPEVoA/VhYDKX1DyxNB0cTddqXl5dvMVztK517IDvYuVTZXpmkOlEKMaNCMEAwHQYDVR0OBBYEFLuw3qFYM4iapIqZ3r6966/ayySrMA8GA1UdEwEB/wQFMAMBAf8wDgYDVR0PAQH/BAQDAgEGMAoGCCqGSM49BAMDA2gAMGUCMQCD6cHEFl4aXTQY2e3v9GwOAEZLuN+yRhHFD/3meoyhpmvOwgPUnPWTxnS4at+qIxUCMG1mihDK1A3UT82NQz60imOlM27jbdoXt2QfyFMm+YhidDkLF1vLUagM6BgD56KyKA==";

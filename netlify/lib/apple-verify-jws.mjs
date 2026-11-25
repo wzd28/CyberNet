@@ -79,7 +79,8 @@ function verifierFor(environment) {
 }
 
 export function rootConfigured() {
-  return Boolean(testRoots || embeddedRoots());
+  // an empty test list stands for "no root configured" (tests of the fail-closed path once the real root is embedded)
+  return Boolean((testRoots && testRoots.length) || (!testRoots && embeddedRoots()));
 }
 
 // First thing every verify call does: without the root nothing can be judged,

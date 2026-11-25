@@ -204,7 +204,8 @@ const hdr = (obj) => new Request("https://x.test", { headers: obj });
 check("isIapBuild needs Plans: 1 and IAP: 1 from the app", cors.isIapBuild(hdr(IAP)) && !cors.isIapBuild(hdr({ "X-CyberNet-Platform": "ios", "X-CyberNet-IAP": "1" })) &&
   !cors.isIapBuild(hdr({ "X-CyberNet-Plans": "1", "X-CyberNet-IAP": "1" })) && !cors.isIapBuild(hdr({ ...IAP, "X-CyberNet-IAP": "2" })));
 
-// ── fail closed without the root ──
+// ── fail closed without the root (an empty trusted list stands in for a missing root now that the real one is embedded) ──
+jws.setTrustedRootsForTests([]);
 let r = await verify("t-a", "launch", [{ jws: "a.b.c" }]);
 check("root not configured: apple-verify 503 apple_not_configured", r.status === 503 && r.data.code === "apple_not_configured", r);
 r = await notify(signJws(makeChain(), notificationPayload({ type: "TEST", uuid: "dddddddd-0000-4000-8000-000000000000", chain: makeChain() })));
