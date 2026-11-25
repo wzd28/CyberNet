@@ -1,6 +1,6 @@
 {
   "name": "cybernet-ai-ios",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "private": true,
   "description": "CyberNet AI iPhone app (Capacitor 8, SPM). Separate from the website's root dependencies; Netlify never installs this folder.",
   "scripts": {

@@ -819,6 +819,21 @@ try {
           && (mainSwift.match(/registerPluginInstance\(ReviewPromptPlugin\(\)\)/g) || []).length === 1 && mainSwift.indexOf("ReviewPromptPlugin()") < mainSwift.indexOf("// @iap"));
       }
 
+      // ---- Version 1.1.1: the app, its bundle and the App Store "What's New" text agree
+      {
+        const mobilePkg = JSON.parse(await readFile(path.join(mobile, "package.json"), "utf8"));
+        const lock = JSON.parse(await readFile(path.join(mobile, "package-lock.json"), "utf8"));
+        const boot = await read("ios/cn-ios-boot.js");
+        const pbx = await readFile(path.join(mobile, "ios", "App", "App.xcodeproj", "project.pbxproj"), "utf8");
+        const versions = [...pbx.matchAll(/MARKETING_VERSION = ([^;]+);/g)].map(m => m[1]);
+        check("Version: mobile/package.json and its lock say 1.1.1; the bundle's boot script sends it; every MARKETING_VERSION (app and Share Extension) is 1.1.1",
+          mobilePkg.version === "1.1.1" && lock.version === "1.1.1" && lock.packages[""].version === "1.1.1" && boot.includes('var VERSION="1.1.1"') && versions.length === 4 && versions.every(v => v === "1.1.1"), [mobilePkg.version, lock.version, versions]);
+        const notes = await readFile(path.join(mobile, "RELEASE-NOTES-1.1.1.md"), "utf8").catch(() => "");
+        const whatsNew = (notes.split("```")[1] || "").trim();
+        check("Version: RELEASE-NOTES-1.1.1.md has a What's New text under 4,000 characters with no price, plan or word the gate refuses",
+          whatsNew.length > 100 && whatsNew.length < 4000 && wordHits(whatsNew).length === 0 && !/\$|\bplans?\b|price|purchase|subscri/i.test(whatsNew), [whatsNew.length, wordHits(whatsNew)]);
+      }
+
       // ---- Account name (app 1.1.1): a Sign in with Apple account showed the email's first part (the profile is made before the app
       // has Apple's name). The Account tab shows the account's own name instead, refreshes after saving it, and offers "Add your name".
       {
